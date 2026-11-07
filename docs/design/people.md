@@ -30,7 +30,18 @@ Most schedules below give a window split into parts with weights, for example "0
 
 All draws use the tower's seeded RNG (TM-7). A probability "p%" means one RNG draw that succeeds with chance p/100.
 
-### 1.2 The daily plan
+### 1.2 Draw order within a step
+
+Several things can need random draws in the same engine step. The engine makes them in this fixed order, so the same seed and commands always consume the RNG in the same sequence:
+
+1. Events that happen at the step's clock time, in this order: the 00:00 plans (section 1.3 below), the 00:00 customer counts and appearance times, the 03:00 night move, the hourly prospect rolls, the 12:00 VIP booking and hotel booking rolls.
+2. Within one of those events, units are processed in increasing unit id and people in increasing person id.
+3. Then every person with something due at this step, in increasing person id. All the draws of one person finish before the next person starts.
+4. Several draws for one subject follow the order in which the rule's text gives them.
+
+A person or unit created during the step is processed at the end of its phase, after the ones that already existed, in creation order. A draw is never made twice for the same subject in the same step.
+
+### 1.3 The daily plan
 
 At 00:00 every day the engine draws a daily plan for each person who has one (office workers, residents, hotel guests whose stay continues that day), in increasing person id. A plan is a short list of timed intentions such as "leave for work at 08:14" or "go shopping at 15:02". Person ids are assigned in creation order and never reused, so the same seed and the same player commands always give the same plans.
 
@@ -49,7 +60,7 @@ Design call: plans are drawn once a day instead of rolling a chance at every ste
 | Cinema audience | `audience` | cinema | up to the show cap, section 12 | no | same |
 | Party guest | `partyGuest` | party hall | up to 50 a day, section 13 | no | same |
 | Maid | `maid` | housekeeping | 6 per housekeeping unit | no | stairs and service elevators only |
-| Security guard | `guard` | security office | 6 per security office | no | all, including service elevators |
+| Security guard | `guard` | security office | 6 per security office | no | stairs, escalators, standard and express elevators |
 | VIP | `vip` | VIP event (TM-15) | 1 | yes, as a hotel guest | same as hotel guests |
 | Wedding guest | `weddingGuest` | cathedral | 40 per wedding attempt | no | same as hotel guests |
 | Prospect | `prospect` | vacant office, shop or condo | 1 per successful roll, section 18 | no | same as hotel guests |
@@ -324,7 +335,7 @@ A party hall placed after 12:00 gets no guests that day.
 
 ## 14. Security guards
 
-Six guards per security office. Guards are on duty in their office all day, every day. They do not commute and do not move outside events. They are not counted in population and their stress is not recorded. When a bomb or fire event starts, TM-15 sends them out and brings them back. Guards may use every kind of transport, including service elevators.
+Six guards per security office. Guards are on duty in their office all day, every day. They do not commute and do not move outside events. They are not counted in population and their stress is not recorded. When a bomb or fire event starts, TM-15 sends them out and brings them back. Guards use the same transport as office workers. They do not use service elevators, which are only for housekeeping staff (construction spec 5.5).
 
 ## 15. Wedding guests
 
@@ -534,7 +545,7 @@ P-28. The VIP arrives at the street entrance at 17:00 to 19:00 50%, 19:00 to 21:
 
 P-29. Maids appear in their housekeeping unit at 09:30 and leave the simulation at 17:00. They start cleanings only from 10:00 and before 16:00. A cleaning takes 180 steps from the maid's arrival at the room, after which the room is "Limpia".
 
-P-30. Maids only use floors, stairs and service elevators.
+P-30. Maids only use floors, stairs and service elevators. Service elevators carry no one else, guards included.
 
 ### Customers
 
@@ -575,3 +586,9 @@ P-42. At each whole hour from 08:00 to 18:00, each vacant office (weekdays only)
 P-43. A prospect who reaches a unit that is still vacant moves the tenant in at that step, which starts the lease or sale (economy E-10, E-24). A prospect with no route leaves and the unit keeps waiting. A unit with no route from the street never gets a tenant.
 
 P-44. A condo's prospect becomes resident 1 and the other 2 residents appear in the condo at the same step. Office and shop prospects leave the tower after the move-in.
+
+### Draw order
+
+P-45. Draws made in the same step happen in this order: step events (00:00 plans, 00:00 customer counts and appearance times, 03:00 night move, hourly prospect rolls, 12:00 VIP booking, 12:00 hotel booking rolls), then people with something due. Units go in increasing unit id and people in increasing person id. A person's draws all finish before the next person's start. Subjects created during the step go last in their phase, in creation order.
+
+P-46. Guards use stairs, escalators, standard elevators and express elevators. They never use service elevators.
