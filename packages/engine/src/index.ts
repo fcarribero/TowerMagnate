@@ -5,6 +5,7 @@ export { chance, createRng, nextFloat, nextInt, nextUint32 } from './rng';
 export { createTower, SCHEMA_VERSION } from './state';
 export { createEngine, runDays, step } from './step';
 export type {
+  CommandContext,
   CommandEvent,
   CommandHandler,
   CommandHandlers,

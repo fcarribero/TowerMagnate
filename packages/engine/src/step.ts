@@ -22,6 +22,11 @@ export interface StepContext {
   events: EngineEvent[];
 }
 
+/** What a command handler may change: only the working copy of the tower. */
+export interface CommandContext {
+  state: TowerState;
+}
+
 type WithoutCommandStamp<E> = E extends EngineEvent ? Omit<E, 'step' | 'commandId'> : never;
 
 /** An event a command handler reports; the pipeline adds the step and the command id. */
@@ -36,7 +41,7 @@ export type CommandOutcome =
  * network, so a handler checks the shape of every field before trusting it.
  */
 export type CommandHandler<K extends CommandType> = (
-  context: StepContext,
+  context: CommandContext,
   command: Extract<Command, { type: K }>,
 ) => CommandOutcome;
 
@@ -55,7 +60,7 @@ export interface Engine {
   runDays(state: TowerState, days: number): StepResult;
 }
 
-type AnyCommandHandler = (context: StepContext, command: Command) => CommandOutcome;
+type AnyCommandHandler = (context: CommandContext, command: Command) => CommandOutcome;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
@@ -86,7 +91,7 @@ export function createEngine(rules: EngineRules): Engine {
       return { id, ok: false, step: currentStep, error: 'INVALID_COMMAND' };
     }
 
-    const draft: StepContext = { state: structuredClone(context.state), events: [] };
+    const draft: CommandContext = { state: structuredClone(context.state) };
     const outcome = handler(draft, command);
     if (!outcome.ok) {
       return { id, ok: false, step: currentStep, error: outcome.error };
