@@ -1,0 +1,76 @@
+{
+  "cues": [
+    {
+      "id": "elevator-ding",
+      "trigger": "elevator.arrive",
+      "description": "An elevator car stops at a floor and opens its doors.",
+      "volume": 0.7
+    },
+    {
+      "id": "elevator-move",
+      "trigger": "elevator.travel",
+      "description": "Loops while an elevator car in view is moving between floors.",
+      "volume": 0.4
+    },
+    {
+      "id": "construction",
+      "trigger": "build.place",
+      "description": "The player places a floor, unit, stairs or elevator shaft.",
+      "volume": 0.8
+    },
+    {
+      "id": "demolition",
+      "trigger": "build.demolish",
+      "description": "The player demolishes something with the bulldozer tool.",
+      "volume": 0.8
+    },
+    {
+      "id": "cash-register",
+      "trigger": "money.income",
+      "description": "Rent, a lease payment or a sale is collected.",
+      "volume": 0.6
+    },
+    {
+      "id": "notification",
+      "trigger": "notice.show",
+      "description": "A new notice or news line appears in the bottom bar.",
+      "volume": 0.7
+    },
+    {
+      "id": "bomb-alarm",
+      "trigger": "event.bomb",
+      "description": "A bomb threat starts and its decision window opens.",
+      "volume": 1
+    },
+    {
+      "id": "fire-alarm",
+      "trigger": "event.fire",
+      "description": "A fire starts and its decision window opens.",
+      "volume": 1
+    },
+    {
+      "id": "wedding-bells",
+      "trigger": "event.wedding",
+      "description": "The cathedral wedding completes and the tower reaches the top rank.",
+      "volume": 1
+    },
+    {
+      "id": "hotel-newspaper",
+      "trigger": "hotel.morning",
+      "description": "Morning check of the hotel: guests wake up and newspapers are delivered.",
+      "volume": 0.6
+    },
+    {
+      "id": "lobby-ambience",
+      "trigger": "ambience.lobby",
+      "description": "Loops while a lobby floor is visible on screen.",
+      "volume": 0.5
+    },
+    {
+      "id": "ui-click",
+      "trigger": "ui.click",
+      "description": "The player presses a toolbar button or a window button.",
+      "volume": 0.5
+    }
+  ]
+}
