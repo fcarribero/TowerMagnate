@@ -63,6 +63,31 @@ describe('structure group', () => {
     expect(night.get(3, 4)).toBe(colorIndex('lamp-glow'));
   });
 
+  it('draws soil strata as wide tiles one level tall', () => {
+    for (const subject of ['ground', 'dirt', 'clay', 'dirt-deep', 'bedrock']) {
+      expect(sprites[`structure/${subject}/day`].width, subject).toBe(32);
+      expect(sprites[`structure/${subject}/day`].height, subject).toBe(metrics.floorHeight);
+    }
+  });
+
+  it('draws the subway tunnel one tile wide with rails and a lit lamp', () => {
+    for (const subject of ['subway-tunnel', 'subway-tunnel-lamp']) {
+      expect(sprites[`structure/${subject}/day`].width).toBe(metrics.tileWidth);
+      expect(sprites[`structure/${subject}/day`].height).toBe(metrics.floorHeight);
+    }
+    expect(sprites['structure/subway-tunnel/day'].get(0, 24)).toBe(colorIndex('silver'));
+    expect(sprites['structure/subway-tunnel-lamp/night'].get(3, 5)).toBe(colorIndex('lamp'));
+    expect(sprites['structure/subway-tunnel/day'].pixels.includes(colorIndex('lamp'))).toBe(false);
+  });
+
+  it('lights the hovered ruler plate in lamp, day and night', () => {
+    const plateCentre = [10, 15];
+    expect(sprites['structure/ruler/day'].get(...plateCentre)).toBe(colorIndex('cloud'));
+    expect(sprites['structure/ruler-hover/day'].get(...plateCentre)).toBe(colorIndex('lamp'));
+    expect(sprites['structure/ruler-hover/night'].get(...plateCentre)).toBe(colorIndex('lamp'));
+    expect(sprites['structure/ruler/day'].height).toBe(metrics.floorHeight);
+  });
+
   it('fills the whole tile on every opaque structure sprite', () => {
     for (const [id, tile] of Object.entries(sprites)) {
       expect(tile.pixels.includes(0), id).toBe(false);

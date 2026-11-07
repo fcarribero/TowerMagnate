@@ -214,6 +214,117 @@ function deepDirt() {
   return tile;
 }
 
+// Middle strata, S4 to S6: packed clay with broken streaks that run sideways.
+function clay() {
+  const tile = new PixelCanvas(SOIL_TILE_WIDTH, floorHeight);
+  tile.fillRect(0, 0, tile.width, tile.height, 'wood');
+  for (let y = 1; y < tile.height; y += 5) {
+    const color = pixelNoise(0, y, 41) < 0.6 ? 'wood-dark' : 'wood-light';
+    for (let x = 0; x < tile.width; x++) {
+      if (pixelNoise(Math.floor(x / 3), y, 42) < 0.55) {
+        tile.set(x, y, color);
+      }
+    }
+  }
+  speckle(tile, 0, 'wood-dark', 0.07, 43);
+  scatterStones(tile, 0, 2, 44);
+  return tile;
+}
+
+function drawCrack(tile, left, top, length, seed) {
+  let x = left;
+  for (let y = top; y < top + length; y++) {
+    tile.set(x, y, 'ink');
+    x += pixelNoise(x, y, seed) < 0.5 ? 0 : 1;
+  }
+}
+
+// The rock under the soil, S9: slate beds with wavy seams and thin cracks.
+function bedrock() {
+  const tile = new PixelCanvas(SOIL_TILE_WIDTH, floorHeight);
+  tile.fillRect(0, 0, tile.width, tile.height, 'slate');
+  for (const seamTop of [3, 13, 24]) {
+    for (let x = 0; x < tile.width; x++) {
+      const y = seamTop + Math.round(2 * Math.sin((x / tile.width) * 2 * Math.PI + seamTop));
+      tile.set(x, y, 'charcoal');
+      tile.set(x, y + 1, 'gray');
+    }
+  }
+  speckle(tile, 0, 'charcoal', 0.07, 51);
+  speckle(tile, 0, 'gray', 0.03, 52);
+  drawCrack(tile, 6, 6, 6, 53);
+  drawCrack(tile, 21, 16, 7, 54);
+  return tile;
+}
+
+function drawTunnelLining(tile) {
+  tile.hline(0, 0, tileWidth, 'charcoal');
+  tile.hline(0, 1, tileWidth, 'concrete-light');
+  tile.hline(0, 2, tileWidth, 'concrete');
+  tile.hline(0, 3, tileWidth, 'concrete-dark');
+}
+
+function drawTunnelWall(tile) {
+  tile.fillRect(0, 4, tileWidth, 19, 'slate');
+  tile.vline(tileWidth - 1, 4, 19, 'charcoal');
+  tile.hline(0, 4, tileWidth, 'charcoal');
+  tile.hline(0, 12, tileWidth - 1, 'gray');
+  tile.hline(0, 13, tileWidth, 'charcoal');
+}
+
+function drawTrack(tile) {
+  tile.hline(0, 23, tileWidth, 'charcoal');
+  tile.hline(0, 24, tileWidth, 'silver');
+  tile.hline(0, 25, tileWidth, 'gray');
+  tile.fillRect(0, 26, 6, 1, 'wood-dark');
+  tile.fillRect(6, 26, 2, 1, 'slate');
+  for (let x = 0; x < tileWidth; x++) {
+    tile.set(x, 27, pixelNoise(x, 27, 61) < 0.5 ? 'gray' : 'slate');
+    tile.set(x, 28, pixelNoise(x, 28, 61) < 0.3 ? 'gray' : 'slate');
+  }
+}
+
+// One column of the S10 subway tunnel. It is lit day and night; with `lamp`,
+// a wall lamp hangs under the ceiling (the client places one every few tiles).
+function subwayTunnel({ lamp }) {
+  const tile = new PixelCanvas(tileWidth, floorHeight);
+  drawTunnelLining(tile);
+  drawTunnelWall(tile);
+  drawTrack(tile);
+  drawSlab(tile, ['concrete', 'concrete-dark']);
+  if (lamp) {
+    tile.hline(2, 4, 4, 'gray');
+    tile.hline(2, 5, 4, 'lamp');
+    tile.hline(3, 6, 2, 'lamp-glow');
+  }
+  return tile;
+}
+
+const RULER_WIDTH = 24;
+const PLATE = { left: 2, top: 10, width: 18, height: 11 };
+
+// One level of the level ruler on the left edge of the view. The client writes
+// the label ("12", "S3") in ink on the plate; `hovered` lights the plate up.
+function ruler({ hovered }) {
+  const tile = new PixelCanvas(RULER_WIDTH, floorHeight);
+  const slabTop = slabTopOf(tile);
+  tile.fillRect(0, 0, RULER_WIDTH, floorHeight, 'charcoal');
+  tile.vline(0, 0, floorHeight, 'slate');
+  tile.vline(RULER_WIDTH - 1, 0, floorHeight, 'ink');
+  tile.hline(RULER_WIDTH - 6, slabTop, 5, 'silver');
+  tile.hline(RULER_WIDTH - 3, Math.floor(slabTop / 2), 2, 'gray');
+  tile.hline(0, floorHeight - 1, RULER_WIDTH - 1, 'ink');
+
+  const { left, top, width, height } = PLATE;
+  tile.fillRect(left, top, width, height, hovered ? 'lamp' : 'cloud');
+  tile.hline(left, top, width, hovered ? 'lamp-glow' : 'white');
+  tile.vline(left, top, height, hovered ? 'lamp-glow' : 'white');
+  tile.hline(left, top + height - 1, width, hovered ? 'dusk' : 'silver');
+  tile.vline(left + width - 1, top, height, hovered ? 'dusk' : 'silver');
+  tile.strokeRect(left - 1, top - 1, width + 2, height + 2, 'ink');
+  return tile;
+}
+
 function wallEdge(colorsLeftToRight, jointColor) {
   const tile = new PixelCanvas(EDGE_WIDTH, floorHeight);
   colorsLeftToRight.forEach((color, x) => tile.vline(x, 0, floorHeight, color));
@@ -258,6 +369,12 @@ const subjects = [
   { subject: 'ground', draw: ground },
   { subject: 'dirt', draw: dirt },
   { subject: 'dirt-deep', draw: deepDirt },
+  { subject: 'clay', draw: clay },
+  { subject: 'bedrock', draw: bedrock },
+  { subject: 'subway-tunnel', draw: () => subwayTunnel({ lamp: false }) },
+  { subject: 'subway-tunnel-lamp', draw: () => subwayTunnel({ lamp: true }) },
+  { subject: 'ruler', draw: () => ruler({ hovered: false }) },
+  { subject: 'ruler-hover', draw: () => ruler({ hovered: true }) },
   {
     subject: 'edge-left',
     draw: () => wallEdge(['ink', 'concrete-light', 'concrete'], 'concrete-dark'),

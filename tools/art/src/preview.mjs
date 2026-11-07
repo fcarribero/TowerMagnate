@@ -5,7 +5,22 @@ const SCENE_TILES = 24;
 const TOWER_FIRST_TILE = 6;
 const TOWER_TILES = 12;
 const COLUMN_EVERY = 4;
-const LEVEL_ROWS = 11;
+const LEVEL_ROWS = 17;
+const FIRST_BASEMENT_ROW = 7;
+const TUNNEL_LAMP_EVERY = 4;
+
+// Soil subject for basement levels S1 to S9; S10 is the subway tunnel.
+const SOIL_BY_BASEMENT = [
+  'ground',
+  'dirt',
+  'dirt',
+  'clay',
+  'clay',
+  'clay',
+  'dirt-deep',
+  'dirt-deep',
+  'bedrock',
+];
 const GAP = 4;
 
 function tileAcross(scene, sprite, top) {
@@ -21,14 +36,15 @@ function eachTowerTile(callback) {
 }
 
 // A small cross-section with every structure sprite in place: sky, a tower
-// with a sky lobby, a bare floor and a two-floor lobby, then basement and soil.
+// with a sky lobby, a bare floor and a two-floor lobby, then basement, soil
+// strata down to the S10 subway tunnel, and the level ruler on the left.
 export function drawStructureScene(sprites, time) {
   const sprite = (id) => sprites[id];
   const floor = metrics.floorHeight;
   const scene = new PixelCanvas(SCENE_TILES * metrics.tileWidth, LEVEL_ROWS * floor);
   const towerLeft = TOWER_FIRST_TILE * metrics.tileWidth;
   const towerRight = towerLeft + TOWER_TILES * metrics.tileWidth;
-  const groundY = 7 * floor;
+  const groundY = FIRST_BASEMENT_ROW * floor;
   const skyTime = time === 'dusk' ? 'dusk' : time;
   const unitTime = time === 'night' ? 'night' : 'day';
 
@@ -46,10 +62,18 @@ export function drawStructureScene(sprites, time) {
   tileAcross(scene, hills, groundY - hills.height);
   tileAcross(scene, skyline, groundY - skyline.height);
 
-  tileAcross(scene, sprite(`structure/ground/${unitTime}`), groundY);
-  tileAcross(scene, sprite(`structure/dirt/${unitTime}`), 8 * floor);
-  tileAcross(scene, sprite(`structure/dirt/${unitTime}`), 9 * floor);
-  tileAcross(scene, sprite(`structure/dirt-deep/${unitTime}`), 10 * floor);
+  SOIL_BY_BASEMENT.forEach((subject, index) => {
+    tileAcross(scene, sprite(`structure/${subject}/${unitTime}`), groundY + index * floor);
+  });
+  const tunnelY = groundY + SOIL_BY_BASEMENT.length * floor;
+  for (let tile = 0; tile < SCENE_TILES; tile++) {
+    const lamp = tile % TUNNEL_LAMP_EVERY === 2 ? '-lamp' : '';
+    scene.stamp(
+      sprite(`structure/subway-tunnel${lamp}/${unitTime}`),
+      tile * metrics.tileWidth,
+      tunnelY,
+    );
+  }
 
   scene.stamp(sprite(`structure/roof-left/${unitTime}`), towerLeft - 3, 3 * floor - 4);
   eachTowerTile((tile, x) => scene.stamp(sprite(`structure/roof/${unitTime}`), x, 3 * floor - 4));
@@ -71,6 +95,12 @@ export function drawStructureScene(sprites, time) {
   for (let row = 7; row < 9; row++) {
     scene.stamp(sprite(`structure/basement-edge-left/${unitTime}`), towerLeft - 3, row * floor);
     scene.stamp(sprite(`structure/basement-edge-right/${unitTime}`), towerRight, row * floor);
+  }
+
+  const hoveredRow = 6;
+  for (let row = 0; row < LEVEL_ROWS; row++) {
+    const hover = row === hoveredRow ? '-hover' : '';
+    scene.stamp(sprite(`structure/ruler${hover}/${unitTime}`), 0, row * floor);
   }
   return scene;
 }

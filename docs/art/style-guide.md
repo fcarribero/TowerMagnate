@@ -150,6 +150,21 @@ Structure sprites are in `tools/art/src/groups/structure.mjs`. Each one has a `d
 | `edge-left`, `edge-right` | 3 x 32 | outer wall, drawn just outside the first and last column of each floor |
 | `basement-edge-left`, `basement-edge-right` | 3 x 32 | retaining wall beside basement levels |
 | `roof`, `roof-left`, `roof-right` | 8 x 4, 3 x 4 | parapet above the top floor of each column, and its two corners |
+| `clay` | 32 x 32 | packed clay for the middle soil levels |
+| `bedrock` | 32 x 32 | rock above the subway tunnel |
+| `subway-tunnel`, `subway-tunnel-lamp` | 8 x 32 | one column of the S10 tunnel; place the lamp column every 4 tiles |
+| `ruler`, `ruler-hover` | 24 x 32 | one level of the level ruler; the client writes the label in ink on the plate, and the hovered level uses `ruler-hover` |
+
+Unbuilt soil uses one subject per basement level:
+
+| Level | Subject |
+|---|---|
+| S1 | `ground` |
+| S2, S3 | `dirt` |
+| S4 to S6 | `clay` |
+| S7, S8 | `dirt-deep` |
+| S9 | `bedrock` |
+| S10 | `subway-tunnel` across the whole site |
 
 Sky sprites are in `tools/art/src/groups/sky.mjs`. The times are `day`, `dusk` (sunrise and sunset) and `night`.
 
