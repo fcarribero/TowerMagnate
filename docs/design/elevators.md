@@ -61,7 +61,7 @@ A rider who boards at an Opening step and rides `n` floors without an intermedia
 
 Each intermediate stop adds `1 + d + 1` steps (5 with the default dwell).
 
-Design call on speed: the GDD visual goal is a standard car crossing 30 floors in about 4 real seconds and an express about 3 times faster. One floor a step gives 30 floors of motion in 30 steps, 3.1 real seconds, and 3.5 to 3.6 seconds from boarding to getting off once doors and the default dwell are counted. Two steps a floor would give 6.3 seconds, too slow for the goal. The express at exactly 3 floors a step matches the routing cost of 3 per express floor (routing section 6). Whole floors per step keep car positions on whole levels at every step, so stops never need rounding.
+Design call on speed: the GDD visual goal is a standard car crossing 30 floors in about 4 real seconds and an express about 3 times faster. One floor a step gives 30 floors of motion in 30 steps, 3.1 real seconds, and 3.5 to 3.6 seconds from boarding to getting off once doors and the default dwell are counted. Two steps a floor would give 6.3 seconds, too slow for the goal. The express at exactly 3 floors a step is close to the routing costs of 8 per standard floor and 3 per express floor, a ratio of 2.7 (routing section 6). Whole floors per step keep car positions on whole levels at every step, so stops never need rounding.
 
 ### 2.5 Capacity
 
@@ -136,7 +136,7 @@ The lobby stop of a shaft is its lowest enabled stop at level 1 or higher. A sha
 
 The first car of a new shaft has the lobby stop as its home and starts there, Idle. A car added with `addCar` starts at its home, Idle. The home must be an enabled stop.
 
-`configureShaft` replaces stops, homes and schedule together, at the start of the next step, as every command (tech doc). It is free and works at any balance (construction C-56). It fails with `INVALID_SCHEDULE` when a stop is outside the range, there are no stops, `carHomes` does not have one entry per car, a home is not in the new stops, a day type does not have exactly 6 bands, a dwell is not one of 0, 10, 20, 30, 40, 50 or 60, or a response distance is not a whole number from 1 to 99. A stop on an express shaft outside the express levels fails with `EXPRESS_STOP_NOT_ALLOWED` (construction C-38). An `addCar` whose home is not an enabled stop fails with `INVALID_SCHEDULE`, checked after the construction checks. An unknown shaft fails with `UNKNOWN_ENTITY`.
+`configureShaft` replaces stops, homes and schedule together, at the start of the next step, as every command (tech doc). It is free and works at any balance (construction C-56). It fails with `INVALID_SCHEDULE` when a stop is outside the range, there are no stops, `carHomes` does not have one entry per car, a home is not in the new stops, a day type does not have exactly 6 bands, a dwell is not one of 0, 10, 20, 30, 40, 50 or 60, or a response distance is not a whole number from 1 to 99. A stop on an express shaft outside the express levels fails with `EXPRESS_STOP_NOT_ALLOWED` (construction C-38). An `addCar` whose home is not an enabled stop fails with `INVALID_SCHEDULE`, checked after the construction checks. An unknown shaft fails with `UNKNOWN_ENTITY`. When one command breaks several of these rules, the checks run in this order and the first failure is the result: `UNKNOWN_ENTITY`, then `EXPRESS_STOP_NOT_ALLOWED`, then `INVALID_SCHEDULE`. A stop outside the range on an express shaft that is also not an express level therefore fails with `EXPRESS_STOP_NOT_ALLOWED`.
 
 ## 6. Dispatch
 
@@ -326,11 +326,11 @@ Standard shaft s2, levels 1 to 20, car 0 and car 1, both with home 1. Car 1 is f
 - Same step, dispatch: car 0 is at level 1, so it is not a coming car, and it is full. Car 1 is free at distance 2 and gets the call. It reaches level 1 two steps later, opens in the step after, and boards q22 to q25 and anyone who joined behind them.
 - q26 joins at level 1 while car 0 is Dwelling. Car 0 is full, so q26 waits for car 1.
 
-Later, car 0 opens at level 10 going up with 21 riders, 4 of them going to 10. They get off (load 17). Riders still have destinations above 10, so the car keeps going up. The up queue at 10 holds r1 to r6: r1 to r4 board (load 21) and r5 and r6 stay. The car leaves full, so the call (14, up) that was assigned to it is unassigned again. The car stops at 14 only if a rider is going there.
+Later, car 0 opens at level 6 going up and 4 riders get off (load 17). Nobody waits at 6, so it leaves with room, and in a later pass it is a coming car for the new call (14, up) and gets it. At level 10, 4 more riders get off (load 13). Riders still have destinations above 10, so the car keeps going up. The up queue at 10 holds r1 to r10: r1 to r8 board (load 21) and r9 and r10 stay. The car leaves full, so it drops the call (14, up), which goes back into the next pass unassigned. The car stops at 14 only if a rider is going there.
 
 ### 13.4 Express up in the morning
 
-Same shaft s2, weekday 08:00, band 2 set to `expressUp` with response distance 5. Car 0 is moving up and is at level 4 at the end of step t, with 21 riders going to 6, 9, 15 and 20. Car 1 is Idle at level 1. At step t, person p3 joins the up queue at level 7.
+Same shaft s2, weekday 08:00, band 2 set to `expressUp` with response distance 5. Car 0 is moving up and is at level 4 at the end of step t, with 12 riders going to 6, 9, 15 and 20, so it has room. Car 1 is Idle at level 1. At step t, person p3 joins the up queue at level 7.
 
 - Step t, dispatch: car 0 moves up toward 7 but carries riders, and 7 is above the lobby stop (level 1), so it is not a coming car. Car 1 is free at distance 6, more than 5, and car 0 is not free. The call stays unassigned.
 - Car 0 reaches 6 in step t + 2, opens at t + 3, dwells t + 4 to t + 6, closes at t + 7 and passes level 7 in step t + 8 without stopping.
@@ -449,7 +449,7 @@ EL-23. Trimming a range removes the stops outside it, moves homes on removed lev
 
 EL-24. `configureShaft` fails with `INVALID_SCHEDULE` for a stop outside the range, no stops, a wrong number of homes, a home that is not a stop, a day type without exactly 6 bands, a dwell outside {0, 10, 20, 30, 40, 50, 60} or a response distance outside 1 to 99.
 
-EL-25. `configureShaft` with a stop outside the express levels on an express shaft fails with `EXPRESS_STOP_NOT_ALLOWED`.
+EL-25. `configureShaft` with a stop outside the express levels on an express shaft fails with `EXPRESS_STOP_NOT_ALLOWED`. When a command breaks more than one rule, the result is the first failing check in this order: `UNKNOWN_ENTITY`, `EXPRESS_STOP_NOT_ALLOWED`, `INVALID_SCHEDULE`.
 
 EL-26. `addCar` with a home that is not an enabled stop fails with `INVALID_SCHEDULE`, after the construction checks.
 
