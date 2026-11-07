@@ -1,10 +1,8 @@
 import { Assets, type Spritesheet, type Texture } from 'pixi.js';
+import { ATLAS_NAMES } from './atlasManifest';
 import { SpriteRegistry, createPlaceholderTexture } from './spriteRegistry';
 
-/** Atlases written by `pnpm art:build` to `assets/atlases`, which Vite serves from the site root. */
-export const ATLAS_NAMES = ['sky', 'structure'] as const;
-
-export type AtlasName = (typeof ATLAS_NAMES)[number];
+export { ATLAS_NAMES, type AtlasName } from './atlasManifest';
 
 export interface LoadedSheet {
   textures: Record<string, Texture>;
@@ -20,7 +18,7 @@ function loadWithPixi(url: string): Promise<LoadedSheet> {
   return Assets.load<Spritesheet>(url);
 }
 
-/** Loads every atlas in parallel and resolves only when all of them are registered. */
+/** Loads every atlas that `pnpm art:build` wrote to `assets/atlases`, in parallel, and resolves only when all of them are registered. */
 export async function loadSprites(
   load: SheetLoader = loadWithPixi,
   registry = new SpriteRegistry(createPlaceholderTexture()),
