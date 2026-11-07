@@ -1,5 +1,6 @@
 import type { Ledger } from './ledger';
 import type { Level } from './levels';
+import type { DecisionKind } from './protocol/primitives';
 import type { PersonPool } from './people';
 import type { PriceLevel, UnitType } from './units';
 
@@ -82,13 +83,66 @@ export interface TowerState {
   grid: GridState;
   people: PersonPool;
   ledger: Ledger;
+  /** At most one bomb threat or fire at a time. */
+  activeEvents: ActiveEvent[];
+  /** Ids of the last CLOSED_DECISIONS_KEPT closed decisions, newest last. */
+  closedDecisions: EventId[];
+  /** Basement levels that have already given treasure. */
+  treasureLevels: Level[];
 }
 
+/** Id of a tower event, such as `e7`. */
+export type EventId = string;
+
+export interface Decision {
+  openStep: number;
+  deadlineStep: number;
+  /** Dialog order, default last. */
+  options: string[];
+  defaultChoice: string;
+  /** Null while the decision is open. */
+  choice: string | null;
+}
+
+export interface BombThreat {
+  kind: 'bomb';
+  id: EventId;
+  decision: Decision;
+  ransom: number;
+}
+
+export interface Fire {
+  kind: 'fire';
+  id: EventId;
+  decision: Decision;
+  startStep: number;
+}
+
+export type ActiveEvent = BombThreat | Fire;
+
 /** Events caused by a player command carry that command's id. */
-export type EngineEvent = {
-  type: 'unitRenamed';
-  step: number;
-  commandId: string;
-  unitId: UnitId;
-  name: string | null;
-};
+export type EngineEvent =
+  | {
+      type: 'unitRenamed';
+      step: number;
+      commandId: string;
+      unitId: UnitId;
+      name: string | null;
+    }
+  | {
+      type: 'decisionOpened';
+      step: number;
+      eventId: EventId;
+      kind: DecisionKind;
+      deadlineStep: number;
+      options: string[];
+    }
+  | { type: 'decisionClosed'; step: number; eventId: EventId; choice: string }
+  | {
+      type: 'decisionClosed';
+      step: number;
+      commandId: string;
+      eventId: EventId;
+      choice: string;
+    }
+  | { type: 'news'; step: number; key: 'news.decisionDefault'; eventId: EventId; choice: string };
