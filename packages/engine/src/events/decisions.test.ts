@@ -6,6 +6,7 @@ import {
   type TowerState,
 } from '@tower-magnate/shared';
 import { describe, expect, it } from 'vitest';
+import { hashState } from '../hash';
 import { createTower } from '../state';
 import { step, type StepContext } from '../step';
 import { endDisaster, openBombThreat, openFire } from './decisions';
@@ -299,5 +300,22 @@ describe('closed decisions', () => {
     expect(step(state, [answer(oldest ?? '', 'burn')], 0).results[0]).toMatchObject({
       error: 'UNKNOWN_ENTITY',
     });
+  });
+});
+
+describe('determinism', () => {
+  it('gives the same ids, events and state for the same seed and commands', () => {
+    function play() {
+      const tower = createTower(42);
+      const context = withContext(tower);
+      const fire = opened(openFire(context));
+      const answered = step(tower, [answer(fire.id, 'helicopter')], 10);
+      endDisaster(withContext(answered.state), fire.id);
+      const bomb = opened(openBombThreat(withContext(answered.state), RANSOM));
+      const run = step(answered.state, [], DECISION_DEADLINE_STEPS);
+      return { ids: [fire.id, bomb.id], events: run.events, hash: hashState(run.state) };
+    }
+    expect(play()).toEqual(play());
+    expect(play().ids).toEqual(['e1', 'e2']);
   });
 });
