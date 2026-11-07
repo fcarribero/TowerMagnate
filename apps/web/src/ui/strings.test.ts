@@ -1,10 +1,11 @@
-import { UNIT_CATALOG, UNIT_IDS, type ErrorCode } from '@tower-magnate/shared';
+import { UNIT_CATALOG, UNIT_TYPES, type ErrorCode } from '@tower-magnate/shared';
 import { describe, expect, it } from 'vitest';
 import { errorText, hasString, stringKeys, t } from './strings';
 
 // Typed as a full record so a new ErrorCode in shared fails the typecheck until it is listed here.
 const ERROR_CODES: Readonly<Record<ErrorCode, true>> = {
   INVALID_COMMAND: true,
+  NOT_PRICED: true,
   NEGATIVE_BALANCE: true,
   INSUFFICIENT_FUNDS: true,
   STAR_LOCKED: true,
@@ -96,10 +97,10 @@ describe('strings', () => {
   });
 
   it('has a unit text equal to the catalog name for every unit', () => {
-    for (const unitId of UNIT_IDS) {
-      const key = `unit.${unitId}`;
+    for (const unitType of UNIT_TYPES) {
+      const key = `unit.${unitType}`;
       expect(hasString(key), key).toBe(true);
-      expect(hasString(key) && t(key)).toBe(UNIT_CATALOG[unitId].name);
+      expect(hasString(key) && t(key)).toBe(UNIT_CATALOG[unitType].name);
     }
   });
 
