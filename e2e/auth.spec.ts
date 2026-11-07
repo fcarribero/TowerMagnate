@@ -62,3 +62,26 @@ test('a taken username and bad fields get messages under their fields', async ({
   await page.getByRole('button', { name: 'Crear cuenta' }).click();
   await expect(page.getByText('Ese usuario ya existe. Probá con otro.')).toBeVisible();
 });
+
+test('a short username and a short password get their messages and stay on the form', async ({
+  page,
+}) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: '¿No tenés cuenta? Creá una' }).click();
+
+  const username = page.getByLabel('Usuario');
+  const password = page.getByLabel('Contraseña', { exact: true });
+  await username.fill('ab');
+  await password.fill('abcdefg');
+  await page.getByLabel('Repetir contraseña').fill('abcdefg');
+  await page.getByRole('button', { name: 'Crear cuenta' }).click();
+
+  await expect(username).toHaveAttribute('aria-invalid', 'true');
+  await expect(username).toHaveAccessibleDescription(
+    /El usuario lleva de 3 a 20 caracteres: letras minúsculas, números o _\./,
+  );
+  await expect(password).toHaveAttribute('aria-invalid', 'true');
+  await expect(password).toHaveAccessibleDescription(/La contraseña lleva al menos 8 caracteres\./);
+  await expect(page.getByLabel('Repetir contraseña')).toHaveAttribute('aria-invalid', 'false');
+  await expect(canvas(page)).toHaveCount(0);
+});
