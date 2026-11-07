@@ -1,0 +1,27 @@
+import preact from '@preact/preset-vite';
+import { defineConfig, loadEnv } from 'vite';
+
+const DEFAULT_SERVER_URL = 'http://localhost:3000';
+const DEFAULT_WEB_PORT = 5173;
+
+export default defineConfig(({ mode }) => {
+  const env = loadEnv(mode, process.cwd(), '');
+  const serverUrl = env.TM_SERVER_URL || DEFAULT_SERVER_URL;
+  const webPort = Number(env.TM_WEB_PORT) || DEFAULT_WEB_PORT;
+
+  return {
+    plugins: [preact()],
+    server: {
+      port: webPort,
+      strictPort: true,
+      proxy: {
+        '/api': { target: serverUrl, changeOrigin: true },
+        '/ws': { target: serverUrl, changeOrigin: true, ws: true },
+      },
+    },
+    build: {
+      outDir: 'dist',
+      emptyOutDir: true,
+    },
+  };
+});
