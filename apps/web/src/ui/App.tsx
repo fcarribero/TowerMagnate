@@ -2,6 +2,7 @@ import type { StarRating } from '@tower-magnate/shared';
 import { useEffect, useMemo, useState } from 'preact/hooks';
 import { pageTitle } from '../index';
 import { TowerContentStore } from '../model/towerContent';
+import { useGameConnection } from '../net/useGameConnection';
 import { placeholderTowerContent } from '../render/placeholderTower';
 import type { Stage } from '../render/stage';
 import { isMapToggleKey } from './keys';
@@ -16,6 +17,7 @@ import { useUiScale } from './uiScale';
 
 export function App() {
   const { tooSmall } = useUiScale();
+  const { status: connectionStatus } = useGameConnection();
   const content = useMemo(() => {
     const store = new TowerContentStore();
     store.applySnapshot(placeholderTowerContent());
@@ -52,7 +54,7 @@ export function App() {
       <StageHost onStage={setStage} />
       <div class="ui-layer">
         <div class="status-panel">
-          {t('ui.serverOffline')}
+          {connectionStatus !== 'live' && t('ui.serverOffline')}
           <button type="button" class="status-button" onClick={toggleMap}>
             Mapa
           </button>
