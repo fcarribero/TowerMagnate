@@ -8,6 +8,7 @@ import type { Stage } from '../render/stage';
 import { isMapToggleKey } from './keys';
 import { StageHost } from './StageHost';
 import './kit';
+import { GameMenu } from './menu/GameMenu';
 import { t } from './strings';
 import { debugStarsFromQuery } from './toolbar/debugStars';
 import { Toolbar } from './toolbar/Toolbar';
@@ -59,6 +60,7 @@ export function App() {
       <StageHost onStage={setStage} />
       <div class="ui-layer" onClick={onUiClick}>
         <div class="status-panel">
+          <GameMenu />
           {t('ui.serverOffline')}
           <button type="button" class="status-button" onClick={toggleMap}>
             Mapa

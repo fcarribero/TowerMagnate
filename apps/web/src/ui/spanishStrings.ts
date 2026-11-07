@@ -65,6 +65,7 @@ export const SPANISH_STRINGS = {
   'ui.zoomOut': 'Alejar',
   'ui.soundOn': 'Sonido: sí',
   'ui.soundOff': 'Sonido: no',
+  'ui.volume': 'Volumen',
   'ui.newTower': 'Empezar una torre nueva',
   'ui.logout': 'Cerrar sesión',
   'ui.viewportTooSmall': 'Agrandá la ventana del navegador para jugar.',
