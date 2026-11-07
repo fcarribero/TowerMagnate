@@ -1,4 +1,18 @@
 export { SECONDS_PER_DAY, SECONDS_PER_STEP, STEPS_PER_DAY } from './clock';
+export {
+  addOccupant,
+  cellsWithoutStructure,
+  clearStructure,
+  createGrid,
+  isSpanFree,
+  levelError,
+  occupantAt,
+  overlappingOccupants,
+  removeOccupant,
+  setStructure,
+  spanError,
+  structureAt,
+} from './grid';
 export { hashState } from './hash';
 export { migrateState, StateMigrationError } from './migrations';
 export { chance, createRng, nextFloat, nextInt, nextUint32 } from './rng';
