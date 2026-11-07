@@ -5,6 +5,8 @@ export interface ServerConfig {
   port: number;
   databaseUrl: string;
   logLevel: LogLevel;
+  /** Set in production, where the server also serves the built web client. */
+  webDir?: string;
 }
 
 const DEFAULT_HOST = '0.0.0.0';
@@ -30,6 +32,7 @@ export function readConfig(env: NodeJS.ProcessEnv): ServerConfig {
     port: readPort(env.PORT),
     databaseUrl,
     logLevel: readLogLevel(env.LOG_LEVEL),
+    webDir: env.WEB_DIR || undefined,
   };
 }
 

@@ -8,6 +8,7 @@ const app = buildApp({
   version: readServerVersion(),
   databaseUrl: config.databaseUrl,
   logger: { level: config.logLevel },
+  webDir: config.webDir,
 });
 
 installShutdownHandlers(app);

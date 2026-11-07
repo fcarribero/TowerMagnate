@@ -1,11 +1,14 @@
 import Fastify, { type FastifyInstance, type FastifyServerOptions } from 'fastify';
 import { createPool, pingDatabase } from './database';
 import { checkHealth } from './health';
+import { registerWebStatics } from './webStatics';
 
 export interface AppOptions {
   version: string;
   databaseUrl: string;
   logger?: FastifyServerOptions['logger'];
+  /** Folder with the built web client. Without it the server only answers the API. */
+  webDir?: string;
 }
 
 export function buildApp(options: AppOptions): FastifyInstance {
@@ -21,6 +24,10 @@ export function buildApp(options: AppOptions): FastifyInstance {
       const report = await checkHealth(options.version, () => pingDatabase(pool));
       return reply.code(report.status === 'ok' ? 200 : 503).send(report);
     });
+  }
+
+  if (options.webDir !== undefined) {
+    registerWebStatics(app, options.webDir);
   }
 
   return app;
