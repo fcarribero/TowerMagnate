@@ -1,0 +1,316 @@
+{
+  "frames": {
+    "transport/express-car/closed": {
+      "frame": {
+        "x": 116,
+        "y": 1,
+        "w": 40,
+        "h": 27
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 40,
+        "h": 27
+      },
+      "sourceSize": {
+        "w": 40,
+        "h": 27
+      }
+    },
+    "transport/express-car/open": {
+      "frame": {
+        "x": 157,
+        "y": 1,
+        "w": 40,
+        "h": 27
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 40,
+        "h": 27
+      },
+      "sourceSize": {
+        "w": 40,
+        "h": 27
+      }
+    },
+    "transport/express-shaft/body": {
+      "frame": {
+        "x": 1,
+        "y": 1,
+        "w": 48,
+        "h": 32
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 48,
+        "h": 32
+      },
+      "sourceSize": {
+        "w": 48,
+        "h": 32
+      }
+    },
+    "transport/express-shaft/bottom": {
+      "frame": {
+        "x": 413,
+        "y": 1,
+        "w": 48,
+        "h": 6
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 48,
+        "h": 6
+      },
+      "sourceSize": {
+        "w": 48,
+        "h": 6
+      }
+    },
+    "transport/express-shaft/top": {
+      "frame": {
+        "x": 298,
+        "y": 1,
+        "w": 48,
+        "h": 12
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 48,
+        "h": 12
+      },
+      "sourceSize": {
+        "w": 48,
+        "h": 12
+      }
+    },
+    "transport/service-car/closed": {
+      "frame": {
+        "x": 198,
+        "y": 1,
+        "w": 24,
+        "h": 27
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 27
+      },
+      "sourceSize": {
+        "w": 24,
+        "h": 27
+      }
+    },
+    "transport/service-car/open": {
+      "frame": {
+        "x": 223,
+        "y": 1,
+        "w": 24,
+        "h": 27
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 27
+      },
+      "sourceSize": {
+        "w": 24,
+        "h": 27
+      }
+    },
+    "transport/service-shaft/body": {
+      "frame": {
+        "x": 50,
+        "y": 1,
+        "w": 32,
+        "h": 32
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 32,
+        "h": 32
+      },
+      "sourceSize": {
+        "w": 32,
+        "h": 32
+      }
+    },
+    "transport/service-shaft/bottom": {
+      "frame": {
+        "x": 462,
+        "y": 1,
+        "w": 32,
+        "h": 6
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 32,
+        "h": 6
+      },
+      "sourceSize": {
+        "w": 32,
+        "h": 6
+      }
+    },
+    "transport/service-shaft/top": {
+      "frame": {
+        "x": 347,
+        "y": 1,
+        "w": 32,
+        "h": 12
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 32,
+        "h": 12
+      },
+      "sourceSize": {
+        "w": 32,
+        "h": 12
+      }
+    },
+    "transport/standard-car/closed": {
+      "frame": {
+        "x": 248,
+        "y": 1,
+        "w": 24,
+        "h": 27
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 27
+      },
+      "sourceSize": {
+        "w": 24,
+        "h": 27
+      }
+    },
+    "transport/standard-car/open": {
+      "frame": {
+        "x": 273,
+        "y": 1,
+        "w": 24,
+        "h": 27
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 27
+      },
+      "sourceSize": {
+        "w": 24,
+        "h": 27
+      }
+    },
+    "transport/standard-shaft/body": {
+      "frame": {
+        "x": 83,
+        "y": 1,
+        "w": 32,
+        "h": 32
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 32,
+        "h": 32
+      },
+      "sourceSize": {
+        "w": 32,
+        "h": 32
+      }
+    },
+    "transport/standard-shaft/bottom": {
+      "frame": {
+        "x": 495,
+        "y": 1,
+        "w": 32,
+        "h": 6
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 32,
+        "h": 6
+      },
+      "sourceSize": {
+        "w": 32,
+        "h": 6
+      }
+    },
+    "transport/standard-shaft/top": {
+      "frame": {
+        "x": 380,
+        "y": 1,
+        "w": 32,
+        "h": 12
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 32,
+        "h": 12
+      },
+      "sourceSize": {
+        "w": 32,
+        "h": 12
+      }
+    }
+  },
+  "animations": {},
+  "meta": {
+    "app": "@tower-magnate/art",
+    "version": "1",
+    "image": "transport.png",
+    "format": "RGBA8888",
+    "size": {
+      "w": 528,
+      "h": 34
+    },
+    "scale": 1
+  }
+}

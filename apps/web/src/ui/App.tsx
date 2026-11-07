@@ -13,10 +13,12 @@ import { debugStarsFromQuery } from './toolbar/debugStars';
 import { Toolbar } from './toolbar/Toolbar';
 import { DEFAULT_LOBBY_HEIGHT, DEFAULT_TOOL, type ToolId } from './toolbar/toolbarModel';
 import { TowerMapWindow } from './TowerMapWindow';
-import { useUiScale } from './uiScale';
 
-export function App() {
-  const { tooSmall } = useUiScale();
+export interface AppProps {
+  onLogout: () => void;
+}
+
+export function App({ onLogout }: AppProps) {
   const content = useMemo(() => {
     const store = new TowerContentStore();
     store.applySnapshot(placeholderTowerContent());
@@ -50,10 +52,6 @@ export function App() {
     return () => window.removeEventListener('keydown', onKeyDown);
   }, []);
 
-  if (tooSmall) {
-    return <p class="viewport-too-small">{t('ui.viewportTooSmall')}</p>;
-  }
-
   return (
     <>
       <StageHost onStage={setStage} />
@@ -62,6 +60,9 @@ export function App() {
           {t('ui.serverOffline')}
           <button type="button" class="status-button" onClick={toggleMap}>
             Mapa
+          </button>
+          <button type="button" class="status-button" onClick={onLogout}>
+            {t('ui.logout')}
           </button>
         </div>
         <Toolbar
