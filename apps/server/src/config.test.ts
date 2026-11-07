@@ -12,6 +12,7 @@ describe('readConfig', () => {
       databaseUrl,
       logLevel: 'debug',
       migrateOnStart: true,
+      secureCookies: false,
     });
   });
 
@@ -22,6 +23,7 @@ describe('readConfig', () => {
       databaseUrl,
       logLevel: 'info',
       migrateOnStart: true,
+      secureCookies: false,
     });
   });
 
@@ -59,6 +61,20 @@ describe('readConfig', () => {
   it('rejects a MIGRATE_ON_START that is not a boolean', () => {
     expect(() => readConfig({ DATABASE_URL: databaseUrl, MIGRATE_ON_START: 'yes' })).toThrow(
       'MIGRATE_ON_START',
+    );
+  });
+
+  it('marks cookies secure only in production unless told otherwise', () => {
+    expect(readConfig({ DATABASE_URL: databaseUrl }).secureCookies).toBe(false);
+    expect(readConfig({ DATABASE_URL: databaseUrl, NODE_ENV: 'production' }).secureCookies).toBe(
+      true,
+    );
+    expect(
+      readConfig({ DATABASE_URL: databaseUrl, NODE_ENV: 'production', SECURE_COOKIES: 'false' })
+        .secureCookies,
+    ).toBe(false);
+    expect(() => readConfig({ DATABASE_URL: databaseUrl, SECURE_COOKIES: 'on' })).toThrow(
+      'SECURE_COOKIES',
     );
   });
 });
