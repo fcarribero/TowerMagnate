@@ -4,11 +4,13 @@
       "id": "elevator-ding",
       "trigger": "elevator.arrive",
       "description": "An elevator car stops at a floor and opens its doors.",
-      "volume": 0.7
+      "volume": 0.7,
+      "minIntervalMs": 500
     },
     {
       "id": "elevator-move",
       "trigger": "elevator.travel",
+      "stopTrigger": "elevator.travel.end",
       "description": "Loops while an elevator car in view is moving between floors.",
       "volume": 0.4
     },
@@ -28,31 +30,37 @@
       "id": "cash-register",
       "trigger": "money.income",
       "description": "Rent, a lease payment or a sale is collected.",
-      "volume": 0.6
+      "volume": 0.6,
+      "minIntervalMs": 1000
     },
     {
       "id": "notification",
       "trigger": "notice.show",
-      "description": "A new notice or news line appears in the bottom bar.",
-      "volume": 0.7
+      "description": "A notice appears on the news line, except the bomb and fire alerts.",
+      "volume": 0.7,
+      "minIntervalMs": 1000
     },
     {
       "id": "bomb-alarm",
       "trigger": "event.bomb",
-      "description": "A bomb threat starts and its decision window opens.",
-      "volume": 1
+      "stopTrigger": "event.bomb.end",
+      "description": "Loops from the bomb decision opening until it closes or the threat ends.",
+      "volume": 0.8,
+      "duckOthers": 0.5
     },
     {
       "id": "fire-alarm",
       "trigger": "event.fire",
-      "description": "A fire starts and its decision window opens.",
-      "volume": 1
+      "stopTrigger": "event.fire.end",
+      "description": "Loops from the fire start until its decision closes or the fire ends.",
+      "volume": 0.8,
+      "duckOthers": 0.5
     },
     {
       "id": "wedding-bells",
       "trigger": "event.wedding",
-      "description": "The cathedral wedding completes and the tower reaches the top rank.",
-      "volume": 1
+      "description": "Once per wedding, when the procession reaches the cathedral.",
+      "volume": 0.9
     },
     {
       "id": "hotel-newspaper",
@@ -63,6 +71,7 @@
     {
       "id": "lobby-ambience",
       "trigger": "ambience.lobby",
+      "stopTrigger": "ambience.lobby.end",
       "description": "Loops while a lobby floor is visible on screen.",
       "volume": 0.5
     },

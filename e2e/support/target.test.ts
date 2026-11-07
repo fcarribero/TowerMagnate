@@ -15,6 +15,7 @@ describe('resolveE2eTarget', () => {
       baseUrl: 'http://localhost:4302',
       startsStack: true,
       composeEnv: {
+        COMPOSE_PROFILES: 'dev',
         COMPOSE_PROJECT_NAME: 'tm-e2e',
         POSTGRES_PORT: '4300',
         SERVER_PORT: '4301',
@@ -27,5 +28,6 @@ describe('resolveE2eTarget', () => {
     const target = resolveE2eTarget({ PORT_BASE: '4130', COMPOSE_PROJECT_NAME: 'tm-bp' });
     expect(target.baseUrl).toBe('http://localhost:4132');
     expect(target.composeEnv.COMPOSE_PROJECT_NAME).toBe('tm-bp');
+    expect(target.composeEnv.COMPOSE_PROFILES).toBe('dev');
   });
 });

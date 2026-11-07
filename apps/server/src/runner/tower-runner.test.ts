@@ -183,6 +183,71 @@ describe('tower runner', () => {
     expect(stepOf('2')).toBe(9);
   });
 
+  it('saves a running tower up to date and keeps it running', async () => {
+    await runner.resume('1');
+    clock += 10 * SECOND;
+
+    await runner.save('1');
+
+    expect(store.saves).toEqual([{ towerId: '1', step: 96 }]);
+    expect(runner.isRunning('1')).toBe(true);
+  });
+
+  it('saves every running tower and reports a failed save without stopping the others', async () => {
+    const failures: string[] = [];
+    const failingStore: TowerStore = {
+      load: (towerId) => store.load(towerId),
+      save: (towerId, state) =>
+        towerId === '1' ? Promise.reject(new Error('disk full')) : store.save(towerId, state),
+    };
+    runner = new TowerRunner({
+      store: failingStore,
+      now: () => clock,
+      advance: countingAdvance,
+      onSaveError: (towerId) => failures.push(towerId),
+    });
+    await runner.resume('1');
+    await runner.resume('2');
+    clock += 10 * SECOND;
+
+    await runner.saveAll();
+
+    expect(failures).toEqual(['1']);
+    expect(store.saves).toEqual([{ towerId: '2', step: 96 }]);
+  });
+
+  it('saves and pauses every tower on shutdown', async () => {
+    await runner.resume('1');
+    await runner.resume('2');
+    clock += 10 * SECOND;
+
+    await runner.shutdown();
+
+    const savesByTower = [...store.saves].sort((a, b) => a.towerId.localeCompare(b.towerId));
+    expect(savesByTower).toEqual([
+      { towerId: '1', step: 96 },
+      { towerId: '2', step: 96 },
+    ]);
+    expect(runner.runningTowers()).toEqual([]);
+  });
+
+  it('does not start a tower that was still loading when shutdown began', async () => {
+    const resuming = runner.resume('1');
+
+    await runner.shutdown();
+    await resuming;
+
+    expect(runner.isRunning('1')).toBe(false);
+  });
+
+  it('refuses to resume towers after shutdown', async () => {
+    await runner.shutdown();
+
+    await runner.resume('1');
+
+    expect(runner.isRunning('1')).toBe(false);
+  });
+
   it('runs the real engine by default', async () => {
     runner = new TowerRunner({ store, now: () => clock });
     await runner.resume('1');
@@ -211,5 +276,45 @@ describe('tower runner timer', () => {
     vi.advanceTimersByTime(10 * SECOND);
 
     expect(runner.stateOf('1')?.step).toBe(96);
+  });
+});
+
+describe('tower runner autosave', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('saves running towers every 30 seconds until stopped', async () => {
+    vi.useFakeTimers({ now: 0 });
+    const store = new MemoryStore();
+    store.towers.set('1', createTower(1));
+    const runner = new TowerRunner({ store, advance: countingAdvance });
+    await runner.resume('1');
+
+    const stop = runner.startAutosave();
+    await vi.advanceTimersByTimeAsync(29 * SECOND);
+    expect(store.saves).toEqual([]);
+
+    await vi.advanceTimersByTimeAsync(1 * SECOND);
+    expect(store.saves).toEqual([{ towerId: '1', step: 288 }]);
+
+    await vi.advanceTimersByTimeAsync(30 * SECOND);
+    expect(store.saves.map((save) => save.step)).toEqual([288, 576]);
+
+    stop();
+    await vi.advanceTimersByTimeAsync(60 * SECOND);
+    expect(store.saves).toHaveLength(2);
+  });
+
+  it('saves nothing while no tower runs', async () => {
+    vi.useFakeTimers({ now: 0 });
+    const store = new MemoryStore();
+    const runner = new TowerRunner({ store, advance: countingAdvance });
+
+    const stop = runner.startAutosave();
+    await vi.advanceTimersByTimeAsync(90 * SECOND);
+    stop();
+
+    expect(store.saves).toEqual([]);
   });
 });
