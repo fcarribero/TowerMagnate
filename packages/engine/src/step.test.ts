@@ -1,4 +1,4 @@
-import type { QueuedCommand, TowerState } from '@tower-magnate/shared';
+import type { Command, QueuedCommand, TowerState } from '@tower-magnate/shared';
 import { describe, expect, it } from 'vitest';
 import { STEPS_PER_DAY } from './clock';
 import { hashState } from './hash';
@@ -106,7 +106,9 @@ describe('step', () => {
   });
 
   it('rejects a command that has no handler yet', () => {
-    const { results, state } = step(createTower(1), [floor('c1', 0, 4)], 0);
+    const buildUnit = { type: 'buildUnit', unitType: 'office', x: 10, level: 2 };
+    const queued = { id: 'c1', command: buildUnit as unknown as Command };
+    const { results, state } = step(createTower(1), [queued], 0);
     expect(results).toEqual([{ id: 'c1', ok: false, step: 0, error: 'INVALID_COMMAND' }]);
     expect(state).toEqual(createTower(1));
   });
