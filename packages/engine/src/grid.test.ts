@@ -15,7 +15,7 @@ import {
   structureAt,
 } from './grid';
 
-const office = (id: number): OccupantRef => ({ kind: 'unit', id });
+const office = (n: number): OccupantRef => ({ kind: 'unit', id: `u${n}` });
 
 describe('grid bounds', () => {
   it('accepts the corner cells of the buildable grid', () => {
@@ -172,8 +172,8 @@ describe('occupancy index', () => {
 
   it('tells transport footprints and landings apart', () => {
     const grid = createGrid();
-    const footprint: OccupantRef = { kind: 'transport', id: 7, part: 'footprint' };
-    const landing: OccupantRef = { kind: 'transport', id: 7, part: 'landing' };
+    const footprint: OccupantRef = { kind: 'transport', id: 't7', part: 'footprint' };
+    const landing: OccupantRef = { kind: 'transport', id: 't7', part: 'landing' };
     addOccupant(grid, 2, 0, 7, footprint);
     addOccupant(grid, 2, 8, 9, landing);
     removeOccupant(grid, 2, landing);
@@ -188,9 +188,9 @@ describe('occupancy index', () => {
         addOccupant(grid, level, x, x + 8, office(level * 1000 + x));
       }
     }
-    addOccupant(grid, -9, 100, 129, { kind: 'shaft', id: 1 });
+    addOccupant(grid, -9, 100, 129, { kind: 'shaft', id: 's1' });
     expect(overlappingOccupants(grid, -9, 0, 374)).toEqual([
-      { x0: 100, x1: 129, occupant: { kind: 'shaft', id: 1 } },
+      { x0: 100, x1: 129, occupant: { kind: 'shaft', id: 's1' } },
     ]);
     expect(overlappingOccupants(grid, 1, 0, 374)).toEqual([]);
   });
@@ -209,7 +209,7 @@ describe('grid serialization', () => {
     setStructure(grid, 1, 0, 374, 'lobby');
     setStructure(grid, -9, 0, 50, 'floor');
     addOccupant(grid, -9, 0, 9, office(1));
-    addOccupant(grid, 100, 360, 374, { kind: 'shaft', id: 2 });
+    addOccupant(grid, 100, 360, 374, { kind: 'shaft', id: 's2' });
 
     const restored = JSON.parse(JSON.stringify(grid)) as GridState;
     expect(restored).toEqual(grid);

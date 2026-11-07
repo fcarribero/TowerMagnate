@@ -8,9 +8,9 @@ import {
   LEVEL_COUNT,
   levelAbove,
   levelBelow,
-  levelIndex,
+  levelToIndex,
   levelLabel,
-  levelOfIndex,
+  indexToLevel,
   LOWEST_BUILDABLE_LEVEL,
   LOWEST_LEVEL,
   TOP_FLOOR_LEVEL,
@@ -47,22 +47,22 @@ describe('level range', () => {
 
 describe('dense level index', () => {
   it('maps S10 to 0, S1 and floor 1 next to each other, and 104 to 113', () => {
-    expect(levelIndex(-10)).toBe(0);
-    expect(levelIndex(-1)).toBe(9);
-    expect(levelIndex(1)).toBe(10);
-    expect(levelIndex(104)).toBe(113);
+    expect(levelToIndex(-10)).toBe(0);
+    expect(levelToIndex(-1)).toBe(9);
+    expect(levelToIndex(1)).toBe(10);
+    expect(levelToIndex(104)).toBe(113);
   });
 
   it('round-trips every level', () => {
     for (let index = 0; index < LEVEL_COUNT; index += 1) {
-      expect(levelIndex(levelOfIndex(index))).toBe(index);
+      expect(levelToIndex(indexToLevel(index))).toBe(index);
     }
   });
 
   it('rejects levels and indexes off the grid', () => {
-    expect(() => levelIndex(0)).toThrow(RangeError);
-    expect(() => levelOfIndex(114)).toThrow(RangeError);
-    expect(() => levelOfIndex(-1)).toThrow(RangeError);
+    expect(() => levelToIndex(0)).toThrow(RangeError);
+    expect(() => indexToLevel(114)).toThrow(RangeError);
+    expect(() => indexToLevel(-1)).toThrow(RangeError);
   });
 });
 

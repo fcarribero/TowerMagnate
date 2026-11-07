@@ -14,7 +14,7 @@ import {
 } from '@tower-magnate/shared';
 
 export function createGrid(): GridState {
-  return { levels: {} };
+  return { levels: {}, mainLobbyHeight: null, skyLobbyHeights: {} };
 }
 
 /** C-02: the subway tunnel level is reserved, anything else off the grid is out of bounds. */

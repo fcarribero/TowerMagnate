@@ -1,5 +1,7 @@
 import { TOWER_LAYOUT, UNIT_CATALOG } from './balance';
-import type { Level } from './engine';
+
+/** A floor number: -10..-1 for basements, 1..104 above ground. There is no level 0. */
+export type Level = number;
 
 function cathedralFloors(): number {
   const height = UNIT_CATALOG.cathedral.height;
@@ -20,12 +22,17 @@ export const FIRST_COLUMN = 0;
 export const LAST_COLUMN = TOWER_LAYOUT.siteWidthCells - 1;
 
 /** True for every level that exists in the grid, including the subway tunnel. */
-export function isLevel(level: number): level is Level {
-  return Number.isInteger(level) && level !== 0 && level >= LOWEST_LEVEL && level <= HIGHEST_LEVEL;
+export function isLevel(value: unknown): value is Level {
+  return (
+    Number.isInteger(value) &&
+    (value as number) !== 0 &&
+    (value as number) >= LOWEST_LEVEL &&
+    (value as number) <= HIGHEST_LEVEL
+  );
 }
 
-export function isColumn(x: number): boolean {
-  return Number.isInteger(x) && x >= FIRST_COLUMN && x <= LAST_COLUMN;
+export function isColumn(x: unknown): x is number {
+  return Number.isInteger(x) && (x as number) >= FIRST_COLUMN && (x as number) <= LAST_COLUMN;
 }
 
 export function isBasement(level: Level): boolean {
@@ -33,14 +40,14 @@ export function isBasement(level: Level): boolean {
 }
 
 /** Dense index for arrays and interpolation: 0 for the lowest level, no gap at ground. */
-export function levelIndex(level: Level): number {
+export function levelToIndex(level: Level): number {
   if (!isLevel(level)) {
     throw new RangeError(`Level ${level} is outside the grid`);
   }
   return level < 0 ? level - LOWEST_LEVEL : level - LOWEST_LEVEL - 1;
 }
 
-export function levelOfIndex(index: number): Level {
+export function indexToLevel(index: number): Level {
   if (!Number.isInteger(index) || index < 0 || index >= LEVEL_COUNT) {
     throw new RangeError(`Level index ${index} is outside the grid`);
   }
@@ -50,14 +57,14 @@ export function levelOfIndex(index: number): Level {
 
 /** The next level up, or null above the top of the grid. Level -1 is followed by level 1. */
 export function levelAbove(level: Level): Level | null {
-  const index = levelIndex(level) + 1;
-  return index < LEVEL_COUNT ? levelOfIndex(index) : null;
+  const index = levelToIndex(level) + 1;
+  return index < LEVEL_COUNT ? indexToLevel(index) : null;
 }
 
 /** The next level down, or null below the subway tunnel. Level 1 is followed by level -1. */
 export function levelBelow(level: Level): Level | null {
-  const index = levelIndex(level) - 1;
-  return index >= 0 ? levelOfIndex(index) : null;
+  const index = levelToIndex(level) - 1;
+  return index >= 0 ? indexToLevel(index) : null;
 }
 
 /** "S1" to "S10" for basements, the plain number otherwise. */
