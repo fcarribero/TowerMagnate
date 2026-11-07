@@ -1,0 +1,56 @@
+{
+  "frames": {
+    "structure/floor/day": {
+      "frame": {
+        "x": 1,
+        "y": 1,
+        "w": 8,
+        "h": 32
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 8,
+        "h": 32
+      },
+      "sourceSize": {
+        "w": 8,
+        "h": 32
+      }
+    },
+    "structure/floor/night": {
+      "frame": {
+        "x": 10,
+        "y": 1,
+        "w": 8,
+        "h": 32
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 8,
+        "h": 32
+      },
+      "sourceSize": {
+        "w": 8,
+        "h": 32
+      }
+    }
+  },
+  "animations": {},
+  "meta": {
+    "app": "@tower-magnate/art",
+    "version": "1",
+    "image": "structure.png",
+    "format": "RGBA8888",
+    "size": {
+      "w": 19,
+      "h": 34
+    },
+    "scale": 1
+  }
+}

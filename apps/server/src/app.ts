@@ -1,5 +1,6 @@
 import Fastify, { type FastifyInstance, type FastifyServerOptions } from 'fastify';
 import { createPool, pingDatabase } from './database';
+import { registerGateway, resolveIdentityFromQuery, type IdentityResolver } from './gateway';
 import { checkHealth } from './health';
 import { registerWebStatics } from './webStatics';
 
@@ -9,6 +10,8 @@ export interface AppOptions {
   logger?: FastifyServerOptions['logger'];
   /** Folder with the built web client. Without it the server only answers the API. */
   webDir?: string;
+  resolveSocketIdentity?: IdentityResolver;
+  heartbeatIntervalMs?: number;
 }
 
 export function buildApp(options: AppOptions): FastifyInstance {
@@ -25,6 +28,11 @@ export function buildApp(options: AppOptions): FastifyInstance {
       return reply.code(report.status === 'ok' ? 200 : 503).send(report);
     });
   }
+
+  registerGateway(app, {
+    resolveIdentity: options.resolveSocketIdentity ?? resolveIdentityFromQuery,
+    heartbeatIntervalMs: options.heartbeatIntervalMs,
+  });
 
   if (options.webDir !== undefined) {
     registerWebStatics(app, options.webDir);
