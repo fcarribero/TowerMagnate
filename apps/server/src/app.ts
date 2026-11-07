@@ -2,10 +2,11 @@ import cookie from '@fastify/cookie';
 import Fastify, { type FastifyInstance, type FastifyServerOptions } from 'fastify';
 import { authRoutes } from './auth/routes';
 import { createPool, pingDatabase } from './database';
-import { registerGateway, resolveIdentityFromQuery, type IdentityResolver } from './gateway';
+import { registerGateway, type IdentityResolver } from './gateway';
 import { checkHealth } from './health';
 import { createTowerStore, followConnections, TowerRunner } from './runner';
 import { createSnapshotRepository } from './snapshots';
+import { sessionIdentityResolver, towerSocketHandlers, Viewports } from './tower-socket';
 
 export interface AppOptions {
   version: string;
@@ -14,6 +15,7 @@ export interface AppOptions {
   logger?: FastifyServerOptions['logger'];
   resolveSocketIdentity?: IdentityResolver;
   heartbeatIntervalMs?: number;
+  helloTimeoutMs?: number;
   runnerTickIntervalMs?: number;
 }
 
@@ -41,14 +43,15 @@ export function buildApp(options: AppOptions): FastifyInstance {
     });
   }
 
-  const gateway = registerGateway(app, {
-    resolveIdentity: options.resolveSocketIdentity ?? resolveIdentityFromQuery,
-    heartbeatIntervalMs: options.heartbeatIntervalMs,
-  });
-
   const runner = new TowerRunner({
     store: createTowerStore(pool, createSnapshotRepository(pool)),
     onTickError: (towerId, error) => app.log.error({ err: error, towerId }, 'Tower tick failed'),
+  });
+  const gateway = registerGateway(app, {
+    resolveIdentity: options.resolveSocketIdentity ?? sessionIdentityResolver(pool),
+    handlers: towerSocketHandlers({ runner, viewports: new Viewports() }),
+    heartbeatIntervalMs: options.heartbeatIntervalMs,
+    helloTimeoutMs: options.helloTimeoutMs,
   });
   app.decorate('towerRunner', runner);
   followConnections(gateway.registry, runner, app.log);

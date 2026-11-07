@@ -2,11 +2,11 @@ import { createTower } from '@tower-magnate/engine';
 import type { FastifyInstance } from 'fastify';
 import pg from 'pg';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
-import WebSocket from 'ws';
 import { buildApp } from '../app';
 import { createSnapshotRepository, type SnapshotRepository } from '../snapshots';
 import { startTestDatabase, type TestDatabase } from '../testing/database';
-import { createTowerRow } from '../testing/tower-rows';
+import { TestSocketClient } from '../testing/socket-client';
+import { createPlayer } from '../testing/tower-rows';
 import { towerAtStep } from '../testing/towers';
 import { createTowerStore, type TowerStore } from './tower-store';
 
@@ -28,6 +28,7 @@ describe('tower store and runner against postgres', () => {
   let snapshots: SnapshotRepository;
   let store: TowerStore;
   let towerId: string;
+  let cookie: string;
 
   beforeAll(async () => {
     database = await startTestDatabase({ migrate: true });
@@ -42,7 +43,7 @@ describe('tower store and runner against postgres', () => {
   });
 
   beforeEach(async () => {
-    towerId = await createTowerRow(pool);
+    ({ towerId, cookie } = await createPlayer(pool));
   });
 
   it('starts a never saved tower from its seed', async () => {
@@ -75,12 +76,11 @@ describe('tower store and runner against postgres', () => {
       await app?.close();
     });
 
-    function connect(): Promise<WebSocket> {
-      return new Promise((resolve, reject) => {
-        const socket = new WebSocket(`${baseUrl}/ws/towers/${towerId}?user=1`);
-        socket.once('open', () => resolve(socket));
-        socket.once('error', reject);
-      });
+    async function connect(): Promise<TestSocketClient> {
+      const client = await TestSocketClient.open(`${baseUrl}/ws`, cookie);
+      client.hello();
+      await client.next('snapshot');
+      return client;
     }
 
     it('runs the tower while a socket is open and saves it when the last one closes', async () => {
@@ -88,11 +88,11 @@ describe('tower store and runner against postgres', () => {
       const second = await connect();
       await waitFor(() => (app.towerRunner.stateOf(towerId)?.step ?? 0) > 0);
 
-      first.close();
+      await first.close();
       await new Promise((resolve) => setTimeout(resolve, 100));
       expect(app.towerRunner.isRunning(towerId)).toBe(true);
 
-      second.close();
+      await second.close();
       await waitFor(() => !app.towerRunner.isRunning(towerId));
       await waitFor(async () => (await snapshots.loadLatest(towerId)) !== null);
 

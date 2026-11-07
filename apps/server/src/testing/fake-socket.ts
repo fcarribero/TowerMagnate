@@ -5,6 +5,7 @@ export class FakeSocket extends EventEmitter implements GatewaySocket {
   readonly sent: unknown[] = [];
   pings = 0;
   terminated = false;
+  closeCode: number | undefined;
 
   send(data: string): void {
     this.sent.push(JSON.parse(data));
@@ -27,7 +28,8 @@ export class FakeSocket extends EventEmitter implements GatewaySocket {
     this.emit('pong');
   }
 
-  close(): void {
+  close(code?: number): void {
+    this.closeCode = code;
     this.emit('close');
   }
 }
