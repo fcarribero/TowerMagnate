@@ -1,4 +1,9 @@
-import { UNIT_CATALOG, UNIT_IDS, type ToolbarCategory, type UnitId } from '@tower-magnate/shared';
+import {
+  UNIT_CATALOG,
+  UNIT_TYPES,
+  type ToolbarCategory,
+  type UnitType,
+} from '@tower-magnate/shared';
 import { describe, expect, it } from 'vitest';
 import {
   TOOLBAR_CATEGORIES,
@@ -11,7 +16,7 @@ import {
   tooltipLines,
 } from './toolbarModel';
 
-type Row = readonly [unit: UnitId, size: string, price: string, stars: number];
+type Row = readonly [unit: UnitType, size: string, price: string, stars: number];
 
 // The table of docs/design/ui.md section 5.3.
 const DESIGN_TABLE: Readonly<Record<ToolbarCategory, readonly Row[]>> = {
@@ -65,7 +70,7 @@ describe('toolbar categories', () => {
 
   it('show every catalog unit exactly once', () => {
     const shown = TOOLBAR_CATEGORIES.flatMap(toolsInCategory);
-    expect([...shown].sort()).toEqual([...UNIT_IDS].sort());
+    expect([...shown].sort()).toEqual([...UNIT_TYPES].sort());
   });
 });
 

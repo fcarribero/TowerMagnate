@@ -1,17 +1,17 @@
 import {
   UNIT_CATALOG,
-  UNIT_IDS,
+  UNIT_TYPES,
   type StarRating,
   type ToolbarCategory,
   type UnitDefinition,
-  type UnitId,
+  type UnitType,
 } from '@tower-magnate/shared';
 import { formatMoney } from '../money';
 import { t } from '../strings';
 
 export const FIXED_TOOLS = ['inspect', 'bulldozer', 'car'] as const;
 export type FixedTool = (typeof FIXED_TOOLS)[number];
-export type ToolId = FixedTool | UnitId;
+export type ToolId = FixedTool | UnitType;
 
 export const DEFAULT_TOOL: ToolId = 'inspect';
 
@@ -39,15 +39,15 @@ export function isFixedTool(tool: ToolId): tool is FixedTool {
 }
 
 /** Sorted by unlock stars, then by catalog order. */
-export function toolsInCategory(category: ToolbarCategory): UnitId[] {
-  const units = UNIT_IDS.filter((id) => UNIT_CATALOG[id].category === category);
+export function toolsInCategory(category: ToolbarCategory): UnitType[] {
+  const units = UNIT_TYPES.filter((id) => UNIT_CATALOG[id].category === category);
   return units.sort((a, b) => {
     const byStars = UNIT_CATALOG[a].unlockStars - UNIT_CATALOG[b].unlockStars;
-    return byStars !== 0 ? byStars : UNIT_IDS.indexOf(a) - UNIT_IDS.indexOf(b);
+    return byStars !== 0 ? byStars : UNIT_TYPES.indexOf(a) - UNIT_TYPES.indexOf(b);
   });
 }
 
-export function categoryOf(unitId: UnitId): ToolbarCategory {
+export function categoryOf(unitId: UnitType): ToolbarCategory {
   return UNIT_CATALOG[unitId].category;
 }
 
