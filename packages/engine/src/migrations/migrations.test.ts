@@ -51,6 +51,59 @@ describe('migrateState units', () => {
   });
 });
 
+describe('migrateState unit prices and leases', () => {
+  function migratedUnit(unit: Record<string, unknown>): unknown {
+    const tower = createTower(5);
+    return migrateState({ ...tower, units: { u3: unit } }).units.u3;
+  }
+
+  const savedBeforeLeases = { id: 'u3', x: 0, level: 1, name: null };
+
+  it('gives units saved before leases the values of a new unit', () => {
+    expect(migratedUnit({ ...savedBeforeLeases, type: 'office' })).toEqual(
+      newUnit('u3', 'office', 0, 1),
+    );
+    expect(migratedUnit({ ...savedBeforeLeases, type: 'retail-shop' })).toMatchObject({
+      price: 'normal',
+      used: false,
+      lease: null,
+    });
+    expect(migratedUnit({ ...savedBeforeLeases, type: 'fast-food' })).toMatchObject({
+      price: null,
+    });
+  });
+
+  it('keeps the price, used flag and lease of a rented unit', () => {
+    const rented = {
+      ...newUnit('u3', 'office', 0, 1),
+      price: 'high',
+      used: true,
+      lease: { anchorStep: 100, nextDueStep: 60580 },
+    };
+    expect(migratedUnit(JSON.parse(JSON.stringify(rented)))).toEqual(rented);
+  });
+
+  it('refuses an unknown price level or a malformed used flag', () => {
+    const office = newUnit('u3', 'office', 0, 1);
+    expect(() => migratedUnit({ ...office, price: 'gratis' })).toThrow(StateMigrationError);
+    expect(() => migratedUnit({ ...office, used: 'yes' })).toThrow(StateMigrationError);
+  });
+
+  it('refuses a malformed lease', () => {
+    const office = newUnit('u3', 'office', 0, 1);
+    const badLeases = [
+      'u3',
+      { anchorStep: 100 },
+      { anchorStep: -1, nextDueStep: 60479 },
+      { anchorStep: 100, nextDueStep: 100 },
+      { anchorStep: 1.5, nextDueStep: 60480 },
+    ];
+    for (const lease of badLeases) {
+      expect(() => migratedUnit({ ...office, lease })).toThrow(StateMigrationError);
+    }
+  });
+});
+
 describe('migrateState fixtures', () => {
   it('loads a frozen version 1 save', () => {
     const tower = migrateState(JSON.parse(VERSION_1_SAVE));
