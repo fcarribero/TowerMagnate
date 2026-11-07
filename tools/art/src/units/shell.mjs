@@ -1,0 +1,95 @@
+import { PixelCanvas } from '../canvas.mjs';
+import { metrics } from '../metrics.mjs';
+import { toNight } from '../night.mjs';
+
+export const FLOOR_ROW = metrics.floorHeight - metrics.slabHeight - 1;
+const SLAB_COLORS = ['concrete-light', 'concrete', 'concrete-dark'];
+
+// An empty one-floor room: ink frame on the outer edge, back wall lit from the
+// upper left, a three-row floor and the concrete slab shared with bare floor tiles.
+export function roomShell(widthTiles, { wall, wallLight, wallDark, floor }) {
+  const width = widthTiles * metrics.tileWidth;
+  const room = new PixelCanvas(width, metrics.floorHeight);
+  const floorTop = FLOOR_ROW - floor.length + 1;
+
+  room.fillRect(0, 0, width, floorTop, wall);
+  room.hline(1, 1, width - 2, wallLight);
+  room.vline(1, 1, floorTop - 1, wallLight);
+  room.vline(width - 2, 2, floorTop - 2, wallDark);
+  floor.forEach((color, row) => room.hline(0, floorTop + row, width, color));
+
+  room.hline(0, 0, width, 'ink');
+  room.vline(0, 0, FLOOR_ROW + 1, 'ink');
+  room.vline(width - 1, 0, FLOOR_ROW + 1, 'ink');
+
+  SLAB_COLORS.forEach((color, row) => room.hline(0, FLOOR_ROW + 1 + row, width, color));
+  return room;
+}
+
+// A window in the back wall: a silver frame around day glass with a centre mullion
+// and one highlight pixel in the upper-left pane.
+export function drawWindow(room, { left, top, width, height }) {
+  room.fillRect(left, top, width, height, 'glass');
+  room.strokeRect(left - 1, top - 1, width + 2, height + 2, 'silver');
+  room.vline(left + Math.floor(width / 2), top, height, 'silver');
+  room.set(left + 1, top + 1, 'sky-light');
+  room.set(left + 2, top + 1, 'sky-light');
+  room.set(left + 1, top + 2, 'sky-light');
+}
+
+export function drawDoor(room, { left, top, width, height }, { open, sign }) {
+  room.fillRect(left - 1, top - 1, width + 2, height + 1, 'wood-dark');
+  if (open) {
+    room.fillRect(left, top, width, height, 'charcoal');
+    room.fillRect(left, top, 2, height, 'wood');
+    room.vline(left, top, height, 'wood-light');
+    return;
+  }
+  room.fillRect(left, top, width, height, 'wood');
+  room.vline(left, top, height, 'wood-light');
+  room.set(left + width - 2, top + Math.floor(height / 2), 'lamp');
+  if (sign) {
+    drawForRentSign(room, left + 1, top + 3, width - 2);
+  }
+}
+
+function drawForRentSign(room, left, top, width) {
+  room.fillRect(left, top, width, 4, 'leaf');
+  room.hline(left, top + 3, width, 'leaf-dark');
+  for (let x = left + 1; x < left + width - 1; x += 2) {
+    room.set(x, top + 1, 'white');
+  }
+}
+
+// Night keeps the layout: materials step down their ramp, and window glass shows
+// lamp light with a glowing centre when someone is in, or dark glass when empty.
+export function nightVersion(daySprite, windows, occupied) {
+  const night = toNight(daySprite);
+  for (const { left, top, width, height } of windows) {
+    if (occupied) {
+      night.fillRect(left, top, width, height, 'lamp');
+      night.fillRect(left + 2, top + 2, width - 4, height - 4, 'lamp-glow');
+    } else {
+      night.fillRect(left, top, width, height, 'night-deep');
+    }
+    night.vline(left + Math.floor(width / 2), top, height, 'gray');
+  }
+  return night;
+}
+
+export const UNIT_STATES = ['empty', 'occupied'];
+export const TIMES = ['day', 'night'];
+
+// Returns the four sprites of a rentable unit: empty and occupied, day and night.
+export function unitSprites(subject, { windows, drawDay }) {
+  const sprites = [];
+  for (const state of UNIT_STATES) {
+    const occupied = state === 'occupied';
+    const day = drawDay(occupied);
+    for (const time of TIMES) {
+      const canvas = time === 'day' ? day : nightVersion(day, windows, occupied);
+      sprites.push({ id: `units/${subject}/${state}_${time}`, canvas });
+    }
+  }
+  return sprites;
+}

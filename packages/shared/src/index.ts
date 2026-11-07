@@ -6,4 +6,5 @@ export * from './names';
 export * from './units';
 export * from './balance';
 export * from './levels';
+export * from './auth';
 export * from './protocol';
