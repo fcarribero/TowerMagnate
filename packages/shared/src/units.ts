@@ -130,3 +130,12 @@ export interface UpkeepRule {
   readonly basis: UpkeepBasis;
   readonly amountByStars: readonly StarDependentAmount[];
 }
+
+export const SHAFT_TYPES = ['standard', 'service', 'express'] as const;
+export type ShaftType = (typeof SHAFT_TYPES)[number];
+
+export const SHAFT_UNIT_TYPES = {
+  standard: 'standard-elevator',
+  service: 'service-elevator',
+  express: 'express-elevator',
+} as const satisfies Record<ShaftType, UnitType>;
