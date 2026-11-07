@@ -1,0 +1,77 @@
+name: ${COMPOSE_PROJECT_NAME:-tower-magnate}
+
+x-node-dev: &node-dev
+  build: ./docker/node-dev
+  working_dir: /app
+
+x-node-dev-environment: &node-dev-environment
+  npm_config_store_dir: /app/node_modules/.pnpm-store
+  CHOKIDAR_USEPOLLING: ${CHOKIDAR_USEPOLLING:-true}
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-tower}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-tower}
+      POSTGRES_DB: ${POSTGRES_DB:-tower_magnate}
+    ports:
+      - '${POSTGRES_PORT:-4100}:5432'
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}"']
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  server:
+    <<: *node-dev
+    command: >-
+      sh -c "pnpm install --frozen-lockfile --config.confirmModulesPurge=false
+      --filter @tower-magnate/server...
+      && pnpm --filter @tower-magnate/server run dev"
+    environment:
+      <<: *node-dev-environment
+      PORT: '3000'
+      DATABASE_URL: postgres://${POSTGRES_USER:-tower}:${POSTGRES_PASSWORD:-tower}@postgres:5432/${POSTGRES_DB:-tower_magnate}
+    ports:
+      - '${SERVER_PORT:-4101}:3000'
+    volumes:
+      - .:/app
+      - server-modules-root:/app/node_modules
+      - server-modules-server:/app/apps/server/node_modules
+      - server-modules-engine:/app/packages/engine/node_modules
+      - server-modules-shared:/app/packages/shared/node_modules
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  web:
+    <<: *node-dev
+    command: >-
+      sh -c "pnpm install --frozen-lockfile --config.confirmModulesPurge=false
+      --filter @tower-magnate/web...
+      && pnpm --filter @tower-magnate/web run dev --host 0.0.0.0 --port 5173 --strictPort"
+    environment:
+      <<: *node-dev-environment
+      TM_SERVER_URL: http://server:3000
+    ports:
+      - '${WEB_PORT:-4102}:5173'
+    volumes:
+      - .:/app
+      - web-modules-root:/app/node_modules
+      - web-modules-web:/app/apps/web/node_modules
+      - web-modules-shared:/app/packages/shared/node_modules
+    depends_on:
+      - server
+
+volumes:
+  postgres-data:
+  server-modules-root:
+  server-modules-server:
+  server-modules-engine:
+  server-modules-shared:
+  web-modules-root:
+  web-modules-web:
+  web-modules-shared:
