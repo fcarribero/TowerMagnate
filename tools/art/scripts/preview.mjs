@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { drawGroups } from '../src/build.mjs';
 import { groups } from '../src/groups/index.mjs';
 import { encodePng } from '../src/png.mjs';
-import { drawStructurePreview, drawTransportPreview } from '../src/preview.mjs';
+import { drawStructurePreview, drawTransportPreview, drawWalkwayPreview } from '../src/preview.mjs';
 
 const ZOOM = 2;
 const TRANSPORT_ZOOM = 3;
@@ -38,3 +38,4 @@ function writePreview(name, sheet, zoom) {
 
 writePreview('structure-preview.png', drawStructurePreview(sprites), ZOOM);
 writePreview('transport-preview.png', drawTransportPreview(sprites), TRANSPORT_ZOOM);
+writePreview('walkway-preview.png', drawWalkwayPreview(sprites), TRANSPORT_ZOOM);
