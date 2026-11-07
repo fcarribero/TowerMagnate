@@ -20,6 +20,9 @@ export function createTower(seed: number): TowerState {
     grid: createGrid(),
     people: createPersonPool(),
     ledger: createLedger(),
+    activeEvents: [],
+    closedDecisions: [],
+    treasureLevels: [],
   };
 }
 

@@ -10,6 +10,7 @@ import {
 } from '@tower-magnate/shared';
 import { SCHEMA_VERSION } from '../state';
 import { isRecord, StateMigrationError } from './errors';
+import { readActiveEvents, readClosedDecisions, readTreasureLevels } from './events';
 import { readGrid } from './grid';
 import { readLedger, readMoney } from './money';
 import { readPeople } from './people';
@@ -137,6 +138,9 @@ function assertCurrentShape(raw: Record<string, unknown>): TowerState {
     grid: readGrid(raw.grid),
     people: readPeople(raw.people),
     ledger: readLedger(raw.ledger),
+    activeEvents: readActiveEvents(raw.activeEvents),
+    closedDecisions: readClosedDecisions(raw.closedDecisions),
+    treasureLevels: readTreasureLevels(raw.treasureLevels),
   };
 }
 

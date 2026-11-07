@@ -26,6 +26,7 @@ export {
   spanError,
   structureAt,
 } from './grid';
+export { answerDecision, endDisaster, eventsPhase, openBombThreat, openFire } from './events';
 export { hashState } from './hash';
 export { migrateState, StateMigrationError } from './migrations';
 export { createLeaseSystem, isLeasable, moveInTenant, STEPS_PER_WEEK } from './leases';

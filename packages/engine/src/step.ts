@@ -9,6 +9,7 @@ import type {
 } from '@tower-magnate/shared';
 import { STEPS_PER_DAY } from './clock';
 import { towerCommandHandlers } from './commands';
+import { eventsPhase } from './events';
 import { createLeaseSystem } from './leases';
 import { cloneState } from './state';
 import { ledgerWeekRollHook } from './money';
@@ -134,7 +135,7 @@ export function createEngine(rules: EngineRules): Engine {
 
 const towerEngine = createEngine({
   commandHandlers: towerCommandHandlers,
-  systems: [createScheduler([ledgerWeekRollHook]), createLeaseSystem()],
+  systems: [createScheduler([ledgerWeekRollHook]), createLeaseSystem(), eventsPhase],
 });
 
 /**
