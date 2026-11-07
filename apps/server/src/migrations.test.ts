@@ -46,6 +46,14 @@ describe('initial schema', () => {
     });
   });
 
+  it('stores snapshot state as lz4-compressed json', async () => {
+    const result = await pool.query<{ data_type: string; compression: string }>(
+      `select format_type(atttypid, atttypmod) as data_type, attcompression as compression
+       from pg_attribute where attrelid = 'tower_snapshots'::regclass and attname = 'state'`,
+    );
+    expect(result.rows[0]).toEqual({ data_type: 'json', compression: 'l' });
+  });
+
   it('deletes sessions, towers and snapshots with their user', async () => {
     const userId = await insertUser(pool, 'ana');
     const towerId = await insertTower(pool, userId);

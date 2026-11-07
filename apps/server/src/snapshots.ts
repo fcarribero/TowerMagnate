@@ -24,7 +24,7 @@ export interface SnapshotRepository {
 
 const UPSERT_SNAPSHOT = `
   insert into tower_snapshots (tower_id, step, state)
-  values ($1, $2, $3::jsonb)
+  values ($1, $2, $3::json)
   on conflict (tower_id, step) do update set state = excluded.state, saved_at = now()
 `;
 
