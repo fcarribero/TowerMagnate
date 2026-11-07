@@ -163,6 +163,21 @@ Sky sprites are in `tools/art/src/groups/sky.mjs`. The times are `day`, `dusk` (
 
 Stars are part of the night `top` and `middle` bands. `pnpm art:build` also writes `docs/art/structure-preview.png`, a 2x cross-section at day, dusk and night that uses every structure sprite.
 
+## Hotel
+
+Hotel sprites are in `tools/art/src/units/hotel.mjs` and `tools/art/src/units/housekeeping.mjs`.
+
+| Subject | Size | States |
+|---|---|---|
+| `single-room` | 32 x 32 | empty, occupied, dirty, infested |
+| `double-room` | 48 x 32 | empty, occupied, dirty, infested |
+| `suite` | 80 x 32 | empty, occupied, dirty, infested |
+| `housekeeping` | 120 x 32 | empty, occupied |
+
+Every state has a `day` and a `night` sprite. Hotel rooms have cloud walls with a concrete-light wainscot, a red carpet, a lamp-colored room number above the door and a bed with the headboard on the right. An empty room has a made bed and a closed door. An occupied room adds a suitcase, a red tag on the door handle and lit lamps, and its windows are lit at night. A dirty room has an unmade bed, a towel on the floor and grime pixels. An infested room is the dirty room with 8 roaches on the walls, the bed and the floor, so it reads at 1x even at night. Housekeeping is a service room with linen shelves, washers, a sink and laundry carts; in the occupied state 3 maids stand in the room and the door is open.
+
+`pnpm art:build` also writes `docs/art/hotel-preview.png`, a 2x sheet with one row per hotel subject and every variant left to right.
+
 ## Building the art
 
 `pnpm art:build` draws every sprite group in `tools/art/src/groups` and rewrites the generated files. Each group is one module with a `name` (one of the groups above) and a `draw()` function that returns `{ id, canvas }` pairs. A new group is added to `tools/art/src/groups/index.mjs`.

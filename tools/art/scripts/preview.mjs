@@ -4,12 +4,13 @@ import { fileURLToPath } from 'node:url';
 import { drawGroups } from '../src/build.mjs';
 import { groups } from '../src/groups/index.mjs';
 import { encodePng } from '../src/png.mjs';
-import { drawStructurePreview } from '../src/preview.mjs';
+import { drawStructurePreview, drawUnitSheet } from '../src/preview.mjs';
 
 const ZOOM = 2;
 
 const scriptDir = dirname(fileURLToPath(import.meta.url));
-const outputPath = process.argv[2] ?? resolve(scriptDir, '../../../docs/art/structure-preview.png');
+const artDocs = resolve(scriptDir, '../../../docs/art');
+const HOTEL_SUBJECTS = ['single-room', 'double-room', 'suite', 'housekeeping'];
 
 function zoomedRgba(canvas, zoom) {
   const source = canvas.toRgba();
@@ -27,8 +28,13 @@ function zoomedRgba(canvas, zoom) {
 const sprites = Object.fromEntries(
   drawGroups(groups).flatMap((group) => group.sprites.map(({ id, canvas }) => [id, canvas])),
 );
-const sheet = drawStructurePreview(sprites);
-const png = encodePng(sheet.width * ZOOM, sheet.height * ZOOM, zoomedRgba(sheet, ZOOM));
-mkdirSync(dirname(outputPath), { recursive: true });
-writeFileSync(outputPath, png);
-console.log(`Wrote ${outputPath} (${sheet.width * ZOOM}x${sheet.height * ZOOM})`);
+
+function writeZoomed(sheet, outputPath) {
+  const png = encodePng(sheet.width * ZOOM, sheet.height * ZOOM, zoomedRgba(sheet, ZOOM));
+  mkdirSync(dirname(outputPath), { recursive: true });
+  writeFileSync(outputPath, png);
+  console.log(`Wrote ${outputPath} (${sheet.width * ZOOM}x${sheet.height * ZOOM})`);
+}
+
+writeZoomed(drawStructurePreview(sprites), resolve(artDocs, 'structure-preview.png'));
+writeZoomed(drawUnitSheet(sprites, HOTEL_SUBJECTS), resolve(artDocs, 'hotel-preview.png'));

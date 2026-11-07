@@ -89,3 +89,25 @@ export function drawStructurePreview(sprites) {
   }
   return sheet;
 }
+
+// One row per unit subject with every variant left to right, on an ink background.
+export function drawUnitSheet(sprites, subjects) {
+  const rows = subjects.map((subject) =>
+    Object.entries(sprites)
+      .filter(([id]) => id.startsWith(`units/${subject}/`))
+      .map(([, canvas]) => canvas),
+  );
+  const rowWidth = (row) => GAP + row.reduce((total, canvas) => total + canvas.width + GAP, 0);
+  const width = Math.max(...rows.map(rowWidth));
+  const height = GAP + rows.length * (metrics.floorHeight + GAP);
+  const sheet = new PixelCanvas(width, height);
+  sheet.fillRect(0, 0, width, height, 'ink');
+  rows.forEach((row, rowIndex) => {
+    let left = GAP;
+    for (const canvas of row) {
+      sheet.stamp(canvas, left, GAP + rowIndex * (metrics.floorHeight + GAP));
+      left += canvas.width + GAP;
+    }
+  });
+  return sheet;
+}
