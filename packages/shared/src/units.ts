@@ -1,4 +1,4 @@
-export const UNIT_IDS = [
+export const UNIT_TYPES = [
   'floor',
   'lobby',
   'stairs',
@@ -26,7 +26,7 @@ export const UNIT_IDS = [
   'cathedral',
 ] as const;
 
-export type UnitId = (typeof UNIT_IDS)[number];
+export type UnitType = (typeof UNIT_TYPES)[number];
 
 /** 6 is the top rank, "Torre". */
 export type StarRating = 1 | 2 | 3 | 4 | 5 | 6;
@@ -81,7 +81,7 @@ export interface PlacementFlags {
   readonly zone: PlacementZone;
   readonly allowedFloorUses?: readonly FloorUse[];
   readonly alignedWithExistingSameUnit?: boolean;
-  readonly mustConnectTo?: UnitId;
+  readonly mustConnectTo?: UnitType;
   readonly mustTouchExistingSameUnit?: boolean;
   readonly elevatorStops?: ElevatorStopRule;
   readonly maxCarsPerShaft?: number;
@@ -101,7 +101,7 @@ export type LimitGroupId =
   | 'cathedral';
 
 export interface UnitDefinition {
-  readonly id: UnitId;
+  readonly type: UnitType;
   readonly name: string;
   readonly category: ToolbarCategory;
   /** Width in cells. */
@@ -119,7 +119,8 @@ export interface IncomeBracket {
   readonly amount: number;
 }
 
-export type UpkeepBasis = 'per-unit' | 'per-car' | 'per-cell';
+/** Lobby upkeep counts columns, not cells: a tall lobby pays its height only at build time. */
+export type UpkeepBasis = 'per-unit' | 'per-car' | 'per-column';
 
 export interface StarDependentAmount {
   readonly minStars: StarRating;
@@ -130,3 +131,12 @@ export interface UpkeepRule {
   readonly basis: UpkeepBasis;
   readonly amountByStars: readonly StarDependentAmount[];
 }
+
+export const SHAFT_TYPES = ['standard', 'service', 'express'] as const;
+export type ShaftType = (typeof SHAFT_TYPES)[number];
+
+export const SHAFT_UNIT_TYPES = {
+  standard: 'standard-elevator',
+  service: 'service-elevator',
+  express: 'express-elevator',
+} as const satisfies Record<ShaftType, UnitType>;

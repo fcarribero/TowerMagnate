@@ -2,6 +2,7 @@ import cookie from '@fastify/cookie';
 import Fastify, { type FastifyInstance, type FastifyServerOptions } from 'fastify';
 import { authRoutes } from './auth/routes';
 import { createPool, pingDatabase } from './database';
+import { registerGateway, resolveIdentityFromQuery, type IdentityResolver } from './gateway';
 import { checkHealth } from './health';
 
 export interface AppOptions {
@@ -9,6 +10,8 @@ export interface AppOptions {
   databaseUrl: string;
   secureCookies?: boolean;
   logger?: FastifyServerOptions['logger'];
+  resolveSocketIdentity?: IdentityResolver;
+  heartbeatIntervalMs?: number;
 }
 
 export function buildApp(options: AppOptions): FastifyInstance {
@@ -28,6 +31,11 @@ export function buildApp(options: AppOptions): FastifyInstance {
       return reply.code(report.status === 'ok' ? 200 : 503).send(report);
     });
   }
+
+  registerGateway(app, {
+    resolveIdentity: options.resolveSocketIdentity ?? resolveIdentityFromQuery,
+    heartbeatIntervalMs: options.heartbeatIntervalMs,
+  });
 
   return app;
 }

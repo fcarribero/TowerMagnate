@@ -80,7 +80,7 @@
     {
       "id": "ui-click",
       "prompt": "One loud, clearly audible mouse click on a plastic button: a sharp, crisp tick right at the start, close-miked and dry, then silence. No reverb.",
-      "duration": 0.2,
+      "duration": 0.1,
       "loop": false,
       "loudness": -20
     }
