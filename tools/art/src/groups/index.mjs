@@ -1,5 +1,7 @@
 import { skyGroup } from './sky.mjs';
 import { structureGroup } from './structure.mjs';
+import { transportGroup } from './transport.mjs';
+import { uiGroup } from './ui.mjs';
 import { unitsGroup } from './units.mjs';
 
-export const groups = [skyGroup, structureGroup, unitsGroup];
+export const groups = [skyGroup, structureGroup, transportGroup, uiGroup, unitsGroup];

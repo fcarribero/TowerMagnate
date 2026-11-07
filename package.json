@@ -1,6 +1,6 @@
 {
   "name": "tower-magnate",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
   "type": "module",
   "packageManager": "pnpm@10.18.3",
@@ -13,13 +13,17 @@
     "typecheck": "tsc -b",
     "test": "vitest run",
     "test:watch": "vitest",
+    "bench:snapshots": "pnpm --filter @tower-magnate/server bench:snapshots",
     "art:build": "pnpm --filter @tower-magnate/art build",
     "stack": "tsx scripts/stack.ts",
-    "e2e": "playwright test -c e2e"
+    "e2e": "playwright test -c e2e",
+    "bench:people": "node --expose-gc --import tsx scripts/bench-person-pool.ts"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.5",
     "@playwright/test": "^1.65.0",
+    "@tower-magnate/engine": "workspace:*",
+    "@tower-magnate/shared": "workspace:*",
     "@types/node": "^22.20.5",
     "eslint": "^9.39.5",
     "eslint-config-prettier": "^10.1.8",

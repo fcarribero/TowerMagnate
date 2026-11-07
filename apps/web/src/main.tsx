@@ -1,6 +1,6 @@
 import { render } from 'preact';
 import { SfxProvider } from './audio/useSfx';
-import { App } from './ui/App';
+import { Root } from './ui/Root';
 import './style.css';
 
 const root = document.getElementById('app');
@@ -9,7 +9,7 @@ if (root === null) {
 }
 render(
   <SfxProvider>
-    <App />
+    <Root />
   </SfxProvider>,
   root,
 );

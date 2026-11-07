@@ -150,6 +150,21 @@ Structure sprites are in `tools/art/src/groups/structure.mjs`. Each one has a `d
 | `edge-left`, `edge-right` | 3 x 32 | outer wall, drawn just outside the first and last column of each floor |
 | `basement-edge-left`, `basement-edge-right` | 3 x 32 | retaining wall beside basement levels |
 | `roof`, `roof-left`, `roof-right` | 8 x 4, 3 x 4 | parapet above the top floor of each column, and its two corners |
+| `clay` | 32 x 32 | packed clay for the middle soil levels |
+| `bedrock` | 32 x 32 | rock above the subway tunnel |
+| `subway-tunnel`, `subway-tunnel-lamp` | 8 x 32 | one column of the S10 tunnel; place the lamp column every 4 tiles |
+| `subway-tunnel-edge-left`, `subway-tunnel-edge-right` | 8 x 32 | the first and last column of the tunnel, closed by a concrete bulkhead on the outer side |
+
+Unbuilt soil uses one subject per basement level:
+
+| Level | Subject |
+|---|---|
+| S1 | `ground` |
+| S2, S3 | `dirt` |
+| S4 to S6 | `clay` |
+| S7, S8 | `dirt-deep` |
+| S9 | `bedrock` |
+| S10 | `subway-tunnel` across the whole site |
 
 Sky sprites are in `tools/art/src/groups/sky.mjs`. The times are `day`, `dusk` (sunrise and sunset) and `night`.
 
@@ -162,6 +177,38 @@ Sky sprites are in `tools/art/src/groups/sky.mjs`. The times are `day`, `dusk` (
 | `sky/sun/day`, `sky/moon/night` | 12 x 12, 10 x 10 | sun for day and dusk, moon for night |
 
 Stars are part of the night `top` and `middle` bands. `pnpm art:build` also writes `docs/art/structure-preview.png`, a 2x cross-section at day, dusk and night that uses every structure sprite.
+
+## Elevators
+
+Elevator sprites are in `tools/art/src/groups/transport.mjs`. They are indoors, so they have no day or night variant. Standard and service shafts are 4 tiles wide (32 px) and express shafts 6 tiles (48 px), as in rule C-33 of the construction design.
+
+| Id | Size | Use |
+|---|---|---|
+| `transport/<type>-shaft/body` | 32 or 48 x 32 | one level of shaft, repeated on every level it serves |
+| `transport/<type>-shaft/top` | 32 or 48 x 12 | machine room, drawn just above the top level |
+| `transport/<type>-shaft/bottom` | 32 or 48 x 6 | pit with buffers, drawn just below the lowest level |
+| `transport/<type>-car/open`, `closed` | 24 x 27, express 40 x 27 | the car, doors open or closed |
+
+The types are `standard`, `service` and `express`. The car is drawn 4 px in from the left of its shaft, and when it stops at a floor its top is on row 2 of that floor so its bottom sits on row 28. The beam across the shaft at each slab tells the types apart: plain slate for standard, lamp and ink stripes for service, cloth-blue for express. `pnpm art:build` writes `docs/art/transport-preview.png`, a 3x sheet with each shaft and its car.
+
+## Level ruler
+
+The ruler is in `tools/art/src/groups/ui.mjs` and has no time variant. `ui/ruler-background` (24 x 32) is one level of the strip on the left edge of the view. `ui/ruler-plate` (20 x 13) goes on top of it at (1, 9), and the hovered level uses `ui/ruler-plate-hover`, lit in lamp. The client writes the label (`12`, `S3`) in ink on the plate.
+
+## Hotel
+
+Hotel sprites are in `tools/art/src/units/hotel.mjs` and `tools/art/src/units/housekeeping.mjs`.
+
+| Subject | Size | States |
+|---|---|---|
+| `single-room` | 32 x 32 | empty, occupied, dirty, infested |
+| `double-room` | 48 x 32 | empty, occupied, dirty, infested |
+| `suite` | 80 x 32 | empty, occupied, dirty, infested |
+| `housekeeping` | 120 x 32 | empty, occupied |
+
+Every state has a `day` and a `night` sprite. Hotel rooms have cloud walls with a concrete-light wainscot, a red carpet, a lamp-colored room number above the door and a bed with the headboard on the right. An empty room has a made bed and a closed door. An occupied room adds a suitcase, a red tag on the door handle and lit lamps, and its windows are lit at night. A dirty room has an unmade bed, a towel on the floor and grime pixels. An infested room is the dirty room with 8 roaches on the walls, the bed and the floor, so it reads at 1x even at night. Housekeeping is a service room with linen shelves, washers, a sink and laundry carts; in the occupied state 3 maids stand in the room and the door is open.
+
+`pnpm art:build` also writes `docs/art/hotel-preview.png`, a 2x sheet with one row per hotel subject and every variant left to right.
 
 ## Building the art
 
