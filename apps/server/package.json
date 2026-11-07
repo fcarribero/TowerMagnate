@@ -12,9 +12,11 @@
     "migrate": "tsx src/migrate.ts"
   },
   "dependencies": {
+    "@fastify/cookie": "^11.1.5",
     "@fastify/websocket": "^11.3.7",
     "@tower-magnate/engine": "workspace:*",
     "@tower-magnate/shared": "workspace:*",
+    "argon2": "^0.45.2",
     "fastify": "^5.12.8",
     "pg": "^8.23.1"
   },
