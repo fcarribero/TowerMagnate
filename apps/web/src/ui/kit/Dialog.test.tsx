@@ -155,6 +155,36 @@ describe('ConfirmDialog', () => {
     expect(inside).toContain(document.activeElement);
   });
 
+  it('keeps focus inside after a click on the backdrop', async () => {
+    const user = userEvent.setup();
+    renderConfirm();
+    const inside = Array.from(frameOf('Torre nueva').querySelectorAll('button'));
+    const backdrop = document.querySelector('.tm-modal-backdrop') as HTMLElement;
+    await user.pointer({ keys: '[MouseLeft]', target: backdrop });
+    expect(inside).toContain(document.activeElement);
+    for (let step = 0; step < 4; step++) {
+      await user.tab({ shift: true });
+      expect(inside).toContain(document.activeElement);
+    }
+  });
+
+  it('brings Tab back inside when focus was lost to the page', async () => {
+    const user = userEvent.setup();
+    renderConfirm();
+    const inside = Array.from(frameOf('Torre nueva').querySelectorAll('button'));
+    act(() => (document.activeElement as HTMLElement).blur());
+    expect(document.activeElement).toBe(document.body);
+    await user.tab({ shift: true });
+    expect(inside).toContain(document.activeElement);
+  });
+
+  it('pulls focus back when something behind tries to take it', () => {
+    renderConfirm();
+    const behind = within(frameOf('Finanzas')).getByRole('button', { name: 'Detrás' });
+    act(() => behind.focus());
+    expect(frameOf('Torre nueva').contains(document.activeElement)).toBe(true);
+  });
+
   it('gives focus back to where it was when it closes', () => {
     function Harness() {
       const manager = useWindowManager();

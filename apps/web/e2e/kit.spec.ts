@@ -147,6 +147,13 @@ test('a confirm dialog is modal, centered, keeps Tab inside and Esc picks the sa
     expect(inside).toBe(true);
   }
 
+  await page.locator('.tm-modal-backdrop').click({ position: { x: 5, y: 5 } });
+  for (let step = 0; step < 4; step++) {
+    await page.keyboard.press('Shift+Tab');
+    const inside = await dialog.evaluate((element) => element.contains(document.activeElement));
+    expect(inside).toBe(true);
+  }
+
   await page.getByRole('button', { name: 'Botones' }).click({ force: true });
   await expect(windowNamed(page, 'Botones')).toHaveCount(0);
 

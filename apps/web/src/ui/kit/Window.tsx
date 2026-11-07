@@ -80,6 +80,16 @@ export function Window({
     }
   }, [isPlaced]);
 
+  const isFront = frontWindow(manager.stack)?.id === id;
+  const isFrontRef = useRef(isFront);
+  isFrontRef.current = isFront;
+  useEffect(() => {
+    if (!modal || !isPlaced) {
+      return;
+    }
+    return keepFocusInside(frameRef, isFrontRef);
+  }, [modal, isPlaced]);
+
   useEffect(() => {
     const frame = frameRef.current;
     if (!pendingCenter || frame === null || manager.viewSize.width === 0) {
@@ -103,7 +113,6 @@ export function Window({
     return null;
   }
 
-  const isFront = frontWindow(manager.stack)?.id === id;
   const zIndex = BASE_Z_INDEX + 2 * manager.stack.windows.indexOf(openWindow) + 1;
   const titleId = `tm-window-title-${id}`;
 
@@ -149,12 +158,6 @@ export function Window({
     }
   };
 
-  const onKeyDown = (event: KeyboardEvent): void => {
-    if (modal && frameRef.current !== null) {
-      trapTabKey(event, frameRef.current);
-    }
-  };
-
   const classes = ['tm-window', isFront && 'is-active', pendingCenter && 'is-placing']
     .filter(Boolean)
     .join(' ');
@@ -162,7 +165,13 @@ export function Window({
 
   return (
     <>
-      {modal && <div class="tm-modal-backdrop" style={{ zIndex: zIndex - 1 }} />}
+      {modal && (
+        <div
+          class="tm-modal-backdrop"
+          style={{ zIndex: zIndex - 1 }}
+          onMouseDown={(event) => event.preventDefault()}
+        />
+      )}
       <section
         ref={frameRef}
         class={classes}
@@ -171,7 +180,6 @@ export function Window({
         aria-labelledby={titleId}
         tabIndex={-1}
         style={{ left: `${position.x}px`, top: `${position.y}px`, zIndex, width: widthStyle }}
-        onKeyDown={onKeyDown}
         onPointerDown={() => manager.focus(id)}
         onFocusCapture={() => manager.focus(id)}
       >
@@ -201,6 +209,38 @@ export function Window({
       </section>
     </>
   );
+}
+
+/**
+ * While the modal is the front window, Tab cycles inside it and focus that lands
+ * anywhere else, for example on the page after a backdrop click, comes back to it.
+ */
+function keepFocusInside(
+  frameRef: { current: HTMLElement | null },
+  isFrontRef: { current: boolean },
+): () => void {
+  const onKeyDown = (event: KeyboardEvent): void => {
+    const frame = frameRef.current;
+    if (frame !== null && isFrontRef.current) {
+      trapTabKey(event, frame);
+    }
+  };
+  const onFocusIn = (event: FocusEvent): void => {
+    const frame = frameRef.current;
+    const target = event.target;
+    if (frame === null || !isFrontRef.current || !(target instanceof Node)) {
+      return;
+    }
+    if (!frame.contains(target)) {
+      frame.focus({ preventScroll: true });
+    }
+  };
+  document.addEventListener('keydown', onKeyDown, true);
+  document.addEventListener('focusin', onFocusIn);
+  return () => {
+    document.removeEventListener('keydown', onKeyDown, true);
+    document.removeEventListener('focusin', onFocusIn);
+  };
 }
 
 /** Focuses the element marked to start with focus, else the frame itself. */

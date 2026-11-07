@@ -11,7 +11,7 @@ export function focusableElements(container: HTMLElement): HTMLElement[] {
   return Array.from(container.querySelectorAll<HTMLElement>(FOCUSABLE));
 }
 
-/** Wraps Tab and Shift + Tab around the focusable elements of the container. */
+/** Wraps Tab and Shift + Tab around the focusable elements of the container, and pulls focus back in from outside. */
 export function trapTabKey(event: KeyboardEvent, container: HTMLElement): void {
   if (event.key !== 'Tab') {
     return;
@@ -24,6 +24,11 @@ export function trapTabKey(event: KeyboardEvent, container: HTMLElement): void {
     return;
   }
   const active = document.activeElement;
+  if (!(active instanceof Node) || !container.contains(active)) {
+    event.preventDefault();
+    (event.shiftKey ? last : first).focus();
+    return;
+  }
   const leavingBackwards = event.shiftKey && (active === first || active === container);
   const leavingForwards = !event.shiftKey && active === last;
   if (leavingBackwards) {
