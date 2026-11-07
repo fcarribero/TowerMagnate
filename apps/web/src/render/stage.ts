@@ -1,17 +1,31 @@
 import { Application, Container, TextureSource } from 'pixi.js';
+import { createCamera, resizeCamera, visibleLevels } from './camera';
+import { attachCameraInput, type CameraChange } from './cameraInput';
 import { canvasSizeFromCssPixels, canvasSizeFromObservedBox, type CanvasSize } from './canvasSize';
-import { groundOrigin } from './layout';
+import { CulledRows } from './culledRows';
+import { levelTop } from './levels';
 import type { Zoom } from './metrics';
-import { createPlaceholderScene } from './placeholderScene';
+import { createPlaceholderTower } from './placeholderTower';
 
 const SKY_COLOR = '#6f9fd8';
 const DEFAULT_ZOOM: Zoom = 2;
+const STATS_INTERVAL_MS = 500;
+
+export interface RenderStats {
+  fps: number;
+  zoom: Zoom;
+  floorsDrawn: number;
+}
+
+export interface StageOptions {
+  onStats?: (stats: RenderStats) => void;
+}
 
 export interface Stage {
   destroy(): void;
 }
 
-export async function mountStage(host: HTMLElement): Promise<Stage> {
+export async function mountStage(host: HTMLElement, options: StageOptions = {}): Promise<Stage> {
   TextureSource.defaultOptions.scaleMode = 'nearest';
 
   const app = new Application();
@@ -25,25 +39,56 @@ export async function mountStage(host: HTMLElement): Promise<Stage> {
     height: 1,
   });
   host.appendChild(app.canvas);
+  app.canvas.style.touchAction = 'none';
 
   const world = new Container();
-  world.scale.set(DEFAULT_ZOOM);
-  world.addChild(createPlaceholderScene());
+  const floors = new CulledRows<Container>();
+  for (const [index, floor] of createPlaceholderTower()) {
+    floor.y = levelTop(index);
+    floors.set(index, floor);
+    world.addChild(floor);
+  }
   app.stage.addChild(world);
+
+  const firstSize = measureHost(host);
+  let camera = createCamera(firstSize.deviceWidth, firstSize.deviceHeight, DEFAULT_ZOOM);
+
+  const showCamera = (): void => {
+    world.scale.set(camera.zoom);
+    world.position.set(-camera.left, -camera.top);
+    floors.showOnly(visibleLevels(camera));
+  };
 
   const applySize = (size: CanvasSize): void => {
     app.renderer.resize(size.deviceWidth, size.deviceHeight);
     app.canvas.style.width = `${size.cssWidth}px`;
     app.canvas.style.height = `${size.cssHeight}px`;
-    const origin = groundOrigin(size.deviceWidth, size.deviceHeight, DEFAULT_ZOOM);
-    world.position.set(origin.x, origin.y);
+    camera = resizeCamera(camera, size.deviceWidth, size.deviceHeight);
+    showCamera();
   };
 
-  applySize(measureHost(host));
+  applySize(firstSize);
   const observer = observeDeviceSize(host, applySize);
+  const detachInput = attachCameraInput(
+    app.canvas,
+    () => camera,
+    (change: CameraChange) => {
+      camera = change(camera);
+      showCamera();
+    },
+  );
+  const statsTimer = window.setInterval(() => {
+    options.onStats?.({
+      fps: Math.round(app.ticker.FPS),
+      zoom: camera.zoom,
+      floorsDrawn: floors.drawnCount,
+    });
+  }, STATS_INTERVAL_MS);
 
   return {
     destroy() {
+      window.clearInterval(statsTimer);
+      detachInput();
       observer.disconnect();
       app.destroy({ removeView: true }, { children: true });
     },
