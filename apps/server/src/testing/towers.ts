@@ -20,6 +20,9 @@ export function towerOfAtLeast(bytes: number): TowerState {
         x: index,
         level: 1,
         name: `${padding}${index}`,
+        priceLevel: 'normal',
+        paid: 0,
+        placedAtStep: 0,
       };
       tower.units[unit.id] = unit;
     }

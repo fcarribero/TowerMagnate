@@ -1,7 +1,7 @@
 import type { Ledger } from './ledger';
 import type { Level } from './levels';
 import type { PersonPool } from './people';
-import type { UnitType } from './units';
+import type { PriceLevel, UnitType } from './units';
 
 /** Id of a placed unit, transport or shaft, with a type prefix: `u12`, `t3`, `s4`. */
 export type EntityId = string;
@@ -65,6 +65,10 @@ export interface Unit {
   level: Level;
   /** Player-chosen name; null shows the default name. */
   name: string | null;
+  priceLevel: PriceLevel;
+  /** Whole dollars charged at placement, automatic floor included. */
+  paid: number;
+  placedAtStep: number;
 }
 
 export interface TowerState {
