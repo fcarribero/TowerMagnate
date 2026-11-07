@@ -7,7 +7,7 @@ import {
   type UnitType,
 } from '@tower-magnate/shared';
 import { formatMoney } from '../money';
-import { t } from '../strings';
+import { hasString, t } from '../strings';
 
 export const FIXED_TOOLS = ['inspect', 'bulldozer', 'car'] as const;
 export type FixedTool = (typeof FIXED_TOOLS)[number];
@@ -57,6 +57,17 @@ export function isLocked(tool: ToolId, stars: StarRating): boolean {
 
 export function toolName(tool: ToolId): string {
   return isFixedTool(tool) ? t(`tool.${tool}`) : t(`unit.${tool}`);
+}
+
+/** The text on the tool's button: a short form when the full name does not fit. */
+export function toolButtonLabel(tool: ToolId): string {
+  const shortKey = `tool.short.${tool}`;
+  return hasString(shortKey) ? t(shortKey) : toolName(tool);
+}
+
+export function categoryButtonLabel(category: ToolbarCategory): string {
+  const shortKey = `category.short.${category}`;
+  return hasString(shortKey) ? t(shortKey) : t(`category.${category}`);
 }
 
 export function sizeText(unit: UnitDefinition): string {

@@ -13,7 +13,7 @@ const SESSION_COOKIE_MAX_AGE_SECONDS = 400 * 24 * 60 * 60;
 const MESSAGES = {
   usernameTaken: 'Ese nombre de usuario ya está en uso.',
   wrongCredentials: 'Usuario o contraseña incorrectos.',
-  notLoggedIn: 'No has iniciado sesión.',
+  notLoggedIn: 'No iniciaste sesión.',
 };
 
 export interface AuthRoutesOptions {

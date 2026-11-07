@@ -2,6 +2,7 @@ import type { AccountResponse, AuthErrorBody, TowerResponse } from '@tower-magna
 import type { FastifyPluginAsync, FastifyReply } from 'fastify';
 import type pg from 'pg';
 import { sessionUserOf } from '../auth/session-user';
+import type { TowerRunner } from '../runner';
 import { createTowerFor, findTowerSummary, resetTowerOf, TowerExistsError } from './repository';
 
 const MESSAGES = {
@@ -13,11 +14,12 @@ const MESSAGES = {
 
 export interface TowerRoutesOptions {
   pool: pg.Pool;
+  runner: TowerRunner;
 }
 
 // Expects @fastify/cookie to be registered on the parent instance.
 export const towerRoutes: FastifyPluginAsync<TowerRoutesOptions> = async (app, options) => {
-  const { pool } = options;
+  const { pool, runner } = options;
 
   app.get('/api/account', async (request, reply) => {
     const user = await sessionUserOf(pool, request);
@@ -53,6 +55,11 @@ export const towerRoutes: FastifyPluginAsync<TowerRoutesOptions> = async (app, o
     if (!isResetConfirmed(request.body)) {
       return sendError(reply, 400, MESSAGES.resetNotConfirmed);
     }
+    const current = await findTowerSummary(pool, user.id);
+    if (!current) {
+      return sendError(reply, 404, MESSAGES.noTower);
+    }
+    await runner.pause(String(current.id));
     const tower = await resetTowerOf(pool, user.id);
     if (!tower) {
       return sendError(reply, 404, MESSAGES.noTower);

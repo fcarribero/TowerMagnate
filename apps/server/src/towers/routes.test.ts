@@ -204,6 +204,18 @@ describe('account and tower routes', () => {
       expect((await account(token)).json().tower).toMatchObject({ step: 0, date: FIRST_MONDAY });
     });
 
+    it('stops a live tower so it does not overwrite the reset', async () => {
+      const token = await registerSession('lara');
+      const created: TowerSummary = (await createTower(token)).json().tower;
+      const towerId = String(created.id);
+      await app.towerRunner.resume(towerId);
+
+      await resetTower(token, { confirm: true });
+
+      expect(app.towerRunner.isRunning(towerId)).toBe(false);
+      expect((await storedTower(created.id)).steps).toEqual([0]);
+    });
+
     it('leaves other accounts untouched', async () => {
       const resetter = await registerSession('juan');
       const bystander = await registerSession('karen');
