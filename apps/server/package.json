@@ -6,8 +6,19 @@
   "exports": {
     ".": "./src/index.ts"
   },
+  "scripts": {
+    "dev": "tsx watch src/main.ts",
+    "start": "tsx src/main.ts"
+  },
   "dependencies": {
     "@tower-magnate/engine": "workspace:*",
-    "@tower-magnate/shared": "workspace:*"
+    "@tower-magnate/shared": "workspace:*",
+    "fastify": "^5.12.8",
+    "pg": "^8.23.1"
+  },
+  "devDependencies": {
+    "@testcontainers/postgresql": "^11.14.0",
+    "@types/pg": "^8.23.1",
+    "tsx": "^4.23.15"
   }
 }

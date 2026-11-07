@@ -28,6 +28,14 @@ describe('engine purity lint rules', () => {
     expect(ruleIds).toContain('no-restricted-globals');
   });
 
+  it('rejects Math.random in engine tests but allows timing them', async () => {
+    const testFile = 'packages/engine/src/sample.test.ts';
+    const randomRules = await ruleIdsFor('export const roll = Math.random();\n', testFile);
+    expect(randomRules).toContain('no-restricted-properties');
+    const timingRules = await ruleIdsFor('export const started = performance.now();\n', testFile);
+    expect(timingRules).toEqual([]);
+  });
+
   it('allows Math.random outside the engine', async () => {
     const ruleIds = await ruleIdsFor(
       'export const roll = Math.random();\n',
