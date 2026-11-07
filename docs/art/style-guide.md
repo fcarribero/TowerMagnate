@@ -96,8 +96,11 @@ Every unit has a day and a night sprite. Night is drawn as its own sprite with t
 | dirty | hotel rooms only: unmade bed, leaf-dark and concrete-dark grime pixels on the floor |
 | infested | hotel rooms only: the dirty sprite plus 4 to 8 roaches as 2 x 1 wood-dark pixels |
 | burnt | charcoal and ink walls, no furniture, broken windows; one sprite for day and night |
+| wedding | cathedral only: red carpet down the aisle, bows on the pews, flowers by the altar, a garland across the nave and the bell swinging; stained glass lit at night |
 
 Stair, escalator, lobby and elevator sprites have no states, only day and night.
+
+The cathedral has two states, `empty` and `wedding`. Its stained glass shows color by day. At night it is dark (night-deep) when empty and lit during a wedding.
 
 ## People
 
@@ -129,7 +132,7 @@ Groups: `units`, `transport`, `people`, `structure`, `sky`, `ui`.
 
 Frame numbers have two digits and start at `01`. Ids in the atlas JSON are exactly these strings, with no `.png` suffix.
 
-The full list of unit states, in the order scripts generate them: `empty`, `occupied`, `dirty`, `infested`, `burnt`. Times: `day`, `night`.
+The full list of unit states, in the order scripts generate them: `empty`, `occupied`, `dirty`, `infested`, `burnt`, `wedding`. Times: `day`, `night`.
 
 For people the variant is the action (`walk`, `stand`), a hyphen and the stress tint (`pink` or `red`), then the frame. Calm is the default and is left out, so `people/worker-a/walk_01` is a calm worker and `people/worker-a/walk-red_01` a very stressed one.
 
@@ -189,7 +192,21 @@ Elevator sprites are in `tools/art/src/groups/transport.mjs`. They are indoors, 
 | `transport/<type>-shaft/bottom` | 32 or 48 x 6 | pit with buffers, drawn just below the lowest level |
 | `transport/<type>-car/open`, `closed` | 24 x 27, express 40 x 27 | the car, doors open or closed |
 
+| `transport/<type>-shaft/landing` | 32 or 48 x 32 | hall door frame on every level where the car stops, drawn over the body and under the car |
+| `transport/call-button/idle`, `up`, `down`, `both` | 3 x 7 | call panel at the right edge of the shaft, row 12 of the level; a lit button is a waiting call |
+
 The types are `standard`, `service` and `express`. The car is drawn 4 px in from the left of its shaft, and when it stops at a floor its top is on row 2 of that floor so its bottom sits on row 28. The beam across the shaft at each slab tells the types apart: plain slate for standard, lamp and ink stripes for service, cloth-blue for express. `pnpm art:build` writes `docs/art/transport-preview.png`, a 3x sheet with each shaft and its car.
+
+## Stairs and escalators
+
+Stairs and escalators are in `tools/art/src/transport/walkways.mjs` and have day and night variants. Both are 8 tiles wide and one level tall (64 x 32), placed at the top-left of their 8 cells on the lower level L. They rise from the floor on the left to the slab of level L+1 on the right, and the slab rows stay clear so the floor sprite shows under them.
+
+| Id | Use |
+|---|---|
+| `transport/stairs/<time>` | a concrete flight of seven steps with a wood handrail |
+| `transport/escalator/<time>_01` to `_04` | escalator going up to the right; the step edges move 2 px per frame, so the four frames loop |
+
+`pnpm art:build` writes `docs/art/walkway-preview.png`, a 3x sheet with the stairs and each escalator frame over two levels, day above night.
 
 ## Level ruler
 
