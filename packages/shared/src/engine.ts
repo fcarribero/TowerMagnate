@@ -1,3 +1,4 @@
+import type { Ledger } from './ledger';
 import type { Level } from './levels';
 import type { PersonPool } from './people';
 import type { UnitType } from './units';
@@ -71,9 +72,12 @@ export interface TowerState {
   step: number;
   rng: RngState;
   nextId: number;
+  /** Whole dollars, may be negative, never above MONEY_CAP. */
+  money: number;
   units: Record<UnitId, Unit>;
   grid: GridState;
   people: PersonPool;
+  ledger: Ledger;
 }
 
 /** Events caused by a player command carry that command's id. */

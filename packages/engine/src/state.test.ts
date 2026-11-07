@@ -10,6 +10,12 @@ describe('createTower', () => {
     expect(tower.nextId).toBe(1);
   });
 
+  it('starts with $2,000,000 and an empty ledger', () => {
+    const tower = createTower(1);
+    expect(tower.money).toBe(2_000_000);
+    expect(tower.ledger.currentWeek.rent).toEqual({ income: 0, expense: 0 });
+  });
+
   it('starts with an empty grid and no lobby heights', () => {
     expect(createTower(1).grid).toEqual({ levels: {}, mainLobbyHeight: null, skyLobbyHeights: {} });
   });

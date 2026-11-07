@@ -1,5 +1,6 @@
-import type { TowerState } from '@tower-magnate/shared';
+import { STARTING_MONEY, type TowerState } from '@tower-magnate/shared';
 import { createGrid } from './grid';
+import { createLedger } from './money';
 import { clonePersonPool, createPersonPool } from './people';
 import { createRng } from './rng';
 
@@ -14,9 +15,11 @@ export function createTower(seed: number): TowerState {
     step: 0,
     rng: createRng(seed),
     nextId: 1,
+    money: STARTING_MONEY,
     units: {},
     grid: createGrid(),
     people: createPersonPool(),
+    ledger: createLedger(),
   };
 }
 

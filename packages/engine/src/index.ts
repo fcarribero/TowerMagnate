@@ -29,6 +29,17 @@ export {
 export { hashState } from './hash';
 export { migrateState, StateMigrationError } from './migrations';
 export {
+  chargeMoney,
+  constructionFundsError,
+  createLedger,
+  creditMoney,
+  emptyWeekTotals,
+  ledgerWeekRollHook,
+  rollLedgerWeek,
+  summarizeWeek,
+} from './money';
+export type { WeekSummary } from './money';
+export {
   addPeopleForUnit,
   addPerson,
   clonePersonPool,
