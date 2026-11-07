@@ -72,28 +72,12 @@ export interface TowerState {
   step: number;
   rng: RngState;
   nextId: number;
-  units: Record<UnitId, Unit>;
   /** Whole dollars, may be negative, never above MONEY_CAP. */
   money: number;
+  units: Record<UnitId, Unit>;
   grid: GridState;
   ledger: Ledger;
 }
-
-export type Command =
-  | { type: 'buildFloor'; level: Level; x0: number; x1: number }
-  | { type: 'buildLobby'; level: Level; x0: number; x1: number; height: LobbyHeight }
-  | { type: 'renameUnit'; unitId: UnitId; name: string };
-
-export type CommandType = Command['type'];
-
-export interface QueuedCommand {
-  id: string;
-  command: Command;
-}
-
-export type CommandResult =
-  | { id: string; ok: true; step: number; cost: number; refund: number }
-  | { id: string; ok: false; step: number; error: ErrorCode };
 
 /** Events caused by a player command carry that command's id. */
 export type EngineEvent = {

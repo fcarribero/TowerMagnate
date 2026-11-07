@@ -80,8 +80,8 @@ function assertCurrentShape(raw: Record<string, unknown>): TowerState {
     step: raw.step,
     rng: { a: raw.rng.a, b: raw.rng.b, c: raw.rng.c, d: raw.rng.d },
     nextId: raw.nextId,
-    units: readUnits(raw.units),
     money: readMoney(raw.money),
+    units: readUnits(raw.units),
     grid: readGrid(raw.grid),
     ledger: readLedger(raw.ledger),
   };
@@ -92,6 +92,9 @@ export function migrateState(raw: unknown): TowerState {
     throw new StateMigrationError('State must be an object');
   }
   const version = raw.schemaVersion;
+  if (version === undefined) {
+    throw new StateMigrationError('State has no schema version');
+  }
   if (!Number.isInteger(version) || (version as number) < 1) {
     throw new StateMigrationError(`Unknown schema version ${String(version)}`);
   }

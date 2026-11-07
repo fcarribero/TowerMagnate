@@ -233,6 +233,15 @@ describe('weekly roll over a running tower', () => {
   });
 });
 
+describe('year rollover', () => {
+  it('rolls every week across a 53-week span, leap year included', () => {
+    const { state } = moneyEngine.runDays(createTower(1), 7 * 53);
+    expect(state.ledger.previousWeek.rent.income).toBe(35_000);
+    expect(state.ledger.currentWeek.rent.income).toBe(0);
+    expect(state.money).toBe(STARTING_MONEY + 53 * 35_000 - 53 * 20_000);
+  });
+});
+
 describe('default tower engine', () => {
   it('rolls the ledger at Monday 00:00', () => {
     const tower = createTower(1);

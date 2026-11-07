@@ -1,6 +1,6 @@
 # Engine API, state model and wire protocol
 
-Version 1.1, 13 November 2026. Owner: Tech Lead. Tasks TM-5 and TM-23.
+Version 1.2, 16 November 2026. Owner: Tech Lead. Tasks TM-5, TM-23 and TM-24.
 
 This document fixes the contract between `packages/engine`, `packages/shared`, `apps/server` and `apps/web`. The type sketches below are the target shape. Field names may change during implementation only through a PR that updates this document too.
 
@@ -39,6 +39,8 @@ export type CommandResult =
 
 export function createTower(seed: number): TowerState;
 export function migrateState(raw: unknown): TowerState;
+export function serializeState(state: TowerState): string;
+export function deserializeState(text: string): TowerState;
 ```
 
 `step` is a pure function. It does not mutate its input; the returned state is a new object (structural sharing is allowed). The same state, commands and step count always give the same result.
@@ -168,6 +170,10 @@ The game date is derived from `step` with the calendar module (`dateOfStep(step)
 
 `migrateState(raw)` reads `schemaVersion`, runs the chain up to the current version, and validates the result. The server calls it every time it loads a snapshot from PostgreSQL. A snapshot with a version higher than the engine knows, or a malformed one, is refused with `StateMigrationError`. The server keeps the tower paused, logs it, and closes the client's socket with close code 4409.
 
+The server stores the text from `serializeState(state)`, which is the full `TowerState` as JSON with its `schemaVersion`. It loads it back with `deserializeState(text)`, which parses the text and passes it to `migrateState`. Text that is not JSON, a missing or invalid `schemaVersion`, and a version newer than the engine all throw `StateMigrationError` with a message that names the problem. A restored state runs exactly like the state that was saved, so its hash after any number of steps matches an uninterrupted run. The serialized empty tower stays under 5 KB.
+
+Frozen saves for the migration tests live in `packages/engine/src/migrations/fixtures.ts`. A fixture is never edited after it is added.
+
 Protocol version (`PROTOCOL_VERSION` in `shared`) is separate from `schemaVersion`. It changes when a wire message changes. Clients send it in `hello`; a mismatch closes the socket with `PROTOCOL_MISMATCH` and the client reloads.
 
 ## 5. Commands
@@ -217,7 +223,7 @@ export interface ElevatorBand {
 }
 ```
 
-`renameUnit` and `renamePerson` store `normalizeName(name)` from `shared`: whitespace runs become one space, control characters are dropped, the result is trimmed and cut to 24 characters (`MAX_NAME_LENGTH`, counted as characters, not UTF-16 units). A blank name stores `null`, which shows the default name again. Renaming costs nothing. An unknown unit or person id gives `UNKNOWN_ENTITY`. `answerEvent` choices are defined per event in TM-15; for now `'pay' | 'refuse'` for the bomb and `'helicopter' | 'burn'` for fire.
+`renameUnit` and `renamePerson` store `normalizeName(name)` from `shared`: whitespace runs become one space, control characters are dropped, the result is trimmed and cut to 24 characters (`MAX_NAME_LENGTH`, counted as characters, not UTF-16 units). A blank name stores `null`, which shows the default name again. Renaming costs nothing. An unknown unit or person id gives `UNKNOWN_ENTITY`. `answerEvent` choices are defined in the events spec (TM-15, `docs/design/events.md` section 3): `'pay' | 'refuse'` for the bomb and `'helicopter' | 'burn'` for fire.
 
 Commands from the socket are first parsed with the zod schema in `shared`. A message that fails parsing never reaches the engine and gets `INVALID_COMMAND`. The engine still checks every rule of TM-8, since a schema cannot know the tower.
 
@@ -484,6 +490,10 @@ While an `inspect` target is set, the server sends `inspect` once per second and
 | Notices and news, decision windows | `notices`, `events`, `activeEvents`; `answerEvent` |
 | Sound effects | `sound` events and car state |
 
+### 8.11 Schemas
+
+The zod schemas for every message, command and view are in `packages/shared/src/protocol`, and the TypeScript types are inferred from them. Where this section names a type without fields (`TransportView`, `ShaftView`, `FollowedView`, `EventView`, `NoticeView`, `OverlayData`, `FinanceSummary`, `InspectData`, `ClientEvent`), the schema is the reference. Entity ids on the wire carry their prefix: `u` units, `t` stairs and escalators, `s` shafts, `p` people, `e` events. `ErrorCode` includes the socket codes; `CommandResult` only carries `EngineErrorCode`, which leaves them out.
+
 ## 9. Performance budgets
 
 - One `step` call with `steps = 1` on a tower of 15,000 people stays under 5 ms on the CI machine. Engine scenario tests that run a game week stay under 10 s.
@@ -496,6 +506,6 @@ While an `inspect` target is set, the server sends `inspect` once per second and
 |---|---|
 | `TowerState`, `Command`, `EngineEvent`, `ErrorCode`, `Level` helpers, `normalizeName`, calendar, catalog | `packages/shared` |
 | zod schemas for `ClientMessage`, `ServerMessage`, `Command` | `packages/shared` |
-| `step`, `createTower`, `migrateState`, command handlers | `packages/engine` |
+| `step`, `createTower`, `migrateState`, `serializeState`, `deserializeState`, command handlers | `packages/engine` |
 | View builders (state to `Snapshot`, `Delta`, `InspectData`), runner, viewport filter | `apps/server` |
 | Interpolation buffer, message handling, error messages in Spanish | `apps/web` |

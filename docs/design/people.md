@@ -34,7 +34,7 @@ All draws use the tower's seeded RNG (TM-7). A probability "p%" means one RNG dr
 
 Several things can need random draws in the same engine step. The engine makes them in this fixed order, so the same seed and commands always consume the RNG in the same sequence:
 
-1. Events that happen at the step's clock time, in this order: the 00:00 plans (section 1.3 below), the 00:00 customer counts and appearance times, the 03:00 night move, the hourly prospect rolls, the 12:00 VIP booking and hotel booking rolls.
+1. Events that happen at the step's clock time, in this order: the 00:00 infestation check (TM-16, `docs/design/hotel.md` 7.1), the 00:00 plans (section 1.3 below), the 00:00 customer counts and appearance times, the 03:00 night move, the hourly prospect rolls, the 12:00 VIP booking and hotel booking rolls.
 2. Within one of those events, units are processed in increasing unit id and people in increasing person id.
 3. Then every person with something due at this step, in increasing person id. All the draws of one person finish before the next person starts.
 4. Several draws for one subject follow the order in which the rule's text gives them.
@@ -589,6 +589,6 @@ P-44. A condo's prospect becomes resident 1 and the other 2 residents appear in 
 
 ### Draw order
 
-P-45. Draws made in the same step happen in this order: step events (00:00 plans, 00:00 customer counts and appearance times, 03:00 night move, hourly prospect rolls, 12:00 VIP booking, 12:00 hotel booking rolls), then people with something due. Units go in increasing unit id and people in increasing person id. A person's draws all finish before the next person's start. Subjects created during the step go last in their phase, in creation order.
+P-45. Draws made in the same step happen in this order: step events (00:00 infestation check, 00:00 plans, 00:00 customer counts and appearance times, 03:00 night move, hourly prospect rolls, 12:00 VIP booking, 12:00 hotel booking rolls), then people with something due. Units go in increasing unit id and people in increasing person id. A person's draws all finish before the next person's start. Subjects created during the step go last in their phase, in creation order.
 
 P-46. Guards use stairs, escalators, standard elevators and express elevators. They never use service elevators.
