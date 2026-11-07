@@ -1,3 +1,16 @@
+export {
+  dateOfStep,
+  DAYS_PER_WEEK,
+  daysInMonth,
+  isLeapYear,
+  isWeekendDay,
+  STEPS_PER_HOUR,
+  STEPS_PER_MINUTE,
+  stepOfDate,
+  weekdayOfDay,
+  WEEKDAYS,
+} from './calendar';
+export type { CalendarDateTime, GameDate, Weekday } from './calendar';
 export { SECONDS_PER_DAY, SECONDS_PER_STEP, STEPS_PER_DAY } from './clock';
 export {
   addOccupant,
