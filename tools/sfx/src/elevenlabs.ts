@@ -1,8 +1,8 @@
-import type { Effect } from "./effects.ts";
+import type { Effect } from './effects';
 
-const ENDPOINT = "https://api.elevenlabs.io/v1/sound-generation";
-const OUTPUT_FORMAT = "mp3_44100_128";
-const MODEL_ID = "eleven_text_to_sound_v2";
+const ENDPOINT = 'https://api.elevenlabs.io/v1/sound-generation';
+const OUTPUT_FORMAT = 'mp3_44100_128';
+const MODEL_ID = 'eleven_text_to_sound_v2';
 const MIN_API_DURATION = 0.5;
 const PROMPT_INFLUENCE = 0.5;
 const MAX_ERROR_BODY = 300;
@@ -34,11 +34,11 @@ export async function requestSoundEffect(
 ): Promise<Buffer> {
   const url = `${ENDPOINT}?output_format=${OUTPUT_FORMAT}`;
   const response = await fetchImpl(url, {
-    method: "POST",
+    method: 'POST',
     headers: {
-      "xi-api-key": apiKey,
-      "content-type": "application/json",
-      accept: "audio/mpeg",
+      'xi-api-key': apiKey,
+      'content-type': 'application/json',
+      accept: 'audio/mpeg',
     },
     body: JSON.stringify(buildRequestBody(effect)),
   });

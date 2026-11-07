@@ -1,7 +1,7 @@
-import { access, mkdir, writeFile } from "node:fs/promises";
-import { join } from "node:path";
-import type { Effect } from "./effects.ts";
-import type { Loudness, OutputPaths } from "./audio.ts";
+import { access, mkdir, writeFile } from 'node:fs/promises';
+import { join } from 'node:path';
+import type { Effect } from './effects';
+import type { Loudness, OutputPaths } from './audio';
 
 export interface GenerateOptions {
   effects: Effect[];
@@ -14,7 +14,11 @@ export interface GenerateOptions {
 export interface GenerateDeps {
   getApiKey: () => Promise<string>;
   requestSound: (effect: Effect, apiKey: string) => Promise<Buffer>;
-  encode: (input: string, effect: Effect, outputs: OutputPaths) => Promise<{ gain: number; result: Loudness }>;
+  encode: (
+    input: string,
+    effect: Effect,
+    outputs: OutputPaths,
+  ) => Promise<{ gain: number; result: Loudness }>;
   log: (message: string) => void;
 }
 
@@ -33,7 +37,10 @@ export function outputPaths(outDir: string, effect: Effect): OutputPaths {
   return { ogg: join(outDir, `${effect.id}.ogg`), mp3: join(outDir, `${effect.id}.mp3`) };
 }
 
-export async function generate(options: GenerateOptions, deps: GenerateDeps): Promise<GenerateSummary> {
+export async function generate(
+  options: GenerateOptions,
+  deps: GenerateDeps,
+): Promise<GenerateSummary> {
   const summary: GenerateSummary = { skipped: [], generated: [], encoded: [], failed: [] };
   let apiKey: string | undefined;
 
@@ -54,7 +61,9 @@ export async function generate(options: GenerateOptions, deps: GenerateDeps): Pr
 
     if (!(await exists(source))) {
       if (options.dryRun) {
-        deps.log(`${effect.id}: would call ElevenLabs (${effect.duration} s${effect.loop ? ", loop" : ""})`);
+        deps.log(
+          `${effect.id}: would call ElevenLabs (${effect.duration} s${effect.loop ? ', loop' : ''})`,
+        );
         summary.generated.push(effect.id);
         continue;
       }

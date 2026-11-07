@@ -1,15 +1,15 @@
-import { homedir } from "node:os";
-import { dirname, join, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
-import { parseArgs } from "node:util";
-import { findApiKey } from "./apiKey.ts";
-import { assertFfmpegAvailable, ffmpegBinary, normalizeAndEncode } from "./audio.ts";
-import { requestSoundEffect } from "./elevenlabs.ts";
-import { loadEffects, selectEffects } from "./effects.ts";
-import { generate } from "./generate.ts";
+import { homedir } from 'node:os';
+import { dirname, join, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { parseArgs } from 'node:util';
+import { findApiKey } from './apiKey';
+import { assertFfmpegAvailable, ffmpegBinary, normalizeAndEncode } from './audio';
+import { requestSoundEffect } from './elevenlabs';
+import { loadEffects, selectEffects } from './effects';
+import { generate } from './generate';
 
-const packageDir = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-const repoRoot = resolve(packageDir, "..", "..");
+const packageDir = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+const repoRoot = resolve(packageDir, '..', '..');
 
 const usage = `Usage: pnpm generate [options]
 
@@ -22,11 +22,11 @@ const usage = `Usage: pnpm generate [options]
 async function main(): Promise<void> {
   const { values } = parseArgs({
     options: {
-      only: { type: "string", default: "" },
-      "dry-run": { type: "boolean", default: false },
-      reprocess: { type: "boolean", default: false },
-      effects: { type: "string", default: join(packageDir, "effects.json") },
-      help: { type: "boolean", default: false },
+      only: { type: 'string', default: '' },
+      'dry-run': { type: 'boolean', default: false },
+      reprocess: { type: 'boolean', default: false },
+      effects: { type: 'string', default: join(packageDir, 'effects.json') },
+      help: { type: 'boolean', default: false },
     },
   });
   if (values.help) {
@@ -34,25 +34,28 @@ async function main(): Promise<void> {
     return;
   }
 
-  const only = values.only.split(",").map((id) => id.trim()).filter((id) => id !== "");
+  const only = values.only
+    .split(',')
+    .map((id) => id.trim())
+    .filter((id) => id !== '');
   const effects = selectEffects(await loadEffects(resolve(values.effects)), only);
   const ffmpeg = ffmpegBinary();
-  if (!values["dry-run"]) {
+  if (!values['dry-run']) {
     await assertFfmpegAvailable(ffmpeg);
   }
 
   const envFiles = [
-    join(packageDir, ".env"),
-    join(repoRoot, ".env"),
-    join(homedir(), ".claude", "elevenlabs.env"),
+    join(packageDir, '.env'),
+    join(repoRoot, '.env'),
+    join(homedir(), '.claude', 'elevenlabs.env'),
   ];
 
   const summary = await generate(
     {
       effects,
-      rawDir: join(packageDir, "raw"),
-      outDir: join(repoRoot, "assets", "sfx"),
-      dryRun: values["dry-run"],
+      rawDir: join(packageDir, 'raw'),
+      outDir: join(repoRoot, 'assets', 'sfx'),
+      dryRun: values['dry-run'],
       reprocess: values.reprocess,
     },
     {

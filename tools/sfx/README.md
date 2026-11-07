@@ -39,7 +39,4 @@ MP3 adds a few milliseconds of padding at the start, so loops should be played f
 
 ## Tests
 
-```bash
-pnpm test        # ffmpeg tests are skipped when ffmpeg is missing
-pnpm typecheck
-```
+The tests run with the rest of the repo from the root (`pnpm lint`, `pnpm typecheck`, `pnpm test`). From this folder, `pnpm test` runs only these tests. The ffmpeg tests are skipped when ffmpeg is missing.

@@ -1,9 +1,9 @@
-import assert from "node:assert/strict";
-import { spawnSync } from "node:child_process";
-import { mkdtemp, stat } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
-import { describe, it } from "node:test";
+import assert from 'node:assert/strict';
+import { spawnSync } from 'node:child_process';
+import { mkdtemp, stat } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { describe, it } from 'vitest';
 import {
   computeGain,
   encodeArgs,
@@ -12,88 +12,111 @@ import {
   normalizeAndEncode,
   parseLoudnormReport,
   shapeFilter,
-} from "../src/audio.ts";
-import type { Effect } from "../src/effects.ts";
+} from '../src/audio';
+import type { Effect } from '../src/effects';
 
-const click: Effect = { id: "ui-click", prompt: "click", duration: 0.2, loop: false, loudness: -20 };
-const ding: Effect = { id: "elevator-ding", prompt: "ding", duration: 1.2, loop: false, loudness: -18 };
-const hum: Effect = { id: "elevator-move", prompt: "hum", duration: 4, loop: true, loudness: -24 };
+const click: Effect = {
+  id: 'ui-click',
+  prompt: 'click',
+  duration: 0.2,
+  loop: false,
+  loudness: -20,
+};
+const ding: Effect = {
+  id: 'elevator-ding',
+  prompt: 'ding',
+  duration: 1.2,
+  loop: false,
+  loudness: -18,
+};
+const hum: Effect = { id: 'elevator-move', prompt: 'hum', duration: 4, loop: true, loudness: -24 };
 
-describe("shapeFilter", () => {
-  it("trims one-shots to their duration with a short fade-out", () => {
+describe('shapeFilter', () => {
+  it('trims one-shots to their duration with a short fade-out', () => {
     assert.match(shapeFilter(click), /atrim=end=0\.2,afade=t=out:st=0\.15:d=0\.05$/);
     assert.match(shapeFilter(ding), /atrim=end=1\.2,afade=t=out:st=1\.1:d=0\.1$/);
   });
 
-  it("removes leading silence from one-shots", () => {
+  it('removes leading silence from one-shots', () => {
     assert.match(shapeFilter(ding), /^silenceremove=start_periods=1/);
   });
 
-  it("leaves loops untouched so the seam stays clean", () => {
-    assert.equal(shapeFilter(hum), "anull");
+  it('leaves loops untouched so the seam stays clean', () => {
+    assert.equal(shapeFilter(hum), 'anull');
   });
 });
 
-describe("parseLoudnormReport", () => {
-  const report = '[Parsed_loudnorm_0 @ 0x1]\n{\n\t"input_i" : "-23.40",\n\t"input_tp" : "-5.10",\n\t"input_lra" : "1.0"\n}\n';
+describe('parseLoudnormReport', () => {
+  const report =
+    '[Parsed_loudnorm_0 @ 0x1]\n{\n\t"input_i" : "-23.40",\n\t"input_tp" : "-5.10",\n\t"input_lra" : "1.0"\n}\n';
 
-  it("reads integrated loudness and true peak", () => {
+  it('reads integrated loudness and true peak', () => {
     assert.deepEqual(parseLoudnormReport(report), { integrated: -23.4, truePeak: -5.1 });
   });
 
-  it("fails on silent input", () => {
-    const silent = report.replace("-23.40", "-inf").replace("-5.10", "-inf");
+  it('fails on silent input', () => {
+    const silent = report.replace('-23.40', '-inf').replace('-5.10', '-inf');
     assert.throws(() => parseLoudnormReport(silent), /silent/);
   });
 
-  it("fails when there is no report", () => {
-    assert.throws(() => parseLoudnormReport("error"), /loudness report/);
+  it('fails when there is no report', () => {
+    assert.throws(() => parseLoudnormReport('error'), /loudness report/);
   });
 });
 
-describe("computeGain", () => {
-  it("moves the integrated loudness to the target", () => {
+describe('computeGain', () => {
+  it('moves the integrated loudness to the target', () => {
     assert.equal(computeGain({ integrated: -23.4, truePeak: -10 }, -16), 7.4);
     assert.equal(computeGain({ integrated: -10, truePeak: -0.5 }, -16), -6);
   });
 
-  it("stops at the true-peak ceiling", () => {
+  it('stops at the true-peak ceiling', () => {
     assert.equal(computeGain({ integrated: -30, truePeak: -4 }, -16), 3);
   });
 });
 
-describe("encodeArgs", () => {
-  it("writes mono ogg and mp3 for one-shots", () => {
-    const args = encodeArgs("in.mp3", ding, 2.5, { ogg: "a.ogg", mp3: "a.mp3" }).join(" ");
+describe('encodeArgs', () => {
+  it('writes mono ogg and mp3 for one-shots', () => {
+    const args = encodeArgs('in.mp3', ding, 2.5, { ogg: 'a.ogg', mp3: 'a.mp3' }).join(' ');
     assert.match(args, /volume=2\.5dB -ar 44100 -ac 1 .* -c:a libvorbis .* a\.ogg/);
     assert.match(args, /-c:a libmp3lame -b:a 128k -f mp3 a\.mp3$/);
   });
 
-  it("keeps loops in stereo", () => {
-    const args = encodeArgs("in.mp3", hum, 0, { ogg: "a.ogg", mp3: "a.mp3" });
-    assert.equal(args[args.indexOf("-ac") + 1], "2");
+  it('keeps loops in stereo', () => {
+    const args = encodeArgs('in.mp3', hum, 0, { ogg: 'a.ogg', mp3: 'a.mp3' });
+    assert.equal(args[args.indexOf('-ac') + 1], '2');
   });
 });
 
 const ffmpeg = ffmpegBinary();
-const hasFfmpeg = spawnSync(ffmpeg, ["-version"]).status === 0;
+const hasFfmpeg = spawnSync(ffmpeg, ['-version']).status === 0;
 
-describe("normalizeAndEncode with ffmpeg", { skip: hasFfmpeg ? false : "ffmpeg not installed" }, () => {
+describe.skipIf(!hasFfmpeg)('normalizeAndEncode with ffmpeg', { timeout: 30_000 }, () => {
   async function makeTone(dir: string, seconds: number, volume: number): Promise<string> {
-    const file = join(dir, "tone.mp3");
+    const file = join(dir, 'tone.mp3');
     const result = spawnSync(ffmpeg, [
-      "-y", "-hide_banner", "-loglevel", "error",
-      "-f", "lavfi", "-i", `sine=frequency=880:duration=${seconds}`,
-      "-af", `volume=${volume}dB`, "-c:a", "libmp3lame", file,
+      '-y',
+      '-hide_banner',
+      '-loglevel',
+      'error',
+      '-f',
+      'lavfi',
+      '-i',
+      `sine=frequency=880:duration=${seconds}`,
+      '-af',
+      `volume=${volume}dB`,
+      '-c:a',
+      'libmp3lame',
+      file,
     ]);
     assert.equal(result.status, 0, String(result.stderr));
     return file;
   }
 
-  it("brings a quiet tone to the target loudness in both formats", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "sfx-audio-"));
+  it('brings a quiet tone to the target loudness in both formats', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'sfx-audio-'));
     const input = await makeTone(dir, 1.5, -15);
-    const outputs = { ogg: join(dir, "ding.ogg"), mp3: join(dir, "ding.mp3") };
+    const outputs = { ogg: join(dir, 'ding.ogg'), mp3: join(dir, 'ding.mp3') };
 
     const { result } = await normalizeAndEncode(ffmpeg, input, ding, outputs);
 
@@ -103,14 +126,17 @@ describe("normalizeAndEncode with ffmpeg", { skip: hasFfmpeg ? false : "ffmpeg n
     assert.ok(Math.abs(mp3.integrated - ding.loudness) < 1, `mp3 at ${mp3.integrated} LUFS`);
   });
 
-  it("measures clips shorter than the loudness window", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "sfx-audio-"));
+  it('measures clips shorter than the loudness window', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'sfx-audio-'));
     const input = await makeTone(dir, 0.5, -10);
-    const outputs = { ogg: join(dir, "click.ogg"), mp3: join(dir, "click.mp3") };
+    const outputs = { ogg: join(dir, 'click.ogg'), mp3: join(dir, 'click.mp3') };
 
     const { result } = await normalizeAndEncode(ffmpeg, input, click, outputs);
 
-    assert.ok(Math.abs(result.integrated - click.loudness) < 1.5, `ogg at ${result.integrated} LUFS`);
+    assert.ok(
+      Math.abs(result.integrated - click.loudness) < 1.5,
+      `ogg at ${result.integrated} LUFS`,
+    );
     assert.ok((await stat(outputs.ogg)).size > 0);
   });
 });
