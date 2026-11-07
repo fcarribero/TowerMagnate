@@ -434,6 +434,11 @@ export const DAILY_INCOME_BRACKETS: Readonly<
 
 export const CINEMA_MOVIE_CHANGE_COST = 300_000;
 
+/** Events spec section 15. One game hour. */
+export const DECISION_DEADLINE_STEPS = 360;
+export const CLOSED_DECISIONS_KEPT = 20;
+export const HELICOPTER_COST = 500_000;
+
 function flatUpkeep(basis: UpkeepRule['basis'], amount: number): UpkeepRule {
   return { basis, amountByStars: [{ minStars: 1, amount }] };
 }
