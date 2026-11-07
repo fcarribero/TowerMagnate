@@ -5,6 +5,8 @@ import { applyDelta, stateFromSnapshot, type GameState } from './gameState';
 export interface StoreFrames {
   readonly previous: GameState | null;
   readonly latest: GameState;
+  /** Clock time when `latest` arrived, in the units of the store's `now`. */
+  readonly latestArrivedAtMs: number;
 }
 
 type Listener = (frames: StoreFrames) => void;
@@ -14,6 +16,8 @@ export type ResyncReason = 'staleDelta' | 'reconnect';
 export interface ClientStoreOptions {
   /** Called when the store needs a new snapshot. The socket layer answers with a fresh hello. */
   requestResync: (reason: ResyncReason) => void;
+  /** Clock used to stamp arrivals. Defaults to `performance.now`. */
+  now?: () => number;
 }
 
 /**
@@ -26,7 +30,11 @@ export class ClientStore {
   private waitingForSnapshot = true;
   private readonly listeners = new Set<Listener>();
 
-  constructor(private readonly options: ClientStoreOptions) {}
+  private readonly now: () => number;
+
+  constructor(private readonly options: ClientStoreOptions) {
+    this.now = options.now ?? (() => performance.now());
+  }
 
   get current(): StoreFrames | null {
     return this.frames;
@@ -42,7 +50,11 @@ export class ClientStore {
 
   applySnapshot(snapshot: Snapshot): void {
     this.waitingForSnapshot = false;
-    this.frames = { previous: null, latest: stateFromSnapshot(snapshot) };
+    this.frames = {
+      previous: null,
+      latest: stateFromSnapshot(snapshot),
+      latestArrivedAtMs: this.now(),
+    };
     this.notify();
   }
 
@@ -55,7 +67,11 @@ export class ClientStore {
       this.resync('staleDelta');
       return;
     }
-    this.frames = { previous: latest, latest: applyDelta(latest, delta) };
+    this.frames = {
+      previous: latest,
+      latest: applyDelta(latest, delta),
+      latestArrivedAtMs: this.now(),
+    };
     this.notify();
   }
 

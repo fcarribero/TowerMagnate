@@ -94,3 +94,15 @@ describe('shallowEqual', () => {
     expect(shallowEqual(new Map(), new Map())).toBe(false);
   });
 });
+
+describe('ClientStore arrival times', () => {
+  it('stamps each new latest state with the clock time it arrived', () => {
+    let clock = 500;
+    const store = new ClientStore({ requestResync: vi.fn(), now: () => clock });
+    store.applySnapshot(snapshot);
+    expect(store.current?.latestArrivedAtMs).toBe(500);
+    clock = 720;
+    store.applyDelta(delta({ step: 101 }));
+    expect(store.current?.latestArrivedAtMs).toBe(720);
+  });
+});
