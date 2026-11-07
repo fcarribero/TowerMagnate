@@ -236,7 +236,7 @@ Operation codes added here:
 | `EVENT_EXPIRED` | Answer arrives after the event deadline or for a resolved event |
 | `INVALID_CHOICE` | Choice not offered by that event |
 | `FOLLOW_LIMIT` | Following a 21st person |
-| `INVALID_SCHEDULE` | Stop outside the shaft range, express stop not allowed, car home not a stop |
+| `INVALID_SCHEDULE` | `configureShaft` or `addCar`: stop outside the range, no stops, wrong number of homes, home not a stop, wrong band count, dwell or response distance out of range. A stop outside the express levels of an express shaft is `EXPRESS_STOP_NOT_ALLOWED`, checked first (elevators EL-25) |
 
 Socket-level codes, never produced by the engine, are in `SOCKET_ERROR_CODES`: `PROTOCOL_MISMATCH`, `NOT_AUTHENTICATED`, `RATE_LIMITED`.
 
