@@ -48,7 +48,7 @@ describe('population', () => {
     for (const id of ids) {
       (state.units[id] as { lease: unknown }).lease = { anchorStep: 0, nextDueStep: 1 };
     }
-    delete state.units[ids[0] as UnitId];
+    state.units = Object.fromEntries(Object.entries(state.units).filter(([id]) => id !== ids[0]));
     expect(populationOf(state).total).toBe(6);
   });
 });
