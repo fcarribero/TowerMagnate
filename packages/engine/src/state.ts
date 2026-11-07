@@ -18,5 +18,8 @@ export function createTower(seed: number): TowerState {
     units: {},
     grid: createGrid(),
     ledger: createLedger(),
+    activeEvents: [],
+    closedDecisions: [],
+    treasureLevels: [],
   };
 }
