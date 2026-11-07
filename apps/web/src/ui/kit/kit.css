@@ -1,0 +1,374 @@
+:root {
+  --tm-ink: #141218;
+  --tm-slate: #4f4e5c;
+  --tm-gray: #7b7a86;
+  --tm-silver: #a9a8b0;
+  --tm-cloud: #d6d4d0;
+  --tm-white: #f4f1e8;
+  --tm-sky-deep: #3d6fb6;
+  --tm-lamp: #f2d36b;
+  --tm-cloth-red: #b0353a;
+  --tm-ui-scale: 1;
+  --tm-px: calc(var(--tm-ui-scale) * 1px);
+  --tm-font: 'Tiny5', monospace;
+  --tm-font-size: calc(8 * var(--tm-px));
+  --tm-line-height: calc(9 * var(--tm-px));
+}
+
+.tm-window-layer {
+  position: absolute;
+  overflow: hidden;
+  font-family: var(--tm-font);
+  font-size: var(--tm-font-size);
+  line-height: var(--tm-line-height);
+  color: var(--tm-ink);
+  -webkit-font-smoothing: none;
+  -moz-osx-font-smoothing: grayscale;
+  font-smooth: never;
+}
+
+.tm-window-layer *:focus-visible {
+  outline: calc(1 * var(--tm-px)) solid var(--tm-lamp);
+  outline-offset: calc(1 * var(--tm-px));
+}
+
+/* Window frame: ink border, then a white and slate bevel around a cloud face. */
+.tm-window {
+  position: absolute;
+  min-width: calc(120 * var(--tm-px));
+  background: var(--tm-cloud);
+  border: calc(1 * var(--tm-px)) solid var(--tm-ink);
+  box-shadow:
+    inset calc(1 * var(--tm-px)) calc(1 * var(--tm-px)) 0 var(--tm-white),
+    inset calc(-1 * var(--tm-px)) calc(-1 * var(--tm-px)) 0 var(--tm-slate);
+  padding: calc(2 * var(--tm-px));
+  user-select: none;
+}
+
+.tm-window:focus {
+  outline: none;
+}
+
+.tm-window__title {
+  display: flex;
+  align-items: center;
+  height: calc(14 * var(--tm-px));
+  padding: 0 calc(2 * var(--tm-px)) 0 calc(4 * var(--tm-px));
+  color: var(--tm-white);
+  background: var(--tm-gray);
+  cursor: default;
+  touch-action: none;
+}
+
+.tm-window.is-active > .tm-window__title {
+  background: var(--tm-sky-deep);
+}
+
+.tm-window__title-text {
+  flex: 1;
+  overflow: hidden;
+  font-weight: bold;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.tm-window__close {
+  width: calc(12 * var(--tm-px));
+  height: calc(11 * var(--tm-px));
+  padding: 0;
+  font: inherit;
+  line-height: 1;
+  color: var(--tm-ink);
+  background: var(--tm-cloud);
+  border: calc(1 * var(--tm-px)) solid var(--tm-ink);
+  box-shadow:
+    inset calc(1 * var(--tm-px)) calc(1 * var(--tm-px)) 0 var(--tm-white),
+    inset calc(-1 * var(--tm-px)) calc(-1 * var(--tm-px)) 0 var(--tm-slate);
+}
+
+.tm-window__close:active {
+  box-shadow: inset calc(1 * var(--tm-px)) calc(1 * var(--tm-px)) 0 var(--tm-slate);
+}
+
+.tm-window__body {
+  padding: calc(6 * var(--tm-px));
+  user-select: text;
+}
+
+/* Buttons */
+.tm-button {
+  min-width: calc(64 * var(--tm-px));
+  height: calc(20 * var(--tm-px));
+  padding: 0 calc(8 * var(--tm-px));
+  font: inherit;
+  color: var(--tm-ink);
+  background: var(--tm-cloud);
+  border: calc(1 * var(--tm-px)) solid var(--tm-ink);
+  box-shadow:
+    inset calc(1 * var(--tm-px)) calc(1 * var(--tm-px)) 0 var(--tm-white),
+    inset calc(-1 * var(--tm-px)) calc(-1 * var(--tm-px)) 0 var(--tm-slate);
+}
+
+.tm-button:hover:not(:disabled) {
+  background: var(--tm-white);
+}
+
+.tm-button:active:not(:disabled) {
+  padding-top: calc(1 * var(--tm-px));
+  padding-left: calc(9 * var(--tm-px));
+  box-shadow: inset calc(1 * var(--tm-px)) calc(1 * var(--tm-px)) 0 var(--tm-slate);
+}
+
+.tm-button.is-default {
+  border-width: calc(2 * var(--tm-px));
+}
+
+.tm-button:disabled {
+  color: var(--tm-gray);
+  text-shadow: calc(1 * var(--tm-px)) calc(1 * var(--tm-px)) 0 var(--tm-white);
+}
+
+/* Text and number fields: sunken bevel, white face. */
+.tm-input {
+  box-sizing: border-box;
+  height: calc(18 * var(--tm-px));
+  padding: 0 calc(3 * var(--tm-px));
+  font: inherit;
+  color: var(--tm-ink);
+  background: var(--tm-white);
+  border: calc(1 * var(--tm-px)) solid;
+  border-color: var(--tm-slate) var(--tm-white) var(--tm-white) var(--tm-slate);
+  box-shadow: inset calc(1 * var(--tm-px)) calc(1 * var(--tm-px)) 0 var(--tm-ink);
+}
+
+.tm-input:disabled {
+  color: var(--tm-gray);
+  background: var(--tm-cloud);
+}
+
+.tm-input[aria-invalid='true'] {
+  border-color: var(--tm-cloth-red);
+}
+
+.tm-field,
+.tm-number {
+  display: flex;
+  flex-direction: column;
+  gap: calc(2 * var(--tm-px));
+  margin-bottom: calc(6 * var(--tm-px));
+}
+
+.tm-field__hint {
+  margin: 0;
+  color: var(--tm-gray);
+}
+
+.tm-field__error {
+  margin: 0;
+  color: var(--tm-cloth-red);
+}
+
+.tm-number__field {
+  display: flex;
+}
+
+.tm-number__field .tm-input {
+  width: calc(64 * var(--tm-px));
+}
+
+.tm-number__arrows {
+  display: flex;
+  flex-direction: column;
+}
+
+.tm-number__arrow {
+  width: calc(14 * var(--tm-px));
+  height: calc(9 * var(--tm-px));
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  color: var(--tm-ink);
+  background: var(--tm-cloud);
+  border: calc(1 * var(--tm-px)) solid var(--tm-ink);
+  box-shadow: inset calc(1 * var(--tm-px)) calc(1 * var(--tm-px)) 0 var(--tm-white);
+}
+
+.tm-number__arrow:disabled {
+  color: var(--tm-gray);
+}
+
+/* Radios */
+.tm-radio-group {
+  margin: 0 0 calc(6 * var(--tm-px));
+  padding: calc(4 * var(--tm-px)) calc(6 * var(--tm-px));
+  border: calc(1 * var(--tm-px)) solid var(--tm-slate);
+  box-shadow: calc(1 * var(--tm-px)) calc(1 * var(--tm-px)) 0 var(--tm-white);
+}
+
+.tm-radio {
+  position: relative;
+  display: flex;
+  gap: calc(4 * var(--tm-px));
+  align-items: center;
+  padding: calc(1 * var(--tm-px)) 0;
+}
+
+.tm-radio input {
+  position: absolute;
+  opacity: 0;
+}
+
+.tm-radio__mark {
+  box-sizing: border-box;
+  width: calc(10 * var(--tm-px));
+  height: calc(10 * var(--tm-px));
+  background: var(--tm-white);
+  border: calc(1 * var(--tm-px)) solid var(--tm-slate);
+  border-radius: 50%;
+}
+
+.tm-radio input:checked + .tm-radio__mark {
+  background: radial-gradient(
+    circle,
+    var(--tm-ink) calc(2 * var(--tm-px)),
+    var(--tm-white) calc(2 * var(--tm-px))
+  );
+}
+
+.tm-radio input:focus-visible + .tm-radio__mark {
+  outline: calc(1 * var(--tm-px)) solid var(--tm-lamp);
+  outline-offset: calc(1 * var(--tm-px));
+}
+
+.tm-radio input:disabled ~ span {
+  color: var(--tm-gray);
+}
+
+/* Tabs */
+.tm-tabs__list {
+  display: flex;
+  gap: calc(1 * var(--tm-px));
+}
+
+.tm-tabs__tab {
+  height: calc(16 * var(--tm-px));
+  padding: 0 calc(8 * var(--tm-px));
+  font: inherit;
+  color: var(--tm-ink);
+  background: var(--tm-cloud);
+  border: calc(1 * var(--tm-px)) solid var(--tm-ink);
+  border-bottom: none;
+  box-shadow: inset calc(1 * var(--tm-px)) calc(1 * var(--tm-px)) 0 var(--tm-white);
+}
+
+.tm-tabs__tab.is-selected {
+  position: relative;
+  top: calc(1 * var(--tm-px));
+  height: calc(18 * var(--tm-px));
+  margin-top: calc(-2 * var(--tm-px));
+  font-weight: bold;
+}
+
+.tm-tabs__panel {
+  padding: calc(6 * var(--tm-px));
+  border: calc(1 * var(--tm-px)) solid var(--tm-ink);
+  box-shadow: inset calc(1 * var(--tm-px)) calc(1 * var(--tm-px)) 0 var(--tm-white);
+}
+
+/* List */
+.tm-list {
+  display: flex;
+  flex-direction: column;
+  gap: calc(2 * var(--tm-px));
+  margin-bottom: calc(6 * var(--tm-px));
+}
+
+.tm-list__items {
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+  background: var(--tm-white);
+  border: calc(1 * var(--tm-px)) solid;
+  border-color: var(--tm-slate) var(--tm-white) var(--tm-white) var(--tm-slate);
+}
+
+.tm-list__item {
+  height: calc(14 * var(--tm-px));
+  padding: 0 calc(3 * var(--tm-px));
+  line-height: calc(14 * var(--tm-px));
+  white-space: nowrap;
+}
+
+.tm-list__item.is-selected {
+  color: var(--tm-white);
+  background: var(--tm-sky-deep);
+}
+
+.tm-pixel-arrow {
+  display: block;
+  width: calc(5 * var(--tm-px));
+  height: calc(3 * var(--tm-px));
+}
+
+.tm-pixel-arrow.is-down {
+  transform: scaleY(-1);
+}
+
+.tm-window.is-placing {
+  visibility: hidden;
+}
+
+/* Catches clicks meant for the UI behind a modal dialog. */
+.tm-modal-backdrop {
+  position: absolute;
+  inset: 0;
+}
+
+/* Dialogs */
+.tm-dialog__body {
+  max-width: calc(240 * var(--tm-px));
+  margin: 0 0 calc(4 * var(--tm-px));
+  white-space: pre-line;
+}
+
+.tm-dialog__deadline {
+  margin: 0 0 calc(4 * var(--tm-px));
+  color: var(--tm-slate);
+}
+
+.tm-dialog__buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: calc(4 * var(--tm-px));
+  justify-content: flex-end;
+  margin-top: calc(6 * var(--tm-px));
+}
+
+/* Tooltip: ink border on lamp-white paper, placed by script in viewport pixels. */
+.tm-tooltip-anchor {
+  display: inline-flex;
+}
+
+.tm-tooltip {
+  position: fixed;
+  z-index: 1000;
+  max-width: calc(200 * var(--tm-px));
+  padding: calc(1 * var(--tm-px)) calc(3 * var(--tm-px));
+  font-family: var(--tm-font);
+  font-size: var(--tm-font-size);
+  line-height: var(--tm-line-height);
+  color: var(--tm-ink);
+  pointer-events: none;
+  background: var(--tm-white);
+  border: calc(1 * var(--tm-px)) solid var(--tm-ink);
+  -webkit-font-smoothing: none;
+  font-smooth: never;
+}
+
+.tm-tooltip__line {
+  display: block;
+  white-space: nowrap;
+}

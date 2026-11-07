@@ -22,8 +22,9 @@ body,
   position: absolute;
   inset: 0;
   pointer-events: none;
-  font-family: 'MS Sans Serif', Tahoma, Geneva, sans-serif;
-  font-size: 12px;
+  font-family: var(--tm-font);
+  font-size: var(--tm-font-size);
+  line-height: var(--tm-line-height);
 }
 
 .ui-layer > * {
@@ -41,6 +42,18 @@ body,
   border-color: #f4f1e8 #4f4e5c #4f4e5c #f4f1e8;
 }
 
+.stage-message {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  padding: 4px 8px;
+  color: #f4f1e8;
+  background: #141218;
+  font-family: 'MS Sans Serif', Tahoma, Geneva, sans-serif;
+  font-size: 12px;
+}
+
 .render-stats {
   position: absolute;
   right: 8px;
@@ -49,4 +62,71 @@ body,
   color: #f4f1e8;
   background: #141218;
   pointer-events: none;
+}
+
+.viewport-too-small {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  font-family: var(--tm-font);
+  font-size: 16px;
+  color: #f4f1e8;
+}
+
+.status-button {
+  margin-left: 8px;
+  font: inherit;
+}
+
+.window {
+  position: absolute;
+  padding: 2px;
+  color: #141218;
+  background: #d6d4d0;
+  border: 1px solid #141218;
+  box-shadow:
+    inset 1px 1px 0 #f4f1e8,
+    inset -1px -1px 0 #4f4e5c;
+}
+
+.window-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 1px 2px 3px 4px;
+  font-weight: bold;
+}
+
+.window-close {
+  width: 16px;
+  height: 14px;
+  padding: 0;
+  font: inherit;
+  line-height: 1;
+}
+
+.tower-map-window {
+  top: 8px;
+  right: 8px;
+}
+
+.tower-map {
+  position: relative;
+  width: 375px;
+  height: 228px;
+  border: 1px solid #141218;
+  cursor: crosshair;
+  touch-action: none;
+}
+
+.tower-map canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  image-rendering: pixelated;
 }

@@ -451,7 +451,8 @@ describe('daily income brackets', () => {
     ]);
     expect(DAILY_INCOME_BRACKETS['party-hall']).toEqual([
       { minCustomers: 0, amount: 0 },
-      { minCustomers: 1, amount: 20_000 },
+      { minCustomers: 25, amount: 5_000 },
+      { minCustomers: 40, amount: 10_000 },
     ]);
     expect(CINEMA_MOVIE_CHANGE_COST).toBe(300_000);
   });
@@ -465,30 +466,73 @@ describe('daily income brackets', () => {
   });
 });
 
+describe('party hall payout tiers', () => {
+  const payoutFor = (guests: number) =>
+    DAILY_INCOME_BRACKETS['party-hall'].filter((bracket) => guests >= bracket.minCustomers).at(-1)
+      ?.amount;
+
+  it('pays 0 under 25 guests, 5,000 from 25 and 10,000 from 40', () => {
+    expect(payoutFor(0)).toBe(0);
+    expect(payoutFor(24)).toBe(0);
+    expect(payoutFor(25)).toBe(5_000);
+    expect(payoutFor(39)).toBe(5_000);
+    expect(payoutFor(40)).toBe(10_000);
+    expect(payoutFor(UNIT_CATALOG['party-hall'].capacity?.people ?? 0)).toBe(10_000);
+  });
+});
+
 describe('weekly upkeep', () => {
-  it('matches the GDD upkeep table', () => {
-    const flat = (basis: string, amount: number) => ({
-      basis,
-      amountByStars: [{ minStars: 1, amount }],
-    });
+  const flat = (basis: string, amount: number) => ({
+    basis,
+    amountByStars: [{ minStars: 1, amount }],
+  });
+
+  it('matches the economy spec table, section 8.2', () => {
     expect(WEEKLY_UPKEEP).toEqual({
-      'standard-elevator': flat('per-car', 10_000),
-      'service-elevator': flat('per-car', 10_000),
-      'express-elevator': flat('per-car', 20_000),
-      escalator: flat('per-unit', 5_000),
-      housekeeping: flat('per-unit', 10_000),
-      security: flat('per-unit', 20_000),
-      'parking-ramp': flat('per-unit', 10_000),
-      'recycling-center': flat('per-unit', 50_000),
-      'subway-station': flat('per-unit', 100_000),
+      floor: flat('per-unit', 0),
       lobby: {
-        basis: 'per-cell',
+        basis: 'per-column',
         amountByStars: [
           { minStars: 1, amount: 0 },
-          { minStars: 3, amount: 300 },
-          { minStars: 4, amount: 1_000 },
+          { minStars: 3, amount: 500 },
+          { minStars: 4, amount: 1_500 },
         ],
       },
+      stairs: flat('per-unit', 0),
+      escalator: flat('per-unit', 10_000),
+      'standard-elevator': flat('per-car', 20_000),
+      office: flat('per-unit', 0),
+      condo: flat('per-unit', 0),
+      'fast-food': flat('per-unit', 0),
+      'single-room': flat('per-unit', 2_000),
+      'double-room': flat('per-unit', 3_000),
+      suite: flat('per-unit', 6_000),
+      housekeeping: flat('per-unit', 20_000),
+      security: flat('per-unit', 40_000),
+      'service-elevator': flat('per-car', 20_000),
+      restaurant: flat('per-unit', 0),
+      'retail-shop': flat('per-unit', 0),
+      cinema: flat('per-unit', 0),
+      'party-hall': flat('per-unit', 20_000),
+      'express-elevator': flat('per-car', 40_000),
+      'medical-center': flat('per-unit', 0),
+      'parking-ramp': flat('per-unit', 20_000),
+      'parking-space': flat('per-unit', 0),
+      'recycling-center': flat('per-unit', 100_000),
+      'subway-station': flat('per-unit', 200_000),
+      cathedral: flat('per-unit', 0),
     });
+  });
+
+  it('has a line for every unit type', () => {
+    expect(Object.keys(WEEKLY_UPKEEP).sort()).toEqual([...UNIT_IDS].sort());
+  });
+
+  it('keeps star bands sorted and starting at 1 star', () => {
+    for (const rule of Object.values(WEEKLY_UPKEEP)) {
+      expect(rule.amountByStars[0]?.minStars).toBe(1);
+      const bands = rule.amountByStars.map((band) => band.minStars);
+      expect(bands).toEqual([...bands].sort((a, b) => a - b));
+    }
   });
 });
