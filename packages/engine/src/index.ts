@@ -31,6 +31,7 @@ export { migrateState, StateMigrationError } from './migrations';
 export { chance, createRng, nextFloat, nextInt, nextUint32 } from './rng';
 export { createScheduler } from './scheduler';
 export type { HookOccurrence, HookSchedule, ScheduledHook, TimeOfDay } from './scheduler';
+export { deserializeState, serializeState } from './serialization';
 export { createTower, SCHEMA_VERSION } from './state';
 export { createEngine, runDays, step } from './step';
 export type {
