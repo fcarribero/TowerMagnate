@@ -58,6 +58,7 @@ export type CapacityRole =
   | 'residents'
   | 'hotel-guests'
   | 'maids'
+  | 'guards'
   | 'customers'
   | 'audience'
   | 'party-guests'

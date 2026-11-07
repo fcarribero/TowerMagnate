@@ -7,6 +7,7 @@ import { t } from '../strings';
 import {
   FIXED_TOOLS,
   TOOLBAR_CATEGORIES,
+  categoryButtonLabel,
   categoryOf,
   fixedToolForKey,
   isFixedTool,
@@ -14,6 +15,7 @@ import {
   lobbyHeights,
   priceText,
   sizeText,
+  toolButtonLabel,
   toolName,
   toolsInCategory,
   tooltipLines,
@@ -95,7 +97,7 @@ export function Toolbar({
               aria-label={t(`category.${category}`)}
               onClick={() => setOpenCategory(category)}
             >
-              {t(`category.${category}`)}
+              {categoryButtonLabel(category)}
             </button>
           </Tooltip>
         ))}
@@ -143,7 +145,7 @@ function ToolButton({ tool, className, stars, pressed, onSelect, onHover }: Tool
         onPointerEnter={() => onHover(tool)}
         onPointerLeave={() => onHover(null)}
       >
-        <span class="tm-tool__label">{toolName(tool)}</span>
+        <span class="tm-tool__label">{toolButtonLabel(tool)}</span>
         {locked && <span class="tm-tool__lock" aria-hidden="true" />}
       </button>
     </Tooltip>

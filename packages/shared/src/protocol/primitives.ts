@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { TOWER_LAYOUT, UNIT_CATALOG } from '../balance';
 import { MAX_NAME_LENGTH } from '../names';
+import { PERSON_KINDS } from '../people';
 import { PRICE_LEVELS, SHAFT_TYPES, UNIT_TYPES } from '../units';
 
 function cathedralFloors(): number {
@@ -51,19 +52,7 @@ export const EvaluationSchema = z.enum(['good', 'fair', 'poor']);
 export const HotelRoomStateSchema = z.enum(['clean', 'occupied', 'dirty', 'infested']);
 export const DecisionKindSchema = z.enum(['bomb', 'fire']);
 
-export const PersonKindSchema = z.enum([
-  'officeWorker',
-  'resident',
-  'hotelGuest',
-  'customer',
-  'audience',
-  'partyGuest',
-  'maid',
-  'guard',
-  'vip',
-  'weddingGuest',
-  'prospect',
-]);
+export const PersonKindSchema = z.enum(PERSON_KINDS);
 
 export const MoneyReasonSchema = z.enum([
   'rent',

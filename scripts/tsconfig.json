@@ -5,5 +5,13 @@
     "outDir": "../dist/scripts",
     "types": ["node"]
   },
-  "include": ["."]
+  "include": ["."],
+  "references": [
+    {
+      "path": "../packages/engine"
+    },
+    {
+      "path": "../packages/shared"
+    }
+  ]
 }
