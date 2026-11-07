@@ -1,0 +1,137 @@
+{
+  "version": 1,
+  "effects": [
+    {
+      "id": "elevator-ding",
+      "files": {
+        "ogg": "elevator-ding.ogg",
+        "mp3": "elevator-ding.mp3"
+      },
+      "volume": 0.7,
+      "loop": false,
+      "trigger": "elevator.arrive",
+      "description": "An elevator car stops at a floor and opens its doors."
+    },
+    {
+      "id": "elevator-move",
+      "files": {
+        "ogg": "elevator-move.ogg",
+        "mp3": "elevator-move.mp3"
+      },
+      "volume": 0.4,
+      "loop": true,
+      "trigger": "elevator.travel",
+      "description": "Loops while an elevator car in view is moving between floors."
+    },
+    {
+      "id": "construction",
+      "files": {
+        "ogg": "construction.ogg",
+        "mp3": "construction.mp3"
+      },
+      "volume": 0.8,
+      "loop": false,
+      "trigger": "build.place",
+      "description": "The player places a floor, unit, stairs or elevator shaft."
+    },
+    {
+      "id": "demolition",
+      "files": {
+        "ogg": "demolition.ogg",
+        "mp3": "demolition.mp3"
+      },
+      "volume": 0.8,
+      "loop": false,
+      "trigger": "build.demolish",
+      "description": "The player demolishes something with the bulldozer tool."
+    },
+    {
+      "id": "cash-register",
+      "files": {
+        "ogg": "cash-register.ogg",
+        "mp3": "cash-register.mp3"
+      },
+      "volume": 0.6,
+      "loop": false,
+      "trigger": "money.income",
+      "description": "Rent, a lease payment or a sale is collected."
+    },
+    {
+      "id": "notification",
+      "files": {
+        "ogg": "notification.ogg",
+        "mp3": "notification.mp3"
+      },
+      "volume": 0.7,
+      "loop": false,
+      "trigger": "notice.show",
+      "description": "A new notice or news line appears in the bottom bar."
+    },
+    {
+      "id": "bomb-alarm",
+      "files": {
+        "ogg": "bomb-alarm.ogg",
+        "mp3": "bomb-alarm.mp3"
+      },
+      "volume": 1,
+      "loop": false,
+      "trigger": "event.bomb",
+      "description": "A bomb threat starts and its decision window opens."
+    },
+    {
+      "id": "fire-alarm",
+      "files": {
+        "ogg": "fire-alarm.ogg",
+        "mp3": "fire-alarm.mp3"
+      },
+      "volume": 1,
+      "loop": false,
+      "trigger": "event.fire",
+      "description": "A fire starts and its decision window opens."
+    },
+    {
+      "id": "wedding-bells",
+      "files": {
+        "ogg": "wedding-bells.ogg",
+        "mp3": "wedding-bells.mp3"
+      },
+      "volume": 1,
+      "loop": false,
+      "trigger": "event.wedding",
+      "description": "The cathedral wedding completes and the tower reaches the top rank."
+    },
+    {
+      "id": "hotel-newspaper",
+      "files": {
+        "ogg": "hotel-newspaper.ogg",
+        "mp3": "hotel-newspaper.mp3"
+      },
+      "volume": 0.6,
+      "loop": false,
+      "trigger": "hotel.morning",
+      "description": "Morning check of the hotel: guests wake up and newspapers are delivered."
+    },
+    {
+      "id": "lobby-ambience",
+      "files": {
+        "ogg": "lobby-ambience.ogg",
+        "mp3": "lobby-ambience.mp3"
+      },
+      "volume": 0.5,
+      "loop": true,
+      "trigger": "ambience.lobby",
+      "description": "Loops while a lobby floor is visible on screen."
+    },
+    {
+      "id": "ui-click",
+      "files": {
+        "ogg": "ui-click.ogg",
+        "mp3": "ui-click.mp3"
+      },
+      "volume": 0.5,
+      "loop": false,
+      "trigger": "ui.click",
+      "description": "The player presses a toolbar button or a window button."
+    }
+  ]
+}

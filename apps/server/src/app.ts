@@ -1,4 +1,6 @@
+import cookie from '@fastify/cookie';
 import Fastify, { type FastifyInstance, type FastifyServerOptions } from 'fastify';
+import { authRoutes } from './auth/routes';
 import { createPool, pingDatabase } from './database';
 import { registerGateway, resolveIdentityFromQuery, type IdentityResolver } from './gateway';
 import { checkHealth } from './health';
@@ -7,6 +9,7 @@ import { registerWebStatics } from './webStatics';
 export interface AppOptions {
   version: string;
   databaseUrl: string;
+  secureCookies?: boolean;
   logger?: FastifyServerOptions['logger'];
   /** Folder with the built web client. Without it the server only answers the API. */
   webDir?: string;
@@ -21,6 +24,9 @@ export function buildApp(options: AppOptions): FastifyInstance {
   app.addHook('onClose', async () => {
     await pool.end();
   });
+
+  app.register(cookie);
+  app.register(authRoutes, { pool, secureCookies: options.secureCookies ?? false });
 
   for (const path of ['/health', '/api/health']) {
     app.get(path, async (_request, reply) => {

@@ -8,6 +8,7 @@ export interface ServerConfig {
   migrateOnStart: boolean;
   /** Set in production, where the server also serves the built web client. */
   webDir?: string;
+  secureCookies: boolean;
 }
 
 const DEFAULT_HOST = '0.0.0.0';
@@ -35,6 +36,7 @@ export function readConfig(env: NodeJS.ProcessEnv): ServerConfig {
     logLevel: readLogLevel(env.LOG_LEVEL),
     migrateOnStart: readMigrateOnStart(env.MIGRATE_ON_START, env.NODE_ENV),
     webDir: env.WEB_DIR || undefined,
+    secureCookies: readSecureCookies(env.SECURE_COOKIES, env.NODE_ENV),
   };
 }
 
@@ -61,11 +63,19 @@ function readLogLevel(value: string | undefined): LogLevel {
 }
 
 function readMigrateOnStart(value: string | undefined, nodeEnv: string | undefined): boolean {
+  return readBoolean('MIGRATE_ON_START', value, nodeEnv !== 'production');
+}
+
+function readSecureCookies(value: string | undefined, nodeEnv: string | undefined): boolean {
+  return readBoolean('SECURE_COOKIES', value, nodeEnv === 'production');
+}
+
+function readBoolean(name: string, value: string | undefined, fallback: boolean): boolean {
   if (value === undefined || value === '') {
-    return nodeEnv !== 'production';
+    return fallback;
   }
   if (value === 'true' || value === 'false') {
     return value === 'true';
   }
-  throw new Error(`MIGRATE_ON_START must be true or false, got "${value}"`);
+  throw new Error(`${name} must be true or false, got "${value}"`);
 }
