@@ -1,9 +1,9 @@
-import type { Level, UnitId } from '@tower-magnate/shared';
+import type { Level, UnitType } from '@tower-magnate/shared';
 
 /** A unit as the client draws it. `floors` is only needed for shafts, whose height the player picks. */
 export interface ContentUnit {
   id: string;
-  type: UnitId;
+  type: UnitType;
   x: number;
   level: Level;
   floors?: number;

@@ -15,6 +15,7 @@ export function createTower(seed: number): TowerState {
     rng: createRng(seed),
     nextId: 1,
     money: STARTING_MONEY,
+    units: {},
     grid: createGrid(),
     ledger: createLedger(),
   };

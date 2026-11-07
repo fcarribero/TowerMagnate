@@ -1,4 +1,11 @@
-import type { RngState, TowerState } from '@tower-magnate/shared';
+import {
+  isLevel,
+  UNIT_TYPES,
+  type RngState,
+  type TowerState,
+  type Unit,
+  type UnitId,
+} from '@tower-magnate/shared';
 import { SCHEMA_VERSION } from '../state';
 import { isRecord, StateMigrationError } from './errors';
 import { readGrid } from './grid';
@@ -29,6 +36,35 @@ function isRngState(value: unknown): value is RngState {
   );
 }
 
+function isUnit(value: unknown): value is Unit {
+  return (
+    isRecord(value) &&
+    typeof value.id === 'string' &&
+    (UNIT_TYPES as readonly unknown[]).includes(value.type) &&
+    isNonNegativeInteger(value.x) &&
+    isLevel(value.level) &&
+    (value.name === null || typeof value.name === 'string')
+  );
+}
+
+/** Towers saved before units existed have no `units` record; they start with none. */
+function readUnits(raw: unknown): Record<UnitId, Unit> {
+  if (raw === undefined) {
+    return {};
+  }
+  if (!isRecord(raw)) {
+    throw new StateMigrationError('State units must be a record');
+  }
+  const units: Record<UnitId, Unit> = {};
+  for (const [id, unit] of Object.entries(raw)) {
+    if (!isUnit(unit) || unit.id !== id) {
+      throw new StateMigrationError(`State unit ${id} is malformed`);
+    }
+    units[id] = { id: unit.id, type: unit.type, x: unit.x, level: unit.level, name: unit.name };
+  }
+  return units;
+}
+
 function assertCurrentShape(raw: Record<string, unknown>): TowerState {
   if (!isNonNegativeInteger(raw.step)) {
     throw new StateMigrationError('State step must be a non-negative integer');
@@ -45,6 +81,7 @@ function assertCurrentShape(raw: Record<string, unknown>): TowerState {
     rng: { a: raw.rng.a, b: raw.rng.b, c: raw.rng.c, d: raw.rng.d },
     nextId: raw.nextId,
     money: readMoney(raw.money),
+    units: readUnits(raw.units),
     grid: readGrid(raw.grid),
     ledger: readLedger(raw.ledger),
   };

@@ -14,10 +14,10 @@ import {
   WEEKLY_RENT,
   WEEKLY_UPKEEP,
 } from './balance';
-import { UNIT_IDS, type LimitGroupId, type UnitCost, type UnitId } from './units';
+import { UNIT_TYPES, type LimitGroupId, type UnitCost, type UnitType } from './units';
 
 interface GddUnitRow {
-  id: UnitId;
+  type: UnitType;
   name: string;
   width: number;
   floors: number | readonly number[] | 'shaft';
@@ -37,7 +37,7 @@ function shaft(shaftAmount: number, perCarAmount: number): UnitCost {
 // One row per line of the GDD "Unidades y desbloqueos" table.
 const GDD_UNIT_TABLE: GddUnitRow[] = [
   {
-    id: 'floor',
+    type: 'floor',
     name: 'Piso',
     width: 1,
     floors: 1,
@@ -46,7 +46,7 @@ const GDD_UNIT_TABLE: GddUnitRow[] = [
     stars: 1,
   },
   {
-    id: 'lobby',
+    type: 'lobby',
     name: 'Lobby',
     width: 1,
     floors: [1, 2, 3],
@@ -55,7 +55,7 @@ const GDD_UNIT_TABLE: GddUnitRow[] = [
     stars: 1,
   },
   {
-    id: 'stairs',
+    type: 'stairs',
     name: 'Escalera',
     width: 8,
     floors: 2,
@@ -64,7 +64,7 @@ const GDD_UNIT_TABLE: GddUnitRow[] = [
     stars: 1,
   },
   {
-    id: 'escalator',
+    type: 'escalator',
     name: 'Escalera mecánica',
     width: 8,
     floors: 2,
@@ -73,7 +73,7 @@ const GDD_UNIT_TABLE: GddUnitRow[] = [
     stars: 1,
   },
   {
-    id: 'standard-elevator',
+    type: 'standard-elevator',
     name: 'Ascensor estándar',
     width: 4,
     floors: 'shaft',
@@ -81,9 +81,9 @@ const GDD_UNIT_TABLE: GddUnitRow[] = [
     people: 21,
     stars: 1,
   },
-  { id: 'office', name: 'Oficina', width: 9, floors: 1, cost: unit(40_000), people: 6, stars: 1 },
+  { type: 'office', name: 'Oficina', width: 9, floors: 1, cost: unit(40_000), people: 6, stars: 1 },
   {
-    id: 'condo',
+    type: 'condo',
     name: 'Departamento',
     width: 16,
     floors: 1,
@@ -92,7 +92,7 @@ const GDD_UNIT_TABLE: GddUnitRow[] = [
     stars: 1,
   },
   {
-    id: 'fast-food',
+    type: 'fast-food',
     name: 'Comida rápida',
     width: 16,
     floors: 1,
@@ -101,7 +101,7 @@ const GDD_UNIT_TABLE: GddUnitRow[] = [
     stars: 1,
   },
   {
-    id: 'single-room',
+    type: 'single-room',
     name: 'Habitación simple',
     width: 4,
     floors: 1,
@@ -110,7 +110,7 @@ const GDD_UNIT_TABLE: GddUnitRow[] = [
     stars: 2,
   },
   {
-    id: 'double-room',
+    type: 'double-room',
     name: 'Habitación doble',
     width: 6,
     floors: 1,
@@ -118,9 +118,9 @@ const GDD_UNIT_TABLE: GddUnitRow[] = [
     people: 2,
     stars: 2,
   },
-  { id: 'suite', name: 'Suite', width: 10, floors: 1, cost: unit(100_000), people: 2, stars: 2 },
+  { type: 'suite', name: 'Suite', width: 10, floors: 1, cost: unit(100_000), people: 2, stars: 2 },
   {
-    id: 'housekeeping',
+    type: 'housekeeping',
     name: 'Limpieza',
     width: 15,
     floors: 1,
@@ -129,7 +129,7 @@ const GDD_UNIT_TABLE: GddUnitRow[] = [
     stars: 2,
   },
   {
-    id: 'security',
+    type: 'security',
     name: 'Seguridad',
     width: 16,
     floors: 1,
@@ -138,7 +138,7 @@ const GDD_UNIT_TABLE: GddUnitRow[] = [
     stars: 2,
   },
   {
-    id: 'service-elevator',
+    type: 'service-elevator',
     name: 'Ascensor de servicio',
     width: 4,
     floors: 'shaft',
@@ -147,7 +147,7 @@ const GDD_UNIT_TABLE: GddUnitRow[] = [
     stars: 2,
   },
   {
-    id: 'restaurant',
+    type: 'restaurant',
     name: 'Restaurante',
     width: 24,
     floors: 1,
@@ -156,7 +156,7 @@ const GDD_UNIT_TABLE: GddUnitRow[] = [
     stars: 3,
   },
   {
-    id: 'retail-shop',
+    type: 'retail-shop',
     name: 'Local comercial',
     width: 12,
     floors: 1,
@@ -164,9 +164,17 @@ const GDD_UNIT_TABLE: GddUnitRow[] = [
     people: null,
     stars: 3,
   },
-  { id: 'cinema', name: 'Cine', width: 31, floors: 2, cost: unit(500_000), people: 120, stars: 3 },
   {
-    id: 'party-hall',
+    type: 'cinema',
+    name: 'Cine',
+    width: 31,
+    floors: 2,
+    cost: unit(500_000),
+    people: 120,
+    stars: 3,
+  },
+  {
+    type: 'party-hall',
     name: 'Salón de fiestas',
     width: 24,
     floors: 2,
@@ -175,7 +183,7 @@ const GDD_UNIT_TABLE: GddUnitRow[] = [
     stars: 3,
   },
   {
-    id: 'express-elevator',
+    type: 'express-elevator',
     name: 'Ascensor expreso',
     width: 6,
     floors: 'shaft',
@@ -184,7 +192,7 @@ const GDD_UNIT_TABLE: GddUnitRow[] = [
     stars: 3,
   },
   {
-    id: 'medical-center',
+    type: 'medical-center',
     name: 'Centro médico',
     width: 26,
     floors: 1,
@@ -193,7 +201,7 @@ const GDD_UNIT_TABLE: GddUnitRow[] = [
     stars: 3,
   },
   {
-    id: 'parking-ramp',
+    type: 'parking-ramp',
     name: 'Rampa de estacionamiento',
     width: 16,
     floors: 1,
@@ -202,7 +210,7 @@ const GDD_UNIT_TABLE: GddUnitRow[] = [
     stars: 3,
   },
   {
-    id: 'parking-space',
+    type: 'parking-space',
     name: 'Cochera',
     width: 4,
     floors: 1,
@@ -211,7 +219,7 @@ const GDD_UNIT_TABLE: GddUnitRow[] = [
     stars: 3,
   },
   {
-    id: 'recycling-center',
+    type: 'recycling-center',
     name: 'Centro de reciclaje',
     width: 25,
     floors: 2,
@@ -220,7 +228,7 @@ const GDD_UNIT_TABLE: GddUnitRow[] = [
     stars: 3,
   },
   {
-    id: 'subway-station',
+    type: 'subway-station',
     name: 'Estación de subte',
     width: 30,
     floors: 3,
@@ -229,7 +237,7 @@ const GDD_UNIT_TABLE: GddUnitRow[] = [
     stars: 4,
   },
   {
-    id: 'cathedral',
+    type: 'cathedral',
     name: 'Catedral',
     width: 28,
     floors: 4,
@@ -239,35 +247,35 @@ const GDD_UNIT_TABLE: GddUnitRow[] = [
   },
 ];
 
-function floorsOf(id: UnitId): GddUnitRow['floors'] {
-  const height = UNIT_CATALOG[id].height;
+function floorsOf(type: UnitType): GddUnitRow['floors'] {
+  const height = UNIT_CATALOG[type].height;
   if (height.kind === 'fixed') return height.floors;
   if (height.kind === 'choice') return height.floors;
   return 'shaft';
 }
 
 describe('unit catalog', () => {
-  it('has exactly the 25 GDD units, keyed by their own id', () => {
-    expect(UNIT_IDS).toHaveLength(25);
-    expect(Object.keys(UNIT_CATALOG).sort()).toEqual([...UNIT_IDS].sort());
-    for (const id of UNIT_IDS) {
-      expect(UNIT_CATALOG[id].id).toBe(id);
+  it('has exactly the 25 GDD units, keyed by their own type', () => {
+    expect(UNIT_TYPES).toHaveLength(25);
+    expect(Object.keys(UNIT_CATALOG).sort()).toEqual([...UNIT_TYPES].sort());
+    for (const type of UNIT_TYPES) {
+      expect(UNIT_CATALOG[type].type).toBe(type);
     }
   });
 
-  it.each(GDD_UNIT_TABLE)('matches the GDD row for $id', (row) => {
-    const definition = UNIT_CATALOG[row.id];
+  it.each(GDD_UNIT_TABLE)('matches the GDD row for $type', (row) => {
+    const definition = UNIT_CATALOG[row.type];
     expect(definition.name).toBe(row.name);
     expect(definition.width).toBe(row.width);
-    expect(floorsOf(row.id)).toEqual(row.floors);
+    expect(floorsOf(row.type)).toEqual(row.floors);
     expect(definition.cost).toEqual(row.cost);
     expect(definition.capacity?.people ?? null).toBe(row.people);
     expect(definition.unlockStars).toBe(row.stars);
   });
 
   it('marks customer-driven units with a customer capacity and no fixed count', () => {
-    for (const id of ['fast-food', 'restaurant', 'retail-shop'] as const) {
-      expect(UNIT_CATALOG[id].capacity).toEqual({ role: 'customers', people: null });
+    for (const type of ['fast-food', 'restaurant', 'retail-shop'] as const) {
+      expect(UNIT_CATALOG[type].capacity).toEqual({ role: 'customers', people: null });
     }
   });
 
@@ -309,9 +317,9 @@ describe('placement flags', () => {
 
   it('sets the elevator rules', () => {
     const shafts = ['standard-elevator', 'service-elevator', 'express-elevator'] as const;
-    for (const id of shafts) {
-      expect(UNIT_CATALOG[id].placement.maxCarsPerShaft).toBe(8);
-      expect(UNIT_CATALOG[id].placement.mustBeSeparatedFromOtherShafts).toBe(true);
+    for (const type of shafts) {
+      expect(UNIT_CATALOG[type].placement.maxCarsPerShaft).toBe(8);
+      expect(UNIT_CATALOG[type].placement.mustBeSeparatedFromOtherShafts).toBe(true);
     }
     expect(UNIT_CATALOG['express-elevator'].placement.elevatorStops).toBe(
       'basements-main-and-sky-lobbies',
@@ -343,7 +351,7 @@ describe('tower limits', () => {
 
   it('assigns each limited unit to its group', () => {
     const membersOf = (group: LimitGroupId) =>
-      UNIT_IDS.filter((id) => UNIT_CATALOG[id].limitGroup === group).sort();
+      UNIT_TYPES.filter((type) => UNIT_CATALOG[type].limitGroup === group).sort();
 
     expect(membersOf('elevator-shafts')).toEqual([
       'express-elevator',
@@ -525,7 +533,7 @@ describe('weekly upkeep', () => {
   });
 
   it('has a line for every unit type', () => {
-    expect(Object.keys(WEEKLY_UPKEEP).sort()).toEqual([...UNIT_IDS].sort());
+    expect(Object.keys(WEEKLY_UPKEEP).sort()).toEqual([...UNIT_TYPES].sort());
   });
 
   it('keeps star bands sorted and starting at 1 star', () => {
