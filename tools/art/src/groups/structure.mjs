@@ -214,6 +214,109 @@ function deepDirt() {
   return tile;
 }
 
+// Middle strata, S4 to S6: packed clay with broken streaks that run sideways.
+function clay() {
+  const tile = new PixelCanvas(SOIL_TILE_WIDTH, floorHeight);
+  tile.fillRect(0, 0, tile.width, tile.height, 'wood');
+  for (let y = 1; y < tile.height; y += 5) {
+    const color = pixelNoise(0, y, 41) < 0.6 ? 'wood-dark' : 'wood-light';
+    for (let x = 0; x < tile.width; x++) {
+      if (pixelNoise(Math.floor(x / 3), y, 42) < 0.55) {
+        tile.set(x, y, color);
+      }
+    }
+  }
+  speckle(tile, 0, 'wood-dark', 0.07, 43);
+  scatterStones(tile, 0, 2, 44);
+  return tile;
+}
+
+function drawCrack(tile, left, top, length, seed) {
+  let x = left;
+  for (let y = top; y < top + length; y++) {
+    tile.set(x, y, 'ink');
+    x += pixelNoise(x, y, seed) < 0.5 ? 0 : 1;
+  }
+}
+
+// The rock under the soil, S9: slate beds with wavy seams and thin cracks.
+function bedrock() {
+  const tile = new PixelCanvas(SOIL_TILE_WIDTH, floorHeight);
+  tile.fillRect(0, 0, tile.width, tile.height, 'slate');
+  for (const seamTop of [3, 13, 24]) {
+    for (let x = 0; x < tile.width; x++) {
+      const y = seamTop + Math.round(2 * Math.sin((x / tile.width) * 2 * Math.PI + seamTop));
+      tile.set(x, y, 'charcoal');
+      tile.set(x, y + 1, 'gray');
+    }
+  }
+  speckle(tile, 0, 'charcoal', 0.07, 51);
+  speckle(tile, 0, 'gray', 0.03, 52);
+  drawCrack(tile, 6, 6, 6, 53);
+  drawCrack(tile, 21, 16, 7, 54);
+  return tile;
+}
+
+function drawTunnelLining(tile) {
+  tile.hline(0, 0, tileWidth, 'charcoal');
+  tile.hline(0, 1, tileWidth, 'concrete-light');
+  tile.hline(0, 2, tileWidth, 'concrete');
+  tile.hline(0, 3, tileWidth, 'concrete-dark');
+}
+
+function drawTunnelWall(tile) {
+  tile.fillRect(0, 4, tileWidth, 19, 'slate');
+  tile.vline(tileWidth - 1, 4, 19, 'charcoal');
+  tile.hline(0, 4, tileWidth, 'charcoal');
+  tile.hline(0, 12, tileWidth - 1, 'gray');
+  tile.hline(0, 13, tileWidth, 'charcoal');
+}
+
+function drawTrack(tile) {
+  tile.hline(0, 23, tileWidth, 'charcoal');
+  tile.hline(0, 24, tileWidth, 'silver');
+  tile.hline(0, 25, tileWidth, 'gray');
+  tile.fillRect(0, 26, 6, 1, 'wood-dark');
+  tile.fillRect(6, 26, 2, 1, 'slate');
+  for (let x = 0; x < tileWidth; x++) {
+    tile.set(x, 27, pixelNoise(x, 27, 61) < 0.5 ? 'gray' : 'slate');
+    tile.set(x, 28, pixelNoise(x, 28, 61) < 0.3 ? 'gray' : 'slate');
+  }
+}
+
+// One column of the S10 subway tunnel. It is lit day and night; with `lamp`,
+// a wall lamp hangs under the ceiling (the client places one every few tiles).
+function subwayTunnel({ lamp }) {
+  const tile = new PixelCanvas(tileWidth, floorHeight);
+  drawTunnelLining(tile);
+  drawTunnelWall(tile);
+  drawTrack(tile);
+  drawSlab(tile, ['concrete', 'concrete-dark']);
+  if (lamp) {
+    tile.hline(2, 4, 4, 'gray');
+    tile.hline(2, 5, 4, 'lamp');
+    tile.hline(3, 6, 2, 'lamp-glow');
+  }
+  return tile;
+}
+
+const PORTAL_WIDTH = 3;
+
+// The end of the S10 tunnel where it meets the soil: a concrete bulkhead on the
+// outer side, the lining and track running into it.
+function subwayTunnelEdge(side) {
+  const tile = subwayTunnel({ lamp: false });
+  const slabTop = slabTopOf(tile);
+  const ramp = ['concrete-light', 'concrete', 'concrete-dark'];
+  const outerX = side === 'left' ? 0 : tileWidth - PORTAL_WIDTH;
+  ramp.forEach((color, step) => tile.vline(outerX + step, 0, slabTop, color));
+  const innerX = side === 'left' ? PORTAL_WIDTH : tileWidth - PORTAL_WIDTH - 1;
+  tile.vline(innerX, 4, slabTop - 4, 'charcoal');
+  tile.set(outerX + 1, 8, 'concrete-dark');
+  tile.set(outerX + 1, 18, 'concrete-dark');
+  return tile;
+}
+
 function wallEdge(colorsLeftToRight, jointColor) {
   const tile = new PixelCanvas(EDGE_WIDTH, floorHeight);
   colorsLeftToRight.forEach((color, x) => tile.vline(x, 0, floorHeight, color));
@@ -258,6 +361,12 @@ const subjects = [
   { subject: 'ground', draw: ground },
   { subject: 'dirt', draw: dirt },
   { subject: 'dirt-deep', draw: deepDirt },
+  { subject: 'clay', draw: clay },
+  { subject: 'bedrock', draw: bedrock },
+  { subject: 'subway-tunnel', draw: () => subwayTunnel({ lamp: false }) },
+  { subject: 'subway-tunnel-lamp', draw: () => subwayTunnel({ lamp: true }) },
+  { subject: 'subway-tunnel-edge-left', draw: () => subwayTunnelEdge('left') },
+  { subject: 'subway-tunnel-edge-right', draw: () => subwayTunnelEdge('right') },
   {
     subject: 'edge-left',
     draw: () => wallEdge(['ink', 'concrete-light', 'concrete'], 'concrete-dark'),
