@@ -77,16 +77,18 @@ export interface TowerState {
 }
 
 export interface GridState {
-  // One entry per level that has any structure. Index = column 0..374.
-  levels: Record<Level, LevelRow>;
-  mainLobbyHeight: 1 | 2 | 3 | null;
-  skyLobbyHeights: Partial<Record<SkyLobbyLevel, 1 | 2 | 3>>;
+  levels: Partial<Record<Level, LevelRow>>; // only levels that hold something have a row
+  mainLobbyHeight: LobbyHeight | null;      // 1 | 2 | 3, set by the first lobby on level 1
+  skyLobbyHeights: Partial<Record<Level, LobbyHeight>>; // keyed by 15, 30, ... 90
 }
 
 export interface LevelRow {
-  structure: string;          // 375 chars: '.' none, 'f' floor, 'l' lobby
-  occupant: (OccupantRef | null)[]; // 375 entries
+  structure: StructureSpan[]; // sorted by x0, disjoint, touching spans of one kind merged
+  occupants: OccupantSpan[];  // sorted by x0, disjoint
 }
+
+export interface StructureSpan { kind: 'floor' | 'lobby'; x0: number; x1: number }
+export interface OccupantSpan { x0: number; x1: number; occupant: OccupantRef }
 
 export type OccupantRef =
   | { kind: 'unit'; id: UnitId }
@@ -142,9 +144,11 @@ export interface Person {
 }
 ```
 
+The grid stores runs of cells, not one entry per cell. A row holds spans with inclusive columns `x0..x1` in 0..374, so an empty level costs nothing and a level with 40 offices holds about 40 occupant spans. A unit taller than one level has a span on each level it covers. Overlap and lookup on a level walk that level's sorted spans, so they cost O(spans on the level), not O(375). Placement code in `packages/engine/src/grid.ts` keeps the invariants: setting structure splits and re-merges spans, and adding an occupant to a cell that is taken throws, so command handlers check `isSpanFree` first. `migrateState` checks the same invariants when it loads a snapshot, and a state saved before the grid existed loads with an empty grid.
+
 Naming: `UnitType` is the catalog type, a kebab-case string such as `retail-shop`, and `UNIT_TYPES` lists them all. `UnitId` is the id of one placed unit, such as `u12`. `ShaftType` maps to its catalog unit through `SHAFT_UNIT_TYPES` in `shared` (`standard` to `standard-elevator`, and so on).
 
-`Level` is an integer in -10..104 with no 0 (TM-8 section 1). `shared` exports `LOWEST_LEVEL`, `HIGHEST_LEVEL`, `LEVEL_COUNT` (114), `isLevel`, and `levelToIndex` and `indexToLevel`, which convert between a `Level` and its dense index (0 for -10, up to 113 for 104) for arrays and for car positions. Both throw a `RangeError` for values outside the tower.
+`Level` is an integer in -10..104 with no 0 (TM-8 section 1). `shared` exports `LOWEST_LEVEL`, `HIGHEST_LEVEL`, `LEVEL_COUNT` (114), `isLevel`, and `levelToIndex` and `indexToLevel`, which convert between a `Level` and its dense index (0 for -10, up to 113 for 104) for arrays and for car positions. Both throw a `RangeError` for values outside the tower. `levelAbove`, `levelBelow` and `levelLabel` step over the missing level 0 and name basements S1 to S10.
 
 ### 3.1 Level order and positions
 
