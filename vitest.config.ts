@@ -7,7 +7,12 @@ export default defineConfig({
       'packages/*',
       'apps/*',
       'tools/*',
-      { test: { name: 'repo', include: ['tests/**/*.test.ts', 'scripts/**/*.test.ts'] } },
+      {
+        test: {
+          name: 'repo',
+          include: ['tests/**/*.test.ts', 'scripts/**/*.test.ts', 'e2e/**/*.test.ts'],
+        },
+      },
     ],
   },
 });
