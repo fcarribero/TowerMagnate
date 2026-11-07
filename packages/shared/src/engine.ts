@@ -1,6 +1,7 @@
 import type { Ledger } from './ledger';
 import type { Level } from './levels';
 import type { DecisionKind } from './protocol/primitives';
+import type { PersonPool } from './people';
 import type { UnitType } from './units';
 
 /** Id of a placed unit, transport or shaft, with a type prefix: `u12`, `t3`, `s4`. */
@@ -76,6 +77,7 @@ export interface TowerState {
   money: number;
   units: Record<UnitId, Unit>;
   grid: GridState;
+  people: PersonPool;
   ledger: Ledger;
   /** At most one bomb threat or fire at a time. */
   activeEvents: ActiveEvent[];

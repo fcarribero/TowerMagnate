@@ -202,7 +202,7 @@ export const UNIT_CATALOG: Readonly<Record<UnitType, UnitDefinition>> = {
     width: 16,
     height: fixedHeight(1),
     cost: perUnit(100_000),
-    capacity: null,
+    capacity: { role: 'guards', people: 6 },
     unlockStars: 2,
     placement: { zone: 'any' },
     limitGroup: 'security',

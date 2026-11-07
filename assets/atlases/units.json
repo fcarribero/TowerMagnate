@@ -1,9 +1,89 @@
 {
   "frames": {
-    "units/condo/empty_day": {
+    "units/cathedral/empty_day": {
       "frame": {
         "x": 1,
         "y": 1,
+        "w": 224,
+        "h": 128
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 224,
+        "h": 128
+      },
+      "sourceSize": {
+        "w": 224,
+        "h": 128
+      }
+    },
+    "units/cathedral/empty_night": {
+      "frame": {
+        "x": 226,
+        "y": 1,
+        "w": 224,
+        "h": 128
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 224,
+        "h": 128
+      },
+      "sourceSize": {
+        "w": 224,
+        "h": 128
+      }
+    },
+    "units/cathedral/wedding_day": {
+      "frame": {
+        "x": 451,
+        "y": 1,
+        "w": 224,
+        "h": 128
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 224,
+        "h": 128
+      },
+      "sourceSize": {
+        "w": 224,
+        "h": 128
+      }
+    },
+    "units/cathedral/wedding_night": {
+      "frame": {
+        "x": 676,
+        "y": 1,
+        "w": 224,
+        "h": 128
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 224,
+        "h": 128
+      },
+      "sourceSize": {
+        "w": 224,
+        "h": 128
+      }
+    },
+    "units/condo/empty_day": {
+      "frame": {
+        "x": 1,
+        "y": 130,
         "w": 128,
         "h": 32
       },
@@ -23,7 +103,7 @@
     "units/condo/empty_night": {
       "frame": {
         "x": 130,
-        "y": 1,
+        "y": 130,
         "w": 128,
         "h": 32
       },
@@ -43,7 +123,7 @@
     "units/condo/occupied_day": {
       "frame": {
         "x": 259,
-        "y": 1,
+        "y": 130,
         "w": 128,
         "h": 32
       },
@@ -63,7 +143,7 @@
     "units/condo/occupied_night": {
       "frame": {
         "x": 388,
-        "y": 1,
+        "y": 130,
         "w": 128,
         "h": 32
       },
@@ -80,10 +160,250 @@
         "h": 32
       }
     },
-    "units/office/empty_day": {
+    "units/double-room/dirty_day": {
+      "frame": {
+        "x": 941,
+        "y": 163,
+        "w": 48,
+        "h": 32
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 48,
+        "h": 32
+      },
+      "sourceSize": {
+        "w": 48,
+        "h": 32
+      }
+    },
+    "units/double-room/dirty_night": {
+      "frame": {
+        "x": 1,
+        "y": 196,
+        "w": 48,
+        "h": 32
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 48,
+        "h": 32
+      },
+      "sourceSize": {
+        "w": 48,
+        "h": 32
+      }
+    },
+    "units/double-room/empty_day": {
+      "frame": {
+        "x": 50,
+        "y": 196,
+        "w": 48,
+        "h": 32
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 48,
+        "h": 32
+      },
+      "sourceSize": {
+        "w": 48,
+        "h": 32
+      }
+    },
+    "units/double-room/empty_night": {
+      "frame": {
+        "x": 99,
+        "y": 196,
+        "w": 48,
+        "h": 32
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 48,
+        "h": 32
+      },
+      "sourceSize": {
+        "w": 48,
+        "h": 32
+      }
+    },
+    "units/double-room/infested_day": {
+      "frame": {
+        "x": 148,
+        "y": 196,
+        "w": 48,
+        "h": 32
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 48,
+        "h": 32
+      },
+      "sourceSize": {
+        "w": 48,
+        "h": 32
+      }
+    },
+    "units/double-room/infested_night": {
+      "frame": {
+        "x": 197,
+        "y": 196,
+        "w": 48,
+        "h": 32
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 48,
+        "h": 32
+      },
+      "sourceSize": {
+        "w": 48,
+        "h": 32
+      }
+    },
+    "units/double-room/occupied_day": {
+      "frame": {
+        "x": 246,
+        "y": 196,
+        "w": 48,
+        "h": 32
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 48,
+        "h": 32
+      },
+      "sourceSize": {
+        "w": 48,
+        "h": 32
+      }
+    },
+    "units/double-room/occupied_night": {
+      "frame": {
+        "x": 295,
+        "y": 196,
+        "w": 48,
+        "h": 32
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 48,
+        "h": 32
+      },
+      "sourceSize": {
+        "w": 48,
+        "h": 32
+      }
+    },
+    "units/housekeeping/empty_day": {
       "frame": {
         "x": 517,
-        "y": 1,
+        "y": 130,
+        "w": 120,
+        "h": 32
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 120,
+        "h": 32
+      },
+      "sourceSize": {
+        "w": 120,
+        "h": 32
+      }
+    },
+    "units/housekeeping/empty_night": {
+      "frame": {
+        "x": 638,
+        "y": 130,
+        "w": 120,
+        "h": 32
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 120,
+        "h": 32
+      },
+      "sourceSize": {
+        "w": 120,
+        "h": 32
+      }
+    },
+    "units/housekeeping/occupied_day": {
+      "frame": {
+        "x": 759,
+        "y": 130,
+        "w": 120,
+        "h": 32
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 120,
+        "h": 32
+      },
+      "sourceSize": {
+        "w": 120,
+        "h": 32
+      }
+    },
+    "units/housekeeping/occupied_night": {
+      "frame": {
+        "x": 880,
+        "y": 130,
+        "w": 120,
+        "h": 32
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 120,
+        "h": 32
+      },
+      "sourceSize": {
+        "w": 120,
+        "h": 32
+      }
+    },
+    "units/office/empty_day": {
+      "frame": {
+        "x": 649,
+        "y": 163,
         "w": 72,
         "h": 32
       },
@@ -102,8 +422,8 @@
     },
     "units/office/empty_night": {
       "frame": {
-        "x": 590,
-        "y": 1,
+        "x": 722,
+        "y": 163,
         "w": 72,
         "h": 32
       },
@@ -122,8 +442,8 @@
     },
     "units/office/occupied_day": {
       "frame": {
-        "x": 663,
-        "y": 1,
+        "x": 795,
+        "y": 163,
         "w": 72,
         "h": 32
       },
@@ -142,8 +462,8 @@
     },
     "units/office/occupied_night": {
       "frame": {
-        "x": 736,
-        "y": 1,
+        "x": 868,
+        "y": 163,
         "w": 72,
         "h": 32
       },
@@ -159,6 +479,326 @@
         "w": 72,
         "h": 32
       }
+    },
+    "units/single-room/dirty_day": {
+      "frame": {
+        "x": 344,
+        "y": 196,
+        "w": 32,
+        "h": 32
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 32,
+        "h": 32
+      },
+      "sourceSize": {
+        "w": 32,
+        "h": 32
+      }
+    },
+    "units/single-room/dirty_night": {
+      "frame": {
+        "x": 377,
+        "y": 196,
+        "w": 32,
+        "h": 32
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 32,
+        "h": 32
+      },
+      "sourceSize": {
+        "w": 32,
+        "h": 32
+      }
+    },
+    "units/single-room/empty_day": {
+      "frame": {
+        "x": 410,
+        "y": 196,
+        "w": 32,
+        "h": 32
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 32,
+        "h": 32
+      },
+      "sourceSize": {
+        "w": 32,
+        "h": 32
+      }
+    },
+    "units/single-room/empty_night": {
+      "frame": {
+        "x": 443,
+        "y": 196,
+        "w": 32,
+        "h": 32
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 32,
+        "h": 32
+      },
+      "sourceSize": {
+        "w": 32,
+        "h": 32
+      }
+    },
+    "units/single-room/infested_day": {
+      "frame": {
+        "x": 476,
+        "y": 196,
+        "w": 32,
+        "h": 32
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 32,
+        "h": 32
+      },
+      "sourceSize": {
+        "w": 32,
+        "h": 32
+      }
+    },
+    "units/single-room/infested_night": {
+      "frame": {
+        "x": 509,
+        "y": 196,
+        "w": 32,
+        "h": 32
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 32,
+        "h": 32
+      },
+      "sourceSize": {
+        "w": 32,
+        "h": 32
+      }
+    },
+    "units/single-room/occupied_day": {
+      "frame": {
+        "x": 542,
+        "y": 196,
+        "w": 32,
+        "h": 32
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 32,
+        "h": 32
+      },
+      "sourceSize": {
+        "w": 32,
+        "h": 32
+      }
+    },
+    "units/single-room/occupied_night": {
+      "frame": {
+        "x": 575,
+        "y": 196,
+        "w": 32,
+        "h": 32
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 32,
+        "h": 32
+      },
+      "sourceSize": {
+        "w": 32,
+        "h": 32
+      }
+    },
+    "units/suite/dirty_day": {
+      "frame": {
+        "x": 1,
+        "y": 163,
+        "w": 80,
+        "h": 32
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 80,
+        "h": 32
+      },
+      "sourceSize": {
+        "w": 80,
+        "h": 32
+      }
+    },
+    "units/suite/dirty_night": {
+      "frame": {
+        "x": 82,
+        "y": 163,
+        "w": 80,
+        "h": 32
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 80,
+        "h": 32
+      },
+      "sourceSize": {
+        "w": 80,
+        "h": 32
+      }
+    },
+    "units/suite/empty_day": {
+      "frame": {
+        "x": 163,
+        "y": 163,
+        "w": 80,
+        "h": 32
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 80,
+        "h": 32
+      },
+      "sourceSize": {
+        "w": 80,
+        "h": 32
+      }
+    },
+    "units/suite/empty_night": {
+      "frame": {
+        "x": 244,
+        "y": 163,
+        "w": 80,
+        "h": 32
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 80,
+        "h": 32
+      },
+      "sourceSize": {
+        "w": 80,
+        "h": 32
+      }
+    },
+    "units/suite/infested_day": {
+      "frame": {
+        "x": 325,
+        "y": 163,
+        "w": 80,
+        "h": 32
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 80,
+        "h": 32
+      },
+      "sourceSize": {
+        "w": 80,
+        "h": 32
+      }
+    },
+    "units/suite/infested_night": {
+      "frame": {
+        "x": 406,
+        "y": 163,
+        "w": 80,
+        "h": 32
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 80,
+        "h": 32
+      },
+      "sourceSize": {
+        "w": 80,
+        "h": 32
+      }
+    },
+    "units/suite/occupied_day": {
+      "frame": {
+        "x": 487,
+        "y": 163,
+        "w": 80,
+        "h": 32
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 80,
+        "h": 32
+      },
+      "sourceSize": {
+        "w": 80,
+        "h": 32
+      }
+    },
+    "units/suite/occupied_night": {
+      "frame": {
+        "x": 568,
+        "y": 163,
+        "w": 80,
+        "h": 32
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 80,
+        "h": 32
+      },
+      "sourceSize": {
+        "w": 80,
+        "h": 32
+      }
     }
   },
   "animations": {},
@@ -168,8 +808,8 @@
     "image": "units.png",
     "format": "RGBA8888",
     "size": {
-      "w": 809,
-      "h": 34
+      "w": 1001,
+      "h": 229
     },
     "scale": 1
   }

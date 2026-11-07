@@ -118,6 +118,31 @@ describe('sky group', () => {
     );
   });
 
+  it('repeats the middle band without a seam across floors and columns', () => {
+    for (const time of ['day', 'dusk', 'night']) {
+      const middle = sprites[`sky/${time}/middle`];
+      const tiled = (x, y) => middle.get(x % middle.width, y % middle.height);
+      for (let y = 0; y < middle.height; y++) {
+        for (let x = 0; x < middle.width; x++) {
+          const crossesRight = tiled(x + 8, y) === middle.get(x, y);
+          const crossesDown = tiled(x, y + 16) === middle.get(x, y);
+          if (time !== 'night') {
+            expect(crossesRight && crossesDown, `${time} at ${x},${y}`).toBe(true);
+          }
+        }
+      }
+    }
+  });
+
+  it('mixes both middle colors evenly over the whole tile', () => {
+    const middle = sprites['sky/day/middle'];
+    const topHalf = middle.pixels.slice(0, middle.pixels.length / 2);
+    const bottomHalf = middle.pixels.slice(middle.pixels.length / 2);
+    const flecks = (pixels) => pixels.filter((pixel) => pixel === colorIndex('sky-light')).length;
+    expect(flecks(topHalf)).toBeGreaterThan(0);
+    expect(flecks(topHalf)).toBe(flecks(bottomHalf));
+  });
+
   it('scatters stars over the night sky only', () => {
     const star = colorIndex('cloud');
     expect(sprites['sky/night/top'].pixels.includes(star)).toBe(true);
@@ -183,6 +208,70 @@ describe('transport group', () => {
     expect(closed.get(middle, 14)).toBe(colorIndex('ink'));
     expect(open.get(middle, 14)).toBe(colorIndex('cloud'));
     expect(open.pixels.includes(colorIndex('lamp-glow'))).toBe(true);
+  });
+});
+
+describe('transport walkways and landings', () => {
+  const sprites = spritesById(transportGroup);
+  const types = ['standard', 'service', 'express'];
+
+  it('draws stairs and escalators 8 tiles wide and one level tall, day and night', () => {
+    for (const time of ['day', 'night']) {
+      const ids = [`transport/stairs/${time}`];
+      for (let frame = 1; frame <= 4; frame++) {
+        ids.push(`transport/escalator/${time}_0${frame}`);
+      }
+      for (const id of ids) {
+        expect(sprites[id].width, id).toBe(8 * metrics.tileWidth);
+        expect(sprites[id].height, id).toBe(metrics.floorHeight);
+      }
+    }
+  });
+
+  it('starts the flight on the floor at the left and reaches the level above at the right', () => {
+    const stairs = sprites['transport/stairs/day'];
+    const floorRow = metrics.floorHeight - metrics.slabHeight - 1;
+    expect(stairs.get(5, floorRow)).not.toBe(0);
+    expect(stairs.get(stairs.width - 6, 1)).not.toBe(0);
+    for (let row = floorRow + 1; row < metrics.floorHeight; row++) {
+      expect(stairs.get(5, row)).toBe(0);
+    }
+  });
+
+  it('animates the escalator steps over four distinct frames that loop', () => {
+    const frames = [1, 2, 3, 4].map((frame) => sprites[`transport/escalator/day_0${frame}`]);
+    const keys = frames.map((frame) => frame.pixels.join(','));
+    expect(new Set(keys).size).toBe(4);
+  });
+
+  it('turns escalator glass dark at night', () => {
+    const day = sprites['transport/escalator/day_01'];
+    const night = sprites['transport/escalator/night_01'];
+    expect(day.pixels.includes(colorIndex('glass'))).toBe(true);
+    expect(night.pixels.includes(colorIndex('glass'))).toBe(false);
+    expect(night.pixels.includes(colorIndex('night'))).toBe(true);
+  });
+
+  it('frames each landing as wide as its shaft and leaves the car opening clear', () => {
+    for (const type of types) {
+      const landing = sprites[`transport/${type}-shaft/landing`];
+      const shaft = sprites[`transport/${type}-shaft/body`];
+      expect(landing.width, type).toBe(shaft.width);
+      expect(landing.height, type).toBe(metrics.floorHeight);
+      expect(landing.get(landing.width / 2, 14), type).toBe(0);
+      expect(landing.get(2, 14), type).not.toBe(0);
+    }
+  });
+
+  it('lights the call buttons for each waiting direction', () => {
+    const lit = (state, row) =>
+      [colorIndex('lamp'), colorIndex('lamp-glow')].includes(
+        sprites[`transport/call-button/${state}`].get(1, row),
+      );
+    expect([lit('idle', 2), lit('idle', 4)]).toEqual([false, false]);
+    expect([lit('up', 2), lit('up', 4)]).toEqual([true, false]);
+    expect([lit('down', 2), lit('down', 4)]).toEqual([false, true]);
+    expect([lit('both', 2), lit('both', 4)]).toEqual([true, true]);
   });
 });
 

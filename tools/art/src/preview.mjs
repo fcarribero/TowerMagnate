@@ -1,5 +1,6 @@
 import { PixelCanvas } from './canvas.mjs';
 import { metrics } from './metrics.mjs';
+import { CALL_PANEL_TOP } from './groups/transport.mjs';
 
 const SCENE_TILES = 24;
 const TOWER_FIRST_TILE = 6;
@@ -132,6 +133,28 @@ export function drawStructurePreview(sprites) {
   return sheet;
 }
 
+// One row per unit subject with every variant left to right, on an ink background.
+export function drawUnitSheet(sprites, subjects) {
+  const rows = subjects.map((subject) =>
+    Object.entries(sprites)
+      .filter(([id]) => id.startsWith(`units/${subject}/`))
+      .map(([, canvas]) => canvas),
+  );
+  const rowWidth = (row) => GAP + row.reduce((total, canvas) => total + canvas.width + GAP, 0);
+  const width = Math.max(...rows.map(rowWidth));
+  const height = GAP + rows.length * (metrics.floorHeight + GAP);
+  const sheet = new PixelCanvas(width, height);
+  sheet.fillRect(0, 0, width, height, 'ink');
+  rows.forEach((row, rowIndex) => {
+    let left = GAP;
+    for (const canvas of row) {
+      sheet.stamp(canvas, left, GAP + rowIndex * (metrics.floorHeight + GAP));
+      left += canvas.width + GAP;
+    }
+  });
+  return sheet;
+}
+
 const SHAFT_LEVELS = 3;
 const CAR_INSET_X = 4;
 const CAR_TOP_IN_FLOOR =
@@ -164,8 +187,13 @@ export function drawTransportPreview(sprites) {
   let left = metrics.tileWidth;
   for (const { type, body, top, bottom } of shafts) {
     sheet.stamp(top, left, 0);
+    const callStates = ['up', 'idle', 'both'];
     for (let level = 0; level < SHAFT_LEVELS; level++) {
-      sheet.stamp(body, left, capHeight + level * floor);
+      const levelTop = capHeight + level * floor;
+      sheet.stamp(body, left, levelTop);
+      sheet.stamp(sprites[`transport/${type}-shaft/landing`], left, levelTop);
+      const panel = sprites[`transport/call-button/${callStates[level]}`];
+      sheet.stamp(panel, left + body.width - panel.width, levelTop + CALL_PANEL_TOP);
     }
     sheet.stamp(bottom, left, capHeight + SHAFT_LEVELS * floor);
     const carX = left + CAR_INSET_X;
@@ -173,6 +201,48 @@ export function drawTransportPreview(sprites) {
     const lastLevelTop = capHeight + (SHAFT_LEVELS - 1) * floor;
     sheet.stamp(sprites[`transport/${type}-car/open`], carX, lastLevelTop + CAR_TOP_IN_FLOOR);
     left += body.width + 2 * metrics.tileWidth;
+  }
+  return sheet;
+}
+
+const WALKWAY_LEVELS = 3;
+const WALKWAY_SPRITES = [
+  'stairs/TIME',
+  'escalator/TIME_01',
+  'escalator/TIME_02',
+  'escalator/TIME_03',
+  'escalator/TIME_04',
+];
+
+function drawWalkwayScene(sprites, time) {
+  const floor = metrics.floorHeight;
+  const gap = metrics.tileWidth;
+  const ids = WALKWAY_SPRITES.map((id) => `transport/${id.replace('TIME', time)}`);
+  const walkwayWidth = sprites[ids[0]].width;
+  const width = gap + ids.length * (walkwayWidth + gap);
+  const scene = new PixelCanvas(width, WALKWAY_LEVELS * floor);
+  for (let level = 0; level < WALKWAY_LEVELS; level++) {
+    tileAcross(scene, sprites[`structure/floor/${time}`], level * floor);
+  }
+  ids.forEach((id, index) => {
+    const left = gap + index * (walkwayWidth + gap);
+    scene.stamp(sprites[id], left, floor);
+    scene.stamp(sprites[id], left, 2 * floor);
+  });
+  return scene;
+}
+
+// Stairs and the four escalator frames stacked over two levels, day above night.
+export function drawWalkwayPreview(sprites) {
+  const scenes = ['day', 'night'].map((time) => drawWalkwayScene(sprites, time));
+  const width = scenes[0].width + 2 * GAP;
+  const height = GAP + scenes.reduce((total, scene) => total + scene.height + GAP, 0);
+  const sheet = new PixelCanvas(width, height);
+  sheet.fillRect(0, 0, width, height, 'ink');
+  let top = GAP;
+  for (const scene of scenes) {
+    sheet.stamp(scene, GAP, top);
+    top += scene.height + GAP;
   }
   return sheet;
 }

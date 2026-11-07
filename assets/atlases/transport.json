@@ -1,8 +1,248 @@
 {
   "frames": {
+    "transport/call-button/both": {
+      "frame": {
+        "x": 166,
+        "y": 34,
+        "w": 3,
+        "h": 7
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 3,
+        "h": 7
+      },
+      "sourceSize": {
+        "w": 3,
+        "h": 7
+      }
+    },
+    "transport/call-button/down": {
+      "frame": {
+        "x": 170,
+        "y": 34,
+        "w": 3,
+        "h": 7
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 3,
+        "h": 7
+      },
+      "sourceSize": {
+        "w": 3,
+        "h": 7
+      }
+    },
+    "transport/call-button/idle": {
+      "frame": {
+        "x": 174,
+        "y": 34,
+        "w": 3,
+        "h": 7
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 3,
+        "h": 7
+      },
+      "sourceSize": {
+        "w": 3,
+        "h": 7
+      }
+    },
+    "transport/call-button/up": {
+      "frame": {
+        "x": 178,
+        "y": 34,
+        "w": 3,
+        "h": 7
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 3,
+        "h": 7
+      },
+      "sourceSize": {
+        "w": 3,
+        "h": 7
+      }
+    },
+    "transport/escalator/day_01": {
+      "frame": {
+        "x": 1,
+        "y": 1,
+        "w": 64,
+        "h": 32
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 64,
+        "h": 32
+      },
+      "sourceSize": {
+        "w": 64,
+        "h": 32
+      }
+    },
+    "transport/escalator/day_02": {
+      "frame": {
+        "x": 66,
+        "y": 1,
+        "w": 64,
+        "h": 32
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 64,
+        "h": 32
+      },
+      "sourceSize": {
+        "w": 64,
+        "h": 32
+      }
+    },
+    "transport/escalator/day_03": {
+      "frame": {
+        "x": 131,
+        "y": 1,
+        "w": 64,
+        "h": 32
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 64,
+        "h": 32
+      },
+      "sourceSize": {
+        "w": 64,
+        "h": 32
+      }
+    },
+    "transport/escalator/day_04": {
+      "frame": {
+        "x": 196,
+        "y": 1,
+        "w": 64,
+        "h": 32
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 64,
+        "h": 32
+      },
+      "sourceSize": {
+        "w": 64,
+        "h": 32
+      }
+    },
+    "transport/escalator/night_01": {
+      "frame": {
+        "x": 261,
+        "y": 1,
+        "w": 64,
+        "h": 32
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 64,
+        "h": 32
+      },
+      "sourceSize": {
+        "w": 64,
+        "h": 32
+      }
+    },
+    "transport/escalator/night_02": {
+      "frame": {
+        "x": 326,
+        "y": 1,
+        "w": 64,
+        "h": 32
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 64,
+        "h": 32
+      },
+      "sourceSize": {
+        "w": 64,
+        "h": 32
+      }
+    },
+    "transport/escalator/night_03": {
+      "frame": {
+        "x": 391,
+        "y": 1,
+        "w": 64,
+        "h": 32
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 64,
+        "h": 32
+      },
+      "sourceSize": {
+        "w": 64,
+        "h": 32
+      }
+    },
+    "transport/escalator/night_04": {
+      "frame": {
+        "x": 456,
+        "y": 1,
+        "w": 64,
+        "h": 32
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 64,
+        "h": 32
+      },
+      "sourceSize": {
+        "w": 64,
+        "h": 32
+      }
+    },
     "transport/express-car/closed": {
       "frame": {
-        "x": 116,
+        "x": 881,
         "y": 1,
         "w": 40,
         "h": 27
@@ -22,7 +262,7 @@
     },
     "transport/express-car/open": {
       "frame": {
-        "x": 157,
+        "x": 922,
         "y": 1,
         "w": 40,
         "h": 27
@@ -42,7 +282,7 @@
     },
     "transport/express-shaft/body": {
       "frame": {
-        "x": 1,
+        "x": 651,
         "y": 1,
         "w": 48,
         "h": 32
@@ -62,8 +302,8 @@
     },
     "transport/express-shaft/bottom": {
       "frame": {
-        "x": 413,
-        "y": 1,
+        "x": 182,
+        "y": 34,
         "w": 48,
         "h": 6
       },
@@ -80,10 +320,30 @@
         "h": 6
       }
     },
+    "transport/express-shaft/landing": {
+      "frame": {
+        "x": 700,
+        "y": 1,
+        "w": 48,
+        "h": 32
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 48,
+        "h": 32
+      },
+      "sourceSize": {
+        "w": 48,
+        "h": 32
+      }
+    },
     "transport/express-shaft/top": {
       "frame": {
-        "x": 298,
-        "y": 1,
+        "x": 51,
+        "y": 34,
         "w": 48,
         "h": 12
       },
@@ -102,7 +362,7 @@
     },
     "transport/service-car/closed": {
       "frame": {
-        "x": 198,
+        "x": 963,
         "y": 1,
         "w": 24,
         "h": 27
@@ -122,7 +382,7 @@
     },
     "transport/service-car/open": {
       "frame": {
-        "x": 223,
+        "x": 988,
         "y": 1,
         "w": 24,
         "h": 27
@@ -142,7 +402,7 @@
     },
     "transport/service-shaft/body": {
       "frame": {
-        "x": 50,
+        "x": 749,
         "y": 1,
         "w": 32,
         "h": 32
@@ -162,8 +422,8 @@
     },
     "transport/service-shaft/bottom": {
       "frame": {
-        "x": 462,
-        "y": 1,
+        "x": 231,
+        "y": 34,
         "w": 32,
         "h": 6
       },
@@ -178,12 +438,32 @@
       "sourceSize": {
         "w": 32,
         "h": 6
+      }
+    },
+    "transport/service-shaft/landing": {
+      "frame": {
+        "x": 782,
+        "y": 1,
+        "w": 32,
+        "h": 32
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 32,
+        "h": 32
+      },
+      "sourceSize": {
+        "w": 32,
+        "h": 32
       }
     },
     "transport/service-shaft/top": {
       "frame": {
-        "x": 347,
-        "y": 1,
+        "x": 100,
+        "y": 34,
         "w": 32,
         "h": 12
       },
@@ -200,10 +480,50 @@
         "h": 12
       }
     },
+    "transport/stairs/day": {
+      "frame": {
+        "x": 521,
+        "y": 1,
+        "w": 64,
+        "h": 32
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 64,
+        "h": 32
+      },
+      "sourceSize": {
+        "w": 64,
+        "h": 32
+      }
+    },
+    "transport/stairs/night": {
+      "frame": {
+        "x": 586,
+        "y": 1,
+        "w": 64,
+        "h": 32
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 64,
+        "h": 32
+      },
+      "sourceSize": {
+        "w": 64,
+        "h": 32
+      }
+    },
     "transport/standard-car/closed": {
       "frame": {
-        "x": 248,
-        "y": 1,
+        "x": 1,
+        "y": 34,
         "w": 24,
         "h": 27
       },
@@ -222,8 +542,8 @@
     },
     "transport/standard-car/open": {
       "frame": {
-        "x": 273,
-        "y": 1,
+        "x": 26,
+        "y": 34,
         "w": 24,
         "h": 27
       },
@@ -242,7 +562,7 @@
     },
     "transport/standard-shaft/body": {
       "frame": {
-        "x": 83,
+        "x": 815,
         "y": 1,
         "w": 32,
         "h": 32
@@ -262,8 +582,8 @@
     },
     "transport/standard-shaft/bottom": {
       "frame": {
-        "x": 495,
-        "y": 1,
+        "x": 264,
+        "y": 34,
         "w": 32,
         "h": 6
       },
@@ -280,10 +600,30 @@
         "h": 6
       }
     },
+    "transport/standard-shaft/landing": {
+      "frame": {
+        "x": 848,
+        "y": 1,
+        "w": 32,
+        "h": 32
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 32,
+        "h": 32
+      },
+      "sourceSize": {
+        "w": 32,
+        "h": 32
+      }
+    },
     "transport/standard-shaft/top": {
       "frame": {
-        "x": 380,
-        "y": 1,
+        "x": 133,
+        "y": 34,
         "w": 32,
         "h": 12
       },
@@ -301,15 +641,28 @@
       }
     }
   },
-  "animations": {},
+  "animations": {
+    "transport/escalator/day": [
+      "transport/escalator/day_01",
+      "transport/escalator/day_02",
+      "transport/escalator/day_03",
+      "transport/escalator/day_04"
+    ],
+    "transport/escalator/night": [
+      "transport/escalator/night_01",
+      "transport/escalator/night_02",
+      "transport/escalator/night_03",
+      "transport/escalator/night_04"
+    ]
+  },
   "meta": {
     "app": "@tower-magnate/art",
     "version": "1",
     "image": "transport.png",
     "format": "RGBA8888",
     "size": {
-      "w": 528,
-      "h": 34
+      "w": 1013,
+      "h": 62
     },
     "scale": 1
   }

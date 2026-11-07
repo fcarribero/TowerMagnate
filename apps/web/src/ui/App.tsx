@@ -1,5 +1,6 @@
 import type { StarRating } from '@tower-magnate/shared';
 import { useEffect, useMemo, useState } from 'preact/hooks';
+import { useSfx } from '../audio/useSfx';
 import { pageTitle } from '../index';
 import { TowerContentStore } from '../model/towerContent';
 import { placeholderTowerContent } from '../render/placeholderTower';
@@ -7,6 +8,7 @@ import type { Stage } from '../render/stage';
 import { isMapToggleKey } from './keys';
 import { StageHost } from './StageHost';
 import './kit';
+import { GameMenu } from './menu/GameMenu';
 import { t } from './strings';
 import { debugStarsFromQuery } from './toolbar/debugStars';
 import { Toolbar } from './toolbar/Toolbar';
@@ -30,6 +32,12 @@ export function App({ onLogout }: AppProps) {
   // Replaced by the tower's rating once the game state reaches the client.
   const stars: StarRating = (import.meta.env.DEV && debugStarsFromQuery(location.search)) || 1;
   const toggleMap = (): void => setMapOpen((open) => !open);
+  const { playTrigger } = useSfx();
+  const onUiClick = (event: MouseEvent): void => {
+    if (event.target instanceof Element && event.target.closest('button') !== null) {
+      playTrigger('ui.click');
+    }
+  };
 
   useEffect(() => {
     document.title = pageTitle();
@@ -48,8 +56,9 @@ export function App({ onLogout }: AppProps) {
   return (
     <>
       <StageHost onStage={setStage} />
-      <div class="ui-layer">
+      <div class="ui-layer" onClick={onUiClick}>
         <div class="status-panel">
+          <GameMenu />
           {t('ui.serverOffline')}
           <button type="button" class="status-button" onClick={toggleMap}>
             Mapa

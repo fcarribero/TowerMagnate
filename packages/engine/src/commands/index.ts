@@ -2,6 +2,7 @@ import type { CommandHandlers } from '../step';
 import { answerEvent } from './answer-event';
 import { buildFloor } from './build-floor';
 import { buildLobby } from './build-lobby';
+import { followPersonCommand, unfollowPersonCommand } from './follow-person';
 import { renameUnit } from './rename-unit';
 
 export const towerCommandHandlers: CommandHandlers = {
@@ -9,4 +10,6 @@ export const towerCommandHandlers: CommandHandlers = {
   buildFloor,
   buildLobby,
   renameUnit,
+  followPerson: followPersonCommand,
+  unfollowPerson: unfollowPersonCommand,
 };

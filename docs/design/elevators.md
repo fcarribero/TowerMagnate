@@ -283,7 +283,7 @@ These numbers are a check for the balance pass, not rules.
 
 A standard car that loads 21 people at level 1 and drops them on 7 floors between 2 and 15, then comes back empty, makes 8 stops of 5 steps and moves 28 floors: about 68 steps, 11 game minutes. That is about 110 people up per game hour per car, and about 880 for a full shaft of 8 cars. Office workers arrive 60% within 08:00 to 09:00 (people.md 6.1), so one full standard shaft carries the morning peak of roughly 1,450 workers, about 240 offices. With `expressUp` in band 2 the car does not stop for up calls on the way, which is close to the case above. In `normal` mode every extra stop costs every rider in the car 5 steps.
 
-Suggested settings for a shaft that serves offices from the lobby: weekday band 2 `expressUp`, weekday band 6 `expressDown`, the rest `normal`, dwell 30 s everywhere except band 1 at 10 s. Notices about congested shafts are TM-17. The balance simulation checks the throughput above and GD retunes the constants in section 14 from its results.
+Suggested settings for a shaft that serves offices from the lobby: weekday band 2 `expressUp`, weekday band 6 `expressDown`, the rest `normal`, dwell 30 s everywhere except band 1 at 10 s. There is no notice about congested shafts (messages.md 10). The balance simulation checks the throughput above and GD retunes the constants in section 14 from its results.
 
 ## 13. Worked examples
 

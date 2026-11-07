@@ -1,4 +1,5 @@
 import { BufferImageSource, Texture } from 'pixi.js';
+import type { SpriteId } from './atlasManifest';
 import { FLOOR_HEIGHT, TILE_WIDTH } from './metrics';
 
 const MAGENTA_RGBA = [0xff, 0x00, 0xff, 0xff] as const;
@@ -77,7 +78,16 @@ export class SpriteRegistry {
     return this.textures.size;
   }
 
-  texture(id: string): Texture {
+  texture(id: SpriteId): Texture {
+    return this.lookup(id);
+  }
+
+  /** Variants are built at runtime, so their ids are only checked when drawn. */
+  variant(subject: string, variant: SpriteVariant): Texture {
+    return this.lookup(spriteVariantId(subject, variant));
+  }
+
+  private lookup(id: string): Texture {
     const texture = this.textures.get(id);
     if (texture !== undefined) {
       return texture;
@@ -87,9 +97,5 @@ export class SpriteRegistry {
       this.reportMissing(id);
     }
     return this.placeholder;
-  }
-
-  variant(subject: string, variant: SpriteVariant): Texture {
-    return this.texture(spriteVariantId(subject, variant));
   }
 }
