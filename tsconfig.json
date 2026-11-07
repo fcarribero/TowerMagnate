@@ -5,6 +5,7 @@
     { "path": "packages/shared" },
     { "path": "apps/server" },
     { "path": "apps/web" },
-    { "path": "tests" }
+    { "path": "tests" },
+    { "path": "scripts" }
   ]
 }
