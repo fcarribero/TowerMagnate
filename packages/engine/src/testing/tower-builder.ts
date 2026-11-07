@@ -6,7 +6,7 @@ import {
   type LobbyHeight,
   type OccupantRef,
   type TowerState,
-  type UnitId,
+  type UnitType,
 } from '@tower-magnate/shared';
 import { addOccupant, cellsWithoutStructure, setStructure } from '../grid';
 import { createTower } from '../state';
@@ -24,7 +24,7 @@ export interface PlannedFloors extends PlannedSpan {
 }
 
 export interface PlannedUnit {
-  type: UnitId;
+  type: UnitType;
   level: Level;
   x: number;
 }
@@ -53,7 +53,7 @@ export interface BuiltTower {
 
 const MAIN_LOBBY_LEVEL: Level = 1;
 
-const SHAFT_UNITS: Readonly<Record<ShaftType, UnitId>> = {
+const SHAFT_UNITS: Readonly<Record<ShaftType, UnitType>> = {
   standard: 'standard-elevator',
   service: 'service-elevator',
   express: 'express-elevator',

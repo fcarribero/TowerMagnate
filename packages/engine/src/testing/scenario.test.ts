@@ -15,7 +15,7 @@ describe('runScenario', () => {
       commandHandlers: {
         buildFloor(context) {
           seenAtStep.push(context.state.step);
-          return { ok: true, cost: 0, refund: 0 };
+          return { ok: true, cost: 0, refund: 0, events: [] };
         },
       },
       systems: [],
