@@ -29,9 +29,9 @@ For each effect the script:
 
 1. Skips it when both `assets/sfx/<id>.ogg` and `assets/sfx/<id>.mp3` exist.
 2. Calls the API only when `raw/<id>.mp3` does not exist, and saves the response there. Commit the raw files: they are what the credits paid for, and every later encode starts from them.
-3. Shapes the sound. One-shots lose their leading silence, are cut to `duration` and get a short fade-out. The API does not accept less than 0.5 s, so shorter effects are requested at 0.5 s and cut. Loops are left untouched so the seam stays clean.
-4. Measures integrated loudness (EBU R128, padded to 3 s so very short clips can be measured), applies a fixed gain to reach the target and caps the gain so the true peak stays under -1 dBTP.
-5. Writes 44.1 kHz ogg (Vorbis q4) and mp3 (128 kb/s). One-shots are mono, loops are stereo.
+3. Shapes the sound. One-shots are downmixed to mono, lose their leading silence, are cut to `duration` and get a short fade-out. The API does not accept less than 0.5 s, so shorter effects are requested at 0.5 s and cut. Loops stay stereo and are not trimmed, so the seam the API made stays clean.
+4. Measures integrated loudness of the shaped sound (EBU R128, padded to 3 s so very short clips can be measured) and applies a fixed gain to reach the target. One-shots then go through a limiter at -3 dBFS, which may take up to 6 dB off the loudest peaks, so the true peak stays under -1 dBTP after encoding. Loops get no limiter; their gain is capped at -1 dBTP instead.
+5. Writes 44.1 kHz ogg (Vorbis q4) and mp3 (128 kb/s).
 
 If an effect fails to encode (for example the API returned near silence), the raw file is kept, the remaining effects are processed and the script exits with code 1.
 

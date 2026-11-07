@@ -119,7 +119,8 @@ export interface IncomeBracket {
   readonly amount: number;
 }
 
-export type UpkeepBasis = 'per-unit' | 'per-car' | 'per-cell';
+/** Lobby upkeep counts columns, not cells: a tall lobby pays its height only at build time. */
+export type UpkeepBasis = 'per-unit' | 'per-car' | 'per-column';
 
 export interface StarDependentAmount {
   readonly minStars: StarRating;

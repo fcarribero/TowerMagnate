@@ -8,6 +8,7 @@ import {
   computeGain,
   encodeArgs,
   ffmpegBinary,
+  levelFilter,
   measureLoudness,
   normalizeAndEncode,
   parseLoudnormReport,
@@ -37,12 +38,12 @@ describe('shapeFilter', () => {
     assert.match(shapeFilter(ding), /atrim=end=1\.2,afade=t=out:st=1\.1:d=0\.1$/);
   });
 
-  it('removes leading silence from one-shots', () => {
-    assert.match(shapeFilter(ding), /^silenceremove=start_periods=1/);
+  it('downmixes one-shots to mono and removes their leading silence', () => {
+    assert.match(shapeFilter(ding), /^aformat=channel_layouts=mono,silenceremove=start_periods=1/);
   });
 
-  it('leaves loops untouched so the seam stays clean', () => {
-    assert.equal(shapeFilter(hum), 'anull');
+  it('only fixes the channel layout of loops so the seam stays clean', () => {
+    assert.equal(shapeFilter(hum), 'aformat=channel_layouts=stereo');
   });
 });
 
@@ -65,20 +66,37 @@ describe('parseLoudnormReport', () => {
 });
 
 describe('computeGain', () => {
+  const loud = { ...ding, loudness: -16 };
+
   it('moves the integrated loudness to the target', () => {
-    assert.equal(computeGain({ integrated: -23.4, truePeak: -10 }, -16), 7.4);
-    assert.equal(computeGain({ integrated: -10, truePeak: -0.5 }, -16), -6);
+    assert.equal(computeGain({ integrated: -23.4, truePeak: -10 }, loud), 7.4);
+    assert.equal(computeGain({ integrated: -10, truePeak: -0.5 }, loud), -6);
   });
 
-  it('stops at the true-peak ceiling', () => {
-    assert.equal(computeGain({ integrated: -30, truePeak: -4 }, -16), 3);
+  it('lets the limiter take up to 6 dB of a one-shot peak', () => {
+    assert.equal(computeGain({ integrated: -20, truePeak: -1 }, loud), 4);
+    assert.equal(computeGain({ integrated: -30, truePeak: -4 }, loud), 9);
+  });
+
+  it('stops loops at the true-peak ceiling', () => {
+    assert.equal(computeGain({ integrated: -30, truePeak: -4 }, { ...hum, loudness: -16 }), 3);
+  });
+});
+
+describe('levelFilter', () => {
+  it('limits one-shots without delaying them', () => {
+    assert.match(levelFilter(ding, 2.5), /^volume=2\.5dB,alimiter=limit=0\.708:.*latency=true$/);
+  });
+
+  it('applies plain gain to loops', () => {
+    assert.equal(levelFilter(hum, -1), 'volume=-1dB');
   });
 });
 
 describe('encodeArgs', () => {
   it('writes mono ogg and mp3 for one-shots', () => {
     const args = encodeArgs('in.mp3', ding, 2.5, { ogg: 'a.ogg', mp3: 'a.mp3' }).join(' ');
-    assert.match(args, /volume=2\.5dB -ar 44100 -ac 1 .* -c:a libvorbis .* a\.ogg/);
+    assert.match(args, /volume=2\.5dB,alimiter=\S+ -ar 44100 -ac 1 .* -c:a libvorbis .* a\.ogg/);
     assert.match(args, /-c:a libmp3lame -b:a 128k -f mp3 a\.mp3$/);
   });
 
@@ -92,7 +110,12 @@ const ffmpeg = ffmpegBinary();
 const hasFfmpeg = spawnSync(ffmpeg, ['-version']).status === 0;
 
 describe.skipIf(!hasFfmpeg)('normalizeAndEncode with ffmpeg', { timeout: 30_000 }, () => {
-  async function makeTone(dir: string, seconds: number, volume: number): Promise<string> {
+  async function makeTone(
+    dir: string,
+    seconds: number,
+    volume: number,
+    channels = 1,
+  ): Promise<string> {
     const file = join(dir, 'tone.mp3');
     const result = spawnSync(ffmpeg, [
       '-y',
@@ -105,6 +128,8 @@ describe.skipIf(!hasFfmpeg)('normalizeAndEncode with ffmpeg', { timeout: 30_000 
       `sine=frequency=880:duration=${seconds}`,
       '-af',
       `volume=${volume}dB`,
+      '-ac',
+      String(channels),
       '-c:a',
       'libmp3lame',
       file,
@@ -124,6 +149,27 @@ describe.skipIf(!hasFfmpeg)('normalizeAndEncode with ffmpeg', { timeout: 30_000 
     assert.ok(result.truePeak <= -0.5, `peak ${result.truePeak}`);
     const mp3 = await measureLoudness(ffmpeg, outputs.mp3);
     assert.ok(Math.abs(mp3.integrated - ding.loudness) < 1, `mp3 at ${mp3.integrated} LUFS`);
+  });
+
+  it('reaches the target when a stereo source is downmixed to mono', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'sfx-audio-'));
+    const input = await makeTone(dir, 1.5, -15, 2);
+    const outputs = { ogg: join(dir, 'ding.ogg'), mp3: join(dir, 'ding.mp3') };
+
+    const { result } = await normalizeAndEncode(ffmpeg, input, ding, outputs);
+
+    assert.ok(Math.abs(result.integrated - ding.loudness) < 1, `ogg at ${result.integrated} LUFS`);
+  });
+
+  it('keeps a peaky one-shot under the ceiling after limiting', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'sfx-audio-'));
+    const input = await makeTone(dir, 1.5, -1);
+    const quiet = { ...ding, loudness: -6 };
+    const outputs = { ogg: join(dir, 'bell.ogg'), mp3: join(dir, 'bell.mp3') };
+
+    const { result } = await normalizeAndEncode(ffmpeg, input, quiet, outputs);
+
+    assert.ok(result.truePeak <= -1, `peak ${result.truePeak}`);
   });
 
   it('measures clips shorter than the loudness window', async () => {
