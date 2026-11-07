@@ -7,11 +7,13 @@ import {
 import { describe, expect, it } from 'vitest';
 import {
   TOOLBAR_CATEGORIES,
+  categoryButtonLabel,
   fixedToolForKey,
   isLocked,
   lobbyHeights,
   priceText,
   sizeText,
+  toolButtonLabel,
   toolsInCategory,
   tooltipLines,
 } from './toolbarModel';
@@ -133,5 +135,20 @@ describe('fixedToolForKey', () => {
 describe('lobbyHeights', () => {
   it('offers 1, 2 and 3 floors', () => {
     expect(lobbyHeights()).toEqual([1, 2, 3]);
+  });
+});
+
+describe('button labels', () => {
+  it('shortens names that do not fit a toolbar button', () => {
+    expect(toolButtonLabel('bulldozer')).toBe('Topa');
+    expect(toolButtonLabel('single-room')).toBe('Hab. simple');
+    expect(categoryButtonLabel('offices-and-housing')).toBe('Of. y viv.');
+    expect(categoryButtonLabel('commerce-and-entertainment')).toBe('Com. y entr.');
+  });
+
+  it('keeps names that already fit', () => {
+    expect(toolButtonLabel('inspect')).toBe('Lupa');
+    expect(toolButtonLabel('office')).toBe('Oficina');
+    expect(categoryButtonLabel('hotel')).toBe('Hotel');
   });
 });
