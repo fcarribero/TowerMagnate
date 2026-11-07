@@ -68,3 +68,15 @@ curl http://localhost:4191/health       # {"status":"ok","version":"0.0.0","data
 curl http://localhost:4192/api/health   # same report, proxied by the web dev server
 pnpm stack down -v                      # remove containers and volumes
 ```
+
+## Database
+
+Migrations are plain SQL files in `apps/server/migrations`, applied in name order. Each file runs in its own transaction and is recorded in `schema_migrations` with a checksum, so an applied file must never be edited. Add a new file instead.
+
+The server applies pending migrations on start unless `NODE_ENV=production` (override with `MIGRATE_ON_START`). To run them by hand:
+
+```bash
+DATABASE_URL=postgres://tower:tower@localhost:4100/tower_magnate pnpm --filter @tower-magnate/server migrate
+```
+
+Server tests start a postgres container through testcontainers. To use a running postgres instead, set `TEST_DATABASE_URL`; each test suite then creates its own scratch database on that server and drops it afterwards. `startTestDatabase({ migrate: true })` in `apps/server/src/testing/database.ts` returns a database with the schema already applied.

@@ -1,7 +1,11 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { mountStage, type RenderStats, type Stage } from '../render/stage';
 
-export function StageHost() {
+interface StageHostProps {
+  onStage?: (stage: Stage | null) => void;
+}
+
+export function StageHost({ onStage }: StageHostProps) {
   const hostRef = useRef<HTMLDivElement>(null);
   const [stats, setStats] = useState<RenderStats | null>(null);
 
@@ -18,14 +22,16 @@ export function StageHost() {
         mounted.destroy();
       } else {
         stage = mounted;
+        onStage?.(mounted);
       }
     });
 
     return () => {
       unmounted = true;
+      onStage?.(null);
       stage?.destroy();
     };
-  }, []);
+  }, [onStage]);
 
   return (
     <>
