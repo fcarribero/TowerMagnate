@@ -12,6 +12,7 @@
     ".": "./src/index.ts"
   },
   "dependencies": {
+    "@fontsource/tiny5": "5.3.0",
     "@tower-magnate/shared": "workspace:*",
     "pixi.js": "^8.22.0",
     "preact": "^10.29.8"

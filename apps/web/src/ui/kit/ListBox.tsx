@@ -13,7 +13,7 @@ export interface ListBoxProps {
   rows?: number;
 }
 
-const ROW_HEIGHT = 14;
+const ROW_HEIGHT_UI_PIXELS = 14;
 
 /** A single-select list. Arrow keys, Home and End move the selection. */
 export function ListBox({ id, label, items, selectedId, onSelect, rows = 6 }: ListBoxProps) {
@@ -52,7 +52,7 @@ export function ListBox({ id, label, items, selectedId, onSelect, rows = 6 }: Li
         tabIndex={0}
         aria-labelledby={`${id}-label`}
         aria-activedescendant={selectedId === null ? undefined : optionId(selectedId)}
-        style={{ maxHeight: `${rows * ROW_HEIGHT}px` }}
+        style={{ maxHeight: `calc(${rows * ROW_HEIGHT_UI_PIXELS} * var(--tm-px))` }}
         onKeyDown={onKeyDown}
       >
         {items.map((item) => {

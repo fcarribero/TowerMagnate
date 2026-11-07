@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'preact/hooks';
 import { t } from '../strings';
+import { PixelArrow } from './PixelArrow';
 
 export interface NumberInputProps {
   id: string;
@@ -96,7 +97,7 @@ export function NumberInput({
             disabled={disabled || value >= max}
             onClick={() => apply(value + step)}
           >
-            ▲
+            <PixelArrow direction="up" />
           </button>
           <button
             type="button"
@@ -106,7 +107,7 @@ export function NumberInput({
             disabled={disabled || value <= min}
             onClick={() => apply(value - step)}
           >
-            ▼
+            <PixelArrow direction="down" />
           </button>
         </div>
       </div>
