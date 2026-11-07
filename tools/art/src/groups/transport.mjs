@@ -1,0 +1,237 @@
+import { PixelCanvas } from '../canvas.mjs';
+import { metrics } from '../metrics.mjs';
+
+const { tileWidth, floorHeight, elevatorCar } = metrics;
+const SHAFT_TILES = { standard: 4, service: 4, express: 6 };
+const WALL_WIDTH = 2;
+const RAIL_WIDTH = 2;
+const BEAM_ROW = floorHeight - metrics.slabHeight;
+const TOP_CAP_HEIGHT = 12;
+const BOTTOM_CAP_HEIGHT = 6;
+
+// Each elevator type has its own ramp for the car frame and its own pattern on
+// the beam that crosses the shaft at every slab.
+const STYLES = {
+  standard: {
+    frame: { light: 'silver', base: 'gray', dark: 'slate' },
+    backWall: 'cloud',
+    beam: ['slate'],
+  },
+  service: {
+    frame: { light: 'concrete-light', base: 'concrete', dark: 'concrete-dark' },
+    backWall: 'concrete-light',
+    beam: ['lamp', 'lamp', 'ink', 'ink'],
+  },
+  express: {
+    frame: { light: 'wood-light', base: 'wood', dark: 'wood-dark' },
+    backWall: 'wood-light',
+    beam: ['cloth-blue', 'cloth-blue', 'cloth-blue', 'silver'],
+  },
+};
+
+function shaftWidth(type) {
+  return SHAFT_TILES[type] * tileWidth;
+}
+
+function cableColumns(width) {
+  return [width / 2 - 3, width / 2 + 2];
+}
+
+function drawShaftWalls(tile) {
+  const right = tile.width - WALL_WIDTH;
+  tile.vline(0, 0, tile.height, 'gray');
+  tile.vline(1, 0, tile.height, 'slate');
+  tile.vline(right, 0, tile.height, 'slate');
+  tile.vline(right + 1, 0, tile.height, 'charcoal');
+}
+
+function drawGuideRails(tile, top, height) {
+  const leftRail = WALL_WIDTH;
+  const rightRail = tile.width - WALL_WIDTH - RAIL_WIDTH;
+  for (const x of [leftRail, rightRail]) {
+    tile.vline(x, top, height, 'gray');
+    tile.vline(x + 1, top, height, 'slate');
+    for (let y = top + 3; y < top + height; y += 8) {
+      tile.hline(x, y, RAIL_WIDTH, 'silver');
+    }
+  }
+}
+
+function drawCables(tile, top, height) {
+  for (const x of cableColumns(tile.width)) {
+    tile.vline(x, top, height, 'gray');
+  }
+}
+
+function drawBeam(tile, type) {
+  const pattern = STYLES[type].beam;
+  for (let x = WALL_WIDTH; x < tile.width - WALL_WIDTH; x++) {
+    tile.set(x, BEAM_ROW, pattern[(x - WALL_WIDTH) % pattern.length]);
+  }
+  tile.hline(WALL_WIDTH, BEAM_ROW + 1, tile.width - 2 * WALL_WIDTH, 'ink');
+}
+
+// One level of an empty shaft. The car is drawn on top of it.
+function shaftBody(type) {
+  const tile = new PixelCanvas(shaftWidth(type), floorHeight);
+  tile.fillRect(0, 0, tile.width, tile.height, 'charcoal');
+  drawShaftWalls(tile);
+  drawGuideRails(tile, 0, tile.height);
+  drawCables(tile, 0, tile.height);
+  drawBeam(tile, type);
+  return tile;
+}
+
+function drawSheave(tile, centreX, top) {
+  tile.drawMap(centreX - 3, top, ['.GGGG.', 'GSWWSG', 'GWSSWG', 'GWSSWG', 'GSWWSG', '.GGGG.'], {
+    G: 'gray',
+    S: 'slate',
+    W: 'silver',
+  });
+}
+
+// The machine room above the top level: a housing with the hoist sheave and motor.
+function shaftTop(type) {
+  const tile = new PixelCanvas(shaftWidth(type), TOP_CAP_HEIGHT);
+  const roomTop = 2;
+  tile.fillRect(0, 0, tile.width, tile.height, 'charcoal');
+  tile.hline(0, 0, tile.width, 'silver');
+  tile.hline(0, 1, tile.width, 'gray');
+  drawShaftWalls(tile);
+  tile.hline(0, 0, tile.width, 'silver');
+  tile.set(tile.width - 1, 0, 'gray');
+
+  const centreX = tile.width / 2;
+  drawSheave(tile, centreX, roomTop + 1);
+  const motorLeft = centreX + 4;
+  tile.fillRect(motorLeft, roomTop + 2, 5, 4, 'gray');
+  tile.hline(motorLeft, roomTop + 2, 5, 'silver');
+  tile.vline(motorLeft + 4, roomTop + 3, 3, 'slate');
+  tile.set(motorLeft + 2, roomTop + 3, 'lamp');
+  tile.hline(WALL_WIDTH, roomTop + 6, tile.width - 2 * WALL_WIDTH, 'slate');
+
+  const cablesTop = roomTop + 7;
+  drawGuideRails(tile, cablesTop, tile.height - cablesTop);
+  drawCables(tile, roomTop + 4, tile.height - roomTop - 4);
+  return tile;
+}
+
+function drawBuffer(tile, left, floorTop) {
+  tile.hline(left, floorTop - 3, 3, 'silver');
+  tile.vline(left + 1, floorTop - 2, 2, 'gray');
+  tile.set(left, floorTop - 1, 'slate');
+  tile.set(left + 2, floorTop - 1, 'slate');
+}
+
+// The pit under the lowest level, with two spring buffers for the car.
+function shaftBottom(type) {
+  const tile = new PixelCanvas(shaftWidth(type), BOTTOM_CAP_HEIGHT);
+  const floorTop = tile.height - 2;
+  tile.fillRect(0, 0, tile.width, tile.height, 'charcoal');
+  drawShaftWalls(tile);
+  drawGuideRails(tile, 0, floorTop);
+  tile.hline(0, floorTop, tile.width, 'concrete');
+  tile.hline(0, floorTop + 1, tile.width, 'concrete-dark');
+  drawBuffer(tile, Math.floor(tile.width / 4), floorTop);
+  drawBuffer(tile, Math.floor((tile.width * 3) / 4) - 3, floorTop);
+  return tile;
+}
+
+const DOOR_TOP = 4;
+const DOOR_BOTTOM = 23;
+
+function doorOpening(car) {
+  return { left: 3, right: car.width - 4, top: DOOR_TOP, bottom: DOOR_BOTTOM };
+}
+
+function drawCarFrame(car, type) {
+  const { light, base, dark } = STYLES[type].frame;
+  car.fillRect(0, 0, car.width, car.height, base);
+  car.hline(1, 1, car.width - 2, light);
+  car.vline(1, 1, car.height - 2, light);
+  car.vline(car.width - 2, 2, car.height - 3, dark);
+  car.hline(1, car.height - 2, car.width - 2, dark);
+  car.set(car.width / 2 - 1, 2, 'lamp');
+  car.set(car.width / 2, 2, 'lamp-glow');
+  if (type === 'service') {
+    for (let x = 2; x < car.width - 2; x++) {
+      car.set(x, car.height - 3, Math.floor(x / 2) % 2 === 0 ? 'lamp' : 'ink');
+    }
+  }
+  if (type === 'express') {
+    car.hline(2, 3, car.width - 4, 'lamp');
+  }
+  car.strokeRect(0, 0, car.width, car.height, 'ink');
+}
+
+function drawDoorLeaf(car, left, width, top, height) {
+  car.fillRect(left, top, width, height, 'silver');
+  car.vline(left, top, height, 'white');
+  car.vline(left + width - 1, top, height, 'gray');
+  car.hline(left + 1, top + height - 4, width - 2, 'gray');
+}
+
+function drawClosedDoors(car, opening) {
+  const { left, right, top, bottom } = opening;
+  const height = bottom - top + 1;
+  const leafWidth = (right - left + 1) / 2;
+  drawDoorLeaf(car, left, leafWidth, top, height);
+  drawDoorLeaf(car, left + leafWidth, leafWidth, top, height);
+  car.vline(left + leafWidth, top, height, 'ink');
+}
+
+function drawInterior(car, type, opening) {
+  const { left, right, top, bottom } = opening;
+  const width = right - left + 1;
+  const { base, dark } = STYLES[type].frame;
+  car.fillRect(left, top, width, bottom - top + 1, STYLES[type].backWall);
+  car.hline(left, top, width, dark);
+  const lampLeft = car.width / 2 - 2;
+  car.hline(lampLeft, top + 1, 4, 'lamp-glow');
+  car.hline(left, top + 11, width, 'silver');
+  car.hline(left, top + 12, width, 'gray');
+  car.hline(left, bottom - 1, width, base);
+  car.hline(left, bottom, width, dark);
+  if (type === 'express') {
+    for (let x = left + 3; x < right - 1; x += 5) {
+      car.vline(x, top + 2, 8, 'wood');
+    }
+  }
+}
+
+function drawOpenDoors(car, type, opening) {
+  drawInterior(car, type, opening);
+  const { left, right, top, bottom } = opening;
+  const height = bottom - top + 1;
+  drawDoorLeaf(car, left, 2, top, height);
+  drawDoorLeaf(car, right - 1, 2, top, height);
+}
+
+// An elevator car, stopped at a floor, with its doors open or closed.
+function car(type, doors) {
+  const { width, height } = elevatorCar[type];
+  const canvas = new PixelCanvas(width, height);
+  drawCarFrame(canvas, type);
+  const opening = doorOpening(canvas);
+  if (doors === 'open') {
+    drawOpenDoors(canvas, type, opening);
+  } else {
+    drawClosedDoors(canvas, opening);
+  }
+  return canvas;
+}
+
+const TYPES = ['standard', 'service', 'express'];
+
+export const transportGroup = {
+  name: 'transport',
+  draw() {
+    return TYPES.flatMap((type) => [
+      { id: `transport/${type}-shaft/body`, canvas: shaftBody(type) },
+      { id: `transport/${type}-shaft/top`, canvas: shaftTop(type) },
+      { id: `transport/${type}-shaft/bottom`, canvas: shaftBottom(type) },
+      { id: `transport/${type}-car/open`, canvas: car(type, 'open') },
+      { id: `transport/${type}-car/closed`, canvas: car(type, 'closed') },
+    ]);
+  },
+};
