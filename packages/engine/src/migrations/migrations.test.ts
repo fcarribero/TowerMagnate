@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { createTower, SCHEMA_VERSION } from '../state';
-import { VERSION_1_SAVE, VERSION_2_SAVE } from './fixtures';
+import { VERSION_1_SAVE, VERSION_2_SAVE, VERSION_3_SAVE } from './fixtures';
 import { migrateState, StateMigrationError } from './index';
 
 describe('migrateState', () => {
@@ -85,5 +85,44 @@ describe('migrateState fixtures', () => {
   it('loads a frozen version 2 save', () => {
     const tower = migrateState(JSON.parse(VERSION_2_SAVE));
     expect(tower.units.u1).toMatchObject({ priceLevel: 'normal', paid: 44_500, placedAtStep: 120 });
+    expect(tower.shafts).toEqual({});
+  });
+
+  it('loads a frozen version 3 save', () => {
+    const tower = migrateState(JSON.parse(VERSION_3_SAVE));
+    expect(tower.shafts.s2).toMatchObject({ type: 'standard', x: 30, bottom: 1, top: 5 });
+    expect(tower.shafts.s2?.cars).toEqual([
+      { homeLevel: 1, level: 3, riders: ['p7'], paid: 80_000, placedAtStep: 200 },
+    ]);
+  });
+});
+
+describe('migrateState shafts', () => {
+  it('refuses a malformed shaft', () => {
+    const tower = createTower(5);
+    const car = { homeLevel: 1, level: 1, riders: [], paid: 80_000, placedAtStep: 0 };
+    const valid = {
+      id: 's3',
+      type: 'standard',
+      x: 0,
+      bottom: 1,
+      top: 4,
+      cars: [car],
+      paid: 200_000,
+      placedAtStep: 0,
+    };
+    const badShafts = [
+      { ...valid, type: 'glass' },
+      { ...valid, bottom: 5 },
+      { ...valid, cars: [] },
+      { ...valid, cars: [{ ...car, riders: [7] }] },
+      { ...valid, id: 's4' },
+    ];
+    expect(
+      migrateState(JSON.parse(JSON.stringify({ ...tower, shafts: { s3: valid } }))).shafts.s3,
+    ).toEqual(valid);
+    for (const shaft of badShafts) {
+      expect(() => migrateState({ ...tower, shafts: { s3: shaft } })).toThrow(StateMigrationError);
+    }
   });
 });
