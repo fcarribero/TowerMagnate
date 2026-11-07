@@ -1,6 +1,6 @@
 // Written by pnpm art:build from tools/art. Do not edit by hand.
 
-export const ATLAS_NAMES = ['sky', 'structure', 'units'] as const;
+export const ATLAS_NAMES = ['sky', 'structure', 'transport', 'ui', 'units'] as const;
 
 export type AtlasName = (typeof ATLAS_NAMES)[number];
 
@@ -34,6 +34,10 @@ export const SPRITE_IDS = [
   'structure/basement-edge-right/night',
   'structure/basement/day',
   'structure/basement/night',
+  'structure/bedrock/day',
+  'structure/bedrock/night',
+  'structure/clay/day',
+  'structure/clay/night',
   'structure/dirt-deep/day',
   'structure/dirt-deep/night',
   'structure/dirt/day',
@@ -68,6 +72,32 @@ export const SPRITE_IDS = [
   'structure/sky-lobby-column/night',
   'structure/sky-lobby/day',
   'structure/sky-lobby/night',
+  'structure/subway-tunnel-edge-left/day',
+  'structure/subway-tunnel-edge-left/night',
+  'structure/subway-tunnel-edge-right/day',
+  'structure/subway-tunnel-edge-right/night',
+  'structure/subway-tunnel-lamp/day',
+  'structure/subway-tunnel-lamp/night',
+  'structure/subway-tunnel/day',
+  'structure/subway-tunnel/night',
+  'transport/express-car/closed',
+  'transport/express-car/open',
+  'transport/express-shaft/body',
+  'transport/express-shaft/bottom',
+  'transport/express-shaft/top',
+  'transport/service-car/closed',
+  'transport/service-car/open',
+  'transport/service-shaft/body',
+  'transport/service-shaft/bottom',
+  'transport/service-shaft/top',
+  'transport/standard-car/closed',
+  'transport/standard-car/open',
+  'transport/standard-shaft/body',
+  'transport/standard-shaft/bottom',
+  'transport/standard-shaft/top',
+  'ui/ruler-background',
+  'ui/ruler-plate',
+  'ui/ruler-plate-hover',
   'units/condo/empty_day',
   'units/condo/empty_night',
   'units/condo/occupied_day',
