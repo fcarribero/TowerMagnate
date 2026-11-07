@@ -52,6 +52,7 @@ export const SPANISH_STRINGS = {
   'ui.lockedStars': 'Se desbloquea con {n} estrellas',
   'ui.lobbyHeight': 'Alto:',
   'ui.lobbyHeightLocked': 'Alto fijado por el lobby existente',
+  'ui.toolbar': 'Herramientas',
   'ui.mainLobbyWarning': 'La altura del lobby principal no se puede cambiar después.',
   'ui.shaftSpan': '{n} pisos',
 

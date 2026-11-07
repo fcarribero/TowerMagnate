@@ -1,3 +1,4 @@
+import type { StarRating } from '@tower-magnate/shared';
 import { useEffect, useMemo, useState } from 'preact/hooks';
 import { pageTitle } from '../index';
 import { TowerContentStore } from '../model/towerContent';
@@ -7,6 +8,9 @@ import { isMapToggleKey } from './keys';
 import { StageHost } from './StageHost';
 import './kit';
 import { t } from './strings';
+import { debugStarsFromQuery } from './toolbar/debugStars';
+import { Toolbar } from './toolbar/Toolbar';
+import { DEFAULT_TOOL, type ToolId } from './toolbar/toolbarModel';
 import { TowerMapWindow } from './TowerMapWindow';
 import { useUiScale } from './uiScale';
 
@@ -19,6 +23,9 @@ export function App() {
   }, []);
   const [stage, setStage] = useState<Stage | null>(null);
   const [mapOpen, setMapOpen] = useState(false);
+  const [tool, setTool] = useState<ToolId>(DEFAULT_TOOL);
+  // Replaced by the tower's rating once the game state reaches the client.
+  const stars: StarRating = (import.meta.env.DEV && debugStarsFromQuery(location.search)) || 1;
   const toggleMap = (): void => setMapOpen((open) => !open);
 
   useEffect(() => {
@@ -49,6 +56,7 @@ export function App() {
             Mapa
           </button>
         </div>
+        <Toolbar stars={stars} currentTool={tool} onSelectTool={setTool} />
         {mapOpen && stage && (
           <TowerMapWindow content={content} stage={stage} onClose={() => setMapOpen(false)} />
         )}
