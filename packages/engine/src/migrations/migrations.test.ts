@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { createTower, SCHEMA_VERSION } from '../state';
+import { VERSION_1_SAVE } from './fixtures';
 import { migrateState, StateMigrationError } from './index';
 
 describe('migrateState', () => {
@@ -46,5 +47,14 @@ describe('migrateState units', () => {
     for (const unit of badUnits) {
       expect(() => migrateState({ ...tower, units: { u3: unit } })).toThrow(StateMigrationError);
     }
+  });
+});
+
+describe('migrateState fixtures', () => {
+  it('loads a frozen version 1 save', () => {
+    const tower = migrateState(JSON.parse(VERSION_1_SAVE));
+    expect(tower.schemaVersion).toBe(SCHEMA_VERSION);
+    expect(tower.step).toBe(8640);
+    expect(tower.units.u1).toEqual({ id: 'u1', type: 'office', x: 10, level: 1, name: 'Sur' });
   });
 });
