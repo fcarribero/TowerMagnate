@@ -1,9 +1,15 @@
 node_modules
-dist
-coverage
 pnpm-lock.yaml
-*.tsbuildinfo
 docs
 
-test-results/
-**/test-results/
+# Build output
+dist
+*.tsbuildinfo
+.vite
+
+# Test output
+coverage
+test-results
+playwright-report
+blob-report
+playwright/.cache
