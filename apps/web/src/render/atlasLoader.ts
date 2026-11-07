@@ -2,7 +2,7 @@ import { Assets, type Spritesheet, type Texture } from 'pixi.js';
 import { SpriteRegistry, createPlaceholderTexture } from './spriteRegistry';
 
 /** Atlases written by `pnpm art:build` to `assets/atlases`, which Vite serves from the site root. */
-export const ATLAS_NAMES = ['sky', 'structure', 'transport', 'ui'] as const;
+export const ATLAS_NAMES = ['sky', 'structure', 'transport', 'ui', 'units'] as const;
 
 export type AtlasName = (typeof ATLAS_NAMES)[number];
 

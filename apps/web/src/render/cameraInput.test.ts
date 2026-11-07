@@ -7,6 +7,7 @@ describe('zoomKeyDirection', () => {
     expect(zoomKeyDirection('+')).toBe(1);
     expect(zoomKeyDirection('=')).toBe(1);
     expect(zoomKeyDirection('-')).toBe(-1);
+    expect(zoomKeyDirection('_')).toBe(-1);
     expect(zoomKeyDirection('a')).toBeNull();
   });
 });
@@ -46,6 +47,29 @@ describe('attachCameraInput zoom keys', () => {
       press(input, { key });
     }
     expect(update).not.toHaveBeenCalled();
+  });
+
+  it('ignores zoom keys in textareas, selects and contenteditable elements', () => {
+    const { update } = setup();
+    const editor = document.createElement('div');
+    editor.setAttribute('contenteditable', 'true');
+    const fields = [document.createElement('textarea'), document.createElement('select'), editor];
+    for (const field of fields) {
+      document.body.append(field);
+      for (const key of ['+', '-', '=', '_']) {
+        press(field, { key });
+      }
+    }
+    expect(update).not.toHaveBeenCalled();
+  });
+
+  it('still zooms from the canvas after typing in a text field', () => {
+    const { canvas, update } = setup();
+    const input = document.createElement('input');
+    document.body.append(input);
+    press(input, { key: '-' });
+    press(canvas, { key: '+' });
+    expect(update).toHaveBeenCalledTimes(1);
   });
 
   it('ignores zoom keys held with Ctrl, Meta or Alt', () => {

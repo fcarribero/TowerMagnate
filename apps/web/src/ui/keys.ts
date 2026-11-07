@@ -8,11 +8,16 @@ export interface KeyPress {
   target: EventTarget | null;
 }
 
-/** M opens or closes the tower map, unless the player is typing in a field. */
-export function isMapToggleKey(event: KeyPress): boolean {
-  if (event.key.toLowerCase() !== 'm' || event.ctrlKey || event.altKey || event.metaKey) {
+/** A key pressed without modifiers while the player is not typing in a field. */
+export function isPlainShortcut(event: KeyPress): boolean {
+  if (event.ctrlKey || event.altKey || event.metaKey) {
     return false;
   }
   const tag = (event.target as { tagName?: string } | null)?.tagName;
   return tag === undefined || !TEXT_FIELD_TAGS.has(tag);
+}
+
+/** M opens or closes the tower map. */
+export function isMapToggleKey(event: KeyPress): boolean {
+  return event.key.toLowerCase() === 'm' && isPlainShortcut(event);
 }

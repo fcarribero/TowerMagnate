@@ -9,6 +9,8 @@ import type {
 } from '@tower-magnate/shared';
 import { STEPS_PER_DAY } from './clock';
 import { towerCommandHandlers } from './commands';
+import { ledgerWeekRollHook } from './money';
+import { createScheduler } from './scheduler';
 
 export interface StepResult {
   state: TowerState;
@@ -128,7 +130,10 @@ export function createEngine(rules: EngineRules): Engine {
   return { step, runDays };
 }
 
-const towerEngine = createEngine({ commandHandlers: towerCommandHandlers, systems: [] });
+const towerEngine = createEngine({
+  commandHandlers: towerCommandHandlers,
+  systems: [createScheduler([ledgerWeekRollHook])],
+});
 
 /**
  * Applies the queued commands in order, then runs `steps` simulation steps.
