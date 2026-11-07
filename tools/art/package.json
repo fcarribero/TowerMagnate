@@ -10,6 +10,11 @@
     "./palette": "./src/palette.mjs"
   },
   "scripts": {
+    "build": "node scripts/build.mjs && node scripts/swatch.mjs && node scripts/preview.mjs",
+    "preview": "node scripts/preview.mjs",
     "swatch": "node scripts/swatch.mjs"
+  },
+  "devDependencies": {
+    "pixi.js": "^8.22.0"
   }
 }

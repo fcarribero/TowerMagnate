@@ -1,5 +1,9 @@
 export const GAME_TITLE = 'Tower Magnate';
 export const PROTOCOL_VERSION = 1;
 export * from './engine';
+export * from './errors';
+export * from './levels';
+export * from './names';
 export * from './units';
 export * from './balance';
+export * from './levels';
