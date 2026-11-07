@@ -1,7 +1,9 @@
 import { serverMessage } from '@tower-magnate/shared';
 import { describe, expect, it, vi } from 'vitest';
 import { delta, office, snapshot } from '../testing/protocolFixtures';
+import { recordSession } from '../testing/recordedSession';
 import { ClientStore, shallowEqual } from './clientStore';
+import { stateFromSnapshot } from './gameState';
 
 function setup() {
   const requestResync = vi.fn();
@@ -104,5 +106,19 @@ describe('ClientStore arrival times', () => {
     clock = 720;
     store.applyDelta(delta({ step: 101 }));
     expect(store.current?.latestArrivedAtMs).toBe(720);
+  });
+});
+
+describe('ClientStore with a recorded session', () => {
+  it('ends on the same state as a snapshot taken after 10 game minutes of deltas', () => {
+    const session = recordSession(10);
+    const { store, requestResync } = setup();
+    store.applySnapshot(session.first);
+    for (const recorded of session.deltas) {
+      store.applyDelta(recorded);
+    }
+    expect(requestResync).not.toHaveBeenCalled();
+    expect(session.deltas.length).toBeLessThan(60);
+    expect(store.current?.latest).toEqual(stateFromSnapshot(session.last));
   });
 });
