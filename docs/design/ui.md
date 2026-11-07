@@ -153,6 +153,7 @@ Examples of the date block: "Lunes 1 de enero, año 1  00:00", "Miércoles 11 de
 +--------------------+
 ```
 
+- Until the icons exist, buttons show their name as text. A name that does not fit the button without breaking a word uses its short form from 13.3 (`category.short.*`, `tool.short.*`). The tooltip and the accessible name keep the full name.
 - One category is open at a time. Clicking a category opens it and does not change the current tool.
 - Tool buttons show the 16 x 16 icon at 2x. The current tool's button is drawn pressed.
 - The tool info box shows the current tool: name, size, price, and for the lobby the height choice (5.4). Hovering any tool button shows that tool in the box until the cursor leaves.
@@ -666,6 +667,24 @@ The `unit.*` texts must equal the `name` field of the shared catalog.
 | `ui.lobbyHeightLocked` | Alto fijado por el lobby existente |
 | `ui.mainLobbyWarning` | La altura del lobby principal no se puede cambiar después. |
 | `ui.shaftSpan` | {n} pisos |
+
+Short button labels, used only on toolbar buttons:
+
+| Key | Text |
+|---|---|
+| `category.short.structure` | Estruct. |
+| `category.short.transport` | Transp. |
+| `category.short.offices-and-housing` | Of. y viv. |
+| `category.short.commerce-and-entertainment` | Com. y entr. |
+| `tool.short.bulldozer` | Topa |
+| `tool.short.car` | Cab. |
+| `tool.short.condo` | Depto. |
+| `tool.short.single-room` | Hab. simple |
+| `tool.short.double-room` | Hab. doble |
+| `tool.short.restaurant` | Restó |
+| `tool.short.retail-shop` | Local |
+| `tool.short.security` | Segur. |
+| `tool.short.parking-ramp` | Rampa |
 
 ### 13.4 Status bar, calendar and menus
 

@@ -1,6 +1,7 @@
 import { STARTING_MONEY, type TowerState } from '@tower-magnate/shared';
 import { createGrid } from './grid';
 import { createLedger } from './money';
+import { clonePersonPool, createPersonPool } from './people';
 import { createRng } from './rng';
 
 export const SCHEMA_VERSION = 2;
@@ -17,6 +18,13 @@ export function createTower(seed: number): TowerState {
     money: STARTING_MONEY,
     units: {},
     grid: createGrid(),
+    people: createPersonPool(),
     ledger: createLedger(),
   };
+}
+
+/** A deep copy of the tower that a step or command can change freely. */
+export function cloneState(state: TowerState): TowerState {
+  const { people, ...rest } = state;
+  return { ...structuredClone(rest), people: clonePersonPool(people) };
 }
