@@ -99,5 +99,27 @@ describe('tower store and runner against postgres', () => {
       const saved = await snapshots.loadLatest(towerId);
       expect(saved?.step).toBeGreaterThan(0);
     });
+
+    it('saves a tower that is still running when the server shuts down', async () => {
+      const shuttingDownApp = buildApp({
+        version: 'test',
+        databaseUrl: database.url,
+        runnerTickIntervalMs: 20,
+      });
+      const url = (await shuttingDownApp.listen({ host: '127.0.0.1', port: 0 })).replace(
+        'http',
+        'ws',
+      );
+      const socket = new WebSocket(`${url}/ws/towers/${towerId}?user=1`);
+      await new Promise((resolve) => socket.once('open', resolve));
+      await waitFor(() => (shuttingDownApp.towerRunner.stateOf(towerId)?.step ?? 0) > 0);
+      const stepBeforeClose = shuttingDownApp.towerRunner.stateOf(towerId)?.step ?? 0;
+
+      await shuttingDownApp.close();
+
+      const saved = await snapshots.loadLatest(towerId);
+      expect(saved?.step).toBeGreaterThanOrEqual(stepBeforeClose);
+      expect(shuttingDownApp.towerRunner.isRunning(towerId)).toBe(false);
+    });
   });
 });
