@@ -120,7 +120,7 @@ export const UNIT_CATALOG: Readonly<Record<UnitType, UnitDefinition>> = {
     cost: perUnit(40_000),
     capacity: { role: 'office-workers', people: 6 },
     unlockStars: 1,
-    placement: { zone: 'any' },
+    placement: { zone: 'above-ground' },
     limitGroup: null,
   },
   condo: {
@@ -132,7 +132,7 @@ export const UNIT_CATALOG: Readonly<Record<UnitType, UnitDefinition>> = {
     cost: perUnit(80_000),
     capacity: { role: 'residents', people: 3 },
     unlockStars: 1,
-    placement: { zone: 'any' },
+    placement: { zone: 'above-ground' },
     limitGroup: null,
   },
   'fast-food': {
@@ -156,7 +156,7 @@ export const UNIT_CATALOG: Readonly<Record<UnitType, UnitDefinition>> = {
     cost: perUnit(20_000),
     capacity: { role: 'hotel-guests', people: 1 },
     unlockStars: 2,
-    placement: { zone: 'any' },
+    placement: { zone: 'above-ground' },
     limitGroup: null,
   },
   'double-room': {
@@ -168,7 +168,7 @@ export const UNIT_CATALOG: Readonly<Record<UnitType, UnitDefinition>> = {
     cost: perUnit(50_000),
     capacity: { role: 'hotel-guests', people: 2 },
     unlockStars: 2,
-    placement: { zone: 'any' },
+    placement: { zone: 'above-ground' },
     limitGroup: null,
   },
   suite: {
@@ -180,7 +180,7 @@ export const UNIT_CATALOG: Readonly<Record<UnitType, UnitDefinition>> = {
     cost: perUnit(100_000),
     capacity: { role: 'hotel-guests', people: 2 },
     unlockStars: 2,
-    placement: { zone: 'any' },
+    placement: { zone: 'above-ground' },
     limitGroup: null,
   },
   housekeeping: {

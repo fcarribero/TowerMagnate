@@ -3,7 +3,7 @@ import { createGrid } from './grid';
 import { createLedger } from './money';
 import { createRng } from './rng';
 
-export const SCHEMA_VERSION = 1;
+export const SCHEMA_VERSION = 2;
 
 export function createTower(seed: number): TowerState {
   if (!Number.isInteger(seed)) {
