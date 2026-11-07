@@ -161,14 +161,20 @@ describe('the committed manifest', () => {
     assert.equal(actual.replace(/\r\n/g, '\n'), expected, 'run pnpm manifest in tools/sfx');
   });
 
-  const audioGenerated = async () =>
-    (await readdir(sfxDir)).some((file) => file.endsWith('.ogg') || file.endsWith('.mp3'));
-
-  it('has every listed file on disk once the effects are generated', async (context) => {
-    if (!(await audioGenerated())) {
-      context.skip();
-    }
+  it('has every listed file on disk', async () => {
     const manifest = validateManifest(await committedManifest());
     assert.deepEqual(await missingFiles(manifest, sfxDir), []);
+  });
+
+  it('lists every audio file in the folder', async () => {
+    const manifest = validateManifest(await committedManifest());
+    const listed = new Set(manifest.effects.flatMap((entry) => [entry.files.ogg, entry.files.mp3]));
+    const audioFiles = (await readdir(sfxDir)).filter(
+      (file) => file.endsWith('.ogg') || file.endsWith('.mp3'),
+    );
+    assert.deepEqual(
+      audioFiles.filter((file) => !listed.has(file)),
+      [],
+    );
   });
 });
