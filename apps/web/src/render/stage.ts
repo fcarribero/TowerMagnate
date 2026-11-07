@@ -1,5 +1,5 @@
 import { Application, Container, TextureSource } from 'pixi.js';
-import { createCamera, resizeCamera, visibleLevels } from './camera';
+import { centerCamera, createCamera, resizeCamera, visibleLevels, type Camera } from './camera';
 import { attachCameraInput, type CameraChange } from './cameraInput';
 import { canvasSizeFromCssPixels, canvasSizeFromObservedBox, type CanvasSize } from './canvasSize';
 import { CulledRows } from './culledRows';
@@ -21,7 +21,13 @@ export interface StageOptions {
   onStats?: (stats: RenderStats) => void;
 }
 
+export type CameraListener = (camera: Camera) => void;
+
 export interface Stage {
+  camera(): Camera;
+  /** Puts a world point (zoom 1 pixels) at the centre of the view. */
+  centerOn(worldX: number, worldY: number): void;
+  onCameraChange(listener: CameraListener): () => void;
   destroy(): void;
 }
 
@@ -52,11 +58,15 @@ export async function mountStage(host: HTMLElement, options: StageOptions = {}):
 
   const firstSize = measureHost(host);
   let camera = createCamera(firstSize.deviceWidth, firstSize.deviceHeight, DEFAULT_ZOOM);
+  const cameraListeners = new Set<CameraListener>();
 
   const showCamera = (): void => {
     world.scale.set(camera.zoom);
     world.position.set(-camera.left, -camera.top);
     floors.showOnly(visibleLevels(camera));
+    for (const listener of cameraListeners) {
+      listener(camera);
+    }
   };
 
   const applySize = (size: CanvasSize): void => {
@@ -86,7 +96,17 @@ export async function mountStage(host: HTMLElement, options: StageOptions = {}):
   }, STATS_INTERVAL_MS);
 
   return {
+    camera: () => camera,
+    centerOn(worldX, worldY) {
+      camera = centerCamera(camera, worldX, worldY);
+      showCamera();
+    },
+    onCameraChange(listener) {
+      cameraListeners.add(listener);
+      return () => cameraListeners.delete(listener);
+    },
     destroy() {
+      cameraListeners.clear();
       window.clearInterval(statsTimer);
       detachInput();
       observer.disconnect();

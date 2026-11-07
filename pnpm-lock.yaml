@@ -93,6 +93,12 @@ importers:
 
   tools/art: {}
 
+  tools/sfx:
+    devDependencies:
+      tsx:
+        specifier: ^4.23.15
+        version: 4.23.15
+
 packages:
 
   '@babel/code-frame@7.29.7':
