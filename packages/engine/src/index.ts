@@ -34,6 +34,8 @@ export type { HookOccurrence, HookSchedule, ScheduledHook, TimeOfDay } from './s
 export { createTower, SCHEMA_VERSION } from './state';
 export { createEngine, runDays, step } from './step';
 export type {
+  CommandContext,
+  CommandEvent,
   CommandHandler,
   CommandHandlers,
   CommandOutcome,
