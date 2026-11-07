@@ -1,7 +1,10 @@
+import { serverMessage, type ServerErrorCode, type ServerMessage } from '@tower-magnate/shared';
+
 export interface GatewaySocket {
   send(data: string): void;
   ping(): void;
   terminate(): void;
+  close(code?: number, reason?: string): void;
   on(event: 'message', listener: (data: unknown) => void): unknown;
   on(event: 'pong' | 'close', listener: () => void): unknown;
 }
@@ -11,21 +14,17 @@ export interface SocketIdentity {
   towerId: string;
 }
 
-export interface ErrorFrame {
-  type: 'error';
-  code: 'invalid-message' | 'unknown-message-type' | 'handler-failed' | 'rate-limited';
-  message: string;
+export const CLOSE_CODES = {
+  noHello: 4400,
+  notAuthenticated: 4401,
+  protocolMismatch: 4409,
+  rateLimited: 4429,
+} as const;
+
+export function sendMessage(socket: GatewaySocket, message: ServerMessage): void {
+  socket.send(JSON.stringify(message));
 }
 
-export function sendFrame(socket: GatewaySocket, frame: object): void {
-  socket.send(JSON.stringify(frame));
-}
-
-export function sendErrorFrame(
-  socket: GatewaySocket,
-  code: ErrorFrame['code'],
-  message: string,
-): void {
-  const frame: ErrorFrame = { type: 'error', code, message };
-  sendFrame(socket, frame);
+export function sendError(socket: GatewaySocket, code: ServerErrorCode, message: string): void {
+  sendMessage(socket, serverMessage('error', { code, message }));
 }
