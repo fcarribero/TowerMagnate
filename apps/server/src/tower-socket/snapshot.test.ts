@@ -8,19 +8,23 @@ import {
   setStructure,
   STEPS_PER_DAY,
 } from '@tower-magnate/engine';
-import { SnapshotSchema, type TowerState } from '@tower-magnate/shared';
+import { SnapshotSchema, type TowerState, type Unit } from '@tower-magnate/shared';
 import { describe, expect, it } from 'vitest';
 import { buildSnapshot } from './snapshot';
 
 const STEPS_PER_WEEK = 7 * STEPS_PER_DAY;
 const LOBBY_VIEW = { levelFrom: 1, levelTo: 3, xFrom: 0, xTo: 50 };
 
+function office(id: string, x: number, name: string | null): Unit {
+  return { id, type: 'office', x, level: 2, name, priceLevel: 'normal', paid: 0, placedAtStep: 0 };
+}
+
 function towerWithPeople(): TowerState {
   const state = createTower(7);
   setStructure(state.grid, 1, 0, 9, 'lobby');
   setStructure(state.grid, 2, 0, 19, 'floor');
-  state.units.u5 = { id: 'u5', type: 'office', x: 0, level: 2, name: 'Oficina' };
-  state.units.u6 = { id: 'u6', type: 'office', x: 9, level: 2, name: null };
+  state.units.u5 = office('u5', 0, 'Oficina');
+  state.units.u6 = office('u6', 9, null);
   addPerson(state, { kind: 'officeWorker', homeUnit: 5, level: 2, column: 3 });
   addPerson(state, { kind: 'officeWorker', homeUnit: 5, level: 2, column: 80 });
   addPerson(state, { kind: 'maid', homeUnit: 0, level: 30, column: 4 });

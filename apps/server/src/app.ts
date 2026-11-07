@@ -7,16 +7,20 @@ import { checkHealth } from './health';
 import { createTowerStore, followConnections, TowerRunner } from './runner';
 import { createSnapshotRepository } from './snapshots';
 import { sessionIdentityResolver, towerSocketHandlers, Viewports } from './tower-socket';
+import { registerWebStatics } from './webStatics';
 
 export interface AppOptions {
   version: string;
   databaseUrl: string;
   secureCookies?: boolean;
   logger?: FastifyServerOptions['logger'];
+  /** Folder with the built web client. Without it the server only answers the API. */
+  webDir?: string;
   resolveSocketIdentity?: IdentityResolver;
   heartbeatIntervalMs?: number;
   helloTimeoutMs?: number;
   runnerTickIntervalMs?: number;
+  snapshotIntervalMs?: number;
 }
 
 declare module 'fastify' {
@@ -46,6 +50,7 @@ export function buildApp(options: AppOptions): FastifyInstance {
   const runner = new TowerRunner({
     store: createTowerStore(pool, createSnapshotRepository(pool)),
     onTickError: (towerId, error) => app.log.error({ err: error, towerId }, 'Tower tick failed'),
+    onSaveError: (towerId, error) => app.log.error({ err: error, towerId }, 'Tower save failed'),
   });
   const gateway = registerGateway(app, {
     resolveIdentity: options.resolveSocketIdentity ?? sessionIdentityResolver(pool),
@@ -56,7 +61,16 @@ export function buildApp(options: AppOptions): FastifyInstance {
   app.decorate('towerRunner', runner);
   followConnections(gateway.registry, runner, app.log);
   const stopRunner = runner.start(options.runnerTickIntervalMs);
-  app.addHook('onClose', async () => stopRunner());
+  const stopAutosave = runner.startAutosave(options.snapshotIntervalMs);
+  app.addHook('preClose', async () => {
+    stopAutosave();
+    stopRunner();
+    await runner.shutdown();
+  });
+
+  if (options.webDir !== undefined) {
+    registerWebStatics(app, options.webDir);
+  }
 
   return app;
 }

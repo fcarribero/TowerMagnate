@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { FakeSocket } from '../testing/fake-socket';
 import { Gateway } from './gateway';
 import { MAX_MESSAGE_BYTES, type MessageHandlers } from './message-router';
+import { MAX_MESSAGES_PER_SECOND } from './rate-limiter';
 import { CLOSE_CODES, type SocketIdentity } from './socket';
 
 const ALICE_TOWER: SocketIdentity = { userId: 'alice', towerId: 'tower-1' };
@@ -212,6 +213,67 @@ describe('hello timeout', () => {
     await vi.advanceTimersByTimeAsync(10_000);
 
     expect(socket.closeCode).toBeUndefined();
+  });
+});
+
+describe('rate limit', () => {
+  function gatewayAt(clock: { now: number }, warn = vi.fn()) {
+    return new Gateway({ hello: () => {} }, { now: () => clock.now, logger: { warn } });
+  }
+
+  function sendHellos(socket: FakeSocket, count: number): void {
+    for (let index = 0; index < count; index += 1) {
+      socket.receive(HELLO);
+    }
+  }
+
+  it('rejects the 31st message in one second, logs it and keeps the socket open', async () => {
+    const clock = { now: 0 };
+    const warn = vi.fn();
+    const gateway = gatewayAt(clock, warn);
+    const socket = new FakeSocket();
+    gateway.attach(socket, ALICE_TOWER);
+
+    sendHellos(socket, MAX_MESSAGES_PER_SECOND);
+    await flush();
+    expect(socket.sent).toEqual([]);
+
+    sendHellos(socket, 1);
+    await flush();
+
+    expect(socket.sent).toEqual([errorFrame('RATE_LIMITED')]);
+    expect(warn).toHaveBeenCalledWith(ALICE_TOWER, expect.stringContaining('rate limit'));
+    expect(socket.terminated).toBe(false);
+  });
+
+  it('accepts messages again in the next second', async () => {
+    const clock = { now: 0 };
+    const gateway = gatewayAt(clock);
+    const socket = new FakeSocket();
+    gateway.attach(socket, ALICE_TOWER);
+    sendHellos(socket, MAX_MESSAGES_PER_SECOND);
+
+    clock.now = 1000;
+    sendHellos(socket, MAX_MESSAGES_PER_SECOND);
+    await flush();
+
+    expect(socket.sent).toEqual([]);
+  });
+
+  it('counts each connection separately', async () => {
+    const clock = { now: 0 };
+    const gateway = gatewayAt(clock);
+    const noisy = new FakeSocket();
+    const quiet = new FakeSocket();
+    gateway.attach(noisy, ALICE_TOWER);
+    gateway.attach(quiet, ALICE_TOWER);
+
+    sendHellos(noisy, 40);
+    sendHellos(quiet, MAX_MESSAGES_PER_SECOND);
+    await flush();
+
+    expect(noisy.sent).toHaveLength(10);
+    expect(quiet.sent).toEqual([]);
   });
 });
 

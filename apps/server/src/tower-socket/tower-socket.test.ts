@@ -2,11 +2,16 @@ import { clientMessage, ServerMessageSchema, SnapshotSchema } from '@tower-magna
 import type { FastifyInstance } from 'fastify';
 import pg from 'pg';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
-import { CLOSE_CODES } from '../gateway';
+import { CLOSE_CODES, MAX_CLIENT_MESSAGE_BYTES } from '../gateway';
 import { buildApp } from '../app';
 import { startTestDatabase, type TestDatabase } from '../testing/database';
 import { TestSocketClient } from '../testing/socket-client';
 import { createPlayer, type TestPlayer } from '../testing/tower-rows';
+
+function messageOfBytes(bytes: number): string {
+  const envelope = '{"t":"nope","padding":""}';
+  return envelope.replace('""', `"${'x'.repeat(bytes - envelope.length)}"`);
+}
 
 async function waitFor(condition: () => boolean): Promise<void> {
   for (let attempt = 0; attempt < 300 && !condition(); attempt += 1) {
@@ -152,5 +157,30 @@ describe('tower socket against postgres', () => {
     await new Promise((resolve) => setTimeout(resolve, 100));
 
     expect(app.towerRunner.isRunning(player.towerId)).toBe(false);
+  });
+
+  it('answers a message of exactly 64 KiB with an error and stays open', async () => {
+    const client = await connect(player.cookie);
+    const message = messageOfBytes(MAX_CLIENT_MESSAGE_BYTES);
+    expect(Buffer.byteLength(message)).toBe(65_536);
+
+    client.sendRaw(message);
+    const error = await client.next('error');
+
+    expect(error.p.code).toBe('INVALID_COMMAND');
+    expect(client.closeCode).toBeUndefined();
+  });
+
+  it('closes with 1009 on a message one byte over 64 KiB and leaves other sockets open', async () => {
+    const oversized = await connect(player.cookie);
+    const other = await connect(player.cookie);
+    other.hello();
+    await other.next('snapshot');
+
+    oversized.sendRaw(messageOfBytes(MAX_CLIENT_MESSAGE_BYTES + 1));
+
+    expect(await oversized.waitForClose()).toBe(1009);
+    other.sendRaw(JSON.stringify(clientMessage('ping', { clientTime: 7 })));
+    expect((await other.next('pong')).p.clientTime).toBe(7);
   });
 });

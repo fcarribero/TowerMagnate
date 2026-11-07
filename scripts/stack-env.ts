@@ -1,4 +1,5 @@
 export const DEFAULT_PORT_BASE = 4100;
+export const DEFAULT_PROFILE = 'dev';
 
 export interface StackPorts {
   POSTGRES_PORT: string;
@@ -24,4 +25,8 @@ function readPortBase(value: string | undefined): number {
     throw new Error(`PORT_BASE must be an integer between 1 and 65533, got "${value}"`);
   }
   return base;
+}
+
+export function readStackProfiles(env: NodeJS.ProcessEnv): string {
+  return env.COMPOSE_PROFILES || DEFAULT_PROFILE;
 }
