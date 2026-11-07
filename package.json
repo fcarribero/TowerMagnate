@@ -8,10 +8,12 @@
     "node": ">=22"
   },
   "scripts": {
+    "dev": "pnpm --filter @tower-magnate/web dev",
+    "build": "pnpm --filter @tower-magnate/web build",
     "lint": "eslint . && prettier --check .",
     "format": "prettier --write .",
-    "typecheck": "tsc -b",
-    "test": "vitest run",
+    "typecheck": "pnpm art:build && tsc -b",
+    "test": "pnpm art:build && vitest run",
     "test:watch": "vitest",
     "bench:snapshots": "pnpm --filter @tower-magnate/server bench:snapshots",
     "art:build": "pnpm --filter @tower-magnate/art build",
