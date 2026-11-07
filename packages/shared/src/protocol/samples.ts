@@ -123,7 +123,7 @@ export const sampleServerMessages: ServerMessage[] = [
         },
         { kind: 'disaster', id: 'e3', disaster: 'fire', cells: [{ level: 12, x0: 0, x1: 30 }] },
       ],
-      notices: [{ id: 'n1', step: 60400, key: 'notice.parkingOffice', params: {} }],
+      notices: [{ id: 'n1', step: 60400, key: 'news.parkingOffice', params: {} }],
       overlays: {
         evaluation: { u12: 'good', u13: null },
         price: { u12: 'normal' },

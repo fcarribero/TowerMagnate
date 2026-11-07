@@ -942,7 +942,7 @@ A spec that adds an error code adds its row here in the same PR.
 
 ### 13.9 News and notices
 
-Line format `{weekday abbr} {HH:MM}  {text}`. "Alert" marks the red kind of 8.1. TM-17 completes this table.
+Line format `{weekday abbr} {HH:MM}  {text}`. "Alert" marks the red kind of 8.1. The full catalog, with triggers, placeholders and rate limits, is `docs/design/messages.md`; this table keeps the first keys and new keys go there.
 
 | Key | Text | Alert |
 |---|---|---|
@@ -995,8 +995,8 @@ All texts of section 9 are keyed `dialog.{id}.title`, `dialog.{id}.body` and `di
 
 | Key | Text |
 |---|---|
-| `dialog.deadlineToday` | Respondé antes de las {HH:MM} |
-| `dialog.deadlineOtherDay` | Respondé antes del {weekday} {HH:MM} |
+| `dialog.deadlineToday` | Respondé antes de las {time} |
+| `dialog.deadlineOtherDay` | Respondé antes del {weekday} {time} |
 | `dialog.bomb.pay` | Pagar {ransom} |
 | `dialog.bomb.refuse` | No pagar |
 | `dialog.fire.helicopter` | Llamar al helicóptero ($500.000) |
