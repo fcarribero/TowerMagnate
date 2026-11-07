@@ -9,6 +9,7 @@
   },
   "scripts": {
     "generate": "tsx src/cli.ts",
+    "manifest": "tsx src/manifestCli.ts",
     "test": "vitest run",
     "typecheck": "tsc -b"
   },
