@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { TOWER_LAYOUT, UNIT_CATALOG } from '../balance';
-import { PRICE_LEVELS, UNIT_IDS } from '../units';
+import { MAX_NAME_LENGTH } from '../names';
+import { PRICE_LEVELS, SHAFT_TYPES, UNIT_TYPES } from '../units';
 
 function cathedralFloors(): number {
   const height = UNIT_CATALOG.cathedral.height;
@@ -12,7 +13,6 @@ function cathedralFloors(): number {
 
 export const LOWEST_PROTOCOL_LEVEL = -TOWER_LAYOUT.subwayTunnelBasement;
 export const HIGHEST_PROTOCOL_LEVEL = TOWER_LAYOUT.floorsAboveGround + cathedralFloors();
-export const MAX_NAME_LENGTH = 24;
 
 export const LevelSchema = z
   .int()
@@ -30,7 +30,7 @@ export const MoneySchema = z.int();
 export const StarRatingSchema = z.literal([1, 2, 3, 4, 5, 6]);
 export const LobbyHeightSchema = z.literal([1, 2, 3]);
 export const PriceLevelSchema = z.enum(PRICE_LEVELS);
-export const UnitTypeSchema = z.enum(UNIT_IDS);
+export const UnitTypeSchema = z.enum(UNIT_TYPES);
 
 /** Empty after trimming means "remove the custom name". */
 export const NameSchema = z.string().trim().max(MAX_NAME_LENGTH);
@@ -45,7 +45,7 @@ export const ShaftEntityIdSchema = entityId('s');
 export const PersonEntityIdSchema = entityId('p');
 export const EventIdSchema = entityId('e');
 
-export const ShaftTypeSchema = z.enum(['standard', 'service', 'express']);
+export const ShaftTypeSchema = z.enum(SHAFT_TYPES);
 export const TransportTypeSchema = z.enum(['stairs', 'escalator']);
 export const EvaluationSchema = z.enum(['good', 'fair', 'poor']);
 export const HotelRoomStateSchema = z.enum(['clean', 'occupied', 'dirty', 'infested']);
@@ -86,12 +86,10 @@ export const CellRangeSchema = z.object({
   x1: ColumnSchema,
 });
 
-export type UnitType = z.infer<typeof UnitTypeSchema>;
 export type UnitEntityId = z.infer<typeof UnitEntityIdSchema>;
 export type TransportEntityId = z.infer<typeof TransportEntityIdSchema>;
 export type ShaftEntityId = z.infer<typeof ShaftEntityIdSchema>;
 export type PersonEntityId = z.infer<typeof PersonEntityIdSchema>;
-export type ShaftType = z.infer<typeof ShaftTypeSchema>;
 export type TransportType = z.infer<typeof TransportTypeSchema>;
 export type Evaluation = z.infer<typeof EvaluationSchema>;
 export type HotelRoomState = z.infer<typeof HotelRoomStateSchema>;

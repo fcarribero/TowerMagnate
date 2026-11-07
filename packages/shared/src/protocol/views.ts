@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { TOWER_LAYOUT } from '../balance';
+import { MAX_NAME_LENGTH } from '../names';
 import { ElevatorScheduleSchema, MAX_CARS_PER_SHAFT } from './commands';
 import {
   CellRangeSchema,
@@ -10,7 +11,6 @@ import {
   HotelRoomStateSchema,
   LevelSchema,
   LobbyHeightSchema,
-  MAX_NAME_LENGTH,
   MoneyReasonSchema,
   MoneySchema,
   PersonEntityIdSchema,

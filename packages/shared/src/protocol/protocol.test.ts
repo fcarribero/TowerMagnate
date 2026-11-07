@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { COMMAND_TYPES, CommandSchema, ElevatorScheduleSchema } from './commands';
-import { ErrorCodeSchema, EngineErrorCodeSchema, SOCKET_ERROR_CODES } from './errors';
+import { SOCKET_ERROR_CODES } from '../errors';
+import { ErrorCodeSchema, ServerErrorCodeSchema } from './errors';
 import {
   ClientMessageSchema,
   clientMessage,
@@ -116,8 +117,8 @@ describe('rejected messages', () => {
 
   it('keeps socket codes out of command results', () => {
     for (const code of SOCKET_ERROR_CODES) {
-      expect(ErrorCodeSchema.safeParse(code).success).toBe(true);
-      expect(EngineErrorCodeSchema.safeParse(code).success).toBe(false);
+      expect(ServerErrorCodeSchema.safeParse(code).success).toBe(true);
+      expect(ErrorCodeSchema.safeParse(code).success).toBe(false);
     }
   });
 

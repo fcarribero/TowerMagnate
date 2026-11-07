@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { CommandResultSchema, QueuedCommandSchema } from './commands';
-import { ErrorCodeSchema } from './errors';
+import { ServerErrorCodeSchema } from './errors';
 import {
   ColumnSchema,
   LevelSchema,
@@ -51,7 +51,7 @@ export const ServerMessageSchema = z.discriminatedUnion('t', [
   envelope('commandResult', CommandResultSchema),
   envelope('events', z.object({ events: z.array(ClientEventSchema) })),
   envelope('inspect', InspectDataSchema),
-  envelope('error', z.object({ code: ErrorCodeSchema, message: z.string() })),
+  envelope('error', z.object({ code: ServerErrorCodeSchema, message: z.string() })),
   envelope('pong', z.object({ clientTime: ClientTimeSchema, serverStep: StepSchema })),
 ]);
 

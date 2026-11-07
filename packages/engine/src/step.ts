@@ -1,12 +1,14 @@
 import type {
   Command,
   CommandResult,
-  EngineErrorCode,
+  CommandType,
   EngineEvent,
+  ErrorCode,
   QueuedCommand,
   TowerState,
 } from '@tower-magnate/shared';
 import { STEPS_PER_DAY } from './clock';
+import { towerCommandHandlers } from './commands';
 
 export interface StepResult {
   state: TowerState;
@@ -20,15 +22,30 @@ export interface StepContext {
   events: EngineEvent[];
 }
 
-export type CommandOutcome =
-  { ok: true; cost: number; refund: number } | { ok: false; error: EngineErrorCode };
+/** What a command handler may change: only the working copy of the tower. */
+export interface CommandContext {
+  state: TowerState;
+}
 
-export type CommandHandler<K extends Command['type']> = (
-  context: StepContext,
+type WithoutCommandStamp<E> = E extends EngineEvent ? Omit<E, 'step' | 'commandId'> : never;
+
+/** An event a command handler reports; the pipeline adds the step and the command id. */
+export type CommandEvent = WithoutCommandStamp<Extract<EngineEvent, { commandId: string }>>;
+
+export type CommandOutcome =
+  | { ok: true; cost: number; refund: number; events: CommandEvent[] }
+  | { ok: false; error: ErrorCode };
+
+/**
+ * Applies one command to the working state, or rejects it. Commands reach the engine from the
+ * network, so a handler checks the shape of every field before trusting it.
+ */
+export type CommandHandler<K extends CommandType> = (
+  context: CommandContext,
   command: Extract<Command, { type: K }>,
 ) => CommandOutcome;
 
-export type CommandHandlers = { [K in Command['type']]?: CommandHandler<K> };
+export type CommandHandlers = { [K in CommandType]?: CommandHandler<K> };
 
 /** Runs once per simulation step, after the step counter has advanced. */
 export type SimulationSystem = (context: StepContext) => void;
@@ -43,7 +60,11 @@ export interface Engine {
   runDays(state: TowerState, days: number): StepResult;
 }
 
-type AnyCommandHandler = (context: StepContext, command: Command) => CommandOutcome;
+type AnyCommandHandler = (context: CommandContext, command: Command) => CommandOutcome;
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === 'object' && !Array.isArray(value);
+}
 
 function assertNonNegativeInteger(value: number, what: string): void {
   if (!Number.isInteger(value) || value < 0) {
@@ -52,21 +73,33 @@ function assertNonNegativeInteger(value: number, what: string): void {
 }
 
 export function createEngine(rules: EngineRules): Engine {
+  function handlerFor(command: unknown): AnyCommandHandler | undefined {
+    if (!isRecord(command) || typeof command.type !== 'string') {
+      return undefined;
+    }
+    if (!Object.hasOwn(rules.commandHandlers, command.type)) {
+      return undefined;
+    }
+    return rules.commandHandlers[command.type as CommandType] as AnyCommandHandler | undefined;
+  }
+
   function applyCommand(context: StepContext, queued: QueuedCommand): CommandResult {
     const { id, command } = queued;
     const currentStep = context.state.step;
-    const handler = rules.commandHandlers[command.type] as AnyCommandHandler | undefined;
+    const handler = handlerFor(command);
     if (!handler) {
       return { id, ok: false, step: currentStep, error: 'INVALID_COMMAND' };
     }
 
-    const draft: StepContext = { state: structuredClone(context.state), events: [] };
+    const draft: CommandContext = { state: structuredClone(context.state) };
     const outcome = handler(draft, command);
     if (!outcome.ok) {
       return { id, ok: false, step: currentStep, error: outcome.error };
     }
     context.state = draft.state;
-    context.events.push(...draft.events);
+    for (const event of outcome.events) {
+      context.events.push({ ...event, step: currentStep, commandId: id } as EngineEvent);
+    }
     return { id, ok: true, step: currentStep, cost: outcome.cost, refund: outcome.refund };
   }
 
@@ -95,7 +128,7 @@ export function createEngine(rules: EngineRules): Engine {
   return { step, runDays };
 }
 
-const towerEngine = createEngine({ commandHandlers: {}, systems: [] });
+const towerEngine = createEngine({ commandHandlers: towerCommandHandlers, systems: [] });
 
 /**
  * Applies the queued commands in order, then runs `steps` simulation steps.

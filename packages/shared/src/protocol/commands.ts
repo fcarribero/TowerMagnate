@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { EngineErrorCodeSchema } from './errors';
+import { ErrorCodeSchema } from './errors';
 import {
   ColumnSchema,
   EventIdSchema,
@@ -143,7 +143,7 @@ export const CommandResultSchema = z.discriminatedUnion('ok', [
     id: z.string(),
     ok: z.literal(false),
     step: StepSchema,
-    error: EngineErrorCodeSchema,
+    error: ErrorCodeSchema,
   }),
 ]);
 

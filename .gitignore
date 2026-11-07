@@ -6,4 +6,5 @@ coverage/
 .DS_Store
 *.tsbuildinfo
 test-results/
+**/test-results/
 playwright-report/

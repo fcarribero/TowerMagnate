@@ -1,71 +1,12 @@
 import { z } from 'zod';
+import { ERROR_CODES, SOCKET_ERROR_CODES } from '../errors';
 
-export const CONSTRUCTION_ERROR_CODES = [
-  'INVALID_COMMAND',
-  'NEGATIVE_BALANCE',
-  'INSUFFICIENT_FUNDS',
-  'STAR_LOCKED',
-  'BOMB_EVENT_ACTIVE',
-  'LIMIT_REACHED',
-  'CAR_LIMIT',
-  'LAST_CAR',
-  'OUT_OF_BOUNDS',
-  'LEVEL_RESERVED',
-  'LOBBY_LEVEL_ONLY',
-  'LOBBY_FLOOR_NOT_ALLOWED',
-  'ABOVE_GROUND_ONLY',
-  'BASEMENT_ONLY',
-  'CATHEDRAL_LEVEL_ONLY',
-  'CATHEDRAL_POSITION',
-  'SUBWAY_POSITION',
-  'SPANS_GROUND',
-  'EXPRESS_STOP_NOT_ALLOWED',
-  'CELL_OCCUPIED',
-  'NOTHING_TO_BUILD',
-  'NO_SUPPORT',
-  'NO_FLOOR',
-  'TRANSPORT_LANDING',
-  'LOBBY_HEIGHT_MISMATCH',
-  'LOBBY_NOT_CONTIGUOUS',
-  'ESCALATOR_FLOOR_TYPE',
-  'SHAFT_TOO_TALL',
-  'SHAFT_TOO_CLOSE',
-  'RAMP_POSITION',
-  'PARKING_NOT_CONNECTED',
-  'RECYCLING_NOT_ADJACENT',
-  'MAIN_LOBBY_PROTECTED',
-  'SUPPORTS_STRUCTURE',
-  'SHAFT_IN_USE',
-  'NOTHING_TO_DEMOLISH',
-] as const;
+/** Codes the engine returns in a command result. */
+export const ErrorCodeSchema = z.enum(ERROR_CODES);
 
-export const OPERATION_ERROR_CODES = [
-  'UNKNOWN_ENTITY',
-  'PRICE_LOCKED',
-  'NOT_A_CINEMA',
-  'EVENT_EXPIRED',
-  'INVALID_CHOICE',
-  'FOLLOW_LIMIT',
-  'INVALID_SCHEDULE',
-] as const;
+export const SocketErrorCodeSchema = z.enum(SOCKET_ERROR_CODES);
 
-/** Produced by the server around the socket, never by the engine. */
-export const SOCKET_ERROR_CODES = [
-  'PROTOCOL_MISMATCH',
-  'NOT_AUTHENTICATED',
-  'RATE_LIMITED',
-] as const;
+/** Codes the server may send in an error message: engine codes plus socket codes. */
+export const ServerErrorCodeSchema = z.enum([...ERROR_CODES, ...SOCKET_ERROR_CODES]);
 
-export const EngineErrorCodeSchema = z.enum([
-  ...CONSTRUCTION_ERROR_CODES,
-  ...OPERATION_ERROR_CODES,
-]);
-
-export const ErrorCodeSchema = z.enum([
-  ...CONSTRUCTION_ERROR_CODES,
-  ...OPERATION_ERROR_CODES,
-  ...SOCKET_ERROR_CODES,
-]);
-
-export type EngineErrorCode = z.infer<typeof EngineErrorCodeSchema>;
-export type ErrorCode = z.infer<typeof ErrorCodeSchema>;
+export type ServerErrorCode = z.infer<typeof ServerErrorCodeSchema>;

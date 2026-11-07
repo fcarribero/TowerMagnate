@@ -1,4 +1,5 @@
 import type { Level } from './levels';
+import type { UnitType } from './units';
 
 /** Id of a placed unit, transport or shaft, with a type prefix: `u12`, `t3`, `s4`. */
 export type EntityId = string;
@@ -50,12 +51,34 @@ export interface RngState {
   d: number;
 }
 
+/** Instance id of a placed unit, such as `u12`. The catalog type is `UnitType`. */
+export type UnitId = string;
+
+export interface Unit {
+  id: UnitId;
+  type: UnitType;
+  /** Leftmost column. */
+  x: number;
+  /** Bottom level. */
+  level: Level;
+  /** Player-chosen name; null shows the default name. */
+  name: string | null;
+}
+
 export interface TowerState {
   schemaVersion: number;
   step: number;
   rng: RngState;
   nextId: number;
+  units: Record<UnitId, Unit>;
   grid: GridState;
 }
 
-export type EngineEvent = never;
+/** Events caused by a player command carry that command's id. */
+export type EngineEvent = {
+  type: 'unitRenamed';
+  step: number;
+  commandId: string;
+  unitId: UnitId;
+  name: string | null;
+};
