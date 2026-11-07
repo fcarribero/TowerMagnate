@@ -12,6 +12,7 @@
     "migrate": "tsx src/migrate.ts"
   },
   "dependencies": {
+    "@fastify/websocket": "^11.3.7",
     "@tower-magnate/engine": "workspace:*",
     "@tower-magnate/shared": "workspace:*",
     "fastify": "^5.12.8",
@@ -20,6 +21,8 @@
   "devDependencies": {
     "@testcontainers/postgresql": "^11.14.0",
     "@types/pg": "^8.23.1",
-    "tsx": "^4.23.15"
+    "@types/ws": "^8.18.2",
+    "tsx": "^4.23.15",
+    "ws": "^8.22.1"
   }
 }
