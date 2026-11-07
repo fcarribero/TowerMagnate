@@ -7,3 +7,4 @@ docs
 
 test-results/
 **/test-results/
+playwright-report/

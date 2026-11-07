@@ -1,9 +1,14 @@
-import { UNIT_CATALOG, UNIT_TYPES, type ErrorCode } from '@tower-magnate/shared';
+import {
+  UNIT_CATALOG,
+  UNIT_TYPES,
+  type ErrorCode,
+  type SocketErrorCode,
+} from '@tower-magnate/shared';
 import { describe, expect, it } from 'vitest';
 import { errorText, hasString, stringKeys, t } from './strings';
 
 // Typed as a full record so a new ErrorCode in shared fails the typecheck until it is listed here.
-const ERROR_CODES: Readonly<Record<ErrorCode, true>> = {
+const ERROR_CODES: Readonly<Record<ErrorCode | SocketErrorCode, true>> = {
   INVALID_COMMAND: true,
   NOT_PRICED: true,
   NEGATIVE_BALANCE: true,
@@ -48,6 +53,9 @@ const ERROR_CODES: Readonly<Record<ErrorCode, true>> = {
   INVALID_CHOICE: true,
   FOLLOW_LIMIT: true,
   INVALID_SCHEDULE: true,
+  PROTOCOL_MISMATCH: true,
+  NOT_AUTHENTICATED: true,
+  RATE_LIMITED: true,
 };
 
 describe('strings', () => {
@@ -90,7 +98,7 @@ describe('strings', () => {
     expect(keys.filter((key) => key.startsWith('calendar.month.'))).toHaveLength(12);
   });
 
-  it('has an error text for every ErrorCode in shared', () => {
+  it('has an error text for every engine and socket error code in shared', () => {
     for (const code of Object.keys(ERROR_CODES)) {
       expect(hasString(`error.${code}`), code).toBe(true);
     }
