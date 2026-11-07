@@ -86,4 +86,12 @@ describe('migrateState fixtures', () => {
     const tower = migrateState(JSON.parse(VERSION_2_SAVE));
     expect(tower.units.u1).toMatchObject({ priceLevel: 'normal', paid: 44_500, placedAtStep: 120 });
   });
+
+  it('migrates a version 2 save to version 3 with empty event state', () => {
+    const tower = migrateState(JSON.parse(VERSION_2_SAVE));
+    expect(tower.schemaVersion).toBe(3);
+    expect(tower.activeEvents).toEqual([]);
+    expect(tower.closedDecisions).toEqual([]);
+    expect(tower.treasureLevels).toEqual([]);
+  });
 });

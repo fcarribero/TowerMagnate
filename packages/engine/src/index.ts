@@ -26,7 +26,14 @@ export {
   spanError,
   structureAt,
 } from './grid';
-export { answerDecision, endDisaster, eventsPhase, openBombThreat, openFire } from './events';
+export {
+  answerDecision,
+  buildEventViews,
+  endDisaster,
+  eventsPhase,
+  openBombThreat,
+  openFire,
+} from './events';
 export { hashState } from './hash';
 export { migrateState, StateMigrationError } from './migrations';
 export {
