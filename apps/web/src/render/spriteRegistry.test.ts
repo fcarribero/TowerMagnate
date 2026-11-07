@@ -48,8 +48,8 @@ describe('SpriteRegistry', () => {
 
   it('draws the placeholder for a missing id and reports it once', () => {
     const { registry, placeholder, missing } = registryWith([]);
-    expect(registry.texture('units/office/burnt')).toBe(placeholder);
-    expect(registry.texture('units/office/burnt')).toBe(placeholder);
+    expect(registry.variant('units/office', { state: 'burnt' })).toBe(placeholder);
+    expect(registry.variant('units/office', { state: 'burnt' })).toBe(placeholder);
     expect(registry.texture('sky/day/top')).toBe(placeholder);
     expect(missing).toEqual(['units/office/burnt', 'sky/day/top']);
   });
@@ -64,7 +64,7 @@ describe('SpriteRegistry', () => {
   it('warns on the console by default', () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
     try {
-      new SpriteRegistry(new Texture()).texture('ui/nothing');
+      new SpriteRegistry(new Texture()).variant('ui/nothing', {});
       expect(warn).toHaveBeenCalledWith(
         'Missing sprite "ui/nothing", drawing the placeholder instead',
       );
