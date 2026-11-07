@@ -9,6 +9,7 @@ import {
 import { SCHEMA_VERSION } from '../state';
 import { isRecord, StateMigrationError } from './errors';
 import { readGrid } from './grid';
+import { readPeople } from './people';
 
 export { StateMigrationError } from './errors';
 
@@ -81,6 +82,7 @@ function assertCurrentShape(raw: Record<string, unknown>): TowerState {
     nextId: raw.nextId,
     units: readUnits(raw.units),
     grid: readGrid(raw.grid),
+    people: readPeople(raw.people),
   };
 }
 

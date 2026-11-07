@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { createTower, SCHEMA_VERSION } from './state';
+import { addPerson } from './people';
+import { cloneState, createTower, SCHEMA_VERSION } from './state';
 
 describe('createTower', () => {
   it('starts at step 0 with the current schema version', () => {
@@ -25,5 +26,33 @@ describe('createTower', () => {
 
   it('rejects a fractional seed', () => {
     expect(() => createTower(1.5)).toThrow(RangeError);
+  });
+
+  it('starts with nobody in the tower', () => {
+    expect(createTower(1).people.id).toEqual([]);
+    expect(createTower(1).people.nextId).toBe(1);
+  });
+});
+
+describe('cloneState', () => {
+  it('copies the tower, people included, without sharing anything', () => {
+    const tower = createTower(4);
+    addPerson(tower, { kind: 'maid', homeUnit: 3, level: 5, column: 20 });
+    tower.people.followed.push(1);
+    const copy = cloneState(tower);
+    expect(copy).toEqual(tower);
+
+    copy.people.stress[0] = 9;
+    copy.people.followed.length = 0;
+    copy.grid.mainLobbyHeight = 2;
+    expect(tower.people.stress[0]).toBe(0);
+    expect(tower.people.followed).toEqual([1]);
+    expect(tower.grid.mainLobbyHeight).toBeNull();
+  });
+
+  it('stays plain JSON-safe data with people in it', () => {
+    const tower = createTower(4);
+    addPerson(tower, { kind: 'guard', homeUnit: 1, level: -2, column: 3 });
+    expect(JSON.parse(JSON.stringify(cloneState(tower)))).toEqual(tower);
   });
 });

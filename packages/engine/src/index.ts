@@ -28,11 +28,37 @@ export {
 } from './grid';
 export { hashState } from './hash';
 export { migrateState, StateMigrationError } from './migrations';
+export {
+  addPeopleForUnit,
+  addPerson,
+  clonePersonPool,
+  countPeopleByKind,
+  createPeopleSystem,
+  createPersonPool,
+  findPerson,
+  followPerson,
+  listPeople,
+  NO_HOME_UNIT,
+  NO_TRIP,
+  NOTHING_DUE,
+  parsePersonId,
+  parseUnitNumber,
+  peopleCount,
+  personAt,
+  personEntityId,
+  removePeopleOfUnit,
+  removePerson,
+  setDueStep,
+  slotOfPerson,
+  unfollowPerson,
+  unitPeople,
+} from './people';
+export type { NewPerson, PersonHandler, PersonView } from './people';
 export { chance, createRng, nextFloat, nextInt, nextUint32 } from './rng';
 export { createScheduler } from './scheduler';
 export type { HookOccurrence, HookSchedule, ScheduledHook, TimeOfDay } from './scheduler';
 export { deserializeState, serializeState } from './serialization';
-export { createTower, SCHEMA_VERSION } from './state';
+export { cloneState, createTower, SCHEMA_VERSION } from './state';
 export { createEngine, runDays, step } from './step';
 export type {
   CommandContext,

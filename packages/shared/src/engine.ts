@@ -1,4 +1,5 @@
 import type { Level } from './levels';
+import type { PersonPool } from './people';
 import type { UnitType } from './units';
 
 /** Id of a placed unit, transport or shaft, with a type prefix: `u12`, `t3`, `s4`. */
@@ -72,6 +73,7 @@ export interface TowerState {
   nextId: number;
   units: Record<UnitId, Unit>;
   grid: GridState;
+  people: PersonPool;
 }
 
 /** Events caused by a player command carry that command's id. */
