@@ -427,7 +427,8 @@ export const DAILY_INCOME_BRACKETS: Readonly<
   ],
   'party-hall': [
     { minCustomers: 0, amount: 0 },
-    { minCustomers: 1, amount: 20_000 },
+    { minCustomers: 25, amount: 5_000 },
+    { minCustomers: 40, amount: 10_000 },
   ],
 };
 
@@ -437,23 +438,38 @@ function flatUpkeep(basis: UpkeepRule['basis'], amount: number): UpkeepRule {
   return { basis, amountByStars: [{ minStars: 1, amount }] };
 }
 
-/** Charged every Monday at 00:00. Units not listed have no upkeep. */
-export const WEEKLY_UPKEEP: Readonly<Partial<Record<UnitId, UpkeepRule>>> = {
-  'standard-elevator': flatUpkeep('per-car', 10_000),
-  'service-elevator': flatUpkeep('per-car', 10_000),
-  'express-elevator': flatUpkeep('per-car', 20_000),
-  escalator: flatUpkeep('per-unit', 5_000),
-  housekeeping: flatUpkeep('per-unit', 10_000),
-  security: flatUpkeep('per-unit', 20_000),
-  'parking-ramp': flatUpkeep('per-unit', 10_000),
-  'recycling-center': flatUpkeep('per-unit', 50_000),
-  'subway-station': flatUpkeep('per-unit', 100_000),
+/** Charged every Monday at 00:00, economy spec section 8.2. Every unit type has a line. */
+export const WEEKLY_UPKEEP: Readonly<Record<UnitId, UpkeepRule>> = {
+  floor: flatUpkeep('per-unit', 0),
   lobby: {
-    basis: 'per-cell',
+    basis: 'per-column',
     amountByStars: [
       { minStars: 1, amount: 0 },
-      { minStars: 3, amount: 300 },
-      { minStars: 4, amount: 1_000 },
+      { minStars: 3, amount: 500 },
+      { minStars: 4, amount: 1_500 },
     ],
   },
+  stairs: flatUpkeep('per-unit', 0),
+  escalator: flatUpkeep('per-unit', 10_000),
+  'standard-elevator': flatUpkeep('per-car', 20_000),
+  office: flatUpkeep('per-unit', 0),
+  condo: flatUpkeep('per-unit', 0),
+  'fast-food': flatUpkeep('per-unit', 0),
+  'single-room': flatUpkeep('per-unit', 2_000),
+  'double-room': flatUpkeep('per-unit', 3_000),
+  suite: flatUpkeep('per-unit', 6_000),
+  housekeeping: flatUpkeep('per-unit', 20_000),
+  security: flatUpkeep('per-unit', 40_000),
+  'service-elevator': flatUpkeep('per-car', 20_000),
+  restaurant: flatUpkeep('per-unit', 0),
+  'retail-shop': flatUpkeep('per-unit', 0),
+  cinema: flatUpkeep('per-unit', 0),
+  'party-hall': flatUpkeep('per-unit', 20_000),
+  'express-elevator': flatUpkeep('per-car', 40_000),
+  'medical-center': flatUpkeep('per-unit', 0),
+  'parking-ramp': flatUpkeep('per-unit', 20_000),
+  'parking-space': flatUpkeep('per-unit', 0),
+  'recycling-center': flatUpkeep('per-unit', 100_000),
+  'subway-station': flatUpkeep('per-unit', 200_000),
+  cathedral: flatUpkeep('per-unit', 0),
 };
