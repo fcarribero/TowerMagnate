@@ -8,6 +8,7 @@ export interface ButtonProps {
   isDefault?: boolean;
   title?: string;
   type?: 'button' | 'submit';
+  /** Takes focus when its window opens. */
   autoFocus?: boolean;
 }
 
@@ -26,7 +27,7 @@ export function Button({
       class={isDefault ? 'tm-button is-default' : 'tm-button'}
       disabled={disabled}
       title={title}
-      autoFocus={autoFocus}
+      data-autofocus={autoFocus ? '' : undefined}
       onClick={onClick}
     >
       {children}

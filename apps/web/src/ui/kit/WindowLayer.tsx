@@ -19,6 +19,8 @@ type EscapeHandler = () => void;
 export interface WindowManager {
   stack: WindowStack;
   viewSize: Size;
+  uiScale: number;
+  /** Positions in a request are in UI pixels; the window manager scales them. */
   open(request: OpenRequest): void;
   close(id: string): void;
   focus(id: string): void;
@@ -40,6 +42,14 @@ export function useWindowManager(): WindowManager {
   return manager;
 }
 
+function scaleRequest(request: OpenRequest, uiScale: number): OpenRequest {
+  if (request.position === undefined) {
+    return request;
+  }
+  const { x, y } = request.position;
+  return { ...request, position: { x: x * uiScale, y: y * uiScale } };
+}
+
 function measure(element: HTMLElement | null): Size {
   return { width: element?.clientWidth ?? 0, height: element?.clientHeight ?? 0 };
 }
@@ -47,10 +57,11 @@ function measure(element: HTMLElement | null): Size {
 interface WindowLayerProps {
   children?: ComponentChildren;
   class?: string;
+  uiScale?: number;
 }
 
 /** The area windows float over. Windows inside it are kept within its bounds. */
-export function WindowLayer({ children, class: className }: WindowLayerProps) {
+export function WindowLayer({ children, class: className, uiScale = 1 }: WindowLayerProps) {
   const layerRef = useRef<HTMLDivElement>(null);
   const [stack, setStack] = useState<WindowStack>(EMPTY_STACK);
   const [viewSize, setViewSize] = useState<Size>({ width: 0, height: 0 });
@@ -104,7 +115,8 @@ export function WindowLayer({ children, class: className }: WindowLayerProps) {
     () => ({
       stack,
       viewSize,
-      open: (request) => setStack((current) => openWindow(current, request)),
+      uiScale,
+      open: (request) => setStack((current) => openWindow(current, scaleRequest(request, uiScale))),
       close: (id) => setStack((current) => closeWindow(current, id)),
       focus: (id) => setStack((current) => focusWindow(current, id)),
       move: (id, position) => setStack((current) => moveWindow(current, id, position)),
@@ -112,7 +124,7 @@ export function WindowLayer({ children, class: className }: WindowLayerProps) {
       setEscapeHandler,
       setDragCancel,
     }),
-    [stack, viewSize, setEscapeHandler, setDragCancel],
+    [stack, viewSize, uiScale, setEscapeHandler, setDragCancel],
   );
 
   return (

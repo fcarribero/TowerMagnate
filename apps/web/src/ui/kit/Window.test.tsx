@@ -1,6 +1,7 @@
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/preact';
-import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 import { useEffect } from 'preact/hooks';
+import { useFakeLayoutSizes } from '../../testing/fakeLayout';
 import { TextField } from './TextField';
 import { Window } from './Window';
 import { WindowLayer, useWindowManager } from './WindowLayer';
@@ -9,34 +10,11 @@ import type { OpenRequest } from './windowStack';
 const VIEW = { width: 800, height: 600 };
 const WINDOW_WIDTH = 200;
 
-const sizeProperties = ['clientWidth', 'clientHeight', 'offsetWidth', 'offsetHeight'] as const;
-const originals = new Map<string, PropertyDescriptor | undefined>();
-
-beforeAll(() => {
-  const sizes = {
-    clientWidth: VIEW.width,
-    clientHeight: VIEW.height,
-    offsetWidth: WINDOW_WIDTH,
-    offsetHeight: 100,
-  };
-  for (const property of sizeProperties) {
-    originals.set(property, Object.getOwnPropertyDescriptor(HTMLElement.prototype, property));
-    Object.defineProperty(HTMLElement.prototype, property, {
-      configurable: true,
-      get: () => sizes[property],
-    });
-  }
-});
-
-afterAll(() => {
-  for (const property of sizeProperties) {
-    const original = originals.get(property);
-    if (original === undefined) {
-      Reflect.deleteProperty(HTMLElement.prototype, property);
-    } else {
-      Object.defineProperty(HTMLElement.prototype, property, original);
-    }
-  }
+useFakeLayoutSizes({
+  clientWidth: VIEW.width,
+  clientHeight: VIEW.height,
+  offsetWidth: WINDOW_WIDTH,
+  offsetHeight: 100,
 });
 
 afterEach(cleanup);
@@ -53,10 +31,10 @@ function Opener({ requests }: { requests: OpenRequest[] }) {
 
 function renderWindows(
   requests: OpenRequest[],
-  options: { closable?: boolean; withField?: boolean } = {},
+  options: { closable?: boolean; withField?: boolean; uiScale?: number } = {},
 ) {
   return render(
-    <WindowLayer>
+    <WindowLayer uiScale={options.uiScale}>
       <Opener requests={requests} />
       {requests.map((request) => (
         <Window
@@ -172,5 +150,22 @@ describe('Window', () => {
     renderWindows([{ id: 'a', ...at(2000, 2000) }]);
     expect(frameOf('a').style.left).toBe(`${VIEW.width - 24}px`);
     expect(frameOf('a').style.top).toBe(`${VIEW.height - 12}px`);
+  });
+
+  it('scales the requested position and the kept title bar by the UI scale', () => {
+    renderWindows([{ id: 'a', ...at(10, 10) }], { uiScale: 2 });
+    expect(frameOf('a').style.left).toBe('20px');
+    const title = screen.getByText('Ventana a');
+    fireEvent.pointerDown(title, { pointerId: 1, button: 0, clientX: 0, clientY: 0 });
+    fireEvent.pointerMove(title, { pointerId: 1, clientX: 5000, clientY: 5000 });
+    expect(frameOf('a').style.left).toBe(`${VIEW.width - 48}px`);
+    expect(frameOf('a').style.top).toBe(`${VIEW.height - 24}px`);
+  });
+
+  it('opens centered when no position is given', () => {
+    renderWindows([{ id: 'a' }]);
+    expect(frameOf('a').style.left).toBe(`${(VIEW.width - WINDOW_WIDTH) / 2}px`);
+    expect(frameOf('a').style.top).toBe(`${(VIEW.height - 100) / 2}px`);
+    expect(frameOf('a').classList.contains('is-placing')).toBe(false);
   });
 });

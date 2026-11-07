@@ -11,7 +11,15 @@ class TestPointerEvent extends MouseEvent {
 
 if (typeof window !== 'undefined' && typeof window.PointerEvent === 'undefined') {
   window.PointerEvent = TestPointerEvent as typeof PointerEvent;
-  for (const name of ['onpointerdown', 'onpointermove', 'onpointerup', 'onpointercancel']) {
+  const handlers = [
+    'onpointerdown',
+    'onpointermove',
+    'onpointerup',
+    'onpointercancel',
+    'onpointerenter',
+    'onpointerleave',
+  ];
+  for (const name of handlers) {
     Object.defineProperty(HTMLElement.prototype, name, {
       configurable: true,
       writable: true,

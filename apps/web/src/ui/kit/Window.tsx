@@ -2,7 +2,15 @@ import type { ComponentChildren } from 'preact';
 import { useEffect, useRef } from 'preact/hooks';
 import { t } from '../strings';
 import { useWindowManager } from './WindowLayer';
-import { clampPosition, findWindow, frontWindow, type Point, type Size } from './windowStack';
+import { focusableElements, trapTabKey } from './focus';
+import {
+  centeredPosition,
+  clampPosition,
+  findWindow,
+  frontWindow,
+  type Point,
+  type Size,
+} from './windowStack';
 
 const BASE_Z_INDEX = 10;
 
@@ -21,10 +29,21 @@ export interface WindowProps {
   onClose?: () => void;
   /** Decision dialogs have no close button and ignore Esc. */
   closable?: boolean;
+  /** Width in UI pixels. */
   width?: number;
+  /** Blocks the rest of the UI, keeps Tab inside and gives focus back when it closes. */
+  modal?: boolean;
 }
 
-export function Window({ id, title, children, onClose, closable = true, width }: WindowProps) {
+export function Window({
+  id,
+  title,
+  children,
+  onClose,
+  closable = true,
+  width,
+  modal = false,
+}: WindowProps) {
   const manager = useWindowManager();
   const frameRef = useRef<HTMLElement>(null);
   const dragRef = useRef<Drag | null>(null);
@@ -41,17 +60,33 @@ export function Window({ id, title, children, onClose, closable = true, width }:
 
   const isMounted = openWindow !== undefined;
   useEffect(() => {
-    if (isMounted) {
-      frameRef.current?.focus({ preventScroll: true });
+    if (!isMounted) {
+      return;
     }
+    const focusedBefore = document.activeElement;
+    focusInitialElement(frameRef.current);
+    return () => {
+      if (modal && focusedBefore instanceof HTMLElement && focusedBefore.isConnected) {
+        focusedBefore.focus({ preventScroll: true });
+      }
+    };
   }, [isMounted]);
+
+  const pendingCenter = openWindow?.pendingCenter ?? false;
+  useEffect(() => {
+    const frame = frameRef.current;
+    if (!pendingCenter || frame === null || manager.viewSize.width === 0) {
+      return;
+    }
+    manager.move(id, centeredPosition(frameSize(frame), manager.viewSize));
+  }, [pendingCenter, manager.viewSize.width, manager.viewSize.height]);
 
   useEffect(() => {
     const frame = frameRef.current;
     if (position === undefined || frame === null || manager.viewSize.width === 0) {
       return;
     }
-    const clamped = clampPosition(position, frameSize(frame), manager.viewSize);
+    const clamped = clampPosition(position, frameSize(frame), manager.viewSize, manager.uiScale);
     if (clamped.x !== position.x || clamped.y !== position.y) {
       manager.move(id, clamped);
     }
@@ -62,7 +97,7 @@ export function Window({ id, title, children, onClose, closable = true, width }:
   }
 
   const isFront = frontWindow(manager.stack)?.id === id;
-  const zIndex = BASE_Z_INDEX + manager.stack.windows.indexOf(openWindow);
+  const zIndex = BASE_Z_INDEX + 2 * manager.stack.windows.indexOf(openWindow) + 1;
   const titleId = `tm-window-title-${id}`;
 
   const onTitlePointerDown = (event: PointerEvent): void => {
@@ -96,7 +131,7 @@ export function Window({ id, title, children, onClose, closable = true, width }:
       x: drag.startPosition.x + event.clientX - drag.startX,
       y: drag.startPosition.y + event.clientY - drag.startY,
     };
-    manager.move(id, clampPosition(wanted, frameSize(frame), manager.viewSize));
+    manager.move(id, clampPosition(wanted, frameSize(frame), manager.viewSize, manager.uiScale));
   };
 
   const onTitlePointerEnd = (event: PointerEvent): void => {
@@ -106,42 +141,67 @@ export function Window({ id, title, children, onClose, closable = true, width }:
     }
   };
 
+  const onKeyDown = (event: KeyboardEvent): void => {
+    if (modal && frameRef.current !== null) {
+      trapTabKey(event, frameRef.current);
+    }
+  };
+
+  const classes = ['tm-window', isFront && 'is-active', pendingCenter && 'is-placing']
+    .filter(Boolean)
+    .join(' ');
+  const widthStyle = width === undefined ? undefined : `calc(${width} * var(--tm-px))`;
+
   return (
-    <section
-      ref={frameRef}
-      class={isFront ? 'tm-window is-active' : 'tm-window'}
-      role="dialog"
-      aria-labelledby={titleId}
-      tabIndex={-1}
-      style={{ left: `${position.x}px`, top: `${position.y}px`, zIndex, width }}
-      onPointerDown={() => manager.focus(id)}
-      onFocusCapture={() => manager.focus(id)}
-    >
-      <header
-        class="tm-window__title"
-        onPointerDown={onTitlePointerDown}
-        onPointerMove={onTitlePointerMove}
-        onPointerUp={onTitlePointerEnd}
-        onPointerCancel={onTitlePointerEnd}
+    <>
+      {modal && <div class="tm-modal-backdrop" style={{ zIndex: zIndex - 1 }} />}
+      <section
+        ref={frameRef}
+        class={classes}
+        role={modal ? 'alertdialog' : 'dialog'}
+        aria-modal={modal ? true : undefined}
+        aria-labelledby={titleId}
+        tabIndex={-1}
+        style={{ left: `${position.x}px`, top: `${position.y}px`, zIndex, width: widthStyle }}
+        onKeyDown={onKeyDown}
+        onPointerDown={() => manager.focus(id)}
+        onFocusCapture={() => manager.focus(id)}
       >
-        <span id={titleId} class="tm-window__title-text">
-          {title}
-        </span>
-        {closable && (
-          <button
-            type="button"
-            class="tm-window__close"
-            aria-label={t('ui.close')}
-            title={t('ui.close')}
-            onClick={close}
-          >
-            x
-          </button>
-        )}
-      </header>
-      <div class="tm-window__body">{children}</div>
-    </section>
+        <header
+          class="tm-window__title"
+          onPointerDown={onTitlePointerDown}
+          onPointerMove={onTitlePointerMove}
+          onPointerUp={onTitlePointerEnd}
+          onPointerCancel={onTitlePointerEnd}
+        >
+          <span id={titleId} class="tm-window__title-text">
+            {title}
+          </span>
+          {closable && (
+            <button
+              type="button"
+              class="tm-window__close"
+              aria-label={t('ui.close')}
+              title={t('ui.close')}
+              onClick={close}
+            >
+              x
+            </button>
+          )}
+        </header>
+        <div class="tm-window__body">{children}</div>
+      </section>
+    </>
   );
+}
+
+/** Focuses the element marked to start with focus, else the frame itself. */
+function focusInitialElement(frame: HTMLElement | null): void {
+  if (frame === null) {
+    return;
+  }
+  const marked = focusableElements(frame).find((element) => element.hasAttribute('data-autofocus'));
+  (marked ?? frame).focus({ preventScroll: true });
 }
 
 function frameSize(frame: HTMLElement): Size {

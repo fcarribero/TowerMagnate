@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   EMPTY_STACK,
+  centeredPosition,
   clampPosition,
   closeWindow,
   focusWindow,
@@ -82,5 +83,56 @@ describe('clampPosition', () => {
   it('keeps the title bar below the top and 12 px above the bottom', () => {
     expect(clampPosition({ x: 0, y: -40 }, size, view).y).toBe(0);
     expect(clampPosition({ x: 0, y: 900 }, size, view).y).toBe(600 - 12);
+  });
+});
+
+describe('dialogs on top', () => {
+  it('keeps an on-top window in front when another window is focused or opened', () => {
+    let stack = openWindow(openMany(['finance']), { id: 'bomb', onTop: true });
+    stack = focusWindow(stack, 'finance');
+    expect(ids(stack)).toEqual(['finance', 'bomb']);
+    stack = openWindow(stack, { id: 'map', position: origin });
+    expect(ids(stack)).toEqual(['finance', 'map', 'bomb']);
+  });
+
+  it('orders on-top windows among themselves by focus', () => {
+    let stack = openWindow(EMPTY_STACK, { id: 'bomb', onTop: true });
+    stack = openWindow(stack, { id: 'fire', onTop: true });
+    stack = focusWindow(stack, 'bomb');
+    expect(ids(stack)).toEqual(['fire', 'bomb']);
+  });
+});
+
+describe('centered windows', () => {
+  it('opens without a position as waiting to be centered until moved', () => {
+    let stack = openWindow(EMPTY_STACK, { id: 'newTower', onTop: true });
+    expect(stack.windows[0]?.pendingCenter).toBe(true);
+    stack = moveWindow(stack, 'newTower', { x: 10, y: 20 });
+    expect(stack.windows[0]?.pendingCenter).toBe(false);
+  });
+
+  it('centers again when reopened instead of coming back where it was', () => {
+    let stack = openWindow(EMPTY_STACK, { id: 'newTower', onTop: true });
+    stack = moveWindow(stack, 'newTower', { x: 10, y: 20 });
+    stack = openWindow(closeWindow(stack, 'newTower'), { id: 'newTower', onTop: true });
+    expect(stack.windows[0]?.pendingCenter).toBe(true);
+  });
+
+  it('computes the centered position in whole pixels', () => {
+    expect(centeredPosition({ width: 201, height: 100 }, { width: 800, height: 600 })).toEqual({
+      x: 299,
+      y: 250,
+    });
+    expect(centeredPosition({ width: 900, height: 100 }, { width: 800, height: 600 }).x).toBe(0);
+  });
+});
+
+describe('clampPosition at a larger UI scale', () => {
+  it('keeps the title bar margins in UI pixels', () => {
+    const view = { width: 2000, height: 1000 };
+    expect(clampPosition({ x: 5000, y: 5000 }, { width: 400, height: 200 }, view, 2)).toEqual({
+      x: 2000 - 48,
+      y: 1000 - 24,
+    });
   });
 });
