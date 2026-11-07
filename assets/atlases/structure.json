@@ -2,7 +2,7 @@
   "frames": {
     "structure/basement-edge-left/day": {
       "frame": {
-        "x": 647,
+        "x": 583,
         "y": 1,
         "w": 3,
         "h": 32
@@ -22,7 +22,7 @@
     },
     "structure/basement-edge-left/night": {
       "frame": {
-        "x": 651,
+        "x": 587,
         "y": 1,
         "w": 3,
         "h": 32
@@ -42,7 +42,7 @@
     },
     "structure/basement-edge-right/day": {
       "frame": {
-        "x": 655,
+        "x": 591,
         "y": 1,
         "w": 3,
         "h": 32
@@ -62,7 +62,7 @@
     },
     "structure/basement-edge-right/night": {
       "frame": {
-        "x": 659,
+        "x": 595,
         "y": 1,
         "w": 3,
         "h": 32
@@ -82,7 +82,7 @@
     },
     "structure/basement/day": {
       "frame": {
-        "x": 503,
+        "x": 403,
         "y": 1,
         "w": 8,
         "h": 32
@@ -102,7 +102,7 @@
     },
     "structure/basement/night": {
       "frame": {
-        "x": 512,
+        "x": 412,
         "y": 1,
         "w": 8,
         "h": 32
@@ -282,7 +282,7 @@
     },
     "structure/edge-left/day": {
       "frame": {
-        "x": 663,
+        "x": 599,
         "y": 1,
         "w": 3,
         "h": 32
@@ -302,7 +302,7 @@
     },
     "structure/edge-left/night": {
       "frame": {
-        "x": 667,
+        "x": 603,
         "y": 1,
         "w": 3,
         "h": 32
@@ -322,7 +322,7 @@
     },
     "structure/edge-right/day": {
       "frame": {
-        "x": 671,
+        "x": 607,
         "y": 1,
         "w": 3,
         "h": 32
@@ -342,7 +342,7 @@
     },
     "structure/edge-right/night": {
       "frame": {
-        "x": 675,
+        "x": 611,
         "y": 1,
         "w": 3,
         "h": 32
@@ -362,7 +362,7 @@
     },
     "structure/floor/day": {
       "frame": {
-        "x": 521,
+        "x": 421,
         "y": 1,
         "w": 8,
         "h": 32
@@ -382,7 +382,7 @@
     },
     "structure/floor/night": {
       "frame": {
-        "x": 530,
+        "x": 430,
         "y": 1,
         "w": 8,
         "h": 32
@@ -442,7 +442,7 @@
     },
     "structure/lobby-1-column/day": {
       "frame": {
-        "x": 539,
+        "x": 439,
         "y": 1,
         "w": 8,
         "h": 32
@@ -462,7 +462,7 @@
     },
     "structure/lobby-1-column/night": {
       "frame": {
-        "x": 548,
+        "x": 448,
         "y": 1,
         "w": 8,
         "h": 32
@@ -482,7 +482,7 @@
     },
     "structure/lobby-1/day": {
       "frame": {
-        "x": 557,
+        "x": 457,
         "y": 1,
         "w": 8,
         "h": 32
@@ -502,7 +502,7 @@
     },
     "structure/lobby-1/night": {
       "frame": {
-        "x": 566,
+        "x": 466,
         "y": 1,
         "w": 8,
         "h": 32
@@ -682,7 +682,7 @@
     },
     "structure/roof-left/day": {
       "frame": {
-        "x": 697,
+        "x": 633,
         "y": 1,
         "w": 3,
         "h": 4
@@ -702,7 +702,7 @@
     },
     "structure/roof-left/night": {
       "frame": {
-        "x": 701,
+        "x": 637,
         "y": 1,
         "w": 3,
         "h": 4
@@ -722,7 +722,7 @@
     },
     "structure/roof-right/day": {
       "frame": {
-        "x": 705,
+        "x": 641,
         "y": 1,
         "w": 3,
         "h": 4
@@ -742,7 +742,7 @@
     },
     "structure/roof-right/night": {
       "frame": {
-        "x": 709,
+        "x": 645,
         "y": 1,
         "w": 3,
         "h": 4
@@ -762,7 +762,7 @@
     },
     "structure/roof/day": {
       "frame": {
-        "x": 679,
+        "x": 615,
         "y": 1,
         "w": 8,
         "h": 4
@@ -782,7 +782,7 @@
     },
     "structure/roof/night": {
       "frame": {
-        "x": 688,
+        "x": 624,
         "y": 1,
         "w": 8,
         "h": 4
@@ -798,91 +798,11 @@
       "sourceSize": {
         "w": 8,
         "h": 4
-      }
-    },
-    "structure/ruler-hover/day": {
-      "frame": {
-        "x": 403,
-        "y": 1,
-        "w": 24,
-        "h": 32
-      },
-      "rotated": false,
-      "trimmed": false,
-      "spriteSourceSize": {
-        "x": 0,
-        "y": 0,
-        "w": 24,
-        "h": 32
-      },
-      "sourceSize": {
-        "w": 24,
-        "h": 32
-      }
-    },
-    "structure/ruler-hover/night": {
-      "frame": {
-        "x": 428,
-        "y": 1,
-        "w": 24,
-        "h": 32
-      },
-      "rotated": false,
-      "trimmed": false,
-      "spriteSourceSize": {
-        "x": 0,
-        "y": 0,
-        "w": 24,
-        "h": 32
-      },
-      "sourceSize": {
-        "w": 24,
-        "h": 32
-      }
-    },
-    "structure/ruler/day": {
-      "frame": {
-        "x": 453,
-        "y": 1,
-        "w": 24,
-        "h": 32
-      },
-      "rotated": false,
-      "trimmed": false,
-      "spriteSourceSize": {
-        "x": 0,
-        "y": 0,
-        "w": 24,
-        "h": 32
-      },
-      "sourceSize": {
-        "w": 24,
-        "h": 32
-      }
-    },
-    "structure/ruler/night": {
-      "frame": {
-        "x": 478,
-        "y": 1,
-        "w": 24,
-        "h": 32
-      },
-      "rotated": false,
-      "trimmed": false,
-      "spriteSourceSize": {
-        "x": 0,
-        "y": 0,
-        "w": 24,
-        "h": 32
-      },
-      "sourceSize": {
-        "w": 24,
-        "h": 32
       }
     },
     "structure/sky-lobby-column/day": {
       "frame": {
-        "x": 575,
+        "x": 475,
         "y": 1,
         "w": 8,
         "h": 32
@@ -902,7 +822,7 @@
     },
     "structure/sky-lobby-column/night": {
       "frame": {
-        "x": 584,
+        "x": 484,
         "y": 1,
         "w": 8,
         "h": 32
@@ -922,7 +842,7 @@
     },
     "structure/sky-lobby/day": {
       "frame": {
-        "x": 593,
+        "x": 493,
         "y": 1,
         "w": 8,
         "h": 32
@@ -942,7 +862,87 @@
     },
     "structure/sky-lobby/night": {
       "frame": {
-        "x": 602,
+        "x": 502,
+        "y": 1,
+        "w": 8,
+        "h": 32
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 8,
+        "h": 32
+      },
+      "sourceSize": {
+        "w": 8,
+        "h": 32
+      }
+    },
+    "structure/subway-tunnel-edge-left/day": {
+      "frame": {
+        "x": 511,
+        "y": 1,
+        "w": 8,
+        "h": 32
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 8,
+        "h": 32
+      },
+      "sourceSize": {
+        "w": 8,
+        "h": 32
+      }
+    },
+    "structure/subway-tunnel-edge-left/night": {
+      "frame": {
+        "x": 520,
+        "y": 1,
+        "w": 8,
+        "h": 32
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 8,
+        "h": 32
+      },
+      "sourceSize": {
+        "w": 8,
+        "h": 32
+      }
+    },
+    "structure/subway-tunnel-edge-right/day": {
+      "frame": {
+        "x": 529,
+        "y": 1,
+        "w": 8,
+        "h": 32
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 8,
+        "h": 32
+      },
+      "sourceSize": {
+        "w": 8,
+        "h": 32
+      }
+    },
+    "structure/subway-tunnel-edge-right/night": {
+      "frame": {
+        "x": 538,
         "y": 1,
         "w": 8,
         "h": 32
@@ -962,7 +962,7 @@
     },
     "structure/subway-tunnel-lamp/day": {
       "frame": {
-        "x": 611,
+        "x": 547,
         "y": 1,
         "w": 8,
         "h": 32
@@ -982,7 +982,7 @@
     },
     "structure/subway-tunnel-lamp/night": {
       "frame": {
-        "x": 620,
+        "x": 556,
         "y": 1,
         "w": 8,
         "h": 32
@@ -1002,7 +1002,7 @@
     },
     "structure/subway-tunnel/day": {
       "frame": {
-        "x": 629,
+        "x": 565,
         "y": 1,
         "w": 8,
         "h": 32
@@ -1022,7 +1022,7 @@
     },
     "structure/subway-tunnel/night": {
       "frame": {
-        "x": 638,
+        "x": 574,
         "y": 1,
         "w": 8,
         "h": 32
@@ -1048,7 +1048,7 @@
     "image": "structure.png",
     "format": "RGBA8888",
     "size": {
-      "w": 713,
+      "w": 649,
       "h": 98
     },
     "scale": 1

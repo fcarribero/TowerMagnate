@@ -300,28 +300,20 @@ function subwayTunnel({ lamp }) {
   return tile;
 }
 
-const RULER_WIDTH = 24;
-const PLATE = { left: 2, top: 10, width: 18, height: 11 };
+const PORTAL_WIDTH = 3;
 
-// One level of the level ruler on the left edge of the view. The client writes
-// the label ("12", "S3") in ink on the plate; `hovered` lights the plate up.
-function ruler({ hovered }) {
-  const tile = new PixelCanvas(RULER_WIDTH, floorHeight);
+// The end of the S10 tunnel where it meets the soil: a concrete bulkhead on the
+// outer side, the lining and track running into it.
+function subwayTunnelEdge(side) {
+  const tile = subwayTunnel({ lamp: false });
   const slabTop = slabTopOf(tile);
-  tile.fillRect(0, 0, RULER_WIDTH, floorHeight, 'charcoal');
-  tile.vline(0, 0, floorHeight, 'slate');
-  tile.vline(RULER_WIDTH - 1, 0, floorHeight, 'ink');
-  tile.hline(RULER_WIDTH - 6, slabTop, 5, 'silver');
-  tile.hline(RULER_WIDTH - 3, Math.floor(slabTop / 2), 2, 'gray');
-  tile.hline(0, floorHeight - 1, RULER_WIDTH - 1, 'ink');
-
-  const { left, top, width, height } = PLATE;
-  tile.fillRect(left, top, width, height, hovered ? 'lamp' : 'cloud');
-  tile.hline(left, top, width, hovered ? 'lamp-glow' : 'white');
-  tile.vline(left, top, height, hovered ? 'lamp-glow' : 'white');
-  tile.hline(left, top + height - 1, width, hovered ? 'dusk' : 'silver');
-  tile.vline(left + width - 1, top, height, hovered ? 'dusk' : 'silver');
-  tile.strokeRect(left - 1, top - 1, width + 2, height + 2, 'ink');
+  const ramp = ['concrete-light', 'concrete', 'concrete-dark'];
+  const outerX = side === 'left' ? 0 : tileWidth - PORTAL_WIDTH;
+  ramp.forEach((color, step) => tile.vline(outerX + step, 0, slabTop, color));
+  const innerX = side === 'left' ? PORTAL_WIDTH : tileWidth - PORTAL_WIDTH - 1;
+  tile.vline(innerX, 4, slabTop - 4, 'charcoal');
+  tile.set(outerX + 1, 8, 'concrete-dark');
+  tile.set(outerX + 1, 18, 'concrete-dark');
   return tile;
 }
 
@@ -373,8 +365,8 @@ const subjects = [
   { subject: 'bedrock', draw: bedrock },
   { subject: 'subway-tunnel', draw: () => subwayTunnel({ lamp: false }) },
   { subject: 'subway-tunnel-lamp', draw: () => subwayTunnel({ lamp: true }) },
-  { subject: 'ruler', draw: () => ruler({ hovered: false }) },
-  { subject: 'ruler-hover', draw: () => ruler({ hovered: true }) },
+  { subject: 'subway-tunnel-edge-left', draw: () => subwayTunnelEdge('left') },
+  { subject: 'subway-tunnel-edge-right', draw: () => subwayTunnelEdge('right') },
   {
     subject: 'edge-left',
     draw: () => wallEdge(['ink', 'concrete-light', 'concrete'], 'concrete-dark'),

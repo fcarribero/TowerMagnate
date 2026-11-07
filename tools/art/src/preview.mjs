@@ -22,6 +22,18 @@ const SOIL_BY_BASEMENT = [
   'bedrock',
 ];
 const GAP = 4;
+const RULER_PLATE = { x: 1, y: 9 };
+const RULER_TILES = 3;
+
+function tunnelSubject(tile) {
+  if (tile === RULER_TILES) {
+    return 'subway-tunnel-edge-left';
+  }
+  if (tile === SCENE_TILES - 1) {
+    return 'subway-tunnel-edge-right';
+  }
+  return tile % TUNNEL_LAMP_EVERY === 2 ? 'subway-tunnel-lamp' : 'subway-tunnel';
+}
 
 function tileAcross(scene, sprite, top) {
   for (let x = 0; x < scene.width; x += sprite.width) {
@@ -67,9 +79,8 @@ export function drawStructureScene(sprites, time) {
   });
   const tunnelY = groundY + SOIL_BY_BASEMENT.length * floor;
   for (let tile = 0; tile < SCENE_TILES; tile++) {
-    const lamp = tile % TUNNEL_LAMP_EVERY === 2 ? '-lamp' : '';
     scene.stamp(
-      sprite(`structure/subway-tunnel${lamp}/${unitTime}`),
+      sprite(`structure/${tunnelSubject(tile)}/${unitTime}`),
       tile * metrics.tileWidth,
       tunnelY,
     );
@@ -100,7 +111,8 @@ export function drawStructureScene(sprites, time) {
   const hoveredRow = 6;
   for (let row = 0; row < LEVEL_ROWS; row++) {
     const hover = row === hoveredRow ? '-hover' : '';
-    scene.stamp(sprite(`structure/ruler${hover}/${unitTime}`), 0, row * floor);
+    scene.stamp(sprite('ui/ruler-background'), 0, row * floor);
+    scene.stamp(sprite(`ui/ruler-plate${hover}`), RULER_PLATE.x, row * floor + RULER_PLATE.y);
   }
   return scene;
 }
@@ -116,6 +128,51 @@ export function drawStructurePreview(sprites) {
   for (const scene of scenes) {
     sheet.stamp(scene, left, GAP);
     left += scene.width + GAP;
+  }
+  return sheet;
+}
+
+const SHAFT_LEVELS = 3;
+const CAR_INSET_X = 4;
+const CAR_TOP_IN_FLOOR =
+  metrics.floorHeight - metrics.slabHeight - metrics.elevatorCar.standard.height;
+
+// One shaft per elevator type on bare floors: the car waits with its doors
+// closed on the top level and open on the bottom level.
+export function drawTransportPreview(sprites) {
+  const floor = metrics.floorHeight;
+  const types = ['standard', 'service', 'express'];
+  const shafts = types.map((type) => ({
+    type,
+    body: sprites[`transport/${type}-shaft/body`],
+    top: sprites[`transport/${type}-shaft/top`],
+    bottom: sprites[`transport/${type}-shaft/bottom`],
+  }));
+  const capHeight = shafts[0].top.height;
+  const pitHeight = shafts[0].bottom.height;
+  const width = shafts.reduce(
+    (total, shaft) => total + shaft.body.width + 2 * metrics.tileWidth,
+    0,
+  );
+  const height = capHeight + SHAFT_LEVELS * floor + pitHeight;
+  const sheet = new PixelCanvas(width, height);
+  sheet.fillRect(0, 0, width, height, 'ink');
+  for (let level = 0; level < SHAFT_LEVELS; level++) {
+    tileAcross(sheet, sprites['structure/floor/day'], capHeight + level * floor);
+  }
+
+  let left = metrics.tileWidth;
+  for (const { type, body, top, bottom } of shafts) {
+    sheet.stamp(top, left, 0);
+    for (let level = 0; level < SHAFT_LEVELS; level++) {
+      sheet.stamp(body, left, capHeight + level * floor);
+    }
+    sheet.stamp(bottom, left, capHeight + SHAFT_LEVELS * floor);
+    const carX = left + CAR_INSET_X;
+    sheet.stamp(sprites[`transport/${type}-car/closed`], carX, capHeight + CAR_TOP_IN_FLOOR);
+    const lastLevelTop = capHeight + (SHAFT_LEVELS - 1) * floor;
+    sheet.stamp(sprites[`transport/${type}-car/open`], carX, lastLevelTop + CAR_TOP_IN_FLOOR);
+    left += body.width + 2 * metrics.tileWidth;
   }
   return sheet;
 }
