@@ -40,3 +40,13 @@ body,
   border: 2px solid;
   border-color: #f4f1e8 #4f4e5c #4f4e5c #f4f1e8;
 }
+
+.render-stats {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  padding: 2px 6px;
+  color: #f4f1e8;
+  background: #141218;
+  pointer-events: none;
+}

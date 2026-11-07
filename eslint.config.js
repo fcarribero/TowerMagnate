@@ -61,5 +61,23 @@ export default tseslint.config(
       ],
     },
   },
+  {
+    files: ['packages/engine/**/*.test.ts'],
+    rules: {
+      'no-restricted-properties': [
+        'error',
+        {
+          object: 'Math',
+          property: 'random',
+          message: 'Engine tests must be reproducible; use the seeded RNG.',
+        },
+        {
+          object: 'Date',
+          property: 'now',
+          message: 'Use performance.now() to time engine tests.',
+        },
+      ],
+    },
+  },
   prettier,
 );
