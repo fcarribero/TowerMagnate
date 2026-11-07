@@ -3,10 +3,21 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
   "exports": {
     ".": "./src/index.ts"
   },
   "dependencies": {
-    "@tower-magnate/shared": "workspace:*"
+    "@tower-magnate/shared": "workspace:*",
+    "pixi.js": "^8.22.0",
+    "preact": "^10.29.8"
+  },
+  "devDependencies": {
+    "@preact/preset-vite": "^2.10.6",
+    "vite": "^7.3.7"
   }
 }
