@@ -1,8 +1,9 @@
-import { useEffect, useRef } from 'preact/hooks';
-import { mountStage, type Stage } from '../render/stage';
+import { useEffect, useRef, useState } from 'preact/hooks';
+import { mountStage, type RenderStats, type Stage } from '../render/stage';
 
 export function StageHost() {
   const hostRef = useRef<HTMLDivElement>(null);
+  const [stats, setStats] = useState<RenderStats | null>(null);
 
   useEffect(() => {
     const host = hostRef.current;
@@ -12,7 +13,7 @@ export function StageHost() {
     let stage: Stage | undefined;
     let unmounted = false;
 
-    void mountStage(host).then((mounted) => {
+    void mountStage(host, { onStats: setStats }).then((mounted) => {
       if (unmounted) {
         mounted.destroy();
       } else {
@@ -26,5 +27,14 @@ export function StageHost() {
     };
   }, []);
 
-  return <div class="stage-host" ref={hostRef} />;
+  return (
+    <>
+      <div class="stage-host" ref={hostRef} />
+      {stats && (
+        <div class="render-stats">
+          {stats.fps} FPS · Zoom {stats.zoom}x · Pisos dibujados: {stats.floorsDrawn}
+        </div>
+      )}
+    </>
+  );
 }
