@@ -221,7 +221,7 @@ export interface ElevatorBand {
 }
 ```
 
-`renameUnit` and `renamePerson` store `normalizeName(name)` from `shared`: whitespace runs become one space, control characters are dropped, the result is trimmed and cut to 24 characters (`MAX_NAME_LENGTH`, counted as characters, not UTF-16 units). A blank name stores `null`, which shows the default name again. Renaming costs nothing. An unknown unit or person id gives `UNKNOWN_ENTITY`. `answerEvent` choices are defined per event in TM-15; for now `'pay' | 'refuse'` for the bomb and `'helicopter' | 'burn'` for fire.
+`renameUnit` and `renamePerson` store `normalizeName(name)` from `shared`: whitespace runs become one space, control characters are dropped, the result is trimmed and cut to 24 characters (`MAX_NAME_LENGTH`, counted as characters, not UTF-16 units). A blank name stores `null`, which shows the default name again. Renaming costs nothing. An unknown unit or person id gives `UNKNOWN_ENTITY`. `answerEvent` choices are defined in the events spec (TM-15, `docs/design/events.md` section 3): `'pay' | 'refuse'` for the bomb and `'helicopter' | 'burn'` for fire.
 
 Commands from the socket are first parsed with the zod schema in `shared`. A message that fails parsing never reaches the engine and gets `INVALID_COMMAND`. The engine still checks every rule of TM-8, since a schema cannot know the tower.
 
