@@ -24,15 +24,23 @@ export class FakeAudioContext {
   }
 
   createBufferSource(): AudioBufferSourceNode {
-    const sound: PlayedSound = { loop: false, volume: 1, stopped: false };
+    let gain: GainNode | null = null;
+    const sound: PlayedSound = {
+      loop: false,
+      // Read live, so later gain changes on a playing sound show up.
+      get volume() {
+        return gain?.gain.value ?? 1;
+      },
+      stopped: false,
+    };
     const played = this.played;
     return {
       buffer: null,
       set loop(value: boolean) {
         sound.loop = value;
       },
-      connect: (gain: GainNode) => {
-        sound.volume = gain.gain.value;
+      connect: (node: GainNode) => {
+        gain = node;
       },
       start: () => played.push(sound),
       stop: () => {
