@@ -10,8 +10,8 @@ export interface RecordedSession {
   last: Snapshot;
 }
 
-const visitor: PersonView = { ...walker, id: 'p2', kind: 'visitor', x: 40, level: 1 };
-const shop: UnitView = { ...office, id: 'u30', type: 'shop', x: 30, level: 1 };
+const customer: PersonView = { ...walker, id: 'p2', kind: 'customer', x: 40, level: 1 };
+const fastFood: UnitView = { ...office, id: 'u30', type: 'fast-food', x: 30, level: 1 };
 
 /** The tower as the server would see it after `elapsed` steps of a small scripted session. */
 function towerAt(elapsed: number): Snapshot {
@@ -19,9 +19,9 @@ function towerAt(elapsed: number): Snapshot {
   const carPosition = carMoving ? Math.min(1 + elapsed * 0.1, 5) : 3;
   const people = [{ ...walker, x: walker.x + Math.floor(elapsed / 3) }];
   if (elapsed >= 10 && elapsed < 40) {
-    people.push(visitor);
+    people.push(customer);
   }
-  const units = elapsed >= 15 && elapsed < 50 ? [office, shop] : [office];
+  const units = elapsed >= 15 && elapsed < 50 ? [office, fastFood] : [office];
   const levels: Snapshot['grid']['levels'] = { ...startSnapshot.grid.levels };
   if (elapsed >= 25) {
     levels['2'] = { structure: 'f'.repeat(375) };
