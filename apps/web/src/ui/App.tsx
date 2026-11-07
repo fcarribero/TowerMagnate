@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from 'preact/hooks';
 import { useSfx } from '../audio/useSfx';
 import { pageTitle } from '../index';
 import { TowerContentStore } from '../model/towerContent';
+import { useGameConnection } from '../net/useGameConnection';
 import { placeholderTowerContent } from '../render/placeholderTower';
 import type { Stage } from '../render/stage';
 import { isMapToggleKey } from './keys';
@@ -20,6 +21,7 @@ export interface AppProps {
 }
 
 export function App({ onLogout }: AppProps) {
+  const { status: connectionStatus } = useGameConnection();
   const content = useMemo(() => {
     const store = new TowerContentStore();
     store.applySnapshot(placeholderTowerContent());
@@ -59,7 +61,7 @@ export function App({ onLogout }: AppProps) {
       <div class="ui-layer" onClick={onUiClick}>
         <div class="status-panel">
           <GameMenu />
-          {t('ui.serverOffline')}
+          {connectionStatus !== 'live' && t('ui.serverOffline')}
           <button type="button" class="status-button" onClick={toggleMap}>
             Mapa
           </button>

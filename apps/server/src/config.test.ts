@@ -27,6 +27,11 @@ describe('readConfig', () => {
     });
   });
 
+  it('reads the web build folder when it is set', () => {
+    expect(readConfig({ DATABASE_URL: databaseUrl, WEB_DIR: '/app/web' }).webDir).toBe('/app/web');
+    expect(readConfig({ DATABASE_URL: databaseUrl, WEB_DIR: '' }).webDir).toBeUndefined();
+  });
+
   it('accepts port 0 so the system picks a free port', () => {
     expect(readConfig({ PORT: '0', DATABASE_URL: databaseUrl }).port).toBe(0);
   });

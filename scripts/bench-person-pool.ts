@@ -35,11 +35,29 @@ function towerWithPeople(): TowerState {
   const offices = Math.floor(PEOPLE / 6);
   for (let index = 1; index <= offices; index++) {
     const id = `u${index}`;
-    state.units[id] = { id, type: 'office', x: 0, level: 2, name: null };
+    state.units[id] = {
+      id,
+      type: 'office',
+      x: 0,
+      level: 2,
+      name: null,
+      priceLevel: 'normal',
+      paid: 0,
+      placedAtStep: 0,
+    };
     addPeopleForUnit(state, id);
   }
   const roomId = `u${offices + 1}`;
-  state.units[roomId] = { id: roomId, type: 'double-room', x: 0, level: 3, name: null };
+  state.units[roomId] = {
+    id: roomId,
+    type: 'double-room',
+    x: 0,
+    level: 3,
+    name: null,
+    priceLevel: 'normal',
+    paid: 0,
+    placedAtStep: 0,
+  };
   addPeopleForUnit(state, roomId);
   return state;
 }
