@@ -1,3 +1,4 @@
+import type { Ledger } from './ledger';
 import type { Level } from './levels';
 
 /** Id of a placed unit, transport or shaft, with a type prefix: `u12`, `t3`, `s4`. */
@@ -55,7 +56,10 @@ export interface TowerState {
   step: number;
   rng: RngState;
   nextId: number;
+  /** Whole dollars, may be negative, never above MONEY_CAP. */
+  money: number;
   grid: GridState;
+  ledger: Ledger;
 }
 
 export type Command =
