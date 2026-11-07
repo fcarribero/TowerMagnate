@@ -119,6 +119,35 @@ describe('SfxPlayer', () => {
     expect(warn).toHaveBeenCalledWith(expect.stringContaining('construction'));
   });
 
+  it('scales every effect by the master gain', async () => {
+    const { player, context } = setup();
+    await player.setManifest(manifest);
+    await player.unlock();
+    player.setMasterGain(0.5);
+    player.playSfx('construction');
+    expect(context.played[0]?.volume).toBeCloseTo(0.4);
+  });
+
+  it('plays no one-shot effect at master gain 0', async () => {
+    const { player, context } = setup();
+    await player.setManifest(manifest);
+    await player.unlock();
+    player.setMasterGain(0);
+    player.playSfx('construction');
+    expect(context.played).toHaveLength(0);
+  });
+
+  it('applies a new master gain to loops already playing', async () => {
+    const { player, context } = setup();
+    await player.setManifest(manifest);
+    await player.unlock();
+    player.playSfx('lobby-ambience');
+    player.setMasterGain(0);
+    expect(context.played[0]?.volume).toBe(0);
+    player.setMasterGain(0.6);
+    expect(context.played[0]?.volume).toBeCloseTo(0.3);
+  });
+
   it('finds the id for a trigger', async () => {
     const { player } = setup();
     await player.setManifest(manifest);

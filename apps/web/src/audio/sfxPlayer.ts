@@ -40,6 +40,9 @@ export class SfxPlayer {
   private readonly buffers = new Map<string, AudioBuffer>();
   private readonly warnedIds = new Set<string>();
   private context: AudioContext | null = null;
+  private master = 1;
+  /** Gain nodes of looping effects still playing, with the effect's own volume. */
+  private readonly loopGains = new Map<GainNode, number>();
 
   constructor(options: SfxPlayerOptions) {
     this.baseUrl = options.baseUrl;
@@ -55,6 +58,14 @@ export class SfxPlayer {
 
   get ready(): boolean {
     return this.effects !== null;
+  }
+
+  /** Scales every effect, including loops already playing. 0 plays nothing. */
+  setMasterGain(gain: number): void {
+    this.master = Math.min(1, Math.max(0, gain));
+    for (const [node, volume] of this.loopGains) {
+      node.gain.value = volume * this.master;
+    }
   }
 
   idForTrigger(trigger: string): string | undefined {
@@ -100,6 +111,9 @@ export class SfxPlayer {
       return SILENT;
     }
     const buffer = this.buffers.get(id);
+    if (this.master === 0 && !effect.loop) {
+      return SILENT;
+    }
     if (this.context === null || buffer === undefined) {
       return SILENT;
     }
@@ -111,12 +125,16 @@ export class SfxPlayer {
     source.buffer = buffer;
     source.loop = effect.loop;
     const gain = context.createGain();
-    gain.gain.value = effect.volume;
+    gain.gain.value = effect.volume * this.master;
     source.connect(gain);
     gain.connect(context.destination);
     source.start();
+    if (effect.loop) {
+      this.loopGains.set(gain, effect.volume);
+    }
     return {
       stop: () => {
+        this.loopGains.delete(gain);
         source.stop();
         source.disconnect();
       },

@@ -2,10 +2,11 @@ import { credentialsSchema, type AuthErrorBody, type Credentials } from '@tower-
 import type { FastifyPluginAsync, FastifyReply, FastifyRequest } from 'fastify';
 import type pg from 'pg';
 import { hashPassword, verifyAgainstUnknownUser, verifyPassword } from './passwords';
-import { createSession, deleteSession, findSessionUser } from './sessions';
+import { SESSION_COOKIE, sessionUserOf } from './session-user';
+import { createSession, deleteSession } from './sessions';
 import { findUserByUsername, insertUser, UsernameTakenError } from './users';
 
-export const SESSION_COOKIE = 'tm_session';
+export { SESSION_COOKIE };
 // Browsers cap cookie lifetime at 400 days. The session row itself never expires.
 const SESSION_COOKIE_MAX_AGE_SECONDS = 400 * 24 * 60 * 60;
 
@@ -79,8 +80,7 @@ export const authRoutes: FastifyPluginAsync<AuthRoutesOptions> = async (app, opt
   });
 
   app.get('/api/auth/me', async (request, reply) => {
-    const token = request.cookies[SESSION_COOKIE];
-    const user = token ? await findSessionUser(pool, token) : undefined;
+    const user = await sessionUserOf(pool, request);
     if (!user) {
       return sendError(reply, 401, MESSAGES.notLoggedIn);
     }

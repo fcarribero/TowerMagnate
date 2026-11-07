@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { Texture } from 'pixi.js';
 import { describe, expect, it } from 'vitest';
 import { ATLAS_NAMES, atlasUrl, loadSprites, type LoadedSheet } from './atlasLoader';
+import { SPRITE_IDS } from './atlasManifest';
 import { skySpriteId } from './skyRows';
 import { SpriteRegistry } from './spriteRegistry';
 
@@ -39,13 +40,18 @@ describe('atlasUrl', () => {
   });
 });
 
-describe('ATLAS_NAMES', () => {
+describe('atlas manifest', () => {
   it('lists every atlas the art build wrote', () => {
     const built = readdirSync(atlasesDir)
       .filter((file) => file.endsWith('.json'))
       .map((file) => file.replace('.json', ''))
       .sort();
     expect([...ATLAS_NAMES].sort()).toEqual(built);
+  });
+
+  it('names exactly the sprite ids in the committed atlases', () => {
+    const committed = ATLAS_NAMES.flatMap(committedFrameIds).sort();
+    expect([...SPRITE_IDS].sort()).toEqual(committed);
   });
 });
 

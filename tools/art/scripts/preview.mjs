@@ -11,6 +11,7 @@ import {
   drawTintSheet,
   drawTransportPreview,
   drawUnitSheet,
+  drawWalkwayPreview,
 } from '../src/preview.mjs';
 
 const ZOOM = 2;
@@ -55,3 +56,4 @@ writePreview(
 );
 writePreview('people-tint-1x.png', drawTintSheet(sprites, PERSON_TYPES), 1);
 writePreview('people-tint-preview.png', drawTintSheet(sprites, PERSON_TYPES), TRANSPORT_ZOOM);
+writePreview('walkway-preview.png', drawWalkwayPreview(sprites), TRANSPORT_ZOOM);

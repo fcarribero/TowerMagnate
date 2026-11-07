@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { deriveStackPorts } from './stack-env';
+import { deriveStackPorts, readStackProfiles } from './stack-env';
 
 describe('deriveStackPorts', () => {
   it('uses 4100 as the base when PORT_BASE is not set', () => {
@@ -28,5 +28,16 @@ describe('deriveStackPorts', () => {
 
   it('rejects a PORT_BASE that is not a number', () => {
     expect(() => deriveStackPorts({ PORT_BASE: 'abc' })).toThrow('PORT_BASE');
+  });
+});
+
+describe('readStackProfiles', () => {
+  it('runs the dev profile when COMPOSE_PROFILES is not set', () => {
+    expect(readStackProfiles({})).toBe('dev');
+    expect(readStackProfiles({ COMPOSE_PROFILES: '' })).toBe('dev');
+  });
+
+  it('keeps the profile that is set explicitly', () => {
+    expect(readStackProfiles({ COMPOSE_PROFILES: 'prod' })).toBe('prod');
   });
 });
