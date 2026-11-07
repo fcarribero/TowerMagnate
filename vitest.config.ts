@@ -7,7 +7,7 @@ export default defineConfig({
       'packages/*',
       'apps/*',
       'tools/*',
-      { test: { name: 'repo', include: ['tests/**/*.test.ts'] } },
+      { test: { name: 'repo', include: ['tests/**/*.test.ts', 'scripts/**/*.test.ts'] } },
     ],
   },
 });
