@@ -8,5 +8,6 @@ export * from './units';
 export * from './balance';
 export * from './levels';
 export * from './ledger';
+export * from './messages';
 export * from './auth';
 export * from './protocol';

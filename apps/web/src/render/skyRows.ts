@@ -1,4 +1,5 @@
 import { TilingSprite } from 'pixi.js';
+import type { SpriteId } from './atlasManifest';
 import { HIGHEST_LEVEL, WORLD_WIDTH, levelToIndex } from './levels';
 import { FLOOR_HEIGHT } from './metrics';
 import type { SpriteRegistry } from './spriteRegistry';
@@ -19,7 +20,7 @@ export function skyBandForLevel(level: number): SkyBand {
   return 'middle';
 }
 
-export function skySpriteId(level: number): string {
+export function skySpriteId(level: number): SpriteId {
   return `sky/day/${skyBandForLevel(level)}`;
 }
 
