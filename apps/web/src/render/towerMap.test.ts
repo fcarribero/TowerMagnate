@@ -16,7 +16,9 @@ import {
 
 function colorAt(pixels: Uint8ClampedArray, x: number, y: number): number {
   const offset = (y * MAP_WIDTH + x) * 4;
-  return ((pixels[offset] ?? 0) << 16) | ((pixels[offset + 1] ?? 0) << 8) | (pixels[offset + 2] ?? 0);
+  return (
+    ((pixels[offset] ?? 0) << 16) | ((pixels[offset + 1] ?? 0) << 8) | (pixels[offset + 2] ?? 0)
+  );
 }
 
 function rowOf(level: number): number {

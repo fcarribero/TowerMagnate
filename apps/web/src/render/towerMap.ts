@@ -71,7 +71,7 @@ export function mapRowTop(index: number): number {
 }
 
 /** The whole site as RGBA pixels, MAP_WIDTH x MAP_HEIGHT. People are not drawn. */
-export function paintTowerMap(content: TowerContent): Uint8ClampedArray {
+export function paintTowerMap(content: TowerContent): Uint8ClampedArray<ArrayBuffer> {
   const pixels = new Uint8ClampedArray(MAP_WIDTH * MAP_HEIGHT * 4);
   for (let index = 0; index < LEVEL_COUNT; index += 1) {
     const ground = index < levelToIndex(1) ? MAP_COLORS.soil : MAP_COLORS.sky;
