@@ -1,5 +1,7 @@
 import { PixelCanvas } from '../canvas.mjs';
 import { metrics } from '../metrics.mjs';
+import { toNight } from '../night.mjs';
+import { drawEscalator, drawStairs, ESCALATOR_FRAMES } from '../transport/walkways.mjs';
 
 const { tileWidth, floorHeight, elevatorCar } = metrics;
 const SHAFT_TILES = { standard: 4, service: 4, express: 6 };
@@ -221,17 +223,93 @@ function car(type, doors) {
   return canvas;
 }
 
+const JAMB_LEFT = WALL_WIDTH;
+const HEADER_HEIGHT = 2;
+
+// The hall door frame around the car on every level where the elevator stops.
+// It is drawn over the shaft body and under the car; the rest stays clear.
+function landingFrame(type) {
+  const { light, base, dark } = STYLES[type].frame;
+  const frame = new PixelCanvas(shaftWidth(type), floorHeight);
+  const jambRight = frame.width - WALL_WIDTH - 2;
+  const jambHeight = BEAM_ROW;
+  frame.hline(JAMB_LEFT, 0, frame.width - 2 * WALL_WIDTH, light);
+  frame.hline(JAMB_LEFT, 1, frame.width - 2 * WALL_WIDTH, base);
+  frame.vline(JAMB_LEFT, 0, jambHeight, light);
+  frame.vline(JAMB_LEFT + 1, HEADER_HEIGHT, jambHeight - HEADER_HEIGHT, base);
+  frame.vline(jambRight, HEADER_HEIGHT, jambHeight - HEADER_HEIGHT, base);
+  frame.vline(jambRight + 1, 1, jambHeight - 1, dark);
+  const middle = frame.width / 2;
+  frame.set(middle - 1, 0, 'lamp');
+  frame.set(middle, 0, 'lamp');
+  return frame;
+}
+
+export const CALL_PANEL_TOP = 12;
+const CALL_LIGHTS = {
+  idle: { up: false, down: false },
+  up: { up: true, down: false },
+  down: { up: false, down: true },
+  both: { up: true, down: true },
+};
+
+// A 3 x 7 call panel with an up and a down button, placed at the right edge of
+// the shaft at row CALL_PANEL_TOP. A lit button means a call is waiting.
+function callButtons({ up, down }) {
+  const panel = new PixelCanvas(3, 7);
+  panel.fillRect(0, 0, 3, 7, 'gray');
+  panel.strokeRect(0, 0, 3, 7, 'slate');
+  panel.set(1, 2, up ? 'lamp-glow' : 'charcoal');
+  panel.set(1, 4, down ? 'lamp' : 'charcoal');
+  return panel;
+}
+
 const TYPES = ['standard', 'service', 'express'];
+const TIMES = ['day', 'night'];
+
+function frameNumber(frame) {
+  return String(frame + 1).padStart(2, '0');
+}
+
+function byTime(dayCanvas, time) {
+  return time === 'day' ? dayCanvas : toNight(dayCanvas);
+}
+
+function elevatorSprites() {
+  return TYPES.flatMap((type) => [
+    { id: `transport/${type}-shaft/body`, canvas: shaftBody(type) },
+    { id: `transport/${type}-shaft/top`, canvas: shaftTop(type) },
+    { id: `transport/${type}-shaft/bottom`, canvas: shaftBottom(type) },
+    { id: `transport/${type}-shaft/landing`, canvas: landingFrame(type) },
+    { id: `transport/${type}-car/open`, canvas: car(type, 'open') },
+    { id: `transport/${type}-car/closed`, canvas: car(type, 'closed') },
+  ]);
+}
+
+function callButtonSprites() {
+  return Object.entries(CALL_LIGHTS).map(([state, lights]) => ({
+    id: `transport/call-button/${state}`,
+    canvas: callButtons(lights),
+  }));
+}
+
+function walkwaySprites() {
+  const stairs = drawStairs();
+  const escalatorFrames = Array.from({ length: ESCALATOR_FRAMES }, (_, frame) =>
+    drawEscalator(frame),
+  );
+  return TIMES.flatMap((time) => [
+    { id: `transport/stairs/${time}`, canvas: byTime(stairs, time) },
+    ...escalatorFrames.map((canvas, frame) => ({
+      id: `transport/escalator/${time}_${frameNumber(frame)}`,
+      canvas: byTime(canvas, time),
+    })),
+  ]);
+}
 
 export const transportGroup = {
   name: 'transport',
   draw() {
-    return TYPES.flatMap((type) => [
-      { id: `transport/${type}-shaft/body`, canvas: shaftBody(type) },
-      { id: `transport/${type}-shaft/top`, canvas: shaftTop(type) },
-      { id: `transport/${type}-shaft/bottom`, canvas: shaftBottom(type) },
-      { id: `transport/${type}-car/open`, canvas: car(type, 'open') },
-      { id: `transport/${type}-car/closed`, canvas: car(type, 'closed') },
-    ]);
+    return [...elevatorSprites(), ...callButtonSprites(), ...walkwaySprites()];
   },
 };
