@@ -935,8 +935,14 @@ Line format `{weekday abbr} {HH:MM}  {text}`. "Alert" marks the red kind of 8.1.
 | `news.upkeepNegative` | El mantenimiento dejó la caja en rojo. No se puede construir hasta recuperar. | yes |
 | `news.starsUp` | La torre llegó a {n} estrellas. | |
 | `news.towerRank` | ¡Hubo boda en la catedral! La torre alcanzó el rango Torre. | |
-| `news.starBlockedParking` | Alguien no consiguió cochera. Hoy la torre no puede subir de estrellas. | yes |
-| `news.starBlockedMedical` | Alguien no pudo ir al centro médico. Hoy la torre no puede subir de estrellas. | yes |
+| `news.starBlockedSecurity` | La torre no subió de estrellas: falta una oficina de seguridad. | yes |
+| `news.starBlockedVip` | La torre no subió de estrellas: falta la aprobación del VIP. | yes |
+| `news.starBlockedSuites` | La torre no subió de estrellas: hacen falta 2 suites. | yes |
+| `news.starBlockedRecycling` | La torre no subió de estrellas: hace falta un centro de reciclaje cada 2.500 personas. | yes |
+| `news.starBlockedMedical` | La torre no subió de estrellas: alguien no pudo ir al centro médico desde la última revisión. | yes |
+| `news.starBlockedParking` | La torre no subió de estrellas: alguien no consiguió cochera desde la última revisión. | yes |
+| `news.starBlockedSubway` | La torre no subió de estrellas: falta la estación de subte. | yes |
+| `news.weddingFailed` | No llegaron todos los invitados a la boda antes de las 12:30. | |
 | `news.bombThreat` | Amenaza de bomba en la torre. | yes |
 | `news.bombPaid` | Se pagó el rescate. La amenaza terminó. | |
 | `news.bombFound` | Seguridad encontró la bomba y la desactivó. | |
@@ -958,11 +964,11 @@ Line format `{weekday abbr} {HH:MM}  {text}`. "Alert" marks the red kind of 8.1.
 |---|---|
 | `stars.req.2` | Población de 300. |
 | `stars.req.3` | Población de 1.000 y al menos una oficina de seguridad. |
-| `stars.req.4` | Población de 5.000, visita del VIP aprobada, suites de hotel, y reciclaje y centro médico suficientes. |
-| `stars.req.5` | Población de 10.000, estación de subte, y centro médico y reciclaje suficientes. |
+| `stars.req.4` | Población de 5.000, visita del VIP aprobada, 2 suites, un centro de reciclaje cada 2.500 personas, y nadie sin centro médico ni cochera desde la última revisión. |
+| `stars.req.5` | Población de 10.000, estación de subte, un centro de reciclaje cada 2.500 personas, y nadie sin centro médico ni cochera desde la última revisión. |
 | `stars.req.tower` | Población de 15.000, catedral construida y una boda completa un sábado o domingo antes de las 12:30. |
 
-These repeat the GDD table. If TM-14 (stars) changes a requirement, it updates this table.
+These follow the GDD table with the numbers from `docs/design/stars.md` (TM-14). A change to a requirement there updates this table.
 
 ### 13.11 Dialog texts
 
