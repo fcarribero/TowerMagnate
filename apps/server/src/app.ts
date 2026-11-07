@@ -1,10 +1,13 @@
+import cookie from '@fastify/cookie';
 import Fastify, { type FastifyInstance, type FastifyServerOptions } from 'fastify';
+import { authRoutes } from './auth/routes';
 import { createPool, pingDatabase } from './database';
 import { checkHealth } from './health';
 
 export interface AppOptions {
   version: string;
   databaseUrl: string;
+  secureCookies?: boolean;
   logger?: FastifyServerOptions['logger'];
 }
 
@@ -15,6 +18,9 @@ export function buildApp(options: AppOptions): FastifyInstance {
   app.addHook('onClose', async () => {
     await pool.end();
   });
+
+  app.register(cookie);
+  app.register(authRoutes, { pool, secureCookies: options.secureCookies ?? false });
 
   for (const path of ['/health', '/api/health']) {
     app.get(path, async (_request, reply) => {
