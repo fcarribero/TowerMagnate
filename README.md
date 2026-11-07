@@ -56,6 +56,7 @@ Copy `.env.example` to `.env` to change the project name, ports or database cred
 
 ```bash
 COMPOSE_PROJECT_NAME=tm-dev PORT_BASE=4190 pnpm stack up -d
-curl http://localhost:4191/health   # {"status":"ok","database":"ok"}
-pnpm stack down -v                  # remove containers and volumes
+curl http://localhost:4191/health       # {"status":"ok","version":"0.0.0","database":"ok"}
+curl http://localhost:4192/api/health   # same report, proxied by the web dev server
+pnpm stack down -v                      # remove containers and volumes
 ```
