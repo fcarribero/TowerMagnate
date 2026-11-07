@@ -1,4 +1,5 @@
 import type { ErrorCode } from './errors';
+import type { Ledger } from './ledger';
 import type { Level } from './levels';
 import type { UnitType } from './units';
 
@@ -72,7 +73,10 @@ export interface TowerState {
   rng: RngState;
   nextId: number;
   units: Record<UnitId, Unit>;
+  /** Whole dollars, may be negative, never above MONEY_CAP. */
+  money: number;
   grid: GridState;
+  ledger: Ledger;
 }
 
 export type Command =
