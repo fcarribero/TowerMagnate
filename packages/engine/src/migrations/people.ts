@@ -44,9 +44,7 @@ function readFollowed(raw: unknown, ids: number[]): number[] {
   return raw.slice();
 }
 
-/** Saves from before people existed load with an empty pool. */
 export function readPeople(raw: unknown): PersonPool {
-  if (raw === undefined) return createPersonPool();
   if (!isRecord(raw)) fail('must be a person pool');
   const { nextId, id } = readIds(raw);
   const pool: PersonPool = { ...createPersonPool(), nextId, id };

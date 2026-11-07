@@ -18,7 +18,7 @@ export { StateMigrationError } from './errors';
 type Migration = (raw: Record<string, unknown>) => Record<string, unknown>;
 
 /** MIGRATIONS[n] turns a version n+1 state into version n+2. */
-const MIGRATIONS: readonly Migration[] = [addUnitPurchaseRecord];
+const MIGRATIONS: readonly Migration[] = [addUnitPurchaseRecord, addPersonPool];
 
 /** Version 2 records each unit's price level, what was paid for it and when it was placed. */
 function addUnitPurchaseRecord(raw: Record<string, unknown>): Record<string, unknown> {
@@ -30,6 +30,25 @@ function addUnitPurchaseRecord(raw: Record<string, unknown>): Record<string, unk
     units[id] = isRecord(unit) ? { priceLevel: 'normal', paid: 0, placedAtStep: 0, ...unit } : unit;
   }
   return { ...raw, schemaVersion: 2, units };
+}
+
+const EMPTY_VERSION_3_PEOPLE = {
+  nextId: 1,
+  id: [],
+  kind: [],
+  homeUnit: [],
+  level: [],
+  column: [],
+  trip: [],
+  dueStep: [],
+  stress: [],
+  nameSeed: [],
+  followed: [],
+};
+
+/** Version 3 saves the person pool; older saves could only load without people. */
+function addPersonPool(raw: Record<string, unknown>): Record<string, unknown> {
+  return { people: EMPTY_VERSION_3_PEOPLE, ...raw, schemaVersion: 3 };
 }
 
 function isUint32(value: unknown): value is number {
