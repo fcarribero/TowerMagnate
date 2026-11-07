@@ -1,0 +1,186 @@
+import { useEffect, useState } from 'preact/hooks';
+import { isShortcutBlocked } from '../input/keyboard';
+import {
+  Button,
+  ListBox,
+  NumberInput,
+  RadioGroup,
+  Tabs,
+  TextField,
+  Window,
+  WindowLayer,
+  useWindowManager,
+  type OpenRequest,
+} from '../ui/kit';
+import { t } from '../ui/strings';
+
+const DEMO_WINDOWS: readonly (OpenRequest & { label: string })[] = [
+  { id: 'buttons', label: 'Botones', position: { x: 16, y: 16 } },
+  { id: 'fields', label: 'Campos', position: { x: 240, y: 16 } },
+  { id: 'tabs', label: 'Pestañas', position: { x: 16, y: 200 } },
+  { id: 'list', label: 'Lista', position: { x: 480, y: 16 } },
+  { id: 'decision', label: 'Decisión', position: { x: 300, y: 260 } },
+];
+
+const FLOORS = Array.from({ length: 12 }, (_, index) => ({
+  id: String(index + 1),
+  label: t('ui.levelFloor', { n: index + 1 }),
+}));
+
+type LobbyHeight = '1' | '2' | '3';
+
+let nextUnit = 1;
+
+function Launcher() {
+  const manager = useWindowManager();
+  const [zoom, setZoom] = useState(2);
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent): void => {
+      if (isShortcutBlocked(event)) {
+        return;
+      }
+      if (event.key === '+') {
+        setZoom((current) => Math.min(current + 1, 4));
+      } else if (event.key === '-') {
+        setZoom((current) => Math.max(current - 1, 1));
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, []);
+
+  const openUnit = (): void => {
+    const number = nextUnit++;
+    manager.open({
+      id: `unit:${number}`,
+      kind: 'unit',
+      position: { x: 120 + number * 16, y: 80 + number * 16 },
+    });
+  };
+
+  return (
+    <nav class="kit-demo__launcher" aria-label="UI kit">
+      {DEMO_WINDOWS.map(({ label, ...request }) => (
+        <Button key={request.id} onClick={() => manager.open(request)}>
+          {label}
+        </Button>
+      ))}
+      <Button onClick={openUnit}>Unidad nueva</Button>
+      <output class="kit-demo__zoom" aria-live="polite">
+        Zoom {zoom}x (+ / -)
+      </output>
+    </nav>
+  );
+}
+
+function DemoWindows() {
+  const manager = useWindowManager();
+  const [name, setName] = useState('');
+  const [rent, setRent] = useState(10);
+  const [height, setHeight] = useState<LobbyHeight>('1');
+  const [tab, setTab] = useState('week');
+  const [floor, setFloor] = useState<string | null>('1');
+  const [clicks, setClicks] = useState(0);
+
+  const unitWindows = manager.stack.windows.filter((window) => window.kind === 'unit');
+
+  return (
+    <>
+      <Window id="buttons" title="Botones" width={200}>
+        <p>Clics: {clicks}</p>
+        <div class="kit-demo__row">
+          <Button onClick={() => setClicks(clicks + 1)}>{t('ui.apply')}</Button>
+          <Button disabled>{t('ui.discard')}</Button>
+        </div>
+        <div class="kit-demo__row">
+          <Button onClick={() => manager.close('buttons')}>{t('ui.cancel')}</Button>
+          <Button isDefault onClick={() => manager.close('buttons')}>
+            {t('ui.accept')}
+          </Button>
+        </div>
+      </Window>
+
+      <Window id="fields" title="Campos" width={220}>
+        <TextField
+          id="demo-name"
+          label="Nombre"
+          value={name}
+          maxLength={24}
+          hint="Hasta 24 caracteres"
+          onChange={setName}
+        />
+        <NumberInput
+          id="demo-rent"
+          label="Alquiler (miles)"
+          value={rent}
+          min={0}
+          max={100}
+          onChange={setRent}
+        />
+        <RadioGroup<LobbyHeight>
+          name="demo-height"
+          label={t('ui.lobbyHeight')}
+          value={height}
+          onChange={setHeight}
+          options={[
+            { value: '1', label: '1' },
+            { value: '2', label: '2' },
+            { value: '3', label: '3', disabled: true },
+          ]}
+        />
+      </Window>
+
+      <Window id="tabs" title="Pestañas" width={240}>
+        <Tabs
+          id="demo-tabs"
+          label="Semanas"
+          selectedId={tab}
+          onSelect={setTab}
+          tabs={[
+            { id: 'week', label: 'Esta semana', content: <p>Ingresos $12.000</p> },
+            { id: 'last', label: 'Semana anterior', content: <p>Ingresos $9.500</p> },
+          ]}
+        />
+      </Window>
+
+      <Window id="list" title="Lista" width={140}>
+        <ListBox
+          id="demo-floors"
+          label="Pisos"
+          items={FLOORS}
+          selectedId={floor}
+          onSelect={setFloor}
+        />
+        <p>{floor === null ? '' : t('ui.levelFloor', { n: floor })}</p>
+      </Window>
+
+      <Window id="decision" title="Decisión" closable={false} width={220}>
+        <p>Esta ventana no tiene botón de cerrar y Esc no la cierra.</p>
+        <div class="kit-demo__row">
+          <Button onClick={() => manager.close('decision')}>{t('ui.accept')}</Button>
+          <Button isDefault onClick={() => manager.close('decision')}>
+            {t('ui.cancel')}
+          </Button>
+        </div>
+      </Window>
+
+      {unitWindows.map((window) => (
+        <Window key={window.id} id={window.id} title={`Unidad ${window.id.split(':')[1]}`}>
+          <p>Hasta 4 abiertas; la quinta cierra la más vieja.</p>
+        </Window>
+      ))}
+    </>
+  );
+}
+
+export function KitDemo() {
+  return (
+    <div class="kit-demo">
+      <WindowLayer class="kit-demo__view">
+        <Launcher />
+        <DemoWindows />
+      </WindowLayer>
+    </div>
+  );
+}

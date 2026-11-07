@@ -1,0 +1,38 @@
+html,
+body,
+#app {
+  margin: 0;
+  width: 100%;
+  height: 100%;
+  background: #10183a;
+}
+
+.kit-demo__view {
+  inset: 0;
+}
+
+.kit-demo__launcher {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: center;
+  padding: 4px;
+  background: var(--tm-cloud);
+  border-top: 1px solid var(--tm-ink);
+}
+
+.kit-demo__zoom {
+  margin-left: auto;
+  padding: 0 6px;
+}
+
+.kit-demo__row {
+  display: flex;
+  gap: 4px;
+  justify-content: flex-end;
+  margin-top: 4px;
+}
