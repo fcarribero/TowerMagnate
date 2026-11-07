@@ -1,8 +1,11 @@
+import { fileURLToPath } from 'node:url';
 import preact from '@preact/preset-vite';
+import { fileURLToPath } from 'node:url';
 import { defineConfig, loadEnv } from 'vite';
 
 const DEFAULT_SERVER_URL = 'http://localhost:3000';
 const DEFAULT_WEB_PORT = 5173;
+const GENERATED_ASSETS_DIR = fileURLToPath(new URL('../../assets', import.meta.url));
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
@@ -11,6 +14,7 @@ export default defineConfig(({ mode }) => {
 
   return {
     plugins: [preact()],
+    publicDir: GENERATED_ASSETS_DIR,
     server: {
       port: webPort,
       strictPort: true,
@@ -22,6 +26,12 @@ export default defineConfig(({ mode }) => {
     build: {
       outDir: 'dist',
       emptyOutDir: true,
+      rollupOptions: {
+        input: {
+          main: fileURLToPath(new URL('index.html', import.meta.url)),
+          kit: fileURLToPath(new URL('kit.html', import.meta.url)),
+        },
+      },
     },
   };
 });
