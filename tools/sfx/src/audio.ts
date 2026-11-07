@@ -7,6 +7,8 @@ const SAMPLE_RATE = 44100;
 const MEASURE_PAD_SECONDS = 3;
 const LEADING_SILENCE_THRESHOLD = '-60dB';
 const MAX_FADE_OUT = 0.1;
+const MAX_LIMITING = 6;
+const LIMITER_CEILING = 0.708;
 
 export interface Loudness {
   integrated: number;
@@ -24,11 +26,12 @@ export function ffmpegBinary(env: NodeJS.ProcessEnv = process.env): string {
 
 export function shapeFilter(effect: Effect): string {
   if (effect.loop) {
-    return 'anull';
+    return 'aformat=channel_layouts=stereo';
   }
   const fade = round(Math.min(MAX_FADE_OUT, effect.duration / 4));
   const fadeStart = round(effect.duration - fade);
   return [
+    'aformat=channel_layouts=mono',
     `silenceremove=start_periods=1:start_threshold=${LEADING_SILENCE_THRESHOLD}`,
     `atrim=end=${effect.duration}`,
     `afade=t=out:st=${fadeStart}:d=${fade}`,
@@ -54,10 +57,19 @@ export function parseLoudnormReport(stderr: string): Loudness {
   return { integrated, truePeak };
 }
 
-export function computeGain(measured: Loudness, target: number): number {
-  const gainToTarget = target - measured.integrated;
-  const gainToCeiling = TRUE_PEAK_CEILING - measured.truePeak;
+export function computeGain(measured: Loudness, effect: Effect): number {
+  const gainToTarget = effect.loudness - measured.integrated;
+  const allowedLimiting = effect.loop ? 0 : MAX_LIMITING;
+  const gainToCeiling = TRUE_PEAK_CEILING - measured.truePeak + allowedLimiting;
   return round(Math.min(gainToTarget, gainToCeiling));
+}
+
+export function levelFilter(effect: Effect, gain: number): string {
+  const volume = `volume=${gain}dB`;
+  if (effect.loop) {
+    return volume;
+  }
+  return `${volume},alimiter=limit=${LIMITER_CEILING}:attack=1:release=50:level=false:latency=true`;
 }
 
 export function channelCount(effect: Effect): number {
@@ -70,7 +82,7 @@ export function encodeArgs(
   gain: number,
   outputs: OutputPaths,
 ): string[] {
-  const filter = `${shapeFilter(effect)},volume=${gain}dB`;
+  const filter = `${shapeFilter(effect)},${levelFilter(effect, gain)}`;
   const common = [
     '-af',
     filter,
@@ -143,7 +155,7 @@ export async function normalizeAndEncode(
   outputs: OutputPaths,
 ): Promise<{ gain: number; result: Loudness }> {
   const measured = await measureLoudness(binary, input, shapeFilter(effect));
-  const gain = computeGain(measured, effect.loudness);
+  const gain = computeGain(measured, effect);
   const partial = { ogg: `${outputs.ogg}.partial`, mp3: `${outputs.mp3}.partial` };
   try {
     await runFfmpeg(binary, encodeArgs(input, effect, gain, partial));

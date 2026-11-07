@@ -6,7 +6,7 @@ The tower is shown as a side-view cross-section in the style of early 1990s simu
 
 ## Palette
 
-The palette has 32 slots. Slot 0 is transparent. Every sprite uses only these colors, and scripts refer to them by id, never by raw hex. The source of truth is `tools/art/palette.json`, and `tools/art/src/palette.mjs` loads it. `docs/art/palette-swatch.png` shows the colors in index order, eight per row (regenerate it with `node tools/art/scripts/swatch.mjs`).
+The palette has 32 slots. Slot 0 is transparent. Every sprite uses only these colors, and scripts refer to them by id, never by raw hex. The source of truth is `tools/art/palette.json`, and `tools/art/src/palette.mjs` loads it. `docs/art/palette-swatch.png` shows the colors in index order, eight per row (`pnpm art:build` regenerates it).
 
 | Index | Id | Hex | Use |
 |---|---|---|---|
@@ -132,3 +132,9 @@ Frame numbers have two digits and start at `01`. Ids in the atlas JSON are exact
 The full list of unit states, in the order scripts generate them: `empty`, `occupied`, `dirty`, `infested`, `burnt`. Times: `day`, `night`.
 
 For people the variant is the action (`walk`, `stand`), a hyphen and the stress tint (`pink` or `red`), then the frame. Calm is the default and is left out, so `people/worker-a/walk_01` is a calm worker and `people/worker-a/walk-red_01` a very stressed one.
+
+## Building the art
+
+`pnpm art:build` draws every sprite group in `tools/art/src/groups` and rewrites the generated files. Each group is one module with a `name` (one of the groups above) and a `draw()` function that returns `{ id, canvas }` pairs. A new group is added to `tools/art/src/groups/index.mjs`.
+
+The build writes one PNG per sprite to `assets/sprites/<id>.png` and one atlas per group to `assets/atlases/<group>.png` and `assets/atlases/<group>.json`. The JSON uses the PixiJS 8 spritesheet hash format, and ids ending in `_01`, `_02` and so on are listed as animations. The output depends only on the drawing code, so two builds give byte-identical files. The generated files are committed, and a test fails when they are out of date.
