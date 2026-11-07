@@ -8,6 +8,7 @@ const config = readConfig(process.env);
 const app = buildApp({
   version: readServerVersion(),
   databaseUrl: config.databaseUrl,
+  secureCookies: config.secureCookies,
   logger: { level: config.logLevel },
 });
 

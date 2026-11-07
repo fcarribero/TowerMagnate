@@ -1,6 +1,6 @@
 # Engine API, state model and wire protocol
 
-Version 1.1, 13 November 2026. Owner: Tech Lead. Tasks TM-5 and TM-23.
+Version 1.2, 16 November 2026. Owner: Tech Lead. Tasks TM-5, TM-23 and TM-24.
 
 This document fixes the contract between `packages/engine`, `packages/shared`, `apps/server` and `apps/web`. The type sketches below are the target shape. Field names may change during implementation only through a PR that updates this document too.
 
@@ -39,6 +39,8 @@ export type CommandResult =
 
 export function createTower(seed: number): TowerState;
 export function migrateState(raw: unknown): TowerState;
+export function serializeState(state: TowerState): string;
+export function deserializeState(text: string): TowerState;
 ```
 
 `step` is a pure function. It does not mutate its input; the returned state is a new object (structural sharing is allowed). The same state, commands and step count always give the same result.
@@ -144,6 +146,8 @@ export interface Person {
 
 The grid stores runs of cells, not one entry per cell. A row holds spans with inclusive columns `x0..x1` in 0..374, so an empty level costs nothing and a level with 40 offices holds about 40 occupant spans. A unit taller than one level has a span on each level it covers. Overlap and lookup on a level walk that level's sorted spans, so they cost O(spans on the level), not O(375). Placement code in `packages/engine/src/grid.ts` keeps the invariants: setting structure splits and re-merges spans, and adding an occupant to a cell that is taken throws, so command handlers check `isSpanFree` first. `migrateState` checks the same invariants when it loads a snapshot, and a state saved before the grid existed loads with an empty grid.
 
+`Ledger` holds `currentWeek` and `previousWeek`, each a `WeekTotals` record with one `{ income, expense }` entry per category of the economy spec (table 9.1, `LEDGER_CATEGORIES` in `shared`). `income` is the sum of positive entries and `expense` the sum of negative ones, so the finance window can show mixed-sign categories such as `venues` without netting them. All balance changes go through `creditMoney` and `chargeMoney` in `packages/engine/src/money.ts`: credits stop at `MONEY_CAP` and record only what was credited, charges apply in full. The `ledger-week-roll` hook runs at Monday 00:00 and must be listed before upkeep. A state saved before money existed loads with `STARTING_MONEY` and empty weeks.
+
 Naming: `UnitType` is the catalog type, a kebab-case string such as `retail-shop`, and `UNIT_TYPES` lists them all. `UnitId` is the id of one placed unit, such as `u12`. `ShaftType` maps to its catalog unit through `SHAFT_UNIT_TYPES` in `shared` (`standard` to `standard-elevator`, and so on).
 
 `Level` is an integer in -10..104 with no 0 (TM-8 section 1). `shared` exports `LOWEST_LEVEL`, `HIGHEST_LEVEL`, `LEVEL_COUNT` (114), `isLevel`, and `levelToIndex` and `indexToLevel`, which convert between a `Level` and its dense index (0 for -10, up to 113 for 104) for arrays and for car positions. Both throw a `RangeError` for values outside the tower. `levelAbove`, `levelBelow` and `levelLabel` step over the missing level 0 and name basements S1 to S10.
@@ -165,6 +169,10 @@ The game date is derived from `step` with the calendar module (`dateOfStep(step)
 `schemaVersion` starts at 1 and increases with every change to the `TowerState` shape that is not purely additive with a safe default. Each bump adds one migration function in `packages/engine/src/migrations/` from version N to N+1, plus a test that loads a frozen fixture of version N.
 
 `migrateState(raw)` reads `schemaVersion`, runs the chain up to the current version, and validates the result. The server calls it every time it loads a snapshot from PostgreSQL. A snapshot with a version higher than the engine knows, or a malformed one, is refused with `StateMigrationError`. The server keeps the tower paused, logs it, and closes the client's socket with close code 4409.
+
+The server stores the text from `serializeState(state)`, which is the full `TowerState` as JSON with its `schemaVersion`. It loads it back with `deserializeState(text)`, which parses the text and passes it to `migrateState`. Text that is not JSON, a missing or invalid `schemaVersion`, and a version newer than the engine all throw `StateMigrationError` with a message that names the problem. A restored state runs exactly like the state that was saved, so its hash after any number of steps matches an uninterrupted run. The serialized empty tower stays under 5 KB.
+
+Frozen saves for the migration tests live in `packages/engine/src/migrations/fixtures.ts`. A fixture is never edited after it is added.
 
 Protocol version (`PROTOCOL_VERSION` in `shared`) is separate from `schemaVersion`. It changes when a wire message changes. Clients send it in `hello`; a mismatch closes the socket with `PROTOCOL_MISMATCH` and the client reloads.
 
@@ -215,7 +223,7 @@ export interface ElevatorBand {
 }
 ```
 
-`renameUnit` and `renamePerson` store `normalizeName(name)` from `shared`: whitespace runs become one space, control characters are dropped, the result is trimmed and cut to 24 characters (`MAX_NAME_LENGTH`, counted as characters, not UTF-16 units). A blank name stores `null`, which shows the default name again. Renaming costs nothing. An unknown unit or person id gives `UNKNOWN_ENTITY`. `answerEvent` choices are defined per event in TM-15; for now `'pay' | 'refuse'` for the bomb and `'helicopter' | 'burn'` for fire.
+`renameUnit` and `renamePerson` store `normalizeName(name)` from `shared`: whitespace runs become one space, control characters are dropped, the result is trimmed and cut to 24 characters (`MAX_NAME_LENGTH`, counted as characters, not UTF-16 units). A blank name stores `null`, which shows the default name again. Renaming costs nothing. An unknown unit or person id gives `UNKNOWN_ENTITY`. `answerEvent` choices are defined in the events spec (TM-15, `docs/design/events.md` section 3): `'pay' | 'refuse'` for the bomb and `'helicopter' | 'burn'` for fire.
 
 Commands from the socket are first parsed with the zod schema in `shared`. A message that fails parsing never reaches the engine and gets `INVALID_COMMAND`. The engine still checks every rule of TM-8, since a schema cannot know the tower.
 
@@ -482,6 +490,10 @@ While an `inspect` target is set, the server sends `inspect` once per second and
 | Notices and news, decision windows | `notices`, `events`, `activeEvents`; `answerEvent` |
 | Sound effects | `sound` events and car state |
 
+### 8.11 Schemas
+
+The zod schemas for every message, command and view are in `packages/shared/src/protocol`, and the TypeScript types are inferred from them. Where this section names a type without fields (`TransportView`, `ShaftView`, `FollowedView`, `EventView`, `NoticeView`, `OverlayData`, `FinanceSummary`, `InspectData`, `ClientEvent`), the schema is the reference. Entity ids on the wire carry their prefix: `u` units, `t` stairs and escalators, `s` shafts, `p` people, `e` events. `ErrorCode` includes the socket codes; `CommandResult` only carries `EngineErrorCode`, which leaves them out.
+
 ## 9. Performance budgets
 
 - One `step` call with `steps = 1` on a tower of 15,000 people stays under 5 ms on the CI machine. Engine scenario tests that run a game week stay under 10 s.
@@ -494,6 +506,6 @@ While an `inspect` target is set, the server sends `inspect` once per second and
 |---|---|
 | `TowerState`, `Command`, `EngineEvent`, `ErrorCode`, `Level` helpers, `normalizeName`, calendar, catalog | `packages/shared` |
 | zod schemas for `ClientMessage`, `ServerMessage`, `Command` | `packages/shared` |
-| `step`, `createTower`, `migrateState`, command handlers | `packages/engine` |
+| `step`, `createTower`, `migrateState`, `serializeState`, `deserializeState`, command handlers | `packages/engine` |
 | View builders (state to `Snapshot`, `Delta`, `InspectData`), runner, viewport filter | `apps/server` |
 | Interpolation buffer, message handling, error messages in Spanish | `apps/web` |

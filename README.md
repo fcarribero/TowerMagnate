@@ -48,6 +48,14 @@ A new TypeScript package needs its own `tsconfig.json` extending `tsconfig.base.
 
 `.github/workflows/ci.yml` runs `pnpm lint`, `pnpm typecheck` and `pnpm test` on Node 22 for every pull request to `develop` or `master` and for every push to those branches. The pnpm store is cached between runs.
 
+## End-to-end tests
+
+`pnpm e2e` runs the Playwright tests in `e2e/`. Install the browser once with `pnpm exec playwright install chromium`.
+
+By default the run starts its own compose stack (project `tm-e2e`, ports from `PORT_BASE`, default 4300), waits for `/api/health` and stops the stack at the end. To test a stack that is already running, set `BASE_URL` to the web address, for example `BASE_URL=http://localhost:4102 pnpm e2e`.
+
+`e2e/support` has helpers: `uniqueUser()` and `registerUser(request)` create fresh accounts, and `openGame(page)` loads the client and waits for the canvas. Failed tests keep a trace in `e2e/test-results`; open it with `pnpm exec playwright show-trace <path>/trace.zip`. CI runs the suite on pull requests to `develop` and uploads the traces as the `e2e-traces` artifact when it fails.
+
 ## Local stack
 
 `docker compose up` starts `postgres` (16, data in a named volume), `server` (`pnpm dev` in `apps/server`, restarts on change) and `web` (`pnpm dev` in `apps/web`, called with `--host 0.0.0.0 --port 5173 --strictPort`). The containers mount the repository and keep their own `node_modules` in named volumes, so the host install is never touched.
@@ -72,3 +80,5 @@ DATABASE_URL=postgres://tower:tower@localhost:4100/tower_magnate pnpm --filter @
 ```
 
 Server tests start a postgres container through testcontainers. To use a running postgres instead, set `TEST_DATABASE_URL`; each test suite then creates its own scratch database on that server and drops it afterwards. `startTestDatabase({ migrate: true })` in `apps/server/src/testing/database.ts` returns a database with the schema already applied.
+
+Timing budgets are checked by benchmark scripts, not by the test suite, because wall-clock checks are unreliable while vitest runs suites in parallel. `pnpm bench:snapshots` saves a 1 MB tower state 30 times after 5 warmup saves and fails if the median save takes 50 ms or more. CI runs it as its own step after the tests.
