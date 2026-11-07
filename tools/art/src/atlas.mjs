@@ -4,7 +4,9 @@ const DEFAULT_MAX_WIDTH = 1024;
 const DEFAULT_PADDING = 1;
 
 function byHeightThenWidthThenId(a, b) {
-  return b.canvas.height - a.canvas.height || b.canvas.width - a.canvas.width || compareIds(a.id, b.id);
+  return (
+    b.canvas.height - a.canvas.height || b.canvas.width - a.canvas.width || compareIds(a.id, b.id)
+  );
 }
 
 function compareIds(a, b) {
@@ -25,7 +27,10 @@ function assertUniqueIds(sprites) {
 
 // Shelf packing: tallest sprites first, left to right, new shelf when a row is full.
 // The order depends only on sprite sizes and ids, so the result is always the same.
-export function packSprites(sprites, { maxWidth = DEFAULT_MAX_WIDTH, padding = DEFAULT_PADDING } = {}) {
+export function packSprites(
+  sprites,
+  { maxWidth = DEFAULT_MAX_WIDTH, padding = DEFAULT_PADDING } = {},
+) {
   assertUniqueIds(sprites);
   const ordered = [...sprites].sort(byHeightThenWidthThenId);
   const placements = [];
@@ -37,7 +42,9 @@ export function packSprites(sprites, { maxWidth = DEFAULT_MAX_WIDTH, padding = D
   for (const sprite of ordered) {
     const { width, height } = sprite.canvas;
     if (width + 2 * padding > maxWidth) {
-      throw new Error(`Sprite ${sprite.id} is ${width} px wide, more than the atlas width ${maxWidth}`);
+      throw new Error(
+        `Sprite ${sprite.id} is ${width} px wide, more than the atlas width ${maxWidth}`,
+      );
     }
     if (cursorX + width + padding > maxWidth) {
       shelfTop += shelfHeight + padding;

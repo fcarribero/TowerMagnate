@@ -1,5 +1,4 @@
-import assert from 'node:assert/strict';
-import { test } from 'node:test';
+import { describe, expect, it } from 'vitest';
 import { atlasJson, packSprites, renderAtlas } from '../src/atlas.mjs';
 import { PixelCanvas } from '../src/canvas.mjs';
 
@@ -26,53 +25,63 @@ const sample = [
   solidSprite('ui/tool-bulldozer', 16, 16),
 ];
 
-test('places every sprite inside the atlas without overlaps', () => {
-  const packed = packSprites(sample, { maxWidth: 256, padding: 1 });
-  assert.equal(packed.placements.length, sample.length);
-  for (const placement of packed.placements) {
-    assert.ok(placement.x >= 1 && placement.y >= 1);
-    assert.ok(placement.x + placement.canvas.width <= packed.width - 1);
-    assert.ok(placement.y + placement.canvas.height <= packed.height - 1);
-  }
-  for (let i = 0; i < packed.placements.length; i++) {
-    for (let j = i + 1; j < packed.placements.length; j++) {
-      assert.ok(!overlaps(packed.placements[i], packed.placements[j]));
+describe('atlas packer', () => {
+  it('places every sprite inside the atlas without overlaps', () => {
+    const packed = packSprites(sample, { maxWidth: 256, padding: 1 });
+    expect(packed.placements).toHaveLength(sample.length);
+    for (const placement of packed.placements) {
+      expect(placement.x).toBeGreaterThanOrEqual(1);
+      expect(placement.y).toBeGreaterThanOrEqual(1);
+      expect(placement.x + placement.canvas.width).toBeLessThanOrEqual(packed.width - 1);
+      expect(placement.y + placement.canvas.height).toBeLessThanOrEqual(packed.height - 1);
     }
-  }
-});
+    for (let i = 0; i < packed.placements.length; i++) {
+      for (let j = i + 1; j < packed.placements.length; j++) {
+        expect(overlaps(packed.placements[i], packed.placements[j])).toBe(false);
+      }
+    }
+  });
 
-test('input order does not change the result', () => {
-  const forward = atlasJson(packSprites(sample, { maxWidth: 256 }), 'units.png');
-  const reversed = atlasJson(packSprites([...sample].reverse(), { maxWidth: 256 }), 'units.png');
-  assert.deepEqual(forward, reversed);
-  assert.equal(JSON.stringify(forward), JSON.stringify(reversed));
-});
+  it('gives the same result for any input order', () => {
+    const forward = atlasJson(packSprites(sample, { maxWidth: 256 }), 'units.png');
+    const reversed = atlasJson(packSprites([...sample].reverse(), { maxWidth: 256 }), 'units.png');
+    expect(JSON.stringify(forward)).toBe(JSON.stringify(reversed));
+  });
 
-test('rejects duplicate ids and sprites wider than the atlas', () => {
-  assert.throws(() => packSprites([sample[0], sample[0]]), /Duplicate sprite id/);
-  assert.throws(() => packSprites([solidSprite('wide', 300, 8)], { maxWidth: 256 }), /more than the atlas width/);
-});
+  it('rejects duplicate ids and sprites wider than the atlas', () => {
+    expect(() => packSprites([sample[0], sample[0]])).toThrow(/Duplicate sprite id/);
+    expect(() => packSprites([solidSprite('wide', 300, 8)], { maxWidth: 256 })).toThrow(
+      /more than the atlas width/,
+    );
+  });
 
-test('rendered atlas holds each sprite at its frame', () => {
-  const sprites = [solidSprite('a', 2, 2, 'lamp'), solidSprite('b', 3, 1, 'leaf')];
-  const packed = packSprites(sprites, { maxWidth: 16 });
-  const atlas = renderAtlas(packed);
-  const json = atlasJson(packed, 'test.png');
-  for (const { id, canvas } of sprites) {
-    const { x, y } = json.frames[id].frame;
-    assert.equal(atlas.get(x, y), canvas.get(0, 0));
-    assert.equal(atlas.get(x - 1, y), 0);
-  }
-});
+  it('renders each sprite at its frame', () => {
+    const sprites = [solidSprite('a', 2, 2, 'lamp'), solidSprite('b', 3, 1, 'leaf')];
+    const packed = packSprites(sprites, { maxWidth: 16 });
+    const atlas = renderAtlas(packed);
+    const json = atlasJson(packed, 'test.png');
+    for (const { id, canvas } of sprites) {
+      const { x, y } = json.frames[id].frame;
+      expect(atlas.get(x, y)).toBe(canvas.get(0, 0));
+      expect(atlas.get(x - 1, y)).toBe(0);
+    }
+  });
 
-test('json follows the PixiJS spritesheet hash format', () => {
-  const json = atlasJson(packSprites(sample, { maxWidth: 256 }), 'units.png');
-  const office = json.frames['units/office/occupied_day'];
-  assert.deepEqual(Object.keys(office).sort(), ['frame', 'rotated', 'sourceSize', 'spriteSourceSize', 'trimmed']);
-  assert.deepEqual(office.sourceSize, { w: 72, h: 32 });
-  assert.equal(json.meta.image, 'units.png');
-  assert.equal(json.meta.scale, 1);
-  assert.deepEqual(json.animations, {
-    'people/worker-a/walk': ['people/worker-a/walk_01', 'people/worker-a/walk_02'],
+  it('writes json in the PixiJS spritesheet hash format', () => {
+    const json = atlasJson(packSprites(sample, { maxWidth: 256 }), 'units.png');
+    const office = json.frames['units/office/occupied_day'];
+    expect(Object.keys(office).sort()).toEqual([
+      'frame',
+      'rotated',
+      'sourceSize',
+      'spriteSourceSize',
+      'trimmed',
+    ]);
+    expect(office.sourceSize).toEqual({ w: 72, h: 32 });
+    expect(json.meta.image).toBe('units.png');
+    expect(json.meta.scale).toBe(1);
+    expect(json.animations).toEqual({
+      'people/worker-a/walk': ['people/worker-a/walk_01', 'people/worker-a/walk_02'],
+    });
   });
 });
