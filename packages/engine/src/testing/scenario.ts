@@ -16,6 +16,8 @@ export interface ScriptedCommand {
 }
 
 export interface Scenario {
+  /** Starting tower, for example from `buildTower`. Defaults to an empty tower from `seed`. */
+  tower?: TowerState;
   seed?: number;
   script?: readonly ScriptedCommand[];
   days: number;
@@ -28,13 +30,19 @@ export interface ScenarioRun {
   events: EngineEvent[];
 }
 
-/** Plays a scripted tower: each day's commands go in at 00:00, then the day runs to the end. */
+/**
+ * Plays a scripted tower: each day's commands go in at 00:00, then the day runs to the end.
+ * Days count from the starting tower's own step.
+ */
 export function runScenario(scenario: Scenario): ScenarioRun {
   const { seed = 1, script = [], days } = scenario;
   const step = scenario.engine?.step ?? towerStep;
   assertScript(script, days);
+  if (scenario.tower && scenario.seed !== undefined) {
+    throw new Error('Give a scenario either a starting tower or a seed, not both');
+  }
 
-  let state = createTower(seed);
+  let state = scenario.tower ?? createTower(seed);
   const results: CommandResult[] = [];
   const events: EngineEvent[] = [];
   let commandCount = 0;

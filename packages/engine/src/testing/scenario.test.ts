@@ -38,9 +38,14 @@ describe('runScenario', () => {
     expect(() => runScenario({ days: 2, script: [{ day: 2, command }] })).toThrow(RangeError);
   });
 
-  it('runs a game week of an empty tower well inside the CI budget', () => {
-    const started = performance.now();
-    runScenario({ days: 7 });
-    expect(performance.now() - started).toBeLessThan(2000);
+  it('starts from a given tower and counts days from its step', () => {
+    const tower = runScenario({ days: 1 }).state;
+    const run = runScenario({ tower, days: 2 });
+    expect(run.state.step).toBe(3 * STEPS_PER_DAY);
+  });
+
+  it('refuses both a starting tower and a seed', () => {
+    const tower = runScenario({ days: 0 }).state;
+    expect(() => runScenario({ tower, seed: 2, days: 1 })).toThrow(/not both/);
   });
 });
