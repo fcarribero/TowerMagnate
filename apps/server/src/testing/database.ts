@@ -29,7 +29,12 @@ export async function startTestDatabase(options: TestDatabaseOptions = {}): Prom
 
 async function startContainerDatabase(): Promise<TestDatabase> {
   const container = await new PostgreSqlContainer(POSTGRES_IMAGE).start();
-  return { url: container.getConnectionUri(), stop: async () => void (await container.stop()) };
+  const url = new URL(container.getConnectionUri());
+  // Docker Desktop forwards the IPv6 loopback with a ~40 ms stall on large writes.
+  if (url.hostname === 'localhost') {
+    url.hostname = '127.0.0.1';
+  }
+  return { url: url.toString(), stop: async () => void (await container.stop()) };
 }
 
 async function createScratchDatabase(serverUrl: string): Promise<TestDatabase> {
