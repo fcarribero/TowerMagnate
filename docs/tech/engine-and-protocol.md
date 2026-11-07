@@ -209,7 +209,7 @@ export interface ElevatorBand {
 }
 ```
 
-Names are limited to 24 characters after trimming. `answerEvent` choices are defined per event in TM-15; for now `'pay' | 'refuse'` for the bomb and `'helicopter' | 'burn'` for fire.
+Names are limited to 24 characters after trimming. `answerEvent` choices are defined in the events spec (TM-15, `docs/design/events.md` section 3): `'pay' | 'refuse'` for the bomb and `'helicopter' | 'burn'` for fire.
 
 Commands from the socket are first parsed with the zod schema in `shared`. A message that fails parsing never reaches the engine and gets `INVALID_COMMAND`. The engine still checks every rule of TM-8, since a schema cannot know the tower.
 
