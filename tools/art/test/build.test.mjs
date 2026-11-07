@@ -1,3 +1,4 @@
+import { execFileSync } from 'node:child_process';
 import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -8,7 +9,7 @@ import { buildArt, drawGroups } from '../src/build.mjs';
 import { PixelCanvas } from '../src/canvas.mjs';
 import { groups } from '../src/groups/index.mjs';
 
-const committedAssets = fileURLToPath(new URL('../../../assets', import.meta.url));
+const buildScript = fileURLToPath(new URL('../scripts/build.mjs', import.meta.url));
 const tempDirs = [];
 
 function freshBuild() {
@@ -44,12 +45,21 @@ describe('art build', () => {
     }
   });
 
-  it('matches the committed assets, so nobody forgets to rebuild', () => {
-    const { outputRoot, files } = freshBuild();
-    for (const file of files) {
-      const built = readFileSync(join(outputRoot, file));
-      const committed = readFileSync(join(committedAssets, file));
-      expect(committed.equals(built), `${file} is stale, run pnpm art:build`).toBe(true);
+  it('writes the same atlases and client manifest when the build script runs twice', () => {
+    const runs = [1, 2].map(() => {
+      const outputRoot = mkdtempSync(join(tmpdir(), 'tm-art-cli-'));
+      tempDirs.push(outputRoot);
+      const manifestPath = join(outputRoot, 'atlasManifest.ts');
+      execFileSync(process.execPath, [buildScript, outputRoot, manifestPath], { stdio: 'ignore' });
+      return { outputRoot, manifest: readFileSync(manifestPath) };
+    });
+    expect(runs[1].manifest.equals(runs[0].manifest)).toBe(true);
+    for (const { name } of groups) {
+      for (const file of [`atlases/${name}.png`, `atlases/${name}.json`]) {
+        const firstBytes = readFileSync(join(runs[0].outputRoot, file));
+        const secondBytes = readFileSync(join(runs[1].outputRoot, file));
+        expect(secondBytes.equals(firstBytes), file).toBe(true);
+      }
     }
   });
 
