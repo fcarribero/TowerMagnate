@@ -68,6 +68,8 @@ importers:
 
   packages/shared: {}
 
+  tools/art: {}
+
 packages:
 
   '@babel/code-frame@7.29.7':
