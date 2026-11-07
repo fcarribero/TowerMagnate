@@ -1,6 +1,6 @@
 import type { PriceLevel, StarRating } from '@tower-magnate/shared';
 import { describe, expect, it } from 'vitest';
-import { evaluateUnit, gradeLabel, gradeOfScore, unitScore } from './evaluation';
+import { evaluateUnit, gradeOfScore, unitScore } from './evaluation';
 
 describe('unitScore', () => {
   it.each<[PriceLevel, boolean, number]>([
@@ -87,14 +87,5 @@ describe('evaluateUnit', () => {
       score: 180,
       grade: 'fair',
     });
-  });
-});
-
-describe('gradeLabel', () => {
-  it('shows Spanish labels and Sin evaluar for no grade', () => {
-    expect(gradeLabel('good')).toBe('Buena');
-    expect(gradeLabel('fair')).toBe('Regular');
-    expect(gradeLabel('poor')).toBe('Mala');
-    expect(gradeLabel(null)).toBe('Sin evaluar');
   });
 });

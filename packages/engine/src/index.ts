@@ -26,8 +26,9 @@ export {
   spanError,
   structureAt,
 } from './grid';
-export { evaluateUnit, gradeLabel, gradeOfScore, NOISE_PENALTY, unitScore } from './evaluation';
+export { evaluateUnit, gradeOfScore, unitScore } from './evaluation';
 export type { UnitEvaluation, UnitEvaluationInput, UnitGrade } from './evaluation';
+export { answerDecision, endDisaster, eventsPhase, openBombThreat, openFire } from './events';
 export { hashState } from './hash';
 export { migrateState, StateMigrationError } from './migrations';
 export {

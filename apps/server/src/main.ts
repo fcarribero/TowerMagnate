@@ -10,6 +10,7 @@ const app = buildApp({
   databaseUrl: config.databaseUrl,
   secureCookies: config.secureCookies,
   logger: { level: config.logLevel },
+  webDir: config.webDir,
 });
 
 installShutdownHandlers(app);
