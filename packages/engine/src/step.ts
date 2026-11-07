@@ -1,8 +1,8 @@
 import type {
   Command,
   CommandResult,
+  EngineErrorCode,
   EngineEvent,
-  ErrorCode,
   QueuedCommand,
   TowerState,
 } from '@tower-magnate/shared';
@@ -21,7 +21,7 @@ export interface StepContext {
 }
 
 export type CommandOutcome =
-  { ok: true; cost: number; refund: number } | { ok: false; error: ErrorCode };
+  { ok: true; cost: number; refund: number } | { ok: false; error: EngineErrorCode };
 
 export type CommandHandler<K extends Command['type']> = (
   context: StepContext,
