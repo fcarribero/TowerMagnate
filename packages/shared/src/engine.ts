@@ -1,4 +1,3 @@
-import type { ErrorCode } from './errors';
 import type { Ledger } from './ledger';
 import type { Level } from './levels';
 import type { UnitType } from './units';
@@ -78,22 +77,6 @@ export interface TowerState {
   grid: GridState;
   ledger: Ledger;
 }
-
-export type Command =
-  | { type: 'buildFloor'; level: Level; x0: number; x1: number }
-  | { type: 'buildLobby'; level: Level; x0: number; x1: number; height: LobbyHeight }
-  | { type: 'renameUnit'; unitId: UnitId; name: string };
-
-export type CommandType = Command['type'];
-
-export interface QueuedCommand {
-  id: string;
-  command: Command;
-}
-
-export type CommandResult =
-  | { id: string; ok: true; step: number; cost: number; refund: number }
-  | { id: string; ok: false; step: number; error: ErrorCode };
 
 /** Events caused by a player command carry that command's id. */
 export type EngineEvent = {
