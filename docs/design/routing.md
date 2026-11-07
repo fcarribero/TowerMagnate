@@ -286,7 +286,14 @@ There is no route without a transfer: s2 is the only link above level 17 and not
 
 B2. Same trip at 08:30, with 40 people in the up queue of x1 on level 1. The x1 routes get +1,000: 4,598 and 4,651. The route through s1 costs 3,668 and wins. The worker walks 127 columns to column 122.
 
-B3. Back to B1: the worker rode x1 and leaves the car on level 15 at column 63, with 1 ride used. The worker re-plans. s2 from 15 to 22 is the trip's 2nd ride: 7 × 8 + 500 + 2,500 = 3,056. Now say the up queue of s2 on level 15 is full: that ride costs 4,056. Stairs t5 and t6 from 15 to 17 then s2 from 17 to 22 costs (2 × 8 + 600) + (5 × 8 + 500 + 2,500) = 616 + 3,040 = 3,656, so the worker walks 161 columns to t5 and climbs. On level 17 the worker re-plans again with 2 stair floors used and takes s2.
+B3. Back to B1: the worker rode x1 and leaves the car on level 15 at column 63, with 1 ride used. The worker re-plans. s2 from 15 to 22 is the trip's 2nd ride: 7 × 8 + 500 + 2,500 = 3,056. Now say the up queue of s2 on level 15 is full: that ride costs 4,056. Two stair routes are cheaper:
+
+| Route | Cost | Legs | Columns walked |
+|---|---|---|---|
+| t5 from 15 to 16, s2 from 16 to 22 | (1 × 8 + 600) + (6 × 8 + 500 + 2,500) = 608 + 3,048 = 3,656 | 2 | 161 + 22 + 12 = 195 |
+| t5 and t6 from 15 to 17, s2 from 17 to 22 | (2 × 8 + 600) + (5 × 8 + 500 + 2,500) = 616 + 3,040 = 3,656 | 2 | 161 + 22 + 12 = 195 |
+
+They tie on cost, legs and columns walked, both start with a stair leg, and both first legs start on flight t5. Tie break 5 picks the first leg that ends on the lower level, so the worker walks 161 columns to t5 and climbs one floor to level 16. There the worker re-plans with 1 stair floor used: s2 from 16 to 22 costs 3,048 and t6 then s2 from 17 costs 608 + 3,040 = 3,648, so the worker walks 22 columns to column 202 and joins the up queue of s2 on level 16.
 
 ### 12.3 Tower C: 5-star tower, subway, cathedral and a maid
 
