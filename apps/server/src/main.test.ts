@@ -1,11 +1,15 @@
 import { spawn, type ChildProcess } from 'node:child_process';
 import { once } from 'node:events';
+import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import pg from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { startTestDatabase, type TestDatabase } from './testing/database';
 
 const serverDirectory = fileURLToPath(new URL('..', import.meta.url));
+const { version: serverVersion } = JSON.parse(
+  readFileSync(new URL('../package.json', import.meta.url), 'utf8'),
+) as { version: string };
 
 function startServer(databaseUrl: string): { child: ChildProcess; output: () => string } {
   const child = spawn(process.execPath, ['--import', 'tsx', 'src/main.ts'], {
@@ -49,7 +53,7 @@ describe.skipIf(process.platform === 'win32')('server process', () => {
 
       const response = await fetch(`${address}/health`);
       expect(response.status).toBe(200);
-      expect(await response.json()).toMatchObject({ status: 'ok', version: '0.0.0' });
+      expect(await response.json()).toMatchObject({ status: 'ok', version: serverVersion });
       expect(await tableExists(database.url, 'users')).toBe(true);
 
       const exited = once(child, 'exit');
