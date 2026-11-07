@@ -5,6 +5,7 @@ export interface ServerConfig {
   port: number;
   databaseUrl: string;
   logLevel: LogLevel;
+  migrateOnStart: boolean;
 }
 
 const DEFAULT_HOST = '0.0.0.0';
@@ -30,6 +31,7 @@ export function readConfig(env: NodeJS.ProcessEnv): ServerConfig {
     port: readPort(env.PORT),
     databaseUrl,
     logLevel: readLogLevel(env.LOG_LEVEL),
+    migrateOnStart: readMigrateOnStart(env.MIGRATE_ON_START, env.NODE_ENV),
   };
 }
 
@@ -53,4 +55,14 @@ function readLogLevel(value: string | undefined): LogLevel {
     throw new Error(`LOG_LEVEL must be one of ${LOG_LEVELS.join(', ')}, got "${value}"`);
   }
   return level;
+}
+
+function readMigrateOnStart(value: string | undefined, nodeEnv: string | undefined): boolean {
+  if (value === undefined || value === '') {
+    return nodeEnv !== 'production';
+  }
+  if (value === 'true' || value === 'false') {
+    return value === 'true';
+  }
+  throw new Error(`MIGRATE_ON_START must be true or false, got "${value}"`);
 }

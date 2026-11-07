@@ -7,19 +7,15 @@ import {
   type UnitId,
 } from '@tower-magnate/shared';
 import { SCHEMA_VERSION } from '../state';
+import { isRecord, StateMigrationError } from './errors';
+import { readGrid } from './grid';
+
+export { StateMigrationError } from './errors';
 
 type Migration = (raw: Record<string, unknown>) => Record<string, unknown>;
 
 /** MIGRATIONS[n] turns a version n+1 state into version n+2. */
 const MIGRATIONS: readonly Migration[] = [];
-
-export class StateMigrationError extends Error {
-  override name = 'StateMigrationError';
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return value !== null && typeof value === 'object' && !Array.isArray(value);
-}
 
 function isUint32(value: unknown): value is number {
   return Number.isInteger(value) && (value as number) >= 0 && (value as number) <= 0xffff_ffff;
@@ -84,6 +80,7 @@ function assertCurrentShape(raw: Record<string, unknown>): TowerState {
     rng: { a: raw.rng.a, b: raw.rng.b, c: raw.rng.c, d: raw.rng.d },
     nextId: raw.nextId,
     units: readUnits(raw.units),
+    grid: readGrid(raw.grid),
   };
 }
 
