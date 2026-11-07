@@ -1,6 +1,14 @@
 import { Application, Container, TextureSource, type TilingSprite } from 'pixi.js';
 import { loadSprites } from './atlasLoader';
-import { centerCamera, createCamera, resizeCamera, visibleLevels, type Camera } from './camera';
+import {
+  centerCamera,
+  createCamera,
+  nextZoom,
+  resizeCamera,
+  visibleLevels,
+  zoomCamera,
+  type Camera,
+} from './camera';
 import { attachCameraInput, type CameraChange } from './cameraInput';
 import { canvasSizeFromCssPixels, canvasSizeFromObservedBox, type CanvasSize } from './canvasSize';
 import { CulledRows } from './culledRows';
@@ -31,6 +39,8 @@ export interface Stage {
   camera(): Camera;
   /** Puts a world point (zoom 1 pixels) at the centre of the view. */
   centerOn(worldX: number, worldY: number): void;
+  /** One zoom level in or out, keeping the centre of the view in place. */
+  zoomStep(direction: 1 | -1): void;
   onCameraChange(listener: CameraListener): () => void;
   destroy(): void;
 }
@@ -113,6 +123,11 @@ export async function mountStage(host: HTMLElement, options: StageOptions = {}):
     camera: () => camera,
     centerOn(worldX, worldY) {
       camera = centerCamera(camera, worldX, worldY);
+      showCamera();
+    },
+    zoomStep(direction) {
+      const zoom = nextZoom(camera.zoom, direction);
+      camera = zoomCamera(camera, zoom, camera.viewWidth / 2, camera.viewHeight / 2);
       showCamera();
     },
     onCameraChange(listener) {

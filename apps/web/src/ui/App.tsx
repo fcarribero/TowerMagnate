@@ -9,8 +9,7 @@ import type { Stage } from '../render/stage';
 import { isMapToggleKey } from './keys';
 import { StageHost } from './StageHost';
 import './kit';
-import { GameMenu } from './menu/GameMenu';
-import { t } from './strings';
+import { StatusPanel, type StatusWindowId } from './status/StatusPanel';
 import { debugStarsFromQuery } from './toolbar/debugStars';
 import { Toolbar } from './toolbar/Toolbar';
 import { DEFAULT_LOBBY_HEIGHT, DEFAULT_TOOL, type ToolId } from './toolbar/toolbarModel';
@@ -21,7 +20,7 @@ export interface AppProps {
 }
 
 export function App({ onLogout }: AppProps) {
-  const { status: connectionStatus } = useGameConnection();
+  const { connection, status: connectionStatus } = useGameConnection();
   const content = useMemo(() => {
     const store = new TowerContentStore();
     store.applySnapshot(placeholderTowerContent());
@@ -33,7 +32,11 @@ export function App({ onLogout }: AppProps) {
   const [lobbyHeight, setLobbyHeight] = useState(DEFAULT_LOBBY_HEIGHT);
   // Replaced by the tower's rating once the game state reaches the client.
   const stars: StarRating = (import.meta.env.DEV && debugStarsFromQuery(location.search)) || 1;
-  const toggleMap = (): void => setMapOpen((open) => !open);
+  const onOpenWindow = (id: StatusWindowId): void => {
+    if (id === 'map') {
+      setMapOpen((open) => !open);
+    }
+  };
   const { playTrigger } = useSfx();
   const onUiClick = (event: MouseEvent): void => {
     if (event.target instanceof Element && event.target.closest('button') !== null) {
@@ -59,16 +62,13 @@ export function App({ onLogout }: AppProps) {
     <>
       <StageHost onStage={setStage} />
       <div class="ui-layer" onClick={onUiClick}>
-        <div class="status-panel">
-          <GameMenu />
-          {connectionStatus !== 'live' && t('ui.serverOffline')}
-          <button type="button" class="status-button" onClick={toggleMap}>
-            Mapa
-          </button>
-          <button type="button" class="status-button" onClick={onLogout}>
-            {t('ui.logout')}
-          </button>
-        </div>
+        <StatusPanel
+          store={connection.store}
+          offline={connectionStatus !== 'live'}
+          onOpenWindow={onOpenWindow}
+          onZoom={(direction) => stage?.zoomStep(direction)}
+          onLogout={onLogout}
+        />
         <Toolbar
           stars={stars}
           currentTool={tool}

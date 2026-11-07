@@ -31,23 +31,6 @@ body,
   pointer-events: auto;
 }
 
-.status-panel {
-  position: absolute;
-  top: 0;
-  right: 0;
-  left: 0;
-  box-sizing: border-box;
-  display: flex;
-  align-items: center;
-  gap: calc(4 * var(--tm-px));
-  height: calc(24 * var(--tm-px));
-  padding: 0 calc(4 * var(--tm-px));
-  color: #141218;
-  background: #d6d4d0;
-  border: 2px solid;
-  border-color: #f4f1e8 #4f4e5c #4f4e5c #f4f1e8;
-}
-
 .stage-message {
   position: absolute;
   top: 50%;
@@ -80,11 +63,6 @@ body,
   font-family: var(--tm-font);
   font-size: 16px;
   color: #f4f1e8;
-}
-
-.status-button {
-  margin-left: 8px;
-  font: inherit;
 }
 
 .window {
