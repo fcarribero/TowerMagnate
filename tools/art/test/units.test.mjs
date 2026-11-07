@@ -8,23 +8,41 @@ const [{ sprites }] = drawGroups([unitsGroup]);
 const byId = Object.fromEntries(sprites.map((sprite) => [sprite.id, sprite.canvas]));
 const rentableIds = Object.keys(byId).filter((id) => !id.startsWith('units/cathedral/'));
 const cathedralVariants = ['empty_day', 'empty_night', 'wedding_day', 'wedding_night'];
+const catalogWidthTiles = {
+  office: 9,
+  condo: 16,
+  'single-room': 4,
+  'double-room': 6,
+  suite: 10,
+  housekeeping: 15,
+};
+const hotelRooms = ['single-room', 'double-room', 'suite'];
+const states = (subject) =>
+  hotelRooms.includes(subject) ? ['empty', 'occupied', 'dirty', 'infested'] : ['empty', 'occupied'];
+const variantsOf = (subject) =>
+  states(subject).flatMap((state) => [`${state}_day`, `${state}_night`]);
+const windowCentre = {
+  office: [11, 8],
+  condo: [41, 8],
+  'single-room': [17, 7],
+  'double-room': [21, 7],
+  suite: [19, 7],
+  housekeeping: [52, 7],
+};
 const countColor = (canvas, color) =>
   canvas.pixels.filter((index) => index === colorIndex(color)).length;
-const catalogWidthTiles = { office: 9, condo: 16 };
-const variants = ['empty_day', 'empty_night', 'occupied_day', 'occupied_night'];
-const windowCentre = { office: [11, 8], condo: [41, 8] };
 
 describe('units group', () => {
-  it('draws empty and occupied, day and night, for offices and condos', () => {
+  it('draws every state at day and night, hotel rooms also dirty and infested', () => {
     const expected = Object.keys(catalogWidthTiles).flatMap((subject) =>
-      variants.map((variant) => `units/${subject}/${variant}`),
+      variantsOf(subject).map((variant) => `units/${subject}/${variant}`),
     );
     expect(rentableIds).toEqual(expected);
   });
 
   it('sizes every sprite from the catalog width and one floor', () => {
     for (const [subject, widthTiles] of Object.entries(catalogWidthTiles)) {
-      for (const variant of variants) {
+      for (const variant of variantsOf(subject)) {
         const sprite = byId[`units/${subject}/${variant}`];
         expect(sprite.width).toBe(widthTiles * metrics.tileWidth);
         expect(sprite.height).toBe(metrics.floorHeight);
@@ -53,10 +71,34 @@ describe('units group', () => {
   });
 
   it('hangs a for rent sign on the door only while empty', () => {
-    const countLeaf = (canvas) =>
-      canvas.pixels.filter((index) => index === colorIndex('leaf')).length;
-    const plantLeaf = countLeaf(byId['units/office/occupied_day']);
-    expect(countLeaf(byId['units/office/empty_day'])).toBeGreaterThan(plantLeaf);
+    const plantLeaf = countColor(byId['units/office/occupied_day'], 'leaf');
+    expect(countColor(byId['units/office/empty_day'], 'leaf')).toBeGreaterThan(plantLeaf);
+  });
+
+  it('leaves grime on the floor of dirty and infested hotel rooms', () => {
+    for (const room of hotelRooms) {
+      const clean = countColor(byId[`units/${room}/empty_day`], 'leaf-dark');
+      expect(countColor(byId[`units/${room}/dirty_day`], 'leaf-dark')).toBeGreaterThan(clean);
+      expect(byId[`units/${room}/dirty_day`].pixels).not.toEqual(
+        byId[`units/${room}/empty_day`].pixels,
+      );
+    }
+  });
+
+  it('adds 4 to 8 roaches to the dirty room when infested', () => {
+    for (const room of hotelRooms) {
+      const roachPixels =
+        countColor(byId[`units/${room}/infested_day`], 'wood-dark') -
+        countColor(byId[`units/${room}/dirty_day`], 'wood-dark');
+      expect(roachPixels).toBeGreaterThanOrEqual(8);
+      expect(roachPixels).toBeLessThanOrEqual(16);
+    }
+  });
+
+  it('shows the maids in housekeeping only while occupied', () => {
+    const apronBlue = (variant) => countColor(byId[`units/housekeeping/${variant}`], 'cloth-blue');
+    expect(apronBlue('occupied_day')).toBeGreaterThan(apronBlue('empty_day'));
+    expect(countColor(byId['units/housekeeping/empty_day'], 'skin-mid')).toBe(0);
   });
 });
 
