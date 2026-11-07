@@ -37,6 +37,16 @@ If an effect fails to encode (for example the API returned near silence), the ra
 
 MP3 adds a few milliseconds of padding at the start, so loops should be played from the ogg file where the browser supports it.
 
+## Client manifest
+
+`assets/sfx/manifest.json` tells the client which file to play for each game trigger. It is built from `effects.json` (id and loop flag) and `cues.json` (trigger, description and playback volume from 0 to 1). After changing either file, run:
+
+```bash
+pnpm manifest
+```
+
+Each entry has `id`, `files` (`ogg` and `mp3`, relative to the manifest), `volume`, `loop`, `trigger` and `description`. The tests check the schema, that the committed manifest matches both source files, and that every listed file exists once any effect has been generated.
+
 ## Tests
 
 The tests run with the rest of the repo from the root (`pnpm lint`, `pnpm typecheck`, `pnpm test`). From this folder, `pnpm test` runs only these tests. The ffmpeg tests are skipped when ffmpeg is missing.
