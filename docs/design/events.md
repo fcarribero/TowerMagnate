@@ -1,6 +1,6 @@
 # Events and decisions
 
-Version 1.0, 19 November 2026. Owner: Game Designer. Task TM-15.
+Version 1.1, 20 November 2026. Owner: Game Designer. Task TM-15.
 
 This document defines the tower events of the GDD (section Eventos): the bomb threat, fire, the VIP visit, treasure and Papá Noel. For each one it gives the daily chance, the time of day, what the player can decide and what happens if the player does not answer, and the step-by-step rules for the bomb search and the fire spread. Values come from `docs/GDD.md` and the SimTower research notes, adapted to the linear clock and the Monday-to-Sunday week. Where the GDD leaves a point open, the decision is marked "Design call" with a short reason. Section 14 maps every GDD event to the section that covers it. The numbered rules at the end are the contract for the engine (`packages/engine`), the balance constants (`packages/shared`) and QA.
 
@@ -25,7 +25,7 @@ A day with the event rolls of this document is any day of the week, weekdays and
 | Bomb threat | 2 or more | 09:00 | 1 in 60 | pay the ransom or not, until 10:00 | `refuse` |
 | Fire | 3 or more | 15:00 | 1 in 84 | call the helicopter or not, until 16:00 | `burn` |
 | VIP visit | exactly 3 | 00:00 | 1 in 9 | none | |
-| Treasure | any | on a construction command | 1 in 40 per basement level | none | |
+| Treasure | any | on a construction command | 1 in 40 per command, once per basement level | none | |
 | Papá Noel | any | 22:00 on 24 December | always | none | |
 
 Bomb threats and fires are disasters. At most one disaster is active at a time. A VIP visit can run at the same time as a disaster.
@@ -65,9 +65,9 @@ Design call on paying with a low balance: refusing the payment because the playe
 
 ### 3.3 Deadline
 
-At `deadlineStep`, in the events phase (section 10), an open decision closes with its default option. The engine emits `decisionClosed` with the default and a notice saying which option was applied (section 12).
+At `deadlineStep`, in the events phase (section 10), an open decision closes with its default option. The engine emits `decisionClosed` with the default and the notice `news.decisionDefault` (ui.md 13.9) with the option's button text.
 
-A decision whose disaster ends before the deadline closes at that step with its default option, which has no cost. This can happen when guards put a fire out before 16:00.
+A decision whose disaster ends before the deadline closes at that step with its default option, which has no cost. This can happen when guards put a fire out before 16:00. It emits `decisionClosed` but not `news.decisionDefault`; the notice that ends the disaster is enough.
 
 ### 3.4 While the tower is paused
 
@@ -111,7 +111,7 @@ The ransom is fixed when the threat opens. A star change during the threat does 
 
 The search uses the security guards of every security office in the tower (people.md 14), 6 per office.
 
-When the search starts, the engine makes the search list: every level from -9 to 100 that holds at least one unit other than a lobby. Each level on the list is unsearched, taken by one guard, or searched. Levels that get units later are not added.
+When the search starts, the engine emits `news.bombSearch` and makes the search list: every level from -9 to 100 that holds at least one unit other than a lobby, plus the bomb level `bl`, which is always on the list even if the player has demolished every unit on it. Each level on the list is unsearched, taken by one guard, or searched. Levels that get units later are not added.
 
 Each guard, in increasing person id, picks a target:
 
@@ -141,8 +141,9 @@ At 13:00, in the events phase, a bomb that has not been found explodes. A level 
 The blast box is:
 
 - columns `bx - 20` to `bx + 19` (40 columns), cut to 0 to 374;
-- levels from 2 below `bl` to 3 above `bl` in level order (construction section 1, so the level below 1 is -1), cut to -9 to 104;
-- level 1 is never part of the box.
+- levels from 2 below `bl` to 3 above `bl` in level order (construction section 1, so the level below 1 is -1), cut to -9 to 100;
+- level 1 is never part of the box;
+- the cathedral and level 101 are never part of the box.
 
 Inside the box:
 
@@ -157,6 +158,8 @@ A destroyed unit has the effects of demolition (construction 8.5) with two diffe
 The engine emits `disaster` with kind `bomb` and the ruined cells, the alert notice `news.bombExploded` with level `bl`, and the explosion sound at the bomb cell. Population is recounted at once. The threat ends (4.6).
 
 Design call on transport: a shaft can span 30 levels or, for an express, the whole tower. Destroying it for a 6-level blast would cut transport far from the box, and construction has no partial shaft. Stairs and escalators are kept for the same reason, so the player's transport layout survives. The units, which are the income, take the loss.
+
+Design call on the cathedral: the fire never burns the cathedral (5.6), and the bomb follows the same rule. The cathedral costs $3,000,000 and is the only way to the Torre rank, and the player has no way to protect it, since the bomb cell is random and the security lock blocks new offices.
 
 Design call on condos: demolishing a sold condo costs the sale price because the player chose it (construction 8.5). The player did not choose the explosion, and the GDD gives a block of destroyed units as the whole penalty.
 
@@ -177,13 +180,13 @@ At 15:00 every day the engine rolls 1 in 84 for a fire when all of these hold:
 - the rating is 3 stars or more;
 - no bomb threat or fire is active;
 - no wedding attempt is under way that day (people.md 15);
-- the tower has at least one fire candidate: a unit that is not a lobby, on a level from 2 to 100 that has 32 or more columns with structure.
+- the tower has at least one fire candidate: a unit that is not a lobby and whose bottom level is from 2 to 100 and has 32 or more columns with structure.
 
 If any condition fails, no draw is made.
 
 ### 5.2 Ignition
 
-On success the engine draws a candidate unit and a column inside it, in the same way as the bomb (4.2). That cell is the fire's origin, column `c0` on level `L0`.
+On success the engine draws a candidate unit and a column inside it, in the same way as the bomb (4.2). The fire's origin is that column on the unit's bottom level: column `c0` on level `L0`.
 
 The origin level ignites at that column (5.4). The engine opens the `fire` decision, emits the alert notice `news.fire` with level `L0`, and plays the fire alarm at the origin.
 
@@ -236,7 +239,7 @@ When the fire starts, and again whenever a level ignites or goes out, every guar
 - the burning level with the fewest guards assigned;
 - on a tie, the higher level.
 
-A guard assigned to a level plans a trip to that level's ignition column. On arrival the guard joins the front of that level with fewer guards, the left front on a tie, and fights it from the next minute tick. A guard whose front goes out joins the other front of the same level if it is still burning, or else has no target and picks again. A guard whose trip has no route has no target; it stays where it is and picks again at the next pick.
+A guard assigned to a level plans a trip to that level's ignition column. On arrival the guard joins the front of that level with fewer guards, the left front on a tie, and fights it from the next minute tick. A guard whose front goes out joins the other front of the same level if it is still burning, or else has no target and picks again. A guard whose trip has no route has no target; it stays where it is and picks again at the next pick. A guard still travelling to a level that goes out has no target, stops where it is at that step and picks again in the same step (the pick of item 9 in section 10).
 
 A guard counts for containment at a tick only when it arrived at an earlier step.
 
@@ -283,11 +286,11 @@ Design call on the 1 in 9: with the GDD's average of 9 days, a 3-star tower wait
 
 ## 7. Treasure
 
-Each successful construction command that creates at least one new basement cell (construction 8.6) can find treasure.
+Each successful construction command that creates at least one new basement cell (construction 8.6) can find treasure. Basement levels -1 to -9 are written S1 to S9 here, as in construction section 1.
 
 1. The dig level is the deepest level among the command's new basement cells that has not yet given treasure in this tower. If all of them have, no draw is made.
 2. The engine rolls 1 in 40.
-3. On success the treasure is credited to the `events` category, the dig level is marked as having given treasure, and the engine emits `treasureFound` and `news.treasure` with the level and the amount.
+3. On success the treasure is credited to the `events` category, the dig level is marked as having given treasure, and the engine emits `treasureFound` with the amount and `news.treasure` with the level and the amount.
 
 | Dig level | Amount |
 |---|---|
@@ -404,11 +407,10 @@ The tower also keeps `closedDecisions: string[]`, the ids of the last 20 closed 
 |---|---|---|---|
 | `news.bombThreat` | 4.2 | yes | in ui.md 13.9 |
 | `news.bombPaid` | 4.3 | | in ui.md 13.9 |
-| `news.bombSearch` | 4.3, search starts | | Seguridad empezó a buscar la bomba. |
+| `news.bombSearch` | 4.4, search starts | | Seguridad empezó a buscar la bomba. |
 | `news.bombFound` | 4.4 | | in ui.md 13.9 |
 | `news.bombExploded` | 4.5 | yes | in ui.md 13.9 |
 | `news.fire` | 5.2 | yes | in ui.md 13.9 |
-| `news.fireNoHelicopter` | 5.3, `burn` | | No se llamó al helicóptero. Seguridad combate el incendio. |
 | `news.fireHelicopter` | 5.3 | | in ui.md 13.9 |
 | `news.fireOut` | 5.8 | | in ui.md 13.9 |
 | `news.vipArrives` | 6.2 | | in ui.md 13.9 |
@@ -417,8 +419,9 @@ The tower also keeps `closedDecisions: string[]`, the ids of the last 20 closed 
 | `news.vipRejected` | 6.3 | | in ui.md 13.9 |
 | `news.treasure` | 7 | | in ui.md 13.9 |
 | `news.santa` | 8 | | in ui.md 13.9 |
+| `news.decisionDefault` | 3.3 | | in ui.md 13.9 |
 
-The three new texts go to TM-17 for the catalog. `news.bombSearch` and `news.fireNoHelicopter` are the notices of ui.md 9.1 that say which option was applied; they are also shown when the player picks the default option.
+The two new texts, `news.bombSearch` and `news.vipNoSuite`, go to TM-17 for the catalog. `news.bombSearch` is shown whenever the search starts, after a `refuse` answer or at the deadline. Choosing `burn` has no notice of its own; the deadline case uses `news.decisionDefault`.
 
 ## 13. Worked examples
 
@@ -448,7 +451,7 @@ A 3-star tower, Wednesday 15:00. The fire roll succeeds; the origin is column 15
 - 15:09 and 15:10: progress 6 and 9, both move: span 140 to 160.
 - 15:11: progress 12. Both fronts are out and do not move.
 
-The level is out at 15:11 after 21 columns burned, before the 15:30 climb. The fire ends; the open decision closes with `burn` at no cost, and `news.fireOut` is shown. Every unit that had a cell in columns 140 to 160 on level 40 is ruins.
+The level is out at 15:11 after 21 columns burned, before the 15:30 climb. The fire ends; the open decision closes with `burn` at no cost, and only `news.fireOut` is shown. Every unit that had a cell in columns 140 to 160 on level 40 is ruins.
 
 ### 13.4 A fire with no security
 
@@ -523,7 +526,7 @@ EV-02. `answerEvent` is checked in the order `UNKNOWN_ENTITY`, `EVENT_EXPIRED`, 
 
 EV-03. An accepted answer closes the decision at once and emits `decisionClosed` with the choice. A decision is answered at most once.
 
-EV-04. At `deadlineStep` an open decision closes with its default and emits `decisionClosed` and the matching notice. A decision whose disaster ends first closes with its default at that step, at no cost.
+EV-04. At `deadlineStep` an open decision closes with its default and emits `decisionClosed` and `news.decisionDefault`. A decision whose disaster ends first closes with its default at that step, at no cost, without `news.decisionDefault`.
 
 EV-05. `pay` and `helicopter` are accepted at any balance, including a negative one, and are charged to `events`.
 
@@ -541,7 +544,7 @@ EV-10. From the threat's start to its end, placing a security office fails with 
 
 EV-11. `pay` charges the ransom and ends the threat at once.
 
-EV-12. On `refuse` or at 10:00, the search list is every level from -9 to 100 with a unit other than a lobby at that moment.
+EV-12. On `refuse` or at 10:00, the search starts with `news.bombSearch`. The search list is every level from -9 to 100 with a unit other than a lobby at that moment, plus the bomb level in every case.
 
 EV-13. Each guard of every security office, in increasing person id, takes the unsearched, untaken level nearest in dense level index, the higher level on a tie, skipping levels it found unreachable, and travels to its leftmost structure column.
 
@@ -549,7 +552,7 @@ EV-14. A guard with no route to its level releases it, marks it unreachable for 
 
 EV-15. A level search lasts `6 × max(1, ceil(c / 4))` steps from arrival, with `c` the level's structure columns at that moment. When the bomb level's search ends before 13:00, the bomb is found and the threat ends.
 
-EV-16. At 13:00 an unfound bomb explodes. The box is columns `bx - 20` to `bx + 19` and levels `bl - 2` to `bl + 3` in level order, cut to the site, never including level 1.
+EV-16. At 13:00 an unfound bomb explodes. The box is columns `bx - 20` to `bx + 19` and levels `bl - 2` to `bl + 3` in level order, cut to the site, never including level 1, level 101 or the cathedral.
 
 EV-17. Every unit with a cell in the box is destroyed and all its cells become ruins; every other cell in the box with structure and no occupant becomes ruins. Stairs, escalators, shafts and cars are not damaged.
 
@@ -559,9 +562,9 @@ EV-19. When a threat ends, the lock ends and every guard away from the office go
 
 ### Fire
 
-EV-20. At 15:00 daily, with 3 stars or more, no disaster active, no wedding attempt that day and at least one non-lobby unit on a level from 2 to 100 with 32 or more structure columns, the engine rolls 1 in 84. Otherwise it makes no draw.
+EV-20. At 15:00 daily, with 3 stars or more, no disaster active, no wedding attempt that day and at least one non-lobby unit whose bottom level is from 2 to 100 with 32 or more structure columns, the engine rolls 1 in 84. Otherwise it makes no draw.
 
-EV-21. On success it draws a candidate unit and a column as in EV-08; that cell ignites. The deadline is 16:00 and the default is `burn`.
+EV-21. On success it draws a candidate unit and a column as in EV-08; that column of the unit's bottom level ignites. The deadline is 16:00 and the default is `burn`.
 
 EV-22. `helicopter` charges $500,000 and puts every burning level out at once. Burned cells stay ruins.
 
@@ -573,7 +576,7 @@ EV-25. At `s + 180`, a level that is not out lights the level above, if that lev
 
 EV-26. When the fire starts and whenever a level ignites or goes out, each guard without a target, in increasing person id, takes the burning level with the fewest guards, the higher on a tie, and travels to its ignition column.
 
-EV-27. On arrival a guard joins the front of its level with fewer guards, the left on a tie, and counts from the first tick after its arrival step. A guard whose front goes out joins the other front of the level if it is burning, or else picks again.
+EV-27. On arrival a guard joins the front of its level with fewer guards, the left on a tie, and counts from the first tick after its arrival step. A guard whose front goes out joins the other front of the level if it is burning, or else picks again. A guard travelling to a level that goes out stops and picks again in the same step.
 
 EV-28. The fire ends when every level is out, when the helicopter is called, or at 19:00. Then guards go back to their offices.
 
