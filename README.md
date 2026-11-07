@@ -58,7 +58,7 @@ By default the run starts its own compose stack (project `tm-e2e`, ports from `P
 
 ## Local stack
 
-`docker compose up` starts `postgres` (16, data in a named volume), `server` (`pnpm dev` in `apps/server`, restarts on change) and `web` (`pnpm dev` in `apps/web`, called with `--host 0.0.0.0 --port 5173 --strictPort`). The containers mount the repository and keep their own `node_modules` in named volumes, so the host install is never touched.
+`docker compose --profile dev up` starts `postgres` (16, data in a named volume), `server` (`pnpm dev` in `apps/server`, restarts on change) and `web` (`pnpm dev` in `apps/web`, called with `--host 0.0.0.0 --port 5173 --strictPort`). The containers mount the repository and keep their own `node_modules` in named volumes, so the host install is never touched.
 
 Copy `.env.example` to `.env` to change the project name, ports or database credentials. To run several stacks side by side, use `pnpm stack`, which wraps `docker compose` and derives the ports from `PORT_BASE`: postgres on `PORT_BASE`, the server on `PORT_BASE + 1` and web on `PORT_BASE + 2`.
 
@@ -67,6 +67,20 @@ COMPOSE_PROJECT_NAME=tm-dev PORT_BASE=4190 pnpm stack up -d
 curl http://localhost:4191/health       # {"status":"ok","version":"0.0.0","database":"ok"}
 curl http://localhost:4192/api/health   # same report, proxied by the web dev server
 pnpm stack down -v                      # remove containers and volumes
+```
+
+`pnpm stack` runs the `dev` profile unless `COMPOSE_PROFILES` says otherwise. `.env.example` sets `COMPOSE_PROFILES=dev`, so a plain `docker compose up` with that `.env` does the same.
+
+### Production image
+
+`docker/prod/Dockerfile` builds the web client with Vite, bundles the server with esbuild and installs only the server's production dependencies. The final image runs `node build/main.js` with `NODE_ENV=production` and serves the web build from `WEB_DIR=/app/web`. Files in `assets/` have hashed names and are cached for a year. Every other file, and the game page returned for unknown page routes, is revalidated on each request.
+
+The `prod` profile runs `postgres` and `app` (the production image) on `SERVER_PORT`, with `MIGRATE_ON_START=true`:
+
+```bash
+COMPOSE_PROJECT_NAME=tm-prod PORT_BASE=4190 pnpm stack --profile prod up -d --build
+curl http://localhost:4191/health       # {"status":"ok","version":"0.0.0","database":"ok"}
+pnpm stack --profile prod down -v
 ```
 
 ## Database

@@ -6,6 +6,8 @@ export interface ServerConfig {
   databaseUrl: string;
   logLevel: LogLevel;
   migrateOnStart: boolean;
+  /** Set in production, where the server also serves the built web client. */
+  webDir?: string;
   secureCookies: boolean;
 }
 
@@ -33,6 +35,7 @@ export function readConfig(env: NodeJS.ProcessEnv): ServerConfig {
     databaseUrl,
     logLevel: readLogLevel(env.LOG_LEVEL),
     migrateOnStart: readMigrateOnStart(env.MIGRATE_ON_START, env.NODE_ENV),
+    webDir: env.WEB_DIR || undefined,
     secureCookies: readSecureCookies(env.SECURE_COOKIES, env.NODE_ENV),
   };
 }
