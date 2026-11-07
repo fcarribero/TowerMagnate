@@ -1,5 +1,42 @@
 export type Level = number;
 
+/** Id of an entity placed in a tower: unit, transport or shaft. Drawn from `TowerState.nextId`. */
+export type EntityId = number;
+
+export type StructureKind = 'floor' | 'lobby';
+
+/** A run of cells on one level, from column x0 to x1 inclusive. */
+export interface ColumnSpan {
+  x0: number;
+  x1: number;
+}
+
+export interface StructureSpan extends ColumnSpan {
+  kind: StructureKind;
+}
+
+export type OccupantRef =
+  | { kind: 'unit'; id: EntityId }
+  | { kind: 'transport'; id: EntityId; part: 'footprint' | 'landing' }
+  | { kind: 'shaft'; id: EntityId }
+  | { kind: 'ruins' };
+
+export interface OccupantSpan extends ColumnSpan {
+  occupant: OccupantRef;
+}
+
+export interface LevelRow {
+  /** Sorted by x0, never overlapping, adjacent spans of the same kind merged. */
+  structure: StructureSpan[];
+  /** Sorted by x0, never overlapping. */
+  occupants: OccupantSpan[];
+}
+
+export interface GridState {
+  /** Only levels that hold structure or occupants have a row. */
+  levels: Partial<Record<Level, LevelRow>>;
+}
+
 export interface RngState {
   a: number;
   b: number;
