@@ -13,7 +13,7 @@ const engine = createEngine({
         return { ok: false, error: 'OUT_OF_BOUNDS' };
       }
       context.state.nextId += nextInt(context.state.rng, 1, 5);
-      return { ok: true, cost: 0, refund: 0 };
+      return { ok: true, cost: 0, refund: 0, events: [] };
     },
   },
   systems: [

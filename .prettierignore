@@ -4,3 +4,7 @@ coverage
 pnpm-lock.yaml
 *.tsbuildinfo
 docs
+
+test-results/
+**/test-results/
+playwright-report/
