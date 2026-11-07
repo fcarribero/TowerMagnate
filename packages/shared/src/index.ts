@@ -8,4 +8,5 @@ export * from './balance';
 export * from './levels';
 export * from './ledger';
 export * from './auth';
+export * from './account';
 export * from './protocol';
