@@ -1,3 +1,4 @@
+import { cathedralSprites } from '../units/cathedral.mjs';
 import { condoSprites } from '../units/condo.mjs';
 import { doubleRoomSprites, singleRoomSprites, suiteSprites } from '../units/hotel.mjs';
 import { housekeepingSprites } from '../units/housekeeping.mjs';
@@ -13,6 +14,7 @@ export const unitsGroup = {
       ...doubleRoomSprites(),
       ...suiteSprites(),
       ...housekeepingSprites(),
+      ...cathedralSprites(),
     ];
   },
 };
