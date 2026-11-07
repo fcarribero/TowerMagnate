@@ -1,3 +1,4 @@
+import { fileURLToPath } from 'node:url';
 import preact from '@preact/preset-vite';
 import { fileURLToPath } from 'node:url';
 import { defineConfig, loadEnv } from 'vite';
@@ -25,6 +26,12 @@ export default defineConfig(({ mode }) => {
     build: {
       outDir: 'dist',
       emptyOutDir: true,
+      rollupOptions: {
+        input: {
+          main: fileURLToPath(new URL('index.html', import.meta.url)),
+          kit: fileURLToPath(new URL('kit.html', import.meta.url)),
+        },
+      },
     },
   };
 });
