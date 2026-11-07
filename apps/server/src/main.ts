@@ -1,35 +1,20 @@
-import { createServer } from 'node:http';
-import pg from 'pg';
+import { buildApp } from './app';
 import { readConfig } from './config';
-import { checkHealth } from './health';
+import { installShutdownHandlers } from './shutdown';
+import { readServerVersion } from './version';
 
 const config = readConfig(process.env);
-const pool = new pg.Pool({ connectionString: config.databaseUrl });
-
-async function pingDatabase(): Promise<void> {
-  await pool.query('select 1');
-}
-
-const server = createServer(async (request, response) => {
-  if (request.method === 'GET' && request.url === '/health') {
-    const report = await checkHealth(pingDatabase);
-    const statusCode = report.status === 'ok' ? 200 : 503;
-    response.writeHead(statusCode, { 'content-type': 'application/json' });
-    response.end(JSON.stringify(report));
-    return;
-  }
-  response.writeHead(404);
-  response.end();
+const app = buildApp({
+  version: readServerVersion(),
+  databaseUrl: config.databaseUrl,
+  logger: { level: config.logLevel },
 });
 
-server.listen(config.port, () => {
-  console.log(`Server listening on port ${config.port}`);
-});
+installShutdownHandlers(app);
 
-async function shutdown(): Promise<void> {
-  server.close();
-  await pool.end();
+try {
+  await app.listen({ host: config.host, port: config.port });
+} catch (error) {
+  app.log.fatal({ err: error }, 'Server failed to start');
+  process.exit(1);
 }
-
-process.once('SIGINT', () => void shutdown());
-process.once('SIGTERM', () => void shutdown());

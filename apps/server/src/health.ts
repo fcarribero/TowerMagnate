@@ -1,13 +1,17 @@
 export interface HealthReport {
   status: 'ok' | 'degraded';
+  version: string;
   database: 'ok' | 'unreachable';
 }
 
-export async function checkHealth(pingDatabase: () => Promise<void>): Promise<HealthReport> {
+export async function checkHealth(
+  version: string,
+  pingDatabase: () => Promise<void>,
+): Promise<HealthReport> {
   try {
     await pingDatabase();
-    return { status: 'ok', database: 'ok' };
+    return { status: 'ok', version, database: 'ok' };
   } catch {
-    return { status: 'degraded', database: 'unreachable' };
+    return { status: 'degraded', version, database: 'unreachable' };
   }
 }
