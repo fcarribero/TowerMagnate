@@ -1,10 +1,24 @@
+import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import preact from '@preact/preset-vite';
-import { defineConfig, loadEnv } from 'vite';
+import { defineConfig, loadEnv, type Plugin } from 'vite';
 
 const DEFAULT_SERVER_URL = 'http://localhost:3000';
 const DEFAULT_WEB_PORT = 5173;
 const GENERATED_ASSETS_DIR = fileURLToPath(new URL('../../assets', import.meta.url));
+const ART_BUILD_SCRIPT = fileURLToPath(
+  new URL('../../tools/art/scripts/build.mjs', import.meta.url),
+);
+
+/** Atlases and their manifest are not in git, so every dev server and build draws them first. */
+function buildArtAtlases(): Plugin {
+  return {
+    name: 'tower-magnate:art-build',
+    config() {
+      execFileSync(process.execPath, [ART_BUILD_SCRIPT], { stdio: 'inherit' });
+    },
+  };
+}
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
@@ -12,7 +26,7 @@ export default defineConfig(({ mode }) => {
   const webPort = Number(env.TM_WEB_PORT) || DEFAULT_WEB_PORT;
 
   return {
-    plugins: [preact()],
+    plugins: [buildArtAtlases(), preact()],
     publicDir: GENERATED_ASSETS_DIR,
     server: {
       port: webPort,

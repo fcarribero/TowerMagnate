@@ -4,6 +4,7 @@ import { authRoutes } from './auth/routes';
 import { createPool, pingDatabase } from './database';
 import { registerGateway, type IdentityResolver } from './gateway';
 import { checkHealth } from './health';
+import { towerRoutes } from './towers/routes';
 import { createTowerStore, followConnections, TowerRunner } from './runner';
 import { createSnapshotRepository } from './snapshots';
 import { sessionIdentityResolver, towerSocketHandlers, Viewports } from './tower-socket';
@@ -39,6 +40,13 @@ export function buildApp(options: AppOptions): FastifyInstance {
 
   app.register(cookie);
   app.register(authRoutes, { pool, secureCookies: options.secureCookies ?? false });
+  const runner = new TowerRunner({
+    store: createTowerStore(pool, createSnapshotRepository(pool)),
+    onTickError: (towerId, error) => app.log.error({ err: error, towerId }, 'Tower tick failed'),
+    onSaveError: (towerId, error) => app.log.error({ err: error, towerId }, 'Tower save failed'),
+  });
+  app.decorate('towerRunner', runner);
+  app.register(towerRoutes, { pool, runner });
 
   for (const path of ['/health', '/api/health']) {
     app.get(path, async (_request, reply) => {
@@ -47,18 +55,12 @@ export function buildApp(options: AppOptions): FastifyInstance {
     });
   }
 
-  const runner = new TowerRunner({
-    store: createTowerStore(pool, createSnapshotRepository(pool)),
-    onTickError: (towerId, error) => app.log.error({ err: error, towerId }, 'Tower tick failed'),
-    onSaveError: (towerId, error) => app.log.error({ err: error, towerId }, 'Tower save failed'),
-  });
   const gateway = registerGateway(app, {
     resolveIdentity: options.resolveSocketIdentity ?? sessionIdentityResolver(pool),
     handlers: towerSocketHandlers({ runner, viewports: new Viewports() }),
     heartbeatIntervalMs: options.heartbeatIntervalMs,
     helloTimeoutMs: options.helloTimeoutMs,
   });
-  app.decorate('towerRunner', runner);
   followConnections(gateway.registry, runner, app.log);
   const stopRunner = runner.start(options.runnerTickIntervalMs);
   const stopAutosave = runner.startAutosave(options.snapshotIntervalMs);

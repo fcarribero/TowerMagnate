@@ -10,4 +10,5 @@ export * from './levels';
 export * from './ledger';
 export * from './messages';
 export * from './auth';
+export * from './account';
 export * from './protocol';
