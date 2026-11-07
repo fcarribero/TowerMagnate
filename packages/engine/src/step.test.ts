@@ -13,7 +13,7 @@ const testRules: EngineRules = {
         return { ok: false, error: 'OUT_OF_BOUNDS' };
       }
       context.state.nextId += command.x1 - command.x0 + 1;
-      return { ok: true, cost: 500 * (command.x1 - command.x0 + 1), refund: 0 };
+      return { ok: true, cost: 500 * (command.x1 - command.x0 + 1), refund: 0, events: [] };
     },
   },
   systems: [
@@ -109,6 +109,68 @@ describe('step', () => {
     const { results, state } = step(createTower(1), [floor('c1', 0, 4)], 0);
     expect(results).toEqual([{ id: 'c1', ok: false, step: 0, error: 'INVALID_COMMAND' }]);
     expect(state).toEqual(createTower(1));
+  });
+
+  it.each([
+    ['a null command', null],
+    ['a command without a type', { name: 'x' }],
+    ['an unknown type', { type: 'launchRocket' }],
+    ['an inherited property as type', { type: 'toString' }],
+    ['an array', ['renameUnit']],
+  ])('rejects %s as INVALID_COMMAND without changing the state', (_label, command) => {
+    const tower = createTower(1);
+    const before = hashState(tower);
+    const malformed = { id: 'm1', command } as unknown as QueuedCommand;
+    const { state, results, events } = testEngine.step(tower, [malformed], 0);
+    expect(results).toEqual([{ id: 'm1', ok: false, step: 0, error: 'INVALID_COMMAND' }]);
+    expect(hashState(state)).toBe(before);
+    expect(events).toEqual([]);
+  });
+
+  it('keeps going after a rejected command', () => {
+    const malformed = { id: 'm1', command: { type: 'nope' } } as unknown as QueuedCommand;
+    const { results } = testEngine.step(createTower(1), [malformed, floor('ok', 0, 1)], 0);
+    expect(results.map((result) => result.ok)).toEqual([false, true]);
+  });
+
+  it('discards what a rejecting handler changed before it rejected', () => {
+    const engine = createEngine({
+      commandHandlers: {
+        buildFloor(context) {
+          context.state.nextId += 100;
+          return { ok: false, error: 'NO_SUPPORT' };
+        },
+      },
+      systems: [],
+    });
+    const tower = createTower(1);
+    const { state, results } = engine.step(tower, [floor('c1', 0, 1)], 0);
+    expect(results[0]).toMatchObject({ ok: false, error: 'NO_SUPPORT' });
+    expect(hashState(state)).toBe(hashState(tower));
+  });
+
+  it('stamps command events with the step and the command id', () => {
+    const engine = createEngine({
+      commandHandlers: {
+        renameUnit(_context, command) {
+          return {
+            ok: true,
+            cost: 0,
+            refund: 0,
+            events: [{ type: 'unitRenamed', unitId: command.unitId, name: command.name }],
+          };
+        },
+      },
+      systems: [],
+    });
+    const tower = step(createTower(1), [], 12).state;
+    const command: QueuedCommand = {
+      id: 'r7',
+      command: { type: 'renameUnit', unitId: 'u1', name: 'A' },
+    };
+    expect(engine.step(tower, [command], 3).events).toEqual([
+      { type: 'unitRenamed', step: 12, commandId: 'r7', unitId: 'u1', name: 'A' },
+    ]);
   });
 
   it('rejects a negative or fractional step count', () => {
