@@ -1,0 +1,315 @@
+import { z } from 'zod';
+import { TOWER_LAYOUT } from '../balance';
+import { MAX_NAME_LENGTH } from '../names';
+import { ElevatorScheduleSchema, MAX_CARS_PER_SHAFT } from './commands';
+import {
+  CellRangeSchema,
+  ColumnSchema,
+  DecisionKindSchema,
+  EvaluationSchema,
+  EventIdSchema,
+  HotelRoomStateSchema,
+  LevelSchema,
+  LobbyHeightSchema,
+  MoneyReasonSchema,
+  MoneySchema,
+  PersonEntityIdSchema,
+  PersonKindSchema,
+  PriceLevelSchema,
+  ShaftEntityIdSchema,
+  ShaftTypeSchema,
+  StarRatingSchema,
+  StepSchema,
+  TransportEntityIdSchema,
+  TransportTypeSchema,
+  UnitEntityIdSchema,
+  UnitTypeSchema,
+} from './primitives';
+
+export const MAX_FOLLOWED_PEOPLE = 20;
+const MAX_CAR_LOAD = 42;
+
+/** One character per column: '.' none, 'f' floor, 'l' lobby. */
+export const StructureRowSchema = z
+  .string()
+  .length(TOWER_LAYOUT.siteWidthCells)
+  .regex(/^[.fl]*$/);
+
+const ColumnPositionSchema = z.number().min(0).max(TOWER_LAYOUT.siteWidthCells);
+const DenseLevelPositionSchema = z.number().nonnegative();
+const DisplayNameSchema = z.string().max(MAX_NAME_LENGTH);
+const CarIndexSchema = z
+  .int()
+  .min(0)
+  .max(MAX_CARS_PER_SHAFT - 1);
+const CarLoadSchema = z.int().min(0).max(MAX_CAR_LOAD);
+
+export const UnitViewSchema = z.object({
+  id: UnitEntityIdSchema,
+  type: UnitTypeSchema,
+  x: ColumnSchema,
+  level: LevelSchema,
+  name: DisplayNameSchema.nullable(),
+  price: PriceLevelSchema,
+  occupied: z.boolean(),
+  variant: z.enum(['empty', 'occupied', 'dirty', 'infested', 'disconnected']),
+});
+
+export const TransportViewSchema = z.object({
+  id: TransportEntityIdSchema,
+  type: TransportTypeSchema,
+  x: ColumnSchema,
+  level: LevelSchema,
+});
+
+export const ShaftViewSchema = z.object({
+  id: ShaftEntityIdSchema,
+  type: ShaftTypeSchema,
+  x: ColumnSchema,
+  bottom: LevelSchema,
+  top: LevelSchema,
+  stops: z.array(LevelSchema),
+});
+
+export const CarRefSchema = z.object({ shaftId: ShaftEntityIdSchema, index: CarIndexSchema });
+
+export const CarViewSchema = z.object({
+  shaftId: ShaftEntityIdSchema,
+  index: CarIndexSchema,
+  position: DenseLevelPositionSchema,
+  direction: z.enum(['up', 'down', 'idle']),
+  doors: z.enum(['open', 'closed']),
+  load: CarLoadSchema,
+});
+
+export const StressLevelSchema = z.enum(['normal', 'stressed', 'veryStressed']);
+
+export const PersonViewSchema = z.object({
+  id: PersonEntityIdSchema,
+  kind: PersonKindSchema,
+  x: ColumnPositionSchema,
+  level: LevelSchema,
+  facing: z.enum(['left', 'right']),
+  mode: z.enum(['walk', 'wait', 'ride', 'stairs', 'inside']),
+  carRef: CarRefSchema.nullable(),
+  stress: StressLevelSchema,
+});
+
+export const FollowedViewSchema = z.object({
+  id: PersonEntityIdSchema,
+  name: DisplayNameSchema,
+  kind: PersonKindSchema,
+  level: LevelSchema,
+  x: ColumnPositionSchema,
+  stress: StressLevelSchema,
+});
+
+const OptionsSchema = z.array(z.string().min(1)).min(1);
+
+export const EventViewSchema = z.discriminatedUnion('kind', [
+  z.object({
+    kind: z.literal('decision'),
+    id: EventIdSchema,
+    decision: DecisionKindSchema,
+    deadlineStep: StepSchema,
+    options: OptionsSchema,
+  }),
+  z.object({
+    kind: z.literal('disaster'),
+    id: EventIdSchema,
+    disaster: DecisionKindSchema,
+    cells: z.array(CellRangeSchema),
+  }),
+]);
+
+export const NoticeViewSchema = z.object({
+  id: z.string().min(1),
+  step: StepSchema,
+  key: z.string().min(1),
+  params: z.record(z.string(), z.union([z.string(), z.number()])),
+});
+
+export const OverlayDataSchema = z.object({
+  evaluation: z.record(UnitEntityIdSchema, EvaluationSchema.nullable()),
+  price: z.record(UnitEntityIdSchema, PriceLevelSchema),
+  hotel: z.record(UnitEntityIdSchema, HotelRoomStateSchema),
+});
+
+const AmountsByReasonSchema = z.partialRecord(MoneyReasonSchema, MoneySchema);
+
+export const FinanceWeekSchema = z.object({
+  weekStartStep: StepSchema,
+  income: AmountsByReasonSchema,
+  expenses: AmountsByReasonSchema,
+});
+
+export const FinanceSummarySchema = z.object({
+  thisWeek: FinanceWeekSchema,
+  lastWeek: FinanceWeekSchema.nullable(),
+});
+
+const LevelKeySchema = z
+  .string()
+  .refine((key) => LevelSchema.safeParse(Number(key)).success, { message: 'Not a level' });
+
+export const SnapshotSchema = z.object({
+  step: StepSchema,
+  money: MoneySchema,
+  stars: StarRatingSchema,
+  population: z.int().nonnegative(),
+  grid: z.object({
+    levels: z.record(LevelKeySchema, z.object({ structure: StructureRowSchema })),
+    mainLobbyHeight: LobbyHeightSchema.nullable(),
+  }),
+  units: z.array(UnitViewSchema),
+  transports: z.array(TransportViewSchema),
+  shafts: z.array(ShaftViewSchema),
+  cars: z.array(CarViewSchema),
+  people: z.array(PersonViewSchema),
+  followed: z.array(FollowedViewSchema).max(MAX_FOLLOWED_PEOPLE),
+  activeEvents: z.array(EventViewSchema),
+  notices: z.array(NoticeViewSchema),
+  overlays: OverlayDataSchema,
+  finances: FinanceSummarySchema,
+});
+
+export const DeltaSchema = z.object({
+  step: StepSchema,
+  money: MoneySchema.optional(),
+  stars: StarRatingSchema.optional(),
+  population: z.int().nonnegative().optional(),
+  structure: z.array(z.object({ level: LevelSchema, structure: StructureRowSchema })).optional(),
+  unitsUpserted: z.array(UnitViewSchema).optional(),
+  unitsRemoved: z.array(UnitEntityIdSchema).optional(),
+  transportsUpserted: z.array(TransportViewSchema).optional(),
+  transportsRemoved: z.array(TransportEntityIdSchema).optional(),
+  shaftsUpserted: z.array(ShaftViewSchema).optional(),
+  shaftsRemoved: z.array(ShaftEntityIdSchema).optional(),
+  cars: z.array(CarViewSchema),
+  people: z.array(PersonViewSchema),
+  peopleGone: z.array(PersonEntityIdSchema).optional(),
+  followed: z.array(FollowedViewSchema).max(MAX_FOLLOWED_PEOPLE).optional(),
+  activeEvents: z.array(EventViewSchema).optional(),
+  overlays: OverlayDataSchema.partial().optional(),
+  finances: FinanceSummarySchema.optional(),
+});
+
+export const ClientEventSchema = z.discriminatedUnion('type', [
+  z.object({
+    type: z.literal('moneyChanged'),
+    step: StepSchema,
+    amount: MoneySchema,
+    reason: MoneyReasonSchema,
+    unitId: UnitEntityIdSchema.nullable(),
+  }),
+  z.object({
+    type: z.literal('decisionOpened'),
+    step: StepSchema,
+    eventId: EventIdSchema,
+    kind: DecisionKindSchema,
+    deadlineStep: StepSchema,
+    options: OptionsSchema,
+  }),
+  z.object({
+    type: z.literal('decisionClosed'),
+    step: StepSchema,
+    eventId: EventIdSchema,
+    choice: z.string().min(1),
+  }),
+  z.object({ type: z.literal('starsChanged'), step: StepSchema, stars: StarRatingSchema }),
+  z.object({ type: z.literal('starBlocked'), step: StepSchema, reason: z.string().min(1) }),
+  z.object({
+    type: z.literal('disaster'),
+    step: StepSchema,
+    kind: DecisionKindSchema,
+    cells: z.array(CellRangeSchema),
+  }),
+  z.object({ type: z.literal('treasureFound'), step: StepSchema, amount: MoneySchema }),
+  z.object({
+    type: z.literal('news'),
+    step: StepSchema,
+    key: z.string().min(1),
+    unitId: UnitEntityIdSchema.nullable(),
+  }),
+  z.object({ type: z.literal('weddingCompleted'), step: StepSchema }),
+  z.object({
+    type: z.literal('sound'),
+    step: StepSchema,
+    sound: z.string().min(1),
+    level: LevelSchema,
+    x: ColumnSchema,
+  }),
+]);
+
+const ContractSchema = z.object({
+  state: z.enum(['leased', 'forLease', 'sold', 'forSale']),
+  week: z.int().positive().nullable(),
+  nextPaymentStep: StepSchema.nullable(),
+});
+
+const PersonDestinationSchema = z.discriminatedUnion('kind', [
+  z.object({ kind: z.literal('unit'), unitId: UnitEntityIdSchema, level: LevelSchema }),
+  z.object({ kind: z.literal('exit') }),
+]);
+
+const InspectedCarSchema = z.object({
+  index: CarIndexSchema,
+  homeLevel: LevelSchema,
+  load: CarLoadSchema,
+});
+
+export const InspectDataSchema = z.discriminatedUnion('kind', [
+  z.object({
+    kind: z.literal('unit'),
+    id: UnitEntityIdSchema,
+    type: UnitTypeSchema,
+    name: DisplayNameSchema.nullable(),
+    level: LevelSchema,
+    x: ColumnSchema,
+    occupants: z.int().nonnegative(),
+    capacity: z.int().nonnegative(),
+    evaluation: EvaluationSchema.nullable(),
+    price: PriceLevelSchema,
+    contract: ContractSchema.nullable(),
+    hotelStayEndStep: StepSchema.nullable(),
+    filmAgeDays: z.int().nonnegative().nullable(),
+  }),
+  z.object({
+    kind: z.literal('person'),
+    id: PersonEntityIdSchema,
+    name: DisplayNameSchema.nullable(),
+    personKind: PersonKindSchema,
+    state: z.enum(['walk', 'wait', 'ride', 'stairs', 'inside', 'noRoute', 'outside']),
+    destination: PersonDestinationSchema.nullable(),
+    stressMinutes: z.number().nonnegative(),
+    stress: StressLevelSchema,
+    homeUnitId: UnitEntityIdSchema.nullable(),
+  }),
+  z.object({
+    kind: z.literal('shaft'),
+    id: ShaftEntityIdSchema,
+    type: ShaftTypeSchema,
+    bottom: LevelSchema,
+    top: LevelSchema,
+    stops: z.array(LevelSchema),
+    cars: z.array(InspectedCarSchema).max(MAX_CARS_PER_SHAFT),
+    schedule: ElevatorScheduleSchema,
+  }),
+  z.object({ kind: z.literal('finances'), money: MoneySchema, finances: FinanceSummarySchema }),
+]);
+
+export type UnitView = z.infer<typeof UnitViewSchema>;
+export type TransportView = z.infer<typeof TransportViewSchema>;
+export type ShaftView = z.infer<typeof ShaftViewSchema>;
+export type CarView = z.infer<typeof CarViewSchema>;
+export type PersonView = z.infer<typeof PersonViewSchema>;
+export type FollowedView = z.infer<typeof FollowedViewSchema>;
+export type EventView = z.infer<typeof EventViewSchema>;
+export type NoticeView = z.infer<typeof NoticeViewSchema>;
+export type OverlayData = z.infer<typeof OverlayDataSchema>;
+export type FinanceWeek = z.infer<typeof FinanceWeekSchema>;
+export type FinanceSummary = z.infer<typeof FinanceSummarySchema>;
+export type Snapshot = z.infer<typeof SnapshotSchema>;
+export type Delta = z.infer<typeof DeltaSchema>;
+export type ClientEvent = z.infer<typeof ClientEventSchema>;
+export type InspectData = z.infer<typeof InspectDataSchema>;

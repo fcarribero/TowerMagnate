@@ -89,6 +89,9 @@ export function migrateState(raw: unknown): TowerState {
     throw new StateMigrationError('State must be an object');
   }
   const version = raw.schemaVersion;
+  if (version === undefined) {
+    throw new StateMigrationError('State has no schema version');
+  }
   if (!Number.isInteger(version) || (version as number) < 1) {
     throw new StateMigrationError(`Unknown schema version ${String(version)}`);
   }

@@ -1,6 +1,6 @@
 // Written by pnpm art:build from tools/art. Do not edit by hand.
 
-export const ATLAS_NAMES = ['sky', 'structure'] as const;
+export const ATLAS_NAMES = ['sky', 'structure', 'units'] as const;
 
 export type AtlasName = (typeof ATLAS_NAMES)[number];
 
@@ -68,6 +68,14 @@ export const SPRITE_IDS = [
   'structure/sky-lobby-column/night',
   'structure/sky-lobby/day',
   'structure/sky-lobby/night',
+  'units/condo/empty_day',
+  'units/condo/empty_night',
+  'units/condo/occupied_day',
+  'units/condo/occupied_night',
+  'units/office/empty_day',
+  'units/office/empty_night',
+  'units/office/occupied_day',
+  'units/office/occupied_night',
 ] as const;
 
 export type SpriteId = (typeof SPRITE_IDS)[number];
