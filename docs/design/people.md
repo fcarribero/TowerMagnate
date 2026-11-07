@@ -55,7 +55,7 @@ Design call: plans are drawn once a day instead of rolling a chance at every ste
 |---|---|---|---|---|---|
 | Office worker | `officeWorker` | occupied office | 6 per office | yes, 6 per occupied office | stairs, escalators, standard and express elevators |
 | Resident | `resident` | sold condo | 3 per condo | yes, 3 per sold condo | same |
-| Hotel guest | `hotelGuest` | hotel stay | 1 per single room, 2 per double room, 2 per suite | yes, while in the tower | same |
+| Hotel guest | `hotelGuest` | hotel stay | 1 per single room, 2 per double room, 2 per suite | yes, from check-in until the stay ends (TM-14) | same |
 | Customer | `customer` | fast food, restaurant, retail shop | formula in section 11 | through the venue's previous-day count | same |
 | Cinema audience | `audience` | cinema | up to the show cap, section 12 | no | same |
 | Party guest | `partyGuest` | party hall | up to 50 a day, section 13 | no | same |
@@ -350,7 +350,7 @@ Design call: 10:30 is the last appearance time so that a guest who needs a 2-hou
 From 3 stars, each office worker has a 10% chance per weekday, drawn in the daily plan, of a medical visit. At the leave time the worker goes from the office to a medical center chosen as in section 5, stays 60 minutes and then leaves the tower.
 
 - A medical center accepts up to 100 visits a day, counted from 00:00. A center with 100 visits that day is full and is not a candidate.
-- The visit fails when the tower has no medical center, when no drawn candidate has a route, or when every center is full. A failed medical visit sets the tower's medical demand flag for that day (TM-14 blocks star advancement on that day), shows the notice `notice.medicalDemanded` at most once a day, and sends the worker home.
+- The visit fails when the tower has no medical center, when no drawn candidate has a route, or when every center is full. A failed medical visit is recorded as a medical failure (TM-14 blocks the next star check, stars.md 6), shows the notice `notice.medicalDemanded` at most once a day, and sends the worker home.
 - A visit that fails because the center is full or closed on arrival counts as failed in the same way.
 
 Design call on capacity: at 10,000 to 15,000 population a tower has about 6,000 to 9,000 office workers and 600 to 900 visits a day, so the 10-center limit at 100 each is enough, but only just, and the player needs to keep adding centers as offices grow. That is the GDD's "centro médico suficiente".
@@ -377,7 +377,7 @@ From 3 stars, the engine runs an assignment pass at 06:00 every day, and for a s
 
 1. Holders that still have a valid space keep it. A space is valid while it exists and is connected to a ramp (construction C-47, C-48).
 2. Holders without a space, in increasing person id, get the free valid space with the lowest unit id.
-3. Every holder still without a space is a parking failure. A failure sets the tower's parking demand flag for that day (TM-14) and shows one notice per holder kind, at most once a day: `notice.parkingOffice`, `notice.parkingCondo`, `notice.parkingSuite`.
+3. Every holder still without a space is a parking failure. A failure is recorded as a parking failure (TM-14 blocks the next star check, stars.md 6) and shows one notice per holder kind, at most once a day: `notice.parkingOffice`, `notice.parkingCondo`, `notice.parkingSuite`.
 
 A space is freed when its holder stops existing (tenant or owner leaves, stay ends at 10:00) or loses the space. A holder with a space enters and leaves the tower by car (section 3). A holder without a space uses the street or subway.
 
@@ -565,13 +565,13 @@ P-36. Each day the party hall gets `min(50, floor(50 × stress × subway))` gues
 
 ### Medical
 
-P-37. From 3 stars each worker has a 10% chance per weekday to visit a medical center at the leave time, for 60 minutes. A center takes at most 100 visits a day. A visit with no center, no route, or only full centers fails, sets the day's medical demand flag and shows `notice.medicalDemanded` at most once that day.
+P-37. From 3 stars each worker has a 10% chance per weekday to visit a medical center at the leave time, for 60 minutes. A center takes at most 100 visits a day. A visit with no center, no route, or only full centers fails, is recorded as a medical failure for the star check (stars.md S-17) and shows `notice.medicalDemanded` at most once that day.
 
 ### Parking
 
 P-38. When created, worker 1 of an office tenant is a parking holder with 15% chance, resident 1 of a condo owner with 25%, guest 1 of a suite party (not the VIP) with 50%. The result lasts as long as the holder.
 
-P-39. From 3 stars, at 06:00 daily and at each suite check-in, holders keep valid spaces, then holders without one get the free valid space with the lowest unit id in increasing person id. Each holder left without a space sets the day's parking demand flag and its kind's notice shows at most once that day.
+P-39. From 3 stars, at 06:00 daily and at each suite check-in, holders keep valid spaces, then holders without one get the free valid space with the lowest unit id in increasing person id. Each holder left without a space is recorded as a parking failure for the star check (stars.md S-17) and its kind's notice shows at most once that day.
 
 P-40. Below 3 stars there is no assignment and no parking failure. A holder with a space enters and leaves the tower through it.
 

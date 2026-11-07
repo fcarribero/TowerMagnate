@@ -5,3 +5,7 @@ pnpm-lock.yaml
 *.tsbuildinfo
 docs
 build
+
+test-results/
+**/test-results/
+playwright-report/

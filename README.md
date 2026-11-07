@@ -48,6 +48,14 @@ A new TypeScript package needs its own `tsconfig.json` extending `tsconfig.base.
 
 `.github/workflows/ci.yml` runs `pnpm lint`, `pnpm typecheck` and `pnpm test` on Node 22 for every pull request to `develop` or `master` and for every push to those branches. The pnpm store is cached between runs.
 
+## End-to-end tests
+
+`pnpm e2e` runs the Playwright tests in `e2e/`. Install the browser once with `pnpm exec playwright install chromium`.
+
+By default the run starts its own compose stack (project `tm-e2e`, ports from `PORT_BASE`, default 4300), waits for `/api/health` and stops the stack at the end. To test a stack that is already running, set `BASE_URL` to the web address, for example `BASE_URL=http://localhost:4102 pnpm e2e`.
+
+`e2e/support` has helpers: `uniqueUser()` and `registerUser(request)` create fresh accounts, and `openGame(page)` loads the client and waits for the canvas. Failed tests keep a trace in `e2e/test-results`; open it with `pnpm exec playwright show-trace <path>/trace.zip`. CI runs the suite on pull requests to `develop` and uploads the traces as the `e2e-traces` artifact when it fails.
+
 ## Local stack
 
 `docker compose --profile dev up` starts `postgres` (16, data in a named volume), `server` (`pnpm dev` in `apps/server`, restarts on change) and `web` (`pnpm dev` in `apps/web`, called with `--host 0.0.0.0 --port 5173 --strictPort`). The containers mount the repository and keep their own `node_modules` in named volumes, so the host install is never touched.

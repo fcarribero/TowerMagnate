@@ -1,4 +1,5 @@
-import { Application, Container, TextureSource } from 'pixi.js';
+import { Application, Container, TextureSource, type TilingSprite } from 'pixi.js';
+import { loadSprites } from './atlasLoader';
 import { centerCamera, createCamera, resizeCamera, visibleLevels, type Camera } from './camera';
 import { attachCameraInput, type CameraChange } from './cameraInput';
 import { canvasSizeFromCssPixels, canvasSizeFromObservedBox, type CanvasSize } from './canvasSize';
@@ -6,6 +7,8 @@ import { CulledRows } from './culledRows';
 import { levelTop } from './levels';
 import type { Zoom } from './metrics';
 import { createPlaceholderTower } from './placeholderTower';
+import { createSkyRows } from './skyRows';
+import type { SpriteRegistry } from './spriteRegistry';
 
 const SKY_COLOR = '#6f9fd8';
 const DEFAULT_ZOOM: Zoom = 2;
@@ -24,6 +27,7 @@ export interface StageOptions {
 export type CameraListener = (camera: Camera) => void;
 
 export interface Stage {
+  sprites: SpriteRegistry;
   camera(): Camera;
   /** Puts a world point (zoom 1 pixels) at the centre of the view. */
   centerOn(worldX: number, worldY: number): void;
@@ -33,6 +37,7 @@ export interface Stage {
 
 export async function mountStage(host: HTMLElement, options: StageOptions = {}): Promise<Stage> {
   TextureSource.defaultOptions.scaleMode = 'nearest';
+  const sprites = await loadSprites();
 
   const app = new Application();
   await app.init({
@@ -48,6 +53,12 @@ export async function mountStage(host: HTMLElement, options: StageOptions = {}):
   app.canvas.style.touchAction = 'none';
 
   const world = new Container();
+  const sky = new CulledRows<TilingSprite>();
+  for (const [index, row] of createSkyRows(sprites)) {
+    row.y = levelTop(index);
+    sky.set(index, row);
+    world.addChild(row);
+  }
   const floors = new CulledRows<Container>();
   for (const [index, floor] of createPlaceholderTower()) {
     floor.y = levelTop(index);
@@ -63,7 +74,9 @@ export async function mountStage(host: HTMLElement, options: StageOptions = {}):
   const showCamera = (): void => {
     world.scale.set(camera.zoom);
     world.position.set(-camera.left, -camera.top);
-    floors.showOnly(visibleLevels(camera));
+    const onScreen = visibleLevels(camera);
+    sky.showOnly(onScreen);
+    floors.showOnly(onScreen);
     for (const listener of cameraListeners) {
       listener(camera);
     }
@@ -96,6 +109,7 @@ export async function mountStage(host: HTMLElement, options: StageOptions = {}):
   }, STATS_INTERVAL_MS);
 
   return {
+    sprites,
     camera: () => camera,
     centerOn(worldX, worldY) {
       camera = centerCamera(camera, worldX, worldY);
