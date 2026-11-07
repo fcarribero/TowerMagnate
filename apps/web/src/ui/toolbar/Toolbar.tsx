@@ -1,6 +1,7 @@
 import { UNIT_CATALOG, type StarRating, type ToolbarCategory } from '@tower-magnate/shared';
+import type { ComponentChildren } from 'preact';
 import { useEffect, useState } from 'preact/hooks';
-import { Tooltip } from '../kit';
+import { RadioGroup, Tooltip } from '../kit';
 import { isPlainShortcut } from '../keys';
 import { t } from '../strings';
 import {
@@ -10,6 +11,7 @@ import {
   fixedToolForKey,
   isFixedTool,
   isLocked,
+  lobbyHeights,
   priceText,
   sizeText,
   toolName,
@@ -23,9 +25,23 @@ export interface ToolbarProps {
   stars: StarRating;
   currentTool: ToolId;
   onSelectTool: (tool: ToolId) => void;
+  lobbyHeight: number;
+  onLobbyHeightChange: (height: number) => void;
+  /** Height of the lobby already on the hovered level, which the new run must match. */
+  lockedLobbyHeight?: number;
+  /** The hovered level is level 1 and the tower has no main lobby yet. */
+  showMainLobbyWarning?: boolean;
 }
 
-export function Toolbar({ stars, currentTool, onSelectTool }: ToolbarProps) {
+export function Toolbar({
+  stars,
+  currentTool,
+  onSelectTool,
+  lobbyHeight,
+  onLobbyHeightChange,
+  lockedLobbyHeight,
+  showMainLobbyWarning = false,
+}: ToolbarProps) {
   const [openCategory, setOpenCategory] = useState<ToolbarCategory>(() =>
     isFixedTool(currentTool) ? 'structure' : categoryOf(currentTool),
   );
@@ -39,7 +55,10 @@ export function Toolbar({ stars, currentTool, onSelectTool }: ToolbarProps) {
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent): void => {
-      const tool = isPlainShortcut(event) ? fixedToolForKey(event.key) : null;
+      if (event.defaultPrevented || !isPlainShortcut(event)) {
+        return;
+      }
+      const tool = fixedToolForKey(event.key);
       if (tool !== null) {
         onSelectTool(tool);
       }
@@ -84,7 +103,16 @@ export function Toolbar({ stars, currentTool, onSelectTool }: ToolbarProps) {
       <div class="tm-toolbar__tools" role="tabpanel" aria-label={t(`category.${openCategory}`)}>
         {toolsInCategory(openCategory).map((tool) => toolButton(tool, 'tm-tool'))}
       </div>
-      <ToolInfo tool={hoveredTool ?? currentTool} stars={stars} />
+      <ToolInfo tool={hoveredTool ?? currentTool} stars={stars}>
+        {(hoveredTool ?? currentTool) === 'lobby' && currentTool === 'lobby' && (
+          <LobbyHeightPicker
+            height={lockedLobbyHeight ?? lobbyHeight}
+            locked={lockedLobbyHeight !== undefined}
+            showMainLobbyWarning={showMainLobbyWarning}
+            onChange={onLobbyHeightChange}
+          />
+        )}
+      </ToolInfo>
     </nav>
   );
 }
@@ -122,7 +150,13 @@ function ToolButton({ tool, className, stars, pressed, onSelect, onHover }: Tool
   );
 }
 
-function ToolInfo({ tool, stars }: { tool: ToolId; stars: StarRating }) {
+interface ToolInfoProps {
+  tool: ToolId;
+  stars: StarRating;
+  children?: ComponentChildren;
+}
+
+function ToolInfo({ tool, stars, children }: ToolInfoProps) {
   if (isFixedTool(tool)) {
     return (
       <div class="tm-toolbar__info" aria-live="polite">
@@ -137,6 +171,42 @@ function ToolInfo({ tool, stars }: { tool: ToolId; stars: StarRating }) {
       <span>{sizeText(unit)}</span>
       <span>{priceText(unit)}</span>
       {isLocked(tool, stars) && <span>{t('ui.lockedStars', { n: unit.unlockStars })}</span>}
+      {children}
+    </div>
+  );
+}
+
+interface LobbyHeightPickerProps {
+  height: number;
+  locked: boolean;
+  showMainLobbyWarning: boolean;
+  onChange: (height: number) => void;
+}
+
+function LobbyHeightPicker({
+  height,
+  locked,
+  showMainLobbyWarning,
+  onChange,
+}: LobbyHeightPickerProps) {
+  const options = lobbyHeights().map((floors) => ({
+    value: String(floors),
+    label: String(floors),
+  }));
+  return (
+    <div class="tm-toolbar__lobby-height">
+      <RadioGroup
+        name="lobby-height"
+        label={t('ui.lobbyHeight')}
+        options={options}
+        value={String(height)}
+        disabled={locked}
+        onChange={(value) => onChange(Number(value))}
+      />
+      {locked && <span class="tm-toolbar__note">{t('ui.lobbyHeightLocked')}</span>}
+      {showMainLobbyWarning && !locked && (
+        <span class="tm-toolbar__note">{t('ui.mainLobbyWarning')}</span>
+      )}
     </div>
   );
 }

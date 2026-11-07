@@ -8,9 +8,30 @@ import type { ToolId } from './toolbarModel';
 
 afterEach(cleanup);
 
-function Harness({ stars, initialTool = 'inspect' }: { stars: StarRating; initialTool?: ToolId }) {
+interface HarnessProps {
+  stars: StarRating;
+  initialTool?: ToolId;
+  lockedLobbyHeight?: number;
+  showMainLobbyWarning?: boolean;
+}
+
+function Harness({ stars, initialTool = 'inspect', ...lobbyContext }: HarnessProps) {
   const [tool, setTool] = useState<ToolId>(initialTool);
-  return <Toolbar stars={stars} currentTool={tool} onSelectTool={setTool} />;
+  const [lobbyHeight, setLobbyHeight] = useState(1);
+  return (
+    <Toolbar
+      stars={stars}
+      currentTool={tool}
+      onSelectTool={setTool}
+      lobbyHeight={lobbyHeight}
+      onLobbyHeightChange={setLobbyHeight}
+      {...lobbyContext}
+    />
+  );
+}
+
+function lobbyHeightRadio(height: number): HTMLInputElement {
+  return screen.getByRole('radio', { name: String(height) }) as HTMLInputElement;
 }
 
 function toolButton(name: string): HTMLElement {
@@ -94,6 +115,21 @@ describe('Toolbar', () => {
     expect(toolButton('Lupa').getAttribute('aria-pressed')).toBe('true');
   });
 
+  it('returns to the Lupa on Esc', () => {
+    render(<Harness stars={1} initialTool="office" />);
+    fireEvent.keyDown(window, { key: 'Escape' });
+    expect(toolButton('Lupa').getAttribute('aria-pressed')).toBe('true');
+    expect(toolButton('Oficina').getAttribute('aria-pressed')).toBe('false');
+  });
+
+  it('leaves the tool alone when something else already handled Esc', () => {
+    render(<Harness stars={1} initialTool="office" />);
+    const event = new KeyboardEvent('keydown', { key: 'Escape', cancelable: true });
+    event.preventDefault();
+    window.dispatchEvent(event);
+    expect(toolButton('Oficina').getAttribute('aria-pressed')).toBe('true');
+  });
+
   it('ignores shortcuts with modifiers', () => {
     render(<Harness stars={1} />);
     fireEvent.keyDown(window, { key: 't', ctrlKey: true });
@@ -105,6 +141,45 @@ describe('Toolbar', () => {
     expect(
       screen.getByRole('tab', { name: 'Comercio y entretenimiento' }).getAttribute('aria-selected'),
     ).toBe('true');
+  });
+
+  describe('lobby height', () => {
+    it('shows the height choice only while the lobby is the current tool', () => {
+      render(<Harness stars={1} />);
+      expect(screen.queryByRole('radio')).toBeNull();
+      fireEvent.click(toolButton('Lobby'));
+      expect(screen.getByRole('group', { name: 'Alto:' })).toBeTruthy();
+      expect(lobbyHeightRadio(1).checked).toBe(true);
+      fireEvent.click(toolButton('Lupa'));
+      expect(screen.queryByRole('radio')).toBeNull();
+    });
+
+    it('changes the chosen height', () => {
+      render(<Harness stars={1} initialTool="lobby" />);
+      fireEvent.click(lobbyHeightRadio(3));
+      expect(lobbyHeightRadio(3).checked).toBe(true);
+      expect(lobbyHeightRadio(1).checked).toBe(false);
+    });
+
+    it('hides the choice while another tool is hovered', () => {
+      render(<Harness stars={1} initialTool="lobby" />);
+      fireEvent.pointerEnter(toolButton('Piso'));
+      expect(screen.queryByRole('radio')).toBeNull();
+      fireEvent.pointerLeave(toolButton('Piso'));
+      expect(lobbyHeightRadio(1)).toBeTruthy();
+    });
+
+    it('locks the choice to the height of the lobby on the hovered level', () => {
+      render(<Harness stars={1} initialTool="lobby" lockedLobbyHeight={2} />);
+      expect(lobbyHeightRadio(2).checked).toBe(true);
+      expect(lobbyHeightRadio(1).matches(':disabled')).toBe(true);
+      expect(infoText()).toContain('Alto fijado por el lobby existente');
+    });
+
+    it('warns that the main lobby height is final', () => {
+      render(<Harness stars={1} initialTool="lobby" showMainLobbyWarning />);
+      expect(infoText()).toContain('La altura del lobby principal no se puede cambiar después.');
+    });
   });
 
   describe('tooltips', () => {

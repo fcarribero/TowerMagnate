@@ -4,6 +4,7 @@ import {
   TOOLBAR_CATEGORIES,
   fixedToolForKey,
   isLocked,
+  lobbyHeights,
   priceText,
   sizeText,
   toolsInCategory,
@@ -117,5 +118,15 @@ describe('fixedToolForKey', () => {
     expect(fixedToolForKey('T')).toBe('bulldozer');
     expect(fixedToolForKey('c')).toBe('car');
     expect(fixedToolForKey('x')).toBeNull();
+  });
+
+  it('maps Esc to the Lupa', () => {
+    expect(fixedToolForKey('Escape')).toBe('inspect');
+  });
+});
+
+describe('lobbyHeights', () => {
+  it('offers 1, 2 and 3 floors', () => {
+    expect(lobbyHeights()).toEqual([1, 2, 3]);
   });
 });

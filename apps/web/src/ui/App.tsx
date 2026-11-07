@@ -10,7 +10,7 @@ import './kit';
 import { t } from './strings';
 import { debugStarsFromQuery } from './toolbar/debugStars';
 import { Toolbar } from './toolbar/Toolbar';
-import { DEFAULT_TOOL, type ToolId } from './toolbar/toolbarModel';
+import { DEFAULT_LOBBY_HEIGHT, DEFAULT_TOOL, type ToolId } from './toolbar/toolbarModel';
 import { TowerMapWindow } from './TowerMapWindow';
 import { useUiScale } from './uiScale';
 
@@ -24,6 +24,7 @@ export function App() {
   const [stage, setStage] = useState<Stage | null>(null);
   const [mapOpen, setMapOpen] = useState(false);
   const [tool, setTool] = useState<ToolId>(DEFAULT_TOOL);
+  const [lobbyHeight, setLobbyHeight] = useState(DEFAULT_LOBBY_HEIGHT);
   // Replaced by the tower's rating once the game state reaches the client.
   const stars: StarRating = (import.meta.env.DEV && debugStarsFromQuery(location.search)) || 1;
   const toggleMap = (): void => setMapOpen((open) => !open);
@@ -56,7 +57,13 @@ export function App() {
             Mapa
           </button>
         </div>
-        <Toolbar stars={stars} currentTool={tool} onSelectTool={setTool} />
+        <Toolbar
+          stars={stars}
+          currentTool={tool}
+          onSelectTool={setTool}
+          lobbyHeight={lobbyHeight}
+          onLobbyHeightChange={setLobbyHeight}
+        />
         {mapOpen && stage && (
           <TowerMapWindow content={content} stage={stage} onClose={() => setMapOpen(false)} />
         )}

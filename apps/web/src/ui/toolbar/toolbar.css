@@ -133,7 +133,8 @@
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  height: calc(64 * var(--tm-px));
+  flex-shrink: 0;
+  min-height: calc(64 * var(--tm-px));
   padding: calc(2 * var(--tm-px)) calc(3 * var(--tm-px));
   overflow: hidden;
   background: var(--tm-white);
@@ -144,4 +145,23 @@
 
 .tm-toolbar__info-name {
   font-weight: bold;
+}
+
+.tm-toolbar__lobby-height {
+  display: flex;
+  flex-direction: column;
+}
+
+.tm-toolbar__lobby-height .tm-radio-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 calc(3 * var(--tm-px));
+  margin: 0;
+  padding: 0;
+  border: none;
+  box-shadow: none;
+}
+
+.tm-toolbar__note {
+  color: var(--tm-slate);
 }

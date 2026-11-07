@@ -24,6 +24,10 @@ export const TOOLBAR_CATEGORIES: readonly ToolbarCategory[] = [
   'services',
 ];
 
+const DEFAULT_TOOL_ON_ESCAPE: FixedTool = 'inspect';
+
+export const DEFAULT_LOBBY_HEIGHT = 1;
+
 const FIXED_TOOL_SHORTCUTS: Readonly<Record<string, FixedTool>> = {
   l: 'inspect',
   t: 'bulldozer',
@@ -100,7 +104,15 @@ export function tooltipLines(tool: ToolId, stars: StarRating): string[] {
 }
 
 export function fixedToolForKey(key: string): FixedTool | null {
+  if (key === 'Escape') {
+    return DEFAULT_TOOL_ON_ESCAPE;
+  }
   return FIXED_TOOL_SHORTCUTS[key.toLowerCase()] ?? null;
+}
+
+export function lobbyHeights(): readonly number[] {
+  const { height } = UNIT_CATALOG.lobby;
+  return height.kind === 'choice' ? height.floors : [DEFAULT_LOBBY_HEIGHT];
 }
 
 function joinChoices(values: readonly number[]): string {
