@@ -1,15 +1,69 @@
-import type { PersonPool } from '@tower-magnate/shared';
+import { MAX_FOLLOWED_PEOPLE, PERSON_KINDS, type PersonPool } from '@tower-magnate/shared';
 import { createPersonPool } from '../people';
 import { isRecord, StateMigrationError } from './errors';
 
-/** Saves from before people existed, and saves with nobody in them, load with an empty pool. */
+const SLOT_FIELDS = ['kind', 'homeUnit', 'level', 'column', 'trip', 'dueStep', 'nameSeed'] as const;
+
+function isIntegerArray(value: unknown): value is number[] {
+  return Array.isArray(value) && value.every((item) => Number.isInteger(item));
+}
+
+function isNumberArray(value: unknown): value is number[] {
+  return Array.isArray(value) && value.every((item) => Number.isFinite(item));
+}
+
+function isStrictlyIncreasing(values: number[]): boolean {
+  for (let index = 1; index < values.length; index++) {
+    if ((values[index] as number) <= (values[index - 1] as number)) return false;
+  }
+  return true;
+}
+
+function fail(reason: string): never {
+  throw new StateMigrationError(`State people ${reason}`);
+}
+
+function readIds(raw: Record<string, unknown>): { nextId: number; id: number[] } {
+  const { nextId, id } = raw;
+  if (!Number.isInteger(nextId) || (nextId as number) < 1)
+    fail('nextId must be a positive integer');
+  if (!isIntegerArray(id) || !isStrictlyIncreasing(id)) fail('ids must be increasing integers');
+  const first = id[0] ?? 1;
+  const last = id[id.length - 1] ?? 0;
+  if (first < 1 || last >= (nextId as number)) {
+    fail('ids must be between 1 and nextId');
+  }
+  return { nextId: nextId as number, id: id.slice() };
+}
+
+function readFollowed(raw: unknown, ids: number[]): number[] {
+  if (!isIntegerArray(raw) || !isStrictlyIncreasing(raw)) fail('followed must be increasing ids');
+  if (raw.length > MAX_FOLLOWED_PEOPLE) fail('follow too many people');
+  const known = new Set(ids);
+  if (!raw.every((personId) => known.has(personId))) fail('follow someone not in the pool');
+  return raw.slice();
+}
+
+/** Saves from before people existed load with an empty pool. */
 export function readPeople(raw: unknown): PersonPool {
   if (raw === undefined) return createPersonPool();
-  if (!isRecord(raw) || !Array.isArray(raw.id)) {
-    throw new StateMigrationError('State people must be a person pool');
+  if (!isRecord(raw)) fail('must be a person pool');
+  const { nextId, id } = readIds(raw);
+  const pool: PersonPool = { ...createPersonPool(), nextId, id };
+  for (const field of SLOT_FIELDS) {
+    const values = raw[field];
+    if (!isIntegerArray(values) || values.length !== id.length) {
+      fail(`${field} must hold one integer per person`);
+    }
+    pool[field] = values.slice();
   }
-  if (raw.id.length > 0) {
-    throw new StateMigrationError('Loading a saved tower with people is not supported yet');
+  if (!isNumberArray(raw.stress) || raw.stress.length !== id.length) {
+    fail('stress must hold one number per person');
   }
-  return createPersonPool();
+  pool.stress = raw.stress.slice();
+  if (!pool.kind.every((kind) => kind >= 0 && kind < PERSON_KINDS.length)) {
+    fail('kind must index PERSON_KINDS');
+  }
+  pool.followed = readFollowed(raw.followed, id);
+  return pool;
 }
