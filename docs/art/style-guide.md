@@ -108,6 +108,26 @@ Stair, escalator, lobby and elevator sprites have no states, only day and night.
 - Uniforms: maids wear cloud with a cloth-blue apron, security wears cloth-blue with a lamp badge pixel.
 - Walking uses 2 frames. Standing in a queue uses 1 frame.
 
+People sprites are in `tools/art/src/groups/people.mjs`. Every person faces right; the client mirrors the sprite for people walking left. The frame is 8 x 16 and the feet are on the bottom row, so the frame's bottom sits on row 28 of the floor.
+
+| Type | Clothes | Carries |
+|---|---|---|
+| `worker` | charcoal or cloth-blue suit, collar and tie | briefcase |
+| `resident` | leaf-dark or slate top, dark trousers | nothing |
+| `guest` | wood-dark or night coat | suitcase |
+| `customer` | cloth-blue or slate top, skirt | paper shopping bag |
+| `maid` | cloud dress and cap, cloth-blue or night apron | nothing |
+| `security` | cloth-blue uniform, ink cap, lamp badge, belt | nothing |
+| `vip` | ink or night-deep suit, sunglasses, lamp lapel pin | nothing |
+| `bride` | white or cloud gown and veil | bouquet |
+| `groom` | ink or charcoal suit, white flower | nothing |
+
+Each type has 4 variants, `a` to `d`. Variants `a` and `c` are the tall build (14 px). Variants `b` and `d` are the short build (13 px) with a belly pixel. `a` and `d` wear the first outfit and `b` and `c` the second, and each variant has its own skin tone and hair (`d` has gray hair). Office workers in the engine use `worker`, hotel guests `guest`, guards `security`, and wedding guests `bride` and `groom`. Audience, party guests and prospects use `customer` or `resident` until they get their own sprites.
+
+Each variant has `walk_01`, `walk_02` and `stand`, calm and with the `-pink` and `-red` tints, 9 sprites per variant. The tint recolors the top, the trousers or skirt and the clothing details. Skin, hair, shoes, badges, glasses and carried things keep their colors.
+
+`pnpm art:build` writes `docs/art/people-preview.png`, a 4x sheet with one row per type and every variant in each pose, and `docs/art/people-tint-preview.png` (3x) and `docs/art/people-tint-1x.png` (1x), which show every type calm, pink and red on a bare floor and in a lit hotel room, by day and by night.
+
 ## Sprite ids
 
 A sprite id is a path of lowercase segments joined by `/`: `<group>/<subject>/<variant>`. Words inside a segment use hyphens. The variant joins state, time of day and frame with underscores, in that order, leaving out the parts that do not apply.
