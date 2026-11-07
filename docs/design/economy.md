@@ -343,7 +343,7 @@ Pacing estimate: with weekly returns of 15% to 25% on most units after shared co
 | `news.cinemaChangeFilm` | Pocas entradas vendidas. Cambiá la película. |
 | `news.upkeepNegative` | El mantenimiento dejó la caja en rojo. No se puede construir hasta recuperar. |
 
-The UI glossary (TM-18) sets the final wording; these texts follow it once it lands.
+The messages catalog (TM-17, `docs/design/messages.md`) holds the final keys, texts, alert flags and limits.
 
 ## 14. Rules
 

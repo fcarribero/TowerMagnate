@@ -61,6 +61,14 @@ describe('Toolbar', () => {
     ).toEqual(['Piso', 'Lobby']);
   });
 
+  it('shows short labels on buttons and keeps full names for screen readers', () => {
+    render(<Harness stars={2} />);
+    const category = screen.getByRole('tab', { name: 'Comercio y entretenimiento' });
+    expect(category.textContent).toBe('Com. y entr.');
+    openCategory('Hotel');
+    expect(toolButton('Habitación simple').textContent).toBe('Hab. simple');
+  });
+
   it('opens a category without changing the current tool', () => {
     render(<Harness stars={1} />);
     openCategory('Hotel');
