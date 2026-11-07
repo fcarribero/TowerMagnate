@@ -1,4 +1,4 @@
-export const UNIT_IDS = [
+export const UNIT_TYPES = [
   'floor',
   'lobby',
   'stairs',
@@ -26,7 +26,7 @@ export const UNIT_IDS = [
   'cathedral',
 ] as const;
 
-export type UnitId = (typeof UNIT_IDS)[number];
+export type UnitType = (typeof UNIT_TYPES)[number];
 
 /** 6 is the top rank, "Torre". */
 export type StarRating = 1 | 2 | 3 | 4 | 5 | 6;
@@ -81,7 +81,7 @@ export interface PlacementFlags {
   readonly zone: PlacementZone;
   readonly allowedFloorUses?: readonly FloorUse[];
   readonly alignedWithExistingSameUnit?: boolean;
-  readonly mustConnectTo?: UnitId;
+  readonly mustConnectTo?: UnitType;
   readonly mustTouchExistingSameUnit?: boolean;
   readonly elevatorStops?: ElevatorStopRule;
   readonly maxCarsPerShaft?: number;
@@ -101,7 +101,7 @@ export type LimitGroupId =
   | 'cathedral';
 
 export interface UnitDefinition {
-  readonly id: UnitId;
+  readonly type: UnitType;
   readonly name: string;
   readonly category: ToolbarCategory;
   /** Width in cells. */

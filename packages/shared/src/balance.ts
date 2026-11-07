@@ -7,7 +7,7 @@ import type {
   UnitCost,
   UnitDefinition,
   UnitHeight,
-  UnitId,
+  UnitType,
   UpkeepRule,
 } from './units';
 
@@ -42,9 +42,9 @@ function perUnit(amount: number): UnitCost {
   return { kind: 'per-unit', amount };
 }
 
-export const UNIT_CATALOG: Readonly<Record<UnitId, UnitDefinition>> = {
+export const UNIT_CATALOG: Readonly<Record<UnitType, UnitDefinition>> = {
   floor: {
-    id: 'floor',
+    type: 'floor',
     name: 'Piso',
     category: 'structure',
     width: 1,
@@ -56,7 +56,7 @@ export const UNIT_CATALOG: Readonly<Record<UnitId, UnitDefinition>> = {
     limitGroup: null,
   },
   lobby: {
-    id: 'lobby',
+    type: 'lobby',
     name: 'Lobby',
     category: 'structure',
     width: 1,
@@ -68,7 +68,7 @@ export const UNIT_CATALOG: Readonly<Record<UnitId, UnitDefinition>> = {
     limitGroup: null,
   },
   stairs: {
-    id: 'stairs',
+    type: 'stairs',
     name: 'Escalera',
     category: 'transport',
     width: 8,
@@ -80,7 +80,7 @@ export const UNIT_CATALOG: Readonly<Record<UnitId, UnitDefinition>> = {
     limitGroup: 'stairs-and-escalators',
   },
   escalator: {
-    id: 'escalator',
+    type: 'escalator',
     name: 'Escalera mecánica',
     category: 'transport',
     width: 8,
@@ -95,7 +95,7 @@ export const UNIT_CATALOG: Readonly<Record<UnitId, UnitDefinition>> = {
     limitGroup: 'stairs-and-escalators',
   },
   'standard-elevator': {
-    id: 'standard-elevator',
+    type: 'standard-elevator',
     name: 'Ascensor estándar',
     category: 'transport',
     width: 4,
@@ -112,7 +112,7 @@ export const UNIT_CATALOG: Readonly<Record<UnitId, UnitDefinition>> = {
     limitGroup: 'elevator-shafts',
   },
   office: {
-    id: 'office',
+    type: 'office',
     name: 'Oficina',
     category: 'offices-and-housing',
     width: 9,
@@ -124,7 +124,7 @@ export const UNIT_CATALOG: Readonly<Record<UnitId, UnitDefinition>> = {
     limitGroup: null,
   },
   condo: {
-    id: 'condo',
+    type: 'condo',
     name: 'Departamento',
     category: 'offices-and-housing',
     width: 16,
@@ -136,7 +136,7 @@ export const UNIT_CATALOG: Readonly<Record<UnitId, UnitDefinition>> = {
     limitGroup: null,
   },
   'fast-food': {
-    id: 'fast-food',
+    type: 'fast-food',
     name: 'Comida rápida',
     category: 'commerce-and-entertainment',
     width: 16,
@@ -148,7 +148,7 @@ export const UNIT_CATALOG: Readonly<Record<UnitId, UnitDefinition>> = {
     limitGroup: 'commercial',
   },
   'single-room': {
-    id: 'single-room',
+    type: 'single-room',
     name: 'Habitación simple',
     category: 'hotel',
     width: 4,
@@ -160,7 +160,7 @@ export const UNIT_CATALOG: Readonly<Record<UnitId, UnitDefinition>> = {
     limitGroup: null,
   },
   'double-room': {
-    id: 'double-room',
+    type: 'double-room',
     name: 'Habitación doble',
     category: 'hotel',
     width: 6,
@@ -172,7 +172,7 @@ export const UNIT_CATALOG: Readonly<Record<UnitId, UnitDefinition>> = {
     limitGroup: null,
   },
   suite: {
-    id: 'suite',
+    type: 'suite',
     name: 'Suite',
     category: 'hotel',
     width: 10,
@@ -184,7 +184,7 @@ export const UNIT_CATALOG: Readonly<Record<UnitId, UnitDefinition>> = {
     limitGroup: null,
   },
   housekeeping: {
-    id: 'housekeeping',
+    type: 'housekeeping',
     name: 'Limpieza',
     category: 'hotel',
     width: 15,
@@ -196,7 +196,7 @@ export const UNIT_CATALOG: Readonly<Record<UnitId, UnitDefinition>> = {
     limitGroup: null,
   },
   security: {
-    id: 'security',
+    type: 'security',
     name: 'Seguridad',
     category: 'services',
     width: 16,
@@ -208,7 +208,7 @@ export const UNIT_CATALOG: Readonly<Record<UnitId, UnitDefinition>> = {
     limitGroup: 'security',
   },
   'service-elevator': {
-    id: 'service-elevator',
+    type: 'service-elevator',
     name: 'Ascensor de servicio',
     category: 'transport',
     width: 4,
@@ -226,7 +226,7 @@ export const UNIT_CATALOG: Readonly<Record<UnitId, UnitDefinition>> = {
     limitGroup: 'elevator-shafts',
   },
   restaurant: {
-    id: 'restaurant',
+    type: 'restaurant',
     name: 'Restaurante',
     category: 'commerce-and-entertainment',
     width: 24,
@@ -238,7 +238,7 @@ export const UNIT_CATALOG: Readonly<Record<UnitId, UnitDefinition>> = {
     limitGroup: 'commercial',
   },
   'retail-shop': {
-    id: 'retail-shop',
+    type: 'retail-shop',
     name: 'Local comercial',
     category: 'commerce-and-entertainment',
     width: 12,
@@ -250,7 +250,7 @@ export const UNIT_CATALOG: Readonly<Record<UnitId, UnitDefinition>> = {
     limitGroup: 'commercial',
   },
   cinema: {
-    id: 'cinema',
+    type: 'cinema',
     name: 'Cine',
     category: 'commerce-and-entertainment',
     width: 31,
@@ -262,7 +262,7 @@ export const UNIT_CATALOG: Readonly<Record<UnitId, UnitDefinition>> = {
     limitGroup: 'entertainment',
   },
   'party-hall': {
-    id: 'party-hall',
+    type: 'party-hall',
     name: 'Salón de fiestas',
     category: 'commerce-and-entertainment',
     width: 24,
@@ -274,7 +274,7 @@ export const UNIT_CATALOG: Readonly<Record<UnitId, UnitDefinition>> = {
     limitGroup: 'entertainment',
   },
   'express-elevator': {
-    id: 'express-elevator',
+    type: 'express-elevator',
     name: 'Ascensor expreso',
     category: 'transport',
     width: 6,
@@ -291,7 +291,7 @@ export const UNIT_CATALOG: Readonly<Record<UnitId, UnitDefinition>> = {
     limitGroup: 'elevator-shafts',
   },
   'medical-center': {
-    id: 'medical-center',
+    type: 'medical-center',
     name: 'Centro médico',
     category: 'services',
     width: 26,
@@ -303,7 +303,7 @@ export const UNIT_CATALOG: Readonly<Record<UnitId, UnitDefinition>> = {
     limitGroup: 'medical',
   },
   'parking-ramp': {
-    id: 'parking-ramp',
+    type: 'parking-ramp',
     name: 'Rampa de estacionamiento',
     category: 'services',
     width: 16,
@@ -315,7 +315,7 @@ export const UNIT_CATALOG: Readonly<Record<UnitId, UnitDefinition>> = {
     limitGroup: null,
   },
   'parking-space': {
-    id: 'parking-space',
+    type: 'parking-space',
     name: 'Cochera',
     category: 'services',
     width: 4,
@@ -327,7 +327,7 @@ export const UNIT_CATALOG: Readonly<Record<UnitId, UnitDefinition>> = {
     limitGroup: 'parking',
   },
   'recycling-center': {
-    id: 'recycling-center',
+    type: 'recycling-center',
     name: 'Centro de reciclaje',
     category: 'services',
     width: 25,
@@ -339,7 +339,7 @@ export const UNIT_CATALOG: Readonly<Record<UnitId, UnitDefinition>> = {
     limitGroup: null,
   },
   'subway-station': {
-    id: 'subway-station',
+    type: 'subway-station',
     name: 'Estación de subte',
     category: 'services',
     width: 30,
@@ -351,7 +351,7 @@ export const UNIT_CATALOG: Readonly<Record<UnitId, UnitDefinition>> = {
     limitGroup: 'subway',
   },
   cathedral: {
-    id: 'cathedral',
+    type: 'cathedral',
     name: 'Catedral',
     category: 'services',
     width: 28,
@@ -438,7 +438,7 @@ function flatUpkeep(basis: UpkeepRule['basis'], amount: number): UpkeepRule {
 }
 
 /** Charged every Monday at 00:00. Units not listed have no upkeep. */
-export const WEEKLY_UPKEEP: Readonly<Partial<Record<UnitId, UpkeepRule>>> = {
+export const WEEKLY_UPKEEP: Readonly<Partial<Record<UnitType, UpkeepRule>>> = {
   'standard-elevator': flatUpkeep('per-car', 10_000),
   'service-elevator': flatUpkeep('per-car', 10_000),
   'express-elevator': flatUpkeep('per-car', 20_000),
