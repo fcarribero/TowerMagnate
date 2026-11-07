@@ -1,4 +1,3 @@
-import type { ErrorCode } from './errors';
 import type { Ledger } from './ledger';
 import type { Level } from './levels';
 import type { UnitType } from './units';
