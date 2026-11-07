@@ -1,6 +1,7 @@
 import { Container, Graphics, GraphicsContext } from 'pixi.js';
+import type { ContentSnapshot, ContentUnit } from '../model/towerContent';
 import { LOWEST_LEVEL, WORLD_WIDTH, levelToIndex } from './levels';
-import { FLOOR_HEIGHT, SLAB_HEIGHT, TILE_WIDTH } from './metrics';
+import { FLOOR_HEIGHT, SLAB_HEIGHT, TILE_WIDTH, TOWER_WIDTH_TILES } from './metrics';
 
 const COLORS = {
   ink: 0x141218,
@@ -37,6 +38,31 @@ export function createPlaceholderTower(): Map<number, Container> {
     floors.set(levelToIndex(level), new Graphics(contextForLevel(level, soil, lobby, offices)));
   }
   return floors;
+}
+
+/** The same stand-in tower as built cells and units, for views that read the client model. */
+export function placeholderTowerContent(): ContentSnapshot {
+  const levels: ContentSnapshot['levels'] = {
+    1: { structure: structureRow(LOBBY_WIDTH_TILES, 'l') },
+  };
+  const units: ContentUnit[] = [];
+  for (let level = 2; level <= TOP_PLACEHOLDER_LEVEL; level += 1) {
+    levels[level] = { structure: structureRow(OFFICE_WIDTH_TILES * OFFICES_PER_FLOOR, 'f') };
+    for (let office = 0; office < OFFICES_PER_FLOOR; office += 1) {
+      units.push({
+        id: `placeholder-${level}-${office}`,
+        type: 'office',
+        x: TOWER_LEFT_TILE + office * OFFICE_WIDTH_TILES,
+        level,
+      });
+    }
+  }
+  return { levels, units };
+}
+
+function structureRow(builtWidth: number, cell: 'f' | 'l'): string {
+  const right = TOWER_WIDTH_TILES - TOWER_LEFT_TILE - builtWidth;
+  return '.'.repeat(TOWER_LEFT_TILE) + cell.repeat(builtWidth) + '.'.repeat(right);
 }
 
 function contextForLevel(
