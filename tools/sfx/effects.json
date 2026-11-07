@@ -1,0 +1,88 @@
+{
+  "effects": [
+    {
+      "id": "elevator-ding",
+      "prompt": "Single elevator arrival chime: one clean, bright bell ding with a short natural decay. Close-miked, dry room, no voices, no background noise.",
+      "duration": 1.2,
+      "loop": false,
+      "loudness": -18
+    },
+    {
+      "id": "elevator-move",
+      "prompt": "Elevator car travelling inside its shaft: steady low electric motor hum with a soft cable and rail rumble, constant level from start to end. No ding, no doors, no voices.",
+      "duration": 4,
+      "loop": true,
+      "loudness": -24
+    },
+    {
+      "id": "construction",
+      "prompt": "Short burst of building construction: three quick hammer strikes on a steel beam followed by a brief power drill whir. Close and punchy, no voices, no music.",
+      "duration": 2,
+      "loop": false,
+      "loudness": -18
+    },
+    {
+      "id": "demolition",
+      "prompt": "Short demolition crash: a concrete wall breaking apart and debris tumbling down, heavy low impact with a quick decay. Not an explosion, no voices, no music.",
+      "duration": 2.5,
+      "loop": false,
+      "loudness": -18
+    },
+    {
+      "id": "cash-register",
+      "prompt": "Old mechanical cash register sale: a bright drawer bell ring and the drawer sliding open with a light rattle of coins. Close-miked, no voices, no music.",
+      "duration": 1.2,
+      "loop": false,
+      "loudness": -18
+    },
+    {
+      "id": "notification",
+      "prompt": "Soft two-note notification chime for a game interface, gentle wooden marimba tones going up, friendly and calm, short tail. Not an alarm, no voices.",
+      "duration": 0.8,
+      "loop": false,
+      "loudness": -20
+    },
+    {
+      "id": "bomb-alarm",
+      "prompt": "Urgent electronic security alarm: fast pulsing high-pitched beeps in a steady rhythm, tense and threatening, indoor building. No bell, no siren wail, no voices.",
+      "duration": 3,
+      "loop": false,
+      "loudness": -16
+    },
+    {
+      "id": "fire-alarm",
+      "prompt": "Building fire alarm bell: a loud metal bell ringing continuously with a rapid clapper, echoing in an indoor hallway. No electronic beeps, no voices.",
+      "duration": 3,
+      "loop": false,
+      "loudness": -16
+    },
+    {
+      "id": "wedding-bells",
+      "prompt": "Church wedding bells ringing joyfully: several bronze bells pealing in a cheerful descending pattern, heard from a city street. No organ, no choir, no voices.",
+      "duration": 4,
+      "loop": false,
+      "loudness": -18
+    },
+    {
+      "id": "hotel-newspaper",
+      "prompt": "Folded morning newspaper dropped onto a wooden hotel counter with a soft slap, followed by a quick paper rustle. Close-miked, quiet room, no voices.",
+      "duration": 1,
+      "loop": false,
+      "loudness": -20
+    },
+    {
+      "id": "lobby-ambience",
+      "prompt": "Calm office tower lobby ambience: distant indistinct crowd murmur, footsteps on marble floor, faint echo of a large hall, steady and even throughout. No clear words, no music, no announcements.",
+      "duration": 12,
+      "loop": true,
+      "loudness": -26
+    },
+    {
+      "id": "ui-click",
+      "prompt": "One loud, clearly audible mouse click on a plastic button: a sharp, crisp tick right at the start, close-miked and dry, then silence. No reverb.",
+      "duration": 0.2,
+      "loop": false,
+      "loudness": -20
+    }
+  ]
+}
