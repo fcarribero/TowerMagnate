@@ -11,6 +11,7 @@ describe('readConfig', () => {
       port: 4131,
       databaseUrl,
       logLevel: 'debug',
+      migrateOnStart: true,
     });
   });
 
@@ -20,6 +21,7 @@ describe('readConfig', () => {
       port: 3000,
       databaseUrl,
       logLevel: 'info',
+      migrateOnStart: true,
     });
   });
 
@@ -43,5 +45,25 @@ describe('readConfig', () => {
 
   it('rejects an unknown log level', () => {
     expect(() => readConfig({ LOG_LEVEL: 'loud', DATABASE_URL: databaseUrl })).toThrow('LOG_LEVEL');
+  });
+
+  it('migrates on start outside production unless told otherwise', () => {
+    expect(readConfig({ DATABASE_URL: databaseUrl }).migrateOnStart).toBe(true);
+    expect(readConfig({ DATABASE_URL: databaseUrl, NODE_ENV: 'production' }).migrateOnStart).toBe(
+      false,
+    );
+    expect(
+      readConfig({ DATABASE_URL: databaseUrl, NODE_ENV: 'production', MIGRATE_ON_START: 'true' })
+        .migrateOnStart,
+    ).toBe(true);
+    expect(
+      readConfig({ DATABASE_URL: databaseUrl, MIGRATE_ON_START: 'false' }).migrateOnStart,
+    ).toBe(false);
+  });
+
+  it('rejects a MIGRATE_ON_START that is not a boolean', () => {
+    expect(() => readConfig({ DATABASE_URL: databaseUrl, MIGRATE_ON_START: 'yes' })).toThrow(
+      'MIGRATE_ON_START',
+    );
   });
 });
