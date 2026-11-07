@@ -488,6 +488,10 @@ While an `inspect` target is set, the server sends `inspect` once per second and
 | Notices and news, decision windows | `notices`, `events`, `activeEvents`; `answerEvent` |
 | Sound effects | `sound` events and car state |
 
+### 8.11 Schemas
+
+The zod schemas for every message, command and view are in `packages/shared/src/protocol`, and the TypeScript types are inferred from them. Where this section names a type without fields (`TransportView`, `ShaftView`, `FollowedView`, `EventView`, `NoticeView`, `OverlayData`, `FinanceSummary`, `InspectData`, `ClientEvent`), the schema is the reference. Entity ids on the wire carry their prefix: `u` units, `t` stairs and escalators, `s` shafts, `p` people, `e` events. `ErrorCode` includes the socket codes; `CommandResult` only carries `EngineErrorCode`, which leaves them out.
+
 ## 9. Performance budgets
 
 - One `step` call with `steps = 1` on a tower of 15,000 people stays under 5 ms on the CI machine. Engine scenario tests that run a game week stay under 10 s.
