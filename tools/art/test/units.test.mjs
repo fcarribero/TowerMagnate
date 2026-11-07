@@ -6,6 +6,8 @@ import { colorIndex } from '../src/palette.mjs';
 
 const [{ sprites }] = drawGroups([unitsGroup]);
 const byId = Object.fromEntries(sprites.map((sprite) => [sprite.id, sprite.canvas]));
+const rentableIds = Object.keys(byId).filter((id) => !id.startsWith('units/cathedral/'));
+const cathedralVariants = ['empty_day', 'empty_night', 'wedding_day', 'wedding_night'];
 const catalogWidthTiles = {
   office: 9,
   condo: 16,
@@ -35,7 +37,7 @@ describe('units group', () => {
     const expected = Object.keys(catalogWidthTiles).flatMap((subject) =>
       variantsOf(subject).map((variant) => `units/${subject}/${variant}`),
     );
-    expect(Object.keys(byId)).toEqual(expected);
+    expect(rentableIds).toEqual(expected);
   });
 
   it('sizes every sprite from the catalog width and one floor', () => {
@@ -97,5 +99,41 @@ describe('units group', () => {
     const apronBlue = (variant) => countColor(byId[`units/housekeeping/${variant}`], 'cloth-blue');
     expect(apronBlue('occupied_day')).toBeGreaterThan(apronBlue('empty_day'));
     expect(countColor(byId['units/housekeeping/empty_day'], 'skin-mid')).toBe(0);
+  });
+});
+
+describe('cathedral', () => {
+  const lancetPane = [66, 80];
+
+  it('draws empty and wedding, day and night, 28 tiles by 4 floors', () => {
+    for (const variant of cathedralVariants) {
+      const sprite = byId[`units/cathedral/${variant}`];
+      expect(sprite, variant).toBeDefined();
+      expect(sprite.width).toBe(28 * metrics.tileWidth);
+      expect(sprite.height).toBe(4 * metrics.floorHeight);
+    }
+  });
+
+  it('keeps the floor slab of a bare tile under the whole nave', () => {
+    const day = byId['units/cathedral/empty_day'];
+    const slabTop = day.height - metrics.slabHeight;
+    expect(day.get(day.width - 1, slabTop)).toBe(colorIndex('concrete-light'));
+    expect(byId['units/cathedral/empty_night'].get(day.width - 1, slabTop)).toBe(
+      colorIndex('concrete'),
+    );
+  });
+
+  it('lays a red carpet and flowers only for the wedding', () => {
+    const empty = byId['units/cathedral/empty_day'];
+    const wedding = byId['units/cathedral/wedding_day'];
+    expect(countColor(wedding, 'cloth-red')).toBeGreaterThan(countColor(empty, 'cloth-red') + 200);
+    expect(countColor(wedding, 'leaf')).toBeGreaterThan(countColor(empty, 'leaf'));
+  });
+
+  it('lights the stained glass at night only during a wedding', () => {
+    const [x, y] = lancetPane;
+    expect(byId['units/cathedral/empty_day'].get(x, y)).not.toBe(colorIndex('night-deep'));
+    expect(byId['units/cathedral/empty_night'].get(x, y)).toBe(colorIndex('night-deep'));
+    expect(byId['units/cathedral/wedding_night'].get(x, y)).not.toBe(colorIndex('night-deep'));
   });
 });
