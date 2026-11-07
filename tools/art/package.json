@@ -1,17 +1,15 @@
 {
   "name": "@tower-magnate/art",
-  "version": "0.1.0",
+  "version": "0.0.0",
   "private": true,
   "type": "module",
   "description": "Scripts that draw Tower Magnate sprites and pack them into atlases",
-  "engines": { "node": ">=22" },
   "exports": {
     "./palette.json": "./palette.json",
     "./metrics.json": "./metrics.json",
     "./palette": "./src/palette.mjs"
   },
   "scripts": {
-    "swatch": "node scripts/swatch.mjs",
-    "test": "node --test"
+    "swatch": "node scripts/swatch.mjs"
   }
 }
