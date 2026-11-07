@@ -99,7 +99,7 @@ function placeUnit(state: TowerState, unit: PlannedUnit): EntityId {
   const id = takeId(state, 'u');
   const span = { x0: unit.x, x1: unit.x + definition.width - 1 };
   occupy(state, levelsBetween(unit.level, top), span, { kind: 'unit', id }, unit.type);
-  state.units[id] = newUnit(id, unit.type, unit.x, unit.level);
+  state.units[id] = { ...newUnit(id, unit.type, unit.x, unit.level), placedAtStep: state.step };
   return id;
 }
 

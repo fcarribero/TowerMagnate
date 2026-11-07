@@ -73,7 +73,7 @@ export type { HookOccurrence, HookSchedule, ScheduledHook, TimeOfDay } from './s
 export { deserializeState, serializeState } from './serialization';
 export { cloneState, createTower, SCHEMA_VERSION } from './state';
 export { createEngine, runDays, step } from './step';
-export { initialPriceLevel, newUnit } from './units';
+export { newUnit } from './units';
 export type {
   CommandContext,
   CommandEvent,

@@ -46,14 +46,14 @@
       "id": "bomb-alarm",
       "prompt": "Urgent electronic security alarm: fast pulsing high-pitched beeps in a steady rhythm, tense and threatening, indoor building. No bell, no siren wail, no voices.",
       "duration": 3,
-      "loop": false,
+      "loop": true,
       "loudness": -16
     },
     {
       "id": "fire-alarm",
       "prompt": "Building fire alarm bell: a loud metal bell ringing continuously with a rapid clapper, echoing in an indoor hallway. No electronic beeps, no voices.",
       "duration": 3,
-      "loop": false,
+      "loop": true,
       "loudness": -16
     },
     {

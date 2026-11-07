@@ -92,7 +92,7 @@ describe('office and shop leases', () => {
   it('applies a price change from the next payment, not the current week', () => {
     const { tower, unitId, engine } = leaseRun({ moveInAt: 10 });
     const signed = engine.step(tower, [], 20).state;
-    unitOf(signed, unitId).price = 'high';
+    unitOf(signed, unitId).priceLevel = 'high';
     const before = engine.step(signed, [], stepsTo(signed, 10 + STEPS_PER_WEEK - 1)).state;
     expect(before.money - tower.money).toBe(10_000);
     const after = engine.step(before, [], 1).state;
@@ -129,7 +129,7 @@ describe('office and shop leases', () => {
       moveInAt: 10,
       evaluate: () => 'poor',
     });
-    unitOf(tower, unitId).price = 'low';
+    unitOf(tower, unitId).priceLevel = 'low';
     const run = engine.step(tower, [], 10 + TERM);
     expect(run.state.money - tower.money).toBe(4 * 10_000);
     expect(run.events.at(-1)).toEqual({

@@ -3,14 +3,12 @@ import {
   PRICE_LEVELS,
   UNIT_TYPES,
   type Lease,
-  type PriceLevel,
   type RngState,
   type TowerState,
   type Unit,
   type UnitId,
 } from '@tower-magnate/shared';
 import { SCHEMA_VERSION } from '../state';
-import { initialPriceLevel } from '../units';
 import { isRecord, StateMigrationError } from './errors';
 import { readGrid } from './grid';
 import { readLedger, readMoney } from './money';
@@ -21,7 +19,31 @@ export { StateMigrationError } from './errors';
 type Migration = (raw: Record<string, unknown>) => Record<string, unknown>;
 
 /** MIGRATIONS[n] turns a version n+1 state into version n+2. */
-const MIGRATIONS: readonly Migration[] = [];
+const MIGRATIONS: readonly Migration[] = [addUnitPurchaseRecord, addUnitLeaseRecord];
+
+/** Version 2 records each unit's price level, what was paid for it and when it was placed. */
+function addUnitPurchaseRecord(raw: Record<string, unknown>): Record<string, unknown> {
+  if (!isRecord(raw.units)) {
+    return { ...raw, schemaVersion: 2 };
+  }
+  const units: Record<string, unknown> = {};
+  for (const [id, unit] of Object.entries(raw.units)) {
+    units[id] = isRecord(unit) ? { priceLevel: 'normal', paid: 0, placedAtStep: 0, ...unit } : unit;
+  }
+  return { ...raw, schemaVersion: 2, units };
+}
+
+/** Version 3 records whether each unit was ever used and its current lease. */
+function addUnitLeaseRecord(raw: Record<string, unknown>): Record<string, unknown> {
+  if (!isRecord(raw.units)) {
+    return { ...raw, schemaVersion: 3 };
+  }
+  const units: Record<string, unknown> = {};
+  for (const [id, unit] of Object.entries(raw.units)) {
+    units[id] = isRecord(unit) ? { used: false, lease: null, ...unit } : unit;
+  }
+  return { ...raw, schemaVersion: 3, units };
+}
 
 function isUint32(value: unknown): value is number {
   return Number.isInteger(value) && (value as number) >= 0 && (value as number) <= 0xffff_ffff;
@@ -48,7 +70,12 @@ function isUnit(value: unknown): value is Unit {
     (UNIT_TYPES as readonly unknown[]).includes(value.type) &&
     isNonNegativeInteger(value.x) &&
     isLevel(value.level) &&
-    (value.name === null || typeof value.name === 'string')
+    (value.name === null || typeof value.name === 'string') &&
+    (PRICE_LEVELS as readonly unknown[]).includes(value.priceLevel) &&
+    isNonNegativeInteger(value.paid) &&
+    isNonNegativeInteger(value.placedAtStep) &&
+    typeof value.used === 'boolean' &&
+    (value.lease === null || isLease(value.lease))
   );
 }
 
@@ -59,30 +86,6 @@ function isLease(value: unknown): value is Lease {
     isNonNegativeInteger(value.nextDueStep) &&
     value.nextDueStep > value.anchorStep
   );
-}
-
-/** Units saved before price levels, leases and the used flag get the values of a new unit. */
-function readPrice(unit: Unit): PriceLevel | null {
-  const raw: unknown = (unit as Partial<Unit>).price;
-  if (raw === undefined) return initialPriceLevel(unit.type);
-  if (raw === null || (PRICE_LEVELS as readonly unknown[]).includes(raw)) {
-    return raw as PriceLevel | null;
-  }
-  throw new StateMigrationError(`State unit ${unit.id} has an unknown price level`);
-}
-
-function readUsed(unit: Unit): boolean {
-  const raw: unknown = (unit as Partial<Unit>).used;
-  if (raw === undefined) return false;
-  if (typeof raw === 'boolean') return raw;
-  throw new StateMigrationError(`State unit ${unit.id} has a malformed used flag`);
-}
-
-function readLease(unit: Unit): Lease | null {
-  const raw: unknown = (unit as Partial<Unit>).lease;
-  if (raw === undefined || raw === null) return null;
-  if (isLease(raw)) return { anchorStep: raw.anchorStep, nextDueStep: raw.nextDueStep };
-  throw new StateMigrationError(`State unit ${unit.id} has a malformed lease`);
 }
 
 /** Towers saved before units existed have no `units` record; they start with none. */
@@ -104,9 +107,11 @@ function readUnits(raw: unknown): Record<UnitId, Unit> {
       x: unit.x,
       level: unit.level,
       name: unit.name,
-      price: readPrice(unit),
-      used: readUsed(unit),
-      lease: readLease(unit),
+      priceLevel: unit.priceLevel,
+      paid: unit.paid,
+      placedAtStep: unit.placedAtStep,
+      used: unit.used,
+      lease: unit.lease === null ? null : { ...unit.lease },
     };
   }
   return units;

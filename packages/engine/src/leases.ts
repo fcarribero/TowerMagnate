@@ -1,5 +1,4 @@
 import {
-  DEFAULT_PRICE_LEVEL,
   LEASE_CONTRACT_WEEKS,
   WEEKLY_RENT,
   type Lease,
@@ -32,7 +31,7 @@ export function isLeasable(unit: Unit): unit is LeasedUnit {
 }
 
 function weeklyRent(unit: LeasedUnit): number {
-  return WEEKLY_RENT[unit.type][unit.price ?? DEFAULT_PRICE_LEVEL];
+  return WEEKLY_RENT[unit.type][unit.priceLevel];
 }
 
 function termEndStep(lease: Lease): number {

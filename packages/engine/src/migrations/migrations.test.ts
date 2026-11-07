@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { createTower, SCHEMA_VERSION } from '../state';
 import { newUnit } from '../units';
-import { VERSION_1_SAVE } from './fixtures';
+import { VERSION_1_SAVE, VERSION_2_SAVE, VERSION_3_SAVE } from './fixtures';
 import { migrateState, StateMigrationError } from './index';
 
 describe('migrateState', () => {
@@ -34,16 +34,34 @@ describe('migrateState units', () => {
 
   it('keeps well-formed units', () => {
     const tower = createTower(5);
-    tower.units.u3 = { ...newUnit('u3', 'fast-food', 0, -2), name: 'Pancho' };
+    tower.units.u3 = {
+      ...newUnit('u3', 'fast-food', 0, -2),
+      name: 'Pancho',
+      paid: 100_000,
+      placedAtStep: 40,
+    };
     expect(migrateState(JSON.parse(JSON.stringify(tower)))).toEqual(tower);
   });
 
   it('refuses a malformed unit', () => {
     const tower = createTower(5);
+    const valid = { id: 'u3', type: 'office', x: 0, level: 2, name: null };
+    const purchase = {
+      priceLevel: 'normal',
+      paid: 40_000,
+      placedAtStep: 0,
+      used: false,
+      lease: null,
+    };
     const badUnits = [
-      { id: 'u3', type: 'castle', x: 0, level: 1, name: null },
-      { id: 'u3', type: 'office', x: 0, level: 0, name: null },
-      { id: 'u4', type: 'office', x: 0, level: 1, name: null },
+      { ...valid, ...purchase, type: 'castle' },
+      { ...valid, ...purchase, level: 0 },
+      { ...valid, ...purchase, id: 'u4' },
+      { ...valid, ...purchase, priceLevel: 'free' },
+      { ...valid, ...purchase, paid: -1 },
+      { ...valid, ...purchase, placedAtStep: 1.5 },
+      { ...valid, priceLevel: 'normal', paid: 40_000, placedAtStep: 0 },
+      valid,
     ];
     for (const unit of badUnits) {
       expect(() => migrateState({ ...tower, units: { u3: unit } })).toThrow(StateMigrationError);
@@ -51,41 +69,24 @@ describe('migrateState units', () => {
   });
 });
 
-describe('migrateState unit prices and leases', () => {
+describe('migrateState unit leases', () => {
   function migratedUnit(unit: Record<string, unknown>): unknown {
     const tower = createTower(5);
     return migrateState({ ...tower, units: { u3: unit } }).units.u3;
   }
 
-  const savedBeforeLeases = { id: 'u3', x: 0, level: 1, name: null };
-
-  it('gives units saved before leases the values of a new unit', () => {
-    expect(migratedUnit({ ...savedBeforeLeases, type: 'office' })).toEqual(
-      newUnit('u3', 'office', 0, 1),
-    );
-    expect(migratedUnit({ ...savedBeforeLeases, type: 'retail-shop' })).toMatchObject({
-      price: 'normal',
-      used: false,
-      lease: null,
-    });
-    expect(migratedUnit({ ...savedBeforeLeases, type: 'fast-food' })).toMatchObject({
-      price: null,
-    });
-  });
-
   it('keeps the price, used flag and lease of a rented unit', () => {
     const rented = {
       ...newUnit('u3', 'office', 0, 1),
-      price: 'high',
+      priceLevel: 'high',
       used: true,
       lease: { anchorStep: 100, nextDueStep: 60580 },
     };
     expect(migratedUnit(JSON.parse(JSON.stringify(rented)))).toEqual(rented);
   });
 
-  it('refuses an unknown price level or a malformed used flag', () => {
+  it('refuses a malformed used flag', () => {
     const office = newUnit('u3', 'office', 0, 1);
-    expect(() => migratedUnit({ ...office, price: 'gratis' })).toThrow(StateMigrationError);
     expect(() => migratedUnit({ ...office, used: 'yes' })).toThrow(StateMigrationError);
   });
 
@@ -115,9 +116,31 @@ describe('migrateState fixtures', () => {
       x: 10,
       level: 1,
       name: 'Sur',
-      price: 'normal',
+      priceLevel: 'normal',
+      paid: 0,
+      placedAtStep: 0,
       used: false,
       lease: null,
+    });
+  });
+
+  it('loads a frozen version 2 save', () => {
+    const tower = migrateState(JSON.parse(VERSION_2_SAVE));
+    expect(tower.units.u1).toMatchObject({
+      priceLevel: 'normal',
+      paid: 44_500,
+      placedAtStep: 120,
+      used: false,
+      lease: null,
+    });
+  });
+
+  it('loads a frozen version 3 save', () => {
+    const tower = migrateState(JSON.parse(VERSION_3_SAVE));
+    expect(tower.units.u1).toMatchObject({
+      priceLevel: 'high',
+      used: true,
+      lease: { anchorStep: 240, nextDueStep: 60_720 },
     });
   });
 });

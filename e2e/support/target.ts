@@ -19,6 +19,7 @@ export function resolveE2eTarget(env: NodeJS.ProcessEnv): E2eTarget {
     startsStack: true,
     composeEnv: {
       COMPOSE_PROJECT_NAME: env.COMPOSE_PROJECT_NAME || E2E_PROJECT_NAME,
+      COMPOSE_PROFILES: 'dev',
       ...ports,
     },
   };

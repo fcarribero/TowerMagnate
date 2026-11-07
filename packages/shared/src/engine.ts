@@ -65,8 +65,10 @@ export interface Unit {
   level: Level;
   /** Player-chosen name; null shows the default name. */
   name: string | null;
-  /** Null for unit types without price levels. */
-  price: PriceLevel | null;
+  priceLevel: PriceLevel;
+  /** Whole dollars charged at placement, automatic floor included. */
+  paid: number;
+  placedAtStep: number;
   /** Set on the first lease, sale, check-in or visitor. */
   used: boolean;
   /** The current office or shop tenant's lease; null while the unit is for rent. */
