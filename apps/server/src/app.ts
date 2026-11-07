@@ -6,12 +6,15 @@ import { registerGateway, resolveIdentityFromQuery, type IdentityResolver } from
 import { checkHealth } from './health';
 import { createTowerStore, followConnections, TowerRunner } from './runner';
 import { createSnapshotRepository } from './snapshots';
+import { registerWebStatics } from './webStatics';
 
 export interface AppOptions {
   version: string;
   databaseUrl: string;
   secureCookies?: boolean;
   logger?: FastifyServerOptions['logger'];
+  /** Folder with the built web client. Without it the server only answers the API. */
+  webDir?: string;
   resolveSocketIdentity?: IdentityResolver;
   heartbeatIntervalMs?: number;
   runnerTickIntervalMs?: number;
@@ -54,6 +57,10 @@ export function buildApp(options: AppOptions): FastifyInstance {
   followConnections(gateway.registry, runner, app.log);
   const stopRunner = runner.start(options.runnerTickIntervalMs);
   app.addHook('onClose', async () => stopRunner());
+
+  if (options.webDir !== undefined) {
+    registerWebStatics(app, options.webDir);
+  }
 
   return app;
 }
