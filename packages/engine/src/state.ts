@@ -12,5 +12,6 @@ export function createTower(seed: number): TowerState {
     step: 0,
     rng: createRng(seed),
     nextId: 1,
+    units: {},
   };
 }
