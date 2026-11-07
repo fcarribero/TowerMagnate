@@ -129,3 +129,12 @@ export function cameraViewport(camera: Camera, marginLevels: number): ViewportRe
     xTo: Math.min(lastColumn, Math.floor((camera.left + camera.viewWidth - 1) / tileOnScreen)),
   };
 }
+
+/** Moves the view so a world point (zoom 1 pixels) sits at the canvas centre, as far as the edges allow. */
+export function centerCamera(camera: Camera, worldX: number, worldY: number): Camera {
+  return clampCamera({
+    ...camera,
+    left: worldX * camera.zoom - camera.viewWidth / 2,
+    top: worldY * camera.zoom - camera.viewHeight / 2,
+  });
+}
