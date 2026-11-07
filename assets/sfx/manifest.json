@@ -10,6 +10,9 @@
       "volume": 0.7,
       "loop": false,
       "trigger": "elevator.arrive",
+      "stopTrigger": null,
+      "minIntervalMs": 500,
+      "duckOthers": null,
       "description": "An elevator car stops at a floor and opens its doors."
     },
     {
@@ -21,6 +24,9 @@
       "volume": 0.4,
       "loop": true,
       "trigger": "elevator.travel",
+      "stopTrigger": "elevator.travel.end",
+      "minIntervalMs": 0,
+      "duckOthers": null,
       "description": "Loops while an elevator car in view is moving between floors."
     },
     {
@@ -32,6 +38,9 @@
       "volume": 0.8,
       "loop": false,
       "trigger": "build.place",
+      "stopTrigger": null,
+      "minIntervalMs": 0,
+      "duckOthers": null,
       "description": "The player places a floor, unit, stairs or elevator shaft."
     },
     {
@@ -43,6 +52,9 @@
       "volume": 0.8,
       "loop": false,
       "trigger": "build.demolish",
+      "stopTrigger": null,
+      "minIntervalMs": 0,
+      "duckOthers": null,
       "description": "The player demolishes something with the bulldozer tool."
     },
     {
@@ -54,6 +66,9 @@
       "volume": 0.6,
       "loop": false,
       "trigger": "money.income",
+      "stopTrigger": null,
+      "minIntervalMs": 1000,
+      "duckOthers": null,
       "description": "Rent, a lease payment or a sale is collected."
     },
     {
@@ -65,7 +80,10 @@
       "volume": 0.7,
       "loop": false,
       "trigger": "notice.show",
-      "description": "A new notice or news line appears in the bottom bar."
+      "stopTrigger": null,
+      "minIntervalMs": 1000,
+      "duckOthers": null,
+      "description": "A notice appears on the news line, except the bomb and fire alerts."
     },
     {
       "id": "bomb-alarm",
@@ -73,10 +91,13 @@
         "ogg": "bomb-alarm.ogg",
         "mp3": "bomb-alarm.mp3"
       },
-      "volume": 1,
-      "loop": false,
+      "volume": 0.8,
+      "loop": true,
       "trigger": "event.bomb",
-      "description": "A bomb threat starts and its decision window opens."
+      "stopTrigger": "event.bomb.end",
+      "minIntervalMs": 0,
+      "duckOthers": 0.5,
+      "description": "Loops from the bomb decision opening until it closes or the threat ends."
     },
     {
       "id": "fire-alarm",
@@ -84,10 +105,13 @@
         "ogg": "fire-alarm.ogg",
         "mp3": "fire-alarm.mp3"
       },
-      "volume": 1,
-      "loop": false,
+      "volume": 0.8,
+      "loop": true,
       "trigger": "event.fire",
-      "description": "A fire starts and its decision window opens."
+      "stopTrigger": "event.fire.end",
+      "minIntervalMs": 0,
+      "duckOthers": 0.5,
+      "description": "Loops from the fire start until its decision closes or the fire ends."
     },
     {
       "id": "wedding-bells",
@@ -95,10 +119,13 @@
         "ogg": "wedding-bells.ogg",
         "mp3": "wedding-bells.mp3"
       },
-      "volume": 1,
+      "volume": 0.9,
       "loop": false,
       "trigger": "event.wedding",
-      "description": "The cathedral wedding completes and the tower reaches the top rank."
+      "stopTrigger": null,
+      "minIntervalMs": 0,
+      "duckOthers": null,
+      "description": "Once per wedding, when the procession reaches the cathedral."
     },
     {
       "id": "hotel-newspaper",
@@ -109,6 +136,9 @@
       "volume": 0.6,
       "loop": false,
       "trigger": "hotel.morning",
+      "stopTrigger": null,
+      "minIntervalMs": 0,
+      "duckOthers": null,
       "description": "Morning check of the hotel: guests wake up and newspapers are delivered."
     },
     {
@@ -120,6 +150,9 @@
       "volume": 0.5,
       "loop": true,
       "trigger": "ambience.lobby",
+      "stopTrigger": "ambience.lobby.end",
+      "minIntervalMs": 0,
+      "duckOthers": null,
       "description": "Loops while a lobby floor is visible on screen."
     },
     {
@@ -131,6 +164,9 @@
       "volume": 0.5,
       "loop": false,
       "trigger": "ui.click",
+      "stopTrigger": null,
+      "minIntervalMs": 0,
+      "duckOthers": null,
       "description": "The player presses a toolbar button or a window button."
     }
   ]
