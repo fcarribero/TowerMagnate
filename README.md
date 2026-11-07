@@ -47,3 +47,16 @@ A new TypeScript package needs its own `tsconfig.json` extending `tsconfig.base.
 ## Continuous integration
 
 `.github/workflows/ci.yml` runs `pnpm lint`, `pnpm typecheck` and `pnpm test` on Node 22 for every pull request to `develop` or `master` and for every push to those branches. The pnpm store is cached between runs.
+
+## Local stack
+
+`docker compose up` starts `postgres` (16, data in a named volume), `server` (`pnpm dev` in `apps/server`, restarts on change) and `web` (`pnpm dev` in `apps/web`, called with `--host 0.0.0.0 --port 5173 --strictPort`). The containers mount the repository and keep their own `node_modules` in named volumes, so the host install is never touched.
+
+Copy `.env.example` to `.env` to change the project name, ports or database credentials. To run several stacks side by side, use `pnpm stack`, which wraps `docker compose` and derives the ports from `PORT_BASE`: postgres on `PORT_BASE`, the server on `PORT_BASE + 1` and web on `PORT_BASE + 2`.
+
+```bash
+COMPOSE_PROJECT_NAME=tm-dev PORT_BASE=4190 pnpm stack up -d
+curl http://localhost:4191/health       # {"status":"ok","version":"0.0.0","database":"ok"}
+curl http://localhost:4192/api/health   # same report, proxied by the web dev server
+pnpm stack down -v                      # remove containers and volumes
+```
