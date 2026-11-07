@@ -118,6 +118,31 @@ describe('sky group', () => {
     );
   });
 
+  it('repeats the middle band without a seam across floors and columns', () => {
+    for (const time of ['day', 'dusk', 'night']) {
+      const middle = sprites[`sky/${time}/middle`];
+      const tiled = (x, y) => middle.get(x % middle.width, y % middle.height);
+      for (let y = 0; y < middle.height; y++) {
+        for (let x = 0; x < middle.width; x++) {
+          const crossesRight = tiled(x + 8, y) === middle.get(x, y);
+          const crossesDown = tiled(x, y + 16) === middle.get(x, y);
+          if (time !== 'night') {
+            expect(crossesRight && crossesDown, `${time} at ${x},${y}`).toBe(true);
+          }
+        }
+      }
+    }
+  });
+
+  it('mixes both middle colors evenly over the whole tile', () => {
+    const middle = sprites['sky/day/middle'];
+    const topHalf = middle.pixels.slice(0, middle.pixels.length / 2);
+    const bottomHalf = middle.pixels.slice(middle.pixels.length / 2);
+    const flecks = (pixels) => pixels.filter((pixel) => pixel === colorIndex('sky-light')).length;
+    expect(flecks(topHalf)).toBeGreaterThan(0);
+    expect(flecks(topHalf)).toBe(flecks(bottomHalf));
+  });
+
   it('scatters stars over the night sky only', () => {
     const star = colorIndex('cloud');
     expect(sprites['sky/night/top'].pixels.includes(star)).toBe(true);

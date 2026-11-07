@@ -183,7 +183,7 @@ describe('auth routes', () => {
       expect(cleared.expires?.getTime()).toBeLessThanOrEqual(Date.now());
       const reused = await me(token);
       expect(reused.statusCode).toBe(401);
-      expect(reused.json()).toEqual({ error: 'No has iniciado sesión.' });
+      expect(reused.json()).toEqual({ error: 'No iniciaste sesión.' });
     });
 
     it('keeps the other sessions of the same user', async () => {
