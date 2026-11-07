@@ -1,3 +1,4 @@
+import { isShortcutBlocked } from '../input/keyboard';
 import { nextZoom, panCamera, zoomCamera, type Camera } from './camera';
 
 export type CameraChange = (camera: Camera) => Camera;
@@ -76,6 +77,9 @@ export function attachCameraInput(
   };
 
   const onKeyDown = (event: KeyboardEvent): void => {
+    if (isShortcutBlocked(event)) {
+      return;
+    }
     const direction = zoomKeyDirection(event.key);
     if (direction === null) {
       return;

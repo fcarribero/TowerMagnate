@@ -1,4 +1,4 @@
-import { UNIT_CATALOG, type UnitDefinition, type UnitId } from '@tower-magnate/shared';
+import { UNIT_CATALOG, type UnitDefinition, type UnitType } from '@tower-magnate/shared';
 import type { ContentUnit, TowerContent } from '../model/towerContent';
 import type { Camera } from './camera';
 import { LEVEL_COUNT, levelToIndex } from './levels';
@@ -36,7 +36,7 @@ export interface WorldPoint {
   worldY: number;
 }
 
-export function unitMapColor(type: UnitId): number {
+export function unitMapColor(type: UnitType): number {
   if (type === 'cathedral') {
     return MAP_COLORS.cathedral;
   }
