@@ -123,4 +123,45 @@ describe('buildLobby', () => {
   it('rejects cells outside the grid (C-01)', () => {
     expect(rejection(createTower(1), lobby(1, 370, 375))).toBe('OUT_OF_BOUNDS');
   });
+
+  describe('money', () => {
+    it('charges columns times height and books it as construction', () => {
+      const tower = createTower(1);
+      const { state, result } = lastResult(tower, lobby(1, 100, 109, 3));
+      expect(result.ok && result.cost).toBe(10 * 3 * 5_000);
+      expect(state.money).toBe(tower.money - 150_000);
+      expect(state.ledger.currentWeek.construction.expense).toBe(-150_000);
+    });
+
+    it('rejects a lobby while the balance is negative, before level rules (C-54)', () => {
+      const tower = createTower(1);
+      tower.money = -500;
+      expect(rejection(tower, lobby(1, 100, 109))).toBe('NEGATIVE_BALANCE');
+      expect(rejection(tower, lobby(16, 10, 20))).toBe('NEGATIVE_BALANCE');
+    });
+
+    it('rejects a lobby that costs more than the balance (C-55)', () => {
+      const tower = createTower(1);
+      tower.money = 10 * 2 * 5_000 - 1;
+      expect(rejection(tower, lobby(1, 100, 109, 2))).toBe('INSUFFICIENT_FUNDS');
+    });
+
+    it('reports lobby rules before insufficient funds', () => {
+      const tower = createTower(1);
+      tower.money = 0;
+      expect(rejection(tower, lobby(16, 10, 20))).toBe('LOBBY_FLOOR_NOT_ALLOWED');
+    });
+
+    it('leaves the balance alone when a later command in the step is rejected', () => {
+      const tower = createTower(1);
+      tower.money = 60_000;
+      const { state, results } = run(tower, lobby(1, 100, 109), {
+        id: 'c2',
+        command: { type: 'buildLobby', level: 1, x0: 110, x1: 119, height: 1 },
+      });
+      expect(results.map((result) => result.ok)).toEqual([true, false]);
+      expect(results[1]).toMatchObject({ error: 'INSUFFICIENT_FUNDS' });
+      expect(state.money).toBe(10_000);
+    });
+  });
 });

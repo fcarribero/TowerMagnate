@@ -4,11 +4,14 @@ import {
   TOWER_LAYOUT,
   UNIT_CATALOG,
   type ColumnSpan,
+  type ErrorCode,
   type GridState,
   type Level,
+  type TowerState,
   type UnitType,
 } from '@tower-magnate/shared';
 import { occupantAt, structureAt } from '../grid';
+import { chargeMoney, constructionFundsError } from '../money';
 
 /** Floor, lobby, or a cell covered by a unit (construction spec section 1). */
 export function hasStructure(grid: GridState, level: Level, x: number): boolean {
@@ -52,4 +55,17 @@ export function pricePerCell(unitType: UnitType): number {
 
 export function isInteger(value: unknown): value is number {
   return Number.isInteger(value);
+}
+
+/** C-54: no construction at all while the balance is below zero. */
+export function negativeBalanceError(state: TowerState): ErrorCode | null {
+  return state.money < 0 ? 'NEGATIVE_BALANCE' : null;
+}
+
+/** C-55: the last check of a construction command. Charges the cost when the balance covers it. */
+export function payForConstruction(state: TowerState, cost: number): ErrorCode | null {
+  const fundsError = constructionFundsError(state, cost);
+  if (fundsError) return fundsError;
+  chargeMoney(state, 'construction', cost);
+  return null;
 }

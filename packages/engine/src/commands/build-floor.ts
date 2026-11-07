@@ -6,7 +6,15 @@ import {
 } from '@tower-magnate/shared';
 import { occupantAt, setStructure, spanError, structureAt } from '../grid';
 import type { CommandHandler } from '../step';
-import { columnRuns, columnsBetween, isInteger, isSupported, pricePerCell } from './structure';
+import {
+  columnRuns,
+  columnsBetween,
+  isInteger,
+  isSupported,
+  negativeBalanceError,
+  payForConstruction,
+  pricePerCell,
+} from './structure';
 
 /** Cells of the run that would get new floor: no structure and nothing on them. */
 function newFloorColumns(grid: GridState, level: Level, x0: number, x1: number): number[] {
@@ -19,6 +27,10 @@ export const buildFloor: CommandHandler<'buildFloor'> = (context, command) => {
   const { level, x0, x1 } = command;
   if (!isInteger(level) || !isInteger(x0) || !isInteger(x1) || x1 < x0) {
     return { ok: false, error: 'INVALID_COMMAND' };
+  }
+  const balanceError = negativeBalanceError(context.state);
+  if (balanceError) {
+    return { ok: false, error: balanceError };
   }
   const boundsError = spanError(level, x0, x1);
   if (boundsError) {
@@ -40,9 +52,14 @@ export const buildFloor: CommandHandler<'buildFloor'> = (context, command) => {
     return { ok: false, error: 'NO_SUPPORT' };
   }
 
+  const cost = columns.length * pricePerCell('floor');
+  const paymentError = payForConstruction(context.state, cost);
+  if (paymentError) {
+    return { ok: false, error: paymentError };
+  }
+
   for (const run of columnRuns(columns)) {
     setStructure(grid, level, run.x0, run.x1, 'floor');
   }
-  const cost = columns.length * pricePerCell('floor');
   return { ok: true, cost, refund: 0, events: [] };
 };

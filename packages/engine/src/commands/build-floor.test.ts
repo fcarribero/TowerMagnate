@@ -117,4 +117,55 @@ describe('buildFloor', () => {
     const malformed = { type: 'buildFloor', level: '2', x0: 10, x1: 12 } as unknown as Command;
     expect(rejection(tower, { id: 'c1', command: malformed })).toBe('INVALID_COMMAND');
   });
+
+  describe('money', () => {
+    it('takes the cost from the balance and books it as construction', () => {
+      const tower = towerWithMainLobby(10, 29);
+      const { state } = run(tower, floor(2, 10, 29));
+      expect(state.money).toBe(tower.money - 10_000);
+      expect(state.ledger.currentWeek.construction).toEqual({ income: 0, expense: -10_000 });
+    });
+
+    it('rejects any floor while the balance is negative (C-54)', () => {
+      const tower = towerWithMainLobby(10, 29);
+      tower.money = -1;
+      expect(rejection(tower, floor(2, 10, 10))).toBe('NEGATIVE_BALANCE');
+    });
+
+    it('reports a negative balance before grid errors', () => {
+      const tower = towerWithMainLobby(10, 29);
+      tower.money = -1;
+      expect(rejection(tower, floor(5, 10, 12))).toBe('NEGATIVE_BALANCE');
+      expect(rejection(tower, floor(2, 370, 380))).toBe('NEGATIVE_BALANCE');
+    });
+
+    it('rejects a floor that costs more than the balance (C-55)', () => {
+      const tower = towerWithMainLobby(10, 29);
+      tower.money = 20 * 500 - 1;
+      expect(rejection(tower, floor(2, 10, 29))).toBe('INSUFFICIENT_FUNDS');
+    });
+
+    it('builds when the cost equals the balance, leaving zero', () => {
+      const tower = towerWithMainLobby(10, 29);
+      tower.money = 20 * 500;
+      const { state, result } = run(tower, floor(2, 10, 29));
+      expect(result.ok).toBe(true);
+      expect(state.money).toBe(0);
+    });
+
+    it('reports grid errors before insufficient funds', () => {
+      const tower = towerWithMainLobby(10, 29);
+      tower.money = 0;
+      expect(rejection(tower, floor(3, 10, 12))).toBe('NO_SUPPORT');
+    });
+
+    it('charges only for the new cells of a partly built run', () => {
+      const tower = towerWithMainLobby(10, 29);
+      setStructure(tower.grid, 2, 10, 27, 'floor');
+      tower.money = 1_000;
+      const { state, result } = run(tower, floor(2, 10, 29));
+      expect(result.ok).toBe(true);
+      expect(state.money).toBe(0);
+    });
+  });
 });

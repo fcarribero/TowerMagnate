@@ -9,7 +9,15 @@ import {
 } from '@tower-magnate/shared';
 import { isSpanFree, setStructure, spanError, structureAt } from '../grid';
 import type { CommandHandler } from '../step';
-import { columnRuns, columnsBetween, isInteger, isSupported, pricePerCell } from './structure';
+import {
+  columnRuns,
+  columnsBetween,
+  isInteger,
+  isSupported,
+  negativeBalanceError,
+  payForConstruction,
+  pricePerCell,
+} from './structure';
 
 const LOBBY_HEIGHTS: readonly unknown[] = [1, 2, 3];
 const SKY_LOBBY_LEVELS: readonly Level[] = TOWER_LAYOUT.skyLobbyFloors;
@@ -85,6 +93,10 @@ export const buildLobby: CommandHandler<'buildLobby'> = (context, command) => {
   if (!isInteger(level) || !isInteger(x0) || !isInteger(x1) || x1 < x0 || !isLobbyHeight(height)) {
     return { ok: false, error: 'INVALID_COMMAND' };
   }
+  const balanceError = negativeBalanceError(context.state);
+  if (balanceError) {
+    return { ok: false, error: balanceError };
+  }
   const boundsError = spanError(level, x0, x1);
   if (boundsError) {
     return { ok: false, error: boundsError };
@@ -112,12 +124,17 @@ export const buildLobby: CommandHandler<'buildLobby'> = (context, command) => {
     return { ok: false, error: ruleError };
   }
 
+  const cost = columns.length * rows.length * pricePerCell('lobby');
+  const paymentError = payForConstruction(context.state, cost);
+  if (paymentError) {
+    return { ok: false, error: paymentError };
+  }
+
   for (const row of rows) {
     for (const run of runs) {
       setStructure(grid, row, run.x0, run.x1, 'lobby');
     }
   }
   recordHeight(grid, level, height);
-  const cost = columns.length * rows.length * pricePerCell('lobby');
   return { ok: true, cost, refund: 0, events: [] };
 };
