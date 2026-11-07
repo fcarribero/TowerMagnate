@@ -72,7 +72,7 @@
   box-shadow:
     inset calc(1 * var(--tm-px)) calc(1 * var(--tm-px)) 0 var(--tm-white),
     inset calc(-1 * var(--tm-px)) calc(-1 * var(--tm-px)) 0 var(--tm-slate);
-  overflow-wrap: anywhere;
+  overflow-wrap: normal;
 }
 
 .tm-tool:hover:not([aria-disabled='true']),
