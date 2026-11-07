@@ -6,6 +6,9 @@ import type { TowerStore } from './tower-store';
 
 export const TICK_INTERVAL_MS = 100;
 
+/** Running towers are saved this often, on top of the saves after commands and on pause. */
+export const SNAPSHOT_INTERVAL_MS = 30_000;
+
 export type AdvanceTower = (state: TowerState, steps: number) => TowerState;
 
 export interface TowerRunnerOptions {
@@ -13,6 +16,7 @@ export interface TowerRunnerOptions {
   now?: () => number;
   advance?: AdvanceTower;
   onTickError?: (towerId: TowerId, error: unknown) => void;
+  onSaveError?: (towerId: TowerId, error: unknown) => void;
 }
 
 interface RunningTower {
@@ -41,17 +45,44 @@ export class TowerRunner {
   private readonly now: () => number;
   private readonly advance: AdvanceTower;
   private readonly onTickError: (towerId: TowerId, error: unknown) => void;
+  private readonly onSaveError: (towerId: TowerId, error: unknown) => void;
+  private stopped = false;
 
   constructor(options: TowerRunnerOptions) {
     this.store = options.store;
     this.now = options.now ?? Date.now;
     this.advance = options.advance ?? advanceWithEngine;
     this.onTickError = options.onTickError ?? (() => {});
+    this.onSaveError = options.onSaveError ?? (() => {});
   }
 
-  /** Loads the tower and starts its clock. Does nothing when it is already running. */
+  /** Loads the tower and starts its clock. Does nothing when it is already running or after shutdown. */
   resume(towerId: TowerId): Promise<void> {
     return this.inOrder(towerId, () => this.load(towerId));
+  }
+
+  /** Brings a running tower up to the current time and saves it without stopping it. */
+  save(towerId: TowerId): Promise<void> {
+    return this.inOrder(towerId, () => this.saveRunning(towerId));
+  }
+
+  /** Saves every running tower. A failed save is reported and does not stop the others. */
+  async saveAll(): Promise<void> {
+    await Promise.all(
+      this.runningTowers().map((towerId) =>
+        this.save(towerId).catch((error: unknown) => this.onSaveError(towerId, error)),
+      ),
+    );
+  }
+
+  /** Saves and pauses every running tower and refuses to resume any more. */
+  async shutdown(): Promise<void> {
+    this.stopped = true;
+    await Promise.all(
+      [...new Set([...this.queues.keys(), ...this.runningTowers()])].map((towerId) =>
+        this.pause(towerId).catch((error: unknown) => this.onSaveError(towerId, error)),
+      ),
+    );
   }
 
   /** Brings the tower up to the current time, saves it and drops it from memory. */
@@ -88,8 +119,14 @@ export class TowerRunner {
     return () => clearInterval(timer);
   }
 
+  /** Saves every running tower on a timer until the returned function is called. */
+  startAutosave(intervalMs = SNAPSHOT_INTERVAL_MS): () => void {
+    const timer = setInterval(() => void this.saveAll(), intervalMs);
+    return () => clearInterval(timer);
+  }
+
   private async load(towerId: TowerId): Promise<void> {
-    if (this.running.has(towerId)) {
+    if (this.stopped || this.running.has(towerId)) {
       return;
     }
     const state = await this.store.load(towerId);
@@ -106,6 +143,15 @@ export class TowerRunner {
     }
     this.catchUp(tower);
     this.running.delete(towerId);
+    await this.store.save(towerId, tower.state);
+  }
+
+  private async saveRunning(towerId: TowerId): Promise<void> {
+    const tower = this.running.get(towerId);
+    if (!tower) {
+      return;
+    }
+    this.catchUp(tower);
     await this.store.save(towerId, tower.state);
   }
 
