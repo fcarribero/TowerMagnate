@@ -94,3 +94,5 @@ DATABASE_URL=postgres://tower:tower@localhost:4100/tower_magnate pnpm --filter @
 ```
 
 Server tests start a postgres container through testcontainers. To use a running postgres instead, set `TEST_DATABASE_URL`; each test suite then creates its own scratch database on that server and drops it afterwards. `startTestDatabase({ migrate: true })` in `apps/server/src/testing/database.ts` returns a database with the schema already applied.
+
+Timing budgets are checked by benchmark scripts, not by the test suite, because wall-clock checks are unreliable while vitest runs suites in parallel. `pnpm bench:snapshots` saves a 1 MB tower state 30 times after 5 warmup saves and fails if the median save takes 50 ms or more. CI runs it as its own step after the tests.

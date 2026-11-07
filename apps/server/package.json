@@ -10,7 +10,8 @@
     "dev": "tsx watch src/main.ts",
     "start": "tsx src/main.ts",
     "migrate": "tsx src/migrate.ts",
-    "build": "node scripts/build.mjs"
+    "build": "node scripts/build.mjs",
+    "bench:snapshots": "tsx src/bench/save-snapshot.ts"
   },
   "dependencies": {
     "@fastify/cookie": "^11.1.5",
