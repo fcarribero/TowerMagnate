@@ -4,11 +4,14 @@ import { pixelNoise } from '../noise.mjs';
 
 const BAND_WIDTH = 64;
 const DITHER_ROWS = 4;
+const SCATTER_CELL = 8;
 const BACKDROP_WIDTH = 128;
 const SKYLINE_HEIGHT = 48;
 const HILLS_HEIGHT = 16;
 
-// Each band fades into the color of the band below it through a 2 x 2 checker.
+// The top band fades into the color below it through a 2 x 2 checker. The
+// middle band covers many floors in a row, so it mixes its two colors evenly
+// instead and repeats without a seam in both directions.
 // Dusk is shared by sunrise and sunset.
 const bands = {
   day: {
@@ -45,8 +48,26 @@ function skyBand(color, nextColor) {
   return tile;
 }
 
-function addStars(tile, seed) {
-  for (let y = 0; y < tile.height - DITHER_ROWS; y++) {
+// One 2 x 2 fleck per 8 x 8 cell, shifted half a cell on every other row of
+// cells, so the pattern stays even and wraps cleanly on all four edges.
+function scatterBand(color, fleckColor) {
+  const height = metrics.floorHeight;
+  const tile = new PixelCanvas(BAND_WIDTH, height);
+  tile.fillRect(0, 0, BAND_WIDTH, height, color);
+  if (fleckColor === color) {
+    return tile;
+  }
+  for (let cellY = 0; cellY < height; cellY += SCATTER_CELL) {
+    const shift = (cellY / SCATTER_CELL) % 2 === 0 ? 0 : SCATTER_CELL / 2;
+    for (let cellX = 0; cellX < BAND_WIDTH; cellX += SCATTER_CELL) {
+      tile.fillRect(cellX + shift, cellY + 2, 2, 2, fleckColor);
+    }
+  }
+  return tile;
+}
+
+function addStars(tile, seed, starlessBottomRows) {
+  for (let y = 0; y < tile.height - starlessBottomRows; y++) {
     for (let x = 0; x < tile.width; x++) {
       const chance = pixelNoise(x, y, seed);
       if (chance < 0.003) {
@@ -63,9 +84,10 @@ function bandSprites() {
   for (const [time, timeBands] of Object.entries(bands)) {
     for (const [band, [color, nextColor]] of Object.entries(timeBands)) {
       const id = `${time}/${band}`;
-      const tile = skyBand(color, nextColor);
+      const isRepeatedBand = band === 'middle';
+      const tile = isRepeatedBand ? scatterBand(color, nextColor) : skyBand(color, nextColor);
       if (starredBands.has(id)) {
-        addStars(tile, sprites.length);
+        addStars(tile, sprites.length, isRepeatedBand ? 0 : DITHER_ROWS);
       }
       sprites.push({ id: `sky/${id}`, canvas: tile });
     }

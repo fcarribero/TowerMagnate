@@ -9,6 +9,8 @@ import type {
 } from '@tower-magnate/shared';
 import { STEPS_PER_DAY } from './clock';
 import { towerCommandHandlers } from './commands';
+import { eventsPhase } from './events';
+import { cloneState } from './state';
 import { ledgerWeekRollHook } from './money';
 import { createScheduler } from './scheduler';
 
@@ -93,7 +95,7 @@ export function createEngine(rules: EngineRules): Engine {
       return { id, ok: false, step: currentStep, error: 'INVALID_COMMAND' };
     }
 
-    const draft: CommandContext = { state: structuredClone(context.state) };
+    const draft: CommandContext = { state: cloneState(context.state) };
     const outcome = handler(draft, command);
     if (!outcome.ok) {
       return { id, ok: false, step: currentStep, error: outcome.error };
@@ -114,7 +116,7 @@ export function createEngine(rules: EngineRules): Engine {
 
   function step(state: TowerState, commands: readonly QueuedCommand[], steps: number): StepResult {
     assertNonNegativeInteger(steps, 'Step count');
-    const context: StepContext = { state: structuredClone(state), events: [] };
+    const context: StepContext = { state: cloneState(state), events: [] };
     const results = commands.map((queued) => applyCommand(context, queued));
     for (let count = 0; count < steps; count++) {
       advanceOneStep(context);
@@ -132,7 +134,7 @@ export function createEngine(rules: EngineRules): Engine {
 
 const towerEngine = createEngine({
   commandHandlers: towerCommandHandlers,
-  systems: [createScheduler([ledgerWeekRollHook])],
+  systems: [createScheduler([ledgerWeekRollHook]), eventsPhase],
 });
 
 /**

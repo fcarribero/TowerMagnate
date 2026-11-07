@@ -58,6 +58,7 @@ export type CapacityRole =
   | 'residents'
   | 'hotel-guests'
   | 'maids'
+  | 'guards'
   | 'customers'
   | 'audience'
   | 'party-guests'
@@ -71,7 +72,7 @@ export interface UnitCapacity {
 }
 
 export type PlacementZone =
-  'any' | 'basement' | 'lowest-basement' | 'lobby-floors' | 'above-top-floor';
+  'any' | 'above-ground' | 'basement' | 'lowest-basement' | 'lobby-floors' | 'above-top-floor';
 
 export type FloorUse = 'lobby' | 'commercial' | 'entertainment' | 'single-room';
 

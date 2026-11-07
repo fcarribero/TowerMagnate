@@ -134,7 +134,7 @@ const GDD_UNIT_TABLE: GddUnitRow[] = [
     width: 16,
     floors: 1,
     cost: unit(100_000),
-    people: null,
+    people: 6,
     stars: 2,
   },
   {
@@ -293,6 +293,13 @@ describe('unit catalog', () => {
 });
 
 describe('placement flags', () => {
+  it.each(['office', 'condo', 'single-room', 'double-room', 'suite'] as const)(
+    'keeps %s above ground',
+    (unitType) => {
+      expect(UNIT_CATALOG[unitType].placement.zone).toBe('above-ground');
+    },
+  );
+
   it('keeps parking, recycling and subway in basements', () => {
     expect(UNIT_CATALOG['parking-ramp'].placement.zone).toBe('basement');
     expect(UNIT_CATALOG['parking-space'].placement.zone).toBe('basement');
