@@ -533,7 +533,7 @@ describe('weekly upkeep', () => {
   });
 
   it('has a line for every unit type', () => {
-    expect(Object.keys(WEEKLY_UPKEEP).sort()).toEqual([...UNIT_IDS].sort());
+    expect(Object.keys(WEEKLY_UPKEEP).sort()).toEqual([...UNIT_TYPES].sort());
   });
 
   it('keeps star bands sorted and starting at 1 star', () => {
