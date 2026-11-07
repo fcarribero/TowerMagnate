@@ -1,10 +1,16 @@
 node_modules/
-dist/
-coverage/
 .env
 *.log
 .DS_Store
+
+# Build output
+dist/
 *.tsbuildinfo
+.vite/
+
+# Test output
+coverage/
 test-results/
-**/test-results/
 playwright-report/
+blob-report/
+playwright/.cache/
