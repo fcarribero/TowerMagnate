@@ -13,7 +13,12 @@ const FLOOR_TOP = FLOOR_ROW - 2;
 const TOWER = { left: 4, width: 36, spireApex: 8, belfryTop: 34, belfryBottom: 58 };
 const NAVE_LEFT = TOWER.left + TOWER.width;
 const NAVE_RIGHT = WIDTH - 1;
-const ROOF = { apexX: Math.floor((NAVE_LEFT + NAVE_RIGHT) / 2), apexY: 14, eaveY: 40, thickness: 5 };
+const ROOF = {
+  apexX: Math.floor((NAVE_LEFT + NAVE_RIGHT) / 2),
+  apexY: 14,
+  eaveY: 40,
+  thickness: 5,
+};
 const ROSE = { x: ROOF.apexX, y: 36, radius: 7 };
 const LANCET_TOP = 54;
 const LANCET_BOTTOM = 100;
@@ -92,13 +97,7 @@ const bell = [
   '...dd...',
 ];
 
-const chandelier = [
-  '...c...',
-  'Y.YcY.Y',
-  'y.yyy.y',
-  'ccccccc',
-  '.ccccc.',
-];
+const chandelier = ['...c...', 'Y.YcY.Y', 'y.yyy.y', 'ccccccc', '.ccccc.'];
 
 const towerDoor = [
   '...dddd...',
@@ -158,11 +157,20 @@ function drawNaveShell(canvas) {
     canvas.set(x, roofTop + ROOF.thickness - 1, 'charcoal');
     canvas.set(x, roofTop, 'ink');
   }
-  for (const [color, row] of [['concrete-light', 0], ['concrete', 1], ['concrete-dark', 2]]) {
+  for (const [color, row] of [
+    ['concrete-light', 0],
+    ['concrete', 1],
+    ['concrete-dark', 2],
+  ]) {
     canvas.hline(NAVE_LEFT, FLOOR_TOP + row, NAVE_RIGHT - NAVE_LEFT + 1, color);
   }
   canvas.vline(NAVE_RIGHT, roofLineAt(NAVE_RIGHT), FLOOR_ROW - roofLineAt(NAVE_RIGHT) + 1, 'ink');
-  canvas.vline(NAVE_RIGHT - 1, roofLineAt(NAVE_RIGHT) + ROOF.thickness, FLOOR_TOP - roofLineAt(NAVE_RIGHT) - ROOF.thickness, 'concrete');
+  canvas.vline(
+    NAVE_RIGHT - 1,
+    roofLineAt(NAVE_RIGHT) + ROOF.thickness,
+    FLOOR_TOP - roofLineAt(NAVE_RIGHT) - ROOF.thickness,
+    'concrete',
+  );
 }
 
 function drawPillar(canvas, x) {
@@ -233,7 +241,12 @@ function drawTower(canvas, swingingBell) {
   const { left, width, spireApex, belfryTop, belfryBottom } = TOWER;
   const centre = left + width / 2;
 
-  canvas.drawMap(centre - 3, 0, ['..yy..', 'yyyyyy', '..yy..', '..yy..', '..yy..', '..yy..', '..yy..', '..yy..'], legend);
+  canvas.drawMap(
+    centre - 3,
+    0,
+    ['..yy..', 'yyyyyy', '..yy..', '..yy..', '..yy..', '..yy..', '..yy..', '..yy..'],
+    legend,
+  );
   const spireRows = belfryTop - spireApex;
   for (let row = 0; row < spireRows; row++) {
     const half = Math.round(((row + 1) * (width / 2)) / spireRows);
@@ -262,7 +275,12 @@ function drawTower(canvas, swingingBell) {
   canvas.vline(left, belfryTop, FLOOR_ROW - belfryTop + 1, 'ink');
   canvas.vline(left + width - 1, belfryTop, FLOOR_TOP - belfryTop, 'concrete-dark');
 
-  const opening = { left: left + 8, top: belfryTop + 6, width: width - 16, height: belfryBottom - belfryTop - 10 };
+  const opening = {
+    left: left + 8,
+    top: belfryTop + 6,
+    width: width - 16,
+    height: belfryBottom - belfryTop - 10,
+  };
   canvas.fillRect(opening.left, opening.top, opening.width, opening.height, 'charcoal');
   canvas.hline(opening.left + 2, opening.top - 1, opening.width - 4, 'charcoal');
   canvas.hline(opening.left, opening.top + opening.height, opening.width, 'concrete-dark');
@@ -281,7 +299,11 @@ function drawTower(canvas, swingingBell) {
     canvas.vline(centre - 2, slitTop, 8, 'concrete');
   }
   canvas.drawMap(centre - 5, FLOOR_TOP - towerDoor.length, towerDoor, legend);
-  for (const [color, row] of [['concrete-light', 0], ['concrete', 1], ['concrete-dark', 2]]) {
+  for (const [color, row] of [
+    ['concrete-light', 0],
+    ['concrete', 1],
+    ['concrete-dark', 2],
+  ]) {
     canvas.hline(left, FLOOR_TOP + row, width, color);
   }
 }
@@ -343,7 +365,11 @@ function drawCathedral(wedding, lit) {
   if (wedding) {
     drawWeddingDecoration(canvas);
   }
-  for (const [color, row] of [['concrete-light', 0], ['concrete', 1], ['concrete-dark', 2]]) {
+  for (const [color, row] of [
+    ['concrete-light', 0],
+    ['concrete', 1],
+    ['concrete-dark', 2],
+  ]) {
     canvas.hline(TOWER.left, SLAB_TOP + row, WIDTH - TOWER.left, color);
   }
   return canvas;
