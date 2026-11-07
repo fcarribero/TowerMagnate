@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { createTower, SCHEMA_VERSION } from '../state';
+import { newUnit } from '../units';
 import { VERSION_1_SAVE } from './fixtures';
 import { migrateState, StateMigrationError } from './index';
 
@@ -33,7 +34,7 @@ describe('migrateState units', () => {
 
   it('keeps well-formed units', () => {
     const tower = createTower(5);
-    tower.units.u3 = { id: 'u3', type: 'fast-food', x: 0, level: -2, name: 'Pancho' };
+    tower.units.u3 = { ...newUnit('u3', 'fast-food', 0, -2), name: 'Pancho' };
     expect(migrateState(JSON.parse(JSON.stringify(tower)))).toEqual(tower);
   });
 
@@ -55,6 +56,15 @@ describe('migrateState fixtures', () => {
     const tower = migrateState(JSON.parse(VERSION_1_SAVE));
     expect(tower.schemaVersion).toBe(SCHEMA_VERSION);
     expect(tower.step).toBe(8640);
-    expect(tower.units.u1).toEqual({ id: 'u1', type: 'office', x: 10, level: 1, name: 'Sur' });
+    expect(tower.units.u1).toEqual({
+      id: 'u1',
+      type: 'office',
+      x: 10,
+      level: 1,
+      name: 'Sur',
+      price: 'normal',
+      used: false,
+      lease: null,
+    });
   });
 });

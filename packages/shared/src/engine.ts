@@ -1,6 +1,6 @@
 import type { Ledger } from './ledger';
 import type { Level } from './levels';
-import type { UnitType } from './units';
+import type { PriceLevel, UnitType } from './units';
 
 /** Id of a placed unit, transport or shaft, with a type prefix: `u12`, `t3`, `s4`. */
 export type EntityId = string;
@@ -64,7 +64,22 @@ export interface Unit {
   level: Level;
   /** Player-chosen name; null shows the default name. */
   name: string | null;
+  /** Null for unit types without price levels. */
+  price: PriceLevel | null;
+  /** Set on the first lease, sale, check-in or visitor. */
+  used: boolean;
+  /** The current office or shop tenant's lease; null while the unit is for rent. */
+  lease: Lease | null;
 }
+
+export interface Lease {
+  /** Move-in or last renewal step. Payments fall on whole weeks after it. */
+  anchorStep: number;
+  /** The next payment or, at the end of the term, the evaluation. */
+  nextDueStep: number;
+}
+
+export type TenantEvaluation = 'good' | 'fair' | 'poor';
 
 export interface TowerState {
   schemaVersion: number;
@@ -79,10 +94,13 @@ export interface TowerState {
 }
 
 /** Events caused by a player command carry that command's id. */
-export type EngineEvent = {
-  type: 'unitRenamed';
-  step: number;
-  commandId: string;
-  unitId: UnitId;
-  name: string | null;
-};
+export type EngineEvent =
+  | {
+      type: 'unitRenamed';
+      step: number;
+      commandId: string;
+      unitId: UnitId;
+      name: string | null;
+    }
+  | { type: 'leaseSigned' | 'leaseRenewed' | 'leaseEnded'; step: number; unitId: UnitId }
+  | { type: 'news'; step: number; key: string; unitId: UnitId | null };

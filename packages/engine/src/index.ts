@@ -28,6 +28,8 @@ export {
 } from './grid';
 export { hashState } from './hash';
 export { migrateState, StateMigrationError } from './migrations';
+export { createLeaseSystem, isLeasable, moveInTenant, STEPS_PER_WEEK } from './leases';
+export type { TenantEvaluator } from './leases';
 export {
   chargeMoney,
   constructionFundsError,
@@ -45,6 +47,7 @@ export type { HookOccurrence, HookSchedule, ScheduledHook, TimeOfDay } from './s
 export { deserializeState, serializeState } from './serialization';
 export { createTower, SCHEMA_VERSION } from './state';
 export { createEngine, runDays, step } from './step';
+export { initialPriceLevel, newUnit } from './units';
 export type {
   CommandContext,
   CommandEvent,

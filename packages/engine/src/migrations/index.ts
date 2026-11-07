@@ -1,12 +1,16 @@
 import {
   isLevel,
+  PRICE_LEVELS,
   UNIT_TYPES,
+  type Lease,
+  type PriceLevel,
   type RngState,
   type TowerState,
   type Unit,
   type UnitId,
 } from '@tower-magnate/shared';
 import { SCHEMA_VERSION } from '../state';
+import { initialPriceLevel } from '../units';
 import { isRecord, StateMigrationError } from './errors';
 import { readGrid } from './grid';
 import { readLedger, readMoney } from './money';
@@ -47,6 +51,39 @@ function isUnit(value: unknown): value is Unit {
   );
 }
 
+function isLease(value: unknown): value is Lease {
+  return (
+    isRecord(value) &&
+    isNonNegativeInteger(value.anchorStep) &&
+    isNonNegativeInteger(value.nextDueStep) &&
+    value.nextDueStep > value.anchorStep
+  );
+}
+
+/** Units saved before price levels, leases and the used flag get the values of a new unit. */
+function readPrice(unit: Unit): PriceLevel | null {
+  const raw: unknown = (unit as Partial<Unit>).price;
+  if (raw === undefined) return initialPriceLevel(unit.type);
+  if (raw === null || (PRICE_LEVELS as readonly unknown[]).includes(raw)) {
+    return raw as PriceLevel | null;
+  }
+  throw new StateMigrationError(`State unit ${unit.id} has an unknown price level`);
+}
+
+function readUsed(unit: Unit): boolean {
+  const raw: unknown = (unit as Partial<Unit>).used;
+  if (raw === undefined) return false;
+  if (typeof raw === 'boolean') return raw;
+  throw new StateMigrationError(`State unit ${unit.id} has a malformed used flag`);
+}
+
+function readLease(unit: Unit): Lease | null {
+  const raw: unknown = (unit as Partial<Unit>).lease;
+  if (raw === undefined || raw === null) return null;
+  if (isLease(raw)) return { anchorStep: raw.anchorStep, nextDueStep: raw.nextDueStep };
+  throw new StateMigrationError(`State unit ${unit.id} has a malformed lease`);
+}
+
 /** Towers saved before units existed have no `units` record; they start with none. */
 function readUnits(raw: unknown): Record<UnitId, Unit> {
   if (raw === undefined) {
@@ -60,7 +97,16 @@ function readUnits(raw: unknown): Record<UnitId, Unit> {
     if (!isUnit(unit) || unit.id !== id) {
       throw new StateMigrationError(`State unit ${id} is malformed`);
     }
-    units[id] = { id: unit.id, type: unit.type, x: unit.x, level: unit.level, name: unit.name };
+    units[id] = {
+      id: unit.id,
+      type: unit.type,
+      x: unit.x,
+      level: unit.level,
+      name: unit.name,
+      price: readPrice(unit),
+      used: readUsed(unit),
+      lease: readLease(unit),
+    };
   }
   return units;
 }
