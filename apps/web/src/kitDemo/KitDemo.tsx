@@ -2,17 +2,23 @@ import { useEffect, useState } from 'preact/hooks';
 import { isShortcutBlocked } from '../input/keyboard';
 import {
   Button,
+  ConfirmDialog,
+  DecisionDialog,
+  InfoDialog,
   ListBox,
   NumberInput,
   RadioGroup,
   Tabs,
   TextField,
+  Tooltip,
   Window,
   WindowLayer,
+  dialogRequest,
   useWindowManager,
   type OpenRequest,
 } from '../ui/kit';
 import { t } from '../ui/strings';
+import { useUiScale } from '../ui/uiScale';
 
 const DEMO_WINDOWS: readonly (OpenRequest & { label: string })[] = [
   { id: 'buttons', label: 'Botones', position: { x: 16, y: 16 } },
@@ -21,6 +27,14 @@ const DEMO_WINDOWS: readonly (OpenRequest & { label: string })[] = [
   { id: 'list', label: 'Lista', position: { x: 480, y: 16 } },
   { id: 'decision', label: 'Decisión', position: { x: 300, y: 260 } },
 ];
+
+const DIALOGS = [
+  { id: 'bomb', label: t('dialog.bomb.title') },
+  { id: 'newTower', label: t('dialog.newTower.title') },
+  { id: 'welcome', label: t('dialog.welcome.title') },
+];
+
+const RANSOM = '$300.000';
 
 const FLOORS = Array.from({ length: 12 }, (_, index) => ({
   id: String(index + 1),
@@ -31,7 +45,7 @@ type LobbyHeight = '1' | '2' | '3';
 
 let nextUnit = 1;
 
-function Launcher() {
+function Launcher({ uiScale, lastAnswer }: { uiScale: number; lastAnswer: string }) {
   const manager = useWindowManager();
   const [zoom, setZoom] = useState(2);
 
@@ -67,10 +81,56 @@ function Launcher() {
         </Button>
       ))}
       <Button onClick={openUnit}>Unidad nueva</Button>
+      {DIALOGS.map(({ id, label }) => (
+        <Tooltip key={id} text={['Abre el diálogo', label]}>
+          <Button onClick={() => manager.open(dialogRequest(id))}>{label}</Button>
+        </Tooltip>
+      ))}
+      <output class="kit-demo__answer" aria-live="polite">
+        {lastAnswer}
+      </output>
       <output class="kit-demo__zoom" aria-live="polite">
-        Zoom {zoom}x (+ / -)
+        Escala {uiScale} · Zoom {zoom}x (+ / -)
       </output>
     </nav>
+  );
+}
+
+function DemoDialogs({ onAnswer }: { onAnswer: (answer: string) => void }) {
+  const manager = useWindowManager();
+  const answer = (id: string, text: string): void => {
+    manager.close(id);
+    onAnswer(text);
+  };
+
+  return (
+    <>
+      <DecisionDialog
+        id="bomb"
+        title={t('dialog.bomb.title')}
+        body={t('dialog.bomb.body', { ransom: RANSOM })}
+        deadline={t('dialog.deadlineToday', { time: '13:00' })}
+        options={[
+          { id: 'pay', label: t('dialog.bomb.pay', { ransom: RANSOM }) },
+          { id: 'refuse', label: t('dialog.bomb.refuse') },
+        ]}
+        onAnswer={(option) => answer('bomb', `Respuesta: ${option}`)}
+      />
+      <ConfirmDialog
+        id="newTower"
+        title={t('dialog.newTower.title')}
+        body={t('dialog.newTower.body')}
+        actionLabel={t('dialog.newTower.confirm')}
+        onConfirm={() => answer('newTower', 'Respuesta: confirm')}
+        onCancel={() => answer('newTower', 'Respuesta: cancel')}
+      />
+      <InfoDialog
+        id="welcome"
+        title={t('dialog.welcome.title')}
+        body={t('dialog.welcome.body')}
+        onClose={() => answer('welcome', 'Respuesta: accept')}
+      />
+    </>
   );
 }
 
@@ -90,7 +150,9 @@ function DemoWindows() {
       <Window id="buttons" title="Botones" width={200}>
         <p>Clics: {clicks}</p>
         <div class="kit-demo__row">
-          <Button onClick={() => setClicks(clicks + 1)}>{t('ui.apply')}</Button>
+          <Tooltip text={[t('ui.apply'), 'Suma un clic']}>
+            <Button onClick={() => setClicks(clicks + 1)}>{t('ui.apply')}</Button>
+          </Tooltip>
           <Button disabled>{t('ui.discard')}</Button>
         </div>
         <div class="kit-demo__row">
@@ -175,11 +237,19 @@ function DemoWindows() {
 }
 
 export function KitDemo() {
+  const { scale, tooSmall } = useUiScale();
+  const [lastAnswer, setLastAnswer] = useState('');
+
+  if (tooSmall) {
+    return <p class="kit-demo__too-small">{t('ui.viewportTooSmall')}</p>;
+  }
+
   return (
     <div class="kit-demo">
-      <WindowLayer class="kit-demo__view">
-        <Launcher />
+      <WindowLayer class="kit-demo__view" uiScale={scale}>
+        <Launcher uiScale={scale} lastAnswer={lastAnswer} />
         <DemoWindows />
+        <DemoDialogs onAnswer={setLastAnswer} />
       </WindowLayer>
     </div>
   );

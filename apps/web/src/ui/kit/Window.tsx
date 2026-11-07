@@ -64,7 +64,6 @@ export function Window({
       return;
     }
     const focusedBefore = document.activeElement;
-    focusInitialElement(frameRef.current);
     return () => {
       if (modal && focusedBefore instanceof HTMLElement && focusedBefore.isConnected) {
         focusedBefore.focus({ preventScroll: true });
@@ -73,6 +72,14 @@ export function Window({
   }, [isMounted]);
 
   const pendingCenter = openWindow?.pendingCenter ?? false;
+  // A window waiting to be centered is hidden, and hidden elements cannot take focus.
+  const isPlaced = isMounted && !pendingCenter;
+  useEffect(() => {
+    if (isPlaced) {
+      focusInitialElement(frameRef.current);
+    }
+  }, [isPlaced]);
+
   useEffect(() => {
     const frame = frameRef.current;
     if (!pendingCenter || frame === null || manager.viewSize.width === 0) {
@@ -119,6 +126,7 @@ export function Window({
       manager.move(id, startPosition);
     });
     event.preventDefault();
+    frameRef.current?.focus({ preventScroll: true });
   };
 
   const onTitlePointerMove = (event: PointerEvent): void => {

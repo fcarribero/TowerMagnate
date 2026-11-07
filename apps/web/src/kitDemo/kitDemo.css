@@ -18,21 +18,37 @@ body,
   left: 0;
   display: flex;
   flex-wrap: wrap;
-  gap: 4px;
+  gap: calc(4 * var(--tm-px));
   align-items: center;
-  padding: 4px;
+  padding: calc(4 * var(--tm-px));
   background: var(--tm-cloud);
-  border-top: 1px solid var(--tm-ink);
+  border-top: calc(1 * var(--tm-px)) solid var(--tm-ink);
 }
 
 .kit-demo__zoom {
   margin-left: auto;
-  padding: 0 6px;
+  padding: 0 calc(6 * var(--tm-px));
 }
 
 .kit-demo__row {
   display: flex;
-  gap: 4px;
+  gap: calc(4 * var(--tm-px));
   justify-content: flex-end;
-  margin-top: 4px;
+  margin-top: calc(4 * var(--tm-px));
+}
+
+.kit-demo__answer {
+  padding: 0 calc(6 * var(--tm-px));
+}
+
+.kit-demo__too-small {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  font-family: var(--tm-font);
+  font-size: 16px;
+  color: var(--tm-white);
 }

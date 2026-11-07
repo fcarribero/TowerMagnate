@@ -117,6 +117,17 @@ describe('Window', () => {
     expect(frameOf('a')).toBeTruthy();
   });
 
+  it('takes focus from a text field when its title bar is pressed', () => {
+    renderWindows([{ id: 'a', ...at(10, 10) }], { withField: true });
+    act(() => screen.getByLabelText('Nombre').focus());
+    const title = screen.getByText('Ventana a');
+    fireEvent.pointerDown(title, { pointerId: 1, button: 0 });
+    fireEvent.pointerUp(title, { pointerId: 1 });
+    expect(document.activeElement).toBe(frameOf('a'));
+    fireEvent.keyDown(document.activeElement as Element, { key: 'Escape' });
+    expect(screen.queryByRole('dialog')).toBeNull();
+  });
+
   it('drags by the title bar', () => {
     renderWindows([{ id: 'a', ...at(10, 10) }]);
     const title = screen.getByText('Ventana a');

@@ -22,8 +22,9 @@ body,
   position: absolute;
   inset: 0;
   pointer-events: none;
-  font-family: 'MS Sans Serif', Tahoma, Geneva, sans-serif;
-  font-size: 12px;
+  font-family: var(--tm-font);
+  font-size: var(--tm-font-size);
+  line-height: var(--tm-line-height);
 }
 
 .ui-layer > * {
@@ -49,4 +50,16 @@ body,
   color: #f4f1e8;
   background: #141218;
   pointer-events: none;
+}
+
+.viewport-too-small {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  font-family: var(--tm-font);
+  font-size: 16px;
+  color: #f4f1e8;
 }
