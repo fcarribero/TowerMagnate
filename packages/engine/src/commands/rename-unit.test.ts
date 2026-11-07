@@ -6,7 +6,16 @@ import { step } from '../step';
 
 function towerWithOffice(): TowerState {
   const tower = createTower(1);
-  tower.units.u1 = { id: 'u1', type: 'office', x: 10, level: 2, name: null };
+  tower.units.u1 = {
+    id: 'u1',
+    type: 'office',
+    x: 10,
+    level: 2,
+    name: null,
+    priceLevel: 'normal',
+    paid: 0,
+    placedAtStep: 0,
+  };
   return tower;
 }
 

@@ -23,9 +23,36 @@ const engine = createEngine({
 function sampleTower(): TowerState {
   const tower = createTower(20261116);
   tower.units = {
-    u1: { id: 'u1', type: 'office', x: 10, level: 1, name: null },
-    u2: { id: 'u2', type: 'fast-food', x: 30, level: -1, name: 'Pancho' },
-    u3: { id: 'u3', type: 'condo', x: 50, level: 12, name: null },
+    u1: {
+      id: 'u1',
+      type: 'office',
+      x: 10,
+      level: 1,
+      name: null,
+      priceLevel: 'normal',
+      paid: 0,
+      placedAtStep: 0,
+    },
+    u2: {
+      id: 'u2',
+      type: 'fast-food',
+      x: 30,
+      level: -1,
+      name: 'Pancho',
+      priceLevel: 'normal',
+      paid: 0,
+      placedAtStep: 0,
+    },
+    u3: {
+      id: 'u3',
+      type: 'condo',
+      x: 50,
+      level: 12,
+      name: null,
+      priceLevel: 'normal',
+      paid: 0,
+      placedAtStep: 0,
+    },
   };
   tower.nextId = 4;
   return tower;

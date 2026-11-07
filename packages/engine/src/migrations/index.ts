@@ -1,5 +1,6 @@
 import {
   isLevel,
+  PRICE_LEVELS,
   UNIT_TYPES,
   type RngState,
   type TowerState,
@@ -17,7 +18,19 @@ export { StateMigrationError } from './errors';
 type Migration = (raw: Record<string, unknown>) => Record<string, unknown>;
 
 /** MIGRATIONS[n] turns a version n+1 state into version n+2. */
-const MIGRATIONS: readonly Migration[] = [];
+const MIGRATIONS: readonly Migration[] = [addUnitPurchaseRecord];
+
+/** Version 2 records each unit's price level, what was paid for it and when it was placed. */
+function addUnitPurchaseRecord(raw: Record<string, unknown>): Record<string, unknown> {
+  if (!isRecord(raw.units)) {
+    return { ...raw, schemaVersion: 2 };
+  }
+  const units: Record<string, unknown> = {};
+  for (const [id, unit] of Object.entries(raw.units)) {
+    units[id] = isRecord(unit) ? { priceLevel: 'normal', paid: 0, placedAtStep: 0, ...unit } : unit;
+  }
+  return { ...raw, schemaVersion: 2, units };
+}
 
 function isUint32(value: unknown): value is number {
   return Number.isInteger(value) && (value as number) >= 0 && (value as number) <= 0xffff_ffff;
@@ -44,7 +57,10 @@ function isUnit(value: unknown): value is Unit {
     (UNIT_TYPES as readonly unknown[]).includes(value.type) &&
     isNonNegativeInteger(value.x) &&
     isLevel(value.level) &&
-    (value.name === null || typeof value.name === 'string')
+    (value.name === null || typeof value.name === 'string') &&
+    (PRICE_LEVELS as readonly unknown[]).includes(value.priceLevel) &&
+    isNonNegativeInteger(value.paid) &&
+    isNonNegativeInteger(value.placedAtStep)
   );
 }
 
@@ -61,7 +77,16 @@ function readUnits(raw: unknown): Record<UnitId, Unit> {
     if (!isUnit(unit) || unit.id !== id) {
       throw new StateMigrationError(`State unit ${id} is malformed`);
     }
-    units[id] = { id: unit.id, type: unit.type, x: unit.x, level: unit.level, name: unit.name };
+    units[id] = {
+      id: unit.id,
+      type: unit.type,
+      x: unit.x,
+      level: unit.level,
+      name: unit.name,
+      priceLevel: unit.priceLevel,
+      paid: unit.paid,
+      placedAtStep: unit.placedAtStep,
+    };
   }
   return units;
 }

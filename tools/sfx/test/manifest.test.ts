@@ -27,12 +27,28 @@ const clickCue: Cue = {
   trigger: 'ui.click',
   description: 'A button.',
   volume: 0.5,
+  stopTrigger: null,
+  minIntervalMs: 0,
+  duckOthers: null,
 };
 const humCue: Cue = {
   id: 'elevator-move',
   trigger: 'elevator.travel',
   description: 'A car moves.',
   volume: 0.4,
+  stopTrigger: 'elevator.travel.end',
+  minIntervalMs: 0,
+  duckOthers: null,
+};
+const alarm: Effect = { id: 'fire-alarm', prompt: 'bell', duration: 3, loop: true, loudness: -16 };
+const alarmCue: Cue = {
+  id: 'fire-alarm',
+  trigger: 'event.fire',
+  description: 'A fire.',
+  volume: 0.8,
+  stopTrigger: 'event.fire.end',
+  minIntervalMs: 0,
+  duckOthers: 0.5,
 };
 
 describe('parseCues', () => {
@@ -57,6 +73,38 @@ describe('parseCues', () => {
     assert.throws(() => parseCues({ cues: [{ ...clickCue, description: ' ' }] }), /description/);
   });
 
+  it('defaults the playback rules when a cue leaves them out', () => {
+    const { stopTrigger, minIntervalMs, duckOthers, ...bare } = clickCue;
+    assert.deepEqual([stopTrigger, minIntervalMs, duckOthers], [null, 0, null]);
+    assert.deepEqual(parseCues({ cues: [bare] }), [clickCue]);
+  });
+
+  it('keeps a stop trigger, a minimum interval and a duck gain', () => {
+    const notice = { ...clickCue, id: 'notification', trigger: 'notice.show', minIntervalMs: 1000 };
+    assert.deepEqual(parseCues({ cues: [alarmCue, notice] }), [alarmCue, notice]);
+  });
+
+  it('rejects a minimum interval that is negative, fractional or over a minute', () => {
+    for (const minIntervalMs of [-1, 0.5, 60_001, '1000']) {
+      assert.throws(() => parseCues({ cues: [{ ...clickCue, minIntervalMs }] }), /minIntervalMs/);
+    }
+  });
+
+  it('rejects a duck gain that does not lower the other effects', () => {
+    for (const duckOthers of [0, 1, 1.5]) {
+      assert.throws(() => parseCues({ cues: [{ ...alarmCue, duckOthers }] }), /duckOthers/);
+    }
+  });
+
+  it('rejects a stop trigger that is not area.event', () => {
+    assert.throws(() => parseCues({ cues: [{ ...alarmCue, stopTrigger: 'stop' }] }), /stopTrigger/);
+  });
+
+  it('rejects a stop trigger that another cue starts on', () => {
+    const clash = { ...humCue, stopTrigger: 'event.fire' };
+    assert.throws(() => parseCues({ cues: [alarmCue, clash] }), /duplicate trigger: event.fire/);
+  });
+
   it('rejects two cues on the same trigger', () => {
     const twin = { ...humCue, trigger: 'ui.click' };
     assert.throws(() => parseCues({ cues: [clickCue, twin] }), /duplicate trigger: ui.click/);
@@ -75,6 +123,9 @@ describe('buildManifest', () => {
           volume: 0.4,
           loop: true,
           trigger: 'elevator.travel',
+          stopTrigger: 'elevator.travel.end',
+          minIntervalMs: 0,
+          duckOthers: null,
           description: 'A car moves.',
         },
         {
@@ -83,6 +134,9 @@ describe('buildManifest', () => {
           volume: 0.5,
           loop: false,
           trigger: 'ui.click',
+          stopTrigger: null,
+          minIntervalMs: 0,
+          duckOthers: null,
           description: 'A button.',
         },
       ],
@@ -91,6 +145,26 @@ describe('buildManifest', () => {
 
   it('fails when an effect has no cue', () => {
     assert.throws(() => buildManifest([click, hum], [clickCue]), /without a cue: elevator-move/);
+  });
+
+  it('carries the duck gain of an alarm', () => {
+    const entry = buildManifest([alarm], [alarmCue]).effects[0];
+    assert.equal(entry?.duckOthers, 0.5);
+    assert.equal(entry?.stopTrigger, 'event.fire.end');
+  });
+
+  it('fails when a loop has no stop trigger', () => {
+    assert.throws(
+      () => buildManifest([hum], [{ ...humCue, stopTrigger: null }]),
+      /elevator-move: a looping effect needs a stopTrigger/,
+    );
+  });
+
+  it('fails when a one-shot has a stop trigger', () => {
+    assert.throws(
+      () => buildManifest([click], [{ ...clickCue, stopTrigger: 'ui.click.end' }]),
+      /ui-click: only a looping effect/,
+    );
   });
 
   it('fails when a cue has no effect', () => {
@@ -119,6 +193,23 @@ describe('validateManifest', () => {
     const withoutLoop: Record<string, unknown> = { ...valid.effects[0] };
     delete withoutLoop.loop;
     assert.throws(() => validateManifest({ version: 1, effects: [withoutLoop] }), /loop/);
+  });
+
+  it('rejects missing playback rules', () => {
+    const withoutInterval: Record<string, unknown> = { ...valid.effects[0] };
+    delete withoutInterval.minIntervalMs;
+    assert.throws(
+      () => validateManifest({ version: 1, effects: [withoutInterval] }),
+      /minIntervalMs/,
+    );
+  });
+
+  it('rejects a loop without a stop trigger', () => {
+    const hum = valid.effects.find((entry) => entry.loop);
+    assert.throws(
+      () => validateManifest({ version: 1, effects: [{ ...hum, stopTrigger: null }] }),
+      /needs a stopTrigger/,
+    );
   });
 
   it('rejects duplicate ids', () => {
