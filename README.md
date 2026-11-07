@@ -23,8 +23,9 @@ To work on one package, filter by name, for example `pnpm --filter @tower-magnat
 ## Web client
 
 ```bash
-pnpm --filter web dev     # Vite dev server on port 5173
-pnpm --filter web build   # static build in apps/web/dist
+pnpm dev        # Vite dev server on port 5173
+pnpm build      # static build in apps/web/dist
+pnpm art:build  # draw the sprites, atlases, previews and atlas manifest
 ```
 
 The dev server proxies `/api` and `/ws` to the game server. Set `TM_SERVER_URL` (default `http://localhost:3000`) and `TM_WEB_PORT` (default `5173`) to change them, for example `TM_WEB_PORT=4140 pnpm --filter web dev`.
@@ -46,7 +47,7 @@ A new TypeScript package needs its own `tsconfig.json` extending `tsconfig.base.
 
 ## Continuous integration
 
-`.github/workflows/ci.yml` runs `pnpm lint`, `pnpm typecheck` and `pnpm test` on Node 22 for every pull request to `develop` or `master` and for every push to those branches. The pnpm store is cached between runs.
+`.github/workflows/ci.yml` runs `pnpm art:build`, `pnpm lint`, `pnpm typecheck` and `pnpm test` on Node 22 for every pull request to `develop` or `master` and for every push to those branches. The pnpm store is cached between runs.
 
 ## End-to-end tests
 
