@@ -9,6 +9,10 @@ describe('createTower', () => {
     expect(tower.nextId).toBe(1);
   });
 
+  it('starts with an empty grid and no lobby heights', () => {
+    expect(createTower(1).grid).toEqual({ levels: {}, mainLobbyHeight: null, skyLobbyHeights: {} });
+  });
+
   it('derives the rng from the seed', () => {
     expect(createTower(1)).toEqual(createTower(1));
     expect(createTower(1).rng).not.toEqual(createTower(2).rng);
