@@ -68,6 +68,8 @@ importers:
 
   packages/shared: {}
 
+  tools/art: {}
+
   tools/sfx:
     devDependencies:
       tsx:
