@@ -136,3 +136,12 @@ body,
   height: 100%;
   image-rendering: pixelated;
 }
+
+.ui-windows {
+  inset: 0;
+  pointer-events: none;
+}
+
+.ui-windows > * {
+  pointer-events: auto;
+}

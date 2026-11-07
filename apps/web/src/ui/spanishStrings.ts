@@ -412,6 +412,11 @@ export const SPANISH_STRINGS = {
   'dialog.demolish': 'Demoler',
   'dialog.changeFilm.confirm': 'Cambiar',
   'dialog.newTower.confirm': 'Demoler y empezar',
+  'dialog.newTowerSure.title': '¿Estás seguro?',
+  'dialog.newTowerSure.body': 'Es la última advertencia: la torre actual se pierde para siempre.',
+  'dialog.newTowerSure.confirm': 'Sí, demoler todo',
+  'dialog.newTowerFailed.title': 'Torre nueva',
+  'dialog.newTowerFailed.body': 'No se pudo empezar una torre nueva. Tu torre sigue como estaba.',
   'dialog.protocolMismatch.reload': 'Recargar',
 
   // 13.12 Login and register

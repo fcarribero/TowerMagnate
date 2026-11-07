@@ -53,7 +53,7 @@ async function renderGame(store: SettingsStore) {
   await player.unlock();
   const view = render(
     <SfxProvider player={player} settingsStore={store}>
-      <GameMenu />
+      <GameMenu onRestartTower={() => {}} onLogout={() => {}} />
       <BuildButton />
     </SfxProvider>,
   );
@@ -72,7 +72,7 @@ function volumeSlider(): HTMLInputElement {
 describe('GameMenu sound settings', () => {
   it('starts with sound on at volume 70', async () => {
     const { context } = await renderGame(memoryStore());
-    expect(screen.getByRole('menuitem').textContent).toBe('Sonido: sí');
+    expect(screen.getByRole('menuitem', { name: /Sonido/ }).textContent).toBe('Sonido: sí');
     expect(volumeSlider().value).toBe('70');
     build();
     await waitFor(() => expect(context.played[0]?.volume).toBeCloseTo(0.8 * 0.7));
@@ -80,8 +80,8 @@ describe('GameMenu sound settings', () => {
 
   it('plays nothing while muted', async () => {
     const { context } = await renderGame(memoryStore());
-    fireEvent.click(screen.getByRole('menuitem'));
-    expect(screen.getByRole('menuitem').textContent).toBe('Sonido: no');
+    fireEvent.click(screen.getByRole('menuitem', { name: /Sonido/ }));
+    expect(screen.getByRole('menuitem', { name: /Sonido/ }).textContent).toBe('Sonido: no');
     build();
     expect(context.played).toHaveLength(0);
   });
@@ -99,11 +99,11 @@ describe('GameMenu sound settings', () => {
     const store = memoryStore();
     const first = await renderGame(store);
     fireEvent.input(volumeSlider(), { target: { value: '40' } });
-    fireEvent.click(screen.getByRole('menuitem'));
+    fireEvent.click(screen.getByRole('menuitem', { name: /Sonido/ }));
     first.view.unmount();
 
     const { context } = await renderGame(store);
-    expect(screen.getByRole('menuitem').textContent).toBe('Sonido: no');
+    expect(screen.getByRole('menuitem', { name: /Sonido/ }).textContent).toBe('Sonido: no');
     expect(volumeSlider().value).toBe('40');
     build();
     expect(context.played).toHaveLength(0);
@@ -114,10 +114,10 @@ describe('GameMenu sound settings', () => {
       throw new DOMException('Access is denied', 'SecurityError');
     });
     const { context } = await renderGame(blocked);
-    fireEvent.click(screen.getByRole('menuitem'));
+    fireEvent.click(screen.getByRole('menuitem', { name: /Sonido/ }));
     build();
     expect(context.played).toHaveLength(0);
-    fireEvent.click(screen.getByRole('menuitem'));
+    fireEvent.click(screen.getByRole('menuitem', { name: /Sonido/ }));
     await waitFor(() => {
       build();
       expect(context.played.length).toBeGreaterThan(0);

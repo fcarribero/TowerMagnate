@@ -3,7 +3,12 @@ import { useSoundSettings } from '../../audio/useSfx';
 import { t } from '../strings';
 import './menu.css';
 
-export function GameMenu() {
+export interface GameMenuProps {
+  onRestartTower: () => void;
+  onLogout: () => void;
+}
+
+export function GameMenu({ onRestartTower, onLogout }: GameMenuProps) {
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
@@ -29,7 +34,24 @@ export function GameMenu() {
       >
         {t('ui.menu')}
       </button>
-      {open && <SoundItems />}
+      {open && (
+        <div class="game-menu-list" role="menu">
+          <SoundItems />
+          <button
+            type="button"
+            role="menuitem"
+            onClick={() => {
+              setOpen(false);
+              onRestartTower();
+            }}
+          >
+            {t('ui.newTower')}
+          </button>
+          <button type="button" role="menuitem" onClick={onLogout}>
+            {t('ui.logout')}
+          </button>
+        </div>
+      )}
     </div>
   );
 }
@@ -41,7 +63,7 @@ function SoundItems() {
   };
 
   return (
-    <div class="game-menu-list" role="menu">
+    <>
       <button type="button" role="menuitem" onClick={() => setMuted(!settings.muted)}>
         {settings.muted ? t('ui.soundOff') : t('ui.soundOn')}
       </button>
@@ -58,6 +80,6 @@ function SoundItems() {
         />
         <span>{settings.volume}</span>
       </label>
-    </div>
+    </>
   );
 }
