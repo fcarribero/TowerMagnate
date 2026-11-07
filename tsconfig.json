@@ -6,6 +6,7 @@
     { "path": "apps/server" },
     { "path": "apps/web" },
     { "path": "tests" },
-    { "path": "scripts" }
+    { "path": "scripts" },
+    { "path": "e2e" }
   ]
 }
