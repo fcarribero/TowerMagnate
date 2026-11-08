@@ -1,5 +1,6 @@
 import type { Level } from '@tower-magnate/shared';
 import { Application, Container, TextureSource, type TilingSprite } from 'pixi.js';
+import 'pixi.js/unsafe-eval';
 import { loadSprites } from './atlasLoader';
 import {
   centerCamera,

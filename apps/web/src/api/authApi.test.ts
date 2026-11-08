@@ -70,6 +70,13 @@ describe('createAuthApi', () => {
     });
   });
 
+  it('reads 429 as rate limited, apart from other failures', async () => {
+    expect(await apiAnswering(jsonResponse(429, { error: 'x' })).api.login(credentials)).toEqual({
+      ok: false,
+      reason: 'rateLimited',
+    });
+  });
+
   it('tells signed in, signed out and unreachable apart', async () => {
     expect(await apiAnswering(jsonResponse(200, { user })).api.currentUser()).toEqual({
       status: 'signedIn',
