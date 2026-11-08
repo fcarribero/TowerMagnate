@@ -27,7 +27,7 @@ The tower had a main lobby on level 1 from column 40 to 339, floors 2 to 15 and 
 | Start, 1 star | Mon 1 Jan 00:00 | 0 | 0 | 0 h 00 |
 | 2 stars | Mon 1 Jan 17:00 | 6,120 | not read | 0 h 11 |
 | 2 to 3 blocked by security | Tue 2 Jan and Wed 3 Jan 17:00 | 14,760 and 23,400 | 2,497 | |
-| 3 stars | Thu 4 Jan 17:00 | 32,040 | 2,517 | 1 h 11 |
+| 3 stars | Thu 4 Jan 17:00 | 32,040 | 2,517 | 0 h 56 |
 
 The offices were all built on day 0 before the first check, so 2 stars came on the first weekday at 17:00. The 2 to 3 step waited only for the security office, which unlocks at 2 stars.
 
