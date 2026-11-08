@@ -23,7 +23,8 @@ import { hashState } from './hash';
 import { cloneState } from './state';
 import { createScheduler } from './scheduler';
 import { createEngine, type Engine, type SimulationSystem } from './step';
-import { buildTower } from './testing';
+import { addFlight, buildTower } from './testing';
+import { createTrekSystem, trekPhaseAt } from './trek';
 import { drawMinuteFromWindow } from './time-windows';
 import { createRng } from './rng';
 import { ledgerWeekRollHook } from './money';
@@ -469,5 +470,75 @@ describe('copying the tower in the middle of the day', () => {
     const original = engine.step(midLunch, [], 2 * STEPS_PER_DAY);
     const afterRestore = engine.step(restored, [], 2 * STEPS_PER_DAY);
     expect(hashState(afterRestore.state)).toBe(hashState(original.state));
+  });
+});
+
+describe('office workers walking with treks', () => {
+  function trekEngine(sightings: Sighting[]): Engine {
+    const routine = createOfficeRoutine(
+      (_state, from, to) => Math.abs(from.column - to.column) + 6 * Math.abs(from.level - to.level),
+      { treks: true },
+    );
+    return createEngine({
+      commandHandlers: {},
+      systems: [
+        createScheduler([ledgerWeekRollHook, routine.planHook]),
+        createTrekSystem(),
+        observer(sightings),
+        routine.system,
+      ],
+    });
+  }
+
+  function towerWithStairs(withStairs: boolean): { state: TowerState; officeId: string } {
+    const tower = officeTower({ seed: 41, offices: 1, fastFoods: 0 });
+    if (withStairs) {
+      addFlight(tower.state, 'stairs', 40, 1);
+      addFlight(tower.state, 'stairs', 40, 2);
+    }
+    populate(tower);
+    return { state: tower.state, officeId: tower.officeIds[0] ?? '' };
+  }
+
+  it('walk from the lobby up the stairs to the desk and sit there', () => {
+    const { state } = towerWithStairs(true);
+    const levels = new Set<number>();
+    const sightings: Sighting[] = [];
+    const engine = trekEngine(sightings);
+    let current = engine.step(state, [], STEPS_PER_DAY).state;
+    for (let hour = 1; hour <= 12; hour++) {
+      current = engine.step(current, [], 360).state;
+      current.people.level.forEach((level) => levels.add(level));
+    }
+    const pool = current.people;
+    expect(levels.has(2)).toBe(true);
+    expect(only(sightings, 'walkingIn').length).toBe(pool.id.length);
+    for (let slot = 0; slot < pool.id.length; slot++) {
+      expect(pool.level[slot]).toBe(3);
+      expect(trekPhaseAt(pool, slot)).toBe('idle');
+    }
+  });
+
+  it('leave the tower again at the end of the day', () => {
+    const { state } = towerWithStairs(true);
+    const sightings: Sighting[] = [];
+    const result = trekEngine(sightings).step(state, [], 2 * STEPS_PER_DAY - 360);
+    expect(only(sightings, 'leaving').length).toBe(result.state.people.id.length);
+    expect(result.state.people.dueStep.every((due) => due === NOTHING_DUE)).toBe(true);
+    expect(result.state.people.level.every((level) => level === 1)).toBe(true);
+  });
+
+  it('never reach the desk when no stairs connect the floors', () => {
+    const { state } = towerWithStairs(false);
+    const sightings: Sighting[] = [];
+    const result = trekEngine(sightings).step(state, [], 2 * STEPS_PER_DAY - 360);
+    expect(only(sightings, 'walkingIn')).toHaveLength(0);
+    expect(only(sightings, 'givingUpArrival').length).toBeGreaterThan(0);
+    expect(result.state.people.dueStep.every((due) => due === NOTHING_DUE)).toBe(true);
+  });
+
+  it('give the same state for the same seed', () => {
+    const run = () => trekEngine([]).step(towerWithStairs(true).state, [], 2 * STEPS_PER_DAY).state;
+    expect(hashState(run())).toBe(hashState(run()));
   });
 });

@@ -16,9 +16,9 @@ import { createHotelSystem } from './hotel';
 import { createLeaseSystem } from './leases';
 import { cloneState } from './state';
 import { ledgerWeekRollHook } from './money';
-import { createOfficeRoutine, straightLineRoutes } from './office-routine';
+import { createOfficeRoutine } from './office-routine';
 import { createScheduler } from './scheduler';
-import { createTrekSystem } from './trek';
+import { createTrekSystem, plannedTripSteps } from './trek';
 import { TransportGraph, type ShaftStops } from './routing';
 import { starCheckHook } from './stars';
 import { weeklyUpkeepHook } from './upkeep';
@@ -181,7 +181,10 @@ export function createEngine(rules: EngineRules): Engine {
   return { step, runDays };
 }
 
-const officeRoutine = createOfficeRoutine(straightLineRoutes);
+const officeRoutine = createOfficeRoutine(
+  (_state, from, to, context) => plannedTripSteps(context, from, to),
+  { treks: true },
+);
 
 const towerEngine = createEngine({
   commandHandlers: towerCommandHandlers,
