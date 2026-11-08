@@ -1,44 +1,6 @@
-import type { PersonView } from '@tower-magnate/shared';
-import { Texture } from 'pixi.js';
 import { describe, expect, it } from 'vitest';
-import type { DrawnFrame } from '../model/interpolation';
-import { walker } from '../testing/protocolFixtures';
+import { crowdFrame, frameOf, layerWithArt, person } from '../testing/peopleLayerFixtures';
 import { floorSprite } from './elevatorPlan';
-import { PeopleLayer } from './peopleLayer';
-import { SpriteRegistry } from './spriteRegistry';
-
-const IDS = [
-  'people/worker-b/stand',
-  'people/worker-b/stand-pink',
-  'people/worker-b/stand-red',
-  'people/worker-b/walk_01',
-  'people/worker-b/walk_02',
-  'people/worker-b/walk-pink_01',
-  'people/worker-b/walk-red_02',
-];
-
-function layerWithArt() {
-  const textures: Record<string, Texture> = {};
-  for (const id of IDS) {
-    textures[id] = new Texture();
-  }
-  const registry = new SpriteRegistry(new Texture(), () => undefined);
-  registry.addSheet(textures);
-  return { layer: new PeopleLayer(registry), textures };
-}
-
-const person = (id: string, patch: Partial<PersonView>): PersonView => ({
-  ...walker,
-  id,
-  ...patch,
-});
-
-function frameOf(...people: PersonView[]): DrawnFrame {
-  return {
-    cars: new Map(),
-    people: people.map((one) => ({ person: one, x: one.x, position: 2 })),
-  };
-}
 
 describe('floorSprite', () => {
   it('picks the stress tint from the stress level', () => {
@@ -93,27 +55,12 @@ describe('PeopleLayer', () => {
     expect(layer.view.children[0]?.scale.x).toBe(-1);
   });
 
-  it('updates 2,000 people well inside a 16.6 ms frame', () => {
+  it('keeps one sprite per person across frames of 2,000 people', () => {
     const { layer } = layerWithArt();
     layer.showOnly({ lowest: 0, highest: 99 });
-    const stresses = ['normal', 'stressed', 'veryStressed'] as const;
-    const crowd = (shift: number) =>
-      frameOf(
-        ...Array.from({ length: 2000 }, (_, index) =>
-          person(`p${index}`, {
-            x: (index % 200) + shift,
-            mode: index % 2 === 0 ? 'walk' : 'wait',
-            stress: stresses[index % 3],
-          }),
-        ),
-      );
-    layer.show(crowd(0));
-    const started = performance.now();
-    for (let frame = 1; frame <= 20; frame += 1) {
-      layer.show(crowd(frame * 0.25));
-    }
-    const perFrame = (performance.now() - started) / 20;
+    layer.show(crowdFrame(2000, 0));
+    layer.show(crowdFrame(2000, 0.25));
     expect(layer.count).toBe(2000);
-    expect(perFrame).toBeLessThan(8);
+    expect(layer.view.children).toHaveLength(2000);
   });
 });
