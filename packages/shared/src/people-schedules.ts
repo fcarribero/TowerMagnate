@@ -37,6 +37,9 @@ export const FAST_FOOD_LUNCH_MINUTES = 30;
 /** Venues the engine can send a person to, with opening hours in minutes since midnight. */
 export const FAST_FOOD_HOURS = { open: minutes(8), close: minutes(20) } as const;
 
+/** People inside a fast food at once; a venue is full at this count (people spec 11.2). */
+export const FAST_FOOD_CAPACITY = 40;
+
 /** Candidates drawn when a person picks a venue (people spec 5). */
 export const VENUE_CANDIDATES_DRAWN = 3;
 

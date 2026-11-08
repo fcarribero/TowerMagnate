@@ -1,4 +1,5 @@
 import {
+  FAST_FOOD_CAPACITY,
   OFFICE_WORKER_ARRIVAL,
   OFFICE_WORKER_LEAVE,
   OFFICE_WORKER_LUNCH_DEPARTURE,
@@ -45,7 +46,7 @@ interface OfficeTower {
 
 function officeTower(options: { seed: number; offices: number; fastFoods?: number }): OfficeTower {
   const officesPerFloor = 8;
-  const fastFoodColumns = [0, 30, 60];
+  const fastFoodColumns = [0, 16, 32, 48, 64];
   const fastFoods = options.fastFoods ?? 1;
   const topFloor = 3 + Math.ceil(options.offices / officesPerFloor);
   const units = [];
@@ -188,7 +189,7 @@ describe('two weeks of 300 office workers', () => {
   let tooFarLunch = 0;
 
   for (const seed of SEEDS) {
-    const tower = officeTower({ seed, offices: 50 });
+    const tower = officeTower({ seed, offices: 50, fastFoods: 5 });
     populate(tower);
     const { sightings } = runSteps(tower.state, 15 * STEPS_PER_DAY);
     for (const sighting of only(sightings, 'waitingToArrive')) {
@@ -328,6 +329,57 @@ describe('skip rules', () => {
       expect(exit).toBeDefined();
       expect((exit?.step ?? 0) - back.step).toBeLessThanOrEqual(longestWalkOut);
     }
+  });
+});
+
+describe('fast food capacity', () => {
+  const walkToFastFood =
+    (steps: number): RoutePlanner =>
+    (state, from, to) =>
+      from.level > 2 && to.level === 2 ? steps : straightLineRoutes(state, from, to);
+
+  function crowdedDay(planner: RoutePlanner) {
+    const tower = officeTower({ seed: 21, offices: 100 });
+    populate(tower);
+    const venue = Number((tower.fastFoodIds[0] ?? '').slice(1));
+    const sightings: Sighting[] = [];
+    let mostEating = 0;
+    const counter: SimulationSystem = ({ state }) => {
+      let eating = 0;
+      for (let slot = 0; slot < state.people.id.length; slot++) {
+        const routine = decodeRoutine(state.people.trip[slot] ?? 0);
+        if (routine?.phase === 'atLunch' && routine.venue === venue) eating += 1;
+      }
+      mostEating = Math.max(mostEating, eating);
+    };
+    const routine = createOfficeRoutine(planner);
+    const engine = createEngine({
+      commandHandlers: {},
+      systems: [
+        createScheduler([ledgerWeekRollHook, routine.planHook]),
+        observer(sightings),
+        routine.system,
+        counter,
+      ],
+    });
+    const state = engine.step(tower.state, [], 2 * STEPS_PER_DAY - 1).state;
+    return { sightings, mostEating, state };
+  }
+
+  it('never has more people inside than the capacity', () => {
+    const { sightings, mostEating } = crowdedDay(straightLineRoutes);
+    expect(only(sightings, 'toLunch').length).toBeGreaterThan(FAST_FOOD_CAPACITY);
+    expect(mostEating).toBe(FAST_FOOD_CAPACITY);
+  });
+
+  it('turns back a worker who finds the fast food full on arrival and returns them to the desk', () => {
+    const { sightings, mostEating, state } = crowdedDay(walkToFastFood(5 * 360));
+    const startedLunch = only(sightings, 'toLunch');
+    const finishedLunch = only(sightings, 'atLunch');
+    expect(mostEating).toBeLessThanOrEqual(FAST_FOOD_CAPACITY);
+    expect(finishedLunch.length).toBeLessThan(startedLunch.length);
+    expect(only(sightings, 'backFromLunch').length).toBe(startedLunch.length);
+    expect(state.people.dueStep.every((due) => due === NOTHING_DUE)).toBe(true);
   });
 });
 

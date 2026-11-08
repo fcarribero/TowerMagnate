@@ -1,4 +1,5 @@
 import {
+  FAST_FOOD_CAPACITY,
   FAST_FOOD_HOURS,
   FAST_FOOD_LUNCH_MINUTES,
   OFFICE_WORKER_ARRIVAL,
@@ -175,10 +176,24 @@ function unitPlace(unit: Unit): Place {
   return { level: unit.level, column: unit.x + Math.floor(UNIT_CATALOG[unit.type].width / 2) };
 }
 
+/** People eating at each fast food right now, by unit number. People still walking there do not count. */
+function diners(pool: PersonPool): Map<number, number> {
+  const counts = new Map<number, number>();
+  for (let slot = 0; slot < pool.id.length; slot++) {
+    if (!isOfficeWorker(pool, slot)) continue;
+    const routine = routineAt(pool, slot);
+    if (routine?.phase === 'atLunch')
+      counts.set(routine.venue, (counts.get(routine.venue) ?? 0) + 1);
+  }
+  return counts;
+}
+
 function openFastFoods(state: TowerState, minuteOfDay: number): Unit[] {
   if (!isFastFoodOpen(minuteOfDay)) return [];
+  const eating = diners(state.people);
   return Object.values(state.units)
     .filter((unit) => unit.type === 'fast-food')
+    .filter((unit) => (eating.get(unitNumber(unit.id)) ?? 0) < FAST_FOOD_CAPACITY)
     .sort((a, b) => unitNumber(a.id) - unitNumber(b.id));
 }
 
@@ -307,6 +322,23 @@ function startLeaving(worker: Worker, routes: RoutePlanner): void {
   save(worker, state.step + ROUTE_RETRY_STEPS);
 }
 
+/** The worker reached the fast food: enter if it is still open and has room, otherwise walk back. */
+function arriveAtFastFood(worker: Worker, routes: RoutePlanner): void {
+  const { routine, state } = worker;
+  const venue = venueUnit(state, routine.venue);
+  const eating = diners(state.people).get(routine.venue) ?? 0;
+  const canEnter =
+    venue?.type === 'fast-food' &&
+    isFastFoodOpen(minuteOfDay(worker)) &&
+    eating < FAST_FOOD_CAPACITY;
+  if (canEnter) {
+    routine.phase = 'atLunch';
+    save(worker, state.step + FAST_FOOD_LUNCH_MINUTES * STEPS_PER_MINUTE);
+  } else {
+    startReturn(worker, routes);
+  }
+}
+
 function startReturn(worker: Worker, routes: RoutePlanner): void {
   const { routine, state } = worker;
   const venue = venueUnit(state, routine.venue);
@@ -347,8 +379,7 @@ function advance(worker: Worker, routes: RoutePlanner): void {
       atOfficeDue(worker, routes);
       break;
     case 'toLunch':
-      worker.routine.phase = 'atLunch';
-      save(worker, worker.state.step + FAST_FOOD_LUNCH_MINUTES * STEPS_PER_MINUTE);
+      arriveAtFastFood(worker, routes);
       break;
     case 'atLunch':
       startReturn(worker, routes);
