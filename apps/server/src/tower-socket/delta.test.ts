@@ -1,14 +1,19 @@
 import {
+  addPeopleForUnit,
   addPerson,
   createTower,
-  openFire,
   defaultSchedule,
+  newUnit,
+  openFire,
   setStructure,
+  TREK_PHASES,
 } from '@tower-magnate/engine';
 import {
   DeltaSchema,
   packPerson,
   serverMessage,
+  unpackCar,
+  unpackPerson,
   type Snapshot,
   type TowerState,
 } from '@tower-magnate/shared';
@@ -17,6 +22,21 @@ import { diffSnapshots, needsFreshSnapshot } from './delta';
 import { buildSnapshot } from './snapshot';
 
 const VIEW = { levelFrom: 1, levelTo: 3, xFrom: 0, xTo: 50 };
+const WIDE_VIEW = { levelFrom: 1, levelTo: 100, xFrom: 0, xTo: 374 };
+
+function towerWithOffices(count: number): TowerState {
+  const state = createTower(3);
+  for (let index = 1; index <= count; index++) {
+    const id = `u${index}`;
+    state.units[id] = newUnit(id, 'office', 0, 2);
+    addPeopleForUnit(state, id);
+  }
+  return state;
+}
+
+function byId(a: { id: string }, b: { id: string }): number {
+  return a.id.localeCompare(b.id, 'en', { numeric: true });
+}
 
 function tower(): TowerState {
   const state = createTower(3);
@@ -203,5 +223,41 @@ describe('delta between snapshots', () => {
     expect(delta.people).toHaveLength(250);
     expect(delta.cars).toHaveLength(192);
     expect(Buffer.byteLength(frame)).toBeLessThan(50_000);
+  });
+
+  it('applied to the old snapshot gives the fresh snapshot of the people and cars', () => {
+    const state = towerWithOffices(12);
+    const before = snapshotOf(state, WIDE_VIEW);
+    state.people.trek.forEach((_, slot) => {
+      state.people.trek[slot] = slot % TREK_PHASES.length;
+      state.people.trip[slot] = slot % TREK_PHASES.length === 0 ? 0 : 1;
+      state.people.column[slot] = (state.people.column[slot] ?? 0) + slot;
+    });
+    state.people.legColumn.fill(0);
+    const after = snapshotOf(state, WIDE_VIEW);
+
+    const { delta } = diffSnapshots(before, after);
+
+    const gone = new Set(delta.peopleGone);
+    const kept = before.people.filter((person) => !gone.has(person.id));
+    const applied = new Map(kept.map((person) => [person.id, person]));
+    delta.people.map(unpackPerson).forEach((person) => applied.set(person.id, person));
+    expect([...applied.values()].sort(byId)).toEqual([...after.people].sort(byId));
+    expect(delta.cars.map(unpackCar)).toEqual(after.cars);
+  });
+
+  it('stays under 50 KB at 250 people', () => {
+    const state = towerWithOffices(42);
+    const before = snapshotOf(state, WIDE_VIEW);
+    state.people.column.forEach((column, slot) => {
+      state.people.column[slot] = column + 1;
+    });
+    const after = snapshotOf(state, WIDE_VIEW);
+
+    const { delta } = diffSnapshots(before, after);
+
+    expect(after.people).toHaveLength(252);
+    const bytes = Buffer.byteLength(JSON.stringify(serverMessage('delta', delta)));
+    expect(bytes).toBeLessThan(50 * 1024);
   });
 });

@@ -10,6 +10,8 @@ import {
   rollLedgerWeek,
   setStructure,
   STEPS_PER_DAY,
+  TREK_PHASES,
+  type TrekPhase,
 } from '@tower-magnate/engine';
 import { levelToIndex, SnapshotSchema, type TowerState, type Unit } from '@tower-magnate/shared';
 import { describe, expect, it } from 'vitest';
@@ -189,6 +191,83 @@ describe('snapshot from tower state', () => {
 
     expect(snapshot.people.map((person) => person.id)).toEqual(['p1']);
     expect(snapshot.people[0]).toMatchObject({ x: 3, level: 2, mode: 'inside', carRef: null });
+  });
+
+  it('maps each trip phase to a person mode', () => {
+    const wide = { levelFrom: 1, levelTo: 40, xFrom: 0, xTo: 100 };
+    const expected: Record<TrekPhase, string> = {
+      idle: 'inside',
+      walkingToDestination: 'walk',
+      walkingToStairs: 'walk',
+      walkingToEscalator: 'walk',
+      walkingToShaft: 'walk',
+      onStairs: 'stairs',
+      onEscalator: 'stairs',
+      queued: 'wait',
+      waitingBesideQueue: 'wait',
+      riding: 'ride',
+    };
+    for (const phase of TREK_PHASES) {
+      const state = towerWithPeople();
+      state.people.trek[0] = TREK_PHASES.indexOf(phase);
+      state.people.trip[0] = phase === 'idle' ? 0 : 1;
+      const snapshot = buildSnapshot(state, wide);
+      expect(snapshot.people[0]?.mode, phase).toBe(expected[phase]);
+    }
+  });
+
+  it('keeps the last horizontal facing while the person is not walking', () => {
+    const state = towerWithPeople();
+    state.people.facing[0] = 1;
+    for (const phase of TREK_PHASES) {
+      state.people.trek[0] = TREK_PHASES.indexOf(phase);
+      expect(buildSnapshot(state, LOBBY_VIEW).people[0]?.facing, phase).toBe('left');
+    }
+    state.people.facing[0] = 0;
+    expect(buildSnapshot(state, LOBBY_VIEW).people[0]?.facing).toBe('right');
+  });
+
+  it('sets carRef and the car position only while riding', () => {
+    const state = towerWithPeople();
+    state.shafts.s1 = {
+      id: 's1',
+      type: 'standard',
+      x: 5,
+      bottom: 1,
+      top: 3,
+      stops: [1, 2, 3],
+      schedule: defaultSchedule(),
+      cars: [
+        {
+          homeLevel: 1,
+          level: 3,
+          riders: ['p1'],
+          trips: [],
+          phase: 'moving' as const,
+          direction: 'up' as const,
+          phaseStepsLeft: 0,
+          assigned: [],
+          paid: 0,
+          placedAtStep: 0,
+        },
+      ],
+      queues: {},
+      paid: 0,
+      placedAtStep: 0,
+    };
+    state.people.trek[0] = TREK_PHASES.indexOf('queued');
+    expect(buildSnapshot(state, LOBBY_VIEW).people[0]).toMatchObject({
+      mode: 'wait',
+      carRef: null,
+    });
+
+    state.people.trek[0] = TREK_PHASES.indexOf('riding');
+    expect(buildSnapshot(state, LOBBY_VIEW).people[0]).toMatchObject({
+      mode: 'ride',
+      carRef: { shaftId: 's1', index: 0 },
+      x: 5,
+      level: 3,
+    });
   });
 
   it('tints stress at 90 and 180 steps', () => {

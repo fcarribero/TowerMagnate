@@ -379,6 +379,7 @@ function walk(pool: PersonPool, slot: number): boolean {
   const target = pool.legColumn[slot] as number;
   const distance = Math.min(WALK_COLUMNS_PER_STEP, Math.abs(target - column));
   pool.column[slot] = column + Math.sign(target - column) * distance;
+  if (distance > 0) pool.facing[slot] = target < column ? 1 : 0;
   return pool.column[slot] === target;
 }
 

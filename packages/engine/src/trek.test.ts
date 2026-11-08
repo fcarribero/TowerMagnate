@@ -129,6 +129,26 @@ describe('stairs and escalators', () => {
     });
   });
 
+  it('keeps the last horizontal facing on the stairs and after arriving', () => {
+    const state = buildTestTower({
+      floors: 4,
+      flights: [{ type: 'stairs', from: 1, to: 3 }],
+    });
+    const id = addWalker(state, 1, 90);
+    const facing = (tower: TowerState) => tower.people.facing[slotOfPerson(tower.people, id)];
+    expect(facing(state)).toBe(0);
+    sendTo(state, id, { level: 3, column: FLIGHT_COLUMN });
+
+    const walking = runSteps(state, 5);
+    expect(facing(walking)).toBe(1);
+    const onStairs = runSteps(state, 90 - FLIGHT_COLUMN + 2);
+    expect(view(onStairs, id).phase).toBe('onStairs');
+    expect(facing(onStairs)).toBe(1);
+    const arrived = runSteps(state, 90 - FLIGHT_COLUMN + 2 * STAIR_FLIGHT_STEPS + 5);
+    expect(view(arrived, id).phase).toBe('idle');
+    expect(facing(arrived)).toBe(1);
+  });
+
   it('rides an escalator flight in six steps', () => {
     const state = buildTestTower({
       floors: 2,
