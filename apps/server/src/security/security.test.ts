@@ -7,7 +7,7 @@ const DATABASE_URL = 'postgres://unused:unused@127.0.0.1:1/unused';
 describe('auth hardening', () => {
   let app: FastifyInstance;
 
-  function start(options: { secureCookies?: boolean } = {}) {
+  function start(options: { secureCookies?: boolean; allowedOrigins?: string[] } = {}) {
     app = buildApp({ version: 'test', databaseUrl: DATABASE_URL, ...options });
     return app;
   }
@@ -93,6 +93,28 @@ describe('auth hardening', () => {
       });
 
       expect(response.statusCode).toBe(400);
+    });
+
+    it('accepts a POST from a configured web origin that differs from the Host', async () => {
+      start({ allowedOrigins: ['http://localhost:4102'] });
+
+      const response = await post('/api/auth/login', {
+        origin: 'http://localhost:4102',
+        host: 'server:3000',
+      });
+
+      expect(response.statusCode).toBe(400);
+    });
+
+    it('still rejects a foreign Origin when web origins are configured', async () => {
+      start({ allowedOrigins: ['http://localhost:4102'] });
+
+      const response = await post('/api/auth/login', {
+        origin: 'https://evil.example',
+        host: 'server:3000',
+      });
+
+      expect(response.statusCode).toBe(403);
     });
 
     it('accepts a POST without Origin', async () => {
