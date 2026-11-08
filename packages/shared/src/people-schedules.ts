@@ -46,6 +46,83 @@ export const VENUE_CANDIDATES_DRAWN = 3;
 /** A required trip with no route is tried again after this many steps (people spec 4). */
 export const ROUTE_RETRY_STEPS = 720;
 
+/** Residents (people spec 7), shares as fractions. */
+export const RESIDENT_WORKDAY_CHANCE = 0.7;
+
+export const RESIDENT_LEAVE: readonly WindowPart[] = [
+  { from: minutes(6, 30), to: minutes(7, 30), weight: 30 },
+  { from: minutes(7, 30), to: minutes(8, 30), weight: 50 },
+  { from: minutes(8, 30), to: minutes(9), weight: 20 },
+];
+
+export const RESIDENT_RETURN: readonly WindowPart[] = [
+  { from: minutes(17), to: minutes(18), weight: 30 },
+  { from: minutes(18), to: minutes(19), weight: 35 },
+  { from: minutes(19), to: minutes(20), weight: 25 },
+  { from: minutes(20), to: minutes(21), weight: 10 },
+];
+
+export const RESIDENT_WEEKDAY_SHOPPING_CHANCE = 0.6;
+
+export const RESIDENT_WEEKDAY_SHOPPING: readonly WindowPart[] = [
+  { from: minutes(10), to: minutes(13), weight: 40 },
+  { from: minutes(13), to: minutes(17), weight: 60 },
+];
+
+export const RESIDENT_WEEKDAY_DINNER_CHANCE = 0.15;
+
+export const RESIDENT_WEEKDAY_DINNER: readonly WindowPart[] = [
+  { from: minutes(19, 30), to: minutes(21), weight: 100 },
+];
+
+export const RESIDENT_WEEKEND_MORNING_CHANCE = 0.6;
+
+export const RESIDENT_WEEKEND_MORNING: readonly WindowPart[] = [
+  { from: minutes(10), to: minutes(11), weight: 40 },
+  { from: minutes(11), to: minutes(12), weight: 60 },
+];
+
+export const RESIDENT_WEEKEND_AFTERNOON_CHANCE = 0.6;
+
+export const RESIDENT_WEEKEND_AFTERNOON: readonly WindowPart[] = [
+  { from: minutes(14), to: minutes(16), weight: 50 },
+  { from: minutes(16), to: minutes(18), weight: 50 },
+];
+
+export const RESIDENT_WEEKEND_DINNER_CHANCE = 0.25;
+
+export const RESIDENT_WEEKEND_DINNER: readonly WindowPart[] = [
+  { from: minutes(19), to: minutes(21), weight: 100 },
+];
+
+/** A shopping or snack trip goes to a retail shop with this chance, otherwise to a fast food. */
+export const RESIDENT_RETAIL_TRIP_CHANCE = 0.6;
+
+export type VisitedVenueType = 'fast-food' | 'restaurant' | 'retail-shop';
+
+export const VENUE_VISIT_MINUTES: Readonly<Record<VisitedVenueType, number>> = {
+  'fast-food': 45,
+  restaurant: 60,
+  'retail-shop': 45,
+};
+
+export const VENUE_CAPACITY: Readonly<Record<VisitedVenueType, number>> = {
+  'fast-food': FAST_FOOD_CAPACITY,
+  restaurant: 40,
+  'retail-shop': 25,
+};
+
+export const VENUE_HOURS: Readonly<Record<VisitedVenueType, { open: number; close: number }>> = {
+  'fast-food': FAST_FOOD_HOURS,
+  restaurant: { open: minutes(17), close: minutes(23) },
+  'retail-shop': { open: minutes(10), close: minutes(20) },
+};
+
+/** Weight of a retail shop when a person draws venue candidates (people spec 5). */
+export const RETAIL_PRICE_ATTRACTION: Readonly<
+  Record<'high' | 'normal' | 'low' | 'minimum', number>
+> = { high: 0.5, normal: 1, low: 1.5, minimum: 2 };
+
 /** Hours of the day (whole hours, inclusive) at which vacant units roll for a prospect. */
 export const PROSPECT_ROLL_HOURS = { first: 8, last: 18 } as const;
 
