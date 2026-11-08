@@ -24,6 +24,7 @@ export function AvisosWindow({ notices, onSeeUnit, onClose }: AvisosWindowProps)
   }, []);
   return (
     <Window id={AVISOS_WINDOW_ID} title={t('window.notices.title')} onClose={onClose} width={360}>
+      {notices.length === 0 && <p class="tm-avisos__empty">{t('window.notices.empty')}</p>}
       <ul class="tm-avisos">
         {notices.map((notice) => (
           <li key={notice.id} class={notice.alert ? 'tm-avisos__item is-alert' : 'tm-avisos__item'}>

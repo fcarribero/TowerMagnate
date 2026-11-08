@@ -38,6 +38,9 @@ export function toClientEvents(events: readonly EngineEvent[]): ClientEvent[] {
           params: noticeParamTexts(noticeParams(event)),
         });
         break;
+      case 'weddingCompleted':
+        result.push({ type: 'weddingCompleted', step: event.step });
+        break;
       default:
         break;
     }

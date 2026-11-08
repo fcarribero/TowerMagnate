@@ -340,7 +340,12 @@ describe('skip rules', () => {
     });
     const result = engine.step(tower.state, [], STEPS_PER_DAY - 1);
     const oneResident = (visit: Visit) => visit.personId === pool.id[0];
-    return { ...result, visits: watch.visits.filter(oneResident), sightings: watch.sightings };
+    return {
+      ...result,
+      visits: watch.visits.filter(oneResident),
+      allVisits: watch.visits,
+      sightings: watch.sightings,
+    };
   }
 
   it('skips the afternoon trip when the morning trip has not finished', () => {
@@ -352,6 +357,19 @@ describe('skip rules', () => {
   it('makes both trips when the first one is back in time', () => {
     const { visits } = weekendResident([MORNING_TRIP, 14 * 60 + 1, 0], straightLineRoutes);
     expect(visits).toHaveLength(2);
+  });
+
+  it('adds every visit to the day count of the venue it went to', () => {
+    const { allVisits, state } = weekendResident(
+      [MORNING_TRIP, 14 * 60 + 1, 0],
+      straightLineRoutes,
+    );
+    const counted = Object.values(state.units).reduce(
+      (sum, unit) => sum + (unit.venue?.countToday ?? 0),
+      0,
+    );
+    expect(allVisits.length).toBeGreaterThan(0);
+    expect(counted).toBe(allVisits.length);
   });
 
   it('skips a dinner that comes while the resident is still outside', () => {

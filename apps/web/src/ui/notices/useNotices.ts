@@ -2,7 +2,13 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'preact/hooks'
 import type { DecisionKind, NoticeView } from '@tower-magnate/shared';
 import type { GameConnection } from '../../net/gameConnection';
 import { optionLabel } from './decisionModel';
-import { AVISOS_KEPT, addToAvisos, isAlertKey, noticeFromView, type Notice } from './noticeModel';
+import {
+  addToAvisos,
+  avisosFromSnapshot,
+  isAlertKey,
+  noticeFromView,
+  type Notice,
+} from './noticeModel';
 
 export interface NoticesApi {
   avisos: readonly Notice[];
@@ -58,10 +64,9 @@ export function useNotices(
     };
     return connection.onMessage((message) => {
       if (message.t === 'snapshot') {
-        // The snapshot lists notices oldest first.
         const fromServer = message.p.notices.filter(isServerNotice);
         seen.current = new Set(fromServer.map((notice) => notice.id));
-        setAvisos(fromServer.map(noticeFromView).reverse().slice(0, AVISOS_KEPT));
+        setAvisos(avisosFromSnapshot(fromServer));
         for (const event of message.p.activeEvents) {
           if (event.kind === 'decision') {
             kinds.current.set(event.id, event.decision);
