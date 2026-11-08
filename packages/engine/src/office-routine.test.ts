@@ -508,8 +508,8 @@ describe('office workers walking with treks', () => {
     const sightings: Sighting[] = [];
     const engine = trekEngine(sightings);
     let current = engine.step(state, [], STEPS_PER_DAY).state;
-    for (let hour = 1; hour <= 12; hour++) {
-      current = engine.step(current, [], 360).state;
+    for (let minute = 10; minute <= 12 * 60; minute += 10) {
+      current = engine.step(current, [], 60).state;
       current.people.level.forEach((level) => levels.add(level));
     }
     const pool = current.people;

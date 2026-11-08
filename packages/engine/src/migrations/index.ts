@@ -23,6 +23,7 @@ import {
   type ShaftBand,
   type Level,
   type MedicalDay,
+  type ParkingState,
   type Shaft,
   type ShaftSchedule,
   type ShaftType,
@@ -65,6 +66,7 @@ const MIGRATIONS: readonly Migration[] = [
   addTrekState,
   addNoticesAndFireLevel,
   addMedicalDay,
+  addParkingState,
 ];
 
 /** Version 2 records each unit's price level, what was paid for it and when it was placed. */
@@ -254,6 +256,11 @@ function addNoticesAndFireLevel(raw: Record<string, unknown>): Record<string, un
 function addMedicalDay(raw: Record<string, unknown>): Record<string, unknown> {
   const day = isNonNegativeInteger(raw.step) ? Math.floor(raw.step / STEPS_PER_DAY) : 0;
   return { medicalDay: { day, visits: {}, noticed: [] }, ...raw, schemaVersion: 16 };
+}
+
+/** Version 17 stores parking holders; people in an older save have not rolled for a car. */
+function addParkingState(raw: Record<string, unknown>): Record<string, unknown> {
+  return { parking: { spaces: {}, noticeDay: 0, noticed: [] }, ...raw, schemaVersion: 17 };
 }
 
 /** Version 11 gives each hotel room a state; every room in an older tower is clean and empty. */
@@ -562,6 +569,7 @@ function assertCurrentShape(raw: Record<string, unknown>): TowerState {
     treasureLevels: readTreasureLevels(raw.treasureLevels),
     ...readStarState(raw),
     medicalDay: readMedicalDay(raw.medicalDay),
+    parking: readParking(raw.parking),
   };
 }
 
@@ -585,6 +593,23 @@ function readStarState(raw: Record<string, unknown>): StarState {
     lastMedicalFailureStep: lastMedicalFailureStep as number | null,
     lastParkingFailureStep: lastParkingFailureStep as number | null,
   };
+}
+
+function readParking(raw: unknown): ParkingState {
+  const fail = (): never => {
+    throw new StateMigrationError('State parking must hold holder spaces and notice keys');
+  };
+  if (!isRecord(raw) || !isRecord(raw.spaces) || !isNonNegativeInteger(raw.noticeDay))
+    return fail();
+  if (!Array.isArray(raw.noticed) || !raw.noticed.every((key) => typeof key === 'string')) {
+    return fail();
+  }
+  const spaces: Record<number, number> = {};
+  for (const [person, space] of Object.entries(raw.spaces)) {
+    if (!isNonNegativeInteger(Number(person)) || !isNonNegativeInteger(space)) return fail();
+    spaces[Number(person)] = space;
+  }
+  return { spaces, noticeDay: raw.noticeDay, noticed: [...(raw.noticed as string[])] };
 }
 
 function readMedicalDay(raw: unknown): MedicalDay {

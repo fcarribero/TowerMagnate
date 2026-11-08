@@ -239,6 +239,16 @@ export interface TowerState {
   lastParkingFailureStep: number | null;
   /** Medical center visits and notices of one game day; a new day starts them over. */
   medicalDay: MedicalDay;
+  parking: ParkingState;
+}
+
+export interface ParkingState {
+  /** Parking holders by person number; the value is the unit number of their space, or 0 for none. */
+  spaces: Record<number, number>;
+  /** Day number of the notices below; a new day starts them over. */
+  noticeDay: number;
+  /** News keys already shown on `noticeDay`. */
+  noticed: string[];
 }
 
 export interface MedicalDay {
