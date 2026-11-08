@@ -79,7 +79,7 @@ export function WindowLayer({ children, class: className, uiScale = 1 }: WindowL
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent): void => {
-      if (event.key !== 'Escape' || isShortcutBlocked(event)) {
+      if (event.key !== 'Escape' || event.defaultPrevented || isShortcutBlocked(event)) {
         return;
       }
       if (dragCancel.current !== null) {
