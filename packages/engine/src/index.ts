@@ -26,8 +26,10 @@ export {
   spanError,
   structureAt,
 } from './grid';
+export { personStress, stressBand, venueStressFactor } from './person-stress';
+export type { RecordedTrip, StressBand } from './person-stress';
 export { isNoisy } from './noise';
-export { isExpressStop, shaftLevels } from './commands/shafts';
+export { defaultSchedule, defaultStops, isExpressStop, shaftLevels } from './commands/shafts';
 export { evaluateUnit, gradeOfScore, unitScore } from './evaluation';
 export type { UnitEvaluation, UnitEvaluationInput, UnitGrade } from './evaluation';
 export {
@@ -123,15 +125,32 @@ export type {
   StepContext,
   StepResult,
 } from './step';
-export { TransportGraph, walkableLevelOfUnit, walkableRuns } from './routing';
+export {
+  noRouteOutcome,
+  spendBudget,
+  TransportGraph,
+  TripPlanner,
+  walkableLevelOfUnit,
+  walkableRuns,
+} from './routing';
 export type {
   GraphNode,
   Link,
   LinkKind,
+  FirstLeg,
+  NoRouteOutcome,
   NodeId,
   NodeRole,
+  RoutePlan,
+  RoutePoint,
+  RouteRequest,
+  RouteStep,
   RunId,
   ShaftStops,
+  TripBudget,
+  TripKind,
+  TripPlan,
+  TripRequest,
   UserClass,
   WalkableRun,
 } from './routing';

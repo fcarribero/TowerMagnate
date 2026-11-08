@@ -16,6 +16,7 @@ import {
 import { addOccupant, isSpanFree, levelError, setStructure, structureAt } from '../grid';
 import type { CommandHandler } from '../step';
 import { escalatorLevels, isEscalatorUnit } from './escalator-floors';
+import { addPeopleForUnit } from '../people';
 import { newUnit } from '../units';
 import { limitError, starLockError } from './unit-limits';
 import {
@@ -177,5 +178,6 @@ export const buildUnit: CommandHandler<'buildUnit'> = (context, command) => {
     paid: cost,
     placedAtStep: state.step,
   };
+  if (definition.type === 'security') addPeopleForUnit(state, id);
   return { ok: true, cost, refund: 0, events: [] };
 };
