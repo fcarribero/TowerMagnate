@@ -4,6 +4,7 @@ export * from './errors';
 export * from './levels';
 export * from './names';
 export * from './people';
+export * from './people-schedules';
 export * from './units';
 export * from './balance';
 export * from './levels';
