@@ -453,3 +453,24 @@ describe('migrateState car motion', () => {
     expect(queue?.up).toEqual([{ person: 'p1', destination: 5, joinedStep: 4 }]);
   });
 });
+
+describe('migrateState medical day', () => {
+  it('gives an older save an empty medical day for its current day', () => {
+    const old = JSON.parse(JSON.stringify(createTower(5))) as Record<string, unknown>;
+    delete old.medicalDay;
+    old.schemaVersion = 15;
+    old.step = 3 * 8640 + 50;
+    const tower = migrateState(old);
+    expect(tower.medicalDay).toEqual({ day: 3, visits: {}, noticed: [] });
+  });
+
+  it('keeps visit counts and refuses a malformed medical day', () => {
+    const saved = JSON.parse(JSON.stringify(createTower(5))) as Record<string, unknown>;
+    const medicalDay = { day: 2, visits: { '4': 17 }, noticed: ['news.medicalFull'] };
+    expect(migrateState({ ...saved, medicalDay }).medicalDay).toEqual(medicalDay);
+    expect(() =>
+      migrateState({ ...saved, medicalDay: { day: 2, visits: { '4': -1 }, noticed: [] } }),
+    ).toThrow(StateMigrationError);
+    expect(() => migrateState({ ...saved, medicalDay: null })).toThrow(StateMigrationError);
+  });
+});
