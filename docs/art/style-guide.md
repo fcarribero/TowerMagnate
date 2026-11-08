@@ -149,7 +149,7 @@ Each variant has `walk_01`, `walk_02` and `stand`, calm and with the `-pink` and
 
 A sprite id is a path of lowercase segments joined by `/`: `<group>/<subject>/<variant>`. Words inside a segment use hyphens. The variant joins state, time of day and frame with underscores, in that order, leaving out the parts that do not apply.
 
-Groups: `units`, `transport`, `people`, `structure`, `sky`, `ui`.
+Groups: `units`, `transport`, `people`, `structure`, `sky`, `ui`, `events`.
 
 | Example id | Meaning |
 |---|---|
@@ -289,6 +289,10 @@ The service shaft has a maintenance hatch, `transport/service-shaft/hatch` (10 x
 `pnpm art:build` draws every sprite group in `tools/art/src/groups` and rewrites the generated files. Each group is one module with a `name` (one of the groups above) and a `draw()` function that returns `{ id, canvas }` pairs. A new group is added to `tools/art/src/groups/index.mjs`.
 
 The build writes one PNG per sprite to `assets/sprites/<id>.png` and one atlas per group to `assets/atlases/<group>.png` and `assets/atlases/<group>.json`. The JSON uses the PixiJS 8 spritesheet hash format, and ids ending in `_01`, `_02` and so on are listed as animations. The output depends only on the drawing code, so two builds give byte-identical files. The generated files, the client manifest `apps/web/src/render/atlasManifest.ts` and the previews in `docs/art` are not committed. `pnpm dev`, `pnpm build`, `pnpm typecheck`, `pnpm test`, CI and the Vite dev server in the compose stack build them first, so after a fresh clone `pnpm install` and `pnpm dev` are enough. Run `pnpm art:build` to see a change to the drawing code without restarting anything.
+
+## Event animations
+
+Event sprites are in `tools/art/src/groups/events.mjs`, in the `events` atlas, and have no day or night variant. `events/wedding-bell/swing_01` to `_04` (32 x 26) is the cathedral bell hanging from a yoke at the top of the frame. The frames swing left, through the middle, right and back, so the client loops them in order over the belfry. `events/wedding-petals/burst_01` to `_04` (32 x 32) is a petal burst at the door. Its origin is the bottom center, 4 px above the slab line, and the petals spread, fall and shrink over the four frames. Petals use white, cloud, lamp-glow and cloth-red. `pnpm art:build` writes `docs/art/events-preview-1x.png` and `docs/art/events-preview.png` (4x).
 
 ## UI icons
 

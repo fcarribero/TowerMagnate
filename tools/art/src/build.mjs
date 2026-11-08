@@ -3,7 +3,7 @@ import { dirname, join } from 'node:path';
 import { atlasJson, packSprites, renderAtlas } from './atlas.mjs';
 import { encodePng } from './png.mjs';
 
-const GROUP_NAMES = ['units', 'transport', 'people', 'structure', 'sky', 'ui'];
+const GROUP_NAMES = ['units', 'transport', 'people', 'structure', 'sky', 'ui', 'events'];
 const SEGMENT = '[a-z0-9]+(?:[-_][a-z0-9]+)*';
 const SPRITE_ID = new RegExp(`^${SEGMENT}(?:/${SEGMENT}){1,2}$`);
 
