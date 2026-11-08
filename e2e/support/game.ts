@@ -9,10 +9,14 @@ export async function openGame(page: Page): Promise<TestUser> {
   return user;
 }
 
-/** Sends one build command over a second socket of the page's session and resolves with the server's answer. */
-export async function sendCommand(page: Page, command: Record<string, unknown>): Promise<unknown> {
+/** Sends one frame over a second socket of the page's session and resolves with the server's commandResult. */
+async function sendFrame(
+  page: Page,
+  type: string,
+  payload: Record<string, unknown>,
+): Promise<unknown> {
   return page.evaluate(
-    (payload) =>
+    ({ frameType, body }) =>
       new Promise((resolve, reject) => {
         const scheme = location.protocol === 'https:' ? 'wss:' : 'ws:';
         const socket = new WebSocket(`${scheme}//${location.host}/ws`);
@@ -22,7 +26,7 @@ export async function sendCommand(page: Page, command: Record<string, unknown>):
         socket.onmessage = (event) => {
           const message = JSON.parse(String(event.data));
           if (message.t === 'welcome' || message.t === 'snapshot') {
-            socket.send(JSON.stringify({ v: 1, t: 'command', p: { id, command: payload } }));
+            socket.send(JSON.stringify({ v: 1, t: frameType, p: { id, ...body } }));
           } else if (message.t === 'commandResult' && message.p.id === id) {
             clearTimeout(timer);
             socket.close();
@@ -30,6 +34,16 @@ export async function sendCommand(page: Page, command: Record<string, unknown>):
           }
         };
       }),
-    command,
+    { frameType: type, body: payload },
   );
+}
+
+/** Sends one build command and resolves with the server's answer. */
+export async function sendCommand(page: Page, command: Record<string, unknown>): Promise<unknown> {
+  return sendFrame(page, 'command', { command });
+}
+
+/** Runs the tower forward by simulation steps; needs a server with debug commands on. */
+export async function fastForward(page: Page, steps: number): Promise<unknown> {
+  return sendFrame(page, 'debug.fastForward', { steps });
 }
