@@ -1,4 +1,6 @@
+import { noticeParams } from '@tower-magnate/engine';
 import type { ClientEvent, EngineEvent } from '@tower-magnate/shared';
+import { noticeParamTexts } from './notice-params';
 
 /** The engine events a player's screen reacts to. Everything else stays on the server. */
 export function toClientEvents(events: readonly EngineEvent[]): ClientEvent[] {
@@ -33,6 +35,7 @@ export function toClientEvents(events: readonly EngineEvent[]): ClientEvent[] {
           step: event.step,
           key: event.key,
           unitId: 'unitId' in event ? event.unitId : null,
+          params: noticeParamTexts(noticeParams(event)),
         });
         break;
       default:

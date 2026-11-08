@@ -171,3 +171,4 @@ export type {
   UserClass,
   WalkableRun,
 } from './routing';
+export { noticeParams } from './notices';

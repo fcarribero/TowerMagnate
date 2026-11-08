@@ -131,12 +131,28 @@ describe('migrateState events', () => {
 
   it('keeps notices and refuses malformed ones', () => {
     const tower = createTower(2);
-    tower.notices.push({ id: 'n5.0', step: 5, key: 'news.starsUp', unitId: null });
+    tower.notices.push({
+      id: 'n5.0',
+      step: 5,
+      key: 'news.starsUp',
+      unitId: null,
+      params: { n: 2 },
+    });
     expect(migrateState(roundTrip(tower))).toEqual(tower);
     const saved = roundTrip(tower) as object;
     expect(() => migrateState({ ...saved, notices: [{ id: 'n5.0' }] })).toThrow(
       StateMigrationError,
     );
+  });
+
+  it('gives a notice saved without params no params', () => {
+    const tower = createTower(2);
+    tower.notices.push({ id: 'n5.0', step: 5, key: 'news.officeLeft', unitId: 'u1', params: {} });
+    const saved = roundTrip(tower) as { notices: Record<string, unknown>[] };
+    delete saved.notices[0]?.params;
+    expect(migrateState(saved).notices).toEqual(tower.notices);
+    const badLevel = { ...saved.notices[0], params: { level: 'S3' } };
+    expect(() => migrateState({ ...saved, notices: [badLevel] })).toThrow(StateMigrationError);
   });
 
   it('refuses malformed events', () => {

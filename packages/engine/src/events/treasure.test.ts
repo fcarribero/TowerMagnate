@@ -62,6 +62,7 @@ describe('basement treasure', () => {
       commandId: 'c0',
       key: 'news.treasure',
       level: -4,
+      amount: 100_000,
     });
   });
 

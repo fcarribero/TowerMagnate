@@ -101,12 +101,24 @@ describe('triggersForEvents', () => {
   });
 
   it('plays the notice sound once per batch', () => {
-    const news: ClientEvent = { type: 'news', step: 1, key: 'news.vipVisit', unitId: null };
+    const news: ClientEvent = {
+      type: 'news',
+      step: 1,
+      key: 'news.vipVisit',
+      unitId: null,
+      params: {},
+    };
     expect(triggersForEvents([news, { ...news, key: 'news.lowMoney' }])).toEqual(['notice.show']);
   });
 
   it('plays the alarm in place of the notice for a bomb threat', () => {
-    const threat: ClientEvent = { type: 'news', step: 1, key: 'news.bombThreat', unitId: null };
+    const threat: ClientEvent = {
+      type: 'news',
+      step: 1,
+      key: 'news.bombThreat',
+      unitId: null,
+      params: {},
+    };
     const decision: ClientEvent = {
       type: 'decisionOpened',
       step: 1,
@@ -115,7 +127,13 @@ describe('triggersForEvents', () => {
       deadlineStep: 500,
       options: ['pay', 'refuse'],
     };
-    const other: ClientEvent = { type: 'news', step: 1, key: 'news.vipVisit', unitId: null };
+    const other: ClientEvent = {
+      type: 'news',
+      step: 1,
+      key: 'news.vipVisit',
+      unitId: null,
+      params: {},
+    };
     expect(triggersForEvents([threat, decision, other])).toEqual(['event.bomb']);
   });
 
