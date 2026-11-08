@@ -1,4 +1,13 @@
-import { STRESS_NO_ROUTE, STRESS_WINDOW_STEPS, type TowerState } from '@tower-magnate/shared';
+import {
+  ELEVATOR_QUEUE_CAPACITY,
+  FULL_QUEUE_RECHECK_STEPS,
+  STRESS_NO_ROUTE,
+  STRESS_QUEUE_FULL,
+  STRESS_WINDOW_STEPS,
+  type Level,
+  type Shaft,
+  type TowerState,
+} from '@tower-magnate/shared';
 import { describe, expect, it } from 'vitest';
 import { createElevatorSystem } from './elevators';
 import { addPerson, findPerson, slotOfPerson } from './people';
@@ -20,7 +29,23 @@ const engine = createEngine({
   systems: [createTrekSystem(), createElevatorSystem()],
 });
 
+const walkingOnly = createEngine({ commandHandlers: {}, systems: [createTrekSystem()] });
+
 const SHAFT_COLUMN = 62;
+
+function upQueueAtLobby(state: TowerState) {
+  const shaft = Object.values(state.shafts)[0] as Shaft;
+  shaft.queues['1'] ??= { up: [], down: [] };
+  return shaft.queues['1'];
+}
+
+function fillUpQueueAtLobby(state: TowerState): void {
+  upQueueAtLobby(state).up = Array.from({ length: ELEVATOR_QUEUE_CAPACITY }, (_, index) => ({
+    person: `p${9000 + index}`,
+    destination: 4 as Level,
+    joinedStep: 0,
+  }));
+}
 
 function buildRideTower(): TowerState {
   const plan = {
@@ -79,6 +104,40 @@ describe('trip ledger', () => {
     const id = sendRider(state, 'officeWorker', 4);
     const waiting = engine.step(state, [], 3).state;
     expect(findPerson(waiting.people, id)?.stress).toBe(3);
+  });
+
+  it('counts one full-queue event and the time beside the full queue as wait', () => {
+    const state = buildRideTower();
+    fillUpQueueAtLobby(state);
+    const id = sendRider(state, 'officeWorker', 4);
+    const arrivedAtShaft = state.step;
+    const rechecks = 3;
+    const beside = walkingOnly.step(state, [], rechecks * FULL_QUEUE_RECHECK_STEPS).state;
+    const slot = slotOfPerson(beside.people, id);
+    expect(trekPhaseAt(beside.people, slot)).toBe('waitingBesideQueue');
+    const besideSteps = rechecks * FULL_QUEUE_RECHECK_STEPS;
+    expect(findPerson(beside.people, id)?.stress).toBe(STRESS_QUEUE_FULL + besideSteps);
+
+    upQueueAtLobby(beside).up = [];
+    let joined = beside;
+    while (trekPhaseAt(joined.people, slot) !== 'queued') {
+      joined = walkingOnly.step(joined, [], 1).state;
+    }
+    const waitBeforeQueue = joined.step - arrivedAtShaft;
+    expect(waitBeforeQueue).toBe((rechecks + 1) * FULL_QUEUE_RECHECK_STEPS);
+
+    const { state: arrived, waitSteps, rideSteps } = rideToArrival(joined, id);
+    const expected = STRESS_QUEUE_FULL + waitBeforeQueue + waitSteps + rideSteps;
+    expect(tripsOf(arrived, id).map((trip) => trip.stress)).toEqual([expected]);
+  });
+
+  it('keeps the wait beside a full queue when the trip ends there', () => {
+    const state = buildRideTower();
+    fillUpQueueAtLobby(state);
+    const id = sendRider(state, 'officeWorker', 4);
+    const beside = walkingOnly.step(state, [], 4).state;
+    cancelTrek({ state: beside, events: [] }, slotOfPerson(beside.people, id));
+    expect(tripsOf(beside, id).map((trip) => trip.stress)).toEqual([STRESS_QUEUE_FULL + 4]);
   });
 
   it('starts the next trip from zero', () => {

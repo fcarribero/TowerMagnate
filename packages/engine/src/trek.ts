@@ -169,9 +169,12 @@ function startLeg(context: StepContext, slot: number, leg: FirstLeg): void {
  * Plans the next leg from where the person stands and starts it (routing 5.1). The person ends
  * idle when there is no route. A leg that starts where the person already is begins at once.
  */
-function planNextLeg(context: StepContext, slot: number): boolean {
+function planNextLeg(
+  context: StepContext,
+  slot: number,
+  plan: RoutePlan | null = planFrom(context, slot),
+): boolean {
   const pool = context.state.people;
-  const plan = planFrom(context, slot);
   if (!plan) {
     pool.trek[slot] = IDLE;
     return false;
@@ -197,8 +200,12 @@ function entityOf(pool: PersonPool, slot: number): EntityId {
  * Plans again in the middle of a trip. With no route the person stays where they are and searches
  * again after ROUTE_RETRY_STEPS, and the failed search is reported for stress (routing R-23).
  */
-function replan(context: StepContext, slot: number): void {
-  if (planNextLeg(context, slot)) return;
+function replan(
+  context: StepContext,
+  slot: number,
+  plan: RoutePlan | null = planFrom(context, slot),
+): void {
+  if (planNextLeg(context, slot, plan)) return;
   const pool = context.state.people;
   pool.trek[slot] = NO_ROUTE;
   pool.legStep[slot] = context.state.step + ROUTE_RETRY_STEPS;
@@ -263,7 +270,7 @@ export function cancelTrek(
 }
 
 function partUnderWay(phase: number): PartUnderWay {
-  if (phase === QUEUED) return 'queued';
+  if (phase === QUEUED || phase === WAITING_BESIDE_QUEUE) return 'queued';
   if (phase === RIDING) return 'riding';
   return null;
 }
@@ -346,6 +353,7 @@ function enterQueueOrWait(context: StepContext, slot: number): void {
   if (isQueueFull(shaft, level, direction)) {
     pool.trek[slot] = WAITING_BESIDE_QUEUE;
     pool.legStep[slot] = nextQueueCheckStep(state.step);
+    startWait(state, slot, shaft, direction);
     addFullQueueEvent(pool, slot);
     return;
   }
@@ -353,6 +361,48 @@ function enterQueueOrWait(context: StepContext, slot: number): void {
   joinQueue(shaft, level, direction, person, destination, state.step);
   startWait(state, slot, shaft, direction);
   pool.trek[slot] = QUEUED;
+}
+
+function isSameRideFromHere(context: StepContext, slot: number, leg: FirstLeg): boolean {
+  const pool = context.state.people;
+  const first = leg.steps[0];
+  if (leg.kind !== 'ride' || !first) return false;
+  const graph = graphOf(context);
+  return (
+    entityNumber(first.via) === pool.legVia[slot] &&
+    graph.node(first.to).level === pool.legLevel[slot] &&
+    graph.node(first.from).x === pool.column[slot]
+  );
+}
+
+function joinFromBesideQueue(context: StepContext, slot: number): void {
+  const { state } = context;
+  const pool = state.people;
+  const shaft = state.shafts[`s${pool.legVia[slot]}`];
+  const level = pool.level[slot] as Level;
+  const destination = pool.legLevel[slot] as Level;
+  const direction = directionBetween(level, destination);
+  if (!shaft || isQueueFull(shaft, level, direction)) {
+    pool.legStep[slot] = nextQueueCheckStep(state.step);
+    return;
+  }
+  const person = personEntityId(pool.id[slot] as number);
+  joinQueue(shaft, level, direction, person, destination, state.step);
+  pool.trek[slot] = QUEUED;
+}
+
+/**
+ * A person beside a full queue looks again (routing 8.3). While the same ride wins they stay on
+ * the same wait and join once there is room. Otherwise the wait so far counts and they move on.
+ */
+function recheckFullQueue(context: StepContext, slot: number): void {
+  const plan = planFrom(context, slot);
+  if (plan?.firstLeg && isSameRideFromHere(context, slot, plan.firstLeg)) {
+    joinFromBesideQueue(context, slot);
+    return;
+  }
+  settlePartUnderWay(context.state, slot, 'queued');
+  replan(context, slot, plan);
 }
 
 /** The person is standing where their current leg begins. */
@@ -454,6 +504,9 @@ function replanBrokenLegs(context: StepContext): void {
     const phase = pool.trek[slot] as number;
     if (!isLegBroken(context, slot, phase)) continue;
     if (phase === QUEUED) leaveQueueOf(context, slot);
+    if (phase === QUEUED || phase === WAITING_BESIDE_QUEUE) {
+      settlePartUnderWay(context.state, slot, 'queued');
+    }
     if (phase === ON_STAIRS || phase === ON_ESCALATOR) {
       pool.level[slot] = pool.legLevel[slot] as number;
     }
@@ -471,7 +524,8 @@ function stepPerson(context: StepContext, slot: number): void {
   if (phase <= WALKING_TO_SHAFT) {
     if (walk(pool, slot)) reachLegStart(context, slot);
   } else if (pool.legStep[slot] === context.state.step) {
-    if (phase === WAITING_BESIDE_QUEUE || phase === NO_ROUTE) replan(context, slot);
+    if (phase === WAITING_BESIDE_QUEUE) recheckFullQueue(context, slot);
+    else if (phase === NO_ROUTE) replan(context, slot);
     else finishFlight(context, slot);
   }
 }
