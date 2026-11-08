@@ -122,15 +122,32 @@ export type {
   StepContext,
   StepResult,
 } from './step';
-export { TransportGraph, walkableLevelOfUnit, walkableRuns } from './routing';
+export {
+  noRouteOutcome,
+  spendBudget,
+  TransportGraph,
+  TripPlanner,
+  walkableLevelOfUnit,
+  walkableRuns,
+} from './routing';
 export type {
   GraphNode,
   Link,
   LinkKind,
+  FirstLeg,
+  NoRouteOutcome,
   NodeId,
   NodeRole,
+  RoutePlan,
+  RoutePoint,
+  RouteRequest,
+  RouteStep,
   RunId,
   ShaftStops,
+  TripBudget,
+  TripKind,
+  TripPlan,
+  TripRequest,
   UserClass,
   WalkableRun,
 } from './routing';
