@@ -49,7 +49,7 @@ export function towerSocketHandlers({
     },
     inspect: (message, { socket, identity }) => {
       if (!inspections.set(socket, identity.towerId, message.p.target)) {
-        sendError(socket, 'INVALID_COMMAND', 'Only units can be inspected so far');
+        sendError(socket, 'INVALID_COMMAND', 'Only units and shafts can be inspected so far');
       }
     },
     inspectAdd: (message, { socket, identity }) => {

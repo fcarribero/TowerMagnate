@@ -16,6 +16,7 @@ import { isWeekendDay, weekdayOfDay } from './calendar';
 import { SECONDS_PER_STEP, STEPS_PER_DAY } from './clock';
 import { boardFromQueue, hallCallAge, queueLength } from './elevator-queues';
 import type { SimulationSystem, StepContext } from './step';
+import { alightRider, boardRider } from './trek';
 
 /** Elevators 10: shafts in id order, each car in index order, then the shaft's dispatch pass. */
 export function createElevatorSystem(): SimulationSystem {
@@ -214,11 +215,22 @@ function openDoors(context: StepContext, shaft: Shaft, carIndex: number): void {
   letRidersOut(context, shaft, carIndex);
   car.direction = directionAtStop(shaft, car);
   const direction = travelDirection(car);
-  boardFromQueue(shaft, carIndex, car.level, direction, context.state.step);
+  boardPeople(context, shaft, carIndex, direction);
   car.assigned = car.assigned.filter((call) => call.level !== car.level);
   const dwellSteps = bandAt(shaft, context.state.step).dwellSeconds / SECONDS_PER_STEP;
   car.phase = dwellSteps > 0 ? 'dwelling' : 'closing';
   car.phaseStepsLeft = dwellSteps;
+}
+
+function boardPeople(
+  context: StepContext,
+  shaft: Shaft,
+  carIndex: number,
+  direction: HallDirection,
+): void {
+  const car = shaft.cars[carIndex] as ElevatorCar;
+  const boarded = boardFromQueue(shaft, carIndex, car.level, direction, context.state.step);
+  for (const person of boarded) boardRider(context, person);
 }
 
 function letRidersOut(context: StepContext, shaft: Shaft, carIndex: number): void {
@@ -241,8 +253,10 @@ function letRidersOut(context: StepContext, shaft: Shaft, carIndex: number): voi
       staying.push(index);
     }
   });
+  const leaving = car.riders.filter((_, index) => !staying.includes(index));
   car.riders = staying.map((index) => car.riders[index] as string);
   car.trips = staying.map((index) => car.trips[index] as ElevatorCar['trips'][number]);
+  for (const person of leaving) alightRider(context, person, car.level);
 }
 
 /** Elevators 4.2: keep going with work ahead, else turn for work behind, else wait to be free. */
@@ -259,7 +273,7 @@ function directionAtStop(shaft: Shaft, car: ElevatorCar): ElevatorCar['direction
 
 function dwell(context: StepContext, shaft: Shaft, carIndex: number): void {
   const car = shaft.cars[carIndex] as ElevatorCar;
-  boardFromQueue(shaft, carIndex, car.level, travelDirection(car), context.state.step);
+  boardPeople(context, shaft, carIndex, travelDirection(car));
   car.phaseStepsLeft -= 1;
   if (car.phaseStepsLeft <= 0) {
     car.phase = 'closing';

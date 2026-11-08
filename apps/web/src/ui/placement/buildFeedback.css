@@ -31,6 +31,10 @@
   animation: tm-float-up 1.2s steps(8) forwards;
 }
 
+.tm-float-refund {
+  color: var(--tm-leaf);
+}
+
 @keyframes tm-float-up {
   to {
     transform: translate(-50%, calc(-100% - 24px));
