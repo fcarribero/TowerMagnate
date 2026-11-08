@@ -455,3 +455,78 @@ describe('stop changes and bands in motion', () => {
     expect(carOf(tower).phase).toBe('closing');
   });
 });
+
+describe('band boundaries', () => {
+  const DAY = 8640;
+  const bandStarts = [0, 2520, 3600, 4320, 5040, 6120];
+
+  /** Even bands close at once and odd ones dwell 60 s, so the phase after opening shows the band. */
+  function openingPhase(openingStep: number) {
+    const tower = shaftTower('standard', 30);
+    const { schedule } = shaftOf(tower);
+    const band = (dwellSeconds: number) => ({
+      mode: 'normal' as const,
+      dwellSeconds,
+      responseDistance: 5,
+    });
+    schedule.weekday = bandStarts.map((_, index) => band(index % 2 === 0 ? 0 : 60));
+    schedule.weekend = bandStarts.map((_, index) => band(index % 2 === 0 ? 0 : 60));
+    callAt(tower, openingStep - 1, 1, 'up', 2);
+    run(tower, 1);
+    return carOf(tower).phase;
+  }
+
+  it.each([1, 2, 3, 4, 5])('switches to band %i on its first step', (band) => {
+    const start = bandStarts[band] as number;
+    const expectDwellBefore = (band - 1) % 2 === 0 ? 'closing' : 'dwelling';
+    const expectDwellAfter = band % 2 === 0 ? 'closing' : 'dwelling';
+    expect(openingPhase(start - 1)).toBe(expectDwellBefore);
+    expect(openingPhase(start)).toBe(expectDwellAfter);
+  });
+
+  it('switches from the weekday to the weekend schedule at Saturday 00:00', () => {
+    expect(openingPhase(5 * DAY - 1)).toBe('dwelling');
+    expect(openingPhase(5 * DAY)).toBe('closing');
+  });
+
+  it('switches from the weekend to the weekday schedule at Monday 00:00', () => {
+    expect(openingPhase(7 * DAY - 1)).toBe('dwelling');
+    expect(openingPhase(7 * DAY)).toBe('closing');
+  });
+});
+
+describe('band changes with cars running', () => {
+  it('keeps riders, direction and assigned calls when a new band starts', () => {
+    const tower = shaftTower('standard', 30, [1, 1]);
+    const car = carOf(tower, 0);
+    car.level = 4;
+    car.direction = 'up';
+    car.phase = 'moving';
+    loadRiders(car, [20]);
+    const rider = car.riders[0];
+    callAt(tower, 2515, 8, 'up', 12);
+    expect(carOf(tower, 0).assigned).toEqual([{ level: 8, direction: 'up' }]);
+
+    setBand(tower, { mode: 'expressUp' });
+    runTo(tower, 2521);
+
+    expect(carOf(tower, 0).riders).toContain(rider);
+    expect(carOf(tower, 0).direction).toBe('up');
+  });
+});
+
+describe('express up call timing (elevators 13.4)', () => {
+  it('makes the call wait 37 steps for the free car and lets the loaded car pass', () => {
+    const tower = morningRush('expressUp');
+    const waiting = callAt(tower, MORNING, 7, 'up', 20);
+    const loaded = carOf(tower, 0);
+
+    const finished = rides(runTo(tower, MORNING + 80));
+
+    expect(finished.find((ride) => ride.level === 6)).toBeDefined();
+    expect(finished.find((ride) => ride.person === waiting)).toMatchObject({ carIndex: 1 });
+    const waitingRide = finished.find((ride) => ride.person === waiting);
+    expect(waitingRide?.waitSteps).toBe(37);
+    expect(loaded.assigned).toEqual([]);
+  });
+});
