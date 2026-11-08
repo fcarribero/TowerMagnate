@@ -1,23 +1,29 @@
 import {
   findPerson,
+  isExpressStop,
   listPeople,
   NO_TRIP,
   populationOf,
+  shaftLevels,
   STEPS_PER_DAY,
   DAYS_PER_WEEK,
 } from '@tower-magnate/engine';
 import type { PersonView as EnginePerson } from '@tower-magnate/engine';
 import {
   DEFAULT_PRICE_LEVEL,
+  levelToIndex,
   LEDGER_CATEGORIES,
   TOWER_LAYOUT,
   type FinanceSummary,
   type FinanceWeek,
+  type CarView,
   type FollowedView,
   type LedgerCategory,
   type LevelRow,
   type MoneyReason,
   type PersonView,
+  type Shaft,
+  type ShaftView,
   type Snapshot,
   type TowerState,
   type UnitView,
@@ -53,7 +59,7 @@ export function buildSnapshot(state: TowerState, viewport: Viewport | null): Sna
   return {
     step: state.step,
     money: state.money,
-    stars: 1,
+    stars: state.stars,
     population: populationOf(state).total,
     grid: {
       levels: structureRows(state),
@@ -61,8 +67,8 @@ export function buildSnapshot(state: TowerState, viewport: Viewport | null): Sna
     },
     units,
     transports: [],
-    shafts: [],
-    cars: [],
+    shafts: Object.values(state.shafts).map(shaftView),
+    cars: Object.values(state.shafts).flatMap(carViews),
     people: viewport ? people.filter((person) => isInside(person, viewport)).map(personView) : [],
     followed: followedPeople(state),
     activeEvents: [],
@@ -87,6 +93,29 @@ function unitView(unit: TowerState['units'][string], occupied: boolean): UnitVie
     occupied,
     variant: occupied ? 'occupied' : 'empty',
   };
+}
+
+function shaftView(shaft: Shaft): ShaftView {
+  const levels = shaftLevels(shaft);
+  return {
+    id: shaft.id,
+    type: shaft.type,
+    x: shaft.x,
+    bottom: shaft.bottom,
+    top: shaft.top,
+    stops: shaft.type === 'express' ? levels.filter(isExpressStop) : levels,
+  };
+}
+
+function carViews(shaft: Shaft): CarView[] {
+  return shaft.cars.map((car, index) => ({
+    shaftId: shaft.id,
+    index,
+    position: levelToIndex(car.level),
+    direction: 'idle',
+    doors: 'closed',
+    load: car.riders.length,
+  }));
 }
 
 function occupiedUnits(people: EnginePerson[]): Set<string> {
