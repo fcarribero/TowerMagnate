@@ -5,12 +5,13 @@ import {
   PERSON_KINDS,
   STAIR_FLIGHT_STEPS,
   WALK_COLUMNS_PER_STEP,
+  type EntityId,
   type HallDirection,
   type Level,
   type PersonPool,
 } from '@tower-magnate/shared';
 import { isQueueFull, joinQueue, nextQueueCheckStep } from './elevator-queues';
-import { personEntityId } from './people';
+import { parsePersonId, personEntityId, slotOfPerson } from './people';
 import { floorIndex } from './routing/transport-graph';
 import {
   spendBudget,
@@ -33,6 +34,7 @@ export const TREK_PHASES = [
   'onEscalator',
   'queued',
   'waitingBesideQueue',
+  'riding',
 ] as const;
 
 export type TrekPhase = (typeof TREK_PHASES)[number];
@@ -46,6 +48,7 @@ const ON_STAIRS = TREK_PHASES.indexOf('onStairs');
 const ON_ESCALATOR = TREK_PHASES.indexOf('onEscalator');
 const QUEUED = TREK_PHASES.indexOf('queued');
 const WAITING_BESIDE_QUEUE = TREK_PHASES.indexOf('waitingBesideQueue');
+const RIDING = TREK_PHASES.indexOf('riding');
 
 const MAID_KIND = PERSON_KINDS.indexOf('maid');
 
@@ -208,6 +211,7 @@ export function plannedTripSteps(
 export function cancelTrek(context: StepContext, slot: number): void {
   const pool = context.state.people;
   if (pool.trek[slot] === QUEUED) leaveQueueOf(context, slot);
+  if (pool.trek[slot] === RIDING) leaveCarOf(context, slot);
   clearTrek(pool, slot);
 }
 
@@ -221,6 +225,20 @@ function leaveQueueOf(context: StepContext, slot: number): void {
   const person = personEntityId(pool.id[slot] as number);
   const at = queue.findIndex((entry) => entry.person === person);
   if (at >= 0) queue.splice(at, 1);
+}
+
+function leaveCarOf(context: StepContext, slot: number): void {
+  const pool = context.state.people;
+  const shaft = context.state.shafts[`s${pool.legVia[slot]}`];
+  if (!shaft) return;
+  const person = personEntityId(pool.id[slot] as number);
+  for (const car of shaft.cars) {
+    const at = car.riders.indexOf(person);
+    if (at < 0) continue;
+    car.riders.splice(at, 1);
+    car.trips.splice(at, 1);
+    return;
+  }
 }
 
 function clearTrek(pool: PersonPool, slot: number): void {
@@ -286,6 +304,31 @@ function reachLegStart(context: StepContext, slot: number): void {
   }
 }
 
+function slotOfEntity(context: StepContext, person: EntityId): number {
+  const id = parsePersonId(person);
+  return id === null ? -1 : slotOfPerson(context.state.people, id);
+}
+
+/** A queued person has stepped into a car: they ride until the car lets them out. */
+export function boardRider(context: StepContext, person: EntityId): void {
+  const slot = slotOfEntity(context, person);
+  if (slot >= 0 && context.state.people.trek[slot] === QUEUED) {
+    context.state.people.trek[slot] = RIDING;
+  }
+}
+
+/** A rider is let out at `level`: the ride counts toward the budget and the route goes on from there. */
+export function alightRider(context: StepContext, person: EntityId, level: Level): void {
+  const slot = slotOfEntity(context, person);
+  const pool = context.state.people;
+  if (slot < 0 || pool.trek[slot] !== RIDING) return;
+  const budget = unpackBudget(pool.trekBudget[slot] as number);
+  const ride = { kind: 'standard', via: '', from: 0, to: 0, floors: 1 } as const;
+  pool.trekBudget[slot] = packBudget(spendBudget(budget, ride));
+  pool.level[slot] = level;
+  planNextLeg(context, slot);
+}
+
 function finishFlight(context: StepContext, slot: number): void {
   const pool = context.state.people;
   const kind = pool.trek[slot] === ON_STAIRS ? 'stairs' : 'escalator';
@@ -308,7 +351,7 @@ function walk(pool: PersonPool, slot: number): boolean {
 function stepPerson(context: StepContext, slot: number): void {
   const pool = context.state.people;
   const phase = pool.trek[slot] as number;
-  if (phase === IDLE || phase === QUEUED) return;
+  if (phase === IDLE || phase === QUEUED || phase === RIDING) return;
   if (phase <= WALKING_TO_SHAFT) {
     if (walk(pool, slot)) reachLegStart(context, slot);
   } else if (pool.legStep[slot] === context.state.step) {
