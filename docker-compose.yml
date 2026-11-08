@@ -35,6 +35,7 @@ services:
     environment:
       <<: *node-dev-environment
       PORT: '3000'
+      ALLOWED_ORIGINS: http://localhost:${WEB_PORT:-4102}
       DATABASE_URL: postgres://${POSTGRES_USER:-tower}:${POSTGRES_PASSWORD:-tower}@postgres:5432/${POSTGRES_DB:-tower_magnate}
     ports:
       - '${SERVER_PORT:-4101}:3000'
