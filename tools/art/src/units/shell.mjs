@@ -7,22 +7,25 @@ const SLAB_COLORS = ['concrete-light', 'concrete', 'concrete-dark'];
 
 // An empty one-floor room: ink frame on the outer edge, back wall lit from the
 // upper left, a three-row floor and the concrete slab shared with bare floor tiles.
-export function roomShell(widthTiles, { wall, wallLight, wallDark, floor }) {
+export function roomShell(widthTiles, { wall, wallLight, wallDark, floor }, floors = 1) {
   const width = widthTiles * metrics.tileWidth;
-  const room = new PixelCanvas(width, metrics.floorHeight);
-  const floorTop = FLOOR_ROW - floor.length + 1;
+  const height = floors * metrics.floorHeight;
+  const room = new PixelCanvas(width, height);
 
-  room.fillRect(0, 0, width, floorTop, wall);
+  room.fillRect(0, 0, width, height, wall);
   room.hline(1, 1, width - 2, wallLight);
-  room.vline(1, 1, floorTop - 1, wallLight);
-  room.vline(width - 2, 2, floorTop - 2, wallDark);
-  floor.forEach((color, row) => room.hline(0, floorTop + row, width, color));
+  for (let level = 0; level < floors; level++) {
+    const offset = level * metrics.floorHeight;
+    const floorTop = offset + FLOOR_ROW - floor.length + 1;
+    room.vline(1, offset + 1, floorTop - offset - 1, wallLight);
+    room.vline(width - 2, offset + 2, floorTop - offset - 2, wallDark);
+    floor.forEach((color, row) => room.hline(0, floorTop + row, width, color));
+    SLAB_COLORS.forEach((color, row) => room.hline(0, offset + FLOOR_ROW + 1 + row, width, color));
+  }
 
   room.hline(0, 0, width, 'ink');
-  room.vline(0, 0, FLOOR_ROW + 1, 'ink');
-  room.vline(width - 1, 0, FLOOR_ROW + 1, 'ink');
-
-  SLAB_COLORS.forEach((color, row) => room.hline(0, FLOOR_ROW + 1 + row, width, color));
+  room.vline(0, 0, height - metrics.slabHeight, 'ink');
+  room.vline(width - 1, 0, height - metrics.slabHeight, 'ink');
   return room;
 }
 

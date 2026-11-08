@@ -28,7 +28,15 @@ export {
 } from './grid';
 export { evaluateUnit, gradeOfScore, unitScore } from './evaluation';
 export type { UnitEvaluation, UnitEvaluationInput, UnitGrade } from './evaluation';
-export { answerDecision, endDisaster, eventsPhase, openBombThreat, openFire } from './events';
+export {
+  answerDecision,
+  buildEventViews,
+  endDisaster,
+  eventsPhase,
+  openBombThreat,
+  openFire,
+} from './events';
+
 export { hashState } from './hash';
 export { migrateState, StateMigrationError } from './migrations';
 export { createLeaseSystem, isLeasable, moveInTenant, STEPS_PER_WEEK } from './leases';

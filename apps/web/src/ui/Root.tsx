@@ -16,5 +16,9 @@ export function Root({ api }: RootProps) {
   if (tooSmall) {
     return <p class="viewport-too-small">{t('ui.viewportTooSmall')}</p>;
   }
-  return <SessionGate api={authApi}>{({ logout }) => <App onLogout={logout} />}</SessionGate>;
+  return (
+    <SessionGate api={authApi}>
+      {({ logout, sessionLost }) => <App onLogout={logout} onSessionLost={sessionLost} />}
+    </SessionGate>
+  );
 }

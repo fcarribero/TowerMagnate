@@ -264,6 +264,20 @@ function callButtons({ up, down }) {
   return panel;
 }
 
+// Maintenance hatch for the wall of a service shaft: a gray door with hazard stripes.
+function serviceHatch() {
+  const hatch = new PixelCanvas(10, 14);
+  hatch.fillRect(0, 0, 10, 14, 'gray');
+  hatch.strokeRect(0, 0, 10, 14, 'ink');
+  hatch.vline(1, 1, 12, 'silver');
+  for (let y = 2; y < 12; y += 4) {
+    hatch.hline(2, y, 7, 'lamp');
+    hatch.hline(2, y + 1, 7, 'ink');
+  }
+  hatch.set(8, 7, 'cloth-red');
+  return hatch;
+}
+
 const TYPES = ['standard', 'service', 'express'];
 const TIMES = ['day', 'night'];
 
@@ -310,6 +324,11 @@ function walkwaySprites() {
 export const transportGroup = {
   name: 'transport',
   draw() {
-    return [...elevatorSprites(), ...callButtonSprites(), ...walkwaySprites()];
+    return [
+      ...elevatorSprites(),
+      { id: 'transport/service-shaft/hatch', canvas: serviceHatch() },
+      ...callButtonSprites(),
+      ...walkwaySprites(),
+    ];
   },
 };

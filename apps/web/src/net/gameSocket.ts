@@ -9,8 +9,8 @@ import {
 export const CLOSE_NOT_AUTHENTICATED = 4401;
 export const CLOSE_PROTOCOL_MISMATCH = 4409;
 
-export const FIRST_RETRY_DELAY_MS = 500;
-export const MAX_RETRY_DELAY_MS = 8_000;
+/** UI-44: a lost socket is retried every 2 real seconds. */
+export const RETRY_DELAY_MS = 2_000;
 export const PING_INTERVAL_MS = 2_000;
 /** With pings every 2 s, this much silence means the connection is gone even if the browser has not noticed. */
 export const SILENCE_LIMIT_MS = 6_000;
@@ -49,14 +49,13 @@ const OPEN = 1;
 /**
  * One WebSocket to the tower (engine-and-protocol.md 8.1). Says hello on every
  * open, hands server messages to the sink, pings to notice a dead link and
- * reconnects with a growing delay. After a reconnect the sink is told, so it
+ * reconnects at a fixed delay. After a reconnect the sink is told, so it
  * drops what it had and waits for the new snapshot.
  */
 export class GameSocket {
   private socket: SocketLike | null = null;
   private status: ConnectionStatus = 'closed';
   private hasBeenOpen = false;
-  private retryDelayMs = FIRST_RETRY_DELAY_MS;
   private retryTimer: ReturnType<typeof setTimeout> | null = null;
   private pingTimer: ReturnType<typeof setInterval> | null = null;
   private lastHeardAtMs = 0;
@@ -108,7 +107,6 @@ export class GameSocket {
   }
 
   private handleOpen(): void {
-    this.retryDelayMs = FIRST_RETRY_DELAY_MS;
     this.lastHeardAtMs = Date.now();
     this.startPinging();
     if (this.hasBeenOpen) {
@@ -171,12 +169,10 @@ export class GameSocket {
 
   private scheduleRetry(): void {
     this.setStatus('retrying');
-    const delay = this.retryDelayMs;
-    this.retryDelayMs = Math.min(this.retryDelayMs * 2, MAX_RETRY_DELAY_MS);
     this.retryTimer = setTimeout(() => {
       this.retryTimer = null;
       this.open();
-    }, delay);
+    }, RETRY_DELAY_MS);
   }
 
   private startPinging(): void {

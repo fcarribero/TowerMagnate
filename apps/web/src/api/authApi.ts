@@ -7,6 +7,11 @@ export const AUTH_PATHS = {
   me: '/api/auth/me',
 } as const;
 
+export const TOWER_PATHS = {
+  account: '/api/account',
+  create: '/api/tower',
+} as const;
+
 export type AuthFailure =
   | { ok: false; reason: 'usernameTaken' }
   | { ok: false; reason: 'wrongCredentials' }
@@ -25,6 +30,8 @@ export interface AuthApi {
   login(credentials: Credentials): Promise<AuthResult>;
   register(credentials: Credentials): Promise<AuthResult>;
   logout(): Promise<void>;
+  /** Gives a new account its tower; false when the server could not be reached or refused. */
+  ensureTower(): Promise<boolean>;
 }
 
 /** Talks to the auth routes; the session itself lives in an HttpOnly cookie. */
@@ -65,6 +72,25 @@ export function createAuthApi(fetchImpl: Fetch = (input, init) => fetch(input, i
     },
     login: (credentials) => postCredentials(AUTH_PATHS.login, credentials),
     register: (credentials) => postCredentials(AUTH_PATHS.register, credentials),
+    async ensureTower() {
+      try {
+        const account = await fetchImpl(TOWER_PATHS.account, { credentials: 'same-origin' });
+        if (!account.ok) {
+          return false;
+        }
+        const { tower } = (await account.json()) as { tower: unknown };
+        if (tower !== null) {
+          return true;
+        }
+        const created = await fetchImpl(TOWER_PATHS.create, {
+          method: 'POST',
+          credentials: 'same-origin',
+        });
+        return created.ok || created.status === 409;
+      } catch {
+        return false;
+      }
+    },
     async logout() {
       try {
         await fetchImpl(AUTH_PATHS.logout, { method: 'POST', credentials: 'same-origin' });

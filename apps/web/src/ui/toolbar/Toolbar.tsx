@@ -33,6 +33,8 @@ export interface ToolbarProps {
   lockedLobbyHeight?: number;
   /** The hovered level is level 1 and the tower has no main lobby yet. */
   showMainLobbyWarning?: boolean;
+  /** No tool can be picked, for example while the connection is down. */
+  disabled?: boolean;
 }
 
 export function Toolbar({
@@ -43,6 +45,7 @@ export function Toolbar({
   onLobbyHeightChange,
   lockedLobbyHeight,
   showMainLobbyWarning = false,
+  disabled = false,
 }: ToolbarProps) {
   const [openCategory, setOpenCategory] = useState<ToolbarCategory>(() =>
     isFixedTool(currentTool) ? 'structure' : categoryOf(currentTool),
@@ -50,14 +53,14 @@ export function Toolbar({
   const [hoveredTool, setHoveredTool] = useState<ToolId | null>(null);
 
   const select = (tool: ToolId): void => {
-    if (!isLocked(tool, stars)) {
+    if (!disabled && !isLocked(tool, stars)) {
       onSelectTool(tool);
     }
   };
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent): void => {
-      if (event.defaultPrevented || !isPlainShortcut(event)) {
+      if (disabled || event.defaultPrevented || !isPlainShortcut(event)) {
         return;
       }
       const tool = fixedToolForKey(event.key);
@@ -67,7 +70,7 @@ export function Toolbar({
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [onSelectTool]);
+  }, [onSelectTool, disabled]);
 
   const toolButton = (tool: ToolId, className: string) => (
     <ToolButton
@@ -75,6 +78,7 @@ export function Toolbar({
       tool={tool}
       className={className}
       stars={stars}
+      disabled={disabled}
       pressed={tool === currentTool}
       onSelect={select}
       onHover={setHoveredTool}
@@ -123,14 +127,28 @@ interface ToolButtonProps {
   tool: ToolId;
   className: string;
   stars: StarRating;
+  disabled: boolean;
   pressed: boolean;
   onSelect: (tool: ToolId) => void;
   onHover: (tool: ToolId | null) => void;
 }
 
-function ToolButton({ tool, className, stars, pressed, onSelect, onHover }: ToolButtonProps) {
+function ToolButton({
+  tool,
+  className,
+  stars,
+  disabled,
+  pressed,
+  onSelect,
+  onHover,
+}: ToolButtonProps) {
   const locked = isLocked(tool, stars);
-  const classes = [className, pressed && 'is-pressed', locked && 'is-locked'].filter(Boolean);
+  const classes = [
+    className,
+    pressed && 'is-pressed',
+    locked && 'is-locked',
+    disabled && 'is-disabled',
+  ].filter(Boolean);
   // aria-disabled instead of disabled: a disabled button gets no pointer events, so no tooltip.
   return (
     <Tooltip text={tooltipLines(tool, stars)}>
@@ -139,7 +157,7 @@ function ToolButton({ tool, className, stars, pressed, onSelect, onHover }: Tool
         class={classes.join(' ')}
         aria-label={toolName(tool)}
         aria-pressed={pressed}
-        aria-disabled={locked}
+        aria-disabled={locked || disabled}
         data-tool={tool}
         onClick={() => onSelect(tool)}
         onPointerEnter={() => onHover(tool)}
