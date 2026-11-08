@@ -3,6 +3,10 @@
   align-items: center;
 }
 
+.status-panel .overlay-selector__button {
+  width: calc(24 * var(--tm-px));
+}
+
 .status-panel .overlay-selector__button.is-on {
   background: var(--tm-lamp);
   box-shadow: inset calc(1 * var(--tm-px)) calc(1 * var(--tm-px)) 0 var(--tm-slate);

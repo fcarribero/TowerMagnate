@@ -170,7 +170,7 @@ function mainLobbyEnds(state: TowerState): { left: number; right: number } | nul
   return left === null || right === null ? null : { left, right };
 }
 
-function entrancePlace(state: TowerState, onRight: boolean): Place | null {
+export function entrancePlace(state: TowerState, onRight: boolean): Place | null {
   const ends = mainLobbyEnds(state);
   if (!ends) return null;
   return { level: 1, column: onRight ? ends.right : ends.left };
@@ -180,7 +180,7 @@ function isFastFoodOpen(minuteOfDay: number): boolean {
   return minuteOfDay >= FAST_FOOD_HOURS.open && minuteOfDay < FAST_FOOD_HOURS.close;
 }
 
-function unitPlace(unit: Unit): Place {
+export function unitPlace(unit: Unit): Place {
   return { level: unit.level, column: unit.x + Math.floor(UNIT_CATALOG[unit.type].width / 2) };
 }
 

@@ -9,14 +9,17 @@ import type {
 } from '@tower-magnate/shared';
 import { STEPS_PER_DAY } from './clock';
 import { towerCommandHandlers } from './commands';
+import { rollBasementTreasure } from './events/treasure';
 import { createElevatorSystem } from './elevators';
 import { eventsPhase } from './events';
 import { createCondoSystem } from './condos';
 import { createHotelSystem } from './hotel';
 import { createLeaseSystem } from './leases';
+import { recordNotices } from './notices';
 import { cloneState } from './state';
 import { ledgerWeekRollHook } from './money';
 import { createOfficeRoutine } from './office-routine';
+import { createProspectDemand } from './prospects';
 import { createScheduler } from './scheduler';
 import { createTrekSystem, plannedTripSteps } from './trek';
 import { TransportGraph, type ShaftStops } from './routing';
@@ -138,6 +141,7 @@ export function createEngine(rules: EngineRules): Engine {
     if (!outcome.ok) {
       return { id, ok: false, step: currentStep, error: outcome.error };
     }
+    outcome.events.push(...rollBasementTreasure(draft.state, context.state.grid));
     context.state = draft.state;
     for (const event of outcome.events) {
       context.events.push({ ...event, step: currentStep, commandId: id } as EngineEvent);
@@ -170,6 +174,7 @@ export function createEngine(rules: EngineRules): Engine {
     for (let count = 0; count < steps; count++) {
       advanceOneStep(context);
     }
+    recordNotices(context.state, context.events);
     return { state: context.state, results, events: context.events, graph: currentGraph };
   }
 
@@ -186,20 +191,27 @@ const officeRoutine = createOfficeRoutine(
   { treks: true },
 );
 
-const towerEngine = createEngine({
-  commandHandlers: towerCommandHandlers,
-  systems: [
-    createScheduler([ledgerWeekRollHook, weeklyUpkeepHook, officeRoutine.planHook]),
-    createLeaseSystem(),
-    createHotelSystem(),
-    createCondoSystem(),
-    createTrekSystem(),
-    officeRoutine.system,
-    createElevatorSystem(),
-    createScheduler([starCheckHook]),
-    eventsPhase,
-  ],
-});
+const prospects = createProspectDemand();
+
+export const towerSystems: readonly SimulationSystem[] = [
+  createScheduler([
+    ledgerWeekRollHook,
+    weeklyUpkeepHook,
+    officeRoutine.planHook,
+    ...prospects.rollHooks,
+  ]),
+  createLeaseSystem(),
+  createHotelSystem(),
+  createCondoSystem(),
+  createTrekSystem(),
+  prospects.system,
+  officeRoutine.system,
+  createElevatorSystem(),
+  createScheduler([starCheckHook]),
+  eventsPhase,
+];
+
+const towerEngine = createEngine({ commandHandlers: towerCommandHandlers, systems: towerSystems });
 
 /**
  * Applies the queued commands in order, then runs `steps` simulation steps.

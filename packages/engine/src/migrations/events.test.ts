@@ -18,7 +18,7 @@ describe('migrateState events', () => {
 
   it('keeps a bomb threat, a closed fire and treasure levels', () => {
     const tower = createTower(2);
-    const fire = openFire({ state: tower, events: [] });
+    const fire = openFire({ state: tower, events: [] }, 5);
     tower.activeEvents = [];
     tower.closedDecisions.push(fire?.id ?? '');
     openBombThreat({ state: tower, events: [] }, 200_000);
@@ -26,9 +26,33 @@ describe('migrateState events', () => {
     expect(migrateState(roundTrip(tower))).toEqual(tower);
   });
 
+  it('gives an older save no notices and puts its fire on level 1', () => {
+    const tower = createTower(2);
+    openFire({ state: tower, events: [] }, 5);
+    const old = roundTrip(tower) as Record<string, unknown> & { activeEvents: object[] };
+    delete old.notices;
+    for (const event of old.activeEvents) {
+      delete (event as { level?: number }).level;
+    }
+    old.schemaVersion = 14;
+    const state = migrateState(old);
+    expect(state.notices).toEqual([]);
+    expect(state.activeEvents[0]).toMatchObject({ kind: 'fire', level: 1 });
+  });
+
+  it('keeps notices and refuses malformed ones', () => {
+    const tower = createTower(2);
+    tower.notices.push({ id: 'n5.0', step: 5, key: 'news.starsUp', unitId: null });
+    expect(migrateState(roundTrip(tower))).toEqual(tower);
+    const saved = roundTrip(tower) as object;
+    expect(() => migrateState({ ...saved, notices: [{ id: 'n5.0' }] })).toThrow(
+      StateMigrationError,
+    );
+  });
+
   it('refuses malformed events', () => {
     const tower = createTower(2);
-    openFire({ state: tower, events: [] });
+    openFire({ state: tower, events: [] }, 5);
     const saved = roundTrip(tower) as { activeEvents: Record<string, unknown>[] };
     const fire = saved.activeEvents[0] ?? {};
 

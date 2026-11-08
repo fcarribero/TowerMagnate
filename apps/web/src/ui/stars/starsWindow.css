@@ -1,0 +1,19 @@
+.stars-window p {
+  margin: 0 0 calc(4 * var(--tm-px));
+}
+
+.stars-window__bar {
+  height: calc(8 * var(--tm-px));
+  background: var(--tm-white);
+  border: calc(1 * var(--tm-px)) solid var(--tm-ink);
+  box-shadow: inset calc(1 * var(--tm-px)) calc(1 * var(--tm-px)) 0 var(--tm-slate);
+}
+
+.stars-window__fill {
+  height: 100%;
+  background: var(--tm-lamp);
+}
+
+.stars-window .stars-window__population {
+  margin: calc(2 * var(--tm-px)) 0 0;
+}

@@ -84,6 +84,11 @@ export function leaveQueues(state: TowerState, people: readonly EntityId[]): voi
       stop.down = stop.down.filter((entry) => !leaving.has(entry.person));
     }
     dropEmptyStops(shaft);
+    for (const car of shaft.cars) {
+      const staying = car.riders.map((rider) => !leaving.has(rider));
+      car.riders = car.riders.filter((_, index) => staying[index]);
+      car.trips = car.trips.filter((_, index) => staying[index]);
+    }
   }
 }
 

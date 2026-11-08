@@ -465,6 +465,16 @@ The tower has 3 stars, no flag, 2 clean free suites, units 31 and 44. Thursday 0
 
 A floor command lays columns 100 to 140 on S3. S3 has not given treasure. The draw returns 0: $50,000 goes to `events` and S3 is marked. A later command on S3 makes no draw. A unit command whose new cells are on S4 and S5 rolls for S5, the deeper one; if S5 has already given treasure it rolls for S4.
 
+### 13.7 Vertical slice: the forced bomb threat
+
+The TM-217 scenario forces one event: a bomb threat on day 13, the last Sunday of the 14-day run, at 09:00, step 115,560 (13 x 8,640 + 9 x 360). The tower is the 10-floor office tower of stars 8.6, at 2 stars since the first weekday check. The bomb threat is the only event that exists at 2 stars: fire and the VIP need 3, there is no basement for treasure and the date is not 24 December.
+
+- Step 115,560: the forced threat opens without the 1 in 60 roll. The candidate and column draws of 4.2 are made as usual. The ransom is $200,000. The engine emits `decisionOpened` with kind `bomb`, `deadlineStep` 115,920 (10:00) and options `pay`, `refuse`, and the alert notice `news.bombThreat`. The client opens the `bomb` dialog (ui.md 9.1) with "Pagar $200.000" and "No pagar", shows the notice in red in the news line and plays the bomb alarm.
+- The scenario sends no answer. At step 115,920 the decision closes with `refuse`: `decisionClosed` and `news.decisionDefault` are emitted, then `news.bombSearch`.
+- The tower has no security office, so no guard searches. At 13:00 (step 117,000) the bomb explodes: `disaster` with kind `bomb`, `news.bombExploded` with the bomb level, and the units with a cell in the blast box become ruins (4.5).
+
+The natural 09:00 roll is off in the scenario for days 0 to 12, so the forced threat is the only event. Rent charged on Monday of day 0 and day 7 is not affected, and the run ends on day 14 before the next Monday charge.
+
 ## 14. GDD Eventos coverage
 
 | GDD | Section | Status |
@@ -603,3 +613,13 @@ EV-35. At 22:00 on 24 December the engine emits `news.santa`, with no draw and n
 EV-36. Event work runs in the events phase after people's step events and before people with something due, in the order of section 10. Answers and treasure rolls happen when the command is applied.
 
 EV-37. Event draws use the tower RNG only, in the order of section 10. The same seed, commands and tower give the same events, bomb cells, fire spread and outcomes.
+
+### Vertical slice
+
+EV-38. The TM-217 scenario forces one bomb threat at 09:00 of day 13, step 115,560. The forced threat skips the 1 in 60 roll and keeps the rest of 4.1 (2 stars or more, no disaster active, a candidate unit) and all draws of 4.2. If the rating is below 2 at that step, no threat opens and the scenario fails.
+
+EV-39. The natural bomb roll is off for days 0 to 12 of the scenario. No other event can happen in it.
+
+EV-40. The scenario sends no `answerEvent`. The decision opened at step 115,560 with deadline step 115,920 closes at that step with `refuse`.
+
+EV-41. The scenario expects, in this order: `decisionOpened` (kind `bomb`, ransom $200,000) and `news.bombThreat` at step 115,560; `decisionClosed` with `refuse`, `news.decisionDefault` and `news.bombSearch` at step 115,920; `disaster` (kind `bomb`) and `news.bombExploded` at step 117,000.

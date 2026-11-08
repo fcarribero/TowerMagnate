@@ -46,6 +46,9 @@ jobs:
       - name: Transport graph benchmark
         run: pnpm bench:graph
 
+      - name: People layer benchmark
+        run: pnpm bench:people-layer
+
   e2e:
     name: End-to-end tests
     if: (github.event_name == 'pull_request' && github.base_ref == 'develop') || (github.event_name == 'push' && github.ref == 'refs/heads/develop')

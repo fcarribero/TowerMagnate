@@ -122,6 +122,10 @@ export const EventViewSchema = z.discriminatedUnion('kind', [
     decision: DecisionKindSchema,
     deadlineStep: StepSchema,
     options: OptionsSchema,
+    /** Only for a bomb threat. */
+    ransom: MoneySchema.optional(),
+    /** Only for a fire: the floor it burns on. */
+    level: LevelSchema.optional(),
   }),
   z.object({
     kind: z.literal('disaster'),
@@ -135,6 +139,7 @@ export const NoticeViewSchema = z.object({
   id: z.string().min(1),
   step: StepSchema,
   key: z.string().min(1),
+  unitId: UnitEntityIdSchema.nullable(),
   params: z.record(z.string(), z.union([z.string(), z.number()])),
 });
 
@@ -201,6 +206,8 @@ export const DeltaSchema = z.object({
   peopleGone: z.array(PersonEntityIdSchema).optional(),
   followed: z.array(FollowedViewSchema).max(MAX_FOLLOWED_PEOPLE).optional(),
   activeEvents: z.array(EventViewSchema).optional(),
+  /** The complete list of the last notices, sent when it changes. */
+  notices: z.array(NoticeViewSchema).optional(),
   overlays: OverlayDataSchema.partial().optional(),
   finances: FinanceSummarySchema.optional(),
 });
@@ -226,6 +233,8 @@ export const ClientEventSchema = z.discriminatedUnion('type', [
     step: StepSchema,
     eventId: EventIdSchema,
     choice: z.string().min(1),
+    /** True when the deadline passed and the default choice was taken. */
+    timedOut: z.boolean(),
   }),
   z.object({ type: z.literal('starsChanged'), step: StepSchema, stars: StarRatingSchema }),
   z.object({ type: z.literal('starBlocked'), step: StepSchema, reason: z.string().min(1) }),
@@ -320,6 +329,13 @@ const InspectedUnitFoundSchema = z.object({
   details: InspectedUnitDetailsSchema.nullable(),
 });
 
+/** A shaft that was removed or never existed: sent once, then the server drops the target. */
+const InspectedShaftGoneSchema = z.object({
+  kind: z.literal('shaft'),
+  id: ShaftEntityIdSchema,
+  status: z.literal('gone'),
+});
+
 export const InspectDataSchema = z.union([
   InspectedUnitFoundSchema,
   InspectedUnitGoneSchema,
@@ -334,9 +350,11 @@ export const InspectDataSchema = z.union([
     stress: StressLevelSchema,
     homeUnitId: UnitEntityIdSchema.nullable(),
   }),
+  InspectedShaftGoneSchema,
   z.object({
     kind: z.literal('shaft'),
     id: ShaftEntityIdSchema,
+    status: z.literal('ok'),
     type: ShaftTypeSchema,
     bottom: LevelSchema,
     top: LevelSchema,
