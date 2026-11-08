@@ -472,4 +472,5 @@ export const SPANISH_STRINGS = {
   'auth.passwordLong': 'La contraseña lleva como máximo 128 caracteres.',
   'ui.stage.loading': 'Cargando gráficos…',
   'ui.stage.loadError': 'No se pudieron cargar los gráficos. Recargá la página.',
+  'ui.stage.stats': '{fps} FPS · Zoom {zoom}x · Pisos dibujados: {floors}',
 } as const;

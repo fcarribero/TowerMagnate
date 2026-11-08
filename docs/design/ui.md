@@ -1068,8 +1068,11 @@ The username and password limits come from TM-52. The server's 409 maps to `auth
 |---|---|
 | `ui.stage.loading` | Cargando gráficos… |
 | `ui.stage.loadError` | No se pudieron cargar los gráficos. Recargá la página. |
+| `ui.stage.stats` | {fps} FPS · Zoom {zoom}x · Pisos dibujados: {floors} |
 
 `ui.stage.loading` shows while the renderer starts and `ui.stage.loadError` replaces it if it fails to start.
+
+`ui.stage.stats` is the render-stats line. It shows in development builds only.
 
 ## 14. Rules
 
