@@ -11,7 +11,7 @@ export interface TowerSocketDependencies {
 
 /**
  * `hello` joins the socket to its tower and answers with a snapshot; a second `hello` on the
- * same socket asks for a fresh one. Deltas and commands come in later tasks.
+ * same socket asks for a fresh one. `command` is queued on the runner and answered with its `commandResult`.
  */
 export function towerSocketHandlers({
   runner,
@@ -30,6 +30,10 @@ export function towerSocketHandlers({
       if (state) {
         sendMessage(socket, serverMessage('snapshot', buildSnapshot(state, viewports.get(socket))));
       }
+    },
+    command: async (message, { socket, identity }) => {
+      const result = await runner.submit(identity.towerId, message.p);
+      sendMessage(socket, serverMessage('commandResult', result));
     },
     viewport: (message, { socket }) => {
       viewports.update(socket, message.p);

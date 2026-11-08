@@ -1,5 +1,5 @@
 import { step } from '@tower-magnate/engine';
-import type { TowerState } from '@tower-magnate/shared';
+import type { CommandResult, QueuedCommand, TowerState } from '@tower-magnate/shared';
 import type { TowerId } from '../snapshots';
 import { stepsForElapsed } from './real-time';
 import type { TowerStore } from './tower-store';
@@ -19,10 +19,16 @@ export interface TowerRunnerOptions {
   onSaveError?: (towerId: TowerId, error: unknown) => void;
 }
 
+interface PendingCommand {
+  queued: QueuedCommand;
+  resolve: (result: CommandResult) => void;
+}
+
 interface RunningTower {
   state: TowerState;
   startedAt: number;
   startStep: number;
+  pending: PendingCommand[];
 }
 
 export class UnknownTowerError extends Error {
@@ -102,11 +108,30 @@ export class TowerRunner {
     return this.running.get(towerId)?.state;
   }
 
-  /** Advances every running tower to where the real clock says it should be. */
+  /**
+   * Queues a command for a running tower. The result arrives on the next tick, once the engine
+   * has applied it. Rejects when the tower is not running.
+   */
+  submit(towerId: TowerId, queued: QueuedCommand): Promise<CommandResult> {
+    const tower = this.running.get(towerId);
+    if (!tower) {
+      return Promise.reject(new UnknownTowerError(towerId));
+    }
+    return new Promise((resolve) => tower.pending.push({ queued, resolve }));
+  }
+
+  /**
+   * Applies the queued commands, then advances every running tower to where the real clock
+   * says it should be. A tick that accepted a command also saves the tower.
+   */
   tick(): void {
     for (const [towerId, tower] of this.running) {
       try {
+        const accepted = this.applyPending(tower);
         this.catchUp(tower);
+        if (accepted) {
+          this.save(towerId).catch((error: unknown) => this.onSaveError(towerId, error));
+        }
       } catch (error) {
         this.onTickError(towerId, error);
       }
@@ -133,7 +158,7 @@ export class TowerRunner {
     if (state === null) {
       throw new UnknownTowerError(towerId);
     }
-    this.running.set(towerId, { state, startedAt: this.now(), startStep: state.step });
+    this.running.set(towerId, { state, startedAt: this.now(), startStep: state.step, pending: [] });
   }
 
   private async saveAndForget(towerId: TowerId): Promise<void> {
@@ -141,6 +166,7 @@ export class TowerRunner {
     if (!tower) {
       return;
     }
+    this.applyPending(tower);
     this.catchUp(tower);
     this.running.delete(towerId);
     await this.store.save(towerId, tower.state);
@@ -153,6 +179,22 @@ export class TowerRunner {
     }
     this.catchUp(tower);
     await this.store.save(towerId, tower.state);
+  }
+
+  /** Runs the queued commands against the tower and answers each sender. Returns true when one was accepted. */
+  private applyPending(tower: RunningTower): boolean {
+    const pending = tower.pending.splice(0);
+    if (pending.length === 0) {
+      return false;
+    }
+    const { state, results } = step(
+      tower.state,
+      pending.map((entry) => entry.queued),
+      0,
+    );
+    tower.state = state;
+    pending.forEach((entry, index) => entry.resolve(results[index] as CommandResult));
+    return results.some((result) => result.ok);
   }
 
   private catchUp(tower: RunningTower): void {

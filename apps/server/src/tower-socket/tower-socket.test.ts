@@ -1,9 +1,11 @@
+import { setStructure, structureAt } from '@tower-magnate/engine';
 import { clientMessage, ServerMessageSchema, SnapshotSchema } from '@tower-magnate/shared';
 import type { FastifyInstance } from 'fastify';
 import pg from 'pg';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { CLOSE_CODES, MAX_CLIENT_MESSAGE_BYTES } from '../gateway';
 import { buildApp } from '../app';
+import { createSnapshotRepository } from '../snapshots';
 import { startTestDatabase, type TestDatabase } from '../testing/database';
 import { TestSocketClient } from '../testing/socket-client';
 import { createPlayer, type TestPlayer } from '../testing/tower-rows';
@@ -189,5 +191,60 @@ describe('tower socket against postgres', () => {
     expect(await oversized.waitForClose()).toBe(1009);
     other.sendRaw(JSON.stringify(clientMessage('ping', { clientTime: 7 })));
     expect((await other.next('pong')).p.clientTime).toBe(7);
+  });
+
+  describe('commands', () => {
+    function sendCommand(client: TestSocketClient, id: string, command: object): void {
+      client.sendRaw(JSON.stringify(clientMessage('command', { id, command } as never)));
+    }
+
+    async function connectWithLobby(): Promise<TestSocketClient> {
+      const client = await connect(player.cookie);
+      client.hello();
+      await client.next('snapshot');
+      const state = app.towerRunner.stateOf(player.towerId);
+      if (!state) throw new Error('Tower is not running');
+      setStructure(state.grid, 1, 10, 29, 'lobby');
+      state.grid.mainLobbyHeight = 1;
+      return client;
+    }
+
+    it('answers a malformed command with an error frame and keeps the socket open', async () => {
+      const client = await connectWithLobby();
+
+      sendCommand(client, 'c1', { type: 'buildFloor', level: '2', x0: 10, x1: 12 });
+      const error = await client.next('error');
+
+      expect(error.p.code).toBe('INVALID_COMMAND');
+      expect(client.received.filter((message) => message.t === 'commandResult')).toEqual([]);
+      expect(client.closeCode).toBeUndefined();
+    });
+
+    it('builds a floor, answers with its cost and saves the tower while it keeps running', async () => {
+      const client = await connectWithLobby();
+
+      sendCommand(client, 'c1', { type: 'buildFloor', level: 2, x0: 10, x1: 19 });
+      const result = await client.next('commandResult');
+
+      expect(result.p).toMatchObject({ id: 'c1', ok: true, cost: 5000, refund: 0 });
+      const state = app.towerRunner.stateOf(player.towerId);
+      expect(state && structureAt(state.grid, 2, 10)).toBe('floor');
+      const snapshots = createSnapshotRepository(pool);
+      let saved = await snapshots.loadLatest(player.towerId);
+      for (let attempt = 0; attempt < 300 && !saved; attempt += 1) {
+        await new Promise((resolve) => setTimeout(resolve, 10));
+        saved = await snapshots.loadLatest(player.towerId);
+      }
+      expect(saved && structureAt(saved.state.grid, 2, 10)).toBe('floor');
+    });
+
+    it('returns the engine code of a rejected command', async () => {
+      const client = await connectWithLobby();
+
+      sendCommand(client, 'c2', { type: 'buildFloor', level: 5, x0: 10, x1: 19 });
+      const result = await client.next('commandResult');
+
+      expect(result.p).toMatchObject({ id: 'c2', ok: false, error: 'NO_SUPPORT' });
+    });
   });
 });
