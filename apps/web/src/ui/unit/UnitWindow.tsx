@@ -10,6 +10,7 @@ import {
   dialogRequest,
   useWindowManager,
 } from '../kit';
+import { unitWindowId } from '../inspectTarget';
 import { t } from '../strings';
 import {
   NAME_MAX_LENGTH,
@@ -24,12 +25,6 @@ import {
   unitTitle,
 } from './unitWindowModel';
 import './unit.css';
-
-export const UNIT_WINDOW_KIND = 'unit';
-
-export function unitWindowId(unitId: string): string {
-  return `${UNIT_WINDOW_KIND}:${unitId}`;
-}
 
 export interface UnitWindowProps {
   unitId: string;
