@@ -6,30 +6,34 @@ export const PASSWORD_MIN_LENGTH = 8;
 // argon2 accepts long inputs, but hashing megabytes per request is an easy way to burn CPU.
 export const PASSWORD_MAX_LENGTH = 128;
 
+// Same wording as the auth.* texts of the web client (ui.md 13.12).
+const REQUIRED_MESSAGE = 'Completá este campo.';
+const USERNAME_INVALID_MESSAGE = `El usuario lleva de ${USERNAME_MIN_LENGTH} a ${USERNAME_MAX_LENGTH} caracteres: letras minúsculas, números o _.`;
+
 export const usernameSchema = z
-  .string({ error: 'El nombre de usuario es obligatorio.' })
+  .string({ error: REQUIRED_MESSAGE })
   .min(USERNAME_MIN_LENGTH, {
-    error: `El nombre de usuario debe tener al menos ${USERNAME_MIN_LENGTH} caracteres.`,
+    error: USERNAME_INVALID_MESSAGE,
   })
   .max(USERNAME_MAX_LENGTH, {
-    error: `El nombre de usuario debe tener como máximo ${USERNAME_MAX_LENGTH} caracteres.`,
+    error: USERNAME_INVALID_MESSAGE,
   })
   .regex(/^[a-z0-9_]+$/, {
-    error: 'El nombre de usuario solo puede tener letras minúsculas, números y guiones bajos.',
+    error: USERNAME_INVALID_MESSAGE,
   });
 
 export const passwordSchema = z
-  .string({ error: 'La contraseña es obligatoria.' })
+  .string({ error: REQUIRED_MESSAGE })
   .min(PASSWORD_MIN_LENGTH, {
-    error: `La contraseña debe tener al menos ${PASSWORD_MIN_LENGTH} caracteres.`,
+    error: `La contraseña lleva al menos ${PASSWORD_MIN_LENGTH} caracteres.`,
   })
   .max(PASSWORD_MAX_LENGTH, {
-    error: `La contraseña debe tener como máximo ${PASSWORD_MAX_LENGTH} caracteres.`,
+    error: `La contraseña lleva como máximo ${PASSWORD_MAX_LENGTH} caracteres.`,
   });
 
 export const credentialsSchema = z.object(
   { username: usernameSchema, password: passwordSchema },
-  { error: 'Faltan el nombre de usuario y la contraseña.' },
+  { error: REQUIRED_MESSAGE },
 );
 
 export type Credentials = z.infer<typeof credentialsSchema>;
