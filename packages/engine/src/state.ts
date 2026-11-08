@@ -4,7 +4,7 @@ import { createLedger } from './money';
 import { clonePersonPool, createPersonPool } from './people';
 import { createRng } from './rng';
 
-export const SCHEMA_VERSION = 24;
+export const SCHEMA_VERSION = 25;
 
 export function createTower(seed: number): TowerState {
   if (!Number.isInteger(seed)) {
@@ -35,6 +35,7 @@ export function createTower(seed: number): TowerState {
     lastParkingFailureStep: null,
     medicalDay: { day: 0, visits: {}, noticed: [] },
     parking: { spaces: {}, noticeDay: 0, noticed: [] },
+    wedding: null,
   };
 }
 

@@ -290,7 +290,24 @@ export interface TowerState {
   /** Medical center visits and notices of one game day; a new day starts them over. */
   medicalDay: MedicalDay;
   parking: ParkingState;
+  /** Today's wedding attempt, from 00:00 until its guests leave; null on other days. */
+  wedding: WeddingAttempt | null;
 }
+
+/** A weekend day's wedding attempt (stars spec 7, people spec 15). */
+export interface WeddingAttempt {
+  /** Day number of the attempt. */
+  day: number;
+  /** The cathedral the guests travel to. */
+  cathedral: UnitId;
+  /** Steps at which the guests still to come appear, earliest first. */
+  arrivals: number[];
+  /** Guests inside the cathedral. */
+  inside: number;
+  outcome: WeddingOutcome;
+}
+
+export type WeddingOutcome = 'pending' | 'completed' | 'failed';
 
 export interface ParkingState {
   /** Parking holders by person number; the value is the unit number of their space, or 0 for none. */
@@ -432,6 +449,7 @@ export type EngineEvent =
   | { type: 'hotelCheckOut'; step: number; unitId: UnitId }
   | { type: 'roomStateChanged'; step: number; unitId: UnitId; state: HotelRoomState }
   | { type: 'starsChanged'; step: number; stars: StarRating; unlocked: UnitType[] }
+  | { type: 'weddingCompleted'; step: number }
   | {
       type: 'decisionOpened';
       step: number;
