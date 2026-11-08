@@ -17,7 +17,8 @@ import type { OverlayId } from '../render/overlayColors';
 import { OverlayLegend } from './overlay/OverlayLegend';
 import { OverlaySelector } from './overlay/OverlaySelector';
 import { overlayForKey } from './overlay/overlayModel';
-import { isMapToggleKey, isPlainShortcut } from './keys';
+import { FinanceWindow } from './finance/FinanceWindow';
+import { isFinanceToggleKey, isMapToggleKey, isPlainShortcut } from './keys';
 import { ConnectionOverlay } from './ConnectionOverlay';
 import { BuildFeedback } from './placement/BuildFeedback';
 import { bindBuildInput, type DragLabel } from './placement/bindBuildInput';
@@ -60,6 +61,7 @@ export function App({ onLogout, onRestartTower, onSessionLost }: AppProps) {
   }, []);
   const [stage, setStage] = useState<Stage | null>(null);
   const [mapOpen, setMapOpen] = useState(false);
+  const [financeOpen, setFinanceOpen] = useState(false);
   const [restartStep, setRestartStep] = useState<RestartStep | null>(null);
   const [overlay, setOverlay] = useState<OverlayId>('normal');
   const [tool, setTool] = useState<ToolId>(DEFAULT_TOOL);
@@ -69,6 +71,9 @@ export function App({ onLogout, onRestartTower, onSessionLost }: AppProps) {
   const onOpenWindow = (id: StatusWindowId): void => {
     if (id === 'map') {
       setMapOpen((open) => !open);
+    }
+    if (id === 'finance') {
+      setFinanceOpen((open) => !open);
     }
   };
   const { playTrigger, director } = useSfx();
@@ -243,6 +248,10 @@ export function App({ onLogout, onRestartTower, onSessionLost }: AppProps) {
         setMapOpen((open) => !open);
         return;
       }
+      if (isFinanceToggleKey(event)) {
+        setFinanceOpen((open) => !open);
+        return;
+      }
       const picked = isPlainShortcut(event) ? overlayForKey(event.key) : null;
       if (picked !== null) {
         setOverlay(picked);
@@ -298,6 +307,9 @@ export function App({ onLogout, onRestartTower, onSessionLost }: AppProps) {
             }}
             onCancel={() => setPendingDemolition(null)}
           />
+          {financeOpen && (
+            <FinanceWindow store={connection.store} onClose={() => setFinanceOpen(false)} />
+          )}
           <UnitWindows connection={connection} />
           <RestartTowerDialogs
             step={restartStep}
