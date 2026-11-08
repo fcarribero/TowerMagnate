@@ -500,6 +500,35 @@ export const EVAL_PRICE_ADJUST: Readonly<Record<Exclude<PriceLevel, 'minimum'>, 
   low: -30,
 };
 export const EVAL_NOISE = 60;
+
+export interface NoiseRule {
+  readonly radius: number;
+  readonly sources: readonly UnitType[];
+}
+
+const COMMERCE_AND_ENTERTAINMENT: readonly UnitType[] = [
+  'fast-food',
+  'restaurant',
+  'retail-shop',
+  'cinema',
+  'party-hall',
+];
+const HOTEL_ROOM_NOISE: NoiseRule = {
+  radius: 20,
+  sources: [...COMMERCE_AND_ENTERTAINMENT, 'office'],
+};
+
+/** Noise by evaluated unit type (SE-16): a source on the same level within the radius. */
+export const NOISE_RULES: Readonly<Partial<Record<UnitType, NoiseRule>>> = {
+  'single-room': HOTEL_ROOM_NOISE,
+  'double-room': HOTEL_ROOM_NOISE,
+  suite: HOTEL_ROOM_NOISE,
+  office: { radius: 10, sources: COMMERCE_AND_ENTERTAINMENT },
+  condo: {
+    radius: 30,
+    sources: [...COMMERCE_AND_ENTERTAINMENT, 'office', 'single-room', 'double-room', 'suite'],
+  },
+};
 export const EVAL_GOOD_BELOW = 90;
 export const EVAL_FAIR_BELOW = 180;
 export const EVAL_FAIR_BELOW_FROM_FOUR_STARS = 240;

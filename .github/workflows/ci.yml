@@ -48,7 +48,7 @@ jobs:
 
   e2e:
     name: End-to-end tests
-    if: github.event_name == 'pull_request' && github.base_ref == 'develop'
+    if: (github.event_name == 'pull_request' && github.base_ref == 'develop') || (github.event_name == 'push' && github.ref == 'refs/heads/develop')
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
@@ -82,5 +82,5 @@ jobs:
           name: e2e-traces
           path: |
             e2e/test-results
-            e2e/playwright-report
+            playwright-report
           retention-days: 7
