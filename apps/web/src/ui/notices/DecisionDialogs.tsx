@@ -3,6 +3,7 @@ import type { ClientStore } from '../../model/clientStore';
 import type { GameState } from '../../model/gameState';
 import { useStoreSelect } from '../../model/useStoreSelect';
 import { DecisionDialog } from '../kit/Dialog';
+import { Opened } from '../menu/RestartTowerDialogs';
 import { t } from '../strings';
 import {
   deadlineText,
@@ -52,19 +53,21 @@ export function DecisionDialogs({ store, onAnswer, closedIds }: DecisionDialogsP
         .filter((event) => !answered.has(event.id) && !closedIds.has(event.id))
         .map((event) => {
           const params = decisionParams(event);
+          const windowId = `decision-${event.id}`;
           return (
-            <DecisionDialog
-              key={event.id}
-              id={`decision-${event.id}`}
-              title={t(`dialog.${event.decision}.title`)}
-              body={decisionBody(event.decision, params)}
-              deadline={deadlineText(selected.step, event.deadlineStep)}
-              options={event.options.map((option) => ({
-                id: option,
-                label: optionLabel(event.decision, option, params),
-              }))}
-              onAnswer={(choice) => answer(event.id, choice)}
-            />
+            <Opened key={event.id} id={windowId}>
+              <DecisionDialog
+                id={windowId}
+                title={t(`dialog.${event.decision}.title`)}
+                body={decisionBody(event.decision, params)}
+                deadline={deadlineText(selected.step, event.deadlineStep)}
+                options={event.options.map((option) => ({
+                  id: option,
+                  label: optionLabel(event.decision, option, params),
+                }))}
+                onAnswer={(choice) => answer(event.id, choice)}
+              />
+            </Opened>
           );
         })}
     </>
