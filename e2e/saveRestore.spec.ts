@@ -58,15 +58,15 @@ function moneyAtStep(samples: TowerState[], step: number): number[] {
   return [before, after].flatMap((sample) => (sample === undefined ? [] : [sample.money]));
 }
 
-for (const mode of ['graceful', 'hard'] as const) {
-  test(`the tower survives a ${mode} server restart`, async ({ page }) => {
-    test.skip(!target.startsStack, 'needs the compose stack the tests start themselves');
-    test.setTimeout(RESTART_TIMEOUT_MS + 3 * 60_000);
+test('the tower survives a graceful and a hard server restart', async ({ page }) => {
+  test.skip(!target.startsStack, 'needs the compose stack the tests start themselves');
+  test.setTimeout(2 * RESTART_TIMEOUT_MS + 4 * 60_000);
 
-    await openGame(page);
-    await buildSmallTower(page);
-    expect(await fastForward(page, STEPS_PER_GAME_DAY)).toMatchObject({ ok: true });
+  await openGame(page);
+  await buildSmallTower(page);
+  expect(await fastForward(page, STEPS_PER_GAME_DAY)).toMatchObject({ ok: true });
 
+  for (const mode of ['graceful', 'hard'] as const) {
     const samples = await sampleWhileAutosaving(page);
     const lastSeen = samples.at(-1) as TowerState;
     expect(lastSeen.units.length).toBeGreaterThan(0);
@@ -75,10 +75,10 @@ for (const mode of ['graceful', 'hard'] as const) {
     await restartAndReload(page, mode);
     const restored = await readTowerState(page);
 
-    expect(restored.units).toEqual(lastSeen.units);
-    expect(restored.shafts).toEqual(lastSeen.shafts);
-    expect(restored.stars).toBe(lastSeen.stars);
-    expect(restored.step).toBeGreaterThanOrEqual(lastSeen.step - STEPS_IN_30_SECONDS);
-    expect(moneyAtStep(samples, restored.step)).toContain(restored.money);
-  });
-}
+    expect(restored.units, mode).toEqual(lastSeen.units);
+    expect(restored.shafts, mode).toEqual(lastSeen.shafts);
+    expect(restored.stars, mode).toBe(lastSeen.stars);
+    expect(restored.step, mode).toBeGreaterThanOrEqual(lastSeen.step - STEPS_IN_30_SECONDS);
+    expect(moneyAtStep(samples, restored.step), mode).toContain(restored.money);
+  }
+});
