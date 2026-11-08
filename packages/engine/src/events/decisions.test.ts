@@ -34,7 +34,10 @@ function towerWithFire(): { state: TowerState; id: string } {
 
 function towerWithBomb(): { state: TowerState; id: string } {
   const tower = createTower(1);
-  return { state: tower, id: opened(openBombThreat(withContext(tower), RANSOM)).id };
+  return {
+    state: tower,
+    id: opened(openBombThreat(withContext(tower), RANSOM, { x: 0, level: 2 })).id,
+  };
 }
 
 function answer(eventId: string, choice: string, id = 'c1'): QueuedCommand {
@@ -88,7 +91,7 @@ describe('opening a decision', () => {
     const { state } = towerWithBomb();
     const context = withContext(state);
     expect(openFire(context, 5)).toBeNull();
-    expect(openBombThreat(context, RANSOM)).toBeNull();
+    expect(openBombThreat(context, RANSOM, { x: 0, level: 2 })).toBeNull();
     expect(state.activeEvents).toHaveLength(1);
     expect(context.events).toEqual([]);
   });
@@ -269,7 +272,7 @@ describe('a disaster that ends first', () => {
   it('frees the slot for the next disaster', () => {
     const { state: tower, id } = towerWithFire();
     endDisaster(withContext(tower), id);
-    expect(openBombThreat(withContext(tower), RANSOM)).not.toBeNull();
+    expect(openBombThreat(withContext(tower), RANSOM, { x: 0, level: 2 })).not.toBeNull();
   });
 });
 
@@ -314,7 +317,7 @@ describe('determinism', () => {
       const fire = opened(openFire(context, 5));
       const answered = step(tower, [answer(fire.id, 'helicopter')], 10);
       endDisaster(withContext(answered.state), fire.id);
-      const bomb = opened(openBombThreat(withContext(answered.state), RANSOM));
+      const bomb = opened(openBombThreat(withContext(answered.state), RANSOM, { x: 0, level: 2 }));
       const run = step(answered.state, [], DECISION_DEADLINE_STEPS);
       return { ids: [fire.id, bomb.id], events: run.events, hash: hashState(run.state) };
     }

@@ -54,7 +54,7 @@ describe('debug messages over the tower socket', () => {
     const client = await connectTo(true);
 
     client.sendRaw(debugFrame('debug.setMoney', { id: 'm', amount: 777 }));
-    client.sendRaw(debugFrame('debug.forceEvent', { id: 'e', kind: 'bomb' }));
+    client.sendRaw(debugFrame('debug.forceEvent', { id: 'e', kind: 'fire' }));
     client.sendRaw(debugFrame('debug.fastForward', { id: 'f', steps: 100 }));
     client.sendRaw(debugFrame('debug.setClock', { id: 'c', day: 3, time: '12:00' }));
 
@@ -92,8 +92,8 @@ describe('debug messages over the tower socket', () => {
   it('reports a refused event as a failed result', async () => {
     const client = await connectTo(true);
 
-    client.sendRaw(debugFrame('debug.forceEvent', { id: 'a', kind: 'bomb' }));
-    client.sendRaw(debugFrame('debug.forceEvent', { id: 'b', kind: 'fire' }));
+    client.sendRaw(debugFrame('debug.forceEvent', { id: 'a', kind: 'fire' }));
+    client.sendRaw(debugFrame('debug.forceEvent', { id: 'b', kind: 'bomb' }));
 
     await waitFor(() => results(client).length === 2);
     expect(results(client).map((result) => result.ok)).toEqual([true, false]);
