@@ -93,6 +93,17 @@ describe('demolish', () => {
     expect(listPeople(after.people)).toEqual([]);
   });
 
+  it('removes the guards of a demolished security office', () => {
+    const { state, id } = build(towerReadyToBuild(), 'security', 10, -1);
+    const guarded = structuredClone(state);
+    addPeopleForUnit(guarded, id);
+    expect(listPeople(guarded.people).filter((p) => p.kind === 'guard')).not.toEqual([]);
+
+    const { state: after } = run(guarded, demolishUnit(id));
+
+    expect(listPeople(after.people)).toEqual([]);
+  });
+
   it('rejects an empty cell with NOTHING_TO_DEMOLISH', () => {
     const tower = towerReadyToBuild();
     expect(rejection(tower, demolishUnit('u999'))).toBe('NOTHING_TO_DEMOLISH');
