@@ -168,6 +168,12 @@ export interface TowerState {
   closedDecisions: EventId[];
   /** Basement levels that have already given treasure. */
   treasureLevels: Level[];
+  /** Set when a VIP visit that started at 3 stars ends approved. */
+  vipApproved: boolean;
+  /** Step of the last medical visit that failed; null if none yet. */
+  lastMedicalFailureStep: number | null;
+  /** Step of the last parking failure; null if none yet. */
+  lastParkingFailureStep: number | null;
 }
 
 /** Id of a tower event, such as `e7`. */
@@ -212,6 +218,7 @@ export type EngineEvent =
   | { type: 'hotelCheckIn'; step: number; unitId: UnitId; nights: number; paid: number }
   | { type: 'hotelCheckOut'; step: number; unitId: UnitId }
   | { type: 'roomStateChanged'; step: number; unitId: UnitId; state: HotelRoomState }
+  | { type: 'starsChanged'; step: number; stars: StarRating; unlocked: UnitType[] }
   | {
       type: 'decisionOpened';
       step: number;

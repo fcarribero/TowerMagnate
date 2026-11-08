@@ -41,6 +41,7 @@ const MIGRATIONS: readonly Migration[] = [
   addPersonPool,
   addStarRating,
   addHallQueues,
+  addStarState,
   addHotelRooms,
 ];
 
@@ -124,16 +125,27 @@ function addHallQueues(raw: Record<string, unknown>): Record<string, unknown> {
   return { ...raw, schemaVersion: 9, shafts };
 }
 
-/** Version 10 gives each hotel room a state; every room in an older tower is clean and empty. */
+/** Version 10 keeps the star check state. Earlier towers have no VIP approval and no failures. */
+function addStarState(raw: Record<string, unknown>): Record<string, unknown> {
+  return {
+    vipApproved: false,
+    lastMedicalFailureStep: null,
+    lastParkingFailureStep: null,
+    ...raw,
+    schemaVersion: 10,
+  };
+}
+
+/** Version 11 gives each hotel room a state; every room in an older tower is clean and empty. */
 function addHotelRooms(raw: Record<string, unknown>): Record<string, unknown> {
   if (!isRecord(raw.units)) {
-    return { ...raw, schemaVersion: 10 };
+    return { ...raw, schemaVersion: 11 };
   }
   const units: Record<string, unknown> = {};
   for (const [id, unit] of Object.entries(raw.units)) {
     units[id] = isRecord(unit) ? { hotel: hotelRoomFor(unit.type), ...unit } : unit;
   }
-  return { ...raw, schemaVersion: 10, units };
+  return { ...raw, schemaVersion: 11, units };
 }
 
 function hotelRoomFor(type: unknown): HotelRoom | null {
@@ -339,6 +351,29 @@ function assertCurrentShape(raw: Record<string, unknown>): TowerState {
     activeEvents: readActiveEvents(raw.activeEvents),
     closedDecisions: readClosedDecisions(raw.closedDecisions),
     treasureLevels: readTreasureLevels(raw.treasureLevels),
+    ...readStarState(raw),
+  };
+}
+
+type StarState = Pick<
+  TowerState,
+  'vipApproved' | 'lastMedicalFailureStep' | 'lastParkingFailureStep'
+>;
+
+function readStarState(raw: Record<string, unknown>): StarState {
+  const { vipApproved, lastMedicalFailureStep, lastParkingFailureStep } = raw;
+  if (typeof vipApproved !== 'boolean') {
+    throw new StateMigrationError('State vipApproved must be true or false');
+  }
+  for (const failure of [lastMedicalFailureStep, lastParkingFailureStep]) {
+    if (failure !== null && !isNonNegativeInteger(failure)) {
+      throw new StateMigrationError('State failure steps must be null or non-negative integers');
+    }
+  }
+  return {
+    vipApproved,
+    lastMedicalFailureStep: lastMedicalFailureStep as number | null,
+    lastParkingFailureStep: lastParkingFailureStep as number | null,
   };
 }
 

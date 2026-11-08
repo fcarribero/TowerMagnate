@@ -178,6 +178,7 @@ export const DeltaSchema = z.object({
   money: MoneySchema.optional(),
   stars: StarRatingSchema.optional(),
   population: z.int().nonnegative().optional(),
+  mainLobbyHeight: LobbyHeightSchema.optional(),
   structure: z.array(z.object({ level: LevelSchema, structure: StructureRowSchema })).optional(),
   unitsUpserted: z.array(UnitViewSchema).optional(),
   unitsRemoved: z.array(UnitEntityIdSchema).optional(),
