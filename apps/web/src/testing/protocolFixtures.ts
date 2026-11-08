@@ -54,6 +54,7 @@ export const snapshot: Snapshot = {
   money: 2_000_000,
   stars: 1,
   population: 6,
+  starRequirements: [],
   grid: { levels: { '1': { structure: 'l'.repeat(375) } }, mainLobbyHeight: 1 },
   units: [office],
   transports: [{ id: 't3', type: 'stairs', x: 60, level: 1 }],
