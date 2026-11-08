@@ -44,7 +44,7 @@ import { readGrid } from './grid';
 import { readLedger, readMoney } from './money';
 import { readPeople, readTripLedger } from './people';
 import { readStars, readWedding } from './stars';
-import { readFloorPurchases, readTransports } from './transports';
+import { readFloorPurchases, readLobbyPurchases, readTransports } from './transports';
 
 export { StateMigrationError } from './errors';
 
@@ -75,6 +75,7 @@ const MIGRATIONS: readonly Migration[] = [
   addVenueCustomers,
   addTransportPurchaseRecord,
   addWeddingAttempt,
+  addLobbyPurchases,
 ];
 
 /** Version 2 records each unit's price level, what was paid for it and when it was placed. */
@@ -382,6 +383,11 @@ function addTransportPurchaseRecord(raw: Record<string, unknown>): Record<string
 /** Version 24 keeps the day's wedding attempt; an older tower has none under way. */
 function addWeddingAttempt(raw: Record<string, unknown>): Record<string, unknown> {
   return { wedding: null, ...raw, schemaVersion: 24 };
+}
+
+/** Version 25 keeps sky lobby purchases; an older tower's lobbies are past the refund window. */
+function addLobbyPurchases(raw: Record<string, unknown>): Record<string, unknown> {
+  return { ...raw, lobbyPurchases: [], schemaVersion: 25 };
 }
 
 /** Version 11 gives each hotel room a state; every room in an older tower is clean and empty. */
@@ -715,6 +721,7 @@ function assertCurrentShape(raw: Record<string, unknown>): TowerState {
     shafts: readShafts(raw.shafts),
     grid: readGrid(raw.grid),
     floorPurchases: readFloorPurchases(raw.floorPurchases),
+    lobbyPurchases: readLobbyPurchases(raw.lobbyPurchases),
     people: people,
     tripLedger: readTripLedger(raw.tripLedger, people.id),
     ledger: readLedger(raw.ledger),

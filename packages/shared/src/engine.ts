@@ -128,6 +128,15 @@ export interface FloorPurchase extends ColumnSpan {
   placedAtStep: number;
 }
 
+/** Sky lobby columns bought on one lobby level, kept while they can still be refunded. */
+export interface LobbyPurchase extends ColumnSpan {
+  /** The sky lobby level the run stands on. */
+  level: Level;
+  /** Whole dollars charged for each column, all its rows together. */
+  paidPerColumn: number;
+  placedAtStep: number;
+}
+
 /** Instance id of a placed elevator shaft, such as `s4`. */
 export type ShaftId = string;
 
@@ -255,6 +264,8 @@ export interface TowerState {
   grid: GridState;
   /** Floor tool purchases still inside the refund window; older ones may linger until pruned. */
   floorPurchases: FloorPurchase[];
+  /** Sky lobby purchases still inside the refund window; older ones may linger until pruned. */
+  lobbyPurchases: LobbyPurchase[];
   people: PersonPool;
   /**
    * Trips each person ended in the last STRESS_WINDOW_STEPS, keyed by person number: pairs of
