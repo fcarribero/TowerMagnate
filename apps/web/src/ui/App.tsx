@@ -7,7 +7,9 @@ import { useGameConnection } from '../net/useGameConnection';
 import { placeholderTowerContent } from '../render/placeholderTower';
 import type { Stage } from '../render/stage';
 import { bindStructure, fullWidthTestTower, testTowerFromQuery } from '../render/structureSource';
+import { DEBUG_UNIT_FLOORS, bindUnits, debugUnits, testUnitsFromQuery } from '../render/unitSource';
 import { isMapToggleKey } from './keys';
+import { ConnectionOverlay } from './ConnectionOverlay';
 import { LevelRuler } from './LevelRuler';
 import { StageHost } from './StageHost';
 import './kit';
@@ -19,10 +21,16 @@ import { TowerMapWindow } from './TowerMapWindow';
 
 export interface AppProps {
   onLogout: () => void;
+  onSessionLost: () => void;
 }
 
-export function App({ onLogout }: AppProps) {
-  const { connection, status: connectionStatus } = useGameConnection();
+export function App({ onLogout, onSessionLost }: AppProps) {
+  const {
+    connection,
+    status: connectionStatus,
+    protocolMismatch,
+  } = useGameConnection({ onNotAuthenticated: onSessionLost });
+  const connected = connectionStatus === 'live';
   const content = useMemo(() => {
     const store = new TowerContentStore();
     store.applySnapshot(placeholderTowerContent());
@@ -59,7 +67,18 @@ export function App({ onLogout }: AppProps) {
       stage.showStructure(fullWidthTestTower(testTowerFloors));
       return;
     }
-    return bindStructure(connection.store, (input) => stage.showStructure(input));
+    const testUnitsHour = import.meta.env.DEV ? testUnitsFromQuery(location.search) : null;
+    if (testUnitsHour !== null) {
+      stage.showStructure(fullWidthTestTower(DEBUG_UNIT_FLOORS));
+      stage.showUnits(debugUnits(testUnitsHour));
+      return;
+    }
+    const unbindUnits = bindUnits(connection.store, (input) => stage.showUnits(input));
+    const unbindStructure = bindStructure(connection.store, (input) => stage.showStructure(input));
+    return () => {
+      unbindUnits();
+      unbindStructure();
+    };
   }, [stage, connection]);
 
   useEffect(() => {
@@ -90,6 +109,12 @@ export function App({ onLogout }: AppProps) {
           onSelectTool={setTool}
           lobbyHeight={lobbyHeight}
           onLobbyHeightChange={setLobbyHeight}
+          disabled={!connected}
+        />
+        <ConnectionOverlay
+          status={connectionStatus}
+          protocolMismatch={protocolMismatch}
+          onReload={() => location.reload()}
         />
         {mapOpen && stage && (
           <TowerMapWindow content={content} stage={stage} onClose={() => setMapOpen(false)} />
