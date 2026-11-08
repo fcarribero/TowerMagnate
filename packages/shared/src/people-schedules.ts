@@ -162,6 +162,9 @@ export const RETAIL_PRICE_CUSTOMER_FACTOR: Readonly<
 /** Outside visitors are multiplied by this when the tower has a subway station. */
 export const SUBWAY_VISITOR_FACTOR = 1.2;
 
+/** Chance that an outside trip uses the subway entrance when the tower has a station (people spec 3). */
+export const SUBWAY_ENTRANCE_CHANCE = 0.25;
+
 /** Weight of a retail shop when a person draws venue candidates (people spec 5). */
 export const RETAIL_PRICE_ATTRACTION: Readonly<
   Record<'high' | 'normal' | 'low' | 'minimum', number>

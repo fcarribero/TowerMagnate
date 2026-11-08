@@ -136,12 +136,15 @@ export const EventViewSchema = z.discriminatedUnion('kind', [
   }),
 ]);
 
+/** Values a news text fills in, such as `level` ("12", "S3") or `amount` ("$50.000"). */
+export const NoticeParamTextsSchema = z.record(z.string(), z.union([z.string(), z.number()]));
+
 export const NoticeViewSchema = z.object({
   id: z.string().min(1),
   step: StepSchema,
   key: z.string().min(1),
   unitId: UnitEntityIdSchema.nullable(),
-  params: z.record(z.string(), z.union([z.string(), z.number()])),
+  params: NoticeParamTextsSchema,
 });
 
 export const OverlayDataSchema = z.object({
@@ -259,6 +262,7 @@ export const ClientEventSchema = z.discriminatedUnion('type', [
     step: StepSchema,
     key: z.string().min(1),
     unitId: UnitEntityIdSchema.nullable(),
+    params: NoticeParamTextsSchema,
   }),
   z.object({ type: z.literal('weddingCompleted'), step: StepSchema }),
   z.object({

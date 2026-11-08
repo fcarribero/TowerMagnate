@@ -10,6 +10,7 @@ import { STEPS_PER_WEEK } from './leases';
 import type { SimulationSystem, StepContext } from './step';
 import type { TenantEvaluator } from './leases';
 import { unitNumber } from './units';
+import { clearUnitLedger, storeGrade } from './unit-evaluation';
 
 const EVALUATION_INTERVAL_STEPS = CONDO_EVALUATION_WEEKS * STEPS_PER_WEEK;
 
@@ -30,6 +31,7 @@ export function sellCondo(context: StepContext, unitId: UnitId): void {
   }
   const step = context.state.step;
   const price = CONDO_SALE_PRICE[unit.priceLevel];
+  clearUnitLedger(context.state, unitId);
   creditMoney(context.state, 'condoSales', price);
   const sale: CondoSale = {
     price,
@@ -46,12 +48,14 @@ function buyBackCondo(context: StepContext, unit: Condo, sale: CondoSale): void 
   const step = context.state.step;
   chargeMoney(context.state, 'condoBuybacks', sale.price);
   unit.sale = null;
+  unit.evaluation = null;
   context.events.push({ type: 'condoVacated', step, unitId: unit.id });
   context.events.push({ type: 'news', step, key: 'news.condoBuyback', unitId: unit.id });
 }
 
 function evaluateOwners(context: StepContext, unit: Condo, evaluate: TenantEvaluator): void {
   const sale = unit.sale as CondoSale;
+  storeGrade(context.state, unit);
   if (evaluate(context.state, unit) === 'poor') {
     buyBackCondo(context, unit, sale);
   } else {

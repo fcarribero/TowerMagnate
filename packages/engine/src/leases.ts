@@ -13,6 +13,7 @@ import { STEPS_PER_DAY } from './clock';
 import { creditMoney } from './money';
 import type { SimulationSystem, StepContext } from './step';
 import { unitNumber } from './units';
+import { clearUnitLedger, storeGrade } from './unit-evaluation';
 
 export const STEPS_PER_WEEK = STEPS_PER_DAY * DAYS_PER_WEEK;
 
@@ -53,6 +54,7 @@ function startTerm(context: StepContext, unit: LeasedUnit, event: 'leaseSigned' 
 function endLease(context: StepContext, unit: LeasedUnit, newsKey: string): void {
   const step = context.state.step;
   unit.lease = null;
+  unit.evaluation = null;
   context.events.push({ type: 'leaseEnded', step, unitId: unit.id });
   context.events.push({ type: 'news', step, key: newsKey, unitId: unit.id });
 }
@@ -79,6 +81,7 @@ export function moveInTenant(context: StepContext, unitId: UnitId): void {
   if (unit.lease) {
     throw new Error(`Unit ${unitId} already has a tenant`);
   }
+  clearUnitLedger(context.state, unitId);
   startTerm(context, unit, 'leaseSigned');
 }
 
@@ -94,6 +97,7 @@ function settleDueLease(context: StepContext, unit: LeasedUnit, evaluate: Tenant
     lease.weekVisits = 0;
     return;
   }
+  storeGrade(context.state, unit);
   if (evaluate(context.state, unit) === 'poor') {
     endLease(context, unit, NEWS_ON_LEAVING[unit.type]);
   } else {

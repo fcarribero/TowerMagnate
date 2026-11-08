@@ -12,7 +12,7 @@ describe('toClientEvents', () => {
     ];
 
     expect(toClientEvents(events)).toEqual([
-      { type: 'news', step: 4, key: 'news.officeLeft', unitId: 'u1' },
+      { type: 'news', step: 4, key: 'news.officeLeft', unitId: 'u1', params: {} },
       { type: 'decisionClosed', step: 5, eventId: 'e1', choice: 'pay', timedOut: false },
     ]);
   });
@@ -46,7 +46,45 @@ describe('toClientEvents', () => {
     ];
 
     expect(toClientEvents(events)).toEqual([
-      { type: 'news', step: 9, key: 'news.decisionDefault', unitId: null },
+      {
+        type: 'news',
+        step: 9,
+        key: 'news.decisionDefault',
+        unitId: null,
+        params: { option: 'pay' },
+      },
+    ]);
+  });
+
+  it('sends the level of a bomb blast as its ruler label', () => {
+    const events: EngineEvent[] = [{ type: 'news', step: 9, key: 'news.bombExploded', level: 7 }];
+
+    expect(toClientEvents(events)).toEqual([
+      { type: 'news', step: 9, key: 'news.bombExploded', unitId: null, params: { level: '7' } },
+    ]);
+  });
+
+  it('sends a treasure with its basement label and the amount as money text', () => {
+    const events: EngineEvent[] = [
+      { type: 'news', step: 9, commandId: 'c1', key: 'news.treasure', level: -3, amount: 50_000 },
+    ];
+
+    expect(toClientEvents(events)).toEqual([
+      {
+        type: 'news',
+        step: 9,
+        key: 'news.treasure',
+        unitId: null,
+        params: { level: 'S3', amount: '$50.000' },
+      },
+    ]);
+  });
+
+  it('sends the star count of a promotion', () => {
+    const events: EngineEvent[] = [{ type: 'news', step: 9, key: 'news.starsUp', n: 3 }];
+
+    expect(toClientEvents(events)).toEqual([
+      { type: 'news', step: 9, key: 'news.starsUp', unitId: null, params: { n: 3 } },
     ]);
   });
 });

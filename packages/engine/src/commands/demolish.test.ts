@@ -2,6 +2,7 @@ import { MONEY_CAP, UNIT_CATALOG, type Command, type TowerState } from '@tower-m
 import { describe, expect, it } from 'vitest';
 import { occupantAt, structureAt } from '../grid';
 import { addPeopleForUnit, listPeople } from '../people';
+import { buildTower, plainTowerPlan } from '../testing';
 import { accept, fullSiteTower, rejection, run } from './shaft-test-helpers';
 
 const REFUND_WINDOW = 360;
@@ -371,5 +372,75 @@ describe('demolish refund for stairs and floor', () => {
     const { state, id } = build(towerReadyToBuild(), 'office', 10, 5);
     const paid = state.units[id]?.paid as number;
     expect(run(state, demolishUnit(id)).result).toMatchObject({ refund: paid });
+  });
+});
+
+describe('demolish refund for sky lobbies', () => {
+  const LOBBY_CELL_PRICE = 5_000;
+
+  function withSkyLobby(tower: TowerState): TowerState {
+    const command: Command = { type: 'buildLobby', level: 15, x0: 100, x1: 103, height: 2 };
+    return accept(tower, command).state;
+  }
+
+  function demolishLobby(level: number, x0: number, x1: number): Command {
+    return { type: 'demolish', target: { kind: 'lobby', level, x0, x1 } };
+  }
+
+  it('refunds a 4 column run of height 2 in full 359 steps after placement and nothing at 360', () => {
+    const before = towerReadyToBuild();
+    const state = withSkyLobby(before);
+    expect(before.money - state.money).toBe(40_000);
+
+    const young = later(state, REFUND_WINDOW - 1);
+    const { state: refunded, result } = run(young, demolishLobby(15, 100, 103));
+    expect(result).toMatchObject({ ok: true, cost: 0, refund: 40_000 });
+    expect(refunded.money).toBe(young.money + 40_000);
+    expect(refunded.ledger.currentWeek.construction.income).toBe(40_000);
+    expect(refunded.lobbyPurchases).toEqual([]);
+    expect(structureAt(refunded.grid, 15, 100)).toBe('floor');
+    expect(structureAt(refunded.grid, 16, 103)).toBe('floor');
+
+    const old = later(state, REFUND_WINDOW);
+    const { state: kept, result: late } = run(old, demolishLobby(15, 100, 103));
+    expect(late).toMatchObject({ ok: true, refund: 0 });
+    expect(kept.money).toBe(old.money);
+  });
+
+  it('refunds only the demolished column, once, from either row', () => {
+    const state = later(withSkyLobby(towerReadyToBuild()), 100);
+
+    const first = run(state, demolishLobby(16, 101, 101));
+    expect(first.result).toMatchObject({ ok: true, refund: 2 * LOBBY_CELL_PRICE });
+    expect(structureAt(first.state.grid, 15, 101)).toBe('floor');
+    expect(structureAt(first.state.grid, 15, 102)).toBe('lobby');
+
+    const rest = run(first.state, demolishLobby(15, 100, 103));
+    expect(rest.result).toMatchObject({ ok: true, refund: 3 * 2 * LOBBY_CELL_PRICE });
+  });
+
+  it('refunds the lobby price and never the floor it was built on', () => {
+    const tower = towerReadyToBuild();
+    expect(structureAt(tower.grid, 15, 100)).toBe('floor');
+    const state = withSkyLobby(tower);
+
+    const { result } = run(state, demolishLobby(15, 100, 103));
+    expect(result).toMatchObject({ refund: 4 * 2 * LOBBY_CELL_PRICE });
+  });
+
+  it('caps the refund at $99,999,999', () => {
+    const nearCap = { ...withSkyLobby(towerReadyToBuild()), money: MONEY_CAP - 100 };
+    const { state, result } = run(nearCap, demolishLobby(15, 100, 103));
+    expect(state.money).toBe(MONEY_CAP);
+    expect(result).toMatchObject({ refund: 100 });
+  });
+
+  it('records no purchase for the main lobby and still refuses to demolish it', () => {
+    const { state: tower } = buildTower(plainTowerPlan(2, 100, 200));
+    tower.money = 10_000_000;
+    const command: Command = { type: 'buildLobby', level: 1, x0: 201, x1: 210, height: 1 };
+    const extended = accept(tower, command).state;
+    expect(extended.lobbyPurchases).toEqual([]);
+    expect(rejection(extended, demolishLobby(1, 100, 100))).toBe('MAIN_LOBBY_PROTECTED');
   });
 });

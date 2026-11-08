@@ -7,16 +7,33 @@ export type CustomerPhase = 'toVenue' | 'atVenue' | 'leaving';
 
 const CUSTOMER_PHASES: readonly CustomerPhase[] = ['toVenue', 'atVenue', 'leaving'];
 
+/** The door a customer came in by and leaves by: a street end, or a column of the subway station. */
+export type CustomerEntrance =
+  { kind: 'street'; onRight: boolean } | { kind: 'subway'; column: number };
+
 /** What an outside customer is doing, kept in the person's `trip` number. */
 export interface CustomerTrip {
   phase: CustomerPhase;
-  /** The street entrance the customer came in by, and leaves by. */
-  onRight: boolean;
+  entrance: CustomerEntrance;
+}
+
+const STREET_LEFT = 0;
+const STREET_RIGHT = 1;
+const FIRST_SUBWAY_CODE = 2;
+
+function entranceCode(entrance: CustomerEntrance): number {
+  if (entrance.kind === 'subway') return FIRST_SUBWAY_CODE + entrance.column;
+  return entrance.onRight ? STREET_RIGHT : STREET_LEFT;
+}
+
+function entranceOfCode(code: number): CustomerEntrance {
+  if (code >= FIRST_SUBWAY_CODE) return { kind: 'subway', column: code - FIRST_SUBWAY_CODE };
+  return { kind: 'street', onRight: code === STREET_RIGHT };
 }
 
 export function encodeCustomerTrip(trip: CustomerTrip): number {
-  const side = trip.onRight ? 1 : 0;
-  return side * CUSTOMER_PHASES.length + CUSTOMER_PHASES.indexOf(trip.phase) + 1;
+  const phase = CUSTOMER_PHASES.indexOf(trip.phase);
+  return entranceCode(trip.entrance) * CUSTOMER_PHASES.length + phase + 1;
 }
 
 export function customerTripAt(pool: PersonPool, slot: number): CustomerTrip | null {
@@ -25,7 +42,8 @@ export function customerTripAt(pool: PersonPool, slot: number): CustomerTrip | n
   if (packed === NO_TRIP) return null;
   const phase = CUSTOMER_PHASES[(packed - 1) % CUSTOMER_PHASES.length];
   if (!phase) return null;
-  return { phase, onRight: packed > CUSTOMER_PHASES.length };
+  const code = Math.floor((packed - 1) / CUSTOMER_PHASES.length);
+  return { phase, entrance: entranceOfCode(code) };
 }
 
 interface InsideCount {

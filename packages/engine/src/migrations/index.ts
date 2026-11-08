@@ -30,6 +30,7 @@ import {
   type ShaftType,
   type ShaftId,
   type StopQueues,
+  type TenantEvaluation,
   type TowerState,
   type Unit,
   type UnitId,
@@ -45,7 +46,7 @@ import { readGrid } from './grid';
 import { readLedger, readMoney } from './money';
 import { readPeople, readTripLedger } from './people';
 import { readStars, readWedding } from './stars';
-import { readFloorPurchases, readTransports } from './transports';
+import { readFloorPurchases, readLobbyPurchases, readTransports } from './transports';
 
 export { StateMigrationError } from './errors';
 
@@ -76,6 +77,8 @@ const MIGRATIONS: readonly Migration[] = [
   addVenueCustomers,
   addTransportPurchaseRecord,
   addWeddingAttempt,
+  addLobbyPurchases,
+  addUnitEvaluation,
   addShopWeekVisits,
 ];
 
@@ -386,19 +389,46 @@ function addWeddingAttempt(raw: Record<string, unknown>): Record<string, unknown
   return { wedding: null, ...raw, schemaVersion: 24 };
 }
 
+/** Version 25 keeps sky lobby purchases; an older tower's lobbies are past the refund window. */
+function addLobbyPurchases(raw: Record<string, unknown>): Record<string, unknown> {
+  return { ...raw, lobbyPurchases: [], schemaVersion: 25 };
+}
+
 /**
- * Version 25 counts each lease's customer visits for the shop early-leave check. A lease saved
+ * Version 26 stores each unit's grade, each evaluated unit's trip ledger and what a hotel stay
+ * paid at check-in. Older saves have no grades and no filed trips.
+ */
+function addUnitEvaluation(raw: Record<string, unknown>): Record<string, unknown> {
+  if (!isRecord(raw.units)) {
+    return { unitLedger: {}, ...raw, schemaVersion: 26 };
+  }
+  const units: Record<string, unknown> = {};
+  for (const [id, unit] of Object.entries(raw.units)) {
+    units[id] = isRecord(unit) ? withUnitEvaluation(unit) : unit;
+  }
+  return { unitLedger: {}, ...raw, schemaVersion: 26, units };
+}
+
+function withUnitEvaluation(unit: Record<string, unknown>): Record<string, unknown> {
+  const hotel = isRecord(unit.hotel)
+    ? { checkInStep: null, paidLevel: null, ...unit.hotel }
+    : unit.hotel;
+  return { evaluation: null, ...unit, hotel };
+}
+
+/**
+ * Version 27 counts each lease's customer visits for the shop early-leave check. A lease saved
  * before that starts at the minimum, so no shop leaves for a week it was never counted in.
  */
 function addShopWeekVisits(raw: Record<string, unknown>): Record<string, unknown> {
   if (!isRecord(raw.units)) {
-    return { ...raw, schemaVersion: 25 };
+    return { ...raw, schemaVersion: 27 };
   }
   const units: Record<string, unknown> = {};
   for (const [id, unit] of Object.entries(raw.units)) {
     units[id] = isRecord(unit) ? withWeekVisits(unit) : unit;
   }
-  return { ...raw, schemaVersion: 25, units };
+  return { ...raw, schemaVersion: 27, units };
 }
 
 function withWeekVisits(unit: Record<string, unknown>): Record<string, unknown> {
@@ -469,6 +499,7 @@ function isUnit(value: unknown): value is Unit {
     (value.lease === null || isLease(value.lease)) &&
     (value.hotel === null || isHotelRoom(value.hotel)) &&
     (value.sale === null || isCondoSale(value.sale)) &&
+    (value.evaluation === null || isTenantEvaluation(value.evaluation)) &&
     (value.venue === null || isVenueDay(value.venue))
   );
 }
@@ -491,12 +522,18 @@ function isVenueDay(value: unknown): value is VenueDay {
   );
 }
 
+function isTenantEvaluation(value: unknown): value is TenantEvaluation {
+  return value === 'good' || value === 'fair' || value === 'poor';
+}
+
 function isHotelRoom(value: unknown): value is HotelRoom {
   return (
     isRecord(value) &&
     (HotelRoomStateSchema.options as readonly unknown[]).includes(value.state) &&
     (value.stayEndStep === null || isNonNegativeInteger(value.stayEndStep)) &&
-    (value.state === 'occupied') === (value.stayEndStep !== null)
+    (value.state === 'occupied') === (value.stayEndStep !== null) &&
+    (value.checkInStep === null || isNonNegativeInteger(value.checkInStep)) &&
+    (value.paidLevel === null || (PRICE_LEVELS as readonly unknown[]).includes(value.paidLevel))
   );
 }
 
@@ -518,6 +555,25 @@ function isLease(value: unknown): value is Lease {
     value.nextDueStep > value.anchorStep &&
     isNonNegativeInteger(value.weekVisits)
   );
+}
+
+function readUnitLedger(raw: unknown, units: Record<UnitId, Unit>): Record<UnitId, number[]> {
+  if (!isRecord(raw)) {
+    throw new StateMigrationError('State unit ledger must be a record');
+  }
+  const ledger: Record<UnitId, number[]> = {};
+  for (const [unitId, trips] of Object.entries(raw)) {
+    const valid =
+      unitId in units &&
+      Array.isArray(trips) &&
+      trips.length % 2 === 0 &&
+      trips.every((value) => Number.isInteger(value));
+    if (!valid) {
+      throw new StateMigrationError(`State unit ledger entry ${unitId} is malformed`);
+    }
+    ledger[unitId] = (trips as number[]).slice();
+  }
+  return ledger;
 }
 
 /** Towers saved before units existed have no `units` record; they start with none. */
@@ -546,6 +602,7 @@ function readUnits(raw: unknown): Record<UnitId, Unit> {
       lease: unit.lease === null ? null : { ...unit.lease },
       sale: unit.sale === null ? null : { ...unit.sale },
       hotel: unit.hotel === null ? null : { ...unit.hotel },
+      evaluation: unit.evaluation,
       venue: readVenueDay(unit.venue),
     };
   }
@@ -726,6 +783,7 @@ function assertCurrentShape(raw: Record<string, unknown>): TowerState {
     throw new StateMigrationError('State nextId must be a non-negative integer');
   }
   const people = readPeople(raw.people);
+  const units = readUnits(raw.units);
   return {
     schemaVersion: SCHEMA_VERSION,
     step: raw.step,
@@ -733,13 +791,15 @@ function assertCurrentShape(raw: Record<string, unknown>): TowerState {
     nextId: raw.nextId,
     money: readMoney(raw.money),
     stars: readStars(raw.stars),
-    units: readUnits(raw.units),
+    units,
     transports: readTransports(raw.transports),
     shafts: readShafts(raw.shafts),
     grid: readGrid(raw.grid),
     floorPurchases: readFloorPurchases(raw.floorPurchases),
+    lobbyPurchases: readLobbyPurchases(raw.lobbyPurchases),
     people: people,
     tripLedger: readTripLedger(raw.tripLedger, people.id),
+    unitLedger: readUnitLedger(raw.unitLedger, units),
     ledger: readLedger(raw.ledger),
     activeEvents: readActiveEvents(raw.activeEvents),
     closedDecisions: readClosedDecisions(raw.closedDecisions),
