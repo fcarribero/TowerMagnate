@@ -16,7 +16,7 @@ function at(dayNumber: number, hour: number, minute = 0): number {
 }
 
 function towerWithRooms(types: RoomType[]): { tower: TowerState; roomIds: UnitId[] } {
-  const units = types.map((type, index) => ({ type, x: index * 4, level: 2 }));
+  const units = types.map((type, index) => ({ type, x: index * 12, level: 2 }));
   const { state, unitIds } = buildTower({ ...plainTowerPlan(3, 0, 40), units });
   return { tower: state, roomIds: unitIds as UnitId[] };
 }
@@ -185,3 +185,34 @@ describe('hotel check-out order', () => {
     expect(checkedOut).toEqual(roomIds);
   });
 });
+
+describe('hotel week scenario', () => {
+  it('matches the hotel ledger to the nightly prices over 7 days with manual cleaning', () => {
+    const { tower, roomIds } = towerWithRooms(['single-room', 'double-room', 'suite']);
+    const nightly = [2_000, 3_000, 6_000];
+    const engine = createEngine({ commandHandlers: {}, systems: [createHotelSystem()] });
+    let state = tower;
+    let expected = 0;
+    let stays = 0;
+    for (let day = 0; day < 7; day++) {
+      const noon = at(day, 12);
+      state = engine.step(state, [], noon - state.step).state;
+      for (const [index, roomId] of roomIds.entries()) {
+        if (state.units[roomId]?.hotel?.state === 'dirty') setHotel(state, roomId, cleanRoom());
+        const context: StepContext = { state, events: [] };
+        const result = checkIn(context, roomId);
+        if (result.checkedIn) {
+          expected += result.nights * (nightly[index] as number);
+          stays++;
+        }
+      }
+    }
+    expect(stays).toBeGreaterThanOrEqual(3);
+    expect(state.ledger.currentWeek.hotel.income).toBe(expected);
+    expect(state.money - tower.money).toBe(expected);
+  });
+});
+
+function cleanRoom(): HotelRoom {
+  return { state: 'clean', stayEndStep: null };
+}
