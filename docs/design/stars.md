@@ -1,6 +1,6 @@
 # Stars, population and requirements
 
-Version 1.0, 18 November 2026. Owner: Game Designer. Task TM-14.
+Version 1.1, 25 January 2027. Owner: Game Designer. Task TM-14.
 
 This document defines how the tower's population is counted, when the star check runs, what each step from 1 star to the Torre rank needs, what "suficiente" means for medical centers, suites and recycling, how parking and medical failures block a promotion, and how the wedding gives the Torre rank. Values come from `docs/GDD.md` (section Estrellas y progresión, and the lines on medical, parking and recycling) and the SimTower research notes, adapted to a linear clock and a Monday-to-Sunday week. Where the GDD leaves a point open, the decision is marked "Design call" with a short reason. Section 10 maps every GDD line to the rule that covers it. The numbered rules at the end are the contract for the engine (`packages/engine`), the balance constants (`packages/shared`) and QA.
 
@@ -224,6 +224,52 @@ On Monday, 61 offices are leased at 17:00 (step 6,120). Population is 61 x 6 = 3
 
 The scenario passes when the rating is 2 after the Friday 17:00 check of day 4 (step 40,680) at the latest, with the `starsChanged` event at a step that is 17:00 of a weekday. It then stays 2 for the rest of the 14 days: the 2 to 3 step needs 1,000 population and the tower has at most 540 (90 x 6).
 
+### 8.7 Run sheet: 3 stars to Torre
+
+This is the exact checklist for the TM-139 run from a 3-star tower to the Torre rank. Counts come from sections 3 to 7 and the mix of economy 12. Venue counts change from day to day, so the population targets keep a margin of about 5% over the threshold.
+
+Start state: 3 stars, 5 suites, 3 doubles, 2 singles, a housekeeping unit, a security office, 20,000,000 or more in cash.
+
+| Step | Population target | Units that must exist | Check |
+|---|---|---|---|
+| 3 to 4 | 5,300 or more (threshold 5,000) | 2 or more clean suites; recycling `ceil(pop / 2,500)`: 3 centers for 5,001 to 7,500; medical: 4 centers for 520 leased offices; parking spaces for the demand below | VIP approved, no medical or parking failure since the previous weekday 17:00 |
+| 4 to 5 | 10,500 or more (threshold 10,000) | subway station on level -9 (30 x 3, covers -9 to -7, $1,000,000); recycling 5 centers (covers 12,500); medical: 6 centers for 800 leased offices, 10 as the safe choice | no medical or parking failure in the window |
+| 5 to Torre | 16,000 or more at Saturday 00:00 (threshold 15,000) | cathedral on level 101 (28 x 4, $3,000,000) with structure on all 28 cells of level 100 below it; a route for 40 guests | 40 guests inside before 12:30 |
+
+Reference mixes that reach the targets (economy 12 and section 3.4):
+
+| Mix | Offices | Condos | Hotel | Venue visits a day | Population |
+|---|---|---|---|---|---|
+| 3 to 4 | 520 (3,120) | 300 (900) | up to 19 | about 1,300 | about 5,340 |
+| 4 to 5 | 800 (4,800) | 600 (1,800) | about 100 | about 3,800 | about 10,500 |
+| Torre | 1,250 (7,500) | 800 (2,400) | about 800 | about 5,300 | about 16,000 |
+
+Parking demand at 3 stars and above is `0.15 x offices + 0.25 x condos + 0.5 x suite parties`. At the 3 to 4 mix it is 78 + 75 + about 3 = 156 holders, so build 170 connected spaces. At the 4 to 5 mix it is 120 + 150 + about 10 = 280, build 310. At the Torre mix it is 188 + 200 + about 40 = 428, build 470. The limit is 512 spaces.
+
+Medical demand is `0.6 x leased offices` visits a weekday against 100 per center. The 10-center limit is 1,500 leased offices at most, and the run may still fail on uneven spread (note on TM-144). If the check reports `news.starBlockedMedical` with 10 centers, record the offices, centers and visits per center from the day before and file it under TM-144.
+
+VIP visit, in order (events 6, people 9):
+
+1. The roll is at 00:00 every day, 1 in 9, only at exactly 3 stars and with no visit in progress. Budget up to 3 game weeks at 3 stars: the chance of at least one VIP in 21 days is 93%.
+2. At 12:00 on the VIP day, before the booking rolls, the VIP books the clean suite with no stay and no booking that has the lowest unit id. A suite that is Ocupada, Sucia or Con plaga is not a candidate. Keep 3 or more suites in service so that a guest from the previous night does not leave none free. With no suite, `news.vipNoSuite` shows, the flag does not change, and the next roll is the next 00:00.
+3. The VIP arrives at the street entrance between 17:00 and 21:00, goes to a restaurant for 60 minutes if one has a route, and leaves the next day between 08:00 and 10:00. `news.vipArrives` shows at the arrival.
+4. The visit is approved when the average stress of all the VIP's trips, including the trip out, is under 15 game minutes. 15 exactly is rejected. A demolished, bombed or burned suite during the stay, or a VIP who gives up before check-in at 23:00, is a rejection. `news.vipApproved` or `news.vipRejected` shows when the visit ends.
+5. The VIP never uses the subway or parking. A restaurant is optional, but a tower without one skips the dinner trip and has fewer trips in the average.
+6. Visits at 3 stars after approval pay the suite and change nothing. A visit at 4 stars or more does not happen.
+
+Events during the run (events 2):
+
+| Rating | Bomb at 09:00, 1 in 60 | Fire at 15:00, 1 in 84 | VIP | Ransom |
+|---|---|---|---|---|
+| 3 | yes | yes | yes | $300,000 |
+| 4, 5, Torre | yes | yes | no | $1,000,000 |
+
+A fire needs a unit on levels 2 to 100 with 32 or more structure columns, and no fire rolls on a wedding attempt day. Treasure is 1 in 40 per construction command, once per basement level; the parking, recycling and subway work gives up to 9 levels of chances. Santa shows at 22:00 on 24 December, which is step 3,092,400 (day 357, a Monday). Reach it on a copy of the save with `setClock`; TM-239 can leave the finances of that week empty, so do not use that copy for the weekly checks.
+
+The wedding (sections 7, people 15): an attempt is due at Saturday and Sunday 00:00 when the rating is 5, the cathedral exists and population is 15,000 or more at that step. Saturday 00:00 counts Friday's venue visits, which are the highest of the week. Sunday counts Saturday's, which are lower because offices send no workers on weekends. So Saturday is the attempt to plan for, and Sunday is the retry. The 40 guests appear at 08:00 to 09:00 (40%), 09:00 to 10:00 (40%) and 10:00 to 10:30 (20%). Express shafts do not stop at level 101, so the route is an express to a sky lobby and a standard shaft for the last stretch. A guest with no route retries 2 hours later, which already misses 12:30 for the last appearances. Medical, parking and recycling do not apply to the wedding.
+
+Expected notices on the way: `news.starsUp` at each promotion with the `starsChanged` dialog; `news.starBlockedVip`, `news.starBlockedSuites`, `news.starBlockedRecycling`, `news.starBlockedMedical`, `news.starBlockedParking` and `news.starBlockedSubway` for the missing requirement, only when population meets the threshold; `news.towerRank` and the `weddingCompleted` dialog at the 40th guest.
+
 ## 9. Notices
 
 The failure notices at the moment a visit or a parking pass fails stay in people.md 21. These are the notices of the check and the wedding. All check notices are alerts (ui.md 8.1). ui.md 13.9 gets these rows; TM-17 owns the final wording.
@@ -333,3 +379,13 @@ S-22. Medical, parking and recycling do not affect the wedding.
 S-23. In the TM-217 scenario the 1 to 2 requirement is population 300 and nothing else, which is 50 leased offices in a tower that has only offices. The first check that finds 300 raises the rating to 2 at 17:00 of a weekday, and the rating is 2 no later than the Friday 17:00 check of day 4 (step 40,680).
 
 S-24. In the TM-217 scenario the rating stays 2 until the end of day 14, because the tower holds at most 540 population (90 offices) against the 1,000 needed for 3 stars.
+
+### Run sheet
+
+S-25. In a run from 3 stars, the 3 to 4 step needs population 5,000, 2 clean suites, 3 recycling centers for 5,001 to 7,500 population, at least 1 medical center with no failure in the window, no parking failure and the VIP approval flag. The flag comes only from a visit that started at exactly 3 stars and ended with an average trip stress under 15 game minutes.
+
+S-26. The 4 to 5 step needs population 10,000, the subway station on level -9, `ceil(population / 2,500)` recycling centers, at least 1 medical center with no failure in the window and no parking failure. At exactly 10,000 population 4 centers are enough; at 10,001 the tower needs 5.
+
+S-27. The wedding attempt checks population at 00:00 of Saturday or Sunday only. Saturday reads Friday's venue counts and Sunday reads Saturday's.
+
+S-28. No VIP visit starts at 4 stars or above, and no fire rolls on a day with a wedding attempt.

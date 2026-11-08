@@ -151,10 +151,12 @@ Fixes merged on 21 January were checked on `develop` at 51a9c03 (merged into thi
 
 ## Test plan for 4 stars to Torre
 
-Run once TM-35 (hotel guests) and TM-110 (VIP visit) are in `develop`. Start from a saved 3-star tower with 5 suites, 3 double and 2 single rooms, housekeeping, security and 20,000,000 or more in cash.
+The exact populations, units, VIP conditions, events and wedding timing are in `docs/design/stars.md` section 8.7 (run sheet, rules S-25 to S-28). The steps below follow it.
+
+Run once TM-35 (hotel guests) and TM-110 (VIP visit) are in `develop`. Start from a saved 3-star tower with 5 suites, 3 double and 2 single rooms, housekeeping, security and 20,000,000 or more in cash. Targets: 5,300 population for 4 stars with 3 recycling and 4 medical centers and 170 parking spaces; 10,500 for 5 stars with the subway on level -9, 5 recycling and 6 to 10 medical centers; 16,000 at Saturday 00:00 for the wedding.
 
 1. Hotel guests (TM-35): at least one guest checks in on each room type. Check that suites are used, housekeeping cleans after check-out, and rent is charged once per stay.
-2. VIP visit (TM-110): the VIP arrives at 3 stars, picks a suite, and the visit ends with approved or refused. The notice `news.starBlockedVip` stops once approved.
+2. VIP visit (TM-110): the roll is 1 in 9 a day at exactly 3 stars, so allow up to 3 game weeks. At 12:00 the VIP books the clean free suite with the lowest unit id, arrives 17:00 to 21:00, leaves 08:00 to 10:00, and the visit is approved when the average trip stress is under 15 minutes. The notice `news.starBlockedVip` stops once approved.
 3. Star check at 17:00 on a weekday: the 3 to 4 step passes after an approved VIP visit and used suites. Note the day, step and population. Medical sufficiency may block it again (TM-144), so read the star notice reason.
 4. 4-star unlocks: the subway station is accepted and no longer answers `STAR_LOCKED`. Check TM-230 customers arrive in the subway.
 5. 4 to 5 stars: build to the 5-star requirements in `docs/design` and log what the check reports each weekday.
