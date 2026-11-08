@@ -14,6 +14,7 @@ function fakeApi(result: AuthResult = { ok: true, user }): AuthApi {
     login: vi.fn(async () => result),
     register: vi.fn(async () => result),
     logout: vi.fn(async () => {}),
+    ensureTower: vi.fn(async () => true),
   };
 }
 

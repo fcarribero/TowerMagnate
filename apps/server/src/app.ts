@@ -6,6 +6,7 @@ import { registerGateway, type IdentityResolver } from './gateway';
 import { checkHealth } from './health';
 import { towerRoutes } from './towers/routes';
 import { createTowerStore, followConnections, TowerRunner } from './runner';
+import { registerAuthRateLimit, registerOriginCheck, registerSecurityHeaders } from './security';
 import { createSnapshotRepository } from './snapshots';
 import { sessionIdentityResolver, towerSocketHandlers, Viewports } from './tower-socket';
 import { registerWebStatics } from './webStatics';
@@ -14,6 +15,10 @@ export interface AppOptions {
   version: string;
   databaseUrl: string;
   secureCookies?: boolean;
+  /** Login and register attempts allowed per IP per minute. */
+  authAttemptsPerMinute?: number;
+  /** Web origins allowed to send state-changing API requests besides the server's own host. */
+  allowedOrigins?: readonly string[];
   logger?: FastifyServerOptions['logger'];
   /** Folder with the built web client. Without it the server only answers the API. */
   webDir?: string;
@@ -38,6 +43,9 @@ export function buildApp(options: AppOptions): FastifyInstance {
     await pool.end();
   });
 
+  registerSecurityHeaders(app, { secure: options.secureCookies ?? false });
+  registerOriginCheck(app, { allowedOrigins: options.allowedOrigins });
+  registerAuthRateLimit(app, { limitPerMinute: options.authAttemptsPerMinute });
   app.register(cookie);
   app.register(authRoutes, { pool, secureCookies: options.secureCookies ?? false });
   const runner = new TowerRunner({

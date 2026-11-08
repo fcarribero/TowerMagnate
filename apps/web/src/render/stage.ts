@@ -12,6 +12,7 @@ import { createSkyRows } from './skyRows';
 import type { SpriteRegistry } from './spriteRegistry';
 import { StructureLayer } from './structureLayer';
 import type { StructureInput } from './structureRows';
+import { UnitLayer, type UnitsInput } from './unitLayer';
 
 const SKY_COLOR = '#6f9fd8';
 const DEFAULT_ZOOM: Zoom = 2;
@@ -42,6 +43,8 @@ export interface Stage {
   cssPerDevicePixel(): number;
   /** Draws the tower structure; later calls redraw only the levels that changed. */
   showStructure(input: StructureInput): void;
+  /** Draws units and transports; later calls change only what differs. */
+  showUnits(input: UnitsInput): void;
   destroy(): void;
 }
 
@@ -71,6 +74,8 @@ export async function mountStage(host: HTMLElement, options: StageOptions = {}):
   }
   const structure = new StructureLayer(sprites);
   world.addChild(structure.view);
+  const units = new UnitLayer(sprites);
+  world.addChild(units.view);
   app.stage.addChild(world);
 
   const firstSize = measureHost(host);
@@ -100,6 +105,7 @@ export async function mountStage(host: HTMLElement, options: StageOptions = {}):
     const onScreen = visibleLevels(camera);
     sky.showOnly(onScreen);
     structure.rows.showOnly(onScreen);
+    units.showOnly(onScreen);
     for (const listener of cameraListeners) {
       listener(camera);
     }
@@ -160,6 +166,9 @@ export async function mountStage(host: HTMLElement, options: StageOptions = {}):
     cssPerDevicePixel,
     showStructure(input) {
       structure.update(input);
+    },
+    showUnits(input) {
+      units.update(input);
     },
     destroy() {
       cameraListeners.clear();
