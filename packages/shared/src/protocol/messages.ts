@@ -13,6 +13,9 @@ import { ClientEventSchema, DeltaSchema, InspectDataSchema, SnapshotSchema } fro
 
 export const PROTOCOL_VERSION = 1;
 
+/** The one path the tower socket is served on. The tower comes from the session, or `?tower=`. */
+export const TOWER_SOCKET_PATH = '/ws';
+
 /**
  * `v` is any positive version so a client on another version still parses;
  * the server answers its `hello` with PROTOCOL_MISMATCH.

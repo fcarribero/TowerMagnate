@@ -22,7 +22,10 @@ class MemoryStore implements TowerStore {
   }
 }
 
-const countingAdvance: AdvanceTower = (state, steps) => ({ ...state, step: state.step + steps });
+const countingAdvance: AdvanceTower = (state, steps) => ({
+  state: { ...state, step: state.step + steps },
+  events: [],
+});
 
 describe('tower runner', () => {
   let clock: number;
@@ -55,6 +58,27 @@ describe('tower runner', () => {
     passTime(REAL_MS_PER_GAME_DAY);
 
     expect(stepOf('1')).toBe(STEPS_PER_DAY);
+  });
+
+  it('hands over each event once, oldest first', async () => {
+    runner = new TowerRunner({
+      store,
+      now: () => clock,
+      advance: (state, steps) => ({
+        state: { ...state, step: state.step + steps },
+        events: [{ type: 'news', step: state.step + steps, key: 'news.test', unitId: null }],
+      }),
+    });
+    await runner.resume('1');
+    passTime(300);
+
+    const first = runner.takeEvents('1');
+
+    expect(first.length).toBeGreaterThan(0);
+    expect(first.map((event) => event.step)).toEqual(
+      [...first.map((event) => event.step)].sort((a, b) => a - b),
+    );
+    expect(runner.takeEvents('1')).toEqual([]);
   });
 
   it('does not drift when ticks arrive late and unevenly', async () => {

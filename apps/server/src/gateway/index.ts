@@ -16,7 +16,6 @@ export {
 export {
   MAX_CLIENT_MESSAGE_BYTES,
   registerGateway,
-  TOWER_SOCKET_PATH,
   type GatewayOptions,
   type IdentityResolver,
   type IdentityResult,
