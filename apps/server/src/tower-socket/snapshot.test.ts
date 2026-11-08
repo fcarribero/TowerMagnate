@@ -174,12 +174,14 @@ describe('snapshot from tower state', () => {
     }
   });
 
-  it('faces the way a walking person is heading', () => {
+  it('keeps the last horizontal facing while the person is not walking', () => {
     const state = towerWithPeople();
-    state.people.trek[0] = TREK_PHASES.indexOf('walkingToDestination');
-    state.people.legColumn[0] = 0;
-    expect(buildSnapshot(state, LOBBY_VIEW).people[0]?.facing).toBe('left');
-    state.people.legColumn[0] = 9;
+    state.people.facing[0] = 1;
+    for (const phase of TREK_PHASES) {
+      state.people.trek[0] = TREK_PHASES.indexOf(phase);
+      expect(buildSnapshot(state, LOBBY_VIEW).people[0]?.facing, phase).toBe('left');
+    }
+    state.people.facing[0] = 0;
     expect(buildSnapshot(state, LOBBY_VIEW).people[0]?.facing).toBe('right');
   });
 

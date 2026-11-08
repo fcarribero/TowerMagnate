@@ -71,6 +71,7 @@ export function createPersonPool(): PersonPool {
     legLevel: [],
     legColumn: [],
     legStep: [],
+    facing: [],
     nameSeed: [],
     followed: [],
   };
@@ -96,6 +97,7 @@ export function clonePersonPool(pool: PersonPool): PersonPool {
     legLevel: pool.legLevel.slice(),
     legColumn: pool.legColumn.slice(),
     legStep: pool.legStep.slice(),
+    facing: pool.facing.slice(),
     nameSeed: pool.nameSeed.slice(),
     followed: pool.followed.slice(),
   };
@@ -150,6 +152,7 @@ export function addPerson(state: TowerState, person: NewPerson): number {
   pool.legLevel.push(0);
   pool.legColumn.push(0);
   pool.legStep.push(0);
+  pool.facing.push(0);
   pool.nameSeed.push(nextUint32(state.rng));
   pool.nextId += 1;
   return id;
@@ -383,6 +386,7 @@ function poolArrays(pool: PersonPool): number[][] {
     pool.legLevel,
     pool.legColumn,
     pool.legStep,
+    pool.facing,
     pool.nameSeed,
   ];
 }

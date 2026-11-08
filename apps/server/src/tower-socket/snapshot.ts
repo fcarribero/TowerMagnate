@@ -204,12 +204,8 @@ function modeOfPhase(phase: TrekPhase, atHome: boolean): PersonView['mode'] {
   }
 }
 
-/** Looks left only while the person is walking toward a column on their left. */
-function facingOf(state: TowerState, slot: number, phase: TrekPhase): PersonView['facing'] {
-  const pool = state.people;
-  const walking = phase.startsWith('walking');
-  const heading = walking ? (pool.legColumn[slot] ?? 0) - (pool.column[slot] ?? 0) : 0;
-  return heading < 0 ? 'left' : 'right';
+function facingOf(state: TowerState, slot: number): PersonView['facing'] {
+  return state.people.facing[slot] === 1 ? 'left' : 'right';
 }
 
 export function peopleViews(
@@ -246,7 +242,7 @@ function personView(
     kind: person.kind,
     x: place.column,
     level: place.level,
-    facing: facingOf(state, slot, phase),
+    facing: facingOf(state, slot),
     mode: modeOfPhase(phase, person.trip === NO_TRIP),
     carRef: ride?.carRef ?? null,
     stress: stressLevel(person.stress),
