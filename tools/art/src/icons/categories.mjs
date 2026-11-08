@@ -1,0 +1,126 @@
+import { drawIcon } from './legend.mjs';
+
+const STRUCTURE = [
+  '................',
+  '................',
+  '..kkkkkkkkkkkk..',
+  '..kLLLLLLLLLLk..',
+  '..kooooooooook..',
+  '..kOOOOOOOOOOk..',
+  '..kkkkkkkkkkkk..',
+  '...kdk....kdk...',
+  '...kdk....kdk...',
+  '...kdk....kdk...',
+  '...kdk....kdk...',
+  '...kdk....kdk...',
+  '.kkkkkkkkkkkkkk.',
+  '.kLLLLLLLLLLLLk.',
+  '.kkkkkkkkkkkkkk.',
+  '................',
+];
+
+const TRANSPORT = [
+  '................',
+  '..............kk',
+  '.............kck',
+  '............kckk',
+  '...........kckok',
+  '..........kckook',
+  '.........kckook.',
+  '........kckook..',
+  '.......kckook...',
+  '......kckook....',
+  '.....kckook.....',
+  '....kckook......',
+  '...kckook.......',
+  '..kckook........',
+  '..kkkkk.........',
+  '................',
+];
+
+const OFFICES_AND_HOUSING = [
+  '................',
+  '..kkkkkkkkkkk...',
+  '..kcccccccccck..',
+  '..kcakakakacck..',
+  '..kcccccccccck..',
+  '..kcayakakacck..',
+  '..kcccccccccck..',
+  '..kcakakayacck..',
+  '..kcccccccccck..',
+  '..kcakakakacck..',
+  '..kcccccccccck..',
+  '..kcaa.kNkaacck.',
+  '..kccc.kNkcccck.',
+  '..kkkkkkkkkkkkk.',
+  '................',
+  '................',
+];
+
+const HOTEL = [
+  '................',
+  '................',
+  '.kk.............',
+  '.kNk............',
+  '.kNk.kkkkkkkk...',
+  '.kNkkkcccccck...',
+  '.kNkkTcccccwk...',
+  '.kNkkkkkkkkkk...',
+  '.kNkbbbbbbbbbkk.',
+  '.kNkbbbbbbbbbbk.',
+  '.kNkkkkkkkkkkkk.',
+  '.kNk.kN....kNk..',
+  '.kkk.kk....kkk..',
+  '................',
+  '................',
+  '................',
+];
+
+const COMMERCE_AND_ENTERTAINMENT = [
+  '................',
+  '..kkkkkkkkkkkk..',
+  '..krwrwrwrwrk...',
+  '.krwrwrwrwrwrk..',
+  '.kkkkkkkkkkkkk..',
+  '..kLLLLLLLLLk...',
+  '..kLaaaaaaaLk...',
+  '..kLaaaaaaaLk...',
+  '..kLaaaaaaaLk...',
+  '..kLLLLLLLLLk...',
+  '..kLLkNkLLLLk...',
+  '..kLLkNkLLLLk...',
+  '..kkkkkkkkkkk...',
+  '................',
+  '................',
+  '................',
+];
+
+const SERVICES = [
+  '................',
+  '................',
+  '....kkkkkkkk....',
+  '...kwwwwwwwwk...',
+  '..kkwwwrrwwwkk..',
+  '..kwwwwrrwwwwk..',
+  '..kwwrrrrrrwwk..',
+  '..kwwrrrrrrwwk..',
+  '..kwwwwrrwwwwk..',
+  '..kswwwrrwwwsk..',
+  '...kswwwwwwsk...',
+  '....kkssssdk....',
+  '......kkkk......',
+  '................',
+  '................',
+  '................',
+];
+
+export function categoryIcons() {
+  return [
+    drawIcon('ui/cat-structure', STRUCTURE),
+    drawIcon('ui/cat-transport', TRANSPORT),
+    drawIcon('ui/cat-offices-and-housing', OFFICES_AND_HOUSING),
+    drawIcon('ui/cat-hotel', HOTEL),
+    drawIcon('ui/cat-commerce-and-entertainment', COMMERCE_AND_ENTERTAINMENT),
+    drawIcon('ui/cat-services', SERVICES),
+  ];
+}

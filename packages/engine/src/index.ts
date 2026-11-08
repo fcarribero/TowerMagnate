@@ -77,6 +77,16 @@ export {
   unfollowPerson,
   unitPeople,
 } from './people';
+export {
+  boardFromQueue,
+  fullQueueSurcharge,
+  hallCallAge,
+  isQueueFull,
+  joinQueue,
+  leaveQueues,
+  nextQueueCheckStep,
+  queueLength,
+} from './elevator-queues';
 export type { NewPerson, PersonHandler, PersonView } from './people';
 export { chance, createRng, nextFloat, nextInt, nextUint32 } from './rng';
 export { createScheduler } from './scheduler';
