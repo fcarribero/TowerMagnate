@@ -84,7 +84,7 @@ function leaseDetails(state: TowerState, unit: Unit): UnitDetails {
     state: lease ? 'occupied' : 'forRent',
     persons: countPeopleOfUnit(state.people, unit.id),
     capacity: capacityOf(unit),
-    evaluation: null,
+    evaluation: unit.evaluation,
     price: unit.priceLevel,
     leaseWeek: weeksIn === null ? null : Math.min(weeksIn, LEASE_CONTRACT_WEEKS),
     nextPaymentStep: lease?.nextDueStep ?? null,
@@ -97,7 +97,7 @@ function condoDetails(state: TowerState, unit: Unit): UnitDetails {
     state: unit.sale ? 'sold' : 'forSale',
     residents: countPeopleOfUnit(state.people, unit.id),
     capacity: capacityOf(unit),
-    evaluation: null,
+    evaluation: unit.evaluation,
     price: unit.priceLevel,
     nextEvaluationStep: unit.sale?.nextEvaluationStep ?? null,
   };
@@ -111,7 +111,7 @@ function hotelDetails(state: TowerState, unit: Unit): UnitDetails {
     state: room?.state ?? 'clean',
     guests: countPeopleOfUnit(state.people, unit.id),
     capacity: capacityOf(unit),
-    evaluation: null,
+    evaluation: unit.evaluation,
     price: unit.priceLevel,
     checkoutStep: occupied ? (room?.stayEndStep ?? null) : null,
   };

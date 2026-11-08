@@ -16,7 +16,7 @@ export function isHotelRoomType(type: UnitType): boolean {
 }
 
 export function newHotelRoom(): HotelRoom {
-  return { state: 'clean', stayEndStep: null };
+  return { state: 'clean', stayEndStep: null, checkInStep: null, paidLevel: null };
 }
 
 export function isVenueType(type: UnitType): type is keyof typeof VENUE_PAYOUT_HOURS {
@@ -55,6 +55,7 @@ export function newUnit(id: EntityId, type: UnitType, x: number, level: Level): 
     lease: null,
     sale: null,
     hotel: isHotelRoomType(type) ? newHotelRoom() : null,
+    evaluation: null,
     venue: holdsVenueDay(type) ? newVenueDay() : null,
   };
 }

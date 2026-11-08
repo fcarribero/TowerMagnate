@@ -5,12 +5,13 @@ import type { Footprint } from '../../render/ghostLayer';
 import type { CellInput } from '../../render/stage';
 import type { ScreenPoint } from './bindBuildInput';
 import {
-  demolishRun,
   pickDemolition,
+  runCommands,
   runFootprint,
   type Confirmation,
   type DemolishPick,
   type DemolishWorld,
+  type RunKind,
 } from './demolishPlan';
 
 export const DEMOLISH_COLOR = 0xb0353a;
@@ -35,14 +36,14 @@ export interface DemolishInputOptions {
 }
 
 interface RunDrag {
-  kind: 'floor' | 'lobby';
+  kind: RunKind;
   press: Cell;
   currentX: number;
 }
 
 /**
  * The Topadora: frames what a click would remove, removes it on a press, and
- * removes a run of floor or lobby when dragged along one level. Esc or a right
+ * removes a run of floor, lobby or ruins when dragged along one level. Esc or a right
  * click drops a drag without sending anything.
  */
 export function bindDemolishInput(options: DemolishInputOptions): () => void {
@@ -95,7 +96,10 @@ export function bindDemolishInput(options: DemolishInputOptions): () => void {
     }
     const { kind, press: start, currentX } = drag;
     cancelDrag();
-    send(demolishRun(kind, start.level, start.x, cell?.x ?? currentX), at);
+    const row = world()?.structure.get(start.level) ?? '';
+    for (const command of runCommands(kind, start.level, row, start.x, cell?.x ?? currentX)) {
+      send(command, at);
+    }
   };
 
   const onInput = (input: CellInput): void => {

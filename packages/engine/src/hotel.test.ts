@@ -64,6 +64,8 @@ describe('hotel check-in', () => {
     expect(state.units[roomId]?.hotel).toEqual({
       state: 'occupied',
       stayEndStep: at(WEDNESDAY + 3, 10),
+      checkInStep: at(WEDNESDAY, 15),
+      paidLevel: 'normal',
     });
     expect(weekdayOfDay(WEDNESDAY + 3)).toBe(WEEKDAYS.saturday);
     expect(events.map((event) => event.type)).toEqual(['hotelCheckIn', 'roomStateChanged']);
@@ -74,7 +76,11 @@ describe('hotel check-in', () => {
 
     const atCheckOut = engine.step(justBefore.state, [], 1);
     expect(atCheckOut.state.step).toBe(at(WEDNESDAY + 3, 10));
-    expect(atCheckOut.state.units[roomId]?.hotel).toEqual({ state: 'dirty', stayEndStep: null });
+    expect(atCheckOut.state.units[roomId]?.hotel).toMatchObject({
+      state: 'dirty',
+      stayEndStep: null,
+    });
+    expect(atCheckOut.state.units[roomId]?.evaluation).toBe('good');
     expect(atCheckOut.events.map((event) => event.type)).toEqual([
       'hotelCheckOut',
       'roomStateChanged',
@@ -120,7 +126,12 @@ describe('hotel check-in', () => {
   it.each(['dirty', 'occupied', 'infested'] as const)('refuses a %s room', (state) => {
     const { tower, roomIds } = towerWithRooms(['double-room']);
     const roomId = roomIds[0] as UnitId;
-    setHotel(tower, roomId, { state, stayEndStep: state === 'occupied' ? 99_999 : null });
+    setHotel(tower, roomId, {
+      state,
+      stayEndStep: state === 'occupied' ? 99_999 : null,
+      checkInStep: null,
+      paidLevel: null,
+    });
     const attempt = tryCheckIn(tower, roomId, at(WEDNESDAY, 15));
     expect(attempt.result).toEqual({ checkedIn: false, reason: 'roomNotClean' });
     expect(attempt.state.money).toBe(tower.money);
@@ -129,9 +140,19 @@ describe('hotel check-in', () => {
   it('takes a room again once it is clean', () => {
     const { tower, roomIds } = towerWithRooms(['single-room']);
     const roomId = roomIds[0] as UnitId;
-    setHotel(tower, roomId, { state: 'dirty', stayEndStep: null });
+    setHotel(tower, roomId, {
+      state: 'dirty',
+      stayEndStep: null,
+      checkInStep: null,
+      paidLevel: null,
+    });
     expect(tryCheckIn(tower, roomId, at(WEDNESDAY, 15)).result.checkedIn).toBe(false);
-    setHotel(tower, roomId, { state: 'clean', stayEndStep: null });
+    setHotel(tower, roomId, {
+      state: 'clean',
+      stayEndStep: null,
+      checkInStep: null,
+      paidLevel: null,
+    });
     expect(tryCheckIn(tower, roomId, at(WEDNESDAY, 15)).result.checkedIn).toBe(true);
   });
 
@@ -174,7 +195,12 @@ describe('hotel check-out order', () => {
     const { tower, roomIds } = towerWithRooms(['single-room', 'double-room']);
     const end = at(WEDNESDAY + 1, 10);
     for (const id of roomIds) {
-      setHotel(tower, id, { state: 'occupied', stayEndStep: end });
+      setHotel(tower, id, {
+        state: 'occupied',
+        stayEndStep: end,
+        checkInStep: null,
+        paidLevel: null,
+      });
     }
     tower.step = end - 1;
     const engine = createEngine({ commandHandlers: {}, systems: [createHotelSystem()] });
@@ -214,5 +240,5 @@ describe('hotel week scenario', () => {
 });
 
 function cleanRoom(): HotelRoom {
-  return { state: 'clean', stayEndStep: null };
+  return { state: 'clean', stayEndStep: null, checkInStep: null, paidLevel: null };
 }
