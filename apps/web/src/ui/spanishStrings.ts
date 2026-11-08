@@ -282,6 +282,7 @@ export const SPANISH_STRINGS = {
   'value.person.weddingGuest': 'Invitado a la boda',
 
   // 13.7 Overlays
+  'overlay.name': 'Vista',
   'overlay.normal': 'Normal',
   'overlay.evaluation': 'Evaluación',
   'overlay.price': 'Precios',
