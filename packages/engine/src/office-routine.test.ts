@@ -400,7 +400,10 @@ describe('a fast food removed during lunch', () => {
       state = engine.step(state, [], 1).state;
       expect(state.step).toBeLessThan(2 * STEPS_PER_DAY);
     }
-    for (const id of tower.fastFoodIds) delete state.units[id];
+    const fastFoodIds = new Set<string>(tower.fastFoodIds);
+    state.units = Object.fromEntries(
+      Object.entries(state.units).filter(([id]) => !fastFoodIds.has(id)),
+    );
     const sightings: Sighting[] = [];
     const rest = engineWith(walkToFastFood, sightings).step(
       state,
