@@ -8,20 +8,22 @@ afterEach(cleanup);
 describe('OverlaySelector', () => {
   it('has 4 buttons with exactly one on', () => {
     render(<OverlaySelector overlay="price" onSelect={() => undefined} />);
-    expect(screen.getAllByRole('button').map((b) => b.textContent)).toEqual([
+    expect(screen.getAllByRole('button').map((b) => b.getAttribute('aria-label'))).toEqual([
       'Normal',
       'Evaluación',
       'Precios',
       'Hotel',
     ]);
     expect(document.querySelectorAll('[aria-pressed="true"]')).toHaveLength(1);
-    expect(screen.getByText('Precios').getAttribute('aria-pressed')).toBe('true');
+    expect(screen.getByRole('button', { name: 'Precios' }).getAttribute('aria-pressed')).toBe(
+      'true',
+    );
   });
 
   it('reports the clicked overlay', () => {
     const onSelect = vi.fn();
     render(<OverlaySelector overlay="normal" onSelect={onSelect} />);
-    fireEvent.click(screen.getByText('Hotel'));
+    fireEvent.click(screen.getByRole('button', { name: 'Hotel' }));
     expect(onSelect).toHaveBeenCalledWith('hotel');
   });
 });

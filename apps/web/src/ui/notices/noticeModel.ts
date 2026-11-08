@@ -25,7 +25,7 @@ export function noticeFromView(view: NoticeView): Notice {
     step: view.step,
     key: view.key,
     params: view.params,
-    unitId: null,
+    unitId: view.unitId,
     alert: isAlertKey(view.key),
   };
 }

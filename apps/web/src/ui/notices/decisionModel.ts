@@ -1,5 +1,6 @@
 import { dateOfStep } from '@tower-magnate/engine/calendar';
 import type { DecisionKind, EventView } from '@tower-magnate/shared';
+import { formatMoney } from '../money';
 import { formatGameTime } from '../status/statusFormat';
 import { t, type StringKey } from '../strings';
 
@@ -14,14 +15,12 @@ const OPTION_KEYS: Record<DecisionKind, Record<string, StringKey>> = {
   fire: { helicopter: 'dialog.fire.helicopter', burn: 'dialog.fire.burn' },
 };
 
-/** Level of the disaster that goes with the decision, when the server sent its cells. */
-export function disasterLevel(events: readonly EventView[], kind: DecisionKind): number | null {
-  for (const event of events) {
-    if (event.kind === 'disaster' && event.disaster === kind) {
-      return event.cells[0]?.level ?? null;
-    }
+/** Text parameters of a decision: the ransom of a bomb or the floor of a fire. */
+export function decisionParams(event: DecisionEvent): Record<string, string | number> {
+  if (event.ransom !== undefined) {
+    return { ransom: formatMoney(event.ransom) };
   }
-  return null;
+  return event.level === undefined ? {} : { level: event.level };
 }
 
 export function optionLabel(

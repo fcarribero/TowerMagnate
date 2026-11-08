@@ -7,7 +7,7 @@ import { t } from '../strings';
 import {
   deadlineText,
   decisionBody,
-  disasterLevel,
+  decisionParams,
   openDecisions,
   optionLabel,
 } from './decisionModel';
@@ -51,8 +51,7 @@ export function DecisionDialogs({ store, onAnswer, closedIds }: DecisionDialogsP
       {openDecisions(selected.events)
         .filter((event) => !answered.has(event.id) && !closedIds.has(event.id))
         .map((event) => {
-          const level = disasterLevel(selected.events, event.decision);
-          const params: Record<string, number> = level === null ? {} : { level };
+          const params = decisionParams(event);
           return (
             <DecisionDialog
               key={event.id}
@@ -62,7 +61,7 @@ export function DecisionDialogs({ store, onAnswer, closedIds }: DecisionDialogsP
               deadline={deadlineText(selected.step, event.deadlineStep)}
               options={event.options.map((option) => ({
                 id: option,
-                label: optionLabel(event.decision, option),
+                label: optionLabel(event.decision, option, params),
               }))}
               onAnswer={(choice) => answer(event.id, choice)}
             />

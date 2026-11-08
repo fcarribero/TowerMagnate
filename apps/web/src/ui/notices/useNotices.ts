@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
-import type { DecisionKind } from '@tower-magnate/shared';
+import type { DecisionKind, NoticeView } from '@tower-magnate/shared';
 import type { GameConnection } from '../../net/gameConnection';
 import { optionLabel } from './decisionModel';
 import { AVISOS_KEPT, addToAvisos, isAlertKey, noticeFromView, type Notice } from './noticeModel';
@@ -23,6 +23,10 @@ function makeNotice(
   return { id: `local-${n}`, step, key, params, unitId, alert: isAlertKey(key) };
 }
 
+function isServerNotice(view: NoticeView): boolean {
+  return view.key !== 'news.decisionDefault';
+}
+
 function withoutId(ids: ReadonlySet<string>, id: string): ReadonlySet<string> {
   if (!ids.has(id)) {
     return ids;
@@ -43,6 +47,7 @@ export function useNotices(
   const answered = useRef(new Set<string>());
   const kinds = useRef(new Map<string, DecisionKind>());
   const nextId = useRef(1);
+  const seen = useRef(new Set<string>());
 
   useEffect(() => {
     const publish = (notice: Notice): void => {
@@ -54,10 +59,21 @@ export function useNotices(
     return connection.onMessage((message) => {
       if (message.t === 'snapshot') {
         // The snapshot lists notices oldest first.
-        setAvisos(message.p.notices.map(noticeFromView).reverse().slice(0, AVISOS_KEPT));
+        const fromServer = message.p.notices.filter(isServerNotice);
+        seen.current = new Set(fromServer.map((notice) => notice.id));
+        setAvisos(fromServer.map(noticeFromView).reverse().slice(0, AVISOS_KEPT));
         for (const event of message.p.activeEvents) {
           if (event.kind === 'decision') {
             kinds.current.set(event.id, event.decision);
+          }
+        }
+        return;
+      }
+      if (message.t === 'delta') {
+        for (const view of message.p.notices ?? []) {
+          if (isServerNotice(view) && !seen.current.has(view.id)) {
+            seen.current.add(view.id);
+            publish(noticeFromView(view));
           }
         }
         return;
@@ -72,15 +88,14 @@ export function useNotices(
         } else if (event.type === 'decisionClosed') {
           setClosedIds((ids) => new Set(ids).add(event.eventId));
           const kind = kinds.current.get(event.eventId);
-          // An answer already has its own server news; only a timeout needs a notice here.
-          if (!answered.current.delete(event.eventId) && kind !== undefined) {
+          answered.current.delete(event.eventId);
+          // An answer has its own server notice; a timeout is worded here with the option applied.
+          if (event.timedOut && kind !== undefined) {
             const option = optionLabel(kind, event.choice);
             publish(
               makeNotice(nextId.current++, event.step, 'news.decisionDefault', { option }, null),
             );
           }
-        } else if (event.type === 'news' && event.key !== 'news.decisionDefault') {
-          publish(makeNotice(nextId.current++, event.step, event.key, {}, event.unitId));
         }
       }
     });
