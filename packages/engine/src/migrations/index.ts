@@ -43,7 +43,7 @@ import { readGrid } from './grid';
 import { readLedger, readMoney } from './money';
 import { readPeople, readTripLedger } from './people';
 import { readStars } from './stars';
-import { readTransports } from './transports';
+import { readFloorPurchases, readTransports } from './transports';
 
 export { StateMigrationError } from './errors';
 
@@ -69,6 +69,7 @@ const MIGRATIONS: readonly Migration[] = [
   addParkingState,
   addTripLedger,
   addGuardEventState,
+  addTransportPurchaseRecord,
 ];
 
 /** Version 2 records each unit's price level, what was paid for it and when it was placed. */
@@ -297,6 +298,22 @@ function addGuardEventState(raw: Record<string, unknown>): Record<string, unknow
       })
     : raw.activeEvents;
   return { ...raw, activeEvents, schemaVersion: 19 };
+}
+
+/**
+ * Version 20 records what each staircase and escalator cost and when it was placed, and keeps
+ * floor tool purchases. Older transports and floor are past the refund window, so they get zero.
+ */
+function addTransportPurchaseRecord(raw: Record<string, unknown>): Record<string, unknown> {
+  const transports = isRecord(raw.transports)
+    ? Object.fromEntries(
+        Object.entries(raw.transports).map(([id, transport]) => [
+          id,
+          isRecord(transport) ? { paid: 0, placedAtStep: 0, ...transport } : transport,
+        ]),
+      )
+    : raw.transports;
+  return { ...raw, transports, floorPurchases: [], schemaVersion: 20 };
 }
 
 /** Version 11 gives each hotel room a state; every room in an older tower is clean and empty. */
@@ -598,6 +615,7 @@ function assertCurrentShape(raw: Record<string, unknown>): TowerState {
     transports: readTransports(raw.transports),
     shafts: readShafts(raw.shafts),
     grid: readGrid(raw.grid),
+    floorPurchases: readFloorPurchases(raw.floorPurchases),
     people: people,
     tripLedger: readTripLedger(raw.tripLedger, people.id),
     ledger: readLedger(raw.ledger),
