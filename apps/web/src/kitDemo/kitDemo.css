@@ -52,3 +52,21 @@ body,
   font-size: 16px;
   color: var(--tm-white);
 }
+
+.kit-demo__status {
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  z-index: 1;
+}
+
+.kit-demo__status-bar {
+  position: relative;
+  height: calc(24 * var(--tm-px));
+}
+
+.kit-demo__status .kit-demo__row {
+  justify-content: flex-start;
+  padding: 0 calc(4 * var(--tm-px));
+}
