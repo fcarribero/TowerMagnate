@@ -33,7 +33,22 @@ export function optionLabel(
   if (key === undefined) {
     return option;
   }
+  if (key === 'dialog.bomb.pay' && params.ransom === undefined) {
+    return t('dialog.bomb.payUnpriced');
+  }
   return t(key, params);
+}
+
+/** Body text; names the ransom or the floor only when the server sent them. */
+export function decisionBody(kind: DecisionKind, params: Record<string, string | number>): string {
+  if (kind === 'bomb') {
+    return params.ransom === undefined
+      ? t('dialog.bomb.bodyUnpriced')
+      : t('dialog.bomb.body', params);
+  }
+  return params.level === undefined
+    ? t('dialog.fire.bodyUnlocated')
+    : t('dialog.fire.body', params);
 }
 
 /** "Respondé antes de las 13:00", or with the weekday when the deadline is on another day. */

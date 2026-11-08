@@ -33,7 +33,10 @@ function withoutId(ids: ReadonlySet<string>, id: string): ReadonlySet<string> {
 }
 
 /** Collects notices from snapshots and news events for the news line and the Avisos window. */
-export function useNotices(connection: GameConnection): NoticesApi {
+export function useNotices(
+  connection: GameConnection,
+  onRejected: (error: string) => void,
+): NoticesApi {
   const [avisos, setAvisos] = useState<readonly Notice[]>([]);
   const [closedIds, setClosedIds] = useState<ReadonlySet<string>>(new Set());
   const lineListeners = useRef(new Set<(notice: Notice) => void>());
@@ -95,9 +98,14 @@ export function useNotices(connection: GameConnection): NoticesApi {
       },
       answerEvent(eventId, choice) {
         answered.current.add(eventId);
-        void connection.commands.send({ type: 'answerEvent', eventId, choice });
+        void connection.commands.send({ type: 'answerEvent', eventId, choice }).then((result) => {
+          if (!result.ok) {
+            answered.current.delete(eventId);
+            onRejected(result.error);
+          }
+        });
       },
     }),
-    [avisos, closedIds, connection],
+    [avisos, closedIds, connection, onRejected],
   );
 }

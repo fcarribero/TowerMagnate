@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { stepAtHour } from '../../render/timeOfDay';
-import { deadlineText, optionLabel } from './decisionModel';
+import { deadlineText, decisionBody, optionLabel } from './decisionModel';
 
 describe('deadlineText', () => {
   it('names only the time on the same day', () => {
@@ -18,5 +18,18 @@ describe('optionLabel', () => {
     expect(optionLabel('bomb', 'refuse')).toBe('No pagar');
     expect(optionLabel('fire', 'helicopter')).toBe('Llamar al helicóptero ($500.000)');
     expect(optionLabel('fire', 'burn')).toBe('No llamar');
+  });
+});
+
+describe('fallbacks without server amounts', () => {
+  it('drops the ransom from the button and the text', () => {
+    expect(optionLabel('bomb', 'pay')).toBe('Pagar');
+    expect(decisionBody('bomb', {})).not.toContain('{');
+    expect(decisionBody('fire', {})).not.toContain('{');
+  });
+
+  it('names the ransom and the floor when known', () => {
+    expect(decisionBody('bomb', { ransom: '$100.000' })).toContain('$100.000');
+    expect(decisionBody('fire', { level: 12 })).toContain('piso 12');
   });
 });

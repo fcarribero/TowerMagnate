@@ -419,9 +419,13 @@ export const SPANISH_STRINGS = {
   'dialog.bomb.title': 'Amenaza de bomba',
   'dialog.bomb.body':
     'Alguien llamó para avisar que dejó una bomba en la torre. Pide {ransom} para decir dónde está. Si no pagás, seguridad la va a buscar. Si no la encuentra antes de las 13:00, explota.',
+  'dialog.bomb.bodyUnpriced':
+    'Alguien llamó para avisar que dejó una bomba en la torre. Pide dinero para decir dónde está. Si no pagás, seguridad la va a buscar. Si no la encuentra antes de las 13:00, explota.',
   'dialog.fire.title': 'Incendio',
   'dialog.fire.body':
     'Hay un incendio en el piso {level}. Un helicóptero lo puede apagar por $500.000. Si no lo llamás, seguridad va a tratar de contenerlo.',
+  'dialog.fire.bodyUnlocated':
+    'Hay un incendio en la torre. Un helicóptero lo puede apagar por $500.000. Si no lo llamás, seguridad va a tratar de contenerlo.',
   'dialog.starsUp.title': '¡{n} estrellas!',
   'dialog.starsUp.body': 'La torre llegó a {n} estrellas. Ahora podés construir: {units}.',
   'dialog.towerRank.title': '¡Rango Torre!',
@@ -447,6 +451,7 @@ export const SPANISH_STRINGS = {
   'dialog.deadlineToday': 'Respondé antes de las {time}',
   'dialog.deadlineOtherDay': 'Respondé antes del {weekday} {time}',
   'dialog.bomb.pay': 'Pagar {ransom}',
+  'dialog.bomb.payUnpriced': 'Pagar',
   'dialog.bomb.refuse': 'No pagar',
   'dialog.fire.helicopter': 'Llamar al helicóptero ($500.000)',
   'dialog.fire.burn': 'No llamar',

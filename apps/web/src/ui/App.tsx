@@ -1,5 +1,5 @@
 import type { StarRating } from '@tower-magnate/shared';
-import { useEffect, useMemo, useState } from 'preact/hooks';
+import { useCallback, useEffect, useMemo, useState } from 'preact/hooks';
 import { TOWER_LAYOUT, type Level } from '@tower-magnate/shared';
 import { createCommandApi } from '../api/commandApi';
 import { useSfx } from '../audio/useSfx';
@@ -74,7 +74,7 @@ export function App({ onLogout, onRestartTower, onSessionLost }: AppProps) {
   const [mapOpen, setMapOpen] = useState(false);
   const [financeOpen, setFinanceOpen] = useState(false);
   const [avisosOpen, setAvisosOpen] = useState(false);
-  const notices = useNotices(connection);
+
   const [restartStep, setRestartStep] = useState<RestartStep | null>(null);
   const [overlay, setOverlay] = useState<OverlayId>('normal');
   const [tool, setTool] = useState<ToolId>(DEFAULT_TOOL);
@@ -104,6 +104,10 @@ export function App({ onLogout, onRestartTower, onSessionLost }: AppProps) {
     return api;
   }, [connection, director]);
   const { toasts, floats, report } = useBuildFeedback();
+  const notices = useNotices(
+    connection,
+    useCallback((error: string) => report({ ok: false, error }, { x: 0, y: 0 }), [report]),
+  );
   const [pendingDemolition, setPendingDemolition] = useState<{
     confirmation: Confirmation;
     proceed: () => void;

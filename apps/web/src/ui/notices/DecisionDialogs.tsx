@@ -4,7 +4,13 @@ import type { GameState } from '../../model/gameState';
 import { useStoreSelect } from '../../model/useStoreSelect';
 import { DecisionDialog } from '../kit/Dialog';
 import { t } from '../strings';
-import { deadlineText, disasterLevel, openDecisions, optionLabel } from './decisionModel';
+import {
+  deadlineText,
+  decisionBody,
+  disasterLevel,
+  openDecisions,
+  optionLabel,
+} from './decisionModel';
 
 const selectEvents = (state: GameState) => ({ events: state.activeEvents, step: state.step });
 
@@ -52,7 +58,7 @@ export function DecisionDialogs({ store, onAnswer, closedIds }: DecisionDialogsP
               key={event.id}
               id={`decision-${event.id}`}
               title={t(`dialog.${event.decision}.title`)}
-              body={t(`dialog.${event.decision}.body`, params)}
+              body={decisionBody(event.decision, params)}
               deadline={deadlineText(selected.step, event.deadlineStep)}
               options={event.options.map((option) => ({
                 id: option,
