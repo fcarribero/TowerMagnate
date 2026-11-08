@@ -336,6 +336,22 @@ function drawParkingSpace(occupied) {
   return room;
 }
 
+// A parking space with no road link: the lamps are dead and a red cross covers the sign.
+function drawDisconnectedParkingSpace() {
+  const room = drawParkingSpace(false);
+  room.fillRect(2, 22, 1, 4, 'slate');
+  room.fillRect(29, 22, 1, 4, 'slate');
+  for (let y = 15; y < 26; y += 4) {
+    room.hline(26, y, 4, 'slate');
+  }
+  room.hline(14, 3, 3, 'slate');
+  for (let i = 0; i < 9; i++) {
+    room.set(4 + i, 5 + i, 'cloth-red');
+    room.set(12 - i, 5 + i, 'cloth-red');
+  }
+  return room;
+}
+
 const RECYCLING_FLOORS = 2;
 const RECYCLING_WINDOWS = [
   { left: 40, top: 4, width: 14, height: 8 },
@@ -573,7 +589,12 @@ export function parkingRampSprites() {
 }
 
 export function parkingSpaceSprites() {
-  return serviceSprites('parking-space', { drawDay: drawParkingSpace });
+  const disconnected = drawDisconnectedParkingSpace();
+  return [
+    ...serviceSprites('parking-space', { drawDay: drawParkingSpace }),
+    { id: 'units/parking-space/disconnected_day', canvas: disconnected },
+    { id: 'units/parking-space/disconnected_night', canvas: nightVersion(disconnected, []) },
+  ];
 }
 
 export function recyclingCenterSprites() {

@@ -1,7 +1,9 @@
-import { UNIT_CATALOG, UNIT_TYPES, type UnitView } from '@tower-magnate/shared';
+import { UNIT_CATALOG, UNIT_TYPES, type UnitType, type UnitView } from '@tower-magnate/shared';
 import type { ClientStore } from '../model/clientStore';
 import type { GameState } from '../model/gameState';
 import type { OverlayId } from './overlayColors';
+import { fullWidthTestTower } from './structureSource';
+import type { StructureInput } from './structureRows';
 import { stepAtHour, timeOfDayAt } from './timeOfDay';
 import type { UnitsInput } from './unitLayer';
 import { isPlacedUnit, type TransportSource } from './unitPlan';
@@ -43,6 +45,8 @@ export function bindUnits(
 
 const DEBUG_ROW_SPACING = 5;
 const DEBUG_FIRST_LEVEL = 4;
+const DEBUG_RUINS_FROM = 60;
+const DEBUG_RUINS_WIDTH = 6;
 
 /** Every placed unit type twice, empty on the first row and occupied on the second, plus stairs and an escalator. */
 export function debugUnits(
@@ -70,6 +74,7 @@ export function debugUnits(
       x += UNIT_CATALOG[type].width;
     }
   });
+  units.push(...variantUnits());
   return {
     units,
     transports: [
@@ -91,8 +96,47 @@ export function debugUnits(
   };
 }
 
+export const DEBUG_VARIANT_LEVEL = DEBUG_FIRST_LEVEL + 3 * DEBUG_ROW_SPACING;
+
+/** Dirty and infested hotel rooms and a disconnected parking space, left of the debug ruins. */
+function variantUnits(): UnitView[] {
+  const variants: [UnitType, UnitView['variant']][] = [
+    ['single-room', 'dirty'],
+    ['single-room', 'infested'],
+    ['double-room', 'dirty'],
+    ['double-room', 'infested'],
+    ['suite', 'dirty'],
+    ['suite', 'infested'],
+    ['parking-space', 'disconnected'],
+  ];
+  let x = 0;
+  return variants.map(([type, variant]) => {
+    const unit: UnitView = {
+      id: `debug-${type}-${variant}`,
+      type,
+      x,
+      level: DEBUG_VARIANT_LEVEL,
+      name: null,
+      price: 'normal',
+      occupied: false,
+      variant,
+    };
+    x += UNIT_CATALOG[type].width;
+    return unit;
+  });
+}
+
 /** Floors the debug tower needs under its units. */
-export const DEBUG_UNIT_FLOORS = DEBUG_FIRST_LEVEL + 2 * DEBUG_ROW_SPACING + 2;
+export const DEBUG_UNIT_FLOORS = DEBUG_VARIANT_LEVEL + 2;
+
+/** The debug tower with a run of ruins on the variant level, right of its units. */
+export function debugStructure(): StructureInput {
+  const tower = fullWidthTestTower(DEBUG_UNIT_FLOORS);
+  const row = [...(tower.structure.get(DEBUG_VARIANT_LEVEL) ?? '')];
+  row.fill('r', DEBUG_RUINS_FROM, DEBUG_RUINS_FROM + DEBUG_RUINS_WIDTH);
+  const structure = new Map(tower.structure).set(DEBUG_VARIANT_LEVEL, row.join(''));
+  return { ...tower, structure };
+}
 
 /** Reads `?testUnits=H` (hour 0 to 23) so a dev build can draw every unit empty and occupied at that hour. */
 export function testUnitsFromQuery(search: string): number | null {
