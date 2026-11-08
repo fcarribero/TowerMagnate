@@ -68,6 +68,13 @@ export {
   unitPeople,
 } from './people';
 export type { NewPerson, PersonHandler, PersonView } from './people';
+export {
+  createOfficeRoutine,
+  decodeRoutine,
+  routineAt,
+  straightLineRoutes,
+} from './office-routine';
+export type { OfficeRoutine, Place, RoutePlanner, RoutinePhase } from './office-routine';
 export { chance, createRng, nextFloat, nextInt, nextUint32 } from './rng';
 export { createScheduler } from './scheduler';
 export type { HookOccurrence, HookSchedule, ScheduledHook, TimeOfDay } from './scheduler';
