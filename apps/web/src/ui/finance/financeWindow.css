@@ -1,0 +1,41 @@
+.finance-window table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.finance-window th {
+  font-weight: normal;
+  text-align: left;
+}
+
+.finance-window thead th:not(:first-child) {
+  text-align: right;
+}
+
+.finance-window__balance {
+  display: flex;
+  justify-content: space-between;
+  margin: 0 0 calc(4 * var(--tm-px));
+}
+
+.finance-window__week {
+  margin: 0 0 calc(6 * var(--tm-px));
+}
+
+.finance-window__amount {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.finance-window__amount.is-bold {
+  text-shadow: calc(1 * var(--tm-px)) 0 0 currentColor;
+}
+
+.finance-window__total th,
+.finance-window__total td {
+  border-top: calc(1 * var(--tm-px)) solid var(--tm-ink);
+}
+
+.finance-window .is-negative {
+  color: var(--tm-cloth-red);
+}

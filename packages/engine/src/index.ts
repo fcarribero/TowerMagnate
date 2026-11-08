@@ -64,6 +64,7 @@ export {
   addPerson,
   clonePersonPool,
   countPeopleByKind,
+  countPeopleOfUnit,
   createPeopleSystem,
   createPersonPool,
   findPerson,
