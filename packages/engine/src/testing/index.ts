@@ -13,3 +13,4 @@ export type {
   TowerPlan,
 } from './tower-builder';
 export { addFlight, hundredFloorTower } from './hundred-floor-tower';
+export { fastestRunMillis } from './fastest-run';

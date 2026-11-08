@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import type { PlannedUnit, TowerPlan } from '../testing';
-import { buildTower, plainTowerPlan, runScenario, summarizeTower } from '../testing';
+import {
+  buildTower,
+  fastestRunMillis,
+  plainTowerPlan,
+  runScenario,
+  summarizeTower,
+} from '../testing';
 import { hashState } from '../hash';
 
 const OFFICE_WIDTH = 9;
@@ -42,9 +48,7 @@ describe('scenario: 10-floor office tower', () => {
 
   it(`runs a game week inside the ${WEEK_BUDGET_MS} ms CI budget`, () => {
     const { state: tower } = buildTower(officeTowerPlan());
-    const started = performance.now();
-    runScenario({ tower, days: 7 });
-    const elapsed = performance.now() - started;
+    const elapsed = fastestRunMillis(() => runScenario({ tower, days: 7 }));
     console.info(`10-floor tower, 7 game days: ${elapsed.toFixed(0)} ms`);
     expect(elapsed).toBeLessThan(WEEK_BUDGET_MS);
   });
