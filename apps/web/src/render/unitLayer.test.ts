@@ -3,6 +3,7 @@ import { Texture, TilingSprite } from 'pixi.js';
 import { describe, expect, it, vi } from 'vitest';
 import { FLOOR_HEIGHT, TILE_WIDTH } from './metrics';
 import { SpriteRegistry } from './spriteRegistry';
+import { levelToIndex, levelTop } from './levels';
 import { UnitLayer } from './unitLayer';
 import type { UnitSource } from './unitPlan';
 
@@ -68,6 +69,22 @@ describe('UnitLayer', () => {
     layer.update({ units: [], transports: [], time: 'day' });
     expect(layer.count).toBe(0);
     expect(spriteOf(layer)).toBeUndefined();
+  });
+
+  it('reports the world rectangle each unit is drawn at and forgets removed units', () => {
+    const { layer } = layerWith(ids);
+    layer.update({ units: [office], transports: [], time: 'day' });
+    const container = layer.view.children[0];
+    const sprite = container?.children[0];
+    expect(layer.rectOf('u1')).toEqual({
+      x: sprite?.x,
+      y: (container?.y ?? 0) + (sprite?.y ?? 0),
+      width: sprite?.width,
+      height: sprite?.height,
+    });
+    expect(layer.rectOf('u1')?.y).toBe(levelTop(levelToIndex(3)));
+    layer.update({ units: [], transports: [], time: 'day' });
+    expect(layer.rectOf('u1')).toBeUndefined();
   });
 
   it('draws a checker over a unit under an overlay and removes it in Normal', () => {
