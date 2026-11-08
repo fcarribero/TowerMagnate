@@ -168,8 +168,42 @@ interface Counters {
   rides: number;
 }
 
-function counterKey(counters: Counters, previous: PreviousLeg): number {
-  return ((counters.stairs * 8 + counters.escalator) * 4 + counters.rides) * 4 + previous;
+/*
+ * Counters packed in one integer: stair floors in bits 5-6, escalator floors in bits 2-4 and rides
+ * in bits 0-1. The trip limits (3, 7, 3) keep each field inside its bits.
+ */
+type CounterCode = number;
+const STAIR_FLOOR_UNIT = 32;
+const ESCALATOR_FLOOR_UNIT = 4;
+
+function counterCode(counters: Counters): CounterCode {
+  return (
+    counters.stairs * STAIR_FLOOR_UNIT + counters.escalator * ESCALATOR_FLOOR_UNIT + counters.rides
+  );
+}
+
+function ridesIn(code: CounterCode): number {
+  return code & 3;
+}
+
+function withinCodeBudget(link: Link, code: CounterCode): boolean {
+  if (link.kind === 'stairs') {
+    return (code >> 5) + link.floors <= MAX_STAIR_FLOORS_PER_TRIP;
+  }
+  if (link.kind === 'escalator') {
+    return ((code >> 2) & 7) + link.floors <= MAX_ESCALATOR_FLOORS_PER_TRIP;
+  }
+  return (code & 3) + 1 <= MAX_RIDES_PER_TRIP;
+}
+
+function codeAfter(link: Link, code: CounterCode): CounterCode {
+  if (link.kind === 'stairs') return code + link.floors * STAIR_FLOOR_UNIT;
+  if (link.kind === 'escalator') return code + link.floors * ESCALATOR_FLOOR_UNIT;
+  return code + 1;
+}
+
+function counterKey(code: CounterCode, previous: PreviousLeg): number {
+  return code * 4 + previous;
 }
 
 const STATES_PER_NODE = 4 * 8 * 4 * 4;
@@ -192,14 +226,6 @@ function withinBudget(link: Link, counters: Counters): boolean {
   return counters.rides + 1 <= MAX_RIDES_PER_TRIP;
 }
 
-function afterLink(link: Link, counters: Counters): Counters {
-  if (link.kind === 'stairs') return { ...counters, stairs: counters.stairs + link.floors };
-  if (link.kind === 'escalator') {
-    return { ...counters, escalator: counters.escalator + link.floors };
-  }
-  return { ...counters, rides: counters.rides + 1 };
-}
-
 /** Best remaining value from every state, for one destination point and user class. */
 interface DestinationTable {
   point: RoutePoint;
@@ -214,6 +240,14 @@ interface FirstOption {
   link: Link | null;
 }
 
+/** A link reachable by walking to `entry` on its run; the same for every state, so built once. */
+interface RunOption {
+  entry: NodeId;
+  x: number;
+  link: Link;
+  kindAfter: PreviousLeg;
+}
+
 const MAX_CACHED_DESTINATIONS = 256;
 const MAX_CACHED_FIRST_OPTIONS = 4096;
 
@@ -226,6 +260,7 @@ export class TripPlanner {
   private revision = -1;
   private tables = new Map<string, DestinationTable>();
   private firstOptions = new Map<string, FirstOption[]>();
+  private runOptions = new Map<number, RunOption[]>();
 
   constructor(private readonly graph: TransportGraph) {}
 
@@ -297,6 +332,23 @@ export class TripPlanner {
     this.revision = this.graph.revision;
     this.tables.clear();
     this.firstOptions.clear();
+    this.runOptions.clear();
+  }
+
+  private runOptionsOf(run: number, userClass: UserClass): RunOption[] {
+    const key = run * 2 + (userClass === 'maid' ? 1 : 0);
+    let options = this.runOptions.get(key);
+    if (!options) {
+      options = [];
+      for (const entryId of this.graph.run(run).nodes) {
+        const x = this.graph.node(entryId).x;
+        for (const link of this.graph.neighbours(entryId, userClass)) {
+          options.push({ entry: entryId, x, link, kindAfter: previousLegOf(link.kind) });
+        }
+      }
+      this.runOptions.set(key, options);
+    }
+    return options;
   }
 
   private tableFor(point: RoutePoint, run: number, userClass: UserClass): DestinationTable {
@@ -322,15 +374,15 @@ export class TripPlanner {
     const cached = this.firstOptions.get(key);
     if (cached) return cached;
 
+    const startCode = counterCode(counters);
     const options: FirstOption[] = [];
     for (const nodeId of this.graph.run(startRun).nodes) {
       const entry = this.graph.node(nodeId);
       const walk = Math.abs(entry.x - from.x);
       for (const link of this.graph.neighbours(nodeId, request.userClass)) {
         if (!withinBudget(link, counters)) continue;
-        const next = afterLink(link, counters);
         const previous = previousLegOf(link.kind);
-        const rest = this.valueAt(table, link.to, next, previous);
+        const rest = this.valueAt(table, link.to, codeAfter(link, startCode), previous);
         if (rest === Infinity) continue;
         const own = pack(legCost(link, counters.rides, false), 1, walk, 0);
         const value = isWalkedLeg(previous)
@@ -411,7 +463,7 @@ export class TripPlanner {
     if (link.kind !== 'escalator' && link.kind !== 'stairs') {
       return this.planOf(chosen, surcharge, walk, steps, 'ride');
     }
-    this.extendChain(table, steps, afterLink(link, counters), link.kind, link.to);
+    this.extendChain(table, steps, codeAfter(link, counterCode(counters)), link.kind, link.to);
     return this.planOf(chosen, surcharge, walk, steps, link.kind);
   }
 
@@ -438,18 +490,18 @@ export class TripPlanner {
   private extendChain(
     table: DestinationTable,
     steps: RouteStep[],
-    counters: Counters,
+    code: CounterCode,
     kind: 'stairs' | 'escalator',
     at: NodeId,
   ): void {
     const previous = previousLegOf(kind);
     let current = at;
-    let used = counters;
+    let used = code;
     for (;;) {
       const next = this.bestContinuation(table, current, used, previous);
       if (!next || next.link.kind !== kind) return;
       steps.push(this.stepOf(next.entry, next.link));
-      used = afterLink(next.link, used);
+      used = codeAfter(next.link, used);
       current = next.link.to;
     }
   }
@@ -457,13 +509,13 @@ export class TripPlanner {
   private bestContinuation(
     table: DestinationTable,
     at: NodeId,
-    counters: Counters,
+    code: CounterCode,
     previous: PreviousLeg,
   ): { entry: NodeId; link: Link } | null {
-    const target = this.valueAt(table, at, counters, previous);
+    const target = this.valueAt(table, at, code, previous);
     if (target === Infinity) return null;
     let found: { entry: NodeId; link: Link } | null = null;
-    this.eachOption(table, at, counters, previous, (value, entry, link) => {
+    this.eachOption(table, at, code, previous, (value, entry, link) => {
       if (!found && link && value === target) found = { entry, link };
     });
     return found;
@@ -472,14 +524,14 @@ export class TripPlanner {
   private valueAt(
     table: DestinationTable,
     at: NodeId,
-    counters: Counters,
+    code: CounterCode,
     previous: PreviousLeg,
   ): number {
-    const key = at * STATES_PER_NODE + counterKey(counters, previous);
+    const key = at * STATES_PER_NODE + counterKey(code, previous);
     const known = table.values.get(key);
     if (known !== undefined) return known;
     let best = Infinity;
-    this.eachOption(table, at, counters, previous, (value) => {
+    this.eachOption(table, at, code, previous, (value) => {
       if (value < best) best = value;
     });
     table.values.set(key, best);
@@ -494,28 +546,30 @@ export class TripPlanner {
   private eachOption(
     table: DestinationTable,
     at: NodeId,
-    counters: Counters,
+    code: CounterCode,
     previous: PreviousLeg,
     visit: (value: number, entry: NodeId, link: Link | null) => void,
   ): void {
     const here = this.graph.node(at);
-    const chainEnd = isWalkedLeg(previous) ? this.endOf(at) : 0;
+    const walked = isWalkedLeg(previous);
+    const chainEnd = walked ? this.endOf(at) : 0;
     if (here.run === table.run) {
       visit(pack(0, 0, Math.abs(here.x - table.point.x), chainEnd), at, null);
     }
-    for (const entryId of this.graph.run(here.run).nodes) {
-      const entry = this.graph.node(entryId);
-      const walk = Math.abs(entry.x - here.x);
-      for (const link of this.graph.neighbours(entryId, table.userClass)) {
-        if (!withinBudget(link, counters)) continue;
-        const kindAfter = previousLegOf(link.kind);
-        const merges = kindAfter === previous && isWalkedLeg(previous);
-        const rest = this.valueAt(table, link.to, afterLink(link, counters), kindAfter);
-        if (rest === Infinity) continue;
-        const own = pack(legCost(link, counters.rides, merges), merges ? 0 : 1, walk, 0);
-        const total = own + (merges ? rest : withoutEnd(rest) + chainEnd);
-        visit(total, entryId, link);
-      }
+    const rides = ridesIn(code);
+    for (const option of this.runOptionsOf(here.run, table.userClass)) {
+      const { link } = option;
+      if (!withinCodeBudget(link, code)) continue;
+      const merges = option.kindAfter === previous && walked;
+      const rest = this.valueAt(table, link.to, codeAfter(link, code), option.kindAfter);
+      if (rest === Infinity) continue;
+      const own = pack(
+        legCost(link, rides, merges),
+        merges ? 0 : 1,
+        Math.abs(option.x - here.x),
+        0,
+      );
+      visit(merges ? own + rest : own + withoutEnd(rest) + chainEnd, option.entry, link);
     }
   }
 }
