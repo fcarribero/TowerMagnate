@@ -47,6 +47,13 @@ export function towerSocketHandlers({
         inspections.pushChange(socket, command.unitId);
       }
     },
+    invalidCommand: (id, { socket, identity }) => {
+      const step = runner.stateOf(identity.towerId)?.step ?? 0;
+      sendMessage(
+        socket,
+        serverMessage('commandResult', { id, ok: false, step, error: 'INVALID_COMMAND' }),
+      );
+    },
     inspect: (message, { socket, identity }) => {
       if (!inspections.set(socket, identity.towerId, message.p.target)) {
         sendError(socket, 'INVALID_COMMAND', 'Only units and shafts can be inspected so far');

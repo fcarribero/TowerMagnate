@@ -1,5 +1,7 @@
+import { z } from 'zod';
 import {
   ClientMessageSchema,
+  QueuedCommandSchema,
   type ClientMessage,
   type ClientMessageType,
   type Envelope,
@@ -27,21 +29,52 @@ export interface DebugFrames {
   handle(rawData: unknown, context: MessageContext): Promise<void>;
 }
 
-export type MessageHandlers = { [T in ClientMessageType]?: MessageHandler<T> };
+/** Answers a command whose envelope and id are valid but whose command fails the schema. */
+export type InvalidCommandHandler = (id: string, context: MessageContext) => void;
 
-/** Reads one raw frame into a client message, or answers with an error frame and returns null. */
-export function readClientMessage(rawData: unknown, socket: GatewaySocket): ClientMessage | null {
+export type MessageHandlers = { [T in ClientMessageType]?: MessageHandler<T> } & {
+  invalidCommand?: InvalidCommandHandler;
+};
+
+export type ClientFrame =
+  { kind: 'message'; message: ClientMessage } | { kind: 'invalidCommand'; id: string };
+
+const CommandIdEnvelopeSchema = z.object({
+  v: z.int().positive(),
+  t: z.literal('command'),
+  p: z.object({ id: QueuedCommandSchema.shape.id }),
+});
+
+/** Reads one raw frame, or answers with an error frame and returns null. */
+export function readClientFrame(rawData: unknown, socket: GatewaySocket): ClientFrame | null {
   const text = String(rawData);
   if (Buffer.byteLength(text) > MAX_MESSAGE_BYTES) {
     sendError(socket, 'INVALID_COMMAND', `Messages are limited to ${MAX_MESSAGE_BYTES} bytes`);
     return null;
   }
-  const result = ClientMessageSchema.safeParse(parseJson(text));
-  if (!result.success) {
-    sendError(socket, 'INVALID_COMMAND', 'Not a valid client message');
-    return null;
+  const json = parseJson(text);
+  const result = ClientMessageSchema.safeParse(json);
+  if (result.success) {
+    return { kind: 'message', message: result.data };
   }
-  return result.data;
+  const command = CommandIdEnvelopeSchema.safeParse(json);
+  if (command.success) {
+    return { kind: 'invalidCommand', id: command.data.p.id };
+  }
+  sendError(socket, 'INVALID_COMMAND', 'Not a valid client message');
+  return null;
+}
+
+export function rejectInvalidCommand(
+  handlers: MessageHandlers,
+  id: string,
+  context: MessageContext,
+): void {
+  if (!handlers.invalidCommand) {
+    sendError(context.socket, 'INVALID_COMMAND', 'Not a valid client message');
+    return;
+  }
+  handlers.invalidCommand(id, context);
 }
 
 export async function routeMessage(
