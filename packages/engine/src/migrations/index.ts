@@ -21,6 +21,7 @@ import { readActiveEvents, readClosedDecisions, readTreasureLevels } from './eve
 import { readGrid } from './grid';
 import { readLedger, readMoney } from './money';
 import { readPeople } from './people';
+import { readStars } from './stars';
 import { readTransports } from './transports';
 
 export { StateMigrationError } from './errors';
@@ -35,6 +36,7 @@ const MIGRATIONS: readonly Migration[] = [
   addTransportRecord,
   addEventState,
   addPersonPool,
+  addStarRating,
   addHallQueues,
 ];
 
@@ -102,7 +104,12 @@ function addPersonPool(raw: Record<string, unknown>): Record<string, unknown> {
   return { people: EMPTY_VERSION_7_PEOPLE, ...raw, schemaVersion: 7 };
 }
 
-/** Version 8 gives every shaft its floor queues; nobody was waiting in older saves. */
+/** Version 8 records the star rating; older towers start at one star. */
+function addStarRating(raw: Record<string, unknown>): Record<string, unknown> {
+  return { stars: 1, ...raw, schemaVersion: 8 };
+}
+
+/** Version 9 gives every shaft its floor queues; nobody was waiting in older saves. */
 function addHallQueues(raw: Record<string, unknown>): Record<string, unknown> {
   const shafts: Record<string, unknown> = {};
   if (isRecord(raw.shafts)) {
@@ -110,7 +117,7 @@ function addHallQueues(raw: Record<string, unknown>): Record<string, unknown> {
       shafts[id] = isRecord(shaft) ? { queues: {}, ...shaft } : shaft;
     }
   }
-  return { ...raw, schemaVersion: 8, shafts };
+  return { ...raw, schemaVersion: 9, shafts };
 }
 
 function isUint32(value: unknown): value is number {
@@ -289,6 +296,7 @@ function assertCurrentShape(raw: Record<string, unknown>): TowerState {
     rng: { a: raw.rng.a, b: raw.rng.b, c: raw.rng.c, d: raw.rng.d },
     nextId: raw.nextId,
     money: readMoney(raw.money),
+    stars: readStars(raw.stars),
     units: readUnits(raw.units),
     transports: readTransports(raw.transports),
     shafts: readShafts(raw.shafts),

@@ -38,3 +38,9 @@ export const VERSION_7_SAVE =
   '"units":{},"shafts":{},"people":{"nextId":4,"id":[1,3],"kind":[0,2],"homeUnit":[0,0],' +
   '"level":[1,5],"column":[10,40],"trip":[0,0],"dueStep":[8700,-1],"stress":[0,12.5],' +
   '"nameSeed":[77,91],"followed":[3]}}';
+
+export const VERSION_8_SAVE =
+  '{"schemaVersion":8,"step":8640,"rng":{"a":1,"b":2,"c":3,"d":4},"nextId":2,"stars":3,' +
+  '"units":{},"shafts":{},"people":{"nextId":4,"id":[1,3],"kind":[0,2],"homeUnit":[0,0],' +
+  '"level":[1,5],"column":[10,40],"trip":[0,0],"dueStep":[8700,-1],"stress":[0,12.5],' +
+  '"nameSeed":[77,91],"followed":[3]}}';

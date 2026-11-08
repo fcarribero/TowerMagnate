@@ -154,6 +154,8 @@ function errorForFailure(failure: AuthFailure): FormError {
       return { fields: {}, general: t('auth.wrongCredentials') };
     case 'rejected':
       return { fields: {}, general: failure.message };
+    case 'rateLimited':
+      return { fields: {}, general: t('auth.rateLimited') };
     case 'network':
       return { fields: {}, general: t('auth.networkError') };
   }

@@ -16,6 +16,7 @@ function towerWithMainLobby(x0: number, x1: number): TowerState {
   const tower = createTower(1);
   setStructure(tower.grid, 1, x0, x1, 'lobby');
   tower.grid.mainLobbyHeight = 1;
+  tower.stars = 6;
   return tower;
 }
 
@@ -29,6 +30,7 @@ function fullSiteTower(): TowerState {
   ];
   const { state } = buildTower(plan);
   state.money = 99_999_999;
+  state.stars = 6;
   return state;
 }
 
