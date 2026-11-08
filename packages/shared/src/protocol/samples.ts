@@ -104,6 +104,13 @@ export const sampleServerMessages: ServerMessage[] = [
       money: -1200,
       stars: 3,
       population: 600,
+      starRequirements: [
+        { requirement: 'vip', met: true },
+        { requirement: 'suites', met: true },
+        { requirement: 'recycling', met: false },
+        { requirement: 'medical', met: true },
+        { requirement: 'parking', met: true },
+      ],
       grid: {
         levels: { '1': { structure: 'l'.repeat(40) + '.'.repeat(335) } },
         mainLobbyHeight: 2,
@@ -144,6 +151,12 @@ export const sampleServerMessages: ServerMessage[] = [
       money: 5000,
       stars: 4,
       population: 610,
+      starRequirements: [
+        { requirement: 'recycling', met: false },
+        { requirement: 'medical', met: true },
+        { requirement: 'parking', met: true },
+        { requirement: 'subway', met: false },
+      ],
       structure: [{ level: -1, structure: 'f'.repeat(375) }],
       unitsUpserted: [unit],
       unitsRemoved: ['u13'],

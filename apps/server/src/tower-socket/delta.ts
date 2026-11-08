@@ -72,6 +72,9 @@ export function diffSnapshots(before: Snapshot, after: Snapshot): DeltaResult {
   if (before.money !== after.money) set('money', after.money);
   if (before.stars !== after.stars) set('stars', after.stars);
   if (before.population !== after.population) set('population', after.population);
+  if (!same(before.starRequirements, after.starRequirements)) {
+    set('starRequirements', after.starRequirements);
+  }
 
   if (before.grid.mainLobbyHeight !== after.grid.mainLobbyHeight && after.grid.mainLobbyHeight) {
     set('mainLobbyHeight', after.grid.mainLobbyHeight);
