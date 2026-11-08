@@ -4,8 +4,13 @@ import { fileURLToPath } from 'node:url';
 import { drawGroups } from '../src/build.mjs';
 import { groups } from '../src/groups/index.mjs';
 import { encodePng } from '../src/png.mjs';
+import { PERSON_TYPES, PERSON_VARIANTS } from '../src/groups/people.mjs';
 import {
+  drawPeopleSheet,
+  drawServiceSheet,
   drawStructurePreview,
+  drawTintSheet,
+  drawTintVariantSheet,
   drawTransportPreview,
   drawUnitSheet,
   drawWalkwayPreview,
@@ -13,10 +18,19 @@ import {
 
 const ZOOM = 2;
 const TRANSPORT_ZOOM = 3;
+const PEOPLE_ZOOM = 4;
 
 const scriptDir = dirname(fileURLToPath(import.meta.url));
 const docsDir = resolve(scriptDir, '../../../docs/art');
 const HOTEL_SUBJECTS = ['single-room', 'double-room', 'suite', 'housekeeping'];
+const SERVICE_SUBJECTS = [
+  'security',
+  'medical-center',
+  'parking-ramp',
+  'parking-space',
+  'recycling-center',
+  'subway-station',
+];
 
 function zoomedRgba(canvas, zoom) {
   const source = canvas.toRgba();
@@ -44,5 +58,23 @@ function writePreview(name, sheet, zoom) {
 
 writePreview('structure-preview.png', drawStructurePreview(sprites), ZOOM);
 writePreview('hotel-preview.png', drawUnitSheet(sprites, HOTEL_SUBJECTS), ZOOM);
+writePreview('services-preview.png', drawServiceSheet(sprites, SERVICE_SUBJECTS), 1);
 writePreview('transport-preview.png', drawTransportPreview(sprites), TRANSPORT_ZOOM);
+writePreview(
+  'people-preview.png',
+  drawPeopleSheet(sprites, PERSON_TYPES, PERSON_VARIANTS),
+  PEOPLE_ZOOM,
+);
+writePreview('people-tint-1x.png', drawTintSheet(sprites, PERSON_TYPES), 1);
+writePreview('people-tint-preview.png', drawTintSheet(sprites, PERSON_TYPES), TRANSPORT_ZOOM);
+writePreview(
+  'people-tint-variants-1x.png',
+  drawTintVariantSheet(sprites, PERSON_TYPES, PERSON_VARIANTS),
+  1,
+);
+writePreview(
+  'people-tint-variants.png',
+  drawTintVariantSheet(sprites, PERSON_TYPES, PERSON_VARIANTS),
+  PEOPLE_ZOOM,
+);
 writePreview('walkway-preview.png', drawWalkwayPreview(sprites), TRANSPORT_ZOOM);

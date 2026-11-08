@@ -155,6 +155,32 @@ export function drawUnitSheet(sprites, subjects) {
   return sheet;
 }
 
+// One row per service subject, with every variant left to right and tall units
+// (recycling center, subway station) at their full height.
+export function drawServiceSheet(sprites, subjects) {
+  const rows = subjects.map((subject) =>
+    Object.entries(sprites)
+      .filter(([id]) => id.startsWith(`units/${subject}/`))
+      .map(([, canvas]) => canvas),
+  );
+  const rowWidth = (row) => GAP + row.reduce((total, canvas) => total + canvas.width + GAP, 0);
+  const rowHeight = (row) => Math.max(...row.map((canvas) => canvas.height)) + GAP;
+  const width = Math.max(...rows.map(rowWidth));
+  const height = GAP + rows.reduce((total, row) => total + rowHeight(row), 0);
+  const sheet = new PixelCanvas(width, height);
+  sheet.fillRect(0, 0, width, height, 'ink');
+  let top = GAP;
+  for (const row of rows) {
+    let left = GAP;
+    for (const canvas of row) {
+      sheet.stamp(canvas, left, top);
+      left += canvas.width + GAP;
+    }
+    top += rowHeight(row);
+  }
+  return sheet;
+}
+
 const SHAFT_LEVELS = 3;
 const CAR_INSET_X = 4;
 const CAR_TOP_IN_FLOOR =
@@ -202,6 +228,104 @@ export function drawTransportPreview(sprites) {
     sheet.stamp(sprites[`transport/${type}-car/open`], carX, lastLevelTop + CAR_TOP_IN_FLOOR);
     left += body.width + 2 * metrics.tileWidth;
   }
+  return sheet;
+}
+
+const PEOPLE_POSES = ['walk_01', 'walk_02', 'stand'];
+const PERSON_GAP = 2;
+
+// One row per person type: every variant in each pose, calm, on a light background so dark suits show.
+export function drawPeopleSheet(sprites, types, variants) {
+  const { frameWidth, frameHeight } = metrics.person;
+  const columns = variants.length * PEOPLE_POSES.length;
+  const width = GAP + columns * (frameWidth + PERSON_GAP) + (variants.length - 1) * GAP;
+  const height = GAP + types.length * (frameHeight + GAP);
+  const sheet = new PixelCanvas(width, height);
+  sheet.fillRect(0, 0, width, height, 'concrete-light');
+  types.forEach((type, row) => {
+    let left = GAP;
+    for (const variant of variants) {
+      for (const pose of PEOPLE_POSES) {
+        sheet.stamp(
+          sprites[`people/${type}-${variant}/${pose}`],
+          left,
+          GAP + row * (frameHeight + GAP),
+        );
+        left += frameWidth + PERSON_GAP;
+      }
+      left += GAP;
+    }
+  });
+  return sheet;
+}
+
+const TINT_STATES = ['walk', 'walk-pink', 'walk-red'];
+
+function personOnFloor(scene, person, left, floorTop) {
+  const feetRow = metrics.floorHeight - metrics.slabHeight - 1;
+  scene.stamp(person, left, floorTop + feetRow - person.height + 1);
+}
+
+// Each person type calm, stressed and very stressed, standing on real floors:
+// a bare floor and a lit hotel room, by day and by night.
+export function drawTintSheet(sprites, types) {
+  const floor = metrics.floorHeight;
+  const backgrounds = [
+    (time) => sprites[`structure/floor/${time}`],
+    (time) => sprites[`units/single-room/occupied_${time}`],
+  ];
+  const groupWidth = TINT_STATES.length * metrics.person.frameWidth + metrics.tileWidth;
+  const width = types.length * groupWidth + metrics.tileWidth;
+  const rows = ['day', 'night'].flatMap((time) =>
+    backgrounds.map((background) => ({ time, background })),
+  );
+  const sheet = new PixelCanvas(width, rows.length * floor);
+  rows.forEach(({ time, background }, row) => {
+    const tile = background(time);
+    for (let x = 0; x < width; x += tile.width) {
+      sheet.stamp(tile, x, row * floor);
+    }
+    types.forEach((type, index) => {
+      TINT_STATES.forEach((state, step) => {
+        const variant = index % 2 === 0 ? 'a' : 'b';
+        const left = metrics.tileWidth + index * groupWidth + step * metrics.person.frameWidth;
+        personOnFloor(sheet, sprites[`people/${type}-${variant}/${state}_01`], left, row * floor);
+      });
+    });
+  });
+  return sheet;
+}
+
+const BAND_GAP = 1;
+
+// Every variant of every type calm, stressed and very stressed, standing on the day sky and
+// the night sky. One row per type, variants left to right, three bands per variant.
+export function drawTintVariantSheet(sprites, types, variants) {
+  const { frameWidth, frameHeight } = metrics.person;
+  const variantWidth = TINT_STATES.length * (frameWidth + BAND_GAP) + metrics.tileWidth;
+  const halfWidth = variants.length * variantWidth + metrics.tileWidth;
+  const rowHeight = frameHeight + 2 * BAND_GAP * 2;
+  const sheet = new PixelCanvas(2 * halfWidth, types.length * rowHeight);
+  ['day', 'night'].forEach((time, half) => {
+    const sky = sprites[`sky/${time}/middle`];
+    for (let y = 0; y < sheet.height; y += sky.height) {
+      for (let x = 0; x < halfWidth; x += sky.width) {
+        sheet.stamp(sky, half * halfWidth + x, y);
+      }
+    }
+    types.forEach((type, row) => {
+      variants.forEach((variant, column) => {
+        TINT_STATES.forEach((state, step) => {
+          const left =
+            half * halfWidth +
+            metrics.tileWidth +
+            column * variantWidth +
+            step * (frameWidth + BAND_GAP);
+          sheet.stamp(sprites[`people/${type}-${variant}/${state}_01`], left, row * rowHeight + 2);
+        });
+      });
+    });
+  });
   return sheet;
 }
 

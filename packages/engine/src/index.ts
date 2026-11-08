@@ -26,9 +26,21 @@ export {
   spanError,
   structureAt,
 } from './grid';
-export { answerDecision, endDisaster, eventsPhase, openBombThreat, openFire } from './events';
+export { evaluateUnit, gradeOfScore, unitScore } from './evaluation';
+export type { UnitEvaluation, UnitEvaluationInput, UnitGrade } from './evaluation';
+export {
+  answerDecision,
+  buildEventViews,
+  endDisaster,
+  eventsPhase,
+  openBombThreat,
+  openFire,
+} from './events';
+
 export { hashState } from './hash';
 export { migrateState, StateMigrationError } from './migrations';
+export { createLeaseSystem, isLeasable, moveInTenant, STEPS_PER_WEEK } from './leases';
+export type { TenantEvaluator } from './leases';
 export {
   chargeMoney,
   constructionFundsError,
@@ -72,6 +84,9 @@ export type { HookOccurrence, HookSchedule, ScheduledHook, TimeOfDay } from './s
 export { deserializeState, serializeState } from './serialization';
 export { cloneState, createTower, SCHEMA_VERSION } from './state';
 export { createEngine, runDays, step } from './step';
+export { OFFICE_POPULATION, populationOf } from './population';
+export type { PopulationBreakdown } from './population';
+export { newUnit } from './units';
 export type {
   CommandContext,
   CommandEvent,

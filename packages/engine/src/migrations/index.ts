@@ -1,8 +1,13 @@
 import {
   isLevel,
   PRICE_LEVELS,
+  SHAFT_TYPES,
   UNIT_TYPES,
+  type ElevatorCar,
+  type Lease,
   type RngState,
+  type Shaft,
+  type ShaftId,
   type TowerState,
   type Unit,
   type UnitId,
@@ -13,13 +18,20 @@ import { readActiveEvents, readClosedDecisions, readTreasureLevels } from './eve
 import { readGrid } from './grid';
 import { readLedger, readMoney } from './money';
 import { readPeople } from './people';
+import { readTransports } from './transports';
 
 export { StateMigrationError } from './errors';
 
 type Migration = (raw: Record<string, unknown>) => Record<string, unknown>;
 
 /** MIGRATIONS[n] turns a version n+1 state into version n+2. */
-const MIGRATIONS: readonly Migration[] = [addUnitPurchaseRecord];
+const MIGRATIONS: readonly Migration[] = [
+  addUnitPurchaseRecord,
+  addUnitLeaseRecord,
+  addShafts,
+  addTransportRecord,
+  addEventState,
+];
 
 /** Version 2 records each unit's price level, what was paid for it and when it was placed. */
 function addUnitPurchaseRecord(raw: Record<string, unknown>): Record<string, unknown> {
@@ -31,6 +43,39 @@ function addUnitPurchaseRecord(raw: Record<string, unknown>): Record<string, unk
     units[id] = isRecord(unit) ? { priceLevel: 'normal', paid: 0, placedAtStep: 0, ...unit } : unit;
   }
   return { ...raw, schemaVersion: 2, units };
+}
+
+/** Version 3 records whether each unit was ever used and its current lease. */
+function addUnitLeaseRecord(raw: Record<string, unknown>): Record<string, unknown> {
+  if (!isRecord(raw.units)) {
+    return { ...raw, schemaVersion: 3 };
+  }
+  const units: Record<string, unknown> = {};
+  for (const [id, unit] of Object.entries(raw.units)) {
+    units[id] = isRecord(unit) ? { used: false, lease: null, ...unit } : unit;
+  }
+  return { ...raw, schemaVersion: 3, units };
+}
+
+/** Version 4 keeps elevator shafts in their own record. */
+function addShafts(raw: Record<string, unknown>): Record<string, unknown> {
+  return { ...raw, schemaVersion: 4, shafts: raw.shafts ?? {} };
+}
+
+/** Version 5 records the stairs and escalators; older towers have none. */
+function addTransportRecord(raw: Record<string, unknown>): Record<string, unknown> {
+  return { transports: {}, ...raw, schemaVersion: 5 };
+}
+
+/** Version 6 stores event state: active events, closed decision ids and treasure levels. */
+function addEventState(raw: Record<string, unknown>): Record<string, unknown> {
+  return {
+    ...raw,
+    schemaVersion: 6,
+    activeEvents: raw.activeEvents ?? [],
+    closedDecisions: raw.closedDecisions ?? [],
+    treasureLevels: raw.treasureLevels ?? [],
+  };
 }
 
 function isUint32(value: unknown): value is number {
@@ -61,7 +106,18 @@ function isUnit(value: unknown): value is Unit {
     (value.name === null || typeof value.name === 'string') &&
     (PRICE_LEVELS as readonly unknown[]).includes(value.priceLevel) &&
     isNonNegativeInteger(value.paid) &&
-    isNonNegativeInteger(value.placedAtStep)
+    isNonNegativeInteger(value.placedAtStep) &&
+    typeof value.used === 'boolean' &&
+    (value.lease === null || isLease(value.lease))
+  );
+}
+
+function isLease(value: unknown): value is Lease {
+  return (
+    isRecord(value) &&
+    isNonNegativeInteger(value.anchorStep) &&
+    isNonNegativeInteger(value.nextDueStep) &&
+    value.nextDueStep > value.anchorStep
   );
 }
 
@@ -87,9 +143,69 @@ function readUnits(raw: unknown): Record<UnitId, Unit> {
       priceLevel: unit.priceLevel,
       paid: unit.paid,
       placedAtStep: unit.placedAtStep,
+      used: unit.used,
+      lease: unit.lease === null ? null : { ...unit.lease },
     };
   }
   return units;
+}
+
+function isElevatorCar(value: unknown): value is ElevatorCar {
+  return (
+    isRecord(value) &&
+    isLevel(value.homeLevel) &&
+    isLevel(value.level) &&
+    Array.isArray(value.riders) &&
+    value.riders.every((rider) => typeof rider === 'string') &&
+    isNonNegativeInteger(value.paid) &&
+    isNonNegativeInteger(value.placedAtStep)
+  );
+}
+
+function isShaft(value: unknown): value is Shaft {
+  return (
+    isRecord(value) &&
+    typeof value.id === 'string' &&
+    (SHAFT_TYPES as readonly unknown[]).includes(value.type) &&
+    isNonNegativeInteger(value.x) &&
+    isLevel(value.bottom) &&
+    isLevel(value.top) &&
+    value.bottom <= value.top &&
+    Array.isArray(value.cars) &&
+    value.cars.length > 0 &&
+    value.cars.every(isElevatorCar) &&
+    isNonNegativeInteger(value.paid) &&
+    isNonNegativeInteger(value.placedAtStep)
+  );
+}
+
+function readShafts(raw: unknown): Record<ShaftId, Shaft> {
+  if (!isRecord(raw)) {
+    throw new StateMigrationError('State shafts must be a record');
+  }
+  const shafts: Record<ShaftId, Shaft> = {};
+  for (const [id, shaft] of Object.entries(raw)) {
+    if (!isShaft(shaft) || shaft.id !== id) {
+      throw new StateMigrationError(`State shaft ${id} is malformed`);
+    }
+    shafts[id] = {
+      id: shaft.id,
+      type: shaft.type,
+      x: shaft.x,
+      bottom: shaft.bottom,
+      top: shaft.top,
+      cars: shaft.cars.map((car) => ({
+        homeLevel: car.homeLevel,
+        level: car.level,
+        riders: [...car.riders],
+        paid: car.paid,
+        placedAtStep: car.placedAtStep,
+      })),
+      paid: shaft.paid,
+      placedAtStep: shaft.placedAtStep,
+    };
+  }
+  return shafts;
 }
 
 function assertCurrentShape(raw: Record<string, unknown>): TowerState {
@@ -109,6 +225,8 @@ function assertCurrentShape(raw: Record<string, unknown>): TowerState {
     nextId: raw.nextId,
     money: readMoney(raw.money),
     units: readUnits(raw.units),
+    transports: readTransports(raw.transports),
+    shafts: readShafts(raw.shafts),
     grid: readGrid(raw.grid),
     people: readPeople(raw.people),
     ledger: readLedger(raw.ledger),

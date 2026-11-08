@@ -13,6 +13,7 @@ describe('readConfig', () => {
       logLevel: 'debug',
       migrateOnStart: true,
       secureCookies: false,
+      allowedOrigins: ['http://localhost:5173'],
     });
   });
 
@@ -24,6 +25,7 @@ describe('readConfig', () => {
       logLevel: 'info',
       migrateOnStart: true,
       secureCookies: false,
+      allowedOrigins: ['http://localhost:5173'],
     });
   });
 
@@ -81,5 +83,16 @@ describe('readConfig', () => {
     expect(() => readConfig({ DATABASE_URL: databaseUrl, SECURE_COOKIES: 'on' })).toThrow(
       'SECURE_COOKIES',
     );
+  });
+
+  it('reads the allowed web origins as a comma separated list', () => {
+    const origins = (env: Record<string, string>) =>
+      readConfig({ DATABASE_URL: databaseUrl, ...env }).allowedOrigins;
+
+    expect(origins({ ALLOWED_ORIGINS: 'http://localhost:4102, https://tower.example' })).toEqual([
+      'http://localhost:4102',
+      'https://tower.example',
+    ]);
+    expect(origins({ NODE_ENV: 'production' })).toEqual([]);
   });
 });
