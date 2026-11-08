@@ -17,6 +17,14 @@ import { footprintFloors, footprintWidth } from '../../render/placementCheck';
 
 export const CONFIRM_PRICE = 500_000;
 
+export type RunKind = 'floor' | 'lobby' | 'ruins';
+
+const RUN_KIND_BY_SYMBOL: Readonly<Record<string, RunKind>> = {
+  l: 'lobby',
+  f: 'floor',
+  r: 'ruins',
+};
+
 /** What the Topadora can see: the client's copy of the tower. */
 export interface DemolishWorld {
   structure: ReadonlyMap<Level, string>;
@@ -36,8 +44,8 @@ export interface Confirmation {
 export interface DemolishPick {
   command: Command;
   footprint: Footprint;
-  /** Floor and lobby are removed as a run: dragging along the level extends it. */
-  run: 'floor' | 'lobby' | null;
+  /** Floor, lobby and ruins are removed as a run: dragging along the level extends it. */
+  run: RunKind | null;
   confirmation: Confirmation | null;
 }
 
@@ -139,12 +147,16 @@ function pickBuilt(world: DemolishWorld, cell: Cell): DemolishPick | null {
 
 function pickStructure(world: DemolishWorld, cell: Cell): DemolishPick | null {
   const symbol = world.structure.get(cell.level)?.[cell.x];
-  const kind = symbol === 'l' ? 'lobby' : symbol === 'f' ? 'floor' : null;
-  if (kind === null) {
+  const kind = symbol === undefined ? undefined : RUN_KIND_BY_SYMBOL[symbol];
+  if (kind === undefined) {
     return null;
   }
+  const command =
+    kind === 'ruins'
+      ? clearRuins(cell.level, cell.x)
+      : demolishRun(kind, cell.level, cell.x, cell.x);
   return {
-    command: demolishRun(kind, cell.level, cell.x, cell.x),
+    command,
     footprint: runFootprint(cell.level, cell.x, cell.x),
     run: kind,
     confirmation: null,
@@ -152,11 +164,38 @@ function pickStructure(world: DemolishWorld, cell: Cell): DemolishPick | null {
 }
 
 /**
- * Ui section 5.4, first match wins: car, then unit, transport or shaft, then
- * lobby, then floor. Ruins are not part of the client's view of the tower yet.
+ * Ui section 5.4 and UI-20, first match wins: car, then unit, transport or
+ * shaft, then ruins, then lobby, then floor.
  */
 export function pickDemolition(world: DemolishWorld, cell: Cell): DemolishPick | null {
   return pickCar(world, cell) ?? pickBuilt(world, cell) ?? pickStructure(world, cell);
+}
+
+/**
+ * What a run between two columns of one level sends. Floor and lobby go as one
+ * command; ruins are cleared one cell at a time, so each ruined cell gets its own.
+ */
+export function runCommands(
+  kind: RunKind,
+  level: Level,
+  row: string,
+  columnA: number,
+  columnB: number,
+): Command[] {
+  if (kind !== 'ruins') {
+    return [demolishRun(kind, level, columnA, columnB)];
+  }
+  const commands: Command[] = [];
+  for (let x = Math.min(columnA, columnB); x <= Math.max(columnA, columnB); x++) {
+    if (row[x] === 'r') {
+      commands.push(clearRuins(level, x));
+    }
+  }
+  return commands;
+}
+
+function clearRuins(level: Level, x: number): Command {
+  return { type: 'demolish', target: { kind: 'ruins', level, x } };
 }
 
 export function demolishRun(
