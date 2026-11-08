@@ -21,6 +21,8 @@ export function attachCameraInput(
   canvas: HTMLCanvasElement,
   getCamera: () => Camera,
   update: (change: CameraChange) => void,
+  /** Whether a primary-button drag scrolls; the middle button always does. */
+  primaryButtonPans: () => boolean = () => true,
 ): () => void {
   let drag: Drag | null = null;
   let pendingZoomDelta = 0;
@@ -28,7 +30,8 @@ export function attachCameraInput(
   const toDevicePixels = (cssPixels: number): number => cssPixels * window.devicePixelRatio;
 
   const onPointerDown = (event: PointerEvent): void => {
-    if (event.button !== 0 && event.button !== 1) {
+    const pans = event.button === 1 || (event.button === 0 && primaryButtonPans());
+    if (!pans) {
       return;
     }
     canvas.setPointerCapture(event.pointerId);
