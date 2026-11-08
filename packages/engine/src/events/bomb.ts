@@ -77,15 +77,23 @@ export function openRandomBombThreat(context: StepContext): BombThreat | null {
   return threat;
 }
 
+/** Opens the 09:00 bomb threat, or not. Scenarios swap the daily roll for their own. */
+export type BombRoll = (context: StepContext) => void;
+
+/** Whether a threat could open now: 2 stars or more, no disaster active and a unit to hide it in. */
+export function canOpenBombThreat(state: TowerState): boolean {
+  return (
+    state.stars >= BOMB_MIN_STARS && !hasActiveDisaster(state) && bombCandidates(state).length > 0
+  );
+}
+
 /** Events phase item 3: the 09:00 roll, made only when every condition holds. */
-function rollBombThreat(context: StepContext): void {
+export const rollBombThreat: BombRoll = (context) => {
   const { state } = context;
-  const canRoll =
-    state.stars >= BOMB_MIN_STARS && !hasActiveDisaster(state) && bombCandidates(state).length > 0;
-  if (!canRoll) return;
+  if (!canOpenBombThreat(state)) return;
   if (nextInt(state.rng, 0, BOMB_DAILY_ODDS - 1) !== 0) return;
   openRandomBombThreat(context);
-}
+};
 
 /** Ends a threat whose ransom was just paid. Guards have not left their offices yet. */
 export function endPaidBombThreat(state: TowerState, eventId: string): void {
@@ -202,11 +210,11 @@ function activeBombThreat(state: TowerState): BombThreat | undefined {
 }
 
 /** Bomb work of the events phase that is not the search itself: refusal, roll and explosion. */
-export function runBombSchedule(context: StepContext): void {
+export function runBombSchedule(context: StepContext, roll: BombRoll = rollBombThreat): void {
   const threat = activeBombThreat(context.state);
   if (threat) startSearchAfterRefusal(context, threat);
   const stepOfDay = context.state.step % STEPS_PER_DAY;
-  if (stepOfDay === ROLL_STEP_OF_DAY) rollBombThreat(context);
+  if (stepOfDay === ROLL_STEP_OF_DAY) roll(context);
   const current = activeBombThreat(context.state);
   if (stepOfDay === EXPLODE_STEP_OF_DAY && current) explode(context, current);
 }

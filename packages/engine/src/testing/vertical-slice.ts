@@ -1,19 +1,36 @@
-import { PERSON_KINDS, type Level, type TowerState } from '@tower-magnate/shared';
+import {
+  PERSON_KINDS,
+  type BombThreat,
+  type EngineEvent,
+  type Level,
+  type StarRating,
+  type TowerState,
+} from '@tower-magnate/shared';
 import { STEPS_PER_HOUR } from '../calendar';
 import { STEPS_PER_DAY } from '../clock';
 import { towerCommandHandlers } from '../commands';
+import {
+  canOpenBombThreat,
+  createEventsPhase,
+  eventsPhase,
+  openRandomBombThreat,
+  type BombRoll,
+} from '../events';
 import { hashState } from '../hash';
 import { peopleCount } from '../people';
 import { populationOf } from '../population';
-import { createEngine, towerSystems, type SimulationSystem } from '../step';
+import { createEngine, towerSystems, type Engine, type SimulationSystem } from '../step';
 import { TREK_PHASES } from '../trek';
 import { tenFloorOfficeTowerPlan } from './ten-floor-office-tower';
 import { buildTower, type PlannedFlight, type TowerPlan } from './tower-builder';
 
 export const VERTICAL_SLICE_SEED = 7;
-export const VERTICAL_SLICE_DAYS = 7;
-/** The average step budget of the week, checked by `pnpm bench:vertical-slice`, not by tests. */
+export const VERTICAL_SLICE_DAYS = 14;
+/** The day of the forced bomb threat (events 13.7): the last Sunday of the run. */
+export const FORCED_BOMB_DAY = 13;
+/** Step budgets of the 14 days, checked by `pnpm bench:vertical-slice`, not by tests. */
 export const VERTICAL_SLICE_STEP_BUDGET_MS = 1.0;
+export const VERTICAL_SLICE_P99_BUDGET_MS = 5.0;
 
 const SHAFT_CARS = 2;
 const STAIR_COLUMNS = [194, 202] as const;
@@ -55,6 +72,30 @@ export function verticalSliceTower(): TowerState {
   return buildTower(verticalSliceTowerPlan()).state;
 }
 
+/**
+ * The scenario's 09:00 bomb roll (EV-38, EV-39): off before the forced day, then a threat that
+ * skips the 1 in 60 draw but keeps every other condition of events 4.1.
+ */
+const forcedBombRoll: BombRoll = (context) => {
+  const day = Math.floor(context.state.step / STEPS_PER_DAY);
+  if (day !== FORCED_BOMB_DAY || !canOpenBombThreat(context.state)) return;
+  openRandomBombThreat(context);
+};
+
+const sliceEventsPhase = createEventsPhase(forcedBombRoll);
+
+/** The tower systems with the scenario's bomb roll in place of the daily one. */
+function verticalSliceSystems(): SimulationSystem[] {
+  return towerSystems.map((system) => (system === eventsPhase ? sliceEventsPhase : system));
+}
+
+export function createVerticalSliceEngine(extraSystems: readonly SimulationSystem[] = []): Engine {
+  return createEngine({
+    commandHandlers: towerCommandHandlers,
+    systems: [...verticalSliceSystems(), ...extraSystems],
+  });
+}
+
 export interface SliceDay {
   day: number;
   leasedOffices: number;
@@ -63,6 +104,8 @@ export interface SliceDay {
   elevatorTrips: number;
   /** Rent credited during the day. */
   rentIncome: number;
+  /** The rating at the end of the day. */
+  stars: StarRating;
 }
 
 /** A worker setting off: where from and when. */
@@ -82,6 +125,10 @@ export interface SliceRun {
   longestTripSteps: number;
   /** The longest time a person on a trip kept the same level, column and phase. */
   longestStuckSteps: number;
+  /** Rating changes, decisions, disasters and their notices, in the order they happened. */
+  events: EngineEvent[];
+  /** Each bomb threat as it stood on the step it opened. */
+  bombThreats: BombThreat[];
   hash: string;
 }
 
@@ -174,13 +221,46 @@ function tripWatcher(
   };
 }
 
+/** Keeps a copy of each bomb threat on the step it opens. */
+function bombThreatWatcher(threats: BombThreat[]): SimulationSystem {
+  return ({ state }) => {
+    for (const event of state.activeEvents) {
+      if (event.kind !== 'bomb' || event.decision.openStep !== state.step) continue;
+      threats.push(structuredClone(event));
+    }
+  };
+}
+
 function leasedOffices(state: TowerState): number {
   return Object.values(state.units).filter((unit) => unit.type === 'office' && unit.lease !== null)
     .length;
 }
 
-/** Plays the vertical slice week day by day and reads the summary at the end of each day. */
-export function runVerticalSlice(tower: TowerState = verticalSliceTower()): SliceRun {
+const STORY_EVENT_TYPES: ReadonlySet<EngineEvent['type']> = new Set([
+  'starsChanged',
+  'decisionOpened',
+  'decisionClosed',
+  'disaster',
+]);
+const STORY_NEWS_KEYS: ReadonlySet<string> = new Set([
+  'news.starsUp',
+  'news.bombThreat',
+  'news.decisionDefault',
+  'news.bombSearch',
+  'news.bombFound',
+  'news.bombExploded',
+]);
+
+function isStoryEvent(event: EngineEvent): boolean {
+  if (event.type === 'news') return STORY_NEWS_KEYS.has(event.key);
+  return STORY_EVENT_TYPES.has(event.type);
+}
+
+/** Plays the vertical slice day by day and reads the summary at the end of each day. */
+export function runVerticalSlice(
+  days: number = VERTICAL_SLICE_DAYS,
+  tower: TowerState = verticalSliceTower(),
+): SliceRun {
   const tally: TripTally = {
     stairTrips: 0,
     elevatorTrips: 0,
@@ -189,34 +269,41 @@ export function runVerticalSlice(tower: TowerState = verticalSliceTower()): Slic
   };
   const workerDepartures: WorkerDeparture[] = [];
   const movingAtThreeAm: number[] = [];
-  const engine = createEngine({
-    commandHandlers: towerCommandHandlers,
-    systems: [...towerSystems, tripWatcher(tally, workerDepartures, movingAtThreeAm)],
-  });
-  const days: SliceDay[] = [];
+  const bombThreats: BombThreat[] = [];
+  const engine = createVerticalSliceEngine([
+    tripWatcher(tally, workerDepartures, movingAtThreeAm),
+    bombThreatWatcher(bombThreats),
+  ]);
+  const summaries: SliceDay[] = [];
+  const events: EngineEvent[] = [];
   let state = tower;
   let rentCredited = 0;
-  for (let day = 0; day < VERTICAL_SLICE_DAYS; day++) {
+  for (let day = 0; day < days; day++) {
     const before = { ...tally };
-    state = engine.step(state, [], STEPS_PER_DAY).state;
+    const result = engine.step(state, [], STEPS_PER_DAY);
+    state = result.state;
+    events.push(...result.events.filter(isStoryEvent));
     const rentSoFar = rentIncomeOfWeek(state);
-    days.push({
+    summaries.push({
       day,
       leasedOffices: leasedOffices(state),
       population: populationOf(state).total,
       stairTrips: tally.stairTrips - before.stairTrips,
       elevatorTrips: tally.elevatorTrips - before.elevatorTrips,
       rentIncome: rentSoFar - rentCredited,
+      stars: state.stars,
     });
-    rentCredited = rentSoFar;
+    rentCredited = state.step % STEPS_PER_WEEK === 0 ? 0 : rentSoFar;
   }
   return {
     state,
-    days,
+    days: summaries,
     workerDepartures,
     movingAtThreeAm,
     longestTripSteps: tally.longestTripSteps,
     longestStuckSteps: tally.longestStuckSteps,
+    events,
+    bombThreats,
     hash: hashState(state),
   };
 }
@@ -230,9 +317,9 @@ function rentIncomeOfWeek(state: TowerState): number {
 
 const WEEKDAY_NAMES = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
-/** One line per day: leased offices, population, stair trips, elevator trips and rent income. */
+/** One line per day: leased offices, population, stair trips, elevator trips, rent income, stars. */
 export function formatSliceDays(days: readonly SliceDay[]): string {
-  const header = 'Day  Leased  Population  Stair trips  Elevator trips  Rent income';
+  const header = 'Day  Leased  Population  Stair trips  Elevator trips  Rent income  Stars';
   const lines = days.map((day) =>
     [
       (WEEKDAY_NAMES[day.day % 7] as string).padEnd(3),
@@ -241,7 +328,64 @@ export function formatSliceDays(days: readonly SliceDay[]): string {
       String(day.stairTrips).padStart(12),
       String(day.elevatorTrips).padStart(15),
       `$${day.rentIncome.toLocaleString('en-US')}`.padStart(12),
+      String(day.stars).padStart(6),
     ].join(' '),
   );
   return [header, ...lines].join('\n');
+}
+
+function describeEvent(event: EngineEvent): string {
+  switch (event.type) {
+    case 'starsChanged':
+      return `starsChanged to ${event.stars}`;
+    case 'decisionOpened':
+      return `decisionOpened ${event.kind}, deadline ${event.deadlineStep}`;
+    case 'decisionClosed':
+      return `decisionClosed ${event.choice}`;
+    case 'disaster':
+      return `disaster ${event.kind}, ${event.cells.length} ruined spans`;
+    case 'news':
+      return 'level' in event ? `${event.key} on level ${event.level}` : event.key;
+    default:
+      return event.type;
+  }
+}
+
+/** One line per rating change, decision, disaster and notice, with its step. */
+export function formatSliceEvents(events: readonly EngineEvent[]): string {
+  return events
+    .map((event) => `${String(event.step).padStart(7)}  ${describeEvent(event)}`)
+    .join('\n');
+}
+
+export interface SliceTiming {
+  people: number;
+  steps: number;
+  averageMs: number;
+  p99Ms: number;
+}
+
+/** Times every step of one full run of the slice. */
+export function timeVerticalSlice(): SliceTiming {
+  const times = new Float64Array(VERTICAL_SLICE_DAYS * STEPS_PER_DAY);
+  let started = 0;
+  const startClock: SimulationSystem = () => {
+    started = performance.now();
+  };
+  const stopClock: SimulationSystem = ({ state }) => {
+    times[state.step - 1] = performance.now() - started;
+  };
+  const engine = createEngine({
+    commandHandlers: towerCommandHandlers,
+    systems: [startClock, ...verticalSliceSystems(), stopClock],
+  });
+  const state = engine.runDays(verticalSliceTower(), VERTICAL_SLICE_DAYS).state;
+  const sorted = Array.from(times).sort((a, b) => a - b);
+  const total = sorted.reduce((sum, value) => sum + value, 0);
+  return {
+    people: peopleCount(state.people),
+    steps: times.length,
+    averageMs: total / times.length,
+    p99Ms: sorted[Math.floor(sorted.length * 0.99)] as number,
+  };
 }
