@@ -1,0 +1,19 @@
+.tm-toasts {
+  position: absolute;
+  bottom: calc(24 * var(--tm-px));
+  left: 50%;
+  display: flex;
+  flex-direction: column;
+  gap: calc(2 * var(--tm-px));
+  align-items: center;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.tm-toast {
+  margin: 0;
+  padding: calc(3 * var(--tm-px)) calc(8 * var(--tm-px));
+  color: #f4f1e8;
+  background: var(--tm-cloth-red);
+  border: calc(1 * var(--tm-px)) solid #000;
+}

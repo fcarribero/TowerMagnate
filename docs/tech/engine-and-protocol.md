@@ -405,8 +405,8 @@ export interface Delta {
   transportsRemoved?: TransportId[];
   shaftsUpserted?: ShaftView[];
   shaftsRemoved?: ShaftId[];
-  cars: CarView[];            // every car of the tower, every delta
-  people: PersonView[];       // every person in the viewport, every delta
+  cars: PackedCar[];          // every car of the tower, every delta, as number tuples
+  people: PackedPerson[];     // every person in the viewport, every delta, as number tuples
   peopleGone?: PersonId[];    // left the viewport or the tower since the last delta
   followed?: FollowedView[];
   activeEvents?: EventView[]; // full list when it changes
@@ -475,6 +475,8 @@ While an `inspect` target is set, the server sends `inspect` once per second and
 | Elevator | shaft type and range, stops, cars with home levels, full weekday and weekend schedule |
 | Finances | balance, this week and last week income and expenses by `MoneyReason` |
 
+Unit targets (`{ kind: 'unit', id }`) are answered as follows. Each socket has one target: a new `inspect` replaces it, `target: null`, a socket close or a new `hello` clears it. The first answer comes right after the set, then once per second, plus one extra answer after a successful `setPrice` or `renameUnit` on the target. An answer for a unit that is demolished or unknown is `{ kind: 'unit', id, status: 'gone' }`, sent once, and the target is cleared. A found unit has `status: 'ok'`, the common fields (`name`, `type`, `level`, `from`, `to`) and `details` for its type: `lease` (office, shop), `condo`, `hotel` (rooms) or `cinema`; other types have `details: null`. Evaluation and the cinema film fields are `null` until the engine stores them. Person, shaft and finances targets are not answered yet.
+
 ### 8.10 Coverage of the GDD interface
 
 | GDD Interfaz item | Where it comes from |
@@ -498,7 +500,7 @@ The zod schemas for every message, command and view are in `packages/shared/src/
 ## 9. Performance budgets
 
 - One `step` call with `steps = 1` on a tower of 15,000 people stays under 5 ms on the CI machine. Engine scenario tests that run a game week stay under 10 s.
-- A delta for a full-screen viewport stays under 50 KB of JSON. If it grows past that, we switch `people` to packed arrays before considering a binary format.
+- A delta for a full-screen viewport stays under 50 KB of JSON. People and cars are already packed arrays; a binary format is the next step if it grows past that.
 - Snapshot size is not budgeted, but it is gzip-compressed with permessage-deflate. Messages under 1 KB skip compression.
 
 ## 10. What goes where

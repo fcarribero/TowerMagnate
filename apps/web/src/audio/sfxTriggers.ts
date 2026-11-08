@@ -1,10 +1,11 @@
-import type {
-  CarView,
-  ClientEvent,
-  CommandType,
-  DecisionKind,
-  QueuedCommand,
-  ServerMessage,
+import {
+  unpackCar,
+  type CarView,
+  type ClientEvent,
+  type CommandType,
+  type DecisionKind,
+  type QueuedCommand,
+  type ServerMessage,
 } from '@tower-magnate/shared';
 
 /** Manifest triggers the client plays, each with the source that fires it. */
@@ -125,7 +126,7 @@ export class SfxDirector {
         this.trackCars(message.p.cars);
         return;
       case 'delta':
-        if (this.trackCars(message.p.cars)) {
+        if (this.trackCars(message.p.cars.map(unpackCar))) {
           this.play('elevator.arrive');
         }
         return;

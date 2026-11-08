@@ -1,0 +1,55 @@
+.tm-unit__gone {
+  margin: 0 0 calc(6 * var(--tm-px));
+  color: var(--tm-cloth-red);
+}
+
+.tm-unit__rows {
+  margin: 0 0 calc(6 * var(--tm-px));
+}
+
+.tm-unit__row {
+  display: flex;
+  justify-content: space-between;
+  gap: calc(6 * var(--tm-px));
+  padding: calc(1 * var(--tm-px)) 0;
+}
+
+.tm-unit__row dt {
+  color: var(--tm-slate);
+}
+
+.tm-unit__row dd {
+  display: flex;
+  gap: calc(3 * var(--tm-px));
+  align-items: center;
+  margin: 0;
+  text-align: right;
+}
+
+.tm-unit__swatch {
+  width: calc(6 * var(--tm-px));
+  height: calc(6 * var(--tm-px));
+  border: calc(1 * var(--tm-px)) solid var(--tm-ink);
+  box-sizing: border-box;
+}
+
+.tm-unit__swatch.is-sky-deep {
+  background: var(--tm-sky-deep);
+}
+
+.tm-unit__swatch.is-lamp {
+  background: var(--tm-lamp);
+}
+
+.tm-unit__swatch.is-cloth-red {
+  background: var(--tm-cloth-red);
+}
+
+.tm-unit__swatch.is-gray {
+  background: var(--tm-gray);
+}
+
+.tm-unit__note {
+  margin: calc(-3 * var(--tm-px)) 0 calc(6 * var(--tm-px));
+  color: var(--tm-gray);
+}

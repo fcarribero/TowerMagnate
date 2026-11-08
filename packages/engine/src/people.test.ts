@@ -5,6 +5,7 @@ import {
   addPeopleForUnit,
   addPerson,
   countPeopleByKind,
+  countPeopleOfUnit,
   createPeopleSystem,
   findPerson,
   followPerson,
@@ -250,5 +251,19 @@ describe('processing order', () => {
     expect(beforeDue).not.toBe(before);
     expect(hashState(state)).toBe(beforeDue);
     expect(peopleCount(after.people)).toBe(0);
+  });
+});
+
+describe('counting the people of a unit', () => {
+  it('counts only the people whose home is that unit', () => {
+    const state = createTower(1);
+    addPerson(state, { kind: 'officeWorker', homeUnit: 3, level: 2, column: 4 });
+    addPerson(state, { kind: 'officeWorker', homeUnit: 3, level: 2, column: 5 });
+    addPerson(state, { kind: 'resident', homeUnit: 4, level: 2, column: 9 });
+
+    expect(countPeopleOfUnit(state.people, 'u3')).toBe(2);
+    expect(countPeopleOfUnit(state.people, 'u4')).toBe(1);
+    expect(countPeopleOfUnit(state.people, 'u5')).toBe(0);
+    expect(countPeopleOfUnit(state.people, 'nonsense')).toBe(0);
   });
 });
