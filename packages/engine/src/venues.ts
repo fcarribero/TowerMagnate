@@ -2,7 +2,7 @@ import {
   CINEMA_SHOW_HOURS,
   CINEMA_SHOW_LENGTH_HOURS,
   DAILY_INCOME_BRACKETS,
-  VENUE_HOURS,
+  VENUE_PAYOUT_HOURS,
   type IncomeBracket,
   type Unit,
   type UnitId,
@@ -15,10 +15,10 @@ import type { ScheduledHook } from './scheduler';
 import type { StepContext } from './step';
 import { isVenueType } from './units';
 
-type VenueType = keyof typeof VENUE_HOURS;
+type VenueType = keyof typeof VENUE_PAYOUT_HOURS;
 type VenueUnit = Unit & { type: VenueType; venue: VenueDay };
 
-const VENUE_TYPES = Object.keys(VENUE_HOURS) as VenueType[];
+const VENUE_TYPES = Object.keys(VENUE_PAYOUT_HOURS) as VenueType[];
 
 function isVenue(unit: Unit): unit is VenueUnit {
   return isVenueType(unit.type) && unit.venue !== null;
@@ -49,7 +49,7 @@ export function recordVenueVisit(state: { units: Record<UnitId, Unit>; step: num
     throw new Error(`Unit ${id} is not a food or entertainment venue`);
   }
   const stepOfDay = state.step % STEPS_PER_DAY;
-  const hours = VENUE_HOURS[unit.type];
+  const hours = VENUE_PAYOUT_HOURS[unit.type];
   if (stepOfDay < hourStep(hours.opens) || stepOfDay >= hourStep(hours.pays)) {
     return false;
   }
@@ -83,7 +83,8 @@ function customersOf(unit: VenueUnit): number {
 
 function wasOpenToday(unit: VenueUnit, step: number): boolean {
   const openingStep =
-    Math.floor(step / STEPS_PER_DAY) * STEPS_PER_DAY + hourStep(VENUE_HOURS[unit.type].opens);
+    Math.floor(step / STEPS_PER_DAY) * STEPS_PER_DAY +
+    hourStep(VENUE_PAYOUT_HOURS[unit.type].opens);
   return unit.placedAtStep <= openingStep;
 }
 
@@ -104,7 +105,7 @@ function payOut(context: StepContext, unit: VenueUnit): void {
 function payoutHook(type: VenueType): ScheduledHook {
   return {
     name: `venue-payout-${type}`,
-    schedule: { every: 'day', hour: VENUE_HOURS[type].pays, minute: 0 },
+    schedule: { every: 'day', hour: VENUE_PAYOUT_HOURS[type].pays, minute: 0 },
     run(context) {
       for (const unit of Object.values(context.state.units)) {
         if (unit.type === type && isVenue(unit)) payOut(context, unit);

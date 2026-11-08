@@ -448,7 +448,7 @@ export const DAILY_INCOME_BRACKETS: Readonly<
 };
 
 /** Economy spec 7. Visits count from `opens` until `pays`; the payout lands at the first step of `pays`. */
-export const VENUE_HOURS = {
+export const VENUE_PAYOUT_HOURS = {
   'fast-food': { opens: 8, pays: 20 },
   restaurant: { opens: 17, pays: 23 },
   'party-hall': { opens: 13, pays: 17 },

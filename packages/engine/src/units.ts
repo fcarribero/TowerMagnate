@@ -6,7 +6,7 @@ import {
   type Unit,
   type UnitType,
   type VenueDay,
-  VENUE_HOURS,
+  VENUE_PAYOUT_HOURS,
 } from '@tower-magnate/shared';
 
 const HOTEL_ROOM_TYPES: readonly UnitType[] = ['single-room', 'double-room', 'suite'];
@@ -19,8 +19,8 @@ export function newHotelRoom(): HotelRoom {
   return { state: 'clean', stayEndStep: null };
 }
 
-export function isVenueType(type: UnitType): type is keyof typeof VENUE_HOURS {
-  return type in VENUE_HOURS;
+export function isVenueType(type: UnitType): type is keyof typeof VENUE_PAYOUT_HOURS {
+  return type in VENUE_PAYOUT_HOURS;
 }
 
 export function newVenueDay(): VenueDay {

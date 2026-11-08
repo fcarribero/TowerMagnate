@@ -1,6 +1,6 @@
 import {
   DAILY_INCOME_BRACKETS,
-  VENUE_HOURS,
+  VENUE_PAYOUT_HOURS,
   type TowerState,
   type UnitId,
   type UnitType,
@@ -9,11 +9,11 @@ import { describe, expect, it } from 'vitest';
 import { STEPS_PER_HOUR } from './calendar';
 import { STEPS_PER_DAY } from './clock';
 import { createScheduler } from './scheduler';
-import { createEngine } from './step';
+import { createEngine, step } from './step';
 import { buildTower, plainTowerPlan } from './testing';
 import { recordVenueVisit, venuePayoutHooks } from './venues';
 
-type VenueType = keyof typeof VENUE_HOURS;
+type VenueType = keyof typeof VENUE_PAYOUT_HOURS;
 
 const engine = createEngine({
   commandHandlers: {},
@@ -48,7 +48,7 @@ function setCounts(tower: TowerState, id: UnitId, visits: number, evening = 0): 
 /** Runs from a few steps before the payout hour through its first step. */
 function runThroughPayout(tower: TowerState, type: VenueType, day = 1): TowerState {
   const state = structuredClone(tower);
-  state.step = at(day, VENUE_HOURS[type].pays) - 5;
+  state.step = at(day, VENUE_PAYOUT_HOURS[type].pays) - 5;
   return engine.step(state, [], 6).state;
 }
 
@@ -93,7 +93,7 @@ describe('venue daily income', () => {
   it.each(VENUE_TYPES)('pays %s once, at the first step of its payout hour', (type) => {
     const { tower, id } = towerWith(type);
     setCounts(tower, id, 100, 100);
-    const payStep = at(1, VENUE_HOURS[type].pays);
+    const payStep = at(1, VENUE_PAYOUT_HOURS[type].pays);
     const before = structuredClone(tower);
     before.step = payStep - 2;
     const early = engine.step(before, [], 1).state;
@@ -192,5 +192,46 @@ describe('recording visits', () => {
       units: [{ type: 'office', x: 0, level: 2 }],
     });
     expect(() => recordVenueVisit(state, unitIds[0] as UnitId)).toThrow('not a food');
+  });
+});
+
+describe('a scenario day with one venue of each type', () => {
+  it('pays each venue its table amount at its payout step', () => {
+    const { state, unitIds } = buildTower({
+      ...plainTowerPlan(10, 0, 120),
+      units: VENUE_TYPES.map((type, index) => ({
+        type: type as UnitType,
+        x: 0,
+        level: index * 2 + 2,
+      })),
+    });
+    state.money = START_MONEY;
+    const counts: Record<VenueType, [number, number]> = {
+      'fast-food': [40, 0],
+      restaurant: [10, 0],
+      'party-hall': [45, 0],
+      cinema: [90, 70],
+    };
+    VENUE_TYPES.forEach((type, index) =>
+      setCounts(state, unitIds[index] as UnitId, ...counts[type]),
+    );
+    state.step = at(1, 0);
+
+    const payments: { step: number; amount: number }[] = [];
+    let tower = state;
+    while (tower.step < at(2, 0)) {
+      const next = step(tower, [], 1).state;
+      if (next.money !== tower.money)
+        payments.push({ step: next.step, amount: next.money - tower.money });
+      tower = next;
+    }
+
+    expect(payments).toEqual([
+      { step: at(1, 17), amount: 10_000 },
+      { step: at(1, 20), amount: 3_000 },
+      { step: at(1, 21), amount: 10_000 },
+      { step: at(1, 23), amount: -6_000 },
+    ]);
+    expect(tower.ledger.currentWeek.venues.income).toBe(23_000);
   });
 });
