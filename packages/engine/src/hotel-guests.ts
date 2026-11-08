@@ -1,5 +1,4 @@
 import {
-  HOTEL_BOOKING_CHANCE,
   HOTEL_BOOKING_ROLL_MINUTE,
   HOTEL_CHECK_IN_OUTING_CHANCE,
   HOTEL_CHECK_IN_OUTING_DELAY_MINUTES,
@@ -27,7 +26,7 @@ import {
 } from '@tower-magnate/shared';
 import { STEPS_PER_MINUTE } from './calendar';
 import { STEPS_PER_DAY } from './clock';
-import { checkIn } from './hotel';
+import { checkIn, rollBooking } from './hotel';
 import {
   decodeGuestRoutine,
   encodeGuestRoutine,
@@ -124,17 +123,16 @@ function drawArrivalStep(state: TowerState, atNoon: boolean): number | null {
   return dayStart + nextInt(state.rng, first, HOTEL_LAST_ARRIVAL_MINUTE - 1) * STEPS_PER_MINUTE;
 }
 
-function rollBooking(state: TowerState, room: RoomUnit, atNoon: boolean): void {
+function rollForBooking(state: TowerState, room: RoomUnit, atNoon: boolean): void {
   room.hotel.rollDue = false;
-  const odds = HOTEL_BOOKING_CHANCE[room.evaluation ?? 'none'];
-  if (!chance(state.rng, odds)) return;
+  if (!rollBooking(state.rng, room)) return;
   room.hotel.arrivalStep = drawArrivalStep(state, atNoon);
 }
 
 /** People spec 8.1: at 12:00 every room that can take a booking rolls once, in unit id order. */
 function rollNoonBookings(context: StepContext): void {
   for (const room of roomsById(context.state)) {
-    if (canTakeBooking(room)) rollBooking(context.state, room, true);
+    if (canTakeBooking(room)) rollForBooking(context.state, room, true);
     else room.hotel.rollDue = false;
   }
 }
@@ -147,7 +145,7 @@ function rollFreshlyCleanRooms(state: TowerState): void {
   const minute = minuteOfDay(state.step);
   if (minute < HOTEL_BOOKING_ROLL_MINUTE || minute >= HOTEL_LATE_ROLL_BEFORE_MINUTE) return;
   for (const room of roomsById(state, (room) => room.hotel.rollDue)) {
-    if (canTakeBooking(room)) rollBooking(state, room, false);
+    if (canTakeBooking(room)) rollForBooking(state, room, false);
     else room.hotel.rollDue = false;
   }
 }

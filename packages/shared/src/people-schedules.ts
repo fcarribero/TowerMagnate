@@ -198,13 +198,6 @@ export const WEDDING_DEADLINE_MINUTE = minutes(12, 30);
 export const WEDDING_GUESTS_LEAVE_MINUTE = minutes(15);
 
 /** Hotel guests (people spec 8). */
-export const HOTEL_BOOKING_CHANCE: Readonly<Record<'good' | 'fair' | 'poor' | 'none', number>> = {
-  good: 0.9,
-  fair: 0.7,
-  poor: 0.4,
-  none: 0.8,
-};
-
 /** Every room that can take a booking rolls once at this minute of the day. */
 export const HOTEL_BOOKING_ROLL_MINUTE = minutes(12);
 
