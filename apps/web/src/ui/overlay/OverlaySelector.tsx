@@ -17,9 +17,11 @@ export function OverlaySelector({ overlay, onSelect }: OverlaySelectorProps) {
           type="button"
           class={id === overlay ? 'overlay-selector__button is-on' : 'overlay-selector__button'}
           aria-pressed={id === overlay}
+          aria-label={t(`overlay.${id}` as StringKey)}
+          title={t(`overlay.${id}` as StringKey)}
           onClick={() => onSelect(id)}
         >
-          {t(`overlay.${id}` as StringKey)}
+          {t(`overlay.${id}` as StringKey).charAt(0)}
         </button>
       ))}
     </div>
