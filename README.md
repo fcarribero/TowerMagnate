@@ -2,7 +2,17 @@
 
 Tower building and management sim that runs in the browser.
 
-Design: [docs/GDD.md](docs/GDD.md). Architecture: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+Design: [docs/GDD.md](docs/GDD.md). Architecture: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). Running and deploying: [docs/tech/deploy.md](docs/tech/deploy.md).
+
+## Quick start
+
+```bash
+corepack enable
+pnpm install
+pnpm stack up -d    # postgres, server and web in docker
+```
+
+The game is then at http://localhost:4102. The guide in [docs/tech/deploy.md](docs/tech/deploy.md) covers production, every environment variable, port blocks, CI, and database backup and restore.
 
 ## Requirements
 
