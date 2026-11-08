@@ -189,26 +189,25 @@ const officeRoutine = createOfficeRoutine(
 
 const prospects = createProspectDemand();
 
-const towerEngine = createEngine({
-  commandHandlers: towerCommandHandlers,
-  systems: [
-    createScheduler([
-      ledgerWeekRollHook,
-      weeklyUpkeepHook,
-      officeRoutine.planHook,
-      ...prospects.rollHooks,
-    ]),
-    createLeaseSystem(),
-    createHotelSystem(),
-    createCondoSystem(),
-    createTrekSystem(),
-    prospects.system,
-    officeRoutine.system,
-    createElevatorSystem(),
-    createScheduler([starCheckHook]),
-    eventsPhase,
-  ],
-});
+export const towerSystems: readonly SimulationSystem[] = [
+  createScheduler([
+    ledgerWeekRollHook,
+    weeklyUpkeepHook,
+    officeRoutine.planHook,
+    ...prospects.rollHooks,
+  ]),
+  createLeaseSystem(),
+  createHotelSystem(),
+  createCondoSystem(),
+  createTrekSystem(),
+  prospects.system,
+  officeRoutine.system,
+  createElevatorSystem(),
+  createScheduler([starCheckHook]),
+  eventsPhase,
+];
+
+const towerEngine = createEngine({ commandHandlers: towerCommandHandlers, systems: towerSystems });
 
 /**
  * Applies the queued commands in order, then runs `steps` simulation steps.
