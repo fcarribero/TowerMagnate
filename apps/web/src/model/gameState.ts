@@ -13,6 +13,7 @@ import {
   type ShaftView,
   type Snapshot,
   type StarRating,
+  type StarRequirementView,
   type TransportView,
   type UnitView,
 } from '@tower-magnate/shared';
@@ -23,6 +24,8 @@ export interface GameState {
   readonly money: number;
   readonly stars: StarRating;
   readonly population: number;
+  /** The next star step's requirements besides population; empty at Torre. */
+  readonly starRequirements: readonly StarRequirementView[];
   readonly mainLobbyHeight: 1 | 2 | 3 | null;
   readonly structure: ReadonlyMap<Level, string>;
   readonly units: ReadonlyMap<string, UnitView>;
@@ -59,6 +62,7 @@ export function stateFromSnapshot(snapshot: Snapshot): GameState {
     money: snapshot.money,
     stars: snapshot.stars,
     population: snapshot.population,
+    starRequirements: snapshot.starRequirements,
     mainLobbyHeight: snapshot.grid.mainLobbyHeight,
     structure,
     units: byId(snapshot.units),
@@ -117,6 +121,7 @@ export function applyDelta(state: GameState, delta: Delta): GameState {
     money: delta.money ?? state.money,
     stars: delta.stars ?? state.stars,
     population: delta.population ?? state.population,
+    starRequirements: delta.starRequirements ?? state.starRequirements,
     mainLobbyHeight: delta.mainLobbyHeight ?? state.mainLobbyHeight,
     structure: withRows(state.structure, delta.structure),
     units: upsertAndRemove(state.units, delta.unitsUpserted, delta.unitsRemoved),

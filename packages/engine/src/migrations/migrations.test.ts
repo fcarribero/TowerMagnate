@@ -97,6 +97,41 @@ describe('migrateState unit leases', () => {
     expect(migratedUnit(JSON.parse(JSON.stringify(rented)))).toEqual(rented);
   });
 
+  it('keeps the day counts of a venue', () => {
+    const cinema = {
+      ...newUnit('u3', 'cinema', 0, 2),
+      venue: { visits: 70, eveningShowVisits: 90, yesterday: { visits: 80, result: 10_000 } },
+    };
+    expect(migratedUnit(JSON.parse(JSON.stringify(cinema)))).toEqual(cinema);
+  });
+
+  it('gives venues of a version 19 save zero counts and other units none', () => {
+    const withoutVenue = (unit: object) => {
+      const copy: { venue?: unknown } = { ...unit };
+      delete copy.venue;
+      return copy;
+    };
+    const food = withoutVenue(newUnit('u3', 'fast-food', 0, 2));
+    const office = withoutVenue(newUnit('u4', 'office', 5, 2));
+    const save = { ...createTower(5), schemaVersion: 19, units: { u3: food, u4: office } };
+    const tower = migrateState(save);
+    expect(tower.units.u3?.venue).toEqual({ visits: 0, eveningShowVisits: 0, yesterday: null });
+    expect(tower.units.u4?.venue).toBeNull();
+  });
+
+  it('refuses malformed venue counts', () => {
+    const food = newUnit('u3', 'fast-food', 0, 2);
+    const badCounts = [
+      'u3',
+      { visits: -1, eveningShowVisits: 0, yesterday: null },
+      { visits: 1.5, eveningShowVisits: 0, yesterday: null },
+      { visits: 0, eveningShowVisits: 0, yesterday: { visits: 0 } },
+    ];
+    for (const venue of badCounts) {
+      expect(() => migratedUnit({ ...food, venue })).toThrow(StateMigrationError);
+    }
+  });
+
   it('refuses a malformed used flag', () => {
     const office = newUnit('u3', 'office', 0, 1);
     expect(() => migratedUnit({ ...office, used: 'yes' })).toThrow(StateMigrationError);
@@ -135,6 +170,7 @@ describe('migrateState fixtures', () => {
       lease: null,
       sale: null,
       hotel: null,
+      venue: null,
     });
   });
 
@@ -479,10 +515,10 @@ describe('migrateState medical day', () => {
 });
 
 describe('migrateState construction refund records', () => {
-  it('gives a version 19 save unrefundable transports and no floor purchases', () => {
+  it('gives a version 20 save unrefundable transports and no floor purchases', () => {
     const old = JSON.parse(JSON.stringify(createTower(5))) as Record<string, unknown>;
     delete old.floorPurchases;
-    old.schemaVersion = 19;
+    old.schemaVersion = 20;
     old.transports = { t2: { id: 't2', type: 'stairs', x: 10, level: 3 } };
     const tower = migrateState(old);
     expect(tower.transports.t2).toEqual({

@@ -32,11 +32,12 @@ import {
   type TowerState,
   type Unit,
   type UnitId,
+  type VenueDay,
 } from '@tower-magnate/shared';
 import { defaultSchedule, defaultStops } from '../commands/shafts';
 import { STEPS_PER_DAY } from '../clock';
 import { SCHEMA_VERSION } from '../state';
-import { isHotelRoomType, newHotelRoom } from '../units';
+import { isHotelRoomType, isVenueType, newHotelRoom, newVenueDay } from '../units';
 import { isRecord, StateMigrationError } from './errors';
 import { readActiveEvents, readClosedDecisions, readNotices, readTreasureLevels } from './events';
 import { readGrid } from './grid';
@@ -69,6 +70,7 @@ const MIGRATIONS: readonly Migration[] = [
   addParkingState,
   addTripLedger,
   addGuardEventState,
+  addVenueDayCounts,
   addTransportPurchaseRecord,
 ];
 
@@ -300,8 +302,25 @@ function addGuardEventState(raw: Record<string, unknown>): Record<string, unknow
   return { ...raw, activeEvents, schemaVersion: 19 };
 }
 
+/** Version 20 gives each food and entertainment venue its day counts; older venues start at zero. */
+function addVenueDayCounts(raw: Record<string, unknown>): Record<string, unknown> {
+  if (!isRecord(raw.units)) {
+    return { ...raw, schemaVersion: 20 };
+  }
+  const units: Record<string, unknown> = {};
+  for (const [id, unit] of Object.entries(raw.units)) {
+    units[id] = isRecord(unit) ? { venue: venueDayFor(unit.type), ...unit } : unit;
+  }
+  return { ...raw, schemaVersion: 20, units };
+}
+
+function venueDayFor(type: unknown): VenueDay | null {
+  const isVenue = (UNIT_TYPES as readonly unknown[]).includes(type) && isVenueType(type as never);
+  return isVenue ? newVenueDay() : null;
+}
+
 /**
- * Version 20 records what each staircase and escalator cost and when it was placed, and keeps
+ * Version 21 records what each staircase and escalator cost and when it was placed, and keeps
  * floor tool purchases. Older transports and floor are past the refund window, so they get zero.
  */
 function addTransportPurchaseRecord(raw: Record<string, unknown>): Record<string, unknown> {
@@ -313,7 +332,7 @@ function addTransportPurchaseRecord(raw: Record<string, unknown>): Record<string
         ]),
       )
     : raw.transports;
-  return { ...raw, transports, floorPurchases: [], schemaVersion: 20 };
+  return { ...raw, transports, floorPurchases: [], schemaVersion: 21 };
 }
 
 /** Version 11 gives each hotel room a state; every room in an older tower is clean and empty. */
@@ -378,7 +397,20 @@ function isUnit(value: unknown): value is Unit {
     typeof value.used === 'boolean' &&
     (value.lease === null || isLease(value.lease)) &&
     (value.hotel === null || isHotelRoom(value.hotel)) &&
-    (value.sale === null || isCondoSale(value.sale))
+    (value.sale === null || isCondoSale(value.sale)) &&
+    (value.venue === null || isVenueDay(value.venue))
+  );
+}
+
+function isVenueDay(value: unknown): value is VenueDay {
+  return (
+    isRecord(value) &&
+    isNonNegativeInteger(value.visits) &&
+    isNonNegativeInteger(value.eveningShowVisits) &&
+    (value.yesterday === null ||
+      (isRecord(value.yesterday) &&
+        isNonNegativeInteger(value.yesterday.visits) &&
+        (value.yesterday.result === null || Number.isSafeInteger(value.yesterday.result))))
   );
 }
 
@@ -436,9 +468,17 @@ function readUnits(raw: unknown): Record<UnitId, Unit> {
       lease: unit.lease === null ? null : { ...unit.lease },
       sale: unit.sale === null ? null : { ...unit.sale },
       hotel: unit.hotel === null ? null : { ...unit.hotel },
+      venue: readVenueDay(unit.venue),
     };
   }
   return units;
+}
+
+function readVenueDay(venue: VenueDay | null): VenueDay | null {
+  if (venue === null) {
+    return null;
+  }
+  return { ...venue, yesterday: venue.yesterday === null ? null : { ...venue.yesterday } };
 }
 
 function isElevatorCar(value: unknown): value is ElevatorCar {
