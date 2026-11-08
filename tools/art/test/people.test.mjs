@@ -31,6 +31,7 @@ describe('people group', () => {
       'security',
       'vip',
       'bride',
+      'wedding-guest',
       'groom',
     ]);
     expect(subjects.length).toBeGreaterThanOrEqual(8);
