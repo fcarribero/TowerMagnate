@@ -41,7 +41,7 @@ import { isRecord, StateMigrationError } from './errors';
 import { readActiveEvents, readClosedDecisions, readNotices, readTreasureLevels } from './events';
 import { readGrid } from './grid';
 import { readLedger, readMoney } from './money';
-import { readPeople } from './people';
+import { readPeople, readTripLedger } from './people';
 import { readStars } from './stars';
 import { readTransports } from './transports';
 
@@ -67,6 +67,7 @@ const MIGRATIONS: readonly Migration[] = [
   addNoticesAndFireLevel,
   addMedicalDay,
   addParkingState,
+  addTripLedger,
   addGuardEventState,
 ];
 
@@ -264,7 +265,28 @@ function addParkingState(raw: Record<string, unknown>): Record<string, unknown> 
   return { parking: { spaces: {}, noticeDay: 0, noticed: [] }, ...raw, schemaVersion: 17 };
 }
 
-/** Version 18 gives a bomb threat its search and a fire its burning levels and guards. */
+/** Version 18 keeps the trips each person ended and the stress of the trip in progress; older saves have none. */
+function addTripLedger(raw: Record<string, unknown>): Record<string, unknown> {
+  const people = raw.people;
+  if (!isRecord(people) || !Array.isArray(people.id)) {
+    return { tripLedger: {}, ...raw, schemaVersion: 18 };
+  }
+  const zeros = (): number[] => (people.id as unknown[]).map(() => 0);
+  const tripFields = {
+    tripSum: zeros(),
+    tripSlowFloors: zeros(),
+    tripPartStep: zeros(),
+    tripPartCut: zeros(),
+  };
+  return {
+    tripLedger: {},
+    ...raw,
+    people: { ...tripFields, ...people },
+    schemaVersion: 18,
+  };
+}
+
+/** Version 19 gives a bomb threat its search and a fire its burning levels and guards. */
 function addGuardEventState(raw: Record<string, unknown>): Record<string, unknown> {
   const activeEvents = Array.isArray(raw.activeEvents)
     ? raw.activeEvents.map((event) => {
@@ -274,7 +296,7 @@ function addGuardEventState(raw: Record<string, unknown>): Record<string, unknow
         return event;
       })
     : raw.activeEvents;
-  return { ...raw, activeEvents, schemaVersion: 18 };
+  return { ...raw, activeEvents, schemaVersion: 19 };
 }
 
 /** Version 11 gives each hotel room a state; every room in an older tower is clean and empty. */
@@ -564,6 +586,7 @@ function assertCurrentShape(raw: Record<string, unknown>): TowerState {
   if (!isNonNegativeInteger(raw.nextId)) {
     throw new StateMigrationError('State nextId must be a non-negative integer');
   }
+  const people = readPeople(raw.people);
   return {
     schemaVersion: SCHEMA_VERSION,
     step: raw.step,
@@ -575,7 +598,8 @@ function assertCurrentShape(raw: Record<string, unknown>): TowerState {
     transports: readTransports(raw.transports),
     shafts: readShafts(raw.shafts),
     grid: readGrid(raw.grid),
-    people: readPeople(raw.people),
+    people: people,
+    tripLedger: readTripLedger(raw.tripLedger, people.id),
     ledger: readLedger(raw.ledger),
     activeEvents: readActiveEvents(raw.activeEvents),
     closedDecisions: readClosedDecisions(raw.closedDecisions),

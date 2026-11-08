@@ -65,6 +65,10 @@ export function createPersonPool(): PersonPool {
     trip: [],
     dueStep: [],
     stress: [],
+    tripSum: [],
+    tripSlowFloors: [],
+    tripPartStep: [],
+    tripPartCut: [],
     trek: [],
     trekLevel: [],
     trekColumn: [],
@@ -91,6 +95,10 @@ export function clonePersonPool(pool: PersonPool): PersonPool {
     trip: pool.trip.slice(),
     dueStep: pool.dueStep.slice(),
     stress: pool.stress.slice(),
+    tripSum: pool.tripSum.slice(),
+    tripSlowFloors: pool.tripSlowFloors.slice(),
+    tripPartStep: pool.tripPartStep.slice(),
+    tripPartCut: pool.tripPartCut.slice(),
     trek: pool.trek.slice(),
     trekLevel: pool.trekLevel.slice(),
     trekColumn: pool.trekColumn.slice(),
@@ -146,6 +154,10 @@ export function addPerson(state: TowerState, person: NewPerson): number {
   pool.trip.push(NO_TRIP);
   pool.dueStep.push(NOTHING_DUE);
   pool.stress.push(0);
+  pool.tripSum.push(0);
+  pool.tripSlowFloors.push(0);
+  pool.tripPartStep.push(0);
+  pool.tripPartCut.push(0);
   pool.trek.push(0);
   pool.trekLevel.push(0);
   pool.trekColumn.push(0);
@@ -222,7 +234,15 @@ export function removePeopleOfUnit(state: TowerState, unitId: UnitId): EntityId[
     (pool, slot) => pool.homeUnit[slot] === homeUnit,
   );
   leaveQueues(state, removed);
+  forgetTrips(state, removed);
   return removed;
+}
+
+function forgetTrips(state: TowerState, removed: readonly EntityId[]): void {
+  const gone = new Set(removed.map((person) => person.slice(1)));
+  state.tripLedger = Object.fromEntries(
+    Object.entries(state.tripLedger).filter(([person]) => !gone.has(person)),
+  );
 }
 
 /** Removes one person; returns false if there was no such person. */
@@ -234,6 +254,7 @@ export function removePerson(state: TowerState, personId: number): boolean {
     (pool, slot) => pool.id[slot] === personId,
   );
   leaveQueues(state, removed);
+  forgetTrips(state, removed);
   return true;
 }
 
@@ -400,6 +421,10 @@ function poolArrays(pool: PersonPool): number[][] {
     pool.trip,
     pool.dueStep,
     pool.stress,
+    pool.tripSum,
+    pool.tripSlowFloors,
+    pool.tripPartStep,
+    pool.tripPartCut,
     pool.trek,
     pool.trekLevel,
     pool.trekColumn,

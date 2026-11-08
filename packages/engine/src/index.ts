@@ -28,6 +28,8 @@ export {
 } from './grid';
 export { personStress, stressBand, venueStressFactor } from './person-stress';
 export type { RecordedTrip, StressBand } from './person-stress';
+export { emptyTripParts, tripStress, tripStressSoFar } from './trip-stress';
+export type { RideStress, TripStressParts } from './trip-stress';
 export { isNoisy } from './noise';
 export { defaultSchedule, defaultStops, isExpressStop, shaftLevels } from './commands/shafts';
 export { evaluateUnit, gradeOfScore, unitScore } from './evaluation';
