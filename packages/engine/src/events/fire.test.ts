@@ -134,23 +134,30 @@ describe('fire roll at 15:00', () => {
     expect(state.activeEvents).toHaveLength(before);
   });
 
-  it('makes no draw when a wedding attempt is under way that day', () => {
-    const fiveStarTower = (): TowerState => {
-      const state = towerWith([{ type: 'office', level: 12, x: 120 }]);
-      const office = Object.values(state.units)[0] as Unit;
-      state.units.u900 = { ...office, id: 'u900', type: 'cathedral', level: 101 };
-      state.stars = 5;
-      state.rng = createRng(HIT_SEED);
-      return state;
+  it('makes no draw while a wedding attempt is kept in the state', () => {
+    const state = towerWith([{ type: 'office', level: 12, x: 120 }]);
+    state.rng = createRng(HIT_SEED);
+    state.wedding = {
+      day: WEDNESDAY,
+      cathedral: 'u900',
+      arrivals: [],
+      inside: 0,
+      outcome: 'pending',
     };
-    const saturday = fiveStarTower();
-    eventsPhase(atThreePm(saturday, SATURDAY));
-    expect(saturday.rng).toEqual(createRng(HIT_SEED));
-    expect(fireOf(saturday)).toBeUndefined();
+    eventsPhase(atThreePm(state));
+    expect(state.rng).toEqual(createRng(HIT_SEED));
+    expect(fireOf(state)).toBeUndefined();
+  });
 
-    const wednesday = fiveStarTower();
-    eventsPhase(atThreePm(wednesday, WEDNESDAY));
-    expect(fireOf(wednesday)).toBeDefined();
+  it('still rolls on a weekend at 5 stars with a cathedral when no attempt was made', () => {
+    const state = towerWith([{ type: 'office', level: 12, x: 120 }]);
+    const office = Object.values(state.units)[0] as Unit;
+    state.units.u900 = { ...office, id: 'u900', type: 'cathedral', level: 101 };
+    state.stars = 5;
+    state.wedding = null;
+    state.rng = createRng(HIT_SEED);
+    eventsPhase(atThreePm(state, SATURDAY));
+    expect(fireOf(state)).toBeDefined();
   });
 
   it('counts only units from level 2 to 100 on a floor of 32 structure columns or more', () => {

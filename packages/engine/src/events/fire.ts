@@ -15,7 +15,7 @@ import {
   type TowerState,
   type Unit,
 } from '@tower-magnate/shared';
-import { isWeekendDay, STEPS_PER_HOUR, weekdayOfDay } from '../calendar';
+import { STEPS_PER_HOUR } from '../calendar';
 import { STEPS_PER_DAY } from '../clock';
 import { structureAt } from '../grid';
 import { nextInt } from '../rng';
@@ -27,7 +27,6 @@ import { burningLevels, runFireGuards, tickFireFronts } from './fire-guards';
 import { structureOfLevel } from './guards';
 
 const ROLL_STEP_OF_DAY = FIRE_ROLL_HOUR * STEPS_PER_HOUR;
-const WEDDING_STARS = 5;
 
 /**
  * Units a fire can start in, in increasing unit id: every unit but lobbies and the cathedral
@@ -53,17 +52,6 @@ export function fireCandidates(state: TowerState): Unit[] {
         isWide(unit.level),
     )
     .sort((a, b) => unitNumber(a) - unitNumber(b));
-}
-
-/**
- * A wedding attempt can only be due on a weekend day at 5 stars with a cathedral (stars 7.1).
- * Until attempts are kept in the tower state, every such day counts as one.
- */
-export function hasWeddingAttemptToday(state: TowerState): boolean {
-  if (state.stars !== WEDDING_STARS) return false;
-  const weekday = weekdayOfDay(Math.floor(state.step / STEPS_PER_DAY));
-  if (!isWeekendDay(weekday)) return false;
-  return Object.values(state.units).some((unit) => unit.type === 'cathedral');
 }
 
 /** Lights a level of the fire at `column` (events 5.4) and burns that cell. */
@@ -122,7 +110,7 @@ export function runFireRoll(context: StepContext): void {
   const canRoll =
     state.stars >= FIRE_MIN_STARS &&
     !hasActiveDisaster(state) &&
-    !hasWeddingAttemptToday(state) &&
+    state.wedding === null &&
     fireCandidates(state).length > 0;
   if (!canRoll) return;
   if (nextInt(state.rng, 0, FIRE_DAILY_ODDS - 1) !== 0) return;
