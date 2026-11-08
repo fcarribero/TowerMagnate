@@ -293,3 +293,23 @@ The build writes one PNG per sprite to `assets/sprites/<id>.png` and one atlas p
 ## UI icons
 
 Icons are in `tools/art/src/icons`, drawn from 16 x 16 character maps. Ids are `ui/tool-{inspect,bulldozer,car}`, `ui/unit-{unitId}`, `ui/cat-{categoryId}`, `ui/star-full`, `ui/star-empty`, `ui/money` and `ui/population`. The empty star is a slate outline with no ink, as the HUD spec asks. `pnpm art:build` writes `docs/art/ui-icons-preview.png` (4x) with every icon.
+
+## Event effects
+
+Effects are in `tools/art/src/groups/effects.mjs` and form the `effects` atlas. Animated effects are numbered `_01`, `_02` and so on, so the atlas JSON lists them as animations.
+
+| Id | Size | Frames | Used for |
+|---|---|---|---|
+| `effects/fire/flame` | 8 x 16 | 4 | one burning column |
+| `effects/fire/front` | 8 x 8 | 3 | the column the fire reaches next |
+| `effects/smoke/puff` | 8 x 10 | 4 | smoke rising over a fire |
+| `effects/bomb/blast` | 32 x 32 | 5 | bomb explosion, the last frame is smoke |
+| `effects/bomb/rubble_a`, `rubble_b` | 8 x 32 | 1 | rubble pile on a destroyed cell |
+| `effects/roach/crawl` | 8 x 5 | 3 | cockroach |
+| `effects/helicopter/fly` | 25 x 13 | 3 | helicopter facing right, flip for the other way |
+| `effects/helicopter/water` | 16 x 16 | 3 | water drop that ends in a splash |
+| `effects/santa/sleigh` | 56 x 22 | 3 | sleigh and two reindeer facing left |
+| `effects/treasure/chest` | 14 x 9 | 3 | treasure chest with a moving glint |
+| `effects/burnt/overlay` | 8 x 32 | 1 | soot over one floor tile |
+
+`pnpm art:build` also writes `docs/art/effects-preview.png` (4x), one row per effect.
