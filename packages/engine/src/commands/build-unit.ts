@@ -16,6 +16,7 @@ import {
 import { addOccupant, isSpanFree, levelError, setStructure, structureAt } from '../grid';
 import type { CommandHandler } from '../step';
 import { newUnit } from '../units';
+import { limitError, starLockError } from './unit-limits';
 import {
   columnRuns,
   columnsBetween,
@@ -127,6 +128,11 @@ export const buildUnit: CommandHandler<'buildUnit'> = (context, command) => {
   const balanceError = negativeBalanceError(state);
   if (balanceError) {
     return { ok: false, error: balanceError };
+  }
+
+  const lockError = starLockError(state, definition) ?? limitError(state, definition);
+  if (lockError) {
+    return { ok: false, error: lockError };
   }
 
   const footprint = footprintFor(definition, x, level);

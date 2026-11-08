@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { createTower, SCHEMA_VERSION } from '../state';
 import { newUnit } from '../units';
-import { VERSION_1_SAVE, VERSION_2_SAVE, VERSION_3_SAVE } from './fixtures';
+import { VERSION_1_SAVE, VERSION_2_SAVE, VERSION_3_SAVE, VERSION_4_SAVE } from './fixtures';
 import { migrateState, StateMigrationError } from './index';
 
 describe('migrateState', () => {
@@ -142,5 +142,24 @@ describe('migrateState fixtures', () => {
       used: true,
       lease: { anchorStep: 240, nextDueStep: 60_720 },
     });
+  });
+});
+
+describe('migrateState stars', () => {
+  it('gives a version 3 save one star', () => {
+    const tower = migrateState(JSON.parse(VERSION_3_SAVE));
+    expect(tower.schemaVersion).toBe(SCHEMA_VERSION);
+    expect(tower.stars).toBe(1);
+  });
+
+  it('loads a frozen version 4 save', () => {
+    expect(migrateState(JSON.parse(VERSION_4_SAVE)).stars).toBe(3);
+  });
+
+  it('refuses a star rating outside 1 to 6', () => {
+    for (const stars of [0, 7, 2.5, '3', null]) {
+      const saved = { ...JSON.parse(JSON.stringify(createTower(5))), stars };
+      expect(() => migrateState(saved)).toThrow(StateMigrationError);
+    }
   });
 });

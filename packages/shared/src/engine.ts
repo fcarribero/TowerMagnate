@@ -2,7 +2,7 @@ import type { Ledger } from './ledger';
 import type { Level } from './levels';
 import type { DecisionKind } from './protocol/primitives';
 import type { PersonPool } from './people';
-import type { PriceLevel, UnitType } from './units';
+import type { PriceLevel, StarRating, UnitType } from './units';
 
 /** Id of a placed unit, transport or shaft, with a type prefix: `u12`, `t3`, `s4`. */
 export type EntityId = string;
@@ -92,6 +92,8 @@ export interface TowerState {
   nextId: number;
   /** Whole dollars, may be negative, never above MONEY_CAP. */
   money: number;
+  /** The tower's star rating, which unlocks unit types. */
+  stars: StarRating;
   units: Record<UnitId, Unit>;
   grid: GridState;
   people: PersonPool;

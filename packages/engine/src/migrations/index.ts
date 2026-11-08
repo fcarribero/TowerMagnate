@@ -14,13 +14,14 @@ import { readActiveEvents, readClosedDecisions, readTreasureLevels } from './eve
 import { readGrid } from './grid';
 import { readLedger, readMoney } from './money';
 import { readPeople } from './people';
+import { readStars } from './stars';
 
 export { StateMigrationError } from './errors';
 
 type Migration = (raw: Record<string, unknown>) => Record<string, unknown>;
 
 /** MIGRATIONS[n] turns a version n+1 state into version n+2. */
-const MIGRATIONS: readonly Migration[] = [addUnitPurchaseRecord, addUnitLeaseRecord];
+const MIGRATIONS: readonly Migration[] = [addUnitPurchaseRecord, addUnitLeaseRecord, addStarRating];
 
 /** Version 2 records each unit's price level, what was paid for it and when it was placed. */
 function addUnitPurchaseRecord(raw: Record<string, unknown>): Record<string, unknown> {
@@ -44,6 +45,11 @@ function addUnitLeaseRecord(raw: Record<string, unknown>): Record<string, unknow
     units[id] = isRecord(unit) ? { used: false, lease: null, ...unit } : unit;
   }
   return { ...raw, schemaVersion: 3, units };
+}
+
+/** Version 4 records the star rating; older towers start at one star. */
+function addStarRating(raw: Record<string, unknown>): Record<string, unknown> {
+  return { stars: 1, ...raw, schemaVersion: 4 };
 }
 
 function isUint32(value: unknown): value is number {
@@ -134,6 +140,7 @@ function assertCurrentShape(raw: Record<string, unknown>): TowerState {
     rng: { a: raw.rng.a, b: raw.rng.b, c: raw.rng.c, d: raw.rng.d },
     nextId: raw.nextId,
     money: readMoney(raw.money),
+    stars: readStars(raw.stars),
     units: readUnits(raw.units),
     grid: readGrid(raw.grid),
     people: readPeople(raw.people),
