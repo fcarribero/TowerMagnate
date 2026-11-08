@@ -160,6 +160,7 @@ describe('the routine in the trip number', () => {
       lunchHandled: true,
       entranceOnRight: true,
       venue: 912,
+      medical: false,
       lunchMinute: 775,
       leaveMinute: 1139,
     };
@@ -172,6 +173,7 @@ describe('the routine in the trip number', () => {
       lunchHandled: false,
       entranceOnRight: false,
       venue: 0,
+      medical: false,
       lunchMinute: 0,
       leaveMinute: 0,
     };

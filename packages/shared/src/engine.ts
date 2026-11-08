@@ -237,6 +237,17 @@ export interface TowerState {
   lastMedicalFailureStep: number | null;
   /** Step of the last parking failure; null if none yet. */
   lastParkingFailureStep: number | null;
+  /** Medical center visits and notices of one game day; a new day starts them over. */
+  medicalDay: MedicalDay;
+}
+
+export interface MedicalDay {
+  /** Day number, from 0 at step 0. */
+  day: number;
+  /** Visits so far today, by unit number of the medical center. */
+  visits: Record<number, number>;
+  /** News keys already shown today. */
+  noticed: string[];
 }
 
 /** A news line the player was shown; `key` names its text. */

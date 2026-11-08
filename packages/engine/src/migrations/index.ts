@@ -22,6 +22,7 @@ import {
   type RngState,
   type ShaftBand,
   type Level,
+  type MedicalDay,
   type Shaft,
   type ShaftSchedule,
   type ShaftType,
@@ -32,6 +33,7 @@ import {
   type UnitId,
 } from '@tower-magnate/shared';
 import { defaultSchedule, defaultStops } from '../commands/shafts';
+import { STEPS_PER_DAY } from '../clock';
 import { SCHEMA_VERSION } from '../state';
 import { isHotelRoomType, newHotelRoom } from '../units';
 import { isRecord, StateMigrationError } from './errors';
@@ -62,6 +64,7 @@ const MIGRATIONS: readonly Migration[] = [
   addCarMotion,
   addTrekState,
   addNoticesAndFireLevel,
+  addMedicalDay,
 ];
 
 /** Version 2 records each unit's price level, what was paid for it and when it was placed. */
@@ -245,6 +248,12 @@ function addNoticesAndFireLevel(raw: Record<string, unknown>): Record<string, un
       )
     : raw.activeEvents;
   return { notices: [], ...raw, activeEvents, schemaVersion: 15 };
+}
+
+/** Version 16 counts medical center visits per day; an older save starts with none today. */
+function addMedicalDay(raw: Record<string, unknown>): Record<string, unknown> {
+  const day = isNonNegativeInteger(raw.step) ? Math.floor(raw.step / STEPS_PER_DAY) : 0;
+  return { medicalDay: { day, visits: {}, noticed: [] }, ...raw, schemaVersion: 16 };
 }
 
 /** Version 11 gives each hotel room a state; every room in an older tower is clean and empty. */
@@ -552,6 +561,7 @@ function assertCurrentShape(raw: Record<string, unknown>): TowerState {
     notices: readNotices(raw.notices),
     treasureLevels: readTreasureLevels(raw.treasureLevels),
     ...readStarState(raw),
+    medicalDay: readMedicalDay(raw.medicalDay),
   };
 }
 
@@ -575,6 +585,22 @@ function readStarState(raw: Record<string, unknown>): StarState {
     lastMedicalFailureStep: lastMedicalFailureStep as number | null,
     lastParkingFailureStep: lastParkingFailureStep as number | null,
   };
+}
+
+function readMedicalDay(raw: unknown): MedicalDay {
+  const fail = (): never => {
+    throw new StateMigrationError('State medicalDay must hold a day, visit counts and notice keys');
+  };
+  if (!isRecord(raw) || !isNonNegativeInteger(raw.day) || !isRecord(raw.visits)) return fail();
+  if (!Array.isArray(raw.noticed) || !raw.noticed.every((key) => typeof key === 'string')) {
+    return fail();
+  }
+  const visits: Record<number, number> = {};
+  for (const [center, count] of Object.entries(raw.visits)) {
+    if (!isNonNegativeInteger(Number(center)) || !isNonNegativeInteger(count)) return fail();
+    visits[Number(center)] = count;
+  }
+  return { day: raw.day, visits, noticed: [...(raw.noticed as string[])] };
 }
 
 export function migrateState(raw: unknown): TowerState {
