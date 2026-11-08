@@ -34,3 +34,13 @@ export {
   timeSecurityRuns,
 } from './security-scenario';
 export type { SecurityRun } from './security-scenario';
+export {
+  MAX_TREK_AVERAGE_MS,
+  MAX_TREK_P99_MS,
+  TREK_CROWD_PEOPLE,
+  medianTrekCrowdTiming,
+  timeTrekCrowd,
+  trekCrowd,
+} from './trek-crowd';
+export type { TrekCrowdTiming } from './trek-crowd';
+export { OFFICE_WEEK_BUDGET_MS, tenFloorOfficeTowerPlan } from './ten-floor-office-tower';

@@ -52,6 +52,12 @@ jobs:
       - name: People layer benchmark
         run: pnpm bench:people-layer
 
+      - name: Trek step benchmark
+        run: pnpm bench:trek
+
+      - name: Office tower week benchmark
+        run: pnpm bench:office-week
+
       - name: Security events benchmark
         run: pnpm bench:events
 
