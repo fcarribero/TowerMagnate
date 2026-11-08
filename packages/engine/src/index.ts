@@ -39,6 +39,8 @@ export {
 
 export { hashState } from './hash';
 export { migrateState, StateMigrationError } from './migrations';
+export { checkIn, createHotelSystem, drawStayNights } from './hotel';
+export type { CheckInResult } from './hotel';
 export { createLeaseSystem, isLeasable, moveInTenant, STEPS_PER_WEEK } from './leases';
 export type { TenantEvaluator } from './leases';
 export {

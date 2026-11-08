@@ -25,3 +25,11 @@ export const VERSION_4_SAVE =
 export const VERSION_5_SAVE =
   '{"schemaVersion":5,"step":8640,"rng":{"a":1,"b":2,"c":3,"d":4},"nextId":3,' +
   '"units":{},"shafts":{},"transports":{"t2":{"id":"t2","type":"escalator","x":20,"level":2}}}';
+
+export const VERSION_6_SAVE =
+  '{"schemaVersion":6,"step":8640,"rng":{"a":1,"b":2,"c":3,"d":4},"nextId":4,' +
+  '"units":{"u1":{"id":"u1","type":"office","x":10,"level":2,"name":null,' +
+  '"priceLevel":"normal","paid":44500,"placedAtStep":120,"used":false,"lease":null},' +
+  '"u3":{"id":"u3","type":"suite","x":20,"level":3,"name":null,' +
+  '"priceLevel":"high","paid":60000,"placedAtStep":300,"used":true,"lease":null}},' +
+  '"shafts":{},"transports":{},"activeEvents":[],"closedDecisions":[],"treasureLevels":[]}';

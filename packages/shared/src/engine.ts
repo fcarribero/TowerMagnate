@@ -1,6 +1,6 @@
 import type { Ledger } from './ledger';
 import type { Level } from './levels';
-import type { DecisionKind, TransportType } from './protocol/primitives';
+import type { DecisionKind, HotelRoomState, TransportType } from './protocol/primitives';
 import type { PersonPool } from './people';
 import type { PriceLevel, ShaftType, UnitType } from './units';
 
@@ -74,6 +74,14 @@ export interface Unit {
   used: boolean;
   /** The current office or shop tenant's lease; null while the unit is for rent. */
   lease: Lease | null;
+  /** The state of a hotel room; null for every other unit. */
+  hotel: HotelRoom | null;
+}
+
+export interface HotelRoom {
+  state: HotelRoomState;
+  /** When the current stay ends (10:00 on its last day); null while nobody is staying. */
+  stayEndStep: number | null;
 }
 
 /** A staircase or escalator. Its cells on `level` are the footprint; the level above has the landing. */
@@ -183,6 +191,9 @@ export type EngineEvent =
       name: string | null;
     }
   | { type: 'leaseSigned' | 'leaseRenewed' | 'leaseEnded'; step: number; unitId: UnitId }
+  | { type: 'hotelCheckIn'; step: number; unitId: UnitId; nights: number; paid: number }
+  | { type: 'hotelCheckOut'; step: number; unitId: UnitId }
+  | { type: 'roomStateChanged'; step: number; unitId: UnitId; state: HotelRoomState }
   | {
       type: 'decisionOpened';
       step: number;
