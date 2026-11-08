@@ -476,6 +476,8 @@ export const SEARCH_COLUMNS_PER_MINUTE = 4;
 export const SEARCH_STEPS_PER_MINUTE = 6;
 export const FIRE_SPREAD_STEPS = 6;
 export const FIRE_FRONT_CONTAINMENT = 10;
+/** Papá Noel crosses the sky once a year at this date and time. */
+export const SANTA_TIME = { month: 12, day: 24, hour: 22, minute: 0 } as const;
 
 function flatUpkeep(basis: UpkeepRule['basis'], amount: number): UpkeepRule {
   return { basis, amountByStars: [{ minStars: 1, amount }] };
