@@ -9,7 +9,7 @@ import {
   type UnitType,
 } from '@tower-magnate/shared';
 import { addOccupant, cellsWithoutStructure, setStructure } from '../grid';
-import { idleCar } from '../commands/shafts';
+import { defaultSchedule, defaultStops, idleCar } from '../commands/shafts';
 import { createTower } from '../state';
 import { newUnit } from '../units';
 
@@ -117,6 +117,8 @@ function placeShaft(state: TowerState, shaft: PlannedShaft): EntityId {
     bottom: shaft.bottom,
     top: shaft.top,
     cars: [car],
+    stops: defaultStops(shaft.type, shaft),
+    schedule: defaultSchedule(),
     queues: {},
     paid: 0,
     placedAtStep: state.step,

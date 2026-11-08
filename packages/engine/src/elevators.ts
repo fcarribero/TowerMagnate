@@ -2,8 +2,7 @@ import {
   CALL_PATIENCE_STEPS,
   CAR_FLOORS_PER_STEP,
   carCapacity,
-  DEFAULT_DWELL_STEPS,
-  DEFAULT_RESPONSE_DISTANCE,
+  ELEVATOR_BAND_STARTS,
   indexToLevel,
   levelToIndex,
   type ElevatorCar,
@@ -11,7 +10,10 @@ import {
   type HallDirection,
   type Level,
   type Shaft,
+  type ShaftBand,
 } from '@tower-magnate/shared';
+import { isWeekendDay, weekdayOfDay } from './calendar';
+import { SECONDS_PER_STEP, STEPS_PER_DAY } from './clock';
 import { boardFromQueue, hallCallAge, queueLength } from './elevator-queues';
 import type { SimulationSystem, StepContext } from './step';
 
@@ -25,6 +27,29 @@ export function createElevatorSystem(): SimulationSystem {
       dispatch(shaft, context.state.step);
     }
   };
+}
+
+/** Elevators 7.1: the band whose time range holds the step, on the weekday or weekend schedule. */
+function bandAt(shaft: Shaft, step: number): ShaftBand {
+  const day = Math.floor(step / STEPS_PER_DAY);
+  const bands = isWeekendDay(weekdayOfDay(day)) ? shaft.schedule.weekend : shaft.schedule.weekday;
+  const stepOfDay = step % STEPS_PER_DAY;
+  const index = ELEVATOR_BAND_STARTS.filter((start) => start <= stepOfDay).length - 1;
+  return bands[index] as ShaftBand;
+}
+
+/** Elevators 5: the lowest stop at level 1 or higher, else the highest stop. */
+function lobbyStop(shaft: Shaft): Level {
+  const upper = shaft.stops.filter((level) => level >= 1);
+  if (upper.length > 0) {
+    return Math.min(...upper);
+  }
+  return shaft.stops.length > 0 ? Math.max(...shaft.stops) : shaft.bottom;
+}
+
+/** Elevators 8: a free car heads home, or to the lobby stop while the band is expressUp. */
+function homeTarget(shaft: Shaft, car: ElevatorCar, step: number): Level {
+  return bandAt(shaft, step).mode === 'expressUp' ? lobbyStop(shaft) : car.homeLevel;
 }
 
 function byShaftNumber(a: string, b: string): number {
@@ -141,7 +166,7 @@ function decide(context: StepContext, shaft: Shaft, carIndex: number): void {
     openDoors(context, shaft, carIndex);
     return;
   }
-  if (!isFree(car) || car.level !== car.homeLevel) {
+  if (!isFree(car) || car.level !== homeTarget(shaft, car, context.state.step)) {
     move(context, shaft, carIndex);
   }
 }
@@ -152,7 +177,7 @@ function move(context: StepContext, shaft: Shaft, carIndex: number): void {
     openDoors(context, shaft, carIndex);
     return;
   }
-  const target = chooseTarget(car);
+  const target = chooseTarget(shaft, car, context.state.step);
   if (target === null) {
     car.phase = 'idle';
     car.direction = 'idle';
@@ -170,9 +195,10 @@ function move(context: StepContext, shaft: Shaft, carIndex: number): void {
 }
 
 /** The next stop, reversing first when the work is all behind; a free car aims for home. */
-function chooseTarget(car: ElevatorCar): Level | null {
+function chooseTarget(shaft: Shaft, car: ElevatorCar, step: number): Level | null {
   if (isFree(car)) {
-    return car.level === car.homeLevel ? null : car.homeLevel;
+    const home = homeTarget(shaft, car, step);
+    return car.level === home ? null : home;
   }
   const direction = travelDirection(car);
   const ahead = nextStop(car, direction);
@@ -190,8 +216,9 @@ function openDoors(context: StepContext, shaft: Shaft, carIndex: number): void {
   const direction = travelDirection(car);
   boardFromQueue(shaft, carIndex, car.level, direction, context.state.step);
   car.assigned = car.assigned.filter((call) => call.level !== car.level);
-  car.phase = DEFAULT_DWELL_STEPS > 0 ? 'dwelling' : 'closing';
-  car.phaseStepsLeft = DEFAULT_DWELL_STEPS;
+  const dwellSteps = bandAt(shaft, context.state.step).dwellSeconds / SECONDS_PER_STEP;
+  car.phase = dwellSteps > 0 ? 'dwelling' : 'closing';
+  car.phaseStepsLeft = dwellSteps;
 }
 
 function letRidersOut(context: StepContext, shaft: Shaft, carIndex: number): void {
@@ -277,8 +304,9 @@ function unassignedCalls(shaft: Shaft, step: number): WaitingCall[] {
 
 /** Elevators 6.2: oldest call first, to the nearest eligible car. */
 function dispatch(shaft: Shaft, step: number): void {
+  const band = bandAt(shaft, step);
   for (const call of unassignedCalls(shaft, step)) {
-    const choice = pickCar(shaft, call);
+    const choice = pickCar(shaft, call, band);
     if (choice === null) {
       continue;
     }
@@ -299,15 +327,15 @@ function headingFor(car: ElevatorCar, call: HallCall): ElevatorCar['direction'] 
   return floors > 0 ? 'up' : 'down';
 }
 
-function pickCar(shaft: Shaft, call: WaitingCall): { index: number } | null {
+function pickCar(shaft: Shaft, call: WaitingCall, band: ShaftBand): { index: number } | null {
   const everyCarFree = shaft.cars.every(isFree);
   let best: { index: number; distance: number; coming: boolean } | null = null;
   for (const [index, car] of shaft.cars.entries()) {
     const distance = Math.abs(dense(call.level) - dense(car.level));
-    const coming = isComingCar(shaft, car, call);
+    const coming = isComingCar(shaft, car, call, band.mode);
     const reachable =
       isFree(car) &&
-      (distance <= DEFAULT_RESPONSE_DISTANCE || call.age >= CALL_PATIENCE_STEPS || everyCarFree);
+      (distance <= band.responseDistance || call.age >= CALL_PATIENCE_STEPS || everyCarFree);
     if (!coming && !reachable) {
       continue;
     }
@@ -322,9 +350,31 @@ function pickCar(shaft: Shaft, call: WaitingCall): { index: number } | null {
   return best;
 }
 
-function isComingCar(shaft: Shaft, car: ElevatorCar, call: HallCall): boolean {
+/** Elevators 7.3: in an express band a loaded car does not make extra stops above the lobby stop. */
+function skipsCall(
+  shaft: Shaft,
+  car: ElevatorCar,
+  call: HallCall,
+  mode: ShaftBand['mode'],
+): boolean {
+  const expressDirection = { normal: null, expressUp: 'up', expressDown: 'down' }[mode];
+  return (
+    expressDirection === call.direction &&
+    car.direction === call.direction &&
+    car.riders.length > 0 &&
+    dense(call.level) > dense(lobbyStop(shaft))
+  );
+}
+
+function isComingCar(
+  shaft: Shaft,
+  car: ElevatorCar,
+  call: HallCall,
+  mode: ShaftBand['mode'],
+): boolean {
   return (
     !isFree(car) &&
+    !skipsCall(shaft, car, call, mode) &&
     car.direction === call.direction &&
     floorsAhead(car, call.level, call.direction) > 0 &&
     !isFull(shaft, car)

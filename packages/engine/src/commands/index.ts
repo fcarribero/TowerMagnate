@@ -4,6 +4,7 @@ import { buildFloor } from './build-floor';
 import { buildLobby } from './build-lobby';
 import { buildTransport } from './build-transport';
 import { buildShaft, resizeShaft } from './build-shaft';
+import { configureShaft } from './configure-shaft';
 import { buildUnit } from './build-unit';
 import { addCar, removeCar } from './elevator-cars';
 import { followPersonCommand, unfollowPersonCommand } from './follow-person';
@@ -17,6 +18,7 @@ export const towerCommandHandlers: CommandHandlers = {
   buildUnit,
   buildShaft,
   resizeShaft,
+  configureShaft,
   addCar,
   removeCar,
   renameUnit,

@@ -153,6 +153,22 @@ export interface StopQueues {
   down: QueueEntry[];
 }
 
+export const ELEVATOR_MODES = ['normal', 'expressUp', 'expressDown'] as const;
+export type ElevatorMode = (typeof ELEVATOR_MODES)[number];
+
+/** How a shaft runs during one band of the day (elevators 7). */
+export interface ShaftBand {
+  mode: ElevatorMode;
+  dwellSeconds: number;
+  responseDistance: number;
+}
+
+/** Six bands for Monday to Friday and six for the weekend. */
+export interface ShaftSchedule {
+  weekday: ShaftBand[];
+  weekend: ShaftBand[];
+}
+
 export interface Shaft {
   id: ShaftId;
   type: ShaftType;
@@ -162,6 +178,9 @@ export interface Shaft {
   top: Level;
   /** 1 to 8 cars; car index is the position in this list. */
   cars: ElevatorCar[];
+  /** Levels where cars stop, ascending. */
+  stops: Level[];
+  schedule: ShaftSchedule;
   /** Stops that have someone waiting, by level number. Empty queues are not stored. */
   queues: Record<string, StopQueues>;
   /** Whole dollars charged for the shaft itself, cars not included. */

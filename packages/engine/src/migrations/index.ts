@@ -1,10 +1,15 @@
 import {
   CAR_DIRECTIONS,
   CAR_PHASES,
+  DWELL_SECONDS_OPTIONS,
+  ELEVATOR_BAND_STARTS,
+  ELEVATOR_MODES,
   ELEVATOR_QUEUE_CAPACITY,
   HotelRoomStateSchema,
   isLevel,
   PRICE_LEVELS,
+  RESPONSE_DISTANCE_MAX,
+  RESPONSE_DISTANCE_MIN,
   SHAFT_TYPES,
   UNIT_TYPES,
   type ElevatorCar,
@@ -14,13 +19,18 @@ import {
   type QueueEntry,
   type RiderTrip,
   type RngState,
+  type ShaftBand,
+  type Level,
   type Shaft,
+  type ShaftSchedule,
+  type ShaftType,
   type ShaftId,
   type StopQueues,
   type TowerState,
   type Unit,
   type UnitId,
 } from '@tower-magnate/shared';
+import { defaultSchedule, defaultStops } from '../commands/shafts';
 import { SCHEMA_VERSION } from '../state';
 import { isHotelRoomType, newHotelRoom } from '../units';
 import { isRecord, StateMigrationError } from './errors';
@@ -142,7 +152,7 @@ function addStarState(raw: Record<string, unknown>): Record<string, unknown> {
 }
 
 /**
- * Version 12 gives each car its motion state and each queued person a destination. Older cars
+ * Version 12 gives each car its motion state and each queued person a destination, and each shaft its stops and band schedule. Older cars
  * stand idle and their riders get off at the next stop; queued people head for the end of the shaft.
  */
 function addCarMotion(raw: Record<string, unknown>): Record<string, unknown> {
@@ -157,6 +167,8 @@ function addCarMotion(raw: Record<string, unknown>): Record<string, unknown> {
 }
 
 function withCarMotion(shaft: Record<string, unknown>, step: number): Record<string, unknown> {
+  const stops = Array.isArray(shaft.stops) ? shaft.stops : oldShaftStops(shaft);
+  const schedule = isRecord(shaft.schedule) ? shaft.schedule : defaultSchedule();
   const cars = Array.isArray(shaft.cars) ? shaft.cars.map((car) => carWithMotion(car, step)) : [];
   const queues: Record<string, unknown> = {};
   if (isRecord(shaft.queues)) {
@@ -164,7 +176,16 @@ function withCarMotion(shaft: Record<string, unknown>, step: number): Record<str
       queues[level] = isRecord(stop) ? stopWithDestinations(stop, shaft) : stop;
     }
   }
-  return { ...shaft, cars, queues };
+  return { ...shaft, cars, queues, stops, schedule };
+}
+
+function oldShaftStops(shaft: Record<string, unknown>): Level[] {
+  const range = { x: Number(shaft.x), bottom: shaft.bottom as Level, top: shaft.top as Level };
+  const isShaftType = (SHAFT_TYPES as readonly unknown[]).includes(shaft.type);
+  if (!isShaftType || !isLevel(range.bottom) || !isLevel(range.top) || range.bottom > range.top) {
+    return [];
+  }
+  return defaultStops(shaft.type as ShaftType, range);
 }
 
 function carWithMotion(car: unknown, step: number): unknown {
@@ -350,6 +371,29 @@ function isStopQueues(value: unknown): value is StopQueues {
   );
 }
 
+function isShaftBand(value: unknown): value is ShaftBand {
+  return (
+    isRecord(value) &&
+    (ELEVATOR_MODES as readonly unknown[]).includes(value.mode) &&
+    (DWELL_SECONDS_OPTIONS as readonly unknown[]).includes(value.dwellSeconds) &&
+    Number.isInteger(value.responseDistance) &&
+    (value.responseDistance as number) >= RESPONSE_DISTANCE_MIN &&
+    (value.responseDistance as number) <= RESPONSE_DISTANCE_MAX
+  );
+}
+
+function isSchedule(value: unknown): value is ShaftSchedule {
+  const isDay = (bands: unknown) =>
+    Array.isArray(bands) &&
+    bands.length === ELEVATOR_BAND_STARTS.length &&
+    bands.every(isShaftBand);
+  return isRecord(value) && isDay(value.weekday) && isDay(value.weekend);
+}
+
+function copyBand(band: ShaftBand): ShaftBand {
+  return { ...band };
+}
+
 function isShaft(value: unknown): value is Shaft {
   return (
     isRecord(value) &&
@@ -362,6 +406,9 @@ function isShaft(value: unknown): value is Shaft {
     Array.isArray(value.cars) &&
     value.cars.length > 0 &&
     value.cars.every(isElevatorCar) &&
+    Array.isArray(value.stops) &&
+    value.stops.every(isLevel) &&
+    isSchedule(value.schedule) &&
     isRecord(value.queues) &&
     Object.values(value.queues).every(isStopQueues) &&
     isNonNegativeInteger(value.paid) &&
@@ -400,6 +447,11 @@ function readShafts(raw: unknown): Record<ShaftId, Shaft> {
         paid: car.paid,
         placedAtStep: car.placedAtStep,
       })),
+      stops: [...shaft.stops],
+      schedule: {
+        weekday: shaft.schedule.weekday.map(copyBand),
+        weekend: shaft.schedule.weekend.map(copyBand),
+      },
       queues: Object.fromEntries(
         Object.entries(shaft.queues).map(([level, stop]) => [
           level,

@@ -522,9 +522,15 @@ export const CAR_FLOORS_PER_STEP = { standard: 1, service: 1, express: 3 } as co
 export const DOOR_OPEN_STEPS = 1;
 /** Steps a car spends closing its doors before it can leave. */
 export const DOOR_CLOSE_STEPS = 1;
-/** Steps the doors stay open after opening (30 game seconds). */
-export const DEFAULT_DWELL_STEPS = 3;
+/** Dwell choices in game seconds (elevators 14). */
+export const DWELL_SECONDS_OPTIONS = [0, 10, 20, 30, 40, 50, 60] as const;
+export const DEFAULT_DWELL_SECONDS = 30;
+export const RESPONSE_DISTANCE_MIN = 1;
+export const RESPONSE_DISTANCE_MAX = 99;
 /** How far, in floors, a free car will go to answer a call. */
 export const DEFAULT_RESPONSE_DISTANCE = 5;
+export const DEFAULT_ELEVATOR_MODE = 'normal';
+/** First step of day of each of the 6 bands: 00:00, 07:00, 10:00, 12:00, 14:00, 17:00. */
+export const ELEVATOR_BAND_STARTS = [0, 2_520, 3_600, 4_320, 5_040, 6_120] as const;
 /** Age in steps at which any free car answers a hall call (5 game minutes). */
 export const CALL_PATIENCE_STEPS = 30;

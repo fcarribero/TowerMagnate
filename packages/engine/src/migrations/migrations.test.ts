@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { defaultSchedule } from '../commands/shafts';
 import { createTower, SCHEMA_VERSION } from '../state';
 import { newUnit } from '../units';
 import {
@@ -214,6 +215,8 @@ describe('migrateState hall queues', () => {
       bottom: 1,
       top: 4,
       cars: [car],
+      stops: [1, 2, 3, 4],
+      schedule: defaultSchedule(),
       queues,
       paid: 200_000,
       placedAtStep: 0,
@@ -257,6 +260,8 @@ describe('migrateState shafts', () => {
       bottom: 1,
       top: 4,
       cars: [car],
+      stops: [1, 2, 3, 4],
+      schedule: defaultSchedule(),
       queues: {},
       paid: 200_000,
       placedAtStep: 0,
@@ -376,6 +381,8 @@ describe('migrateState hotel rooms', () => {
       saved.units = { u1: { ...newUnit('u1', 'suite', 0, 2), hotel } };
       expect(() => migrateState(saved)).toThrow(StateMigrationError);
     }
+  });
+});
 
 describe('migrateState car motion', () => {
   it('leaves old cars idle and sends their riders to the next stop', () => {
@@ -389,6 +396,23 @@ describe('migrateState car motion', () => {
       phaseStepsLeft: 0,
       assigned: [],
       trips: [{ destination: 3, boardedStep: 8640, waitSteps: 0 }],
+    });
+  });
+
+  it('gives old shafts every level as a stop and the default schedule', () => {
+    const tower = migrateState(JSON.parse(VERSION_4_SAVE));
+    const shaft = Object.values(tower.shafts)[0];
+    expect(shaft?.stops).toEqual(
+      Array.from(
+        { length: (shaft?.top ?? 0) - (shaft?.bottom ?? 0) + 1 },
+        (_, i) => (shaft?.bottom ?? 0) + i,
+      ),
+    );
+    expect(shaft?.schedule.weekday).toHaveLength(6);
+    expect(shaft?.schedule.weekend[5]).toEqual({
+      mode: 'normal',
+      dwellSeconds: 30,
+      responseDistance: 5,
     });
   });
 

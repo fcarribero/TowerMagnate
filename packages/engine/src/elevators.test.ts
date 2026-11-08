@@ -293,3 +293,104 @@ describe('elevator scenarios', () => {
     expect(trace()).toEqual(trace());
   });
 });
+
+const MORNING = 2880;
+
+function setBand(tower: ShaftTower, band: Partial<Shaft['schedule']['weekday'][number]>): void {
+  const { schedule } = shaftOf(tower);
+  schedule.weekday[1] = { ...(schedule.weekday[1] as object), ...band } as never;
+}
+
+/** Elevators 13.4: car 0 loaded and moving up at level 4, car 1 idle at the lobby. */
+function morningRush(mode: 'normal' | 'expressUp'): ShaftTower {
+  const tower = shaftTower('standard', 30, [1, 1]);
+  setBand(tower, { mode });
+  const loaded = carOf(tower, 0);
+  loaded.level = 4;
+  loaded.direction = 'up';
+  loaded.phase = 'moving';
+  loadRiders(loaded, [6, 9, 15, 20]);
+  tower.state.step = MORNING - 1;
+  return tower;
+}
+
+describe('time bands and modes', () => {
+  it('lets a loaded car take an up call above the lobby in normal mode', () => {
+    const tower = morningRush('normal');
+    callAt(tower, MORNING, 7, 'up', 20);
+    expect(carOf(tower, 0).assigned).toEqual([{ level: 7, direction: 'up' }]);
+  });
+
+  it('keeps the call from a loaded car in expressUp until a free car is allowed to answer', () => {
+    const tower = morningRush('expressUp');
+    callAt(tower, MORNING, 7, 'up', 20);
+    expect(carOf(tower, 0).assigned).toEqual([]);
+    expect(carOf(tower, 1).assigned).toEqual([]);
+
+    runTo(tower, MORNING + 30);
+    expect(carOf(tower, 1).assigned).toEqual([{ level: 7, direction: 'up' }]);
+  });
+
+  it('still lets a loaded car answer an up call at the lobby stop in expressUp', () => {
+    const tower = morningRush('expressUp');
+    const loaded = carOf(tower, 0);
+    loaded.level = 1;
+    callAt(tower, MORNING, 1, 'up', 20);
+    expect(carOf(tower, 1).assigned).toEqual([{ level: 1, direction: 'up' }]);
+  });
+
+  it('sends a free car to the lobby stop instead of its home in an expressUp band', () => {
+    const tower = shaftTower('standard', 30, [10]);
+    setBand(tower, { mode: 'expressUp' });
+    tower.state.step = MORNING - 1;
+    run(tower, 12);
+    expect(carOf(tower).level).toBe(1);
+  });
+
+  it('skips down calls above the lobby for loaded cars in expressDown', () => {
+    const tower = shaftTower('standard', 30, [1, 1]);
+    setBand(tower, { mode: 'expressDown' });
+    const loaded = carOf(tower, 0);
+    loaded.level = 20;
+    loaded.direction = 'down';
+    loaded.phase = 'moving';
+    loadRiders(loaded, [1]);
+    tower.state.step = MORNING - 1;
+    callAt(tower, MORNING, 12, 'down', 1);
+    expect(loaded.assigned).toEqual([]);
+  });
+
+  it('uses the dwell of the band in force', () => {
+    const tower = shaftTower('standard', 30);
+    setBand(tower, { dwellSeconds: 0 });
+    callAt(tower, MORNING, 1, 'up', 2);
+    run(tower, 1);
+    expect(carOf(tower).phase).toBe('closing');
+  });
+
+  it('applies the response distance of the band to free cars', () => {
+    const tower = shaftTower('standard', 30, [1, 25]);
+    setBand(tower, { responseDistance: 3 });
+    const busy = carOf(tower, 1);
+    busy.direction = 'down';
+    busy.phase = 'moving';
+    loadRiders(busy, [20]);
+    tower.state.step = MORNING - 1;
+    joinQueue(shaftOf(tower), 5, 'up', personEntityId(nextPerson++), 9, MORNING);
+    run(tower, 1);
+    expect(carOf(tower, 0).assigned).toEqual([]);
+
+    setBand(tower, { responseDistance: 4 });
+    run(tower, 1);
+    expect(carOf(tower, 0).assigned).toEqual([{ level: 5, direction: 'up' }]);
+  });
+
+  it('reads the weekend schedule on Saturday', () => {
+    const tower = shaftTower('standard', 30);
+    shaftOf(tower).schedule.weekend[0] = { mode: 'normal', dwellSeconds: 0, responseDistance: 5 };
+    const saturday = 5 * 8640 + 100;
+    callAt(tower, saturday, 1, 'up', 2);
+    run(tower, 1);
+    expect(carOf(tower).phase).toBe('closing');
+  });
+});
