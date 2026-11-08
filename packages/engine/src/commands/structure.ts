@@ -11,7 +11,7 @@ import {
   type UnitType,
 } from '@tower-magnate/shared';
 import { occupantAt, structureAt } from '../grid';
-import { chargeMoney, constructionFundsError } from '../money';
+import { chargeMoney, constructionFundsError, creditMoney } from '../money';
 
 /** Floor, lobby, or a cell covered by a unit (construction spec section 1). */
 export function hasStructure(grid: GridState, level: Level, x: number): boolean {
@@ -68,4 +68,17 @@ export function payForConstruction(state: TowerState, cost: number): ErrorCode |
   if (fundsError) return fundsError;
   chargeMoney(state, 'construction', cost);
   return null;
+}
+
+/** C-62: one game hour, 360 steps. */
+export const REFUND_WINDOW_STEPS = 360;
+
+/** C-62 and C-63: pays back what was paid when the object is young and unused; returns the credited amount. */
+export function refundConstruction(
+  state: TowerState,
+  object: { paid: number; placedAtStep: number; used?: boolean },
+): number {
+  const isYoung = state.step - object.placedAtStep < REFUND_WINDOW_STEPS;
+  if (!isYoung || object.used || object.paid === 0) return 0;
+  return creditMoney(state, 'construction', object.paid);
 }
