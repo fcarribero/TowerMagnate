@@ -121,6 +121,9 @@ const VENUE_VISITS: readonly VenueVisits[] = [
   { fastFood: 50, restaurant: 70, partyHall: 50, matinee: 120, evening: 120 },
 ];
 
+/** Enough customers that the shop's first week passes the early-leave check (economy 4.3). */
+const SHOP_VISITS_A_DAY = 15;
+
 function setPrice(day: number, unitId: UnitId, price: PriceLevel): DayCommand {
   const command: Command = { type: 'setPrice', unitId, price };
   return { day, command };
@@ -162,6 +165,9 @@ function economyScript(units: EconomyUnits): EconomyScript {
     visits(at(1, 16), units.restaurant, 30),
     visits(at(0, 17), units.cinema, 10),
   ];
+  for (let day = 7; day <= 12; day++) {
+    actions.push(visits(at(day, 12), units.shop, SHOP_VISITS_A_DAY));
+  }
   for (const [day, counts] of VENUE_VISITS.entries()) {
     actions.push(visits(at(day, 12), units.fastFood, counts.fastFood));
     actions.push(visits(at(day, 19), units.restaurant, counts.restaurant));
@@ -186,7 +192,7 @@ function economyScript(units: EconomyUnits): EconomyScript {
  * Monday upkeep of 131,000 lands on the Sunday rows.
  *
  * Rent: office A 10,000 on days 0 and 7; office B 15,000 (alto) on day 2 and 5,000 (bajo) on
- * day 9; shop 15,000 on days 6 and 13 at 23:59.
+ * day 9; shop 15,000 on days 6 and 13 at 23:59, with 90 visits in between so it stays.
  * Condos: A 150,000 on day 1; B 200,000 (alto) on day 10.
  * Hotel: day 0 single 2 x 2,000, double 2 x 3,000, suite 3 x 6,000 at 23:00; day 1 single
  * refused (occupied); day 2 single 4 x 2,000; day 3 double refused at 11:59, then 1 x 3,000;
