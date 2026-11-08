@@ -226,7 +226,17 @@ function withinBudget(link: Link, counters: Counters): boolean {
   return counters.rides + 1 <= MAX_RIDES_PER_TRIP;
 }
 
-/** Best remaining value from every state, for one destination point and user class. */
+/**
+ * Best remaining value from every state to one arrival node, for one user class. Shared by every
+ * destination on the node's run, so a destination only adds the walk from the arrival node.
+ */
+interface ArrivalTable {
+  node: NodeId;
+  userClass: UserClass;
+  values: Map<number, number>;
+}
+
+/** Best remaining value from every state for one destination point, combined from arrival tables. */
 interface DestinationTable {
   point: RoutePoint;
   run: number;
@@ -248,7 +258,8 @@ interface RunOption {
   kindAfter: PreviousLeg;
 }
 
-const MAX_CACHED_DESTINATIONS = 256;
+const MAX_CACHED_DESTINATIONS = 4096;
+const MAX_CACHED_ARRIVALS = 4096;
 const MAX_CACHED_FIRST_OPTIONS = 4096;
 
 /**
@@ -259,6 +270,7 @@ const MAX_CACHED_FIRST_OPTIONS = 4096;
 export class TripPlanner {
   private revision = -1;
   private tables = new Map<string, DestinationTable>();
+  private arrivals = new Map<string, ArrivalTable>();
   private firstOptions = new Map<string, FirstOption[]>();
   private runOptions = new Map<number, RunOption[]>();
 
@@ -331,6 +343,7 @@ export class TripPlanner {
     if (this.revision === this.graph.revision) return;
     this.revision = this.graph.revision;
     this.tables.clear();
+    this.arrivals.clear();
     this.firstOptions.clear();
     this.runOptions.clear();
   }
@@ -531,9 +544,57 @@ export class TripPlanner {
     const known = table.values.get(key);
     if (known !== undefined) return known;
     let best = Infinity;
-    this.eachOption(table, at, code, previous, (value) => {
+    for (const arrivalId of this.graph.run(table.run).nodes) {
+      const walk = pack(0, 0, Math.abs(this.graph.node(arrivalId).x - table.point.x), 0);
+      const arrival = this.arrivalTable(arrivalId, table.userClass);
+      const value = this.arrivalValueAt(arrival, at, code, previous) + walk;
       if (value < best) best = value;
-    });
+    }
+    table.values.set(key, best);
+    return best;
+  }
+
+  private arrivalTable(node: NodeId, userClass: UserClass): ArrivalTable {
+    const key = `${userClass}:${node}`;
+    let table = this.arrivals.get(key);
+    if (!table) {
+      if (this.arrivals.size >= MAX_CACHED_ARRIVALS) this.arrivals.clear();
+      table = { node, userClass, values: new Map() };
+      this.arrivals.set(key, table);
+    }
+    return table;
+  }
+
+  private arrivalValueAt(
+    table: ArrivalTable,
+    at: NodeId,
+    code: CounterCode,
+    previous: PreviousLeg,
+  ): number {
+    const key = at * STATES_PER_NODE + counterKey(code, previous);
+    const known = table.values.get(key);
+    if (known !== undefined) return known;
+    const here = this.graph.node(at);
+    let best =
+      at === table.node ? pack(0, 0, 0, isWalkedLeg(previous) ? this.endOf(at) : 0) : Infinity;
+    const walked = isWalkedLeg(previous);
+    const chainEnd = walked ? this.endOf(at) : 0;
+    const rides = ridesIn(code);
+    for (const option of this.runOptionsOf(here.run, table.userClass)) {
+      const { link } = option;
+      if (!withinCodeBudget(link, code)) continue;
+      const merges = option.kindAfter === previous && walked;
+      const rest = this.arrivalValueAt(table, link.to, codeAfter(link, code), option.kindAfter);
+      if (rest === Infinity) continue;
+      const own = pack(
+        legCost(link, rides, merges),
+        merges ? 0 : 1,
+        Math.abs(option.x - here.x),
+        0,
+      );
+      const value = merges ? own + rest : own + withoutEnd(rest) + chainEnd;
+      if (value < best) best = value;
+    }
     table.values.set(key, best);
     return best;
   }

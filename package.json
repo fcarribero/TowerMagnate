@@ -18,6 +18,7 @@
     "bench:snapshots": "pnpm --filter @tower-magnate/server bench:snapshots",
     "bench:graph": "tsx scripts/bench-transport-graph.ts",
     "bench:routes": "tsx scripts/bench-route-planner.ts",
+    "bench:routes:cold": "tsx scripts/bench-route-cold.ts",
     "art:build": "pnpm --filter @tower-magnate/art build",
     "stack": "tsx scripts/stack.ts",
     "e2e": "playwright test -c e2e",
