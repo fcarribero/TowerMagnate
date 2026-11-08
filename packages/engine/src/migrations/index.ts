@@ -2,6 +2,7 @@ import {
   isLevel,
   PRICE_LEVELS,
   UNIT_TYPES,
+  type Lease,
   type RngState,
   type TowerState,
   type Unit,
@@ -9,6 +10,7 @@ import {
 } from '@tower-magnate/shared';
 import { SCHEMA_VERSION } from '../state';
 import { isRecord, StateMigrationError } from './errors';
+import { readActiveEvents, readClosedDecisions, readTreasureLevels } from './events';
 import { readGrid } from './grid';
 import { readLedger, readMoney } from './money';
 import { readPeople } from './people';
@@ -18,7 +20,7 @@ export { StateMigrationError } from './errors';
 type Migration = (raw: Record<string, unknown>) => Record<string, unknown>;
 
 /** MIGRATIONS[n] turns a version n+1 state into version n+2. */
-const MIGRATIONS: readonly Migration[] = [addUnitPurchaseRecord];
+const MIGRATIONS: readonly Migration[] = [addUnitPurchaseRecord, addUnitLeaseRecord];
 
 /** Version 2 records each unit's price level, what was paid for it and when it was placed. */
 function addUnitPurchaseRecord(raw: Record<string, unknown>): Record<string, unknown> {
@@ -30,6 +32,18 @@ function addUnitPurchaseRecord(raw: Record<string, unknown>): Record<string, unk
     units[id] = isRecord(unit) ? { priceLevel: 'normal', paid: 0, placedAtStep: 0, ...unit } : unit;
   }
   return { ...raw, schemaVersion: 2, units };
+}
+
+/** Version 3 records whether each unit was ever used and its current lease. */
+function addUnitLeaseRecord(raw: Record<string, unknown>): Record<string, unknown> {
+  if (!isRecord(raw.units)) {
+    return { ...raw, schemaVersion: 3 };
+  }
+  const units: Record<string, unknown> = {};
+  for (const [id, unit] of Object.entries(raw.units)) {
+    units[id] = isRecord(unit) ? { used: false, lease: null, ...unit } : unit;
+  }
+  return { ...raw, schemaVersion: 3, units };
 }
 
 function isUint32(value: unknown): value is number {
@@ -60,7 +74,18 @@ function isUnit(value: unknown): value is Unit {
     (value.name === null || typeof value.name === 'string') &&
     (PRICE_LEVELS as readonly unknown[]).includes(value.priceLevel) &&
     isNonNegativeInteger(value.paid) &&
-    isNonNegativeInteger(value.placedAtStep)
+    isNonNegativeInteger(value.placedAtStep) &&
+    typeof value.used === 'boolean' &&
+    (value.lease === null || isLease(value.lease))
+  );
+}
+
+function isLease(value: unknown): value is Lease {
+  return (
+    isRecord(value) &&
+    isNonNegativeInteger(value.anchorStep) &&
+    isNonNegativeInteger(value.nextDueStep) &&
+    value.nextDueStep > value.anchorStep
   );
 }
 
@@ -86,6 +111,8 @@ function readUnits(raw: unknown): Record<UnitId, Unit> {
       priceLevel: unit.priceLevel,
       paid: unit.paid,
       placedAtStep: unit.placedAtStep,
+      used: unit.used,
+      lease: unit.lease === null ? null : { ...unit.lease },
     };
   }
   return units;
@@ -111,6 +138,9 @@ function assertCurrentShape(raw: Record<string, unknown>): TowerState {
     grid: readGrid(raw.grid),
     people: readPeople(raw.people),
     ledger: readLedger(raw.ledger),
+    activeEvents: readActiveEvents(raw.activeEvents),
+    closedDecisions: readClosedDecisions(raw.closedDecisions),
+    treasureLevels: readTreasureLevels(raw.treasureLevels),
   };
 }
 

@@ -129,7 +129,7 @@ describe('buildUnit', () => {
     expect(result.ok && result.cost).toBe(44_500);
   });
 
-  it('records the unit at normal price with what was paid and when', () => {
+  it('records the unit for rent at normal price with what was paid and when', () => {
     const tower = towerWithMainLobby(0, 20);
     tower.step = 500;
     const { state } = run(tower, unit('office', 3, 2));
@@ -142,6 +142,8 @@ describe('buildUnit', () => {
       priceLevel: 'normal',
       paid: 44_500,
       placedAtStep: 500,
+      used: false,
+      lease: null,
     });
     expect(state.nextId).toBe(2);
   });
