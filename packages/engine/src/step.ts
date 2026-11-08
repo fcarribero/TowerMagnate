@@ -14,11 +14,14 @@ import { createLeaseSystem } from './leases';
 import { cloneState } from './state';
 import { ledgerWeekRollHook } from './money';
 import { createScheduler } from './scheduler';
+import { TransportGraph } from './routing';
 
 export interface StepResult {
   state: TowerState;
   results: CommandResult[];
   events: EngineEvent[];
+  /** Rebuilt after build, resize, demolish and stop commands, never inside the step loop. */
+  graph: TransportGraph;
 }
 
 /** Working copy of the tower that handlers and systems may mutate, plus the events so far. */
@@ -55,13 +58,30 @@ export type CommandHandlers = { [K in CommandType]?: CommandHandler<K> };
 /** Runs once per simulation step, after the step counter has advanced. */
 export type SimulationSystem = (context: StepContext) => void;
 
+/** Commands that change what the transport graph is built from. */
+const GRAPH_COMMANDS: ReadonlySet<string> = new Set([
+  'buildFloor',
+  'buildLobby',
+  'buildTransport',
+  'buildUnit',
+  'buildShaft',
+  'resizeShaft',
+  'demolish',
+  'configureShaft',
+]);
+
 export interface EngineRules {
   commandHandlers: CommandHandlers;
   systems: readonly SimulationSystem[];
 }
 
 export interface Engine {
-  step(state: TowerState, commands: readonly QueuedCommand[], steps: number): StepResult;
+  step(
+    state: TowerState,
+    commands: readonly QueuedCommand[],
+    steps: number,
+    graph?: TransportGraph,
+  ): StepResult;
   runDays(state: TowerState, days: number): StepResult;
 }
 
@@ -75,6 +95,10 @@ function assertNonNegativeInteger(value: number, what: string): void {
   if (!Number.isInteger(value) || value < 0) {
     throw new RangeError(`${what} must be a non-negative integer, got ${value}`);
   }
+}
+
+function commandTypeOf(queued: QueuedCommand | undefined): string {
+  return isRecord(queued?.command) ? String(queued.command.type) : '';
 }
 
 export function createEngine(rules: EngineRules): Engine {
@@ -115,14 +139,23 @@ export function createEngine(rules: EngineRules): Engine {
     }
   }
 
-  function step(state: TowerState, commands: readonly QueuedCommand[], steps: number): StepResult {
+  function step(
+    state: TowerState,
+    commands: readonly QueuedCommand[],
+    steps: number,
+    graph?: TransportGraph,
+  ): StepResult {
     assertNonNegativeInteger(steps, 'Step count');
     const context: StepContext = { state: cloneState(state), events: [] };
     const results = commands.map((queued) => applyCommand(context, queued));
+    const changesGraph = results.some(
+      (result, index) => result.ok && GRAPH_COMMANDS.has(commandTypeOf(commands[index])),
+    );
+    const currentGraph = graph && !changesGraph ? graph : new TransportGraph(context.state);
     for (let count = 0; count < steps; count++) {
       advanceOneStep(context);
     }
-    return { state: context.state, results, events: context.events };
+    return { state: context.state, results, events: context.events, graph: currentGraph };
   }
 
   function runDays(state: TowerState, days: number): StepResult {
