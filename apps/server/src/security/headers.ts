@@ -7,7 +7,7 @@ const SECURITY_HEADERS: Record<string, string> = {
   'cross-origin-opener-policy': 'same-origin',
   'permissions-policy': 'camera=(), microphone=(), geolocation=()',
   'content-security-policy':
-    "default-src 'self'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; connect-src 'self' ws: wss:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'",
+    "default-src 'self'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; connect-src 'self' ws: wss:; worker-src 'self' blob:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'",
 };
 
 const HSTS = 'max-age=15552000; includeSubDomains';
