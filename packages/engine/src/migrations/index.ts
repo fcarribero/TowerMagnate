@@ -30,6 +30,7 @@ const MIGRATIONS: readonly Migration[] = [
   addUnitLeaseRecord,
   addShafts,
   addTransportRecord,
+  addEventState,
 ];
 
 /** Version 2 records each unit's price level, what was paid for it and when it was placed. */
@@ -64,6 +65,17 @@ function addShafts(raw: Record<string, unknown>): Record<string, unknown> {
 /** Version 5 records the stairs and escalators; older towers have none. */
 function addTransportRecord(raw: Record<string, unknown>): Record<string, unknown> {
   return { transports: {}, ...raw, schemaVersion: 5 };
+}
+
+/** Version 6 stores event state: active events, closed decision ids and treasure levels. */
+function addEventState(raw: Record<string, unknown>): Record<string, unknown> {
+  return {
+    ...raw,
+    schemaVersion: 6,
+    activeEvents: raw.activeEvents ?? [],
+    closedDecisions: raw.closedDecisions ?? [],
+    treasureLevels: raw.treasureLevels ?? [],
+  };
 }
 
 function isUint32(value: unknown): value is number {
