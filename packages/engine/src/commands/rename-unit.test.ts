@@ -3,19 +3,11 @@ import { describe, expect, it } from 'vitest';
 import { hashState } from '../hash';
 import { createTower } from '../state';
 import { step } from '../step';
+import { newUnit } from '../units';
 
 function towerWithOffice(): TowerState {
   const tower = createTower(1);
-  tower.units.u1 = {
-    id: 'u1',
-    type: 'office',
-    x: 10,
-    level: 2,
-    name: null,
-    priceLevel: 'normal',
-    paid: 0,
-    placedAtStep: 0,
-  };
+  tower.units.u1 = newUnit('u1', 'office', 10, 2);
   return tower;
 }
 

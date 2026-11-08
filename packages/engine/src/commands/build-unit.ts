@@ -15,6 +15,7 @@ import {
 } from '@tower-magnate/shared';
 import { addOccupant, isSpanFree, levelError, setStructure, structureAt } from '../grid';
 import type { CommandHandler } from '../step';
+import { newUnit } from '../units';
 import {
   columnRuns,
   columnsBetween,
@@ -160,12 +161,7 @@ export const buildUnit: CommandHandler<'buildUnit'> = (context, command) => {
     addOccupant(grid, row, footprint.x0, footprint.x1, { kind: 'unit', id });
   }
   state.units[id] = {
-    id,
-    type: definition.type,
-    x,
-    level,
-    name: null,
-    priceLevel: 'normal',
+    ...newUnit(id, definition.type, x, level),
     paid: cost,
     placedAtStep: state.step,
   };

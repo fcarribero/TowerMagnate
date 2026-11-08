@@ -1,11 +1,18 @@
-import { describe, expect, it, vi } from 'vitest';
+import { clientMessage, PROTOCOL_VERSION } from '@tower-magnate/shared';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { FakeSocket } from '../testing/fake-socket';
 import { Gateway } from './gateway';
+import { MAX_MESSAGE_BYTES, type MessageHandlers } from './message-router';
 import { MAX_MESSAGES_PER_SECOND } from './rate-limiter';
-import type { SocketIdentity } from './socket';
+import { CLOSE_CODES, type SocketIdentity } from './socket';
 
 const ALICE_TOWER: SocketIdentity = { userId: 'alice', towerId: 'tower-1' };
 const BOB_TOWER: SocketIdentity = { userId: 'bob', towerId: 'tower-2' };
+
+const HELLO = JSON.stringify(clientMessage('hello', { protocol: PROTOCOL_VERSION }));
+const PING = JSON.stringify(clientMessage('ping', { clientTime: 5 }));
+
+const joinOnHello: MessageHandlers = { hello: (_message, { join }) => join() };
 
 function watchActivity(gateway: Gateway) {
   const activated: SocketIdentity[] = [];
@@ -19,15 +26,37 @@ async function flush(): Promise<void> {
   await new Promise((resolve) => setImmediate(resolve));
 }
 
-describe('tower activation', () => {
-  it('emits one activated and one deactivated event for two sockets on one tower', () => {
-    const gateway = new Gateway({});
-    const events = watchActivity(gateway);
-    const first = new FakeSocket();
-    const second = new FakeSocket();
+async function joinedSocket(gateway: Gateway, identity: SocketIdentity): Promise<FakeSocket> {
+  const socket = new FakeSocket();
+  gateway.attach(socket, identity);
+  socket.receive(HELLO);
+  await flush();
+  return socket;
+}
 
-    gateway.attach(first, ALICE_TOWER);
-    gateway.attach(second, ALICE_TOWER);
+function errorFrame(code: string) {
+  return { v: PROTOCOL_VERSION, t: 'error', p: expect.objectContaining({ code }) };
+}
+
+afterEach(() => {
+  vi.useRealTimers();
+});
+
+describe('tower activation', () => {
+  it('does not activate the tower before the socket joins', () => {
+    const gateway = new Gateway(joinOnHello);
+    const events = watchActivity(gateway);
+
+    gateway.attach(new FakeSocket(), ALICE_TOWER);
+
+    expect(events.activated).toEqual([]);
+  });
+
+  it('emits one activated and one deactivated event for two sockets on one tower', async () => {
+    const gateway = new Gateway(joinOnHello);
+    const events = watchActivity(gateway);
+    const first = await joinedSocket(gateway, ALICE_TOWER);
+    const second = await joinedSocket(gateway, ALICE_TOWER);
     expect(events.activated).toEqual([ALICE_TOWER]);
 
     first.close();
@@ -39,14 +68,12 @@ describe('tower activation', () => {
     expect(gateway.registry.isTowerActive('tower-1')).toBe(false);
   });
 
-  it('tracks towers independently', () => {
-    const gateway = new Gateway({});
+  it('tracks towers independently', async () => {
+    const gateway = new Gateway(joinOnHello);
     const events = watchActivity(gateway);
-    const alice = new FakeSocket();
-    const bob = new FakeSocket();
+    const alice = await joinedSocket(gateway, ALICE_TOWER);
+    const bob = await joinedSocket(gateway, BOB_TOWER);
 
-    gateway.attach(alice, ALICE_TOWER);
-    gateway.attach(bob, BOB_TOWER);
     alice.close();
 
     expect(events.activated).toEqual([ALICE_TOWER, BOB_TOWER]);
@@ -54,100 +81,138 @@ describe('tower activation', () => {
     expect(gateway.registry.socketsForUser('bob')).toEqual([bob]);
   });
 
-  it('ignores a second close of the same socket', () => {
-    const gateway = new Gateway({});
+  it('ignores a second close of the same socket', async () => {
+    const gateway = new Gateway(joinOnHello);
     const events = watchActivity(gateway);
-    const socket = new FakeSocket();
+    const socket = await joinedSocket(gateway, ALICE_TOWER);
 
-    gateway.attach(socket, ALICE_TOWER);
     socket.close();
     socket.close();
 
     expect(events.deactivated).toHaveLength(1);
   });
 
-  it('activates the tower again after it was deactivated', () => {
-    const gateway = new Gateway({});
+  it('activates the tower again after it was deactivated', async () => {
+    const gateway = new Gateway(joinOnHello);
     const events = watchActivity(gateway);
-    const first = new FakeSocket();
-    gateway.attach(first, ALICE_TOWER);
+    const first = await joinedSocket(gateway, ALICE_TOWER);
     first.close();
 
-    gateway.attach(new FakeSocket(), ALICE_TOWER);
+    await joinedSocket(gateway, ALICE_TOWER);
 
     expect(events.activated).toHaveLength(2);
   });
 });
 
 describe('message routing', () => {
-  it('passes a known message to its handler with the socket identity', async () => {
-    const handler = vi.fn();
-    const gateway = new Gateway({ hello: handler });
-    const socket = new FakeSocket();
-    gateway.attach(socket, ALICE_TOWER);
+  it('passes a valid message to its handler with the socket identity', async () => {
+    const ping = vi.fn();
+    const gateway = new Gateway({ ...joinOnHello, ping });
+    const socket = await joinedSocket(gateway, ALICE_TOWER);
 
-    socket.receive('{"type":"hello","name":"x"}');
+    socket.receive(PING);
     await flush();
 
-    expect(handler).toHaveBeenCalledWith(
-      { type: 'hello', name: 'x' },
-      { socket, identity: ALICE_TOWER },
+    expect(ping).toHaveBeenCalledWith(
+      { v: PROTOCOL_VERSION, t: 'ping', p: { clientTime: 5 } },
+      expect.objectContaining({ socket, identity: ALICE_TOWER }),
     );
   });
 
-  it('answers an unknown type with an error frame and keeps the socket open', async () => {
-    const gateway = new Gateway({});
+  it('drops messages that arrive before hello', async () => {
+    const ping = vi.fn();
+    const gateway = new Gateway({ ...joinOnHello, ping });
     const socket = new FakeSocket();
     gateway.attach(socket, ALICE_TOWER);
 
-    socket.receive('{"type":"nope"}');
+    socket.receive(PING);
     await flush();
 
-    expect(socket.sent).toEqual([
-      { type: 'error', code: 'unknown-message-type', message: 'Unknown message type "nope"' },
-    ]);
-    expect(socket.terminated).toBe(false);
+    expect(ping).not.toHaveBeenCalled();
+    expect(socket.sent).toEqual([]);
+  });
+
+  it('answers a type without a handler with an error and keeps the socket open', async () => {
+    const gateway = new Gateway(joinOnHello);
+    const socket = await joinedSocket(gateway, ALICE_TOWER);
+
+    socket.receive(PING);
+    await flush();
+
+    expect(socket.sent).toEqual([errorFrame('INVALID_COMMAND')]);
+    expect(socket.closeCode).toBeUndefined();
     expect(gateway.registry.isTowerActive('tower-1')).toBe(true);
   });
 
-  it('does not treat inherited object keys as message types', async () => {
-    const gateway = new Gateway({});
-    const socket = new FakeSocket();
-    gateway.attach(socket, ALICE_TOWER);
-
-    socket.receive('{"type":"toString"}');
-    await flush();
-
-    expect(socket.sent).toEqual([expect.objectContaining({ code: 'unknown-message-type' })]);
-  });
-
-  it.each(['not json', '[]', '{"type":3}', 'null'])('rejects malformed frame %s', async (text) => {
-    const gateway = new Gateway({});
-    const socket = new FakeSocket();
-    gateway.attach(socket, ALICE_TOWER);
+  it.each([
+    'not json',
+    '[]',
+    '{"t":"hello"}',
+    '{"v":1,"t":"nope","p":{}}',
+    '{"v":1,"t":"toString","p":{}}',
+    '{"v":1,"t":"viewport","p":{"levelFrom":"a"}}',
+  ])('rejects the invalid message %s with an error frame', async (text) => {
+    const gateway = new Gateway(joinOnHello);
+    const socket = await joinedSocket(gateway, ALICE_TOWER);
 
     socket.receive(text);
     await flush();
 
-    expect(socket.sent).toEqual([
-      expect.objectContaining({ type: 'error', code: 'invalid-message' }),
-    ]);
-    expect(socket.terminated).toBe(false);
+    expect(socket.sent).toEqual([errorFrame('INVALID_COMMAND')]);
+    expect(socket.closeCode).toBeUndefined();
+  });
+
+  it('rejects a message over the size limit', async () => {
+    const ping = vi.fn();
+    const gateway = new Gateway({ ...joinOnHello, ping });
+    const socket = await joinedSocket(gateway, ALICE_TOWER);
+    const padding = ' '.repeat(MAX_MESSAGE_BYTES);
+
+    socket.receive(PING + padding);
+    await flush();
+
+    expect(ping).not.toHaveBeenCalled();
+    expect(socket.sent).toEqual([errorFrame('INVALID_COMMAND')]);
   });
 
   it('answers with an error frame when a handler throws', async () => {
     const gateway = new Gateway({
-      explode: () => {
+      ...joinOnHello,
+      ping: () => {
         throw new Error('boom');
       },
     });
+    const socket = await joinedSocket(gateway, ALICE_TOWER);
+
+    socket.receive(PING);
+    await flush();
+
+    expect(socket.sent).toEqual([errorFrame('INVALID_COMMAND')]);
+  });
+});
+
+describe('hello timeout', () => {
+  it('closes a socket that sends no hello in time', () => {
+    vi.useFakeTimers();
+    const gateway = new Gateway(joinOnHello, { helloTimeoutMs: 5_000 });
     const socket = new FakeSocket();
     gateway.attach(socket, ALICE_TOWER);
 
-    socket.receive('{"type":"explode"}');
-    await flush();
+    vi.advanceTimersByTime(5_000);
 
-    expect(socket.sent).toEqual([expect.objectContaining({ code: 'handler-failed' })]);
+    expect(socket.closeCode).toBe(CLOSE_CODES.noHello);
+  });
+
+  it('keeps a socket that said hello', async () => {
+    vi.useFakeTimers();
+    const gateway = new Gateway(joinOnHello, { helloTimeoutMs: 5_000 });
+    const socket = new FakeSocket();
+    gateway.attach(socket, ALICE_TOWER);
+
+    socket.receive(HELLO);
+    await vi.advanceTimersByTimeAsync(10_000);
+
+    expect(socket.closeCode).toBeUndefined();
   });
 });
 
@@ -158,7 +223,7 @@ describe('rate limit', () => {
 
   function sendHellos(socket: FakeSocket, count: number): void {
     for (let index = 0; index < count; index += 1) {
-      socket.receive('{"type":"hello"}');
+      socket.receive(HELLO);
     }
   }
 
@@ -176,7 +241,7 @@ describe('rate limit', () => {
     sendHellos(socket, 1);
     await flush();
 
-    expect(socket.sent).toEqual([expect.objectContaining({ type: 'error', code: 'rate-limited' })]);
+    expect(socket.sent).toEqual([errorFrame('RATE_LIMITED')]);
     expect(warn).toHaveBeenCalledWith(ALICE_TOWER, expect.stringContaining('rate limit'));
     expect(socket.terminated).toBe(false);
   });
@@ -213,11 +278,10 @@ describe('rate limit', () => {
 });
 
 describe('heartbeat', () => {
-  it('drops a socket that misses two pings and deactivates its tower', () => {
-    const gateway = new Gateway({});
+  it('drops a socket that misses two pings and deactivates its tower', async () => {
+    const gateway = new Gateway(joinOnHello);
     const events = watchActivity(gateway);
-    const socket = new FakeSocket();
-    gateway.attach(socket, ALICE_TOWER);
+    const socket = await joinedSocket(gateway, ALICE_TOWER);
 
     gateway.tickHeartbeat();
     gateway.tickHeartbeat();
@@ -229,10 +293,9 @@ describe('heartbeat', () => {
     expect(events.deactivated).toEqual([ALICE_TOWER]);
   });
 
-  it('keeps a socket that answers its pings', () => {
-    const gateway = new Gateway({});
-    const socket = new FakeSocket();
-    gateway.attach(socket, ALICE_TOWER);
+  it('keeps a socket that answers its pings', async () => {
+    const gateway = new Gateway(joinOnHello);
+    const socket = await joinedSocket(gateway, ALICE_TOWER);
 
     for (let tick = 0; tick < 5; tick += 1) {
       gateway.tickHeartbeat();
@@ -243,21 +306,16 @@ describe('heartbeat', () => {
     expect(socket.terminated).toBe(false);
   });
 
-  it('pings on the configured interval', () => {
+  it('pings on the configured interval', async () => {
+    const gateway = new Gateway(joinOnHello);
+    const socket = await joinedSocket(gateway, ALICE_TOWER);
     vi.useFakeTimers();
-    try {
-      const gateway = new Gateway({});
-      const socket = new FakeSocket();
-      gateway.attach(socket, ALICE_TOWER);
-      const stop = gateway.startHeartbeat(30_000);
+    const stop = gateway.startHeartbeat(30_000);
 
-      vi.advanceTimersByTime(30_000);
-      expect(socket.pings).toBe(1);
-      vi.advanceTimersByTime(60_000);
-      expect(socket.terminated).toBe(true);
-      stop();
-    } finally {
-      vi.useRealTimers();
-    }
+    vi.advanceTimersByTime(30_000);
+    expect(socket.pings).toBe(1);
+    vi.advanceTimersByTime(60_000);
+    expect(socket.terminated).toBe(true);
+    stop();
   });
 });

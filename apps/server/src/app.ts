@@ -2,10 +2,12 @@ import cookie from '@fastify/cookie';
 import Fastify, { type FastifyInstance, type FastifyServerOptions } from 'fastify';
 import { authRoutes } from './auth/routes';
 import { createPool, pingDatabase } from './database';
-import { registerGateway, resolveIdentityFromQuery, type IdentityResolver } from './gateway';
+import { registerGateway, type IdentityResolver } from './gateway';
 import { checkHealth } from './health';
+import { towerRoutes } from './towers/routes';
 import { createTowerStore, followConnections, TowerRunner } from './runner';
 import { createSnapshotRepository } from './snapshots';
+import { sessionIdentityResolver, towerSocketHandlers, Viewports } from './tower-socket';
 import { registerWebStatics } from './webStatics';
 
 export interface AppOptions {
@@ -17,6 +19,7 @@ export interface AppOptions {
   webDir?: string;
   resolveSocketIdentity?: IdentityResolver;
   heartbeatIntervalMs?: number;
+  helloTimeoutMs?: number;
   runnerTickIntervalMs?: number;
   snapshotIntervalMs?: number;
 }
@@ -37,6 +40,13 @@ export function buildApp(options: AppOptions): FastifyInstance {
 
   app.register(cookie);
   app.register(authRoutes, { pool, secureCookies: options.secureCookies ?? false });
+  const runner = new TowerRunner({
+    store: createTowerStore(pool, createSnapshotRepository(pool)),
+    onTickError: (towerId, error) => app.log.error({ err: error, towerId }, 'Tower tick failed'),
+    onSaveError: (towerId, error) => app.log.error({ err: error, towerId }, 'Tower save failed'),
+  });
+  app.decorate('towerRunner', runner);
+  app.register(towerRoutes, { pool, runner });
 
   for (const path of ['/health', '/api/health']) {
     app.get(path, async (_request, reply) => {
@@ -46,16 +56,11 @@ export function buildApp(options: AppOptions): FastifyInstance {
   }
 
   const gateway = registerGateway(app, {
-    resolveIdentity: options.resolveSocketIdentity ?? resolveIdentityFromQuery,
+    resolveIdentity: options.resolveSocketIdentity ?? sessionIdentityResolver(pool),
+    handlers: towerSocketHandlers({ runner, viewports: new Viewports() }),
     heartbeatIntervalMs: options.heartbeatIntervalMs,
+    helloTimeoutMs: options.helloTimeoutMs,
   });
-
-  const runner = new TowerRunner({
-    store: createTowerStore(pool, createSnapshotRepository(pool)),
-    onTickError: (towerId, error) => app.log.error({ err: error, towerId }, 'Tower tick failed'),
-    onSaveError: (towerId, error) => app.log.error({ err: error, towerId }, 'Tower save failed'),
-  });
-  app.decorate('towerRunner', runner);
   followConnections(gateway.registry, runner, app.log);
   const stopRunner = runner.start(options.runnerTickIntervalMs);
   const stopAutosave = runner.startAutosave(options.snapshotIntervalMs);

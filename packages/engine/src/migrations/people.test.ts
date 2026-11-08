@@ -15,7 +15,7 @@ import { chance, nextInt } from '../rng';
 import { deserializeState, serializeState } from '../serialization';
 import { createTower } from '../state';
 import { createEngine } from '../step';
-import { VERSION_2_SAVE, VERSION_3_SAVE } from './fixtures';
+import { VERSION_2_SAVE, VERSION_3_SAVE, VERSION_4_SAVE } from './fixtures';
 import { migrateState, StateMigrationError } from './index';
 
 function towerWithPeople(count: number) {
@@ -35,8 +35,12 @@ describe('reading the person pool', () => {
     expect(migrateState(JSON.parse(VERSION_2_SAVE)).people).toEqual(createPersonPool());
   });
 
-  it('loads a frozen version 3 save with its people', () => {
-    const { people } = migrateState(JSON.parse(VERSION_3_SAVE));
+  it('starts a version 3 save with an empty pool', () => {
+    expect(migrateState(JSON.parse(VERSION_3_SAVE)).people).toEqual(createPersonPool());
+  });
+
+  it('loads a frozen version 4 save with its people', () => {
+    const { people } = migrateState(JSON.parse(VERSION_4_SAVE));
     expect(people.nextId).toBe(4);
     expect(personAt(people, 1)).toMatchObject({ id: 'p3', kind: 'hotelGuest', level: 5 });
     expect(people.stress).toEqual([0, 12.5]);

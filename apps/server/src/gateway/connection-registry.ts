@@ -37,6 +37,10 @@ export class ConnectionRegistry extends EventEmitter<TowerConnectionEvents> {
     }
   }
 
+  hasSocket(socket: GatewaySocket): boolean {
+    return this.identityBySocket.has(socket);
+  }
+
   isTowerActive(towerId: string): boolean {
     return this.socketsByTower.has(towerId);
   }

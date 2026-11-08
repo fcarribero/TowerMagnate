@@ -111,6 +111,26 @@ The cathedral has two states, `empty` and `wedding`. Its stained glass shows col
 - Uniforms: maids wear cloud with a cloth-blue apron, security wears cloth-blue with a lamp badge pixel.
 - Walking uses 2 frames. Standing in a queue uses 1 frame.
 
+People sprites are in `tools/art/src/groups/people.mjs`. Every person faces right; the client mirrors the sprite for people walking left. The frame is 8 x 16 and the feet are on the bottom row, so the frame's bottom sits on row 28 of the floor.
+
+| Type | Clothes | Carries |
+|---|---|---|
+| `worker` | charcoal or cloth-blue suit, collar and tie | briefcase |
+| `resident` | leaf-dark or slate top, dark trousers | nothing |
+| `guest` | wood-dark or night coat | suitcase |
+| `customer` | cloth-blue or slate top, skirt | paper shopping bag |
+| `maid` | cloud dress and cap, cloth-blue or night apron | nothing |
+| `security` | cloth-blue uniform, ink cap, lamp badge, belt | nothing |
+| `vip` | ink or night-deep suit, sunglasses, lamp lapel pin | nothing |
+| `bride` | white or cloud gown and veil | bouquet |
+| `groom` | ink or charcoal suit, white flower | nothing |
+
+Each type has 4 variants, `a` to `d`. Variants `a` and `c` are the tall build (14 px). Variants `b` and `d` are the short build (13 px) with a belly pixel. `a` and `d` wear the first outfit and `b` and `c` the second, and each variant has its own skin tone and hair (`d` has gray hair). Office workers in the engine use `worker`, hotel guests `guest`, guards `security`, and wedding guests `bride` and `groom`. Audience, party guests and prospects use `customer` or `resident` until they get their own sprites.
+
+Each variant has `walk_01`, `walk_02` and `stand`, calm and with the `-pink` and `-red` tints, 9 sprites per variant. The tint recolors the top, the trousers or skirt and the clothing details. Skin, hair, shoes, badges, glasses and carried things keep their colors.
+
+`pnpm art:build` writes `docs/art/people-preview.png`, a 4x sheet with one row per type and every variant in each pose, and `docs/art/people-tint-preview.png` (3x) and `docs/art/people-tint-1x.png` (1x), which show every type calm, pink and red on a bare floor and in a lit hotel room, by day and by night.
+
 ## Sprite ids
 
 A sprite id is a path of lowercase segments joined by `/`: `<group>/<subject>/<variant>`. Words inside a segment use hyphens. The variant joins state, time of day and frame with underscores, in that order, leaving out the parts that do not apply.
@@ -231,4 +251,4 @@ Every state has a `day` and a `night` sprite. Hotel rooms have cloud walls with 
 
 `pnpm art:build` draws every sprite group in `tools/art/src/groups` and rewrites the generated files. Each group is one module with a `name` (one of the groups above) and a `draw()` function that returns `{ id, canvas }` pairs. A new group is added to `tools/art/src/groups/index.mjs`.
 
-The build writes one PNG per sprite to `assets/sprites/<id>.png` and one atlas per group to `assets/atlases/<group>.png` and `assets/atlases/<group>.json`. The JSON uses the PixiJS 8 spritesheet hash format, and ids ending in `_01`, `_02` and so on are listed as animations. The output depends only on the drawing code, so two builds give byte-identical files. The generated files are committed, and a test fails when they are out of date.
+The build writes one PNG per sprite to `assets/sprites/<id>.png` and one atlas per group to `assets/atlases/<group>.png` and `assets/atlases/<group>.json`. The JSON uses the PixiJS 8 spritesheet hash format, and ids ending in `_01`, `_02` and so on are listed as animations. The output depends only on the drawing code, so two builds give byte-identical files. The generated files, the client manifest `apps/web/src/render/atlasManifest.ts` and the previews in `docs/art` are not committed. `pnpm dev`, `pnpm build`, `pnpm typecheck`, `pnpm test`, CI and the Vite dev server in the compose stack build them first, so after a fresh clone `pnpm install` and `pnpm dev` are enough. Run `pnpm art:build` to see a change to the drawing code without restarting anything.
