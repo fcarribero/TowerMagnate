@@ -205,6 +205,71 @@ export function drawTransportPreview(sprites) {
   return sheet;
 }
 
+const PEOPLE_POSES = ['walk_01', 'walk_02', 'stand'];
+const PERSON_GAP = 2;
+
+// One row per person type: every variant in each pose, calm, on a light background so dark suits show.
+export function drawPeopleSheet(sprites, types, variants) {
+  const { frameWidth, frameHeight } = metrics.person;
+  const columns = variants.length * PEOPLE_POSES.length;
+  const width = GAP + columns * (frameWidth + PERSON_GAP) + (variants.length - 1) * GAP;
+  const height = GAP + types.length * (frameHeight + GAP);
+  const sheet = new PixelCanvas(width, height);
+  sheet.fillRect(0, 0, width, height, 'concrete-light');
+  types.forEach((type, row) => {
+    let left = GAP;
+    for (const variant of variants) {
+      for (const pose of PEOPLE_POSES) {
+        sheet.stamp(
+          sprites[`people/${type}-${variant}/${pose}`],
+          left,
+          GAP + row * (frameHeight + GAP),
+        );
+        left += frameWidth + PERSON_GAP;
+      }
+      left += GAP;
+    }
+  });
+  return sheet;
+}
+
+const TINT_STATES = ['walk', 'walk-pink', 'walk-red'];
+
+function personOnFloor(scene, person, left, floorTop) {
+  const feetRow = metrics.floorHeight - metrics.slabHeight - 1;
+  scene.stamp(person, left, floorTop + feetRow - person.height + 1);
+}
+
+// Each person type calm, stressed and very stressed, standing on real floors:
+// a bare floor and a lit hotel room, by day and by night.
+export function drawTintSheet(sprites, types) {
+  const floor = metrics.floorHeight;
+  const backgrounds = [
+    (time) => sprites[`structure/floor/${time}`],
+    (time) => sprites[`units/single-room/occupied_${time}`],
+  ];
+  const groupWidth = TINT_STATES.length * metrics.person.frameWidth + metrics.tileWidth;
+  const width = types.length * groupWidth + metrics.tileWidth;
+  const rows = ['day', 'night'].flatMap((time) =>
+    backgrounds.map((background) => ({ time, background })),
+  );
+  const sheet = new PixelCanvas(width, rows.length * floor);
+  rows.forEach(({ time, background }, row) => {
+    const tile = background(time);
+    for (let x = 0; x < width; x += tile.width) {
+      sheet.stamp(tile, x, row * floor);
+    }
+    types.forEach((type, index) => {
+      TINT_STATES.forEach((state, step) => {
+        const variant = index % 2 === 0 ? 'a' : 'b';
+        const left = metrics.tileWidth + index * groupWidth + step * metrics.person.frameWidth;
+        personOnFloor(sheet, sprites[`people/${type}-${variant}/${state}_01`], left, row * floor);
+      });
+    });
+  });
+  return sheet;
+}
+
 const WALKWAY_LEVELS = 3;
 const WALKWAY_SPRITES = [
   'stairs/TIME',
