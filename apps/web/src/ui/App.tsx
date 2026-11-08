@@ -5,6 +5,7 @@ import { pageTitle } from '../index';
 import { TowerContentStore } from '../model/towerContent';
 import { useGameConnection } from '../net/useGameConnection';
 import { placeholderTowerContent } from '../render/placeholderTower';
+import { bindPreview, previewToolOf } from '../render/placementSource';
 import type { Stage } from '../render/stage';
 import { bindStructure, fullWidthTestTower, testTowerFromQuery } from '../render/structureSource';
 import { DEBUG_UNIT_FLOORS, bindUnits, debugUnits, testUnitsFromQuery } from '../render/unitSource';
@@ -77,6 +78,13 @@ export function App({ onLogout, onSessionLost }: AppProps) {
       unbindStructure();
     };
   }, [stage, connection]);
+
+  useEffect(() => {
+    if (stage === null) {
+      return;
+    }
+    return bindPreview(stage, connection.store, previewToolOf(tool));
+  }, [stage, connection, tool]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent): void => {
