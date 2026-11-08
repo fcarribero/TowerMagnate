@@ -2,6 +2,7 @@ import { addPerson, createTower, setStructure } from '@tower-magnate/engine';
 import {
   ServerMessageSchema,
   type Delta,
+  type EngineEvent,
   type Snapshot,
   type TowerState,
 } from '@tower-magnate/shared';
@@ -15,6 +16,7 @@ import { Viewports } from './viewports';
 
 const VIEW = { levelFrom: 1, levelTo: 3, xFrom: 0, xTo: 200 };
 const TOWER = 'tower-1';
+const DELTA_BUDGET_BYTES = 50_000;
 
 class OneTowerStore implements TowerStore {
   constructor(private readonly state: TowerState) {}
@@ -51,6 +53,7 @@ describe('delta broadcaster', () => {
   let broadcaster: DeltaBroadcaster;
   let socket: FakeSocket;
   let moneyPerStep: number;
+  let newsFor: (step: number) => EngineEvent[];
 
   function towerState(): TowerState {
     const state = runner.stateOf(TOWER);
@@ -76,6 +79,7 @@ describe('delta broadcaster', () => {
   beforeEach(async () => {
     clock = 1_000_000;
     moneyPerStep = 0;
+    newsFor = () => [];
     const state = createTower(5);
     setStructure(state.grid, 1, 0, 9, 'lobby');
     addPerson(state, { kind: 'officeWorker', homeUnit: 0, level: 1, column: 3 });
@@ -83,9 +87,12 @@ describe('delta broadcaster', () => {
       store: new OneTowerStore(state),
       now: () => clock,
       advance: (current, steps) => ({
-        ...current,
-        step: current.step + steps,
-        money: current.money + steps * moneyPerStep,
+        state: {
+          ...current,
+          step: current.step + steps,
+          money: current.money + steps * moneyPerStep,
+        },
+        events: newsFor(current.step + steps),
       }),
     });
     registry = new ConnectionRegistry();
@@ -140,6 +147,84 @@ describe('delta broadcaster', () => {
     for (const message of socket.sent) {
       expect(ServerMessageSchema.safeParse(message).success).toBe(true);
     }
+  });
+
+  it('sends events right after the delta that covers their step', () => {
+    newsFor = (step) => [{ type: 'news', step, key: 'news.test', unitId: null }];
+
+    pass(DELTA_INTERVAL_MS);
+
+    const order = socket.sent.map((message) => (message as Message).t);
+    expect(order).toEqual(['snapshot', 'delta', 'events']);
+    const delta = messages('delta')[0]?.p as Delta;
+    const events = (messages('events')[0]?.p as unknown as { events: { step: number }[] }).events;
+    expect(events.length).toBeGreaterThan(0);
+    expect(events.every((event) => event.step <= delta.step)).toBe(true);
+  });
+
+  it('does not hold an idle delta back when events came with it', () => {
+    newsFor = (step) => [{ type: 'news', step, key: 'news.test', unitId: null }];
+
+    pass(DELTA_INTERVAL_MS * 2);
+
+    expect(messages('delta')).toHaveLength(2);
+    expect(messages('events')).toHaveLength(2);
+  });
+
+  it('does not repeat events a socket already saw', () => {
+    newsFor = (step) =>
+      step === 30 ? [{ type: 'news', step, key: 'news.test', unitId: null }] : [];
+
+    pass(5000);
+
+    expect(messages('events')).toHaveLength(1);
+  });
+
+  it('skips events that are older than the socket snapshot', () => {
+    const late = new FakeSocket();
+    registry.add(late, { userId: 'u1', towerId: TOWER });
+    newsFor = (step) => [{ type: 'news', step, key: 'news.test', unitId: null }];
+    clock += DELTA_INTERVAL_MS;
+    runner.tick();
+    const snapshotStep = towerState().step;
+    broadcaster.sendSnapshot(late, buildSnapshot(towerState(), VIEW));
+
+    clock += DELTA_INTERVAL_MS;
+    runner.tick();
+    broadcaster.tick(registry);
+
+    const sent = (late.sent as unknown as { t: string; p: { events?: { step: number }[] } }[])
+      .filter((message) => message.t === 'events')
+      .flatMap((message) => message.p.events ?? []);
+    expect(sent.length).toBeGreaterThan(0);
+    expect(sent.every((event) => event.step > snapshotStep)).toBe(true);
+  });
+
+  it('keeps a full-screen delta under 50 KB', () => {
+    const delta: Delta = {
+      step: 1,
+      cars: Array.from({ length: 192 }, (_, index) => ({
+        shaftId: 's24',
+        index: index % 8,
+        position: 88.5,
+        direction: 'up' as const,
+        doors: 'open' as const,
+        load: 8,
+      })),
+      people: Array.from({ length: 150 }, (_, index) => ({
+        id: `p${10_000 + index}`,
+        kind: 'officeWorker' as const,
+        x: 123.5,
+        level: 99,
+        facing: 'right' as const,
+        mode: 'ride' as const,
+        carRef: { shaftId: 's24', index: 7 },
+        stress: 'veryStressed' as const,
+      })),
+    };
+
+    expect(JSON.stringify(delta).length).toBeLessThan(DELTA_BUDGET_BYTES);
+    expect(ServerMessageSchema.safeParse({ v: 1, t: 'delta', p: delta }).success).toBe(true);
   });
 
   it('sends nothing to a socket that has not received a snapshot yet', () => {

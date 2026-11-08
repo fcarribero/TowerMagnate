@@ -1,4 +1,9 @@
-import { PROTOCOL_VERSION, serverMessage, type ClientMessage } from '@tower-magnate/shared';
+import {
+  PROTOCOL_VERSION,
+  serverMessage,
+  TOWER_SOCKET_PATH,
+  type ClientMessage,
+} from '@tower-magnate/shared';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { delta, snapshot, walker } from '../testing/protocolFixtures';
 import { createGameConnection } from './gameConnection';
@@ -268,5 +273,11 @@ describe('gameSocketUrl', () => {
     expect(gameSocketUrl({ protocol: 'https:', host: 'tower.example' })).toBe(
       'wss://tower.example/ws',
     );
+  });
+
+  it('points at the path the server serves the tower socket on', () => {
+    const url = new URL(gameSocketUrl({ protocol: 'http:', host: 'localhost:5173' }));
+
+    expect(url.pathname).toBe(TOWER_SOCKET_PATH);
   });
 });

@@ -1,6 +1,7 @@
-import { serverMessage, type Snapshot } from '@tower-magnate/shared';
+import { serverMessage, type ClientEvent, type Snapshot } from '@tower-magnate/shared';
 import { sendMessage, type ConnectionRegistry, type GatewaySocket } from '../gateway';
 import type { TowerRunner } from '../runner';
+import { toClientEvents } from './client-events';
 import { diffSnapshots, needsFreshSnapshot } from './delta';
 import { buildSnapshot } from './snapshot';
 import type { Viewports } from './viewports';
@@ -44,10 +45,12 @@ export class DeltaBroadcaster {
       if (!state) {
         continue;
       }
+      const events = toClientEvents(this.options.runner.takeEvents(towerId));
       for (const socket of registry.socketsForTower(towerId)) {
         const baseline = this.sent.get(socket);
         if (baseline) {
-          this.update(socket, baseline, buildSnapshot(state, this.options.viewports.get(socket)));
+          const snapshot = buildSnapshot(state, this.options.viewports.get(socket));
+          this.update(socket, baseline, snapshot, events);
         }
       }
     }
@@ -59,17 +62,36 @@ export class DeltaBroadcaster {
     return () => clearInterval(timer);
   }
 
-  private update(socket: GatewaySocket, baseline: SentState, snapshot: Snapshot): void {
+  private update(
+    socket: GatewaySocket,
+    baseline: SentState,
+    snapshot: Snapshot,
+    events: readonly ClientEvent[],
+  ): void {
     if (snapshot.step === baseline.snapshot.step) {
       return;
     }
+    const news = events.filter((event) => event.step > baseline.snapshot.step);
+    this.sendUpdate(socket, baseline, snapshot, news.length > 0);
+    if (news.length > 0) {
+      sendMessage(socket, serverMessage('events', { events: news }));
+    }
+  }
+
+  /** The delta, or a snapshot when that is smaller. Idle updates wait for the heartbeat. */
+  private sendUpdate(
+    socket: GatewaySocket,
+    baseline: SentState,
+    snapshot: Snapshot,
+    hasEvents: boolean,
+  ): void {
     const now = this.now();
     if (needsFreshSnapshot(baseline.snapshot, snapshot)) {
       this.sendSnapshot(socket, snapshot);
       return;
     }
     const { delta, quiet } = diffSnapshots(baseline.snapshot, snapshot);
-    if (quiet && now - baseline.sentAt < HEARTBEAT_INTERVAL_MS) {
+    if (quiet && !hasEvents && now - baseline.sentAt < HEARTBEAT_INTERVAL_MS) {
       return;
     }
     if (JSON.stringify(delta).length > JSON.stringify(snapshot).length) {
