@@ -1,5 +1,6 @@
-import type { Level } from '@tower-magnate/shared';
+import type { Level, ShaftView } from '@tower-magnate/shared';
 import { Application, Container, TextureSource, type TilingSprite } from 'pixi.js';
+import type { DrawnFrame } from '../model/interpolation';
 import 'pixi.js/unsafe-eval';
 import { loadSprites } from './atlasLoader';
 import {
@@ -15,10 +16,11 @@ import { attachCameraInput, type CameraChange } from './cameraInput';
 import { canvasSizeFromCssPixels, canvasSizeFromObservedBox, type CanvasSize } from './canvasSize';
 import { cellAtCanvasPoint, type Cell } from './cellAtPoint';
 import { CulledRows } from './culledRows';
-import { GhostLayer, type Footprint, type GhostInput } from './ghostLayer';
+import { GhostLayer, type Footprint, type GhostInput, type RunInput } from './ghostLayer';
 import { levelAtCanvasY } from './levelRuler';
 import { levelTop } from './levels';
 import type { Zoom } from './metrics';
+import { ElevatorLayer } from './elevatorLayer';
 import { createSkyRows } from './skyRows';
 import type { SpriteRegistry } from './spriteRegistry';
 import { StructureLayer } from './structureLayer';
@@ -39,9 +41,19 @@ export interface StageOptions {
   onStats?: (stats: RenderStats) => void;
 }
 
+export type CarSource = () => { frame: DrawnFrame; shafts: ReadonlyMap<string, ShaftView> } | null;
 export type CameraListener = (camera: Camera) => void;
 export type HoverLevelListener = (level: Level | null) => void;
 export type HoverCellListener = (cell: Cell | null) => void;
+
+/** A primary-button press or release on the tower, or a right click. `cell` is null off the tower. */
+export interface CellInput {
+  kind: 'down' | 'up' | 'cancel';
+  cell: Cell | null;
+  clientX: number;
+  clientY: number;
+}
+export type CellInputListener = (input: CellInput) => void;
 
 export interface Stage {
   sprites: SpriteRegistry;
@@ -55,6 +67,12 @@ export interface Stage {
   onHoverLevel(listener: HoverLevelListener): () => void;
   /** Called with the tile under the pointer, or null when the pointer leaves the tower. */
   onHoverCell(listener: HoverCellListener): () => void;
+  /** Called for presses, releases and right clicks, for tools that build by clicking or dragging. */
+  onCellInput(listener: CellInputListener): () => void;
+  /** When false, dragging with the primary button no longer scrolls the view. */
+  setPrimaryDragPans(pans: boolean): void;
+  /** Draws a filled run of tiles, such as a floor being dragged out; null removes it. */
+  showRun(run: RunInput | null): void;
   /** Draws the placement ghost, snapped to tiles; null removes it. */
   showGhost(ghost: GhostInput | null): void;
   /** Frames a footprint, such as the unit under the pointer; null removes the frame. */
@@ -65,6 +83,13 @@ export interface Stage {
   showStructure(input: StructureInput): void;
   /** Draws units and transports; later calls change only what differs. */
   showUnits(input: UnitsInput): void;
+  /** Draws elevator shafts; later calls change only the shafts that differ. */
+  showShafts(shafts: Iterable<ShaftView>): void;
+  /**
+   * Asks `source` for the cars and riders to draw on every frame. It returns
+   * null while there is nothing to draw, and `shafts` says where each car runs.
+   */
+  feedCars(source: CarSource | null): void;
   destroy(): void;
 }
 
@@ -95,7 +120,10 @@ export async function mountStage(host: HTMLElement, options: StageOptions = {}):
   const structure = new StructureLayer(sprites);
   world.addChild(structure.view);
   const units = new UnitLayer(sprites);
+  const elevators = new ElevatorLayer(sprites);
+  world.addChild(elevators.shaftView);
   world.addChild(units.view);
+  world.addChild(elevators.carView);
   const ghost = new GhostLayer(sprites);
   world.addChild(ghost.view);
   app.stage.addChild(world);
@@ -107,6 +135,8 @@ export async function mountStage(host: HTMLElement, options: StageOptions = {}):
   let hoveredLevel: Level | null = null;
   const hoverCellListeners = new Set<HoverCellListener>();
   let hoveredCell: Cell | null = null;
+  const cellInputListeners = new Set<CellInputListener>();
+  let primaryDragPans = true;
   let pointerCanvasX: number | null = null;
   let pointerCanvasY: number | null = null;
 
@@ -146,6 +176,7 @@ export async function mountStage(host: HTMLElement, options: StageOptions = {}):
     sky.showOnly(onScreen);
     structure.rows.showOnly(onScreen);
     units.showOnly(onScreen);
+    elevators.showOnly(onScreen);
     for (const listener of cameraListeners) {
       listener(camera);
     }
@@ -170,7 +201,34 @@ export async function mountStage(host: HTMLElement, options: StageOptions = {}):
       camera = change(camera);
       showCamera();
     },
+    () => primaryDragPans,
   );
+  const emitCellInput = (kind: CellInput['kind'], event: MouseEvent): void => {
+    const canvasRect = app.canvas.getBoundingClientRect();
+    const scale = cssPerDevicePixel();
+    const cell = cellAtCanvasPoint(
+      camera,
+      (event.clientX - canvasRect.left) / scale,
+      (event.clientY - canvasRect.top) / scale,
+    );
+    for (const listener of cellInputListeners) {
+      listener({ kind, cell, clientX: event.clientX, clientY: event.clientY });
+    }
+  };
+  const onPointerDown = (event: PointerEvent): void => {
+    if (event.button === 0) {
+      emitCellInput('down', event);
+    }
+  };
+  const onPointerUp = (event: PointerEvent): void => {
+    if (event.button === 0) {
+      emitCellInput('up', event);
+    }
+  };
+  const onContextMenu = (event: MouseEvent): void => {
+    event.preventDefault();
+    emitCellInput('cancel', event);
+  };
   const onPointerMove = (event: PointerEvent): void => {
     pointerCanvasX = event.offsetX / cssPerDevicePixel();
     pointerCanvasY = event.offsetY / cssPerDevicePixel();
@@ -185,6 +243,17 @@ export async function mountStage(host: HTMLElement, options: StageOptions = {}):
   };
   app.canvas.addEventListener('pointermove', onPointerMove);
   app.canvas.addEventListener('pointerleave', onPointerLeave);
+  app.canvas.addEventListener('pointerdown', onPointerDown);
+  window.addEventListener('pointerup', onPointerUp);
+  app.canvas.addEventListener('contextmenu', onContextMenu);
+  let carSource: CarSource | null = null;
+  const drawCars = (): void => {
+    const next = carSource?.();
+    if (next) {
+      elevators.showCars(next.frame, next.shafts);
+    }
+  };
+  app.ticker.add(drawCars);
   const statsTimer = window.setInterval(() => {
     options.onStats?.({
       fps: Math.round(app.ticker.FPS),
@@ -217,6 +286,16 @@ export async function mountStage(host: HTMLElement, options: StageOptions = {}):
       hoverCellListeners.add(listener);
       return () => hoverCellListeners.delete(listener);
     },
+    onCellInput(listener) {
+      cellInputListeners.add(listener);
+      return () => cellInputListeners.delete(listener);
+    },
+    setPrimaryDragPans(pans) {
+      primaryDragPans = pans;
+    },
+    showRun(input) {
+      ghost.showRun(input);
+    },
     showGhost(input) {
       ghost.showGhost(input);
     },
@@ -230,10 +309,21 @@ export async function mountStage(host: HTMLElement, options: StageOptions = {}):
     showUnits(input) {
       units.update(input);
     },
+    showShafts(shafts) {
+      elevators.showShafts(shafts);
+    },
+    feedCars(source) {
+      carSource = source;
+    },
     destroy() {
+      app.ticker.remove(drawCars);
       cameraListeners.clear();
       hoverListeners.clear();
       hoverCellListeners.clear();
+      cellInputListeners.clear();
+      app.canvas.removeEventListener('pointerdown', onPointerDown);
+      window.removeEventListener('pointerup', onPointerUp);
+      app.canvas.removeEventListener('contextmenu', onContextMenu);
       app.canvas.removeEventListener('pointermove', onPointerMove);
       app.canvas.removeEventListener('pointerleave', onPointerLeave);
       window.clearInterval(statsTimer);

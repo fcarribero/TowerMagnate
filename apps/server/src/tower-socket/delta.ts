@@ -42,10 +42,7 @@ function changedOverlays(before: Snapshot, after: Snapshot): Delta['overlays'] {
 
 /** Fields that only appear in the first message, so a change in them needs a new snapshot. */
 export function needsFreshSnapshot(before: Snapshot, after: Snapshot): boolean {
-  return (
-    before.grid.mainLobbyHeight !== after.grid.mainLobbyHeight ||
-    Object.keys(before.grid.levels).some((level) => !(level in after.grid.levels))
-  );
+  return Object.keys(before.grid.levels).some((level) => !(level in after.grid.levels));
 }
 
 export interface DeltaResult {
@@ -71,6 +68,10 @@ export function diffSnapshots(before: Snapshot, after: Snapshot): DeltaResult {
   if (before.money !== after.money) set('money', after.money);
   if (before.stars !== after.stars) set('stars', after.stars);
   if (before.population !== after.population) set('population', after.population);
+
+  if (before.grid.mainLobbyHeight !== after.grid.mainLobbyHeight && after.grid.mainLobbyHeight) {
+    set('mainLobbyHeight', after.grid.mainLobbyHeight);
+  }
 
   const structure = changedStructure(before, after);
   if (structure?.length) set('structure', structure);

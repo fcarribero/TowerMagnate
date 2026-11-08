@@ -26,6 +26,7 @@ export {
   spanError,
   structureAt,
 } from './grid';
+export { isExpressStop, shaftLevels } from './commands/shafts';
 export { evaluateUnit, gradeOfScore, unitScore } from './evaluation';
 export type { UnitEvaluation, UnitEvaluationInput, UnitGrade } from './evaluation';
 export {
@@ -39,6 +40,8 @@ export {
 
 export { hashState } from './hash';
 export { migrateState, StateMigrationError } from './migrations';
+export { checkIn, createHotelSystem, drawStayNights } from './hotel';
+export type { CheckInResult } from './hotel';
 export { createLeaseSystem, isLeasable, moveInTenant, STEPS_PER_WEEK } from './leases';
 export type { TenantEvaluator } from './leases';
 export {
@@ -88,14 +91,23 @@ export {
   queueLength,
 } from './elevator-queues';
 export type { NewPerson, PersonHandler, PersonView } from './people';
+export {
+  createOfficeRoutine,
+  decodeRoutine,
+  routineAt,
+  straightLineRoutes,
+} from './office-routine';
+export type { OfficeRoutine, Place, RoutePlanner, RoutinePhase } from './office-routine';
 export { chance, createRng, nextFloat, nextInt, nextUint32 } from './rng';
 export { createScheduler } from './scheduler';
+export { runStarCheck, starCheckHook } from './stars';
 export type { HookOccurrence, HookSchedule, ScheduledHook, TimeOfDay } from './scheduler';
 export { deserializeState, serializeState } from './serialization';
 export { cloneState, createTower, SCHEMA_VERSION } from './state';
 export { createEngine, runDays, step } from './step';
-export { OFFICE_POPULATION, populationOf } from './population';
+export { populationOf } from './population';
 export type { PopulationBreakdown } from './population';
+export { chargeWeeklyUpkeep, weeklyUpkeepHook } from './upkeep';
 export { newUnit } from './units';
 export type {
   CommandContext,
