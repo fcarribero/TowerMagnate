@@ -1,9 +1,9 @@
 import { z } from 'zod';
 import { TOWER_LAYOUT } from '../balance';
+import { CAR_DIRECTIONS } from '../engine';
 import { MAX_NAME_LENGTH } from '../names';
 import { ElevatorScheduleSchema, MAX_CARS_PER_SHAFT } from './commands';
 import {
-  CAR_DIRECTIONS,
   CAR_DOORS,
   FACINGS,
   PackedCarSchema,

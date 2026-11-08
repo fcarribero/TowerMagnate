@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { CAR_DIRECTIONS } from '../engine';
 import { PERSON_KINDS } from '../people';
 import { MAX_CARS_PER_SHAFT } from './commands';
 
@@ -10,7 +11,6 @@ import { MAX_CARS_PER_SHAFT } from './commands';
 export const FACINGS = ['left', 'right'] as const;
 export const PERSON_MODES = ['walk', 'wait', 'ride', 'stairs', 'inside'] as const;
 export const STRESS_LEVELS = ['normal', 'stressed', 'veryStressed'] as const;
-export const CAR_DIRECTIONS = ['up', 'down', 'idle'] as const;
 export const CAR_DOORS = ['open', 'closed'] as const;
 
 const MAX_CAR_LOAD = 42;
