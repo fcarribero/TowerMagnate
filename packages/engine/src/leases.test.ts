@@ -1,7 +1,13 @@
-import type { TenantEvaluation, TowerState, Unit, UnitId } from '@tower-magnate/shared';
+import type {
+  EngineEvent,
+  TenantEvaluation,
+  TowerState,
+  Unit,
+  UnitId,
+} from '@tower-magnate/shared';
 import { describe, expect, it } from 'vitest';
 import { dateOfStep } from './calendar';
-import { createLeaseSystem, moveInTenant, STEPS_PER_WEEK } from './leases';
+import { createLeaseSystem, moveInTenant, recordShopVisit, STEPS_PER_WEEK } from './leases';
 import { createEngine, type SimulationSystem } from './step';
 import { buildTower, plainTowerPlan } from './testing';
 
@@ -12,6 +18,8 @@ interface Setup {
   moveInAt?: number;
   evaluate?: () => TenantEvaluation | null;
   type?: 'office' | 'retail-shop';
+  /** Customer visits the unit gets in each lease week, all on the step after a due step. */
+  weeklyVisits?: readonly number[] | number;
 }
 
 function towerWithOneUnit(type: 'office' | 'retail-shop'): { tower: TowerState; unitId: UnitId } {
@@ -32,11 +40,35 @@ function moveInSystem(unitId: UnitId, at: number): SimulationSystem {
   };
 }
 
-function leaseRun({ moveInAt = TUESDAY_09_12, evaluate, type = 'office' }: Setup = {}) {
+/** Scripted customers: each lease week's visits arrive together, one step after it starts. */
+function customersSystem(
+  unitId: UnitId,
+  weeklyVisits: readonly number[] | number,
+): SimulationSystem {
+  return (context) => {
+    const unit = context.state.units[unitId];
+    const lease = unit?.lease;
+    if (!unit || !lease || context.state.step !== lease.nextDueStep - STEPS_PER_WEEK + 1) return;
+    const week = Math.round((lease.nextDueStep - lease.anchorStep) / STEPS_PER_WEEK) - 1;
+    const visits = typeof weeklyVisits === 'number' ? weeklyVisits : (weeklyVisits[week] ?? 0);
+    for (let visit = 0; visit < visits; visit++) recordShopVisit(unit);
+  };
+}
+
+function leaseRun({
+  moveInAt = TUESDAY_09_12,
+  evaluate,
+  type = 'office',
+  weeklyVisits = type === 'retail-shop' ? 70 : 0,
+}: Setup = {}) {
   const { tower, unitId } = towerWithOneUnit(type);
   const engine = createEngine({
     commandHandlers: {},
-    systems: [moveInSystem(unitId, moveInAt), createLeaseSystem(evaluate)],
+    systems: [
+      moveInSystem(unitId, moveInAt),
+      createLeaseSystem(evaluate),
+      customersSystem(unitId, weeklyVisits),
+    ],
   });
   return { tower, unitId, engine };
 }
@@ -73,6 +105,7 @@ describe('office and shop leases', () => {
     expect(run.state.units[unitId]?.lease).toEqual({
       anchorStep: TUESDAY_09_12 + TERM,
       nextDueStep: TUESDAY_09_12 + TERM + STEPS_PER_WEEK,
+      weekVisits: 0,
     });
   });
 
@@ -155,6 +188,7 @@ describe('office and shop leases', () => {
     expect(run.state.units[unitId]?.lease).toEqual({
       anchorStep: leaveAt + 360,
       nextDueStep: leaveAt + 360 + STEPS_PER_WEEK,
+      weekVisits: 0,
     });
   });
 
@@ -170,5 +204,88 @@ describe('office and shop leases', () => {
     expect(() => moveInTenant(context, 'u999')).toThrow();
     moveInTenant(context, unitId);
     expect(() => moveInTenant(context, unitId)).toThrow();
+  });
+});
+
+describe('shop early leave (economy 4.3)', () => {
+  const MOVE_IN = 10;
+
+  function newsOf(events: readonly EngineEvent[]): string[] {
+    return events.flatMap((event) => (event.type === 'news' ? [event.key] : []));
+  }
+
+  it('lets a shop with 69 visits leave at the payment step without paying', () => {
+    const { tower, unitId, engine } = leaseRun({
+      type: 'retail-shop',
+      moveInAt: MOVE_IN,
+      weeklyVisits: 69,
+    });
+    const before = engine.step(tower, [], MOVE_IN + STEPS_PER_WEEK - 1).state;
+    const run = engine.step(before, [], 1);
+    expect(run.state.money).toBe(before.money);
+    expect(run.state.units[unitId]?.lease).toBeNull();
+    expect(run.events).toEqual([
+      { type: 'leaseEnded', step: MOVE_IN + STEPS_PER_WEEK, unitId },
+      { type: 'news', step: MOVE_IN + STEPS_PER_WEEK, key: 'news.shopLeftNoCustomers', unitId },
+    ]);
+  });
+
+  it('keeps a shop with 70 visits, which pays, and lets it leave a later week with 69', () => {
+    const { tower, unitId, engine } = leaseRun({
+      type: 'retail-shop',
+      moveInAt: MOVE_IN,
+      weeklyVisits: [70, 69],
+    });
+    const firstWeek = engine.step(tower, [], MOVE_IN + STEPS_PER_WEEK);
+    expect(firstWeek.state.money - tower.money).toBe(2 * 15_000);
+    expect(firstWeek.state.units[unitId]?.lease).toMatchObject({ weekVisits: 0 });
+    const secondWeek = engine.step(firstWeek.state, [], STEPS_PER_WEEK);
+    expect(secondWeek.state.money).toBe(firstWeek.state.money);
+    expect(newsOf(secondWeek.events)).toEqual(['news.shopLeftNoCustomers']);
+  });
+
+  it('checks before the end-of-term evaluation, which then never runs', () => {
+    let evaluations = 0;
+    const { tower, unitId, engine } = leaseRun({
+      type: 'retail-shop',
+      moveInAt: MOVE_IN,
+      weeklyVisits: [70, 70, 70, 69],
+      evaluate: () => {
+        evaluations += 1;
+        return 'good';
+      },
+    });
+    const run = engine.step(tower, [], MOVE_IN + TERM);
+    expect(evaluations).toBe(0);
+    expect(run.state.units[unitId]?.lease).toBeNull();
+    expect(newsOf(run.events)).toEqual(['news.shopLeftNoCustomers']);
+  });
+
+  it('never checks at the move-in step', () => {
+    const { tower, unitId, engine } = leaseRun({
+      type: 'retail-shop',
+      moveInAt: MOVE_IN,
+      weeklyVisits: 0,
+    });
+    const run = engine.step(tower, [], MOVE_IN);
+    expect(run.state.money - tower.money).toBe(15_000);
+    expect(run.state.units[unitId]?.lease).not.toBeNull();
+  });
+
+  it('never lets an office leave early, even with no visits', () => {
+    const { tower, unitId, engine } = leaseRun({ moveInAt: MOVE_IN, weeklyVisits: 0 });
+    const run = engine.step(tower, [], MOVE_IN + 3 * STEPS_PER_WEEK);
+    expect(run.state.money - tower.money).toBe(4 * 10_000);
+    expect(run.state.units[unitId]?.lease).not.toBeNull();
+  });
+
+  it('counts visits only for a shop with a tenant', () => {
+    const { tower, unitId } = towerWithOneUnit('retail-shop');
+    const shop = unitOf(tower, unitId);
+    recordShopVisit(shop);
+    expect(shop.lease).toBeNull();
+    moveInTenant({ state: tower, events: [] }, unitId);
+    recordShopVisit(shop);
+    expect(tower.units[unitId]?.lease?.weekVisits).toBe(1);
   });
 });

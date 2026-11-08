@@ -56,7 +56,7 @@ export function evaluationTower(): TowerState {
     if (!unit) continue;
     if (unit.type === 'condo')
       unit.sale = { price: 1, anchorStep: 0, nextEvaluationStep: MIDNIGHT * 2 };
-    else unit.lease = { anchorStep: 0, nextDueStep: MIDNIGHT * 2 };
+    else unit.lease = { anchorStep: 0, nextDueStep: MIDNIGHT * 2, weekVisits: 0 };
     const trips: number[] = [];
     for (let trip = 0; trip < TRIPS_PER_UNIT; trip++) {
       const endStep = MIDNIGHT - 1 - Math.floor((trip * STRESS_WINDOW_STEPS) / TRIPS_PER_UNIT);

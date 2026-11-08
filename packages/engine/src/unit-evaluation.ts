@@ -102,6 +102,14 @@ export function storeGrade(
   return grade;
 }
 
+/**
+ * The grade stored at a decision step. Lease ends and condo evaluations store a fresh grade just
+ * before they read it (economy E-12, E-25).
+ */
+export function storedGrade(_state: TowerState, unit: Unit): TenantEvaluation | null {
+  return unit.evaluation;
+}
+
 function hasOccupants(unit: Unit): boolean {
   return unit.type === 'condo' ? unit.sale !== null : unit.lease !== null;
 }

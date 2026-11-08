@@ -242,6 +242,8 @@ export interface Lease {
   anchorStep: number;
   /** The next payment or, at the end of the term, the evaluation. */
   nextDueStep: number;
+  /** Customer visits that started since the last payment or move-in; only shops count them. */
+  weekVisits: number;
 }
 
 export interface CondoSale {

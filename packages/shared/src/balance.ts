@@ -391,6 +391,9 @@ export const TOWER_LIMITS: Readonly<Record<LimitGroupId, number>> = {
 export const DEFAULT_PRICE_LEVEL: PriceLevel = 'normal';
 
 export const LEASE_CONTRACT_WEEKS = 4;
+
+/** A shop with fewer customer visits than this in a lease week leaves at once (economy 4.3). */
+export const SHOP_EARLY_LEAVE_MIN_VISITS = 70;
 export const CONDO_EVALUATION_WEEKS = 4;
 
 export const WEEKLY_RENT: Readonly<Record<'office' | 'retail-shop', PriceTable>> = {
@@ -410,6 +413,14 @@ export const HOTEL_STAY_NIGHTS = { min: 1, max: 4 } as const;
 
 /** Percent chance of a stay of 1, 2, 3 and 4 nights. */
 export const HOTEL_STAY_NIGHT_WEIGHTS = [40, 30, 20, 10] as const;
+
+/** Percent chance that a free, clean room is booked at its daily roll, by its stored grade. */
+export const HOTEL_BOOKING_CHANCE = {
+  good: 90,
+  fair: 70,
+  poor: 40,
+  ungraded: 80,
+} as const;
 
 export const HOTEL_CHECK_IN_HOURS = { from: 12, until: 23 } as const;
 export const HOTEL_CHECK_OUT_HOUR = 10;

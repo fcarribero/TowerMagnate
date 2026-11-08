@@ -10,6 +10,7 @@ import {
   type HallDirection,
   type Level,
   type PersonPool,
+  type Shaft,
 } from '@tower-magnate/shared';
 import { isQueueFull, joinQueue, nextQueueCheckStep } from './elevator-queues';
 import {
@@ -128,6 +129,32 @@ function planFrom(context: StepContext, slot: number): RoutePlan | null {
     userClass,
     budget: unpackBudget(pool.trekBudget[slot] as number),
   });
+}
+
+/**
+ * Route plans made by people looking again at a full queue during one trek pass, by request. A plan
+ * depends on the queues only through which ones are full, so the plans are forgotten when a queue
+ * fills up or stops being full.
+ */
+const recheckPlans = new WeakMap<StepContext, Map<string, RoutePlan | null>>();
+
+function recheckKey(pool: PersonPool, slot: number): string {
+  return `${pool.kind[slot] === MAID_KIND ? 'maid' : 'other'}:${pool.level[slot]}:${pool.column[slot]}>${pool.trekLevel[slot]}:${pool.trekColumn[slot]}/${pool.trekBudget[slot]}`;
+}
+
+function planRecheck(context: StepContext, slot: number): RoutePlan | null {
+  const plans = recheckPlans.get(context);
+  if (!plans) return planFrom(context, slot);
+  const key = recheckKey(context.state.people, slot);
+  const known = plans.get(key);
+  if (known !== undefined) return known;
+  const plan = planFrom(context, slot);
+  plans.set(key, plan);
+  return plan;
+}
+
+function forgetRecheckPlans(context: StepContext): void {
+  recheckPlans.get(context)?.clear();
 }
 
 function setLeg(
@@ -293,7 +320,10 @@ function leaveQueueOf(context: StepContext, slot: number): void {
   if (!queue) return;
   const person = personEntityId(pool.id[slot] as number);
   const at = queue.findIndex((entry) => entry.person === person);
-  if (at >= 0) queue.splice(at, 1);
+  if (at < 0) return;
+  const wasFull = isQueueFull(shaft, pool.level[slot] as Level, direction);
+  queue.splice(at, 1);
+  if (wasFull) forgetRecheckPlans(context);
 }
 
 function leaveCarOf(context: StepContext, slot: number): void {
@@ -339,6 +369,19 @@ function startFlight(context: StepContext, slot: number, phase: number, steps: n
   pool.legStep[slot] = context.state.step + steps;
 }
 
+function joinQueueAt(
+  context: StepContext,
+  slot: number,
+  shaft: Shaft,
+  direction: HallDirection,
+): void {
+  const pool = context.state.people;
+  const level = pool.level[slot] as Level;
+  const person = personEntityId(pool.id[slot] as number);
+  joinQueue(shaft, level, direction, person, pool.legLevel[slot] as Level, context.state.step);
+  if (isQueueFull(shaft, level, direction)) forgetRecheckPlans(context);
+}
+
 function enterQueueOrWait(context: StepContext, slot: number): void {
   const { state } = context;
   const pool = state.people;
@@ -357,8 +400,7 @@ function enterQueueOrWait(context: StepContext, slot: number): void {
     addFullQueueEvent(pool, slot);
     return;
   }
-  const person = personEntityId(pool.id[slot] as number);
-  joinQueue(shaft, level, direction, person, destination, state.step);
+  joinQueueAt(context, slot, shaft, direction);
   startWait(state, slot, shaft, direction);
   pool.trek[slot] = QUEUED;
 }
@@ -386,8 +428,7 @@ function joinFromBesideQueue(context: StepContext, slot: number): void {
     pool.legStep[slot] = nextQueueCheckStep(state.step);
     return;
   }
-  const person = personEntityId(pool.id[slot] as number);
-  joinQueue(shaft, level, direction, person, destination, state.step);
+  joinQueueAt(context, slot, shaft, direction);
   pool.trek[slot] = QUEUED;
 }
 
@@ -396,7 +437,7 @@ function joinFromBesideQueue(context: StepContext, slot: number): void {
  * the same wait and join once there is room. Otherwise the wait so far counts and they move on.
  */
 function recheckFullQueue(context: StepContext, slot: number): void {
-  const plan = planFrom(context, slot);
+  const plan = planRecheck(context, slot);
   if (plan?.firstLeg && isSameRideFromHere(context, slot, plan.firstLeg)) {
     joinFromBesideQueue(context, slot);
     return;
@@ -536,6 +577,80 @@ function stressMayHaveMoved(
 /** Graphs are rebuilt when the tower changes, so each new graph gets one sweep for broken legs. */
 const sweptGraphs = new WeakSet<TransportGraph>();
 
+/** The stored stress of a queued or riding person and what it was computed from. */
+interface StressCheckpoint {
+  phase: number;
+  stress: number;
+  tripSum: number;
+  partStep: number;
+  partCut: number;
+  ledger: readonly number[] | undefined;
+  /** First step at which the stress can change if none of the above does. */
+  holdsUntil: number;
+}
+
+/** Checkpoints by person id, kept for the pool of one engine step call. */
+const stressCheckpoints = new WeakMap<PersonPool, Map<number, StressCheckpoint>>();
+
+function checkpointsOf(pool: PersonPool): Map<number, StressCheckpoint> {
+  let checkpoints = stressCheckpoints.get(pool);
+  if (!checkpoints) {
+    checkpoints = new Map();
+    stressCheckpoints.set(pool, checkpoints);
+  }
+  return checkpoints;
+}
+
+function ledgerOf(context: StepContext, slot: number): readonly number[] | undefined {
+  return context.state.tripLedger[String(context.state.people.id[slot])];
+}
+
+function stressStillHolds(
+  context: StepContext,
+  slot: number,
+  checkpoint: StressCheckpoint,
+): boolean {
+  const pool = context.state.people;
+  return (
+    context.state.step < checkpoint.holdsUntil &&
+    pool.trek[slot] === checkpoint.phase &&
+    pool.stress[slot] === checkpoint.stress &&
+    pool.tripSum[slot] === checkpoint.tripSum &&
+    pool.tripPartStep[slot] === checkpoint.partStep &&
+    pool.tripPartCut[slot] === checkpoint.partCut &&
+    ledgerOf(context, slot) === checkpoint.ledger
+  );
+}
+
+/**
+ * Refreshes the stress of a person on a trip. A queued or riding person's stress grows by a
+ * known amount each step, so it is only recomputed on the step it can change.
+ */
+function refreshTravellerStress(context: StepContext, slot: number): void {
+  const pool = context.state.people;
+  const phase = pool.trek[slot] as number;
+  const part = partUnderWay(phase);
+  const steady = phase === QUEUED || phase === RIDING;
+  const checkpoints = checkpointsOf(pool);
+  const personId = pool.id[slot] as number;
+  const checkpoint = checkpoints.get(personId);
+  if (steady && checkpoint && stressStillHolds(context, slot, checkpoint)) return;
+  const holdsUntil = refreshPersonStress(context.state, slot, true, part);
+  if (!steady) {
+    checkpoints.delete(personId);
+    return;
+  }
+  checkpoints.set(personId, {
+    phase,
+    stress: pool.stress[slot] as number,
+    tripSum: pool.tripSum[slot] as number,
+    partStep: pool.tripPartStep[slot] as number,
+    partCut: pool.tripPartCut[slot] as number,
+    ledger: ledgerOf(context, slot),
+    holdsUntil,
+  });
+}
+
 function stepPerson(context: StepContext, slot: number): void {
   const pool = context.state.people;
   const phase = pool.trek[slot] as number;
@@ -561,6 +676,7 @@ export function createTrekSystem(): SimulationSystem {
       sweptGraphs.add(graph);
       replanBrokenLegs(context);
     }
+    recheckPlans.set(context, new Map());
     for (let slot = 0; slot < pool.id.length; slot++) {
       const phase = pool.trek[slot] as number;
       if (phase === IDLE) continue;
@@ -571,9 +687,9 @@ export function createTrekSystem(): SimulationSystem {
       };
       stepPerson(context, slot);
       if (isOnTrek(pool, slot) && stressMayHaveMoved(pool, slot, before)) {
-        const part = partUnderWay(pool.trek[slot] as number);
-        refreshPersonStress(context.state, slot, true, part);
+        refreshTravellerStress(context, slot);
       }
     }
+    recheckPlans.delete(context);
   };
 }
