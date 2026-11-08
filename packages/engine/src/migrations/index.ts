@@ -68,6 +68,7 @@ const MIGRATIONS: readonly Migration[] = [
   addMedicalDay,
   addParkingState,
   addTripLedger,
+  addGuardEventState,
 ];
 
 /** Version 2 records each unit's price level, what was paid for it and when it was placed. */
@@ -283,6 +284,19 @@ function addTripLedger(raw: Record<string, unknown>): Record<string, unknown> {
     people: { ...tripFields, ...people },
     schemaVersion: 18,
   };
+}
+
+/** Version 19 gives a bomb threat its search and a fire its burning levels and guards. */
+function addGuardEventState(raw: Record<string, unknown>): Record<string, unknown> {
+  const activeEvents = Array.isArray(raw.activeEvents)
+    ? raw.activeEvents.map((event) => {
+        if (!isRecord(event)) return event;
+        if (event.kind === 'bomb') return { search: null, ...event };
+        if (event.kind === 'fire') return { levels: {}, guards: {}, ...event };
+        return event;
+      })
+    : raw.activeEvents;
+  return { ...raw, activeEvents, schemaVersion: 19 };
 }
 
 /** Version 11 gives each hotel room a state; every room in an older tower is clean and empty. */

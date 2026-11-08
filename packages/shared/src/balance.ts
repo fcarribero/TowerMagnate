@@ -460,6 +460,10 @@ export const DECISION_DEADLINE_STEPS = 360;
 export const CLOSED_DECISIONS_KEPT = 20;
 export const NOTICES_KEPT = 50;
 export const HELICOPTER_COST = 500_000;
+export const SEARCH_COLUMNS_PER_MINUTE = 4;
+export const SEARCH_STEPS_PER_MINUTE = 6;
+export const FIRE_SPREAD_STEPS = 6;
+export const FIRE_FRONT_CONTAINMENT = 10;
 
 function flatUpkeep(basis: UpkeepRule['basis'], amount: number): UpkeepRule {
   return { basis, amountByStars: [{ minStars: 1, amount }] };
