@@ -24,8 +24,10 @@ The `dev` profile starts postgres, the server and the Vite dev server. The conta
 ```bash
 cp .env.example .env        # optional; the defaults work
 pnpm stack up -d
-curl http://localhost:4101/health       # {"status":"ok","version":"0.0.0","database":"ok"}
+curl http://localhost:4101/health       # {"status":"ok","version":"0.5.0","database":"ok"}
 ```
+
+The version is the `version` field in `apps/server/package.json`, read when the server starts. The example shows 0.5.0; after a release bump it shows the new number.
 
 Open http://localhost:4102 for the game. The first start takes a few minutes while the containers install dependencies. Follow the progress with `pnpm stack logs -f server`.
 
