@@ -8,6 +8,7 @@ import {
   type ErrorCode,
   type EventId,
   type Fire,
+  type Level,
   type TowerState,
 } from '@tower-magnate/shared';
 import { chargeMoney } from '../money';
@@ -79,7 +80,7 @@ export function openBombThreat(context: StepContext, ransom: number): BombThreat
 }
 
 /** Opens a fire with its helicopter decision, or returns null while a disaster is active. */
-export function openFire(context: StepContext): Fire | null {
+export function openFire(context: StepContext, level: Level): Fire | null {
   if (hasActiveDisaster(context.state)) {
     return null;
   }
@@ -87,6 +88,7 @@ export function openFire(context: StepContext): Fire | null {
     kind: 'fire',
     ...openDecision(context.state, 'fire'),
     startStep: context.state.step,
+    level,
   };
   context.state.activeEvents.push(fire);
   emitOpened(context, fire);

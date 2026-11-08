@@ -8,6 +8,7 @@ function viewOf(event: ActiveEvent): EventView {
       decision: event.kind,
       deadlineStep: event.decision.deadlineStep,
       options: [...event.decision.options],
+      ...(event.kind === 'bomb' ? { ransom: event.ransom } : { level: event.level }),
     };
   }
   return { kind: 'disaster', id: event.id, disaster: event.kind, cells: [] };

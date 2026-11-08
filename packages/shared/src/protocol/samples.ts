@@ -124,7 +124,7 @@ export const sampleServerMessages: ServerMessage[] = [
         },
         { kind: 'disaster', id: 'e3', disaster: 'fire', cells: [{ level: 12, x0: 0, x1: 30 }] },
       ],
-      notices: [{ id: 'n1', step: 60400, key: 'news.parkingOffice', params: {} }],
+      notices: [{ id: 'n1', step: 60400, key: 'news.parkingOffice', unitId: 'u12', params: {} }],
       overlays: {
         evaluation: { u12: 'good', u13: null },
         price: { u12: 'normal' },
@@ -174,7 +174,7 @@ export const sampleServerMessages: ServerMessage[] = [
           deadlineStep: 9,
           options: ['helicopter', 'burn'],
         },
-        { type: 'decisionClosed', step: 2, eventId: 'e2', choice: 'burn' },
+        { type: 'decisionClosed', step: 2, eventId: 'e2', choice: 'burn', timedOut: true },
         { type: 'starsChanged', step: 2, stars: 6 },
         { type: 'starBlocked', step: 2, reason: 'security' },
         { type: 'disaster', step: 3, kind: 'bomb', cells: [{ level: -9, x0: 0, x1: 374 }] },

@@ -15,6 +15,7 @@ import { eventsPhase } from './events';
 import { createCondoSystem } from './condos';
 import { createHotelSystem } from './hotel';
 import { createLeaseSystem } from './leases';
+import { recordNotices } from './notices';
 import { cloneState } from './state';
 import { ledgerWeekRollHook } from './money';
 import { createOfficeRoutine } from './office-routine';
@@ -173,6 +174,7 @@ export function createEngine(rules: EngineRules): Engine {
     for (let count = 0; count < steps; count++) {
       advanceOneStep(context);
     }
+    recordNotices(context.state, context.events);
     return { state: context.state, results, events: context.events, graph: currentGraph };
   }
 

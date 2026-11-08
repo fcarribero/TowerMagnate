@@ -21,6 +21,7 @@ export function toClientEvents(events: readonly EngineEvent[]): ClientEvent[] {
           step: event.step,
           eventId: event.eventId,
           choice: event.choice,
+          timedOut: !('commandId' in event),
         });
         break;
       case 'news':
