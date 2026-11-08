@@ -45,3 +45,14 @@ export const VENUE_CANDIDATES_DRAWN = 3;
 
 /** A required trip with no route is tried again after this many steps (people spec 4). */
 export const ROUTE_RETRY_STEPS = 720;
+
+/** Hours of the day (whole hours, inclusive) at which vacant units roll for a prospect. */
+export const PROSPECT_ROLL_HOURS = { first: 8, last: 18 } as const;
+
+/** Chance per roll that a vacant unit gets a prospect, by price level (people spec 18). */
+export const PROSPECT_CHANCE: Readonly<Record<'high' | 'normal' | 'low' | 'minimum', number>> = {
+  high: 0.1,
+  normal: 0.2,
+  low: 0.3,
+  minimum: 0.4,
+};
