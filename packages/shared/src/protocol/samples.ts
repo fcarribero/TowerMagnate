@@ -1,5 +1,6 @@
 import type { Command, ElevatorSchedule } from './commands';
 import type { ClientMessage, ServerMessage } from './messages';
+import { packCar, packPerson } from './packed';
 import type { CarView, FinanceSummary, PersonView, UnitView } from './views';
 
 const v = 1;
@@ -148,8 +149,8 @@ export const sampleServerMessages: ServerMessage[] = [
       transportsRemoved: ['t3'],
       shaftsUpserted: [],
       shaftsRemoved: ['s5'],
-      cars: [car],
-      people: [person],
+      cars: [packCar(car)],
+      people: [packPerson(person)],
       peopleGone: ['p9'],
       followed: [],
       activeEvents: [],
@@ -190,19 +191,25 @@ export const sampleServerMessages: ServerMessage[] = [
     p: {
       kind: 'unit',
       id: 'u12',
-      type: 'office',
+      status: 'ok',
       name: 'Oficinas del Sur',
+      type: 'office',
       level: 2,
-      x: 12,
-      occupants: 6,
-      capacity: 6,
-      evaluation: 'fair',
-      price: 'normal',
-      contract: { state: 'leased', week: 2, nextPaymentStep: 61000 },
-      hotelStayEndStep: null,
-      filmAgeDays: null,
+      from: 12,
+      to: 19,
+      details: {
+        group: 'lease',
+        state: 'occupied',
+        persons: 6,
+        capacity: 6,
+        evaluation: 'fair',
+        price: 'normal',
+        leaseWeek: 2,
+        nextPaymentStep: 61000,
+      },
     },
   },
+  { v, t: 'inspect', p: { kind: 'unit', id: 'u13', status: 'gone' } },
   {
     v,
     t: 'inspect',
