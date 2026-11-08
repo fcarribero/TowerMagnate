@@ -7,6 +7,7 @@ import { useGameConnection } from '../net/useGameConnection';
 import { placeholderTowerContent } from '../render/placeholderTower';
 import type { Stage } from '../render/stage';
 import { isMapToggleKey } from './keys';
+import { ConnectionOverlay } from './ConnectionOverlay';
 import { StageHost } from './StageHost';
 import './kit';
 import { GameMenu } from './menu/GameMenu';
@@ -18,10 +19,14 @@ import { TowerMapWindow } from './TowerMapWindow';
 
 export interface AppProps {
   onLogout: () => void;
+  onSessionLost: () => void;
 }
 
-export function App({ onLogout }: AppProps) {
-  const { status: connectionStatus } = useGameConnection();
+export function App({ onLogout, onSessionLost }: AppProps) {
+  const { status: connectionStatus, protocolMismatch } = useGameConnection({
+    onNotAuthenticated: onSessionLost,
+  });
+  const connected = connectionStatus === 'live';
   const content = useMemo(() => {
     const store = new TowerContentStore();
     store.applySnapshot(placeholderTowerContent());
@@ -61,7 +66,6 @@ export function App({ onLogout }: AppProps) {
       <div class="ui-layer" onClick={onUiClick}>
         <div class="status-panel">
           <GameMenu />
-          {connectionStatus !== 'live' && t('ui.serverOffline')}
           <button type="button" class="status-button" onClick={toggleMap}>
             Mapa
           </button>
@@ -75,6 +79,12 @@ export function App({ onLogout }: AppProps) {
           onSelectTool={setTool}
           lobbyHeight={lobbyHeight}
           onLobbyHeightChange={setLobbyHeight}
+          disabled={!connected}
+        />
+        <ConnectionOverlay
+          status={connectionStatus}
+          protocolMismatch={protocolMismatch}
+          onReload={() => location.reload()}
         />
         {mapOpen && stage && (
           <TowerMapWindow content={content} stage={stage} onClose={() => setMapOpen(false)} />

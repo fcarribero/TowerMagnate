@@ -13,6 +13,7 @@ interface HarnessProps {
   initialTool?: ToolId;
   lockedLobbyHeight?: number;
   showMainLobbyWarning?: boolean;
+  disabled?: boolean;
 }
 
 function Harness({ stars, initialTool = 'inspect', ...lobbyContext }: HarnessProps) {
@@ -208,6 +209,16 @@ describe('Toolbar', () => {
         'Hueco de 6',
         'Se desbloquea con 3 estrellas',
       ]);
+    });
+  });
+
+  describe('while disabled', () => {
+    it('ignores clicks and shortcut keys', () => {
+      render(<Harness stars={1} disabled />);
+      fireEvent.click(toolButton('Topadora'));
+      fireEvent.keyDown(window, { key: 'c' });
+      expect(toolButton('Lupa').getAttribute('aria-pressed')).toBe('true');
+      expect(toolButton('Topadora').getAttribute('aria-disabled')).toBe('true');
     });
   });
 });

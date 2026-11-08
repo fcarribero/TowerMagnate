@@ -13,7 +13,12 @@ type Session =
 export interface SessionGateProps {
   api: AuthApi;
   /** The game, shown only to a signed-in player. */
-  children: (session: { user: AuthUser; logout: () => void }) => ComponentChildren;
+  children: (session: {
+    user: AuthUser;
+    logout: () => void;
+    /** The server no longer accepts the session: back to login with a notice. */
+    sessionLost: () => void;
+  }) => ComponentChildren;
 }
 
 /** Sends a signed-in player to the game and everyone else to the login screen. */
@@ -57,5 +62,6 @@ export function SessionGate({ api, children }: SessionGateProps) {
   const logout = (): void => {
     void api.logout().then(() => setSession({ status: 'signedOut' }));
   };
-  return <>{children({ user: session.user, logout })}</>;
+  const sessionLost = (): void => setSession({ status: 'signedOut', notice: 'auth.sessionClosed' });
+  return <>{children({ user: session.user, logout, sessionLost })}</>;
 }

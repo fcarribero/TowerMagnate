@@ -20,11 +20,14 @@ function fakeApi(check: SessionCheck): AuthApi {
 function renderGate(api: AuthApi) {
   return render(
     <SessionGate api={api}>
-      {({ user: signedIn, logout }) => (
+      {({ user: signedIn, logout, sessionLost }) => (
         <div>
           <p>Juego de {signedIn.username}</p>
           <button type="button" onClick={logout}>
             Cerrar sesión
+          </button>
+          <button type="button" onClick={sessionLost}>
+            Sesión perdida
           </button>
         </div>
       )}
@@ -70,5 +73,17 @@ describe('SessionGate', () => {
     renderGate(fakeApi({ status: 'unreachable' }));
     const notice = await screen.findByRole('status');
     expect(notice.textContent).toBe('No se pudo conectar. Probá de nuevo.');
+  });
+
+  it('returns to the login screen with a notice when the server drops the session', async () => {
+    const ui = userEvent.setup();
+    renderGate(fakeApi({ status: 'signedIn', user }));
+
+    await ui.click(await screen.findByRole('button', { name: 'Sesión perdida' }));
+
+    expect((await screen.findByRole('status')).textContent).toBe(
+      'La sesión se cerró. Entrá de nuevo.',
+    );
+    expect(screen.getByRole('button', { name: 'Entrar' })).toBeTruthy();
   });
 });
