@@ -7,6 +7,7 @@ import {
   VERSION_3_SAVE,
   VERSION_4_SAVE,
   VERSION_5_SAVE,
+  VERSION_6_SAVE,
 } from './fixtures';
 import { migrateState, StateMigrationError } from './index';
 
@@ -161,6 +162,44 @@ describe('migrateState fixtures', () => {
   });
 });
 
+describe('migrateState hall queues', () => {
+  it('gives every shaft of a version 6 save empty queues', () => {
+    const tower = migrateState(JSON.parse(VERSION_6_SAVE));
+    expect(tower.schemaVersion).toBe(SCHEMA_VERSION);
+    expect(tower.shafts.s2?.queues).toEqual({});
+  });
+
+  it('refuses queues over 40 people or with a malformed entry', () => {
+    const tower = createTower(5);
+    const car = { homeLevel: 1, level: 1, riders: [], paid: 80_000, placedAtStep: 0 };
+    const shaft = (queues: unknown) => ({
+      id: 's3',
+      type: 'standard',
+      x: 0,
+      bottom: 1,
+      top: 4,
+      cars: [car],
+      queues,
+      paid: 200_000,
+      placedAtStep: 0,
+    });
+    const entry = { person: 'p1', joinedStep: 3 };
+    const full = Array.from({ length: 41 }, () => entry);
+    const bad = [
+      { '2': { up: full, down: [] } },
+      { '2': { up: [{ person: 7, joinedStep: 3 }], down: [] } },
+      { '2': { up: [] } },
+    ];
+    const good = { '2': { up: [entry], down: [] } };
+    expect(migrateState({ ...tower, shafts: { s3: shaft(good) } }).shafts.s3?.queues).toEqual(good);
+    for (const queues of bad) {
+      expect(() => migrateState({ ...tower, shafts: { s3: shaft(queues) } })).toThrow(
+        StateMigrationError,
+      );
+    }
+  });
+});
+
 describe('migrateState shafts', () => {
   it('refuses a malformed shaft', () => {
     const tower = createTower(5);
@@ -172,6 +211,7 @@ describe('migrateState shafts', () => {
       bottom: 1,
       top: 4,
       cars: [car],
+      queues: {},
       paid: 200_000,
       placedAtStep: 0,
     };
@@ -221,7 +261,7 @@ describe('migrateState transports', () => {
 
   it('migrates a version 2 save to the event state version with empty event state', () => {
     const tower = migrateState(JSON.parse(VERSION_2_SAVE));
-    expect(tower.schemaVersion).toBe(6);
+    expect(tower.schemaVersion).toBe(SCHEMA_VERSION);
     expect(tower.activeEvents).toEqual([]);
     expect(tower.closedDecisions).toEqual([]);
     expect(tower.treasureLevels).toEqual([]);
