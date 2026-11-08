@@ -289,6 +289,29 @@ describe('demolish refund for stairs and floor', () => {
     expect(kept.money).toBe(old.money);
   });
 
+  it('refunds an escalator in full 359 steps after placement and nothing at 360', () => {
+    const command: Command = {
+      type: 'buildTransport',
+      transportType: 'escalator',
+      x: 60,
+      level: 5,
+    };
+    const { state } = accept(towerReadyToBuild(), command);
+    const id = Object.keys(state.transports).at(-1) as string;
+    const paid = state.transports[id]?.paid ?? 0;
+    expect(paid).toBeGreaterThan(0);
+
+    const young = later(state, REFUND_WINDOW - 1);
+    const { state: refunded, result } = run(young, demolishTransport(id));
+    expect(result).toMatchObject({ ok: true, refund: paid });
+    expect(refunded.money).toBe(young.money + paid);
+
+    const old = later(state, REFUND_WINDOW);
+    const { state: kept, result: late } = run(old, demolishTransport(id));
+    expect(late).toMatchObject({ ok: true, refund: 0 });
+    expect(kept.money).toBe(old.money);
+  });
+
   it('refunds floor tool cells in full 359 steps after placement and nothing at 360', () => {
     const state = withNewFloor(towerWithEmptyBasement(), 4, 9);
     const paid = 6 * priceOf('floor');
