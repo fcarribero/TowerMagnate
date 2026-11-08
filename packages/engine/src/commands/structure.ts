@@ -5,6 +5,7 @@ import {
   UNIT_CATALOG,
   type ColumnSpan,
   type ErrorCode,
+  type FloorPurchase,
   type GridState,
   type Level,
   type TowerState,
@@ -73,12 +74,57 @@ export function payForConstruction(state: TowerState, cost: number): ErrorCode |
 /** C-62: one game hour, 360 steps. */
 export const REFUND_WINDOW_STEPS = 360;
 
+function isYoung(state: TowerState, placedAtStep: number): boolean {
+  return state.step - placedAtStep < REFUND_WINDOW_STEPS;
+}
+
 /** C-62 and C-63: pays back what was paid when the object is young and unused; returns the credited amount. */
 export function refundConstruction(
   state: TowerState,
   object: { paid: number; placedAtStep: number; used?: boolean },
 ): number {
-  const isYoung = state.step - object.placedAtStep < REFUND_WINDOW_STEPS;
-  if (!isYoung || object.used || object.paid === 0) return 0;
+  if (!isYoung(state, object.placedAtStep) || object.used || object.paid === 0) return 0;
   return creditMoney(state, 'construction', object.paid);
+}
+
+function pruneFloorPurchases(state: TowerState): void {
+  state.floorPurchases = state.floorPurchases.filter((purchase) =>
+    isYoung(state, purchase.placedAtStep),
+  );
+}
+
+/** Remembers floor bought with the floor tool so it can be refunded within the window. */
+export function recordFloorPurchase(
+  state: TowerState,
+  level: Level,
+  runs: readonly ColumnSpan[],
+  paidPerCell: number,
+): void {
+  pruneFloorPurchases(state);
+  for (const run of runs) {
+    state.floorPurchases.push({ level, ...run, paidPerCell, placedAtStep: state.step });
+  }
+}
+
+/**
+ * C-62 and C-63 for the floor tool: pays back the young purchased cells among the demolished
+ * `columns` and forgets them. Floor that came with a unit has no purchase and refunds nothing.
+ */
+export function refundFloor(state: TowerState, level: Level, columns: readonly number[]): number {
+  pruneFloorPurchases(state);
+  const demolished = new Set(columns);
+  let amount = 0;
+  const kept: FloorPurchase[] = [];
+  for (const purchase of state.floorPurchases) {
+    if (purchase.level !== level) {
+      kept.push(purchase);
+      continue;
+    }
+    const cells = columnsBetween(purchase.x0, purchase.x1);
+    const remaining = cells.filter((x) => !demolished.has(x));
+    amount += (cells.length - remaining.length) * purchase.paidPerCell;
+    for (const run of columnRuns(remaining)) kept.push({ ...purchase, ...run });
+  }
+  state.floorPurchases = kept;
+  return amount === 0 ? 0 : creditMoney(state, 'construction', amount);
 }

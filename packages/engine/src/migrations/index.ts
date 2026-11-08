@@ -45,7 +45,7 @@ import { readGrid } from './grid';
 import { readLedger, readMoney } from './money';
 import { readPeople, readTripLedger } from './people';
 import { readStars } from './stars';
-import { readTransports } from './transports';
+import { readFloorPurchases, readTransports } from './transports';
 
 export { StateMigrationError } from './errors';
 
@@ -74,6 +74,7 @@ const MIGRATIONS: readonly Migration[] = [
   addVenueDayCounts,
   addBombCell,
   addVenueCustomers,
+  addTransportPurchaseRecord,
   addUnitEvaluation,
 ];
 
@@ -364,18 +365,34 @@ function addBombCell(raw: Record<string, unknown>): Record<string, unknown> {
 }
 
 /**
- * Version 23 stores each unit's grade, each evaluated unit's trip ledger and what a hotel stay
+ * Version 23 records what each staircase and escalator cost and when it was placed, and keeps
+ * floor tool purchases. Older transports and floor are past the refund window, so they get zero.
+ */
+function addTransportPurchaseRecord(raw: Record<string, unknown>): Record<string, unknown> {
+  const transports = isRecord(raw.transports)
+    ? Object.fromEntries(
+        Object.entries(raw.transports).map(([id, transport]) => [
+          id,
+          isRecord(transport) ? { paid: 0, placedAtStep: 0, ...transport } : transport,
+        ]),
+      )
+    : raw.transports;
+  return { ...raw, transports, floorPurchases: [], schemaVersion: 23 };
+}
+
+/**
+ * Version 24 stores each unit's grade, each evaluated unit's trip ledger and what a hotel stay
  * paid at check-in. Older saves have no grades and no filed trips.
  */
 function addUnitEvaluation(raw: Record<string, unknown>): Record<string, unknown> {
   if (!isRecord(raw.units)) {
-    return { unitLedger: {}, ...raw, schemaVersion: 23 };
+    return { unitLedger: {}, ...raw, schemaVersion: 24 };
   }
   const units: Record<string, unknown> = {};
   for (const [id, unit] of Object.entries(raw.units)) {
     units[id] = isRecord(unit) ? withUnitEvaluation(unit) : unit;
   }
-  return { unitLedger: {}, ...raw, schemaVersion: 23, units };
+  return { unitLedger: {}, ...raw, schemaVersion: 24, units };
 }
 
 function withUnitEvaluation(unit: Record<string, unknown>): Record<string, unknown> {
@@ -743,6 +760,7 @@ function assertCurrentShape(raw: Record<string, unknown>): TowerState {
     transports: readTransports(raw.transports),
     shafts: readShafts(raw.shafts),
     grid: readGrid(raw.grid),
+    floorPurchases: readFloorPurchases(raw.floorPurchases),
     people: people,
     tripLedger: readTripLedger(raw.tripLedger, people.id),
     unitLedger: readUnitLedger(raw.unitLedger, units),

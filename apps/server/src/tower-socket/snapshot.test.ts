@@ -105,8 +105,8 @@ describe('snapshot from tower state', () => {
 
   it('sends the placed stairs and escalators', () => {
     const state = createTower(7);
-    state.transports.t3 = { id: 't3', type: 'stairs', x: 4, level: 1 };
-    state.transports.t4 = { id: 't4', type: 'escalator', x: 8, level: 2 };
+    state.transports.t3 = { id: 't3', type: 'stairs', x: 4, level: 1, paid: 0, placedAtStep: 0 };
+    state.transports.t4 = { id: 't4', type: 'escalator', x: 8, level: 2, paid: 0, placedAtStep: 0 };
 
     const snapshot = buildSnapshot(state, null);
 
