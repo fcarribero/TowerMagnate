@@ -428,6 +428,6 @@ export type EngineEvent =
   | { type: 'news'; step: number; commandId: string; key: 'news.treasure'; level: Level }
   | { type: 'news'; step: number; commandId: string; key: 'news.bombPaid'; unitId: null }
   | { type: 'disaster'; step: number; kind: DecisionKind; cells: CellRange[] }
-  | { type: 'news'; step: number; key: 'news.bombExploded'; level: Level }
+  | { type: 'news'; step: number; key: 'news.bombExploded' | 'news.fire'; level: Level }
   | { type: 'news'; step: number; key: 'news.decisionDefault'; eventId: EventId; choice: string }
   | { type: 'news'; step: number; key: string; unitId: UnitId | null };

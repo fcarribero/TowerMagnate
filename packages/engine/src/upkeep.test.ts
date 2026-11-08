@@ -1,10 +1,13 @@
 import type { TowerState } from '@tower-magnate/shared';
 import { describe, expect, it } from 'vitest';
 import { STEPS_PER_WEEK } from './leases';
+import { createRng } from './rng';
 import { runDays, step } from './step';
 import { buildTower } from './testing';
 
 const FIRST_MONDAY = STEPS_PER_WEEK;
+/** No fire or bomb threat in the first two weeks, so only upkeep moves the balance. */
+const QUIET_SEED = 2;
 
 function addStandardCar(state: TowerState): void {
   for (const shaft of Object.values(state.shafts)) {
@@ -29,6 +32,7 @@ function upkeepTower(stars: 3 | 4, money = 2_000_000): TowerState {
   state.transports.t1 = { id: 't1', type: 'escalator', x: 16, level: 3 };
   state.stars = stars;
   state.money = money;
+  state.rng = createRng(QUIET_SEED);
   return state;
 }
 

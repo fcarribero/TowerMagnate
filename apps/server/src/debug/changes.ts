@@ -1,13 +1,13 @@
 import {
   DAYS_PER_WEEK,
-  openFire,
   openRandomBombThreat,
+  openRandomFire,
   STEPS_PER_DAY,
   STEPS_PER_MINUTE,
   weekdayOfDay,
   type StepContext,
 } from '@tower-magnate/engine';
-import type { ErrorCode, TowerState } from '@tower-magnate/shared';
+import type { ErrorCode } from '@tower-magnate/shared';
 import type { TowerChange } from '../runner';
 import type { DebugEventKind } from './messages';
 
@@ -19,11 +19,6 @@ export class DebugRefusal extends Error {
   }
 }
 
-function highestBuiltLevel(state: TowerState): number {
-  const built = Object.keys(state.grid.levels).map(Number);
-  return Math.max(1, ...built);
-}
-
 export function forceEvent(kind: DebugEventKind): TowerChange {
   return (state) => {
     const context: StepContext = { state: structuredClone(state), events: [] };
@@ -31,7 +26,7 @@ export function forceEvent(kind: DebugEventKind): TowerChange {
       kind === 'bomb'
         ? openRandomBombThreat(context)
         : kind === 'fire'
-          ? openFire(context, highestBuiltLevel(context.state))
+          ? openRandomFire(context)
           : undefined;
     if (opened === undefined) {
       throw new DebugRefusal('INVALID_COMMAND');
