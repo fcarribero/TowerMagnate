@@ -45,7 +45,7 @@ MP3 adds a few milliseconds of padding at the start, so loops should be played f
 pnpm manifest
 ```
 
-Each entry has `id`, `files` (`ogg` and `mp3`, relative to the manifest), `volume`, `loop`, `trigger` and `description`. The tests check the schema, that the committed manifest matches both source files, and that every listed file exists once any effect has been generated.
+Each entry has `id`, `files` (`ogg` and `mp3`, relative to the manifest), `volume`, `loop`, `trigger`, `stopTrigger`, `minIntervalMs`, `duckOthers` and `description`. `docs/design/sound.md` explains the playback fields and lists the rule for each cue. In `cues.json` the last three are optional and default to `null`, `0` and `null`; every looping effect needs a `stopTrigger`. The tests check the schema, that the committed manifest matches both source files, and that every listed file exists once any effect has been generated.
 
 ## Tests
 
