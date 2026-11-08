@@ -6,6 +6,7 @@ import { hashState } from './hash';
 import { StateMigrationError } from './migrations';
 import { chance, nextInt } from './rng';
 import { deserializeState, serializeState } from './serialization';
+import { newUnit } from './units';
 import { createTower, SCHEMA_VERSION } from './state';
 import { createEngine } from './step';
 
@@ -23,9 +24,9 @@ const engine = createEngine({
 function sampleTower(): TowerState {
   const tower = createTower(20261116);
   tower.units = {
-    u1: { id: 'u1', type: 'office', x: 10, level: 1, name: null },
-    u2: { id: 'u2', type: 'fast-food', x: 30, level: -1, name: 'Pancho' },
-    u3: { id: 'u3', type: 'condo', x: 50, level: 12, name: null },
+    u1: newUnit('u1', 'office', 10, 1),
+    u2: { ...newUnit('u2', 'fast-food', 30, -1), name: 'Pancho' },
+    u3: newUnit('u3', 'condo', 50, 12),
   };
   tower.nextId = 4;
   return tower;

@@ -9,8 +9,11 @@ import type {
 } from '@tower-magnate/shared';
 import { STEPS_PER_DAY } from './clock';
 import { towerCommandHandlers } from './commands';
+import { eventsPhase } from './events';
+import { createLeaseSystem } from './leases';
 import { cloneState } from './state';
 import { ledgerWeekRollHook } from './money';
+import { createOfficeRoutine, straightLineRoutes } from './office-routine';
 import { createScheduler } from './scheduler';
 
 export interface StepResult {
@@ -131,9 +134,16 @@ export function createEngine(rules: EngineRules): Engine {
   return { step, runDays };
 }
 
+const officeRoutine = createOfficeRoutine(straightLineRoutes);
+
 const towerEngine = createEngine({
   commandHandlers: towerCommandHandlers,
-  systems: [createScheduler([ledgerWeekRollHook])],
+  systems: [
+    createScheduler([ledgerWeekRollHook, officeRoutine.planHook]),
+    createLeaseSystem(),
+    officeRoutine.system,
+    eventsPhase,
+  ],
 });
 
 /**

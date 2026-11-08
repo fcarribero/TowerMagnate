@@ -20,7 +20,8 @@ test('a new player registers, keeps the session on reload and logs out', async (
   await expect(canvas(page)).toBeVisible();
   await expect(loginButton(page)).toHaveCount(0);
 
-  await page.getByRole('button', { name: 'Cerrar sesión' }).click();
+  await page.getByRole('button', { name: 'Menú' }).click();
+  await page.getByRole('menuitem', { name: 'Cerrar sesión' }).click();
   await expect(loginButton(page)).toBeVisible();
   await page.reload();
   await expect(loginButton(page)).toBeVisible();

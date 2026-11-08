@@ -1,23 +1,124 @@
 import {
+  ELEVATOR_QUEUE_CAPACITY,
   isLevel,
+  PRICE_LEVELS,
+  SHAFT_TYPES,
   UNIT_TYPES,
+  type ElevatorCar,
+  type Lease,
+  type QueueEntry,
   type RngState,
+  type Shaft,
+  type ShaftId,
+  type StopQueues,
   type TowerState,
   type Unit,
   type UnitId,
 } from '@tower-magnate/shared';
 import { SCHEMA_VERSION } from '../state';
 import { isRecord, StateMigrationError } from './errors';
+import { readActiveEvents, readClosedDecisions, readTreasureLevels } from './events';
 import { readGrid } from './grid';
 import { readLedger, readMoney } from './money';
 import { readPeople } from './people';
+import { readStars } from './stars';
+import { readTransports } from './transports';
 
 export { StateMigrationError } from './errors';
 
 type Migration = (raw: Record<string, unknown>) => Record<string, unknown>;
 
 /** MIGRATIONS[n] turns a version n+1 state into version n+2. */
-const MIGRATIONS: readonly Migration[] = [];
+const MIGRATIONS: readonly Migration[] = [
+  addUnitPurchaseRecord,
+  addUnitLeaseRecord,
+  addShafts,
+  addTransportRecord,
+  addEventState,
+  addPersonPool,
+  addStarRating,
+  addHallQueues,
+];
+
+/** Version 2 records each unit's price level, what was paid for it and when it was placed. */
+function addUnitPurchaseRecord(raw: Record<string, unknown>): Record<string, unknown> {
+  if (!isRecord(raw.units)) {
+    return { ...raw, schemaVersion: 2 };
+  }
+  const units: Record<string, unknown> = {};
+  for (const [id, unit] of Object.entries(raw.units)) {
+    units[id] = isRecord(unit) ? { priceLevel: 'normal', paid: 0, placedAtStep: 0, ...unit } : unit;
+  }
+  return { ...raw, schemaVersion: 2, units };
+}
+
+/** Version 3 records whether each unit was ever used and its current lease. */
+function addUnitLeaseRecord(raw: Record<string, unknown>): Record<string, unknown> {
+  if (!isRecord(raw.units)) {
+    return { ...raw, schemaVersion: 3 };
+  }
+  const units: Record<string, unknown> = {};
+  for (const [id, unit] of Object.entries(raw.units)) {
+    units[id] = isRecord(unit) ? { used: false, lease: null, ...unit } : unit;
+  }
+  return { ...raw, schemaVersion: 3, units };
+}
+
+/** Version 4 keeps elevator shafts in their own record. */
+function addShafts(raw: Record<string, unknown>): Record<string, unknown> {
+  return { ...raw, schemaVersion: 4, shafts: raw.shafts ?? {} };
+}
+
+/** Version 5 records the stairs and escalators; older towers have none. */
+function addTransportRecord(raw: Record<string, unknown>): Record<string, unknown> {
+  return { transports: {}, ...raw, schemaVersion: 5 };
+}
+
+/** Version 6 stores event state: active events, closed decision ids and treasure levels. */
+function addEventState(raw: Record<string, unknown>): Record<string, unknown> {
+  return {
+    ...raw,
+    schemaVersion: 6,
+    activeEvents: raw.activeEvents ?? [],
+    closedDecisions: raw.closedDecisions ?? [],
+    treasureLevels: raw.treasureLevels ?? [],
+  };
+}
+
+const EMPTY_VERSION_7_PEOPLE = {
+  nextId: 1,
+  id: [],
+  kind: [],
+  homeUnit: [],
+  level: [],
+  column: [],
+  trip: [],
+  dueStep: [],
+  stress: [],
+  nameSeed: [],
+  followed: [],
+};
+
+/** Version 7 saves the person pool; older saves could only load without people. */
+function addPersonPool(raw: Record<string, unknown>): Record<string, unknown> {
+  return { people: EMPTY_VERSION_7_PEOPLE, ...raw, schemaVersion: 7 };
+}
+
+/** Version 8 records the star rating; older towers start at one star. */
+function addStarRating(raw: Record<string, unknown>): Record<string, unknown> {
+  return { stars: 1, ...raw, schemaVersion: 8 };
+}
+
+/** Version 9 gives every shaft its floor queues; nobody was waiting in older saves. */
+function addHallQueues(raw: Record<string, unknown>): Record<string, unknown> {
+  const shafts: Record<string, unknown> = {};
+  if (isRecord(raw.shafts)) {
+    for (const [id, shaft] of Object.entries(raw.shafts)) {
+      shafts[id] = isRecord(shaft) ? { queues: {}, ...shaft } : shaft;
+    }
+  }
+  return { ...raw, schemaVersion: 9, shafts };
+}
 
 function isUint32(value: unknown): value is number {
   return Number.isInteger(value) && (value as number) >= 0 && (value as number) <= 0xffff_ffff;
@@ -44,7 +145,21 @@ function isUnit(value: unknown): value is Unit {
     (UNIT_TYPES as readonly unknown[]).includes(value.type) &&
     isNonNegativeInteger(value.x) &&
     isLevel(value.level) &&
-    (value.name === null || typeof value.name === 'string')
+    (value.name === null || typeof value.name === 'string') &&
+    (PRICE_LEVELS as readonly unknown[]).includes(value.priceLevel) &&
+    isNonNegativeInteger(value.paid) &&
+    isNonNegativeInteger(value.placedAtStep) &&
+    typeof value.used === 'boolean' &&
+    (value.lease === null || isLease(value.lease))
+  );
+}
+
+function isLease(value: unknown): value is Lease {
+  return (
+    isRecord(value) &&
+    isNonNegativeInteger(value.anchorStep) &&
+    isNonNegativeInteger(value.nextDueStep) &&
+    value.nextDueStep > value.anchorStep
   );
 }
 
@@ -61,9 +176,108 @@ function readUnits(raw: unknown): Record<UnitId, Unit> {
     if (!isUnit(unit) || unit.id !== id) {
       throw new StateMigrationError(`State unit ${id} is malformed`);
     }
-    units[id] = { id: unit.id, type: unit.type, x: unit.x, level: unit.level, name: unit.name };
+    units[id] = {
+      id: unit.id,
+      type: unit.type,
+      x: unit.x,
+      level: unit.level,
+      name: unit.name,
+      priceLevel: unit.priceLevel,
+      paid: unit.paid,
+      placedAtStep: unit.placedAtStep,
+      used: unit.used,
+      lease: unit.lease === null ? null : { ...unit.lease },
+    };
   }
   return units;
+}
+
+function isElevatorCar(value: unknown): value is ElevatorCar {
+  return (
+    isRecord(value) &&
+    isLevel(value.homeLevel) &&
+    isLevel(value.level) &&
+    Array.isArray(value.riders) &&
+    value.riders.every((rider) => typeof rider === 'string') &&
+    isNonNegativeInteger(value.paid) &&
+    isNonNegativeInteger(value.placedAtStep)
+  );
+}
+
+function isQueueEntry(value: unknown): value is QueueEntry {
+  return (
+    isRecord(value) && typeof value.person === 'string' && isNonNegativeInteger(value.joinedStep)
+  );
+}
+
+function isStopQueues(value: unknown): value is StopQueues {
+  return (
+    isRecord(value) &&
+    Array.isArray(value.up) &&
+    Array.isArray(value.down) &&
+    value.up.length <= ELEVATOR_QUEUE_CAPACITY &&
+    value.down.length <= ELEVATOR_QUEUE_CAPACITY &&
+    value.up.every(isQueueEntry) &&
+    value.down.every(isQueueEntry)
+  );
+}
+
+function isShaft(value: unknown): value is Shaft {
+  return (
+    isRecord(value) &&
+    typeof value.id === 'string' &&
+    (SHAFT_TYPES as readonly unknown[]).includes(value.type) &&
+    isNonNegativeInteger(value.x) &&
+    isLevel(value.bottom) &&
+    isLevel(value.top) &&
+    value.bottom <= value.top &&
+    Array.isArray(value.cars) &&
+    value.cars.length > 0 &&
+    value.cars.every(isElevatorCar) &&
+    isRecord(value.queues) &&
+    Object.values(value.queues).every(isStopQueues) &&
+    isNonNegativeInteger(value.paid) &&
+    isNonNegativeInteger(value.placedAtStep)
+  );
+}
+
+function copyEntry(entry: QueueEntry): QueueEntry {
+  return { person: entry.person, joinedStep: entry.joinedStep };
+}
+
+function readShafts(raw: unknown): Record<ShaftId, Shaft> {
+  if (!isRecord(raw)) {
+    throw new StateMigrationError('State shafts must be a record');
+  }
+  const shafts: Record<ShaftId, Shaft> = {};
+  for (const [id, shaft] of Object.entries(raw)) {
+    if (!isShaft(shaft) || shaft.id !== id) {
+      throw new StateMigrationError(`State shaft ${id} is malformed`);
+    }
+    shafts[id] = {
+      id: shaft.id,
+      type: shaft.type,
+      x: shaft.x,
+      bottom: shaft.bottom,
+      top: shaft.top,
+      cars: shaft.cars.map((car) => ({
+        homeLevel: car.homeLevel,
+        level: car.level,
+        riders: [...car.riders],
+        paid: car.paid,
+        placedAtStep: car.placedAtStep,
+      })),
+      queues: Object.fromEntries(
+        Object.entries(shaft.queues).map(([level, stop]) => [
+          level,
+          { up: stop.up.map(copyEntry), down: stop.down.map(copyEntry) },
+        ]),
+      ),
+      paid: shaft.paid,
+      placedAtStep: shaft.placedAtStep,
+    };
+  }
+  return shafts;
 }
 
 function assertCurrentShape(raw: Record<string, unknown>): TowerState {
@@ -82,10 +296,16 @@ function assertCurrentShape(raw: Record<string, unknown>): TowerState {
     rng: { a: raw.rng.a, b: raw.rng.b, c: raw.rng.c, d: raw.rng.d },
     nextId: raw.nextId,
     money: readMoney(raw.money),
+    stars: readStars(raw.stars),
     units: readUnits(raw.units),
+    transports: readTransports(raw.transports),
+    shafts: readShafts(raw.shafts),
     grid: readGrid(raw.grid),
     people: readPeople(raw.people),
     ledger: readLedger(raw.ledger),
+    activeEvents: readActiveEvents(raw.activeEvents),
+    closedDecisions: readClosedDecisions(raw.closedDecisions),
+    treasureLevels: readTreasureLevels(raw.treasureLevels),
   };
 }
 

@@ -284,4 +284,76 @@ describe('ui group', () => {
     expect(sprites['ui/ruler-plate-hover'].get(8, 6)).toBe(colorIndex('lamp'));
     expect(sprites['ui/ruler-plate'].get(0, 0)).toBe(colorIndex('ink'));
   });
+
+  it('draws every icon at 16 x 16, with an ink outline except the empty star', () => {
+    const icons = Object.entries(sprites).filter(([id]) => !id.startsWith('ui/ruler'));
+    const outlined = icons.filter(([id]) => id !== 'ui/star-empty');
+    expect(icons.length).toBeGreaterThan(0);
+    for (const [id, icon] of icons) {
+      expect([icon.width, icon.height], id).toEqual([16, 16]);
+    }
+    for (const [id, icon] of outlined) {
+      expect(icon.pixels.includes(colorIndex('ink')), id).toBe(true);
+    }
+  });
+
+  it('draws the fixed tool, category and status icons', () => {
+    const expected = [
+      ...['inspect', 'bulldozer', 'car'].map((tool) => `ui/tool-${tool}`),
+      ...[
+        'structure',
+        'transport',
+        'offices-and-housing',
+        'hotel',
+        'commerce-and-entertainment',
+        'services',
+      ].map((category) => `ui/cat-${category}`),
+      'ui/star-full',
+      'ui/star-empty',
+      'ui/money',
+      'ui/population',
+    ];
+    for (const id of expected) {
+      expect(sprites[id], id).toBeDefined();
+    }
+  });
+
+  it('draws a filled star in lamp and an empty star in slate with a clear middle', () => {
+    expect(sprites['ui/star-full'].get(8, 8)).toBe(colorIndex('lamp'));
+    expect(sprites['ui/star-empty'].get(8, 8)).toBe(0);
+    expect(sprites['ui/star-empty'].pixels.includes(colorIndex('slate'))).toBe(true);
+  });
+
+  it('draws an icon for each of the 25 catalog units', () => {
+    const units = [
+      'floor',
+      'lobby',
+      'stairs',
+      'escalator',
+      'standard-elevator',
+      'office',
+      'condo',
+      'fast-food',
+      'single-room',
+      'double-room',
+      'suite',
+      'housekeeping',
+      'security',
+      'service-elevator',
+      'restaurant',
+      'retail-shop',
+      'cinema',
+      'party-hall',
+      'express-elevator',
+      'medical-center',
+      'parking-ramp',
+      'parking-space',
+      'recycling-center',
+      'subway-station',
+      'cathedral',
+    ];
+    for (const unit of units) {
+      expect(sprites[`ui/unit-${unit}`], unit).toBeDefined();
+    }
+  });
 });

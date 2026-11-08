@@ -1,24 +1,41 @@
 import { step } from '@tower-magnate/engine';
-import type { TowerState } from '@tower-magnate/shared';
+import type { CommandResult, EngineEvent, QueuedCommand, TowerState } from '@tower-magnate/shared';
 import type { TowerId } from '../snapshots';
 import { stepsForElapsed } from './real-time';
 import type { TowerStore } from './tower-store';
 
 export const TICK_INTERVAL_MS = 100;
 
-export type AdvanceTower = (state: TowerState, steps: number) => TowerState;
+/** Running towers are saved this often, on top of the saves after commands and on pause. */
+export const SNAPSHOT_INTERVAL_MS = 30_000;
+
+export interface TowerAdvance {
+  state: TowerState;
+  events: EngineEvent[];
+}
+
+export type AdvanceTower = (state: TowerState, steps: number) => TowerAdvance;
 
 export interface TowerRunnerOptions {
   store: TowerStore;
   now?: () => number;
   advance?: AdvanceTower;
   onTickError?: (towerId: TowerId, error: unknown) => void;
+  onSaveError?: (towerId: TowerId, error: unknown) => void;
+}
+
+interface PendingCommand {
+  queued: QueuedCommand;
+  resolve: (result: CommandResult) => void;
 }
 
 interface RunningTower {
   state: TowerState;
   startedAt: number;
   startStep: number;
+  pending: PendingCommand[];
+  /** Events of steps that have not been handed to the broadcaster yet. */
+  events: EngineEvent[];
 }
 
 export class UnknownTowerError extends Error {
@@ -28,7 +45,10 @@ export class UnknownTowerError extends Error {
   }
 }
 
-const advanceWithEngine: AdvanceTower = (state, steps) => step(state, [], steps).state;
+const advanceWithEngine: AdvanceTower = (state, steps) => {
+  const { state: advanced, events } = step(state, [], steps);
+  return { state: advanced, events };
+};
 
 /**
  * Keeps the towers whose owners are connected in memory and moves them forward with the real
@@ -41,17 +61,44 @@ export class TowerRunner {
   private readonly now: () => number;
   private readonly advance: AdvanceTower;
   private readonly onTickError: (towerId: TowerId, error: unknown) => void;
+  private readonly onSaveError: (towerId: TowerId, error: unknown) => void;
+  private stopped = false;
 
   constructor(options: TowerRunnerOptions) {
     this.store = options.store;
     this.now = options.now ?? Date.now;
     this.advance = options.advance ?? advanceWithEngine;
     this.onTickError = options.onTickError ?? (() => {});
+    this.onSaveError = options.onSaveError ?? (() => {});
   }
 
-  /** Loads the tower and starts its clock. Does nothing when it is already running. */
+  /** Loads the tower and starts its clock. Does nothing when it is already running or after shutdown. */
   resume(towerId: TowerId): Promise<void> {
     return this.inOrder(towerId, () => this.load(towerId));
+  }
+
+  /** Brings a running tower up to the current time and saves it without stopping it. */
+  save(towerId: TowerId): Promise<void> {
+    return this.inOrder(towerId, () => this.saveRunning(towerId));
+  }
+
+  /** Saves every running tower. A failed save is reported and does not stop the others. */
+  async saveAll(): Promise<void> {
+    await Promise.all(
+      this.runningTowers().map((towerId) =>
+        this.save(towerId).catch((error: unknown) => this.onSaveError(towerId, error)),
+      ),
+    );
+  }
+
+  /** Saves and pauses every running tower and refuses to resume any more. */
+  async shutdown(): Promise<void> {
+    this.stopped = true;
+    await Promise.all(
+      [...new Set([...this.queues.keys(), ...this.runningTowers()])].map((towerId) =>
+        this.pause(towerId).catch((error: unknown) => this.onSaveError(towerId, error)),
+      ),
+    );
   }
 
   /** Brings the tower up to the current time, saves it and drops it from memory. */
@@ -71,11 +118,36 @@ export class TowerRunner {
     return this.running.get(towerId)?.state;
   }
 
-  /** Advances every running tower to where the real clock says it should be. */
+  /**
+   * Queues a command for a running tower. The result arrives on the next tick, once the engine
+   * has applied it. Rejects when the tower is not running.
+   */
+  submit(towerId: TowerId, queued: QueuedCommand): Promise<CommandResult> {
+    const tower = this.running.get(towerId);
+    if (!tower) {
+      return Promise.reject(new UnknownTowerError(towerId));
+    }
+    return new Promise((resolve) => tower.pending.push({ queued, resolve }));
+  }
+
+  /** The events since the last call, oldest first. */
+  takeEvents(towerId: TowerId): EngineEvent[] {
+    const tower = this.running.get(towerId);
+    return tower ? tower.events.splice(0) : [];
+  }
+
+  /**
+   * Applies the queued commands, then advances every running tower to where the real clock
+   * says it should be. A tick that accepted a command also saves the tower.
+   */
   tick(): void {
     for (const [towerId, tower] of this.running) {
       try {
+        const accepted = this.applyPending(tower);
         this.catchUp(tower);
+        if (accepted) {
+          this.save(towerId).catch((error: unknown) => this.onSaveError(towerId, error));
+        }
       } catch (error) {
         this.onTickError(towerId, error);
       }
@@ -88,15 +160,27 @@ export class TowerRunner {
     return () => clearInterval(timer);
   }
 
+  /** Saves every running tower on a timer until the returned function is called. */
+  startAutosave(intervalMs = SNAPSHOT_INTERVAL_MS): () => void {
+    const timer = setInterval(() => void this.saveAll(), intervalMs);
+    return () => clearInterval(timer);
+  }
+
   private async load(towerId: TowerId): Promise<void> {
-    if (this.running.has(towerId)) {
+    if (this.stopped || this.running.has(towerId)) {
       return;
     }
     const state = await this.store.load(towerId);
     if (state === null) {
       throw new UnknownTowerError(towerId);
     }
-    this.running.set(towerId, { state, startedAt: this.now(), startStep: state.step });
+    this.running.set(towerId, {
+      state,
+      startedAt: this.now(),
+      startStep: state.step,
+      pending: [],
+      events: [],
+    });
   }
 
   private async saveAndForget(towerId: TowerId): Promise<void> {
@@ -104,16 +188,45 @@ export class TowerRunner {
     if (!tower) {
       return;
     }
+    this.applyPending(tower);
     this.catchUp(tower);
     this.running.delete(towerId);
     await this.store.save(towerId, tower.state);
+  }
+
+  private async saveRunning(towerId: TowerId): Promise<void> {
+    const tower = this.running.get(towerId);
+    if (!tower) {
+      return;
+    }
+    this.catchUp(tower);
+    await this.store.save(towerId, tower.state);
+  }
+
+  /** Runs the queued commands against the tower and answers each sender. Returns true when one was accepted. */
+  private applyPending(tower: RunningTower): boolean {
+    const pending = tower.pending.splice(0);
+    if (pending.length === 0) {
+      return false;
+    }
+    const { state, results, events } = step(
+      tower.state,
+      pending.map((entry) => entry.queued),
+      0,
+    );
+    tower.state = state;
+    tower.events.push(...events);
+    pending.forEach((entry, index) => entry.resolve(results[index] as CommandResult));
+    return results.some((result) => result.ok);
   }
 
   private catchUp(tower: RunningTower): void {
     const targetStep = tower.startStep + stepsForElapsed(this.now() - tower.startedAt);
     const due = targetStep - tower.state.step;
     if (due > 0) {
-      tower.state = this.advance(tower.state, due);
+      const advanced = this.advance(tower.state, due);
+      tower.state = advanced.state;
+      tower.events.push(...advanced.events);
     }
   }
 

@@ -14,17 +14,21 @@ function fakeApi(check: SessionCheck): AuthApi {
     login: vi.fn(async () => ({ ok: true as const, user })),
     register: vi.fn(async () => ({ ok: true as const, user })),
     logout: vi.fn(async () => {}),
+    ensureTower: vi.fn(async () => true),
   };
 }
 
 function renderGate(api: AuthApi) {
   return render(
     <SessionGate api={api}>
-      {({ user: signedIn, logout }) => (
+      {({ user: signedIn, logout, sessionLost }) => (
         <div>
           <p>Juego de {signedIn.username}</p>
           <button type="button" onClick={logout}>
             Cerrar sesión
+          </button>
+          <button type="button" onClick={sessionLost}>
+            Sesión perdida
           </button>
         </div>
       )}
@@ -55,6 +59,23 @@ describe('SessionGate', () => {
     expect(await screen.findByText('Juego de ana_42')).toBeTruthy();
   });
 
+  it('makes sure the account has a tower before opening the game', async () => {
+    const api = fakeApi({ status: 'signedIn', user });
+    renderGate(api);
+    await screen.findByText('Juego de ana_42');
+    expect(api.ensureTower).toHaveBeenCalledTimes(1);
+  });
+
+  it('stays out of the game with a notice when the tower cannot be set up', async () => {
+    const api = fakeApi({ status: 'signedIn', user });
+    api.ensureTower = vi.fn(async () => false);
+    renderGate(api);
+    expect((await screen.findByRole('status')).textContent).toBe(
+      'No se pudo conectar. Probá de nuevo.',
+    );
+    expect(screen.queryByText('Juego de ana_42')).toBeNull();
+  });
+
   it('logs out and returns to the login screen', async () => {
     const ui = userEvent.setup();
     const api = fakeApi({ status: 'signedIn', user });
@@ -70,5 +91,17 @@ describe('SessionGate', () => {
     renderGate(fakeApi({ status: 'unreachable' }));
     const notice = await screen.findByRole('status');
     expect(notice.textContent).toBe('No se pudo conectar. Probá de nuevo.');
+  });
+
+  it('returns to the login screen with a notice when the server drops the session', async () => {
+    const ui = userEvent.setup();
+    renderGate(fakeApi({ status: 'signedIn', user }));
+
+    await ui.click(await screen.findByRole('button', { name: 'Sesión perdida' }));
+
+    expect((await screen.findByRole('status')).textContent).toBe(
+      'La sesión se cerró. Entrá de nuevo.',
+    );
+    expect(screen.getByRole('button', { name: 'Entrar' })).toBeTruthy();
   });
 });

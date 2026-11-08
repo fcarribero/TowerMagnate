@@ -2,7 +2,17 @@
 
 Tower building and management sim that runs in the browser.
 
-Design: [docs/GDD.md](docs/GDD.md). Architecture: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+Design: [docs/GDD.md](docs/GDD.md). Architecture: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). Running and deploying: [docs/tech/deploy.md](docs/tech/deploy.md).
+
+## Quick start
+
+```bash
+corepack enable
+pnpm install
+pnpm stack up -d    # postgres, server and web in docker
+```
+
+The game is then at http://localhost:4102. The guide in [docs/tech/deploy.md](docs/tech/deploy.md) covers production, every environment variable, port blocks, CI, and database backup and restore.
 
 ## Requirements
 
@@ -23,8 +33,9 @@ To work on one package, filter by name, for example `pnpm --filter @tower-magnat
 ## Web client
 
 ```bash
-pnpm --filter web dev     # Vite dev server on port 5173
-pnpm --filter web build   # static build in apps/web/dist
+pnpm dev        # Vite dev server on port 5173
+pnpm build      # static build in apps/web/dist
+pnpm art:build  # draw the sprites, atlases, previews and atlas manifest
 ```
 
 The dev server proxies `/api` and `/ws` to the game server. Set `TM_SERVER_URL` (default `http://localhost:3000`) and `TM_WEB_PORT` (default `5173`) to change them, for example `TM_WEB_PORT=4140 pnpm --filter web dev`.
@@ -46,7 +57,7 @@ A new TypeScript package needs its own `tsconfig.json` extending `tsconfig.base.
 
 ## Continuous integration
 
-`.github/workflows/ci.yml` runs `pnpm lint`, `pnpm typecheck` and `pnpm test` on Node 22 for every pull request to `develop` or `master` and for every push to those branches. The pnpm store is cached between runs.
+`.github/workflows/ci.yml` runs `pnpm art:build`, `pnpm lint`, `pnpm typecheck` and `pnpm test` on Node 22 for every pull request to `develop` or `master` and for every push to those branches. The pnpm store is cached between runs.
 
 ## End-to-end tests
 
@@ -58,7 +69,7 @@ By default the run starts its own compose stack (project `tm-e2e`, ports from `P
 
 ## Local stack
 
-`docker compose up` starts `postgres` (16, data in a named volume), `server` (`pnpm dev` in `apps/server`, restarts on change) and `web` (`pnpm dev` in `apps/web`, called with `--host 0.0.0.0 --port 5173 --strictPort`). The containers mount the repository and keep their own `node_modules` in named volumes, so the host install is never touched.
+`docker compose --profile dev up` starts `postgres` (16, data in a named volume), `server` (`pnpm dev` in `apps/server`, restarts on change) and `web` (`pnpm dev` in `apps/web`, called with `--host 0.0.0.0 --port 5173 --strictPort`). The containers mount the repository and keep their own `node_modules` in named volumes, so the host install is never touched.
 
 Copy `.env.example` to `.env` to change the project name, ports or database credentials. To run several stacks side by side, use `pnpm stack`, which wraps `docker compose` and derives the ports from `PORT_BASE`: postgres on `PORT_BASE`, the server on `PORT_BASE + 1` and web on `PORT_BASE + 2`.
 
@@ -67,6 +78,20 @@ COMPOSE_PROJECT_NAME=tm-dev PORT_BASE=4190 pnpm stack up -d
 curl http://localhost:4191/health       # {"status":"ok","version":"0.0.0","database":"ok"}
 curl http://localhost:4192/api/health   # same report, proxied by the web dev server
 pnpm stack down -v                      # remove containers and volumes
+```
+
+`pnpm stack` runs the `dev` profile unless `COMPOSE_PROFILES` says otherwise. `.env.example` sets `COMPOSE_PROFILES=dev`, so a plain `docker compose up` with that `.env` does the same.
+
+### Production image
+
+`docker/prod/Dockerfile` builds the web client with Vite, bundles the server with esbuild and installs only the server's production dependencies. The final image runs `node build/main.js` with `NODE_ENV=production` and serves the web build from `WEB_DIR=/app/web`. Files in `assets/` have hashed names and are cached for a year. Every other file, and the game page returned for unknown page routes, is revalidated on each request.
+
+The `prod` profile runs `postgres` and `app` (the production image) on `SERVER_PORT`, with `MIGRATE_ON_START=true`:
+
+```bash
+COMPOSE_PROJECT_NAME=tm-prod PORT_BASE=4190 pnpm stack --profile prod up -d --build
+curl http://localhost:4191/health       # {"status":"ok","version":"0.0.0","database":"ok"}
+pnpm stack --profile prod down -v
 ```
 
 ## Database

@@ -3,6 +3,7 @@ import type {
   LimitGroupId,
   PriceLevel,
   PriceTable,
+  ShaftType,
   StarRating,
   UnitCost,
   UnitDefinition,
@@ -10,6 +11,7 @@ import type {
   UnitType,
   UpkeepRule,
 } from './units';
+import { SHAFT_UNIT_TYPES } from './units';
 
 // Every tunable balance number of the game lives in this module.
 
@@ -120,7 +122,7 @@ export const UNIT_CATALOG: Readonly<Record<UnitType, UnitDefinition>> = {
     cost: perUnit(40_000),
     capacity: { role: 'office-workers', people: 6 },
     unlockStars: 1,
-    placement: { zone: 'any' },
+    placement: { zone: 'above-ground' },
     limitGroup: null,
   },
   condo: {
@@ -132,7 +134,7 @@ export const UNIT_CATALOG: Readonly<Record<UnitType, UnitDefinition>> = {
     cost: perUnit(80_000),
     capacity: { role: 'residents', people: 3 },
     unlockStars: 1,
-    placement: { zone: 'any' },
+    placement: { zone: 'above-ground' },
     limitGroup: null,
   },
   'fast-food': {
@@ -156,7 +158,7 @@ export const UNIT_CATALOG: Readonly<Record<UnitType, UnitDefinition>> = {
     cost: perUnit(20_000),
     capacity: { role: 'hotel-guests', people: 1 },
     unlockStars: 2,
-    placement: { zone: 'any' },
+    placement: { zone: 'above-ground' },
     limitGroup: null,
   },
   'double-room': {
@@ -168,7 +170,7 @@ export const UNIT_CATALOG: Readonly<Record<UnitType, UnitDefinition>> = {
     cost: perUnit(50_000),
     capacity: { role: 'hotel-guests', people: 2 },
     unlockStars: 2,
-    placement: { zone: 'any' },
+    placement: { zone: 'above-ground' },
     limitGroup: null,
   },
   suite: {
@@ -180,7 +182,7 @@ export const UNIT_CATALOG: Readonly<Record<UnitType, UnitDefinition>> = {
     cost: perUnit(100_000),
     capacity: { role: 'hotel-guests', people: 2 },
     unlockStars: 2,
-    placement: { zone: 'any' },
+    placement: { zone: 'above-ground' },
     limitGroup: null,
   },
   housekeeping: {
@@ -434,6 +436,11 @@ export const DAILY_INCOME_BRACKETS: Readonly<
 
 export const CINEMA_MOVIE_CHANGE_COST = 300_000;
 
+/** Events spec section 15. One game hour. */
+export const DECISION_DEADLINE_STEPS = 360;
+export const CLOSED_DECISIONS_KEPT = 20;
+export const HELICOPTER_COST = 500_000;
+
 function flatUpkeep(basis: UpkeepRule['basis'], amount: number): UpkeepRule {
   return { basis, amountByStars: [{ minStars: 1, amount }] };
 }
@@ -473,3 +480,25 @@ export const WEEKLY_UPKEEP: Readonly<Record<UnitType, UpkeepRule>> = {
   'subway-station': flatUpkeep('per-unit', 200_000),
   cathedral: flatUpkeep('per-unit', 0),
 };
+
+export const EVAL_PRICE_ADJUST: Readonly<Record<Exclude<PriceLevel, 'minimum'>, number>> = {
+  high: 30,
+  normal: 0,
+  low: -30,
+};
+export const EVAL_NOISE = 60;
+export const EVAL_GOOD_BELOW = 90;
+export const EVAL_FAIR_BELOW = 180;
+export const EVAL_FAIR_BELOW_FROM_FOUR_STARS = 240;
+
+/** People per direction at one stop of an elevator shaft. */
+export const ELEVATOR_QUEUE_CAPACITY = 40;
+/** Steps a person waits beside a full queue before checking it again (1 game minute). */
+export const FULL_QUEUE_RECHECK_STEPS = 6;
+/** Added to the route cost of a ride whose queue is full. */
+export const FULL_QUEUE_ROUTE_COST = 1_000;
+
+/** Riders a car holds, by shaft type, read from the catalog. */
+export function carCapacity(type: ShaftType): number {
+  return UNIT_CATALOG[SHAFT_UNIT_TYPES[type]].capacity?.people ?? 0;
+}
