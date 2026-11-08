@@ -449,6 +449,12 @@ export const DAILY_INCOME_BRACKETS: Readonly<
 
 export const CINEMA_MOVIE_CHANGE_COST = 300_000;
 
+/** People spec sections 16 and 17. */
+export const MEDICAL_VISIT_CHANCE = 0.1;
+export const MEDICAL_VISIT_MINUTES = 60;
+export const MEDICAL_CENTER_DAILY_VISITS = 100;
+export const PARKING_HOLDER_CHANCE = { office: 0.15, condo: 0.25, suite: 0.5 } as const;
+
 /** Events spec section 15. One game hour. */
 export const DECISION_DEADLINE_STEPS = 360;
 export const CLOSED_DECISIONS_KEPT = 20;
