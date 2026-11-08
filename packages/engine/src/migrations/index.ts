@@ -1,10 +1,12 @@
 import {
   ELEVATOR_QUEUE_CAPACITY,
+  HotelRoomStateSchema,
   isLevel,
   PRICE_LEVELS,
   SHAFT_TYPES,
   UNIT_TYPES,
   type ElevatorCar,
+  type HotelRoom,
   type Lease,
   type QueueEntry,
   type RngState,
@@ -16,6 +18,7 @@ import {
   type UnitId,
 } from '@tower-magnate/shared';
 import { SCHEMA_VERSION } from '../state';
+import { isHotelRoomType, newHotelRoom } from '../units';
 import { isRecord, StateMigrationError } from './errors';
 import { readActiveEvents, readClosedDecisions, readTreasureLevels } from './events';
 import { readGrid } from './grid';
@@ -39,6 +42,7 @@ const MIGRATIONS: readonly Migration[] = [
   addStarRating,
   addHallQueues,
   addStarState,
+  addHotelRooms,
 ];
 
 /** Version 2 records each unit's price level, what was paid for it and when it was placed. */
@@ -132,6 +136,24 @@ function addStarState(raw: Record<string, unknown>): Record<string, unknown> {
   };
 }
 
+/** Version 11 gives each hotel room a state; every room in an older tower is clean and empty. */
+function addHotelRooms(raw: Record<string, unknown>): Record<string, unknown> {
+  if (!isRecord(raw.units)) {
+    return { ...raw, schemaVersion: 11 };
+  }
+  const units: Record<string, unknown> = {};
+  for (const [id, unit] of Object.entries(raw.units)) {
+    units[id] = isRecord(unit) ? { hotel: hotelRoomFor(unit.type), ...unit } : unit;
+  }
+  return { ...raw, schemaVersion: 11, units };
+}
+
+function hotelRoomFor(type: unknown): HotelRoom | null {
+  const isRoom =
+    (UNIT_TYPES as readonly unknown[]).includes(type) && isHotelRoomType(type as never);
+  return isRoom ? newHotelRoom() : null;
+}
+
 function isUint32(value: unknown): value is number {
   return Number.isInteger(value) && (value as number) >= 0 && (value as number) <= 0xffff_ffff;
 }
@@ -162,7 +184,17 @@ function isUnit(value: unknown): value is Unit {
     isNonNegativeInteger(value.paid) &&
     isNonNegativeInteger(value.placedAtStep) &&
     typeof value.used === 'boolean' &&
-    (value.lease === null || isLease(value.lease))
+    (value.lease === null || isLease(value.lease)) &&
+    (value.hotel === null || isHotelRoom(value.hotel))
+  );
+}
+
+function isHotelRoom(value: unknown): value is HotelRoom {
+  return (
+    isRecord(value) &&
+    (HotelRoomStateSchema.options as readonly unknown[]).includes(value.state) &&
+    (value.stayEndStep === null || isNonNegativeInteger(value.stayEndStep)) &&
+    (value.state === 'occupied') === (value.stayEndStep !== null)
   );
 }
 
@@ -199,6 +231,7 @@ function readUnits(raw: unknown): Record<UnitId, Unit> {
       placedAtStep: unit.placedAtStep,
       used: unit.used,
       lease: unit.lease === null ? null : { ...unit.lease },
+      hotel: unit.hotel === null ? null : { ...unit.hotel },
     };
   }
   return units;

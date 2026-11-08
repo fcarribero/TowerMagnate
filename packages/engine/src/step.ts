@@ -10,6 +10,7 @@ import type {
 import { STEPS_PER_DAY } from './clock';
 import { towerCommandHandlers } from './commands';
 import { eventsPhase } from './events';
+import { createHotelSystem } from './hotel';
 import { createLeaseSystem } from './leases';
 import { cloneState } from './state';
 import { ledgerWeekRollHook } from './money';
@@ -143,6 +144,7 @@ const towerEngine = createEngine({
   systems: [
     createScheduler([ledgerWeekRollHook, weeklyUpkeepHook, officeRoutine.planHook]),
     createLeaseSystem(),
+    createHotelSystem(),
     officeRoutine.system,
     createScheduler([starCheckHook]),
     eventsPhase,

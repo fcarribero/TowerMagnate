@@ -146,6 +146,7 @@ describe('buildUnit', () => {
       placedAtStep: 500,
       used: false,
       lease: null,
+      hotel: null,
     });
     expect(state.nextId).toBe(2);
   });
