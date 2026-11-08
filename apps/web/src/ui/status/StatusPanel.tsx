@@ -42,6 +42,8 @@ export interface StatusPanelProps {
   onOpenWindow: (id: StatusWindowId) => void;
   onZoom: (direction: ZoomDirection) => void;
   onLogout: () => void;
+  /** Menu entries shown after the ones the bar could not fit. */
+  extraMenuItems?: readonly MenuItem[];
 }
 
 interface WindowButton {
@@ -80,6 +82,7 @@ export function StatusPanel({
   onOpenWindow,
   onZoom,
   onLogout,
+  extraMenuItems = [],
 }: StatusPanelProps) {
   const status = useStoreSelect(store, selectStatus);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -104,6 +107,8 @@ export function StatusPanel({
     menuItems.push({ id: 'zoomOut', label: t('ui.zoomOut'), onSelect: () => onZoom(-1) });
     menuItems.push({ id: 'zoomIn', label: t('ui.zoomIn'), onSelect: () => onZoom(1) });
   }
+
+  menuItems.push(...extraMenuItems);
 
   return (
     <div class="status-panel" role="toolbar" aria-label={t('ui.statusBar')} ref={panelRef}>
