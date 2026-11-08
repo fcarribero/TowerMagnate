@@ -7,6 +7,7 @@ import {
   type Unit,
 } from '@tower-magnate/shared';
 
+type ShaftInspection = Extract<InspectData, { kind: 'shaft'; status: 'ok' }>;
 type UnitInspection = Extract<InspectData, { kind: 'unit'; status: 'ok' }>;
 type UnitDetails = UnitInspection['details'];
 
@@ -27,6 +28,30 @@ export function inspectUnit(state: TowerState, unitId: string): InspectData {
     to: unit.x + UNIT_CATALOG[unit.type].width - 1,
     details: unitDetails(state, unit),
   };
+}
+
+/** What the elevator window shows for one shaft, or a `gone` answer when there is no such shaft. */
+export function inspectShaft(state: TowerState, shaftId: string): InspectData {
+  const shaft = Object.hasOwn(state.shafts, shaftId) ? state.shafts[shaftId] : undefined;
+  if (!shaft) {
+    return { kind: 'shaft', id: shaftId, status: 'gone' };
+  }
+  const result: ShaftInspection = {
+    kind: 'shaft',
+    id: shaft.id,
+    status: 'ok',
+    type: shaft.type,
+    bottom: shaft.bottom,
+    top: shaft.top,
+    stops: [...shaft.stops],
+    cars: shaft.cars.map((car, index) => ({
+      index,
+      homeLevel: car.homeLevel,
+      load: car.riders.length,
+    })),
+    schedule: shaft.schedule,
+  };
+  return result;
 }
 
 function unitDetails(state: TowerState, unit: Unit): UnitDetails {

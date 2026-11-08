@@ -12,16 +12,29 @@ import type { Stage } from '../render/stage';
 import { bindUnitClicks } from '../render/unitClick';
 import { bindShafts, carSourceOf } from '../render/elevatorSource';
 import { bindStructure, fullWidthTestTower, testTowerFromQuery } from '../render/structureSource';
-import { DEBUG_UNIT_FLOORS, bindUnits, debugUnits, testUnitsFromQuery } from '../render/unitSource';
+import { skyTimeAt, stepAtHour } from '../render/timeOfDay';
+import {
+  bindSky,
+  bindUnits,
+  debugStructure,
+  debugUnits,
+  testUnitsFromQuery,
+} from '../render/unitSource';
 import type { OverlayId } from '../render/overlayColors';
 import { OverlayLegend } from './overlay/OverlayLegend';
 import { OverlaySelector } from './overlay/OverlaySelector';
 import { overlayForKey } from './overlay/overlayModel';
-import { isMapToggleKey, isPlainShortcut } from './keys';
+import { FinanceWindow } from './finance/FinanceWindow';
+import { isFinanceToggleKey, isMapToggleKey, isPlainShortcut } from './keys';
 import { ConnectionOverlay } from './ConnectionOverlay';
 import { BuildFeedback } from './placement/BuildFeedback';
 import { bindBuildInput, type DragLabel } from './placement/bindBuildInput';
+import { bindDemolishInput } from './placement/bindDemolishInput';
+import { DemolishConfirm } from './placement/DemolishConfirm';
+import type { Confirmation } from './placement/demolishPlan';
 import { buildMode, shaftIdAt } from './placement/buildPlan';
+import { IncomeFloaters } from './income/IncomeFloaters';
+import { useIncomeFloaters } from './income/useIncomeFloaters';
 import { useBuildFeedback } from './placement/useBuildFeedback';
 import { LevelRuler } from './LevelRuler';
 import { StageHost } from './StageHost';
@@ -58,6 +71,7 @@ export function App({ onLogout, onRestartTower, onSessionLost }: AppProps) {
   }, []);
   const [stage, setStage] = useState<Stage | null>(null);
   const [mapOpen, setMapOpen] = useState(false);
+  const [financeOpen, setFinanceOpen] = useState(false);
   const [restartStep, setRestartStep] = useState<RestartStep | null>(null);
   const [overlay, setOverlay] = useState<OverlayId>('normal');
   const [tool, setTool] = useState<ToolId>(DEFAULT_TOOL);
@@ -68,6 +82,9 @@ export function App({ onLogout, onRestartTower, onSessionLost }: AppProps) {
     if (id === 'map') {
       setMapOpen((open) => !open);
     }
+    if (id === 'finance') {
+      setFinanceOpen((open) => !open);
+    }
   };
   const { playTrigger, director } = useSfx();
   const commandApi = useMemo(() => {
@@ -77,13 +94,18 @@ export function App({ onLogout, onRestartTower, onSessionLost }: AppProps) {
     });
     connection.onMessage((message) => {
       api.receive(message);
-      if (message.t === 'commandResult') {
+      if (message.t === 'commandResult' || message.t === 'events') {
         director.serverMessage(message);
       }
     });
     return api;
   }, [connection, director]);
   const { toasts, floats, report } = useBuildFeedback();
+  const incomeFloats = useIncomeFloaters(stage, connection);
+  const [pendingDemolition, setPendingDemolition] = useState<{
+    confirmation: Confirmation;
+    proceed: () => void;
+  } | null>(null);
   const [dragLabel, setDragLabel] = useState<DragLabel | null>(null);
   const [mainLobbyHeight, setMainLobbyHeight] = useState<number | null>(null);
   const [pointerLevel, setPointerLevel] = useState<Level | null>(null);
@@ -118,15 +140,18 @@ export function App({ onLogout, onRestartTower, onSessionLost }: AppProps) {
     }
     const testUnitsHour = import.meta.env.DEV ? testUnitsFromQuery(location.search) : null;
     if (testUnitsHour !== null) {
-      stage.showStructure(fullWidthTestTower(DEBUG_UNIT_FLOORS));
+      stage.showStructure(debugStructure());
       stage.showUnits(debugUnits(testUnitsHour, overlay));
+      stage.showSky(skyTimeAt(stepAtHour(testUnitsHour)));
       return;
     }
+    const unbindSky = bindSky(connection.store, (time) => stage.showSky(time));
     const unbindUnits = bindUnits(connection.store, overlay, (input) => stage.showUnits(input));
     const unbindStructure = bindStructure(connection.store, (input) => stage.showStructure(input));
     const unbindShafts = bindShafts(connection.store, (shafts) => stage.showShafts(shafts));
     stage.feedCars(carSourceOf(connection.store));
     return () => {
+      unbindSky();
       unbindUnits();
       unbindStructure();
       unbindShafts();
@@ -136,6 +161,9 @@ export function App({ onLogout, onRestartTower, onSessionLost }: AppProps) {
 
   useEffect(() => {
     if (stage === null) {
+      return;
+    }
+    if (tool === 'bulldozer') {
       return;
     }
     return bindPreview(stage, connection.store, previewToolOf(tool));
@@ -156,6 +184,41 @@ export function App({ onLogout, onRestartTower, onSessionLost }: AppProps) {
       return;
     }
     stage.setPrimaryDragPans(buildMode(tool) === 'none');
+    if (tool === 'bulldozer') {
+      const unbindDemolish = bindDemolishInput({
+        stage,
+        api: commandApi,
+        world: () => {
+          const state = connection.store.current?.latest;
+          return state === undefined
+            ? null
+            : {
+                structure: state.structure,
+                units: state.units.values(),
+                transports: state.transports.values(),
+                shafts: state.shafts.values(),
+                cars: state.cars.values(),
+              };
+        },
+        watchWorld: (listener) =>
+          connection.store.select(
+            (state) => ({
+              structure: state.structure,
+              units: state.units,
+              transports: state.transports,
+              shafts: state.shafts,
+            }),
+            listener,
+          ),
+        confirm: (confirmation, proceed) => setPendingDemolition({ confirmation, proceed }),
+        onOutcome: (outcome, _command, at) => report(outcome, at),
+      });
+      return () => {
+        unbindDemolish();
+        setPendingDemolition(null);
+        stage.setPrimaryDragPans(true);
+      };
+    }
     const unbind = bindBuildInput({
       stage,
       api: commandApi,
@@ -200,6 +263,10 @@ export function App({ onLogout, onRestartTower, onSessionLost }: AppProps) {
         setMapOpen((open) => !open);
         return;
       }
+      if (isFinanceToggleKey(event)) {
+        setFinanceOpen((open) => !open);
+        return;
+      }
       const picked = isPlainShortcut(event) ? overlayForKey(event.key) : null;
       if (picked !== null) {
         setOverlay(picked);
@@ -237,6 +304,7 @@ export function App({ onLogout, onRestartTower, onSessionLost }: AppProps) {
           disabled={!connected}
         />
         <BuildFeedback toasts={toasts} floats={floats} dragLabel={dragLabel} />
+        <IncomeFloaters floaters={incomeFloats} />
         <ConnectionOverlay
           status={connectionStatus}
           protocolMismatch={protocolMismatch}
@@ -247,6 +315,17 @@ export function App({ onLogout, onRestartTower, onSessionLost }: AppProps) {
         )}
         <Toasts commands={connection.commands} />
         <WindowLayer class="ui-windows">
+          <DemolishConfirm
+            confirmation={pendingDemolition?.confirmation ?? null}
+            onConfirm={() => {
+              pendingDemolition?.proceed();
+              setPendingDemolition(null);
+            }}
+            onCancel={() => setPendingDemolition(null)}
+          />
+          {financeOpen && (
+            <FinanceWindow store={connection.store} onClose={() => setFinanceOpen(false)} />
+          )}
           <UnitWindows connection={connection} />
           <ElevatorWindows connection={connection} />
           <RestartTowerDialogs

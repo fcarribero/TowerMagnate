@@ -35,6 +35,22 @@ export interface PersonPool {
   stress: number[];
   /** Picks the person's generated name. */
   nameSeed: number[];
+  /** What the person is doing on a trip: an index into the engine's trek phases, 0 when idle. */
+  trek: number[];
+  /** Level the trip ends on. */
+  trekLevel: number[];
+  /** Column the trip ends on. */
+  trekColumn: number[];
+  /** Stair floors, escalator floors and rides finished on this trip, packed into one number. */
+  trekBudget: number[];
+  /** Number of the stair, escalator or shaft the current leg uses. */
+  legVia: number[];
+  /** Level the current leg ends on. */
+  legLevel: number[];
+  /** Column the person is walking to on the current leg. */
+  legColumn: number[];
+  /** Step at which a flight ends or a full queue is checked again. */
+  legStep: number[];
   /** Ids of followed people, in increasing order, at most MAX_FOLLOWED_PEOPLE. */
   followed: number[];
 }

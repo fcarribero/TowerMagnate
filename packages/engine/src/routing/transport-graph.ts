@@ -68,11 +68,11 @@ export class TransportGraph {
   /** Grows on every rebuild so caches built on the graph know when to drop. */
   revision = 0;
 
-  constructor(state: TowerState, stops: ShaftStops = new Map()) {
+  constructor(state: TowerState, stops: ShaftStops = shaftStopsOf(state)) {
     this.rebuild(state, stops);
   }
 
-  rebuild(state: TowerState, stops: ShaftStops = new Map()): void {
+  rebuild(state: TowerState, stops: ShaftStops = shaftStopsOf(state)): void {
     this.revision += 1;
     this.nodes = [];
     this.links = [];
@@ -208,6 +208,11 @@ export class TransportGraph {
     if (link.kind === 'stairs' || link.kind === 'service') links.forMaids.push(link);
     if (link.kind !== 'service') links.forOthers.push(link);
   }
+}
+
+/** The enabled stops each shaft has in the tower state. */
+export function shaftStopsOf(state: TowerState): ShaftStops {
+  return new Map(Object.values(state.shafts).map((shaft) => [shaft.id, shaft.stops]));
 }
 
 function cellKey(level: Level, x: number): string {

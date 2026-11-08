@@ -1,3 +1,4 @@
+import { toBurnt } from '../burnt.mjs';
 import { PixelCanvas } from '../canvas.mjs';
 import { metrics } from '../metrics.mjs';
 import { toNight } from '../night.mjs';
@@ -349,6 +350,7 @@ function roofCorner(side) {
 // with the lights switched on by `lightUp`.
 const subjects = [
   { subject: 'floor', draw: bareFloor },
+  { subject: 'ruins', draw: () => toBurnt(bareFloor()) },
   { subject: 'lobby-1', draw: () => lobby(1, { column: false }), lightUp: lightPendantLamp },
   { subject: 'lobby-1-column', draw: () => lobby(1, { column: true }) },
   { subject: 'lobby-2', draw: () => lobby(2, { column: false }), lightUp: lightPendantLamp },

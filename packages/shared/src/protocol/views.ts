@@ -38,11 +38,11 @@ import {
 export const MAX_FOLLOWED_PEOPLE = 20;
 const MAX_CAR_LOAD = 42;
 
-/** One character per column: '.' none, 'f' floor, 'l' lobby. */
+/** One character per column: '.' none, 'f' floor, 'l' lobby, 'r' ruins. */
 export const StructureRowSchema = z
   .string()
   .length(TOWER_LAYOUT.siteWidthCells)
-  .regex(/^[.fl]*$/);
+  .regex(/^[.flr]*$/);
 
 const ColumnPositionSchema = z.number().min(0).max(TOWER_LAYOUT.siteWidthCells);
 const DenseLevelPositionSchema = z.number().nonnegative();
@@ -320,6 +320,13 @@ const InspectedUnitFoundSchema = z.object({
   details: InspectedUnitDetailsSchema.nullable(),
 });
 
+/** A shaft that was removed or never existed: sent once, then the server drops the target. */
+const InspectedShaftGoneSchema = z.object({
+  kind: z.literal('shaft'),
+  id: ShaftEntityIdSchema,
+  status: z.literal('gone'),
+});
+
 export const InspectDataSchema = z.union([
   InspectedUnitFoundSchema,
   InspectedUnitGoneSchema,
@@ -334,9 +341,11 @@ export const InspectDataSchema = z.union([
     stress: StressLevelSchema,
     homeUnitId: UnitEntityIdSchema.nullable(),
   }),
+  InspectedShaftGoneSchema,
   z.object({
     kind: z.literal('shaft'),
     id: ShaftEntityIdSchema,
+    status: z.literal('ok'),
     type: ShaftTypeSchema,
     bottom: LevelSchema,
     top: LevelSchema,
