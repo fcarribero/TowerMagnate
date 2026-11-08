@@ -8,6 +8,7 @@ import {
   type FloorPurchase,
   type GridState,
   type Level,
+  type LobbyPurchase,
   type TowerState,
   type UnitType,
 } from '@tower-magnate/shared';
@@ -87,10 +88,38 @@ export function refundConstruction(
   return creditMoney(state, 'construction', object.paid);
 }
 
-function pruneFloorPurchases(state: TowerState): void {
-  state.floorPurchases = state.floorPurchases.filter((purchase) =>
-    isYoung(state, purchase.placedAtStep),
-  );
+function youngPurchases<T extends { placedAtStep: number }>(
+  state: TowerState,
+  purchases: readonly T[],
+): T[] {
+  return purchases.filter((purchase) => isYoung(state, purchase.placedAtStep));
+}
+
+/**
+ * Splits young purchases on `level` around the demolished `columns`. Returns the purchases left
+ * and how many demolished columns each priced purchase covered, as a total in dollars.
+ */
+function takeColumns<T extends ColumnSpan & { level: Level; placedAtStep: number }>(
+  state: TowerState,
+  purchases: readonly T[],
+  level: Level,
+  columns: readonly number[],
+  pricePerColumn: (purchase: T) => number,
+): { kept: T[]; amount: number } {
+  const demolished = new Set(columns);
+  let amount = 0;
+  const kept: T[] = [];
+  for (const purchase of youngPurchases(state, purchases)) {
+    if (purchase.level !== level) {
+      kept.push(purchase);
+      continue;
+    }
+    const cells = columnsBetween(purchase.x0, purchase.x1);
+    const remaining = cells.filter((x) => !demolished.has(x));
+    amount += (cells.length - remaining.length) * pricePerColumn(purchase);
+    for (const run of columnRuns(remaining)) kept.push({ ...purchase, ...run });
+  }
+  return { kept, amount };
 }
 
 /** Remembers floor bought with the floor tool so it can be refunded within the window. */
@@ -100,7 +129,7 @@ export function recordFloorPurchase(
   runs: readonly ColumnSpan[],
   paidPerCell: number,
 ): void {
-  pruneFloorPurchases(state);
+  state.floorPurchases = youngPurchases(state, state.floorPurchases);
   for (const run of runs) {
     state.floorPurchases.push({ level, ...run, paidPerCell, placedAtStep: state.step });
   }
@@ -111,20 +140,42 @@ export function recordFloorPurchase(
  * `columns` and forgets them. Floor that came with a unit has no purchase and refunds nothing.
  */
 export function refundFloor(state: TowerState, level: Level, columns: readonly number[]): number {
-  pruneFloorPurchases(state);
-  const demolished = new Set(columns);
-  let amount = 0;
-  const kept: FloorPurchase[] = [];
-  for (const purchase of state.floorPurchases) {
-    if (purchase.level !== level) {
-      kept.push(purchase);
-      continue;
-    }
-    const cells = columnsBetween(purchase.x0, purchase.x1);
-    const remaining = cells.filter((x) => !demolished.has(x));
-    amount += (cells.length - remaining.length) * purchase.paidPerCell;
-    for (const run of columnRuns(remaining)) kept.push({ ...purchase, ...run });
-  }
+  const { kept, amount } = takeColumns(
+    state,
+    state.floorPurchases,
+    level,
+    columns,
+    (purchase: FloorPurchase) => purchase.paidPerCell,
+  );
   state.floorPurchases = kept;
+  return amount === 0 ? 0 : creditMoney(state, 'construction', amount);
+}
+
+/** Remembers sky lobby columns bought on a lobby level so they can be refunded within the window. */
+export function recordLobbyPurchase(
+  state: TowerState,
+  level: Level,
+  runs: readonly ColumnSpan[],
+  paidPerColumn: number,
+): void {
+  state.lobbyPurchases = youngPurchases(state, state.lobbyPurchases);
+  for (const run of runs) {
+    state.lobbyPurchases.push({ level, ...run, paidPerColumn, placedAtStep: state.step });
+  }
+}
+
+/**
+ * Section 8.4 for sky lobbies: pays back the lobby price of the young demolished columns on the
+ * lobby level `level`. Floor that was under the lobby is not part of it and refunds nothing here.
+ */
+export function refundLobby(state: TowerState, level: Level, columns: readonly number[]): number {
+  const { kept, amount } = takeColumns(
+    state,
+    state.lobbyPurchases,
+    level,
+    columns,
+    (purchase: LobbyPurchase) => purchase.paidPerColumn,
+  );
+  state.lobbyPurchases = kept;
   return amount === 0 ? 0 : creditMoney(state, 'construction', amount);
 }

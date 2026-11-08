@@ -66,7 +66,26 @@ function unitState(unit: UnitSource): string {
   if (variant === 'disconnected' && type === 'parking-space') {
     return variant;
   }
-  return unit.occupied || variant === 'occupied' ? 'occupied' : 'empty';
+  return spriteState(type, unit.occupied || variant === 'occupied');
+}
+
+/** Shops and food venues are drawn open or busy instead of empty or occupied. */
+const SHOP_STATES = { empty: 'open', occupied: 'busy' } as const;
+
+/** Units whose sprites name their states differently from `empty` and `occupied`. */
+const SPRITE_STATES: Partial<Record<UnitType, { empty: string; occupied: string }>> = {
+  'fast-food': SHOP_STATES,
+  restaurant: SHOP_STATES,
+  'retail-shop': SHOP_STATES,
+  cinema: { empty: 'empty', occupied: 'show' },
+  'party-hall': { empty: 'empty', occupied: 'party' },
+  cathedral: { empty: 'empty', occupied: 'wedding' },
+};
+
+/** The sprite state for an empty or occupied unit, such as `open` for an empty fast food. */
+export function spriteState(type: UnitType, occupied: boolean): string {
+  const states = SPRITE_STATES[type] ?? { empty: 'empty', occupied: 'occupied' };
+  return occupied ? states.occupied : states.empty;
 }
 
 export function planTransport(

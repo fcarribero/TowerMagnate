@@ -1,6 +1,7 @@
 import {
   buildEventViews,
   findPerson,
+  isEvaluatedUnit,
   isExpressStop,
   listPeople,
   NO_TRIP,
@@ -40,6 +41,7 @@ import {
   type Viewport,
   type WeekTotals,
 } from '@tower-magnate/shared';
+import { noticeParamTexts } from './notice-params';
 
 const STEPS_PER_WEEK = STEPS_PER_DAY * DAYS_PER_WEEK;
 
@@ -83,12 +85,21 @@ export function buildSnapshot(state: TowerState, viewport: Viewport | null): Sna
     activeEvents: buildEventViews(state),
     notices: state.notices.map(noticeView),
     overlays: {
-      evaluation: {},
+      evaluation: evaluationOverlay(state),
       price: Object.fromEntries(units.map((unit) => [unit.id, unit.price])),
       hotel: {},
     },
     finances: financeSummary(state),
   };
+}
+
+/** The stored grade of every evaluated unit; null shows "Sin evaluar". */
+function evaluationOverlay(state: TowerState): Snapshot['overlays']['evaluation'] {
+  const grades: Snapshot['overlays']['evaluation'] = {};
+  for (const unit of Object.values(state.units)) {
+    if (isEvaluatedUnit(unit)) grades[unit.id] = unit.evaluation;
+  }
+  return grades;
 }
 
 function unitView(unit: TowerState['units'][string], occupied: boolean): UnitView {
@@ -105,7 +116,13 @@ function unitView(unit: TowerState['units'][string], occupied: boolean): UnitVie
 }
 
 function noticeView(notice: Notice): NoticeView {
-  return { id: notice.id, step: notice.step, key: notice.key, unitId: notice.unitId, params: {} };
+  return {
+    id: notice.id,
+    step: notice.step,
+    key: notice.key,
+    unitId: notice.unitId,
+    params: noticeParamTexts(notice.params),
+  };
 }
 
 function transportView(transport: Transport): TransportView {

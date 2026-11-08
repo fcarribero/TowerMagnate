@@ -54,6 +54,6 @@ export function rollBasementTreasure(state: TowerState, gridBefore: GridState): 
   state.treasureLevels.push(level);
   return [
     { type: 'treasureFound', level, amount },
-    { type: 'news', key: 'news.treasure', level },
+    { type: 'news', key: 'news.treasure', level, amount },
   ];
 }

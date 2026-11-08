@@ -174,3 +174,5 @@ export type {
   UserClass,
   WalkableRun,
 } from './routing';
+export { noticeParams } from './notices';
+export { isEvaluatedUnit } from './unit-evaluation';

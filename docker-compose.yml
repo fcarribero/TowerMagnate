@@ -36,6 +36,7 @@ services:
       <<: *node-dev-environment
       PORT: '3000'
       ALLOWED_ORIGINS: http://localhost:${WEB_PORT:-4102}
+      AUTH_ATTEMPTS_PER_MINUTE: ${AUTH_ATTEMPTS_PER_MINUTE:-}
       DATABASE_URL: postgres://${POSTGRES_USER:-tower}:${POSTGRES_PASSWORD:-tower}@postgres:5432/${POSTGRES_DB:-tower_magnate}
     ports:
       - '${SERVER_PORT:-4101}:3000'
@@ -77,6 +78,7 @@ services:
     environment:
       DATABASE_URL: postgres://${POSTGRES_USER:-tower}:${POSTGRES_PASSWORD:-tower}@postgres:5432/${POSTGRES_DB:-tower_magnate}
       MIGRATE_ON_START: 'true'
+      AUTH_ATTEMPTS_PER_MINUTE: ${AUTH_ATTEMPTS_PER_MINUTE:-}
     ports:
       - '${SERVER_PORT:-4101}:3000'
     healthcheck:

@@ -17,8 +17,22 @@ describe('recordNotices', () => {
     const tower = createTower(1);
     recordNotices(tower, [news(40, 'news.officeLeft', 'u3'), news(40, 'news.starsUp')]);
     expect(tower.notices).toEqual([
-      { id: 'n40.0', step: 40, key: 'news.officeLeft', unitId: 'u3' },
-      { id: 'n40.1', step: 40, key: 'news.starsUp', unitId: null },
+      { id: 'n40.0', step: 40, key: 'news.officeLeft', unitId: 'u3', params: {} },
+      { id: 'n40.1', step: 40, key: 'news.starsUp', unitId: null, params: {} },
+    ]);
+  });
+
+  it('keeps the level, amount and star count a news text fills in', () => {
+    const tower = createTower(1);
+    recordNotices(tower, [
+      { type: 'news', step: 7, key: 'news.bombExploded', level: 7 },
+      { type: 'news', step: 7, commandId: 'c1', key: 'news.treasure', level: -3, amount: 50_000 },
+      { type: 'news', step: 7, key: 'news.starsUp', n: 3 },
+    ]);
+    expect(tower.notices.map((notice) => notice.params)).toEqual([
+      { level: 7 },
+      { level: -3, amount: 50_000 },
+      { n: 3 },
     ]);
   });
 
@@ -29,7 +43,13 @@ describe('recordNotices', () => {
       { type: 'leaseSigned', step: 9, unitId: 'u1' },
     ]);
     expect(tower.notices).toEqual([
-      { id: 'n9.0', step: 9, key: 'news.decisionDefault', unitId: null },
+      {
+        id: 'n9.0',
+        step: 9,
+        key: 'news.decisionDefault',
+        unitId: null,
+        params: { option: 'burn' },
+      },
     ]);
   });
 
@@ -49,7 +69,13 @@ describe('notices from a running tower', () => {
     openFire({ state: tower, events: [] }, 4);
     const { state } = step(tower, [], 400);
     expect(state.notices).toEqual([
-      { id: 'n360.0', step: 360, key: 'news.decisionDefault', unitId: null },
+      {
+        id: 'n360.0',
+        step: 360,
+        key: 'news.decisionDefault',
+        unitId: null,
+        params: { option: 'burn' },
+      },
     ]);
   });
 });

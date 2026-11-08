@@ -108,6 +108,13 @@ describe('inspecting a unit', () => {
     });
   });
 
+  it('shows the stored grade of the unit', () => {
+    const { state, id } = towerWith('retail-shop');
+    unitOf(state).evaluation = 'poor';
+
+    expect(inspectUnit(state, id)).toMatchObject({ details: { evaluation: 'poor' } });
+  });
+
   it('answers a condo for sale and a sold one', () => {
     const { state, id } = towerWith('condo');
     const forSale = inspectUnit(state, id);
@@ -132,7 +139,12 @@ describe('inspecting a unit', () => {
       details: { group: 'hotel', state: 'clean', guests: 0, capacity: 2, checkoutStep: null },
     });
 
-    unitOf(state).hotel = { state: 'occupied', stayEndStep: 5000 };
+    unitOf(state).hotel = {
+      state: 'occupied',
+      stayEndStep: 5000,
+      checkInStep: null,
+      paidLevel: null,
+    };
     expect(inspectUnit(state, id)).toMatchObject({
       details: { state: 'occupied', checkoutStep: 5000 },
     });
@@ -140,7 +152,7 @@ describe('inspecting a unit', () => {
 
   it('hides the checkout of a room that is not occupied', () => {
     const { state, id } = towerWith('suite');
-    unitOf(state).hotel = { state: 'dirty', stayEndStep: 5000 };
+    unitOf(state).hotel = { state: 'dirty', stayEndStep: 5000, checkInStep: null, paidLevel: null };
 
     expect(inspectUnit(state, id)).toMatchObject({
       details: { state: 'dirty', checkoutStep: null },
