@@ -368,16 +368,19 @@ describe('migrateState transports', () => {
   it('loads a frozen version 5 save', () => {
     const tower = migrateState(JSON.parse(VERSION_5_SAVE));
     expect(tower.transports).toEqual({
-      t2: { id: 't2', type: 'escalator', x: 20, level: 2 },
+      t2: { id: 't2', type: 'escalator', x: 20, level: 2, paid: 0, placedAtStep: 0 },
     });
   });
 
   it('refuses a malformed transport', () => {
+    const purchase = { paid: 5_000, placedAtStep: 0 };
     const bad = [
-      { id: 't1', type: 'ramp', x: 0, level: 2 },
-      { id: 't1', type: 'stairs', x: 400, level: 2 },
-      { id: 't1', type: 'stairs', x: 0, level: 0 },
-      { id: 't9', type: 'stairs', x: 0, level: 2 },
+      { id: 't1', type: 'ramp', x: 0, level: 2, ...purchase },
+      { id: 't1', type: 'stairs', x: 400, level: 2, ...purchase },
+      { id: 't1', type: 'stairs', x: 0, level: 0, ...purchase },
+      { id: 't9', type: 'stairs', x: 0, level: 2, ...purchase },
+      { id: 't1', type: 'stairs', x: 0, level: 2, paid: -1, placedAtStep: 0 },
+      { id: 't1', type: 'stairs', x: 0, level: 2 },
     ];
     for (const transport of bad) {
       const saved = JSON.parse(JSON.stringify(createTower(5)));
@@ -546,5 +549,56 @@ describe('migrateState medical day', () => {
       migrateState({ ...saved, medicalDay: { day: 2, visits: { '4': -1 }, noticed: [] } }),
     ).toThrow(StateMigrationError);
     expect(() => migrateState({ ...saved, medicalDay: null })).toThrow(StateMigrationError);
+  });
+});
+
+describe('migrateState construction refund records', () => {
+  it('gives a version 22 save unrefundable transports and no floor purchases', () => {
+    const old = JSON.parse(JSON.stringify(createTower(5))) as Record<string, unknown>;
+    delete old.floorPurchases;
+    old.schemaVersion = 22;
+    old.transports = { t2: { id: 't2', type: 'stairs', x: 10, level: 3 } };
+    const tower = migrateState(old);
+    expect(tower.transports.t2).toEqual({
+      id: 't2',
+      type: 'stairs',
+      x: 10,
+      level: 3,
+      paid: 0,
+      placedAtStep: 0,
+    });
+    expect(tower.floorPurchases).toEqual([]);
+  });
+
+  it('keeps floor purchases and refuses a malformed one', () => {
+    const saved = JSON.parse(JSON.stringify(createTower(5))) as Record<string, unknown>;
+    const floorPurchases = [{ level: 4, x0: 2, x1: 9, paidPerCell: 500, placedAtStep: 30 }];
+    expect(migrateState({ ...saved, floorPurchases }).floorPurchases).toEqual(floorPurchases);
+    const backwards = [{ level: 4, x0: 9, x1: 2, paidPerCell: 500, placedAtStep: 30 }];
+    expect(() => migrateState({ ...saved, floorPurchases: backwards })).toThrow(
+      StateMigrationError,
+    );
+    expect(() => migrateState({ ...saved, floorPurchases: null })).toThrow(StateMigrationError);
+  });
+});
+
+describe('migrateState wedding', () => {
+  it('gives a version 23 save no wedding under way', () => {
+    const old = JSON.parse(JSON.stringify(createTower(5))) as Record<string, unknown>;
+    delete old.wedding;
+    old.schemaVersion = 23;
+    expect(migrateState(old).wedding).toBeNull();
+  });
+
+  it('keeps an attempt and refuses a malformed one', () => {
+    const saved = JSON.parse(JSON.stringify(createTower(5))) as Record<string, unknown>;
+    const wedding = { day: 5, cathedral: 'u3', arrivals: [46_000], inside: 12, outcome: 'pending' };
+    expect(migrateState({ ...saved, wedding }).wedding).toEqual(wedding);
+    expect(() => migrateState({ ...saved, wedding: { ...wedding, outcome: 'won' } })).toThrow(
+      StateMigrationError,
+    );
+    expect(() => migrateState({ ...saved, wedding: { ...wedding, inside: -1 } })).toThrow(
+      StateMigrationError,
+    );
   });
 });
