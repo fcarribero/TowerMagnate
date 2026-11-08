@@ -115,5 +115,5 @@ jobs:
           name: e2e-prod-traces
           path: |
             e2e/test-results
-            playwright-report
+            e2e/playwright-report
           retention-days: 7
