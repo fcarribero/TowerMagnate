@@ -93,6 +93,12 @@ describe('removeCar', () => {
   it('works while in debt, like any demolition', () => {
     const { state } = accept(towerWithShafts(), addCar('s1', 6));
     state.money = -100;
+    state.step += 360;
     expect(accept(state, removeCar('s1', 1)).spent).toBe(0);
+  });
+
+  it('refunds a car removed within an hour of placement', () => {
+    const { state } = accept(towerWithShafts(), addCar('s1', 6));
+    expect(accept(state, removeCar('s1', 1)).spent).toBe(-80_000);
   });
 });
