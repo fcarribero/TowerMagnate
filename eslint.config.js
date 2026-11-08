@@ -92,5 +92,12 @@ export default tseslint.config(
       ],
     },
   },
+  {
+    files: ['packages/engine/src/scenarios/transport-performance.test.ts'],
+    rules: {
+      'no-restricted-globals': 'off',
+      'no-restricted-imports': 'off',
+    },
+  },
   prettier,
 );

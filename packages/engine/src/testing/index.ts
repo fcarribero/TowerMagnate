@@ -13,4 +13,16 @@ export type {
   TowerPlan,
 } from './tower-builder';
 export { addFlight, hundredFloorTower } from './hundred-floor-tower';
-export { fastestRunMillis, medianRunMillis } from './fastest-run';
+export { fastestRunMillis, medianOf, medianRunMillis } from './fastest-run';
+export {
+  MAX_AVERAGE_MS,
+  MAX_P99_MS,
+  MAX_SPREAD,
+  SYSTEM_NAMES,
+  runWeekday,
+  sixtyFloorTower,
+  spreadOf,
+  timeThreeRuns,
+  weekdayReport,
+} from './transport-scenario';
+export type { WeekdayRun } from './transport-scenario';
