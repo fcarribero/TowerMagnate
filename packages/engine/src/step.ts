@@ -19,6 +19,7 @@ import { recordNotices } from './notices';
 import { cloneState } from './state';
 import { ledgerWeekRollHook } from './money';
 import { createOfficeRoutine } from './office-routine';
+import { createResidentRoutine } from './resident-routine';
 import { createProspectDemand } from './prospects';
 import { createScheduler } from './scheduler';
 import { cancelTrek, createTrekSystem, isOnTrek, plannedTripSteps } from './trek';
@@ -192,6 +193,11 @@ const officeRoutine = createOfficeRoutine(
   { treks: true },
 );
 
+const residentRoutine = createResidentRoutine(
+  (_state, from, to, context) => plannedTripSteps(context, from, to),
+  { treks: true },
+);
+
 const prospects = createProspectDemand();
 
 const nightReset = createNightReset(
@@ -205,6 +211,7 @@ export const towerSystems: readonly SimulationSystem[] = [
     nightReset,
     weeklyUpkeepHook,
     officeRoutine.planHook,
+    residentRoutine.planHook,
     ...prospects.rollHooks,
   ]),
   createLeaseSystem(),
@@ -213,6 +220,7 @@ export const towerSystems: readonly SimulationSystem[] = [
   createTrekSystem(),
   prospects.system,
   officeRoutine.system,
+  residentRoutine.system,
   createElevatorSystem(),
   createScheduler([starCheckHook]),
   eventsPhase,
