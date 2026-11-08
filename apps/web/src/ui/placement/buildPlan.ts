@@ -13,7 +13,7 @@ import type { ToolId } from '../toolbar/toolbarModel';
 type PlaceableUnit = Extract<Command, { type: 'buildUnit' }>['unitType'];
 type LobbyHeight = Extract<Command, { type: 'buildLobby' }>['height'];
 
-export type BuildMode = 'drag' | 'shaft' | 'car' | 'click' | 'none';
+export type BuildMode = 'drag' | 'shaft' | 'car' | 'click' | 'demolish' | 'none';
 
 const TRANSPORT_TOOLS: readonly string[] = ['stairs', 'escalator'];
 export function shaftTypeOfTool(tool: ToolId): ShaftType | null {
@@ -32,7 +32,10 @@ export function buildMode(tool: ToolId): BuildMode {
   if (tool === 'car') {
     return 'car';
   }
-  if (tool === 'inspect' || tool === 'bulldozer') {
+  if (tool === 'bulldozer') {
+    return 'demolish';
+  }
+  if (tool === 'inspect') {
     return 'none';
   }
   return Object.hasOwn(UNIT_CATALOG, tool) ? 'click' : 'none';

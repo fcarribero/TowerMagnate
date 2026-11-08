@@ -25,13 +25,13 @@ import { levelTop } from './levels';
 import type { Zoom } from './metrics';
 import { ElevatorLayer } from './elevatorLayer';
 import { PeopleLayer } from './peopleLayer';
-import { createSkyRows } from './skyRows';
+import { SKY_BACKGROUND, createSkyRows, setSkyTime } from './skyRows';
+import type { SkyTime } from './timeOfDay';
 import type { SpriteRegistry } from './spriteRegistry';
 import { StructureLayer } from './structureLayer';
 import type { StructureInput } from './structureRows';
 import { UnitLayer, type UnitsInput } from './unitLayer';
 
-const SKY_COLOR = '#6f9fd8';
 const DEFAULT_ZOOM: Zoom = 2;
 const STATS_INTERVAL_MS = 500;
 
@@ -84,11 +84,13 @@ export interface Stage {
   /** Draws the placement ghost, snapped to tiles; null removes it. */
   showGhost(ghost: GhostInput | null): void;
   /** Frames a footprint, such as the unit under the pointer; null removes the frame. */
-  showHighlight(highlight: Footprint | null): void;
+  showHighlight(highlight: Footprint | null, color?: number): void;
   /** CSS pixels per canvas device pixel, to place DOM overlays over the canvas. */
   cssPerDevicePixel(): number;
   /** Draws the tower structure; later calls redraw only the levels that changed. */
   showStructure(input: StructureInput): void;
+  /** Draws the sky of the given time of day behind the tower. */
+  showSky(time: SkyTime): void;
   /** Draws units and transports; later calls change only what differs. */
   showUnits(input: UnitsInput): void;
   /** Draws elevator shafts; later calls change only the shafts that differ. */
@@ -107,7 +109,7 @@ export async function mountStage(host: HTMLElement, options: StageOptions = {}):
 
   const app = new Application();
   await app.init({
-    background: SKY_COLOR,
+    background: SKY_BACKGROUND.day,
     antialias: false,
     resolution: 1,
     autoDensity: false,
@@ -119,8 +121,9 @@ export async function mountStage(host: HTMLElement, options: StageOptions = {}):
   app.canvas.style.touchAction = 'none';
 
   const world = new Container();
+  const skyRows = createSkyRows(sprites);
   const sky = new CulledRows<TilingSprite>();
-  for (const [index, row] of createSkyRows(sprites)) {
+  for (const [index, row] of skyRows) {
     row.y = levelTop(index);
     sky.set(index, row);
     world.addChild(row);
@@ -324,12 +327,16 @@ export async function mountStage(host: HTMLElement, options: StageOptions = {}):
     showGhost(input) {
       ghost.showGhost(input);
     },
-    showHighlight(input) {
-      ghost.showHighlight(input);
+    showHighlight(input, color) {
+      ghost.showHighlight(input, color);
     },
     cssPerDevicePixel,
     showStructure(input) {
       structure.update(input);
+    },
+    showSky(time) {
+      setSkyTime(skyRows, sprites, time);
+      app.renderer.background.color = SKY_BACKGROUND[time];
     },
     showUnits(input) {
       units.update(input);

@@ -13,5 +13,7 @@ describe('skyBandForLevel', () => {
 
   it('names a day sky sprite', () => {
     expect(skySpriteId(50)).toBe('sky/day/middle');
+    expect(skySpriteId(50, 'dusk')).toBe('sky/dusk/middle');
+    expect(skySpriteId(1, 'night')).toBe('sky/night/horizon');
   });
 });
