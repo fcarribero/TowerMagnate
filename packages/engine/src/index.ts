@@ -26,6 +26,8 @@ export {
   spanError,
   structureAt,
 } from './grid';
+export { personStress, stressBand, venueStressFactor } from './person-stress';
+export type { RecordedTrip, StressBand } from './person-stress';
 export { isNoisy } from './noise';
 export { isExpressStop, shaftLevels } from './commands/shafts';
 export { evaluateUnit, gradeOfScore, unitScore } from './evaluation';

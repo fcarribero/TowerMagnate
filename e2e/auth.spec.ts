@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { openGame, sendCommand } from './support/game';
 import { registerUser, uniqueUser } from './support/users';
 
 const canvas = (page: Page) => page.locator('#app canvas');
@@ -62,4 +63,56 @@ test('a taken username and bad fields get messages under their fields', async ({
   await page.getByLabel('Repetir contraseña').fill('otra-clave-1');
   await page.getByRole('button', { name: 'Crear cuenta' }).click();
   await expect(page.getByText('Ese usuario ya existe. Probá con otro.')).toBeVisible();
+});
+
+test('a short username and a short password get their messages and stay on the form', async ({
+  page,
+}) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: '¿No tenés cuenta? Creá una' }).click();
+
+  const username = page.getByLabel('Usuario');
+  const password = page.getByLabel('Contraseña', { exact: true });
+  await username.fill('ab');
+  await password.fill('abcdefg');
+  await page.getByLabel('Repetir contraseña').fill('abcdefg');
+  await page.getByRole('button', { name: 'Crear cuenta' }).click();
+
+  await expect(username).toHaveAttribute('aria-invalid', 'true');
+  await expect(username).toHaveAccessibleDescription(
+    /El usuario lleva de 3 a 20 caracteres: letras minúsculas, números o _\./,
+  );
+  await expect(password).toHaveAttribute('aria-invalid', 'true');
+  await expect(password).toHaveAccessibleDescription(/La contraseña lleva al menos 8 caracteres\./);
+  await expect(page.getByLabel('Repetir contraseña')).toHaveAttribute('aria-invalid', 'false');
+  await expect(canvas(page)).toHaveCount(0);
+});
+
+test('Empezar una torre nueva asks twice and starts again on the first day with the starting money', async ({
+  page,
+}) => {
+  await openGame(page);
+  const bar = page.getByRole('toolbar');
+  await expect(bar).toContainText('Lunes 1 de enero, año 1');
+  await expect(bar).toContainText('$2.000.000');
+
+  const built = await sendCommand(page, { type: 'buildLobby', level: 1, x0: 0, x1: 9, height: 1 });
+  expect(built).toMatchObject({ ok: true });
+  await expect(bar).not.toContainText('$2.000.000');
+
+  await page.getByRole('button', { name: 'Menú' }).click();
+  await page.getByRole('menuitem', { name: 'Empezar una torre nueva' }).click();
+  await page.getByRole('button', { name: 'Cancelar' }).click();
+  await expect(page.getByText('¿Estás seguro?')).toHaveCount(0);
+
+  await page.getByRole('button', { name: 'Menú' }).click();
+  await page.getByRole('menuitem', { name: 'Empezar una torre nueva' }).click();
+  await page.getByRole('button', { name: 'Demoler y empezar' }).click();
+  await expect(page.getByText('¿Estás seguro?')).toBeVisible();
+  await page.getByRole('button', { name: 'Sí, demoler todo' }).click();
+
+  await expect(page.getByText('¿Estás seguro?')).toHaveCount(0);
+  await expect(bar).toContainText('Lunes 1 de enero, año 1');
+  await expect(bar).toContainText('$2.000.000');
+  await expect(canvas(page)).toBeVisible();
 });
