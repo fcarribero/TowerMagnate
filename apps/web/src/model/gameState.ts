@@ -135,7 +135,7 @@ export function applyDelta(state: GameState, delta: Delta): GameState {
     people: byId(delta.people.map(unpackPerson)),
     followed: delta.followed ?? state.followed,
     activeEvents: delta.activeEvents ?? state.activeEvents,
-    notices: state.notices,
+    notices: delta.notices ?? state.notices,
     overlays: delta.overlays ? { ...state.overlays, ...delta.overlays } : state.overlays,
     finances: delta.finances ?? state.finances,
   };

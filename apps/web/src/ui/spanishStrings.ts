@@ -155,6 +155,7 @@ export const SPANISH_STRINGS = {
   'window.map.title': 'Mapa de la torre',
   'window.followed.title': 'Personas seguidas ({n} de 20)',
   'window.notices.title': 'Avisos',
+  'window.notices.empty': 'Todavía no hay avisos.',
   'window.stars.title': 'Estrellas',
   'window.unit.name': 'Nombre',
   'window.unit.location': 'Ubicación',
@@ -234,6 +235,11 @@ export const SPANISH_STRINGS = {
   'window.elevator.responseValue': '{n} pisos',
   'window.elevator.copyToWeekend': 'Copiar a fin de semana',
   'window.elevator.copyToWeekdays': 'Copiar a días hábiles',
+  'window.elevator.bandNow': 'En curso',
+  'window.elevator.seconds': 's',
+  'window.elevator.floors': 'pisos',
+  'window.elevator.dwellInvalid': 'La espera va de 0 a 60 s, de 10 en 10.',
+  'window.elevator.responseInvalid': 'La respuesta va de 1 a 99 pisos.',
   'window.finance.balance': 'Saldo',
   'window.finance.weekOf': 'Semana del lunes {day} de {month}',
   'window.finance.thisWeek': 'Esta semana',
@@ -440,9 +446,13 @@ export const SPANISH_STRINGS = {
   'dialog.bomb.title': 'Amenaza de bomba',
   'dialog.bomb.body':
     'Alguien llamó para avisar que dejó una bomba en la torre. Pide {ransom} para decir dónde está. Si no pagás, seguridad la va a buscar. Si no la encuentra antes de las 13:00, explota.',
+  'dialog.bomb.bodyUnpriced':
+    'Alguien llamó para avisar que dejó una bomba en la torre. Pide dinero para decir dónde está. Si no pagás, seguridad la va a buscar. Si no la encuentra antes de las 13:00, explota.',
   'dialog.fire.title': 'Incendio',
   'dialog.fire.body':
     'Hay un incendio en el piso {level}. Un helicóptero lo puede apagar por $500.000. Si no lo llamás, seguridad va a tratar de contenerlo.',
+  'dialog.fire.bodyUnlocated':
+    'Hay un incendio en la torre. Un helicóptero lo puede apagar por $500.000. Si no lo llamás, seguridad va a tratar de contenerlo.',
   'dialog.starsUp.title': '¡{n} estrellas!',
   'dialog.starsUp.body': 'La torre llegó a {n} estrellas. Ahora podés construir: {units}.',
   'dialog.towerRank.title': '¡Rango Torre!',
@@ -468,6 +478,7 @@ export const SPANISH_STRINGS = {
   'dialog.deadlineToday': 'Respondé antes de las {time}',
   'dialog.deadlineOtherDay': 'Respondé antes del {weekday} {time}',
   'dialog.bomb.pay': 'Pagar {ransom}',
+  'dialog.bomb.payUnpriced': 'Pagar',
   'dialog.bomb.refuse': 'No pagar',
   'dialog.fire.helicopter': 'Llamar al helicóptero ($500.000)',
   'dialog.fire.burn': 'No llamar',

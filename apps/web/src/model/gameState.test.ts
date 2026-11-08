@@ -30,6 +30,12 @@ describe('applyDelta', () => {
     expect(next.finances).toBe(start.finances);
   });
 
+  it('takes the full notice list from a delta that carries one', () => {
+    const notices = [{ id: 'n1.0', step: 1, key: 'news.x', unitId: 'u12', params: {} }];
+    expect(applyDelta(start, delta({ notices })).notices).toEqual(notices);
+    expect(applyDelta(start, delta()).notices).toBe(start.notices);
+  });
+
   it('replaces optional fields that are present', () => {
     const finances = { ...snapshot.finances, lastWeek: snapshot.finances.thisWeek };
     const starRequirements = [{ requirement: 'security', met: false }] as const;

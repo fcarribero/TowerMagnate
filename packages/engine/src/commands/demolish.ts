@@ -46,7 +46,7 @@ function isMainLobbyRow(grid: GridState, level: Level, x: number): boolean {
   return lobbyRows(TOWER_LAYOUT.mainLobbyFloor, height).includes(level);
 }
 
-function unitLevels(unit: Unit): Level[] {
+export function unitLevels(unit: Unit): Level[] {
   const definition = UNIT_CATALOG[unit.type];
   const floors = definition.height.kind === 'fixed' ? definition.height.floors : 1;
   const levels: Level[] = [unit.level];
