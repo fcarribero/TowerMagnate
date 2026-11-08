@@ -63,6 +63,14 @@ export function createPersonPool(): PersonPool {
     trip: [],
     dueStep: [],
     stress: [],
+    trek: [],
+    trekLevel: [],
+    trekColumn: [],
+    trekBudget: [],
+    legVia: [],
+    legLevel: [],
+    legColumn: [],
+    legStep: [],
     nameSeed: [],
     followed: [],
   };
@@ -80,6 +88,14 @@ export function clonePersonPool(pool: PersonPool): PersonPool {
     trip: pool.trip.slice(),
     dueStep: pool.dueStep.slice(),
     stress: pool.stress.slice(),
+    trek: pool.trek.slice(),
+    trekLevel: pool.trekLevel.slice(),
+    trekColumn: pool.trekColumn.slice(),
+    trekBudget: pool.trekBudget.slice(),
+    legVia: pool.legVia.slice(),
+    legLevel: pool.legLevel.slice(),
+    legColumn: pool.legColumn.slice(),
+    legStep: pool.legStep.slice(),
     nameSeed: pool.nameSeed.slice(),
     followed: pool.followed.slice(),
   };
@@ -126,6 +142,14 @@ export function addPerson(state: TowerState, person: NewPerson): number {
   pool.trip.push(NO_TRIP);
   pool.dueStep.push(NOTHING_DUE);
   pool.stress.push(0);
+  pool.trek.push(0);
+  pool.trekLevel.push(0);
+  pool.trekColumn.push(0);
+  pool.trekBudget.push(0);
+  pool.legVia.push(0);
+  pool.legLevel.push(0);
+  pool.legColumn.push(0);
+  pool.legStep.push(0);
   pool.nameSeed.push(nextUint32(state.rng));
   pool.nextId += 1;
   return id;
@@ -275,6 +299,15 @@ export function listPeople(pool: PersonPool): PersonView[] {
   return people;
 }
 
+/** How many people belong to the unit. One pass over a number array, no allocation. */
+export function countPeopleOfUnit(pool: PersonPool, unitId: UnitId): number {
+  const homeUnit = parseUnitNumber(unitId);
+  if (homeUnit === null) return 0;
+  let count = 0;
+  for (const home of pool.homeUnit) if (home === homeUnit) count++;
+  return count;
+}
+
 /** How many people of each kind are in the pool. Kinds with nobody are left out. */
 export function countPeopleByKind(pool: PersonPool): Partial<Record<PersonKind, number>> {
   const counts: Partial<Record<PersonKind, number>> = {};
@@ -342,6 +375,14 @@ function poolArrays(pool: PersonPool): number[][] {
     pool.trip,
     pool.dueStep,
     pool.stress,
+    pool.trek,
+    pool.trekLevel,
+    pool.trekColumn,
+    pool.trekBudget,
+    pool.legVia,
+    pool.legLevel,
+    pool.legColumn,
+    pool.legStep,
     pool.nameSeed,
   ];
 }

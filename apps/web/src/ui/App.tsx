@@ -9,14 +9,16 @@ import { useGameConnection } from '../net/useGameConnection';
 import { placeholderTowerContent } from '../render/placeholderTower';
 import { bindPreview, previewToolOf } from '../render/placementSource';
 import type { Stage } from '../render/stage';
+import { bindUnitClicks } from '../render/unitClick';
 import { bindShafts, carSourceOf } from '../render/elevatorSource';
 import { bindStructure, fullWidthTestTower, testTowerFromQuery } from '../render/structureSource';
-import { DEBUG_UNIT_FLOORS, bindUnits, debugUnits, testUnitsFromQuery } from '../render/unitSource';
+import { bindUnits, debugStructure, debugUnits, testUnitsFromQuery } from '../render/unitSource';
 import type { OverlayId } from '../render/overlayColors';
 import { OverlayLegend } from './overlay/OverlayLegend';
 import { OverlaySelector } from './overlay/OverlaySelector';
 import { overlayForKey } from './overlay/overlayModel';
-import { isMapToggleKey, isPlainShortcut } from './keys';
+import { FinanceWindow } from './finance/FinanceWindow';
+import { isFinanceToggleKey, isMapToggleKey, isPlainShortcut } from './keys';
 import { ConnectionOverlay } from './ConnectionOverlay';
 import { BuildFeedback } from './placement/BuildFeedback';
 import { bindBuildInput, type DragLabel } from './placement/bindBuildInput';
@@ -32,6 +34,8 @@ import { t } from './strings';
 import { Toolbar } from './toolbar/Toolbar';
 import { DEFAULT_LOBBY_HEIGHT, DEFAULT_TOOL, type ToolId } from './toolbar/toolbarModel';
 import { TowerMapWindow } from './TowerMapWindow';
+import { Toasts } from './toast/Toasts';
+import { UnitWindows } from './unit/UnitWindows';
 
 export interface AppProps {
   onLogout: () => void;
@@ -54,6 +58,7 @@ export function App({ onLogout, onRestartTower, onSessionLost }: AppProps) {
   }, []);
   const [stage, setStage] = useState<Stage | null>(null);
   const [mapOpen, setMapOpen] = useState(false);
+  const [financeOpen, setFinanceOpen] = useState(false);
   const [restartStep, setRestartStep] = useState<RestartStep | null>(null);
   const [overlay, setOverlay] = useState<OverlayId>('normal');
   const [tool, setTool] = useState<ToolId>(DEFAULT_TOOL);
@@ -63,6 +68,9 @@ export function App({ onLogout, onRestartTower, onSessionLost }: AppProps) {
   const onOpenWindow = (id: StatusWindowId): void => {
     if (id === 'map') {
       setMapOpen((open) => !open);
+    }
+    if (id === 'finance') {
+      setFinanceOpen((open) => !open);
     }
   };
   const { playTrigger, director } = useSfx();
@@ -114,7 +122,7 @@ export function App({ onLogout, onRestartTower, onSessionLost }: AppProps) {
     }
     const testUnitsHour = import.meta.env.DEV ? testUnitsFromQuery(location.search) : null;
     if (testUnitsHour !== null) {
-      stage.showStructure(fullWidthTestTower(DEBUG_UNIT_FLOORS));
+      stage.showStructure(debugStructure());
       stage.showUnits(debugUnits(testUnitsHour, overlay));
       return;
     }
@@ -135,6 +143,15 @@ export function App({ onLogout, onRestartTower, onSessionLost }: AppProps) {
       return;
     }
     return bindPreview(stage, connection.store, previewToolOf(tool));
+  }, [stage, connection, tool]);
+
+  useEffect(() => {
+    if (stage === null || tool !== 'inspect') {
+      return;
+    }
+    return bindUnitClicks(stage, connection.store, (unitId) =>
+      connection.inspect.requestUnitWindow(unitId),
+    );
   }, [stage, connection, tool]);
 
   useEffect(() => {
@@ -186,6 +203,10 @@ export function App({ onLogout, onRestartTower, onSessionLost }: AppProps) {
         setMapOpen((open) => !open);
         return;
       }
+      if (isFinanceToggleKey(event)) {
+        setFinanceOpen((open) => !open);
+        return;
+      }
       const picked = isPlainShortcut(event) ? overlayForKey(event.key) : null;
       if (picked !== null) {
         setOverlay(picked);
@@ -231,7 +252,12 @@ export function App({ onLogout, onRestartTower, onSessionLost }: AppProps) {
         {mapOpen && stage && (
           <TowerMapWindow content={content} stage={stage} onClose={() => setMapOpen(false)} />
         )}
+        <Toasts commands={connection.commands} />
         <WindowLayer class="ui-windows">
+          {financeOpen && (
+            <FinanceWindow store={connection.store} onClose={() => setFinanceOpen(false)} />
+          )}
+          <UnitWindows connection={connection} />
           <RestartTowerDialogs
             step={restartStep}
             onStep={setRestartStep}

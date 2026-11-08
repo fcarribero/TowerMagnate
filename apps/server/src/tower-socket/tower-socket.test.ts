@@ -1,4 +1,4 @@
-import { setStructure, structureAt } from '@tower-magnate/engine';
+import { newUnit, setStructure, structureAt } from '@tower-magnate/engine';
 import {
   clientMessage,
   ServerMessageSchema,
@@ -148,6 +148,71 @@ describe('tower socket against postgres', () => {
     expect(delta.p.cars).toEqual([]);
   });
 
+  it('sends inspect data for a unit and again right after its price changes', async () => {
+    const client = await connect(player.cookie);
+    client.hello();
+    await client.next('snapshot');
+    const state = app.towerRunner.stateOf(player.towerId);
+    if (!state) {
+      throw new Error('Tower is not running');
+    }
+    state.units.u900 = newUnit('u900', 'office', 10, 2);
+
+    client.sendRaw(
+      JSON.stringify(clientMessage('inspect', { target: { kind: 'unit', id: 'u900' } })),
+    );
+    const first = await client.next('inspect');
+    client.sendRaw(
+      JSON.stringify(
+        clientMessage('command', {
+          id: 'c1',
+          command: { type: 'setPrice', unitId: 'u900', price: 'low' },
+        }),
+      ),
+    );
+    const changed = await client.next('inspect');
+
+    expect(first.p).toMatchObject({ id: 'u900', status: 'ok', details: { price: 'normal' } });
+    expect(changed.p).toMatchObject({ id: 'u900', status: 'ok', details: { price: 'low' } });
+  });
+
+  it('answers gone for an unknown unit and then stops inspecting', async () => {
+    const client = await connect(player.cookie);
+    client.hello();
+    await client.next('snapshot');
+
+    client.sendRaw(
+      JSON.stringify(clientMessage('inspect', { target: { kind: 'unit', id: 'u777' } })),
+    );
+    const gone = await client.next('inspect');
+    await new Promise((resolve) => setTimeout(resolve, 1300));
+
+    expect(gone.p).toEqual({ kind: 'unit', id: 'u777', status: 'gone' });
+    expect(client.received.filter((message) => message.t === 'inspect')).toEqual([]);
+  });
+
+  it('drops the inspect target when the client says hello again', async () => {
+    const client = await connect(player.cookie);
+    client.hello();
+    await client.next('snapshot');
+    const state = app.towerRunner.stateOf(player.towerId);
+    if (!state) {
+      throw new Error('Tower is not running');
+    }
+    state.units.u901 = newUnit('u901', 'office', 10, 2);
+    client.sendRaw(
+      JSON.stringify(clientMessage('inspect', { target: { kind: 'unit', id: 'u901' } })),
+    );
+    await client.next('inspect');
+
+    client.hello();
+    await client.next('snapshot');
+    client.received.length = 0;
+    await new Promise((resolve) => setTimeout(resolve, 1300));
+
+    expect(client.received.filter((message) => message.t === 'inspect')).toEqual([]);
+  });
+
   it('answers ping with pong and the server step', async () => {
     const client = await connect(player.cookie);
     client.hello();
@@ -175,6 +240,29 @@ describe('tower socket against postgres', () => {
 
     await second.close();
     await waitFor(() => !app.towerRunner.isRunning(player.towerId));
+  });
+
+  it('stops the tower when the last socket closes with an inspect target set', async () => {
+    const client = await connect(player.cookie);
+    client.hello();
+    await client.next('snapshot');
+    const state = app.towerRunner.stateOf(player.towerId);
+    if (!state) {
+      throw new Error('Tower is not running');
+    }
+    state.units.u902 = newUnit('u902', 'office', 10, 2);
+    client.sendRaw(
+      JSON.stringify(clientMessage('inspect', { target: { kind: 'unit', id: 'u902' } })),
+    );
+    await client.next('inspect');
+
+    await client.close();
+    await waitFor(() => !app.towerRunner.isRunning(player.towerId));
+    const stepAtStop = app.towerRunner.stateOf(player.towerId)?.step;
+    await new Promise((resolve) => setTimeout(resolve, 1300));
+
+    expect(app.towerRunner.isRunning(player.towerId)).toBe(false);
+    expect(app.towerRunner.stateOf(player.towerId)?.step).toBe(stepAtStop);
   });
 
   it('does not run the tower for a socket that never said hello', async () => {

@@ -1,6 +1,7 @@
 import { PixelCanvas } from '../canvas.mjs';
 import { metrics } from '../metrics.mjs';
 import { pixelNoise } from '../noise.mjs';
+import { drawCalmPerson } from './people.mjs';
 
 const BELL_FRAME = { width: 32, height: 26 };
 const BELL_PIVOT = { x: 16, y: 1 };
@@ -113,9 +114,27 @@ function petalSprites() {
   return numbered('events/wedding-petals/burst', PETAL_FRAMES.map(petalBurst));
 }
 
+const COUPLE_WIDTH = 16;
+const GROOM_LEFT = 7;
+
+function weddingCouple(pose) {
+  const frameHeight = metrics.person.frameHeight;
+  const canvas = new PixelCanvas(COUPLE_WIDTH, frameHeight);
+  canvas.stamp(drawCalmPerson('bride', 'a', pose), 0, 0);
+  canvas.stamp(drawCalmPerson('groom', 'c', pose), GROOM_LEFT, 0);
+  return canvas;
+}
+
+function coupleSprites() {
+  return [
+    ...numbered('events/wedding-couple/walk', [weddingCouple('walk_01'), weddingCouple('walk_02')]),
+    { id: 'events/wedding-couple/stand', canvas: weddingCouple('stand') },
+  ];
+}
+
 export const eventsGroup = {
   name: 'events',
   draw() {
-    return [...bellSprites(), ...petalSprites()];
+    return [...bellSprites(), ...petalSprites(), ...coupleSprites()];
   },
 };

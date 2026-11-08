@@ -1,7 +1,16 @@
 import { z } from 'zod';
 import { TOWER_LAYOUT } from '../balance';
+import { CAR_DIRECTIONS } from '../engine';
 import { MAX_NAME_LENGTH } from '../names';
 import { ElevatorScheduleSchema, MAX_CARS_PER_SHAFT } from './commands';
+import {
+  CAR_DOORS,
+  FACINGS,
+  PackedCarSchema,
+  PackedPersonSchema,
+  PERSON_MODES,
+  STRESS_LEVELS,
+} from './packed';
 import {
   CellRangeSchema,
   ColumnSchema,
@@ -29,11 +38,11 @@ import {
 export const MAX_FOLLOWED_PEOPLE = 20;
 const MAX_CAR_LOAD = 42;
 
-/** One character per column: '.' none, 'f' floor, 'l' lobby. */
+/** One character per column: '.' none, 'f' floor, 'l' lobby, 'r' ruins. */
 export const StructureRowSchema = z
   .string()
   .length(TOWER_LAYOUT.siteWidthCells)
-  .regex(/^[.fl]*$/);
+  .regex(/^[.flr]*$/);
 
 const ColumnPositionSchema = z.number().min(0).max(TOWER_LAYOUT.siteWidthCells);
 const DenseLevelPositionSchema = z.number().nonnegative();
@@ -77,20 +86,20 @@ export const CarViewSchema = z.object({
   shaftId: ShaftEntityIdSchema,
   index: CarIndexSchema,
   position: DenseLevelPositionSchema,
-  direction: z.enum(['up', 'down', 'idle']),
-  doors: z.enum(['open', 'closed']),
+  direction: z.enum(CAR_DIRECTIONS),
+  doors: z.enum(CAR_DOORS),
   load: CarLoadSchema,
 });
 
-export const StressLevelSchema = z.enum(['normal', 'stressed', 'veryStressed']);
+export const StressLevelSchema = z.enum(STRESS_LEVELS);
 
 export const PersonViewSchema = z.object({
   id: PersonEntityIdSchema,
   kind: PersonKindSchema,
   x: ColumnPositionSchema,
   level: LevelSchema,
-  facing: z.enum(['left', 'right']),
-  mode: z.enum(['walk', 'wait', 'ride', 'stairs', 'inside']),
+  facing: z.enum(FACINGS),
+  mode: z.enum(PERSON_MODES),
   carRef: CarRefSchema.nullable(),
   stress: StressLevelSchema,
 });
@@ -186,8 +195,9 @@ export const DeltaSchema = z.object({
   transportsRemoved: z.array(TransportEntityIdSchema).optional(),
   shaftsUpserted: z.array(ShaftViewSchema).optional(),
   shaftsRemoved: z.array(ShaftEntityIdSchema).optional(),
-  cars: z.array(CarViewSchema),
-  people: z.array(PersonViewSchema),
+  /** Complete for the viewport, as packed tuples (see packed.ts). */
+  cars: z.array(PackedCarSchema),
+  people: z.array(PackedPersonSchema),
   peopleGone: z.array(PersonEntityIdSchema).optional(),
   followed: z.array(FollowedViewSchema).max(MAX_FOLLOWED_PEOPLE).optional(),
   activeEvents: z.array(EventViewSchema).optional(),
@@ -242,12 +252,6 @@ export const ClientEventSchema = z.discriminatedUnion('type', [
   }),
 ]);
 
-const ContractSchema = z.object({
-  state: z.enum(['leased', 'forLease', 'sold', 'forSale']),
-  week: z.int().positive().nullable(),
-  nextPaymentStep: StepSchema.nullable(),
-});
-
 const PersonDestinationSchema = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('unit'), unitId: UnitEntityIdSchema, level: LevelSchema }),
   z.object({ kind: z.literal('exit') }),
@@ -259,22 +263,66 @@ const InspectedCarSchema = z.object({
   load: CarLoadSchema,
 });
 
-export const InspectDataSchema = z.discriminatedUnion('kind', [
+const InspectedUnitDetailsSchema = z.discriminatedUnion('group', [
   z.object({
-    kind: z.literal('unit'),
-    id: UnitEntityIdSchema,
-    type: UnitTypeSchema,
-    name: DisplayNameSchema.nullable(),
-    level: LevelSchema,
-    x: ColumnSchema,
-    occupants: z.int().nonnegative(),
-    capacity: z.int().nonnegative(),
+    group: z.literal('lease'),
+    state: z.enum(['occupied', 'forRent']),
+    persons: z.int().nonnegative(),
+    capacity: z.int().positive(),
     evaluation: EvaluationSchema.nullable(),
     price: PriceLevelSchema,
-    contract: ContractSchema.nullable(),
-    hotelStayEndStep: StepSchema.nullable(),
-    filmAgeDays: z.int().nonnegative().nullable(),
+    leaseWeek: z.int().positive().nullable(),
+    nextPaymentStep: StepSchema.nullable(),
   }),
+  z.object({
+    group: z.literal('condo'),
+    state: z.enum(['sold', 'forSale']),
+    residents: z.int().nonnegative(),
+    capacity: z.int().positive(),
+    evaluation: EvaluationSchema.nullable(),
+    price: PriceLevelSchema,
+    nextEvaluationStep: StepSchema.nullable(),
+  }),
+  z.object({
+    group: z.literal('hotel'),
+    state: HotelRoomStateSchema,
+    guests: z.int().nonnegative(),
+    capacity: z.int().positive(),
+    evaluation: EvaluationSchema.nullable(),
+    price: PriceLevelSchema,
+    checkoutStep: StepSchema.nullable(),
+  }),
+  z.object({
+    group: z.literal('cinema'),
+    filmWeek: z.int().positive().nullable(),
+    filmAgeDays: z.int().nonnegative().nullable(),
+    price: PriceLevelSchema,
+  }),
+]);
+
+/** A unit that is gone or never existed: sent once, then the server drops the target. */
+const InspectedUnitGoneSchema = z.object({
+  kind: z.literal('unit'),
+  id: UnitEntityIdSchema,
+  status: z.literal('gone'),
+});
+
+const InspectedUnitFoundSchema = z.object({
+  kind: z.literal('unit'),
+  id: UnitEntityIdSchema,
+  status: z.literal('ok'),
+  name: DisplayNameSchema.nullable(),
+  type: UnitTypeSchema,
+  level: LevelSchema,
+  from: ColumnSchema,
+  to: ColumnSchema,
+  /** Fields of the unit's type; null for types that show only the common ones. */
+  details: InspectedUnitDetailsSchema.nullable(),
+});
+
+export const InspectDataSchema = z.union([
+  InspectedUnitFoundSchema,
+  InspectedUnitGoneSchema,
   z.object({
     kind: z.literal('person'),
     id: PersonEntityIdSchema,
@@ -314,3 +362,4 @@ export type Snapshot = z.infer<typeof SnapshotSchema>;
 export type Delta = z.infer<typeof DeltaSchema>;
 export type ClientEvent = z.infer<typeof ClientEventSchema>;
 export type InspectData = z.infer<typeof InspectDataSchema>;
+export type InspectedUnitDetails = z.infer<typeof InspectedUnitDetailsSchema>;

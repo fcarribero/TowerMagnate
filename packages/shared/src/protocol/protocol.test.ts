@@ -9,6 +9,7 @@ import {
   ServerMessageSchema,
   serverMessage,
 } from './messages';
+import { packCar, packPerson, unpackCar, unpackPerson } from './packed';
 import { LevelSchema, NameSchema } from './primitives';
 import {
   sampleClientMessages,
@@ -167,5 +168,51 @@ describe('message builders', () => {
     });
     const pong = serverMessage('pong', { clientTime: 5, serverStep: 9 });
     expect(ServerMessageSchema.parse(pong)).toEqual(pong);
+  });
+});
+
+describe('packed people and cars', () => {
+  const rider = {
+    id: 'p4021',
+    kind: 'hotelGuest',
+    x: 12.5,
+    level: 7,
+    facing: 'right',
+    mode: 'ride',
+    carRef: { shaftId: 's24', index: 3 },
+    stress: 'stressed',
+  } as const;
+  const walker = { ...rider, id: 'p5', mode: 'walk', carRef: null } as const;
+  const car = {
+    shaftId: 's24',
+    index: 3,
+    position: 7.25,
+    direction: 'down',
+    doors: 'open',
+    load: 6,
+  } as const;
+
+  it('unpack to the views they were packed from', () => {
+    expect([rider, walker].map((person) => unpackPerson(packPerson(person)))).toEqual([
+      rider,
+      walker,
+    ]);
+    expect(unpackCar(packCar(car))).toEqual(car);
+  });
+
+  it('survive JSON inside a delta', () => {
+    const delta = serverMessage('delta', {
+      step: 2,
+      cars: [packCar(car)],
+      people: [packPerson(rider)],
+    });
+    expect(ServerMessageSchema.parse(throughJson(delta))).toEqual(delta);
+  });
+
+  it('reject an index outside its list', () => {
+    const badKind = packPerson(rider);
+    badKind[1] = 99;
+    const delta = { v: PROTOCOL_VERSION, t: 'delta', p: { step: 2, cars: [], people: [badKind] } };
+    expect(ServerMessageSchema.safeParse(delta).success).toBe(false);
   });
 });

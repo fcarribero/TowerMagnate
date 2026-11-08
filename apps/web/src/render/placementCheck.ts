@@ -114,6 +114,20 @@ export function thingAt(world: PlacementWorld, x: number, level: Level): PlacedT
   return null;
 }
 
+/** The unit covering a cell, if any. Stairs and escalators are not units. */
+export function unitAt<T extends PlacedThing>(
+  units: Iterable<T>,
+  x: number,
+  level: Level,
+): T | null {
+  for (const unit of units) {
+    if (covers(unit, x, level)) {
+      return unit;
+    }
+  }
+  return null;
+}
+
 function coveredLevels(thing: PlacedThing): Level[] {
   return footprintLevels(thing.type, thing.level) ?? [thing.level];
 }

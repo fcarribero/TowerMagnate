@@ -1,6 +1,11 @@
 import type { CommandHandler } from '../step';
 import { idleCar, isExpressStop, isInsideShaft, maxCarsPerShaft, shaftPrices } from './shafts';
-import { isInteger, negativeBalanceError, payForConstruction } from './structure';
+import {
+  isInteger,
+  negativeBalanceError,
+  payForConstruction,
+  refundConstruction,
+} from './structure';
 
 /** C-41. A new car waits idle at its home level, which must be inside the shaft. */
 export const addCar: CommandHandler<'addCar'> = (context, command) => {
@@ -54,5 +59,6 @@ export const removeCar: CommandHandler<'removeCar'> = (context, command) => {
     return { ok: false, error: 'LAST_CAR' };
   }
   shaft.cars.splice(carIndex, 1);
-  return { ok: true, cost: 0, refund: 0, events: [] };
+  const refund = refundConstruction(context.state, car);
+  return { ok: true, cost: 0, refund, events: [] };
 };

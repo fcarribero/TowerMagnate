@@ -1,6 +1,10 @@
 import { addPerson, createTower, setStructure } from '@tower-magnate/engine';
 import {
   ServerMessageSchema,
+  packCar,
+  packPerson,
+  unpackCar,
+  unpackPerson,
   type Delta,
   type EngineEvent,
   type Snapshot,
@@ -40,8 +44,8 @@ function applyDelta(snapshot: Snapshot, delta: Delta): Snapshot {
     step: delta.step,
     money: delta.money ?? snapshot.money,
     population: delta.population ?? snapshot.population,
-    cars: delta.cars,
-    people: delta.people,
+    cars: delta.cars.map(unpackCar),
+    people: delta.people.map(unpackPerson),
   };
 }
 
@@ -203,24 +207,28 @@ describe('delta broadcaster', () => {
   it('keeps a full-screen delta under 50 KB', () => {
     const delta: Delta = {
       step: 1,
-      cars: Array.from({ length: 192 }, (_, index) => ({
-        shaftId: 's24',
-        index: index % 8,
-        position: 88.5,
-        direction: 'up' as const,
-        doors: 'open' as const,
-        load: 8,
-      })),
-      people: Array.from({ length: 150 }, (_, index) => ({
-        id: `p${10_000 + index}`,
-        kind: 'officeWorker' as const,
-        x: 123.5,
-        level: 99,
-        facing: 'right' as const,
-        mode: 'ride' as const,
-        carRef: { shaftId: 's24', index: 7 },
-        stress: 'veryStressed' as const,
-      })),
+      cars: Array.from({ length: 192 }, (_, index) =>
+        packCar({
+          shaftId: 's24',
+          index: index % 8,
+          position: 88.5,
+          direction: 'up',
+          doors: 'open',
+          load: 8,
+        }),
+      ),
+      people: Array.from({ length: 250 }, (_, index) =>
+        packPerson({
+          id: `p${10_000 + index}`,
+          kind: 'officeWorker',
+          x: 123.5,
+          level: 99,
+          facing: 'right',
+          mode: 'ride',
+          carRef: { shaftId: 's24', index: 7 },
+          stress: 'veryStressed',
+        }),
+      ),
     };
 
     expect(JSON.stringify(delta).length).toBeLessThan(DELTA_BUDGET_BYTES);
