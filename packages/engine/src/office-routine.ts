@@ -27,6 +27,7 @@ import type { HookOccurrence, ScheduledHook } from './scheduler';
 import type { SimulationSystem, StepContext } from './step';
 import { drawMinuteFromWindow } from './time-windows';
 import { cancelTrek, isOnTrek, startTrek } from './trek';
+import { addFailedSearch, hasPendingTrip, recordTrip } from './trip-ledger';
 import { unitNumber } from './units';
 
 export interface Place {
@@ -332,7 +333,14 @@ function lunchStep(worker: Worker): number {
   return minuteStep(worker.dayStart, worker.routine.lunchMinute);
 }
 
+/** A failed search of a required trip counts toward its stress, and the trip ends when it is given up. */
+function countFailedSearch(worker: Worker): void {
+  if (worker.treks) addFailedSearch(worker.state.people, worker.slot);
+}
+
 function giveUpArrival(worker: Worker): void {
+  const { state, slot } = worker;
+  if (worker.treks && hasPendingTrip(state.people, slot)) recordTrip(state, slot);
   worker.routine.phase = 'givingUpArrival';
   save(worker, leaveStep(worker));
 }
@@ -353,12 +361,14 @@ function startArrival(worker: Worker, routes: RoutePlanner): void {
   const entrance = entrancePlace(state, routine.entranceOnRight);
   const steps = entrance ? routes(state, entrance, worker.desk, worker.context) : null;
   if (!entrance || steps === null) {
+    countFailedSearch(worker);
     retryArrival(worker);
     return;
   }
   if (state.step + steps > leaveStep(worker)) {
     giveUpArrival(worker);
   } else if (!beginTravel(worker, 'walkingIn', entrance, worker.desk, steps)) {
+    countFailedSearch(worker);
     retryArrival(worker);
   }
 }

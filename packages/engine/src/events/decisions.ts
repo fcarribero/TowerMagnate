@@ -13,6 +13,7 @@ import {
 } from '@tower-magnate/shared';
 import { chargeMoney } from '../money';
 import type { StepContext } from '../step';
+import { sendGuardsHome } from './guards';
 
 interface DecisionRule {
   /** Dialog order, default last. */
@@ -73,7 +74,12 @@ export function openBombThreat(context: StepContext, ransom: number): BombThreat
   if (hasActiveDisaster(context.state)) {
     return null;
   }
-  const bomb: BombThreat = { kind: 'bomb', ...openDecision(context.state, 'bomb'), ransom };
+  const bomb: BombThreat = {
+    kind: 'bomb',
+    ...openDecision(context.state, 'bomb'),
+    ransom,
+    search: null,
+  };
   context.state.activeEvents.push(bomb);
   emitOpened(context, bomb);
   return bomb;
@@ -89,6 +95,8 @@ export function openFire(context: StepContext, level: Level): Fire | null {
     ...openDecision(context.state, 'fire'),
     startStep: context.state.step,
     level,
+    levels: {},
+    guards: {},
   };
   context.state.activeEvents.push(fire);
   emitOpened(context, fire);
@@ -174,4 +182,5 @@ export function endDisaster(context: StepContext, eventId: EventId): void {
     closeWithDefault(context, event);
   }
   context.state.activeEvents = context.state.activeEvents.filter((active) => active !== event);
+  sendGuardsHome(context);
 }

@@ -38,6 +38,11 @@ export function personStress(
       count += 1;
     }
   }
+  return averageStress(sum, count, stressSoFar);
+}
+
+/** Person stress from the sum and count of the ended trips in the window. */
+export function averageStress(sum: number, count: number, stressSoFar: number | null): number {
   if (stressSoFar !== null) {
     sum += stressSoFar;
     count += 1;

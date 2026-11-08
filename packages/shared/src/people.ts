@@ -32,7 +32,16 @@ export interface PersonPool {
   trip: number[];
   /** Step at which the person next has something to do, or -1 for none. */
   dueStep: number[];
+  /** Person stress P in steps, kept up to date while the person travels and when a trip is recorded. */
   stress: number[];
+  /** Stress steps collected so far on the current trip, without the long-trip extra. */
+  tripSum: number[];
+  /** Standard and service ride floors plus stair floors of the current trip. */
+  tripSlowFloors: number[];
+  /** Step at which the wait in a queue began, or the ride began once the person boarded. */
+  tripPartStep: number[];
+  /** Wait steps the tall lobby the person queues in takes off the wait under way. */
+  tripPartCut: number[];
   /** Picks the person's generated name. */
   nameSeed: number[];
   /** What the person is doing on a trip: an index into the engine's trek phases, 0 when idle. */

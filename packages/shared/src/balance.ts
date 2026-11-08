@@ -460,6 +460,10 @@ export const DECISION_DEADLINE_STEPS = 360;
 export const CLOSED_DECISIONS_KEPT = 20;
 export const NOTICES_KEPT = 50;
 export const HELICOPTER_COST = 500_000;
+export const SEARCH_COLUMNS_PER_MINUTE = 4;
+export const SEARCH_STEPS_PER_MINUTE = 6;
+export const FIRE_SPREAD_STEPS = 6;
+export const FIRE_FRONT_CONTAINMENT = 10;
 
 function flatUpkeep(basis: UpkeepRule['basis'], amount: number): UpkeepRule {
   return { basis, amountByStars: [{ minStars: 1, amount }] };
@@ -539,6 +543,20 @@ export const NOISE_RULES: Readonly<Partial<Record<UnitType, NoiseRule>>> = {
 export const EVAL_GOOD_BELOW = 90;
 export const EVAL_FAIR_BELOW = 180;
 export const EVAL_FAIR_BELOW_FROM_FOUR_STARS = 240;
+
+/** Trip stress parts in steps (SE-01 to SE-09). */
+export const STRESS_STAIR_FLOOR = 30;
+export const STRESS_ESCALATOR_FLOOR = 6;
+export const STRESS_QUEUE_FULL = 12;
+export const STRESS_NO_ROUTE = 360;
+export const STRESS_TRIP_CAP = 540;
+/** Wait steps removed from an up ride that boards in a lobby, by lobby height. */
+export const STRESS_TALL_LOBBY_CUT: Readonly<Record<number, number>> = { 1: 0, 2: 18, 3: 36 };
+/** Extra stress of a trip by its slow floors: the first row whose `from` is reached applies. */
+export const STRESS_LONG_TRIP: readonly { from: number; extra: number }[] = [
+  { from: 25, extra: 60 },
+  { from: 15, extra: 30 },
+];
 
 /** Trips that ended within this many steps (one week) count toward a person's stress. */
 export const STRESS_WINDOW_STEPS = 60_480;
