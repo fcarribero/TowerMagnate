@@ -64,13 +64,13 @@ for (const { people, budgetMs } of CASES) {
   const runs = Array.from({ length: RUNS }, () => msPerCall(state));
   const added = median(runs);
   const agree = spread(runs) <= RUN_TOLERANCE;
+  const settled = agree || runs.every((run) => run <= budgetMs);
   console.log(`${people} people (${sent} in view)`);
   console.log(`  runs (ms added per step): ${runs.map((run) => run.toFixed(4)).join(', ')}`);
   console.log(`  median ${added.toFixed(4)} ms (budget ${budgetMs} ms)`);
   console.log(
     `  runs agree within 15%: ${agree ? 'yes' : settled ? 'no, but all runs are under budget' : 'no, result void, rerun'}`,
   );
-  const settled = agree || runs.every((run) => run <= budgetMs);
   passed = passed && settled && added <= budgetMs;
 }
 console.log(passed ? 'PASS' : 'FAIL');
