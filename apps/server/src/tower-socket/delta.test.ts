@@ -1,5 +1,11 @@
 import { addPerson, createTower, setStructure } from '@tower-magnate/engine';
-import { DeltaSchema, packPerson, type Snapshot, type TowerState } from '@tower-magnate/shared';
+import {
+  DeltaSchema,
+  packPerson,
+  serverMessage,
+  type Snapshot,
+  type TowerState,
+} from '@tower-magnate/shared';
 import { describe, expect, it } from 'vitest';
 import { diffSnapshots, needsFreshSnapshot } from './delta';
 import { buildSnapshot } from './snapshot';
@@ -129,5 +135,39 @@ describe('delta between snapshots', () => {
     expect(added.cars.map(([, carIndex]) => carIndex)).toEqual([0, 1]);
     expect(DeltaSchema.safeParse(added).success).toBe(true);
     expect(removed.cars.map(([, carIndex]) => carIndex)).toEqual([0]);
+  });
+
+  it('frames a crowded delta of 250 people and 192 cars under 50 KB', () => {
+    const state = createTower(40);
+    for (let index = 0; index < 250; index += 1) {
+      addPerson(state, {
+        kind: 'officeWorker',
+        homeUnit: index,
+        level: 1 + (index % 40),
+        column: 3 + (index % 90),
+      });
+    }
+    const view = { levelFrom: 1, levelTo: 40, xFrom: 0, xTo: 200 };
+    const before = snapshotOf(state, view);
+    expect(before.people).toHaveLength(250);
+    before.cars = Array.from({ length: 192 }, (_, index) => ({
+      shaftId: `s${100 + (index % 24)}`,
+      index: index % 8,
+      position: 12.5 + index,
+      direction: 'up',
+      doors: 'open',
+      load: 8,
+    }));
+    const after = structuredClone(before);
+    after.step += 1;
+    after.people.forEach((person) => (person.x += 0.25));
+    after.cars.forEach((car) => (car.position += 0.5));
+
+    const { delta } = diffSnapshots(before, after);
+    const frame = JSON.stringify(serverMessage('delta', delta));
+
+    expect(delta.people).toHaveLength(250);
+    expect(delta.cars).toHaveLength(192);
+    expect(Buffer.byteLength(frame)).toBeLessThan(50_000);
   });
 });
