@@ -3,12 +3,13 @@ import {
   chargeMoney,
   createTower,
   creditMoney,
+  defaultSchedule,
   followPerson,
   rollLedgerWeek,
   setStructure,
   STEPS_PER_DAY,
 } from '@tower-magnate/engine';
-import { SnapshotSchema, type TowerState, type Unit } from '@tower-magnate/shared';
+import { levelToIndex, SnapshotSchema, type TowerState, type Unit } from '@tower-magnate/shared';
 import { describe, expect, it } from 'vitest';
 import { buildSnapshot } from './snapshot';
 
@@ -27,6 +28,8 @@ function office(id: string, x: number, name: string | null): Unit {
     placedAtStep: 0,
     used: false,
     lease: null,
+    sale: null,
+    hotel: null,
   };
 }
 
@@ -51,6 +54,75 @@ describe('snapshot from tower state', () => {
     for (const field of ['rng', 'dueStep', 'nameSeed', 'nextId', 'occupants']) {
       expect(text).not.toContain(`"${field}"`);
     }
+  });
+
+  it('sends the placed stairs and escalators', () => {
+    const state = createTower(7);
+    state.transports.t3 = { id: 't3', type: 'stairs', x: 4, level: 1 };
+    state.transports.t4 = { id: 't4', type: 'escalator', x: 8, level: 2 };
+
+    const snapshot = buildSnapshot(state, null);
+
+    expect(snapshot.transports).toEqual([
+      { id: 't3', type: 'stairs', x: 4, level: 1 },
+      { id: 't4', type: 'escalator', x: 8, level: 2 },
+    ]);
+    expect(SnapshotSchema.safeParse(snapshot).success).toBe(true);
+  });
+
+  it('sends each shaft with its cars', () => {
+    const state = createTower(7);
+    state.shafts.s1 = {
+      id: 's1',
+      type: 'standard',
+      x: 40,
+      bottom: 1,
+      top: 3,
+      stops: [1, 2, 3],
+      schedule: defaultSchedule(),
+      cars: [
+        {
+          homeLevel: 1,
+          level: 1,
+          riders: [],
+          trips: [],
+          phase: 'idle' as const,
+          direction: 'idle' as const,
+          phaseStepsLeft: 0,
+          assigned: [],
+          paid: 0,
+          placedAtStep: 0,
+        },
+        {
+          homeLevel: 3,
+          level: 2,
+          riders: ['p1', 'p2'],
+          trips: [],
+          phase: 'idle' as const,
+          direction: 'idle' as const,
+          phaseStepsLeft: 0,
+          assigned: [],
+          paid: 0,
+          placedAtStep: 0,
+        },
+      ],
+      queues: {},
+      paid: 0,
+      placedAtStep: 0,
+    };
+
+    const snapshot = buildSnapshot(state, null);
+
+    expect(SnapshotSchema.safeParse(snapshot).success).toBe(true);
+    expect(snapshot.shafts).toEqual([
+      { id: 's1', type: 'standard', x: 40, bottom: 1, top: 3, stops: [1, 2, 3] },
+    ]);
+    expect(
+      snapshot.cars.map(({ shaftId, index, position, load }) => [shaftId, index, position, load]),
+    ).toEqual([
+      ['s1', 0, levelToIndex(1), 0],
+      ['s1', 1, levelToIndex(2), 2],
+    ]);
   });
 
   it('draws structure rows one character per column', () => {

@@ -1,4 +1,4 @@
-import { addPerson, createTower, setStructure } from '@tower-magnate/engine';
+import { addPerson, createTower, defaultSchedule, setStructure } from '@tower-magnate/engine';
 import { DeltaSchema, type Snapshot, type TowerState } from '@tower-magnate/shared';
 import { describe, expect, it } from 'vitest';
 import { diffSnapshots, needsFreshSnapshot } from './delta';
@@ -102,5 +102,45 @@ describe('delta between snapshots', () => {
     const after = { ...before, grid: { ...before.grid, mainLobbyHeight: 2 as const } };
 
     expect(needsFreshSnapshot(before, after)).toBe(false);
+  });
+
+  it('carries a new shaft and its cars, then drops a removed car', () => {
+    const state = tower();
+    const before = snapshotOf(state);
+    const car = {
+      homeLevel: 1,
+      level: 1,
+      riders: [],
+      trips: [],
+      phase: 'idle' as const,
+      direction: 'idle' as const,
+      phaseStepsLeft: 0,
+      assigned: [],
+      paid: 0,
+      placedAtStep: 0,
+    };
+    state.shafts.s1 = {
+      id: 's1',
+      type: 'standard',
+      x: 40,
+      bottom: 1,
+      top: 3,
+      stops: [1, 2, 3],
+      schedule: defaultSchedule(),
+      cars: [car, { ...car }],
+      queues: {},
+      paid: 0,
+      placedAtStep: 0,
+    };
+    const withShaft = snapshotOf(state);
+
+    const added = diffSnapshots(before, withShaft).delta;
+    state.shafts.s1.cars.pop();
+    const removed = diffSnapshots(withShaft, snapshotOf(state)).delta;
+
+    expect(added.shaftsUpserted?.map((shaft) => shaft.id)).toEqual(['s1']);
+    expect(added.cars?.map((view) => view.index)).toEqual([0, 1]);
+    expect(DeltaSchema.safeParse(added).success).toBe(true);
+    expect(removed.cars?.map((view) => view.index)).toEqual([0]);
   });
 });

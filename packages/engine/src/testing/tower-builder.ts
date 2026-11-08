@@ -9,6 +9,7 @@ import {
   type UnitType,
 } from '@tower-magnate/shared';
 import { addOccupant, cellsWithoutStructure, setStructure } from '../grid';
+import { defaultSchedule, defaultStops, idleCar } from '../commands/shafts';
 import { createTower } from '../state';
 import { newUnit } from '../units';
 
@@ -108,13 +109,7 @@ function placeShaft(state: TowerState, shaft: PlannedShaft): EntityId {
   const id = takeId(state, 's');
   const span = { x0: shaft.x, x1: shaft.x + definition.width - 1 };
   occupy(state, levelsBetween(shaft.bottom, shaft.top), span, { kind: 'shaft', id }, shaft.type);
-  const car = {
-    homeLevel: shaft.bottom,
-    level: shaft.bottom,
-    riders: [],
-    paid: 0,
-    placedAtStep: 0,
-  };
+  const car = idleCar(shaft.bottom, 0, 0);
   state.shafts[id] = {
     id,
     type: shaft.type,
@@ -122,6 +117,8 @@ function placeShaft(state: TowerState, shaft: PlannedShaft): EntityId {
     bottom: shaft.bottom,
     top: shaft.top,
     cars: [car],
+    stops: defaultStops(shaft.type, shaft),
+    schedule: defaultSchedule(),
     queues: {},
     paid: 0,
     placedAtStep: state.step,

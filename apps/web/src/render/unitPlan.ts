@@ -1,4 +1,5 @@
 import { UNIT_CATALOG, type UnitType, type UnitView } from '@tower-magnate/shared';
+import type { OverlayColor } from './overlayColors';
 import type { SpriteVariant } from './spriteRegistry';
 import { levelToIndex, levelTop } from './levels';
 import { FLOOR_HEIGHT, TILE_WIDTH } from './metrics';
@@ -17,6 +18,8 @@ export interface UnitDrawing {
   y: number;
   width: number;
   height: number;
+  /** Checker color drawn over the sprite, or null when it is drawn normally. */
+  overlay: OverlayColor | null;
 }
 
 export interface TransportSource {
@@ -26,7 +29,10 @@ export interface TransportSource {
   level: number;
 }
 
-export type UnitSource = Pick<UnitView, 'id' | 'type' | 'x' | 'level' | 'occupied' | 'variant'>;
+export type UnitSource = Pick<
+  UnitView,
+  'id' | 'type' | 'x' | 'level' | 'occupied' | 'variant' | 'price'
+>;
 
 /** Units that are drawn here. Floors and lobbies are structure, elevators are shafts. */
 export function isPlacedUnit(type: UnitType): boolean {
@@ -38,17 +44,25 @@ export function isPlacedUnit(type: UnitType): boolean {
   );
 }
 
-export function planUnit(unit: UnitSource, time: TimeOfDay): UnitDrawing | null {
+export function planUnit(
+  unit: UnitSource,
+  time: TimeOfDay,
+  overlay: OverlayColor | null = null,
+): UnitDrawing | null {
   if (!isPlacedUnit(unit.type)) {
     return null;
   }
   const state = unit.occupied || unit.variant === 'occupied' ? 'occupied' : 'empty';
-  return footprint(unit.id, `units/${unit.type}`, unit, { state, time });
+  return footprint(unit.id, `units/${unit.type}`, unit, { state, time }, overlay);
 }
 
-export function planTransport(transport: TransportSource, time: TimeOfDay): UnitDrawing {
+export function planTransport(
+  transport: TransportSource,
+  time: TimeOfDay,
+  overlay: OverlayColor | null = null,
+): UnitDrawing {
   const variant: SpriteVariant = transport.type === 'escalator' ? { time, frame: 1 } : { time };
-  return footprint(transport.id, `transport/${transport.type}`, transport, variant);
+  return footprint(transport.id, `transport/${transport.type}`, transport, variant, overlay);
 }
 
 function footprint(
@@ -56,6 +70,7 @@ function footprint(
   subject: string,
   placed: { type: UnitType; x: number; level: number },
   variant: SpriteVariant,
+  overlay: OverlayColor | null,
 ): UnitDrawing {
   const definition = UNIT_CATALOG[placed.type];
   const floors = definition.height.kind === 'fixed' ? definition.height.floors : 1;
@@ -69,5 +84,6 @@ function footprint(
     y: levelTop(bottomIndex + floors - 1) - levelTop(bottomIndex),
     width: definition.width * TILE_WIDTH,
     height: floors * FLOOR_HEIGHT,
+    overlay,
   };
 }

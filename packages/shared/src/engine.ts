@@ -1,6 +1,6 @@
 import type { Ledger } from './ledger';
 import type { Level } from './levels';
-import type { DecisionKind, TransportType } from './protocol/primitives';
+import type { DecisionKind, HotelRoomState, TransportType } from './protocol/primitives';
 import type { PersonPool } from './people';
 import type { PriceLevel, ShaftType, StarRating, UnitType } from './units';
 
@@ -74,6 +74,16 @@ export interface Unit {
   used: boolean;
   /** The current office or shop tenant's lease; null while the unit is for rent. */
   lease: Lease | null;
+  /** The state of a hotel room; null for every other unit. */
+  hotel: HotelRoom | null;
+  /** The current owners' purchase of a condo; null while the condo is for sale. */
+  sale: CondoSale | null;
+}
+
+export interface HotelRoom {
+  state: HotelRoomState;
+  /** When the current stay ends (10:00 on its last day); null while nobody is staying. */
+  stayEndStep: number | null;
 }
 
 /** A staircase or escalator. Its cells on `level` are the footprint; the level above has the landing. */
@@ -95,6 +105,15 @@ export interface ElevatorCar {
   level: Level;
   /** Person entity ids of the people inside the car. */
   riders: EntityId[];
+  /** Where each rider is going and when they boarded; same order as `riders`. */
+  trips: RiderTrip[];
+  phase: CarPhase;
+  /** The way the car is heading; idle while it is free and not moving. */
+  direction: CarDirection;
+  /** Steps of the current door or dwell phase still to run. */
+  phaseStepsLeft: number;
+  /** Hall calls this car has promised to answer. */
+  assigned: HallCall[];
   /** Whole dollars charged for this car. */
   paid: number;
   placedAtStep: number;
@@ -102,9 +121,31 @@ export interface ElevatorCar {
 
 export type HallDirection = 'up' | 'down';
 
+export const CAR_DIRECTIONS = ['up', 'down', 'idle'] as const;
+export type CarDirection = (typeof CAR_DIRECTIONS)[number];
+
+export const CAR_PHASES = ['idle', 'moving', 'opening', 'dwelling', 'closing'] as const;
+/** What a car does in its next step; `idle` means it decides what to do. */
+export type CarPhase = (typeof CAR_PHASES)[number];
+
+/** A non-empty queue at a stop, in one direction. */
+export interface HallCall {
+  level: Level;
+  direction: HallDirection;
+}
+
+export interface RiderTrip {
+  destination: Level;
+  boardedStep: number;
+  /** Steps from joining the queue to boarding. */
+  waitSteps: number;
+}
+
 /** A person waiting at a stop, and the step they joined the queue. */
 export interface QueueEntry {
   person: EntityId;
+  /** The stop where the person gets off. */
+  destination: Level;
   joinedStep: number;
 }
 
@@ -112,6 +153,22 @@ export interface QueueEntry {
 export interface StopQueues {
   up: QueueEntry[];
   down: QueueEntry[];
+}
+
+export const ELEVATOR_MODES = ['normal', 'expressUp', 'expressDown'] as const;
+export type ElevatorMode = (typeof ELEVATOR_MODES)[number];
+
+/** How a shaft runs during one band of the day (elevators 7). */
+export interface ShaftBand {
+  mode: ElevatorMode;
+  dwellSeconds: number;
+  responseDistance: number;
+}
+
+/** Six bands for Monday to Friday and six for the weekend. */
+export interface ShaftSchedule {
+  weekday: ShaftBand[];
+  weekend: ShaftBand[];
 }
 
 export interface Shaft {
@@ -123,6 +180,9 @@ export interface Shaft {
   top: Level;
   /** 1 to 8 cars; car index is the position in this list. */
   cars: ElevatorCar[];
+  /** Levels where cars stop, ascending. */
+  stops: Level[];
+  schedule: ShaftSchedule;
   /** Stops that have someone waiting, by level number. Empty queues are not stored. */
   queues: Record<string, StopQueues>;
   /** Whole dollars charged for the shaft itself, cars not included. */
@@ -135,6 +195,15 @@ export interface Lease {
   anchorStep: number;
   /** The next payment or, at the end of the term, the evaluation. */
   nextDueStep: number;
+}
+
+export interface CondoSale {
+  /** Whole dollars the owners paid; a buyback returns exactly this. */
+  price: number;
+  /** The step of the sale, which starts the 4-week evaluation cycle. */
+  anchorStep: number;
+  /** The next owner evaluation. */
+  nextEvaluationStep: number;
 }
 
 export type TenantEvaluation = 'good' | 'fair' | 'poor';
@@ -207,6 +276,20 @@ export type EngineEvent =
       name: string | null;
     }
   | { type: 'leaseSigned' | 'leaseRenewed' | 'leaseEnded'; step: number; unitId: UnitId }
+  | { type: 'condoSold' | 'condoVacated'; step: number; unitId: UnitId }
+  | {
+      type: 'rideFinished';
+      step: number;
+      person: EntityId;
+      shaftId: ShaftId;
+      carIndex: number;
+      level: Level;
+      waitSteps: number;
+      rideSteps: number;
+    }
+  | { type: 'hotelCheckIn'; step: number; unitId: UnitId; nights: number; paid: number }
+  | { type: 'hotelCheckOut'; step: number; unitId: UnitId }
+  | { type: 'roomStateChanged'; step: number; unitId: UnitId; state: HotelRoomState }
   | { type: 'starsChanged'; step: number; stars: StarRating; unlocked: UnitType[] }
   | {
       type: 'decisionOpened';

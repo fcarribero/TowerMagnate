@@ -149,7 +149,7 @@ Each variant has `walk_01`, `walk_02` and `stand`, calm and with the `-pink` and
 
 A sprite id is a path of lowercase segments joined by `/`: `<group>/<subject>/<variant>`. Words inside a segment use hyphens. The variant joins state, time of day and frame with underscores, in that order, leaving out the parts that do not apply.
 
-Groups: `units`, `transport`, `people`, `structure`, `sky`, `ui`.
+Groups: `units`, `transport`, `people`, `structure`, `sky`, `ui`, `events`.
 
 | Example id | Meaning |
 |---|---|
@@ -290,6 +290,30 @@ The service shaft has a maintenance hatch, `transport/service-shaft/hatch` (10 x
 
 The build writes one PNG per sprite to `assets/sprites/<id>.png` and one atlas per group to `assets/atlases/<group>.png` and `assets/atlases/<group>.json`. The JSON uses the PixiJS 8 spritesheet hash format, and ids ending in `_01`, `_02` and so on are listed as animations. The output depends only on the drawing code, so two builds give byte-identical files. The generated files, the client manifest `apps/web/src/render/atlasManifest.ts` and the previews in `docs/art` are not committed. `pnpm dev`, `pnpm build`, `pnpm typecheck`, `pnpm test`, CI and the Vite dev server in the compose stack build them first, so after a fresh clone `pnpm install` and `pnpm dev` are enough. Run `pnpm art:build` to see a change to the drawing code without restarting anything.
 
+## Event animations
+
+Event sprites are in `tools/art/src/groups/events.mjs`, in the `events` atlas, and have no day or night variant. `events/wedding-bell/swing_01` to `_04` (32 x 26) is the cathedral bell hanging from a yoke at the top of the frame. The frames swing left, through the middle, right and back, so the client loops them in order over the belfry. `events/wedding-petals/burst_01` to `_04` (32 x 32) is a petal burst at the door. Its origin is the bottom center, 4 px above the slab line, and the petals spread, fall and shrink over the four frames. Petals use white, cloud, lamp-glow and cloth-red. `pnpm art:build` writes `docs/art/events-preview-1x.png` and `docs/art/events-preview.png` (4x).
+
 ## UI icons
 
 Icons are in `tools/art/src/icons`, drawn from 16 x 16 character maps. Ids are `ui/tool-{inspect,bulldozer,car}`, `ui/unit-{unitId}`, `ui/cat-{categoryId}`, `ui/star-full`, `ui/star-empty`, `ui/money` and `ui/population`. The empty star is a slate outline with no ink, as the HUD spec asks. `pnpm art:build` writes `docs/art/ui-icons-preview.png` (4x) with every icon.
+
+## Event effects
+
+Effects are in `tools/art/src/groups/effects.mjs` and form the `effects` atlas. Animated effects are numbered `_01`, `_02` and so on, so the atlas JSON lists them as animations.
+
+| Id | Size | Frames | Used for |
+|---|---|---|---|
+| `effects/fire/flame` | 8 x 16 | 4 | one burning column |
+| `effects/fire/front` | 8 x 8 | 3 | the column the fire reaches next |
+| `effects/smoke/puff` | 8 x 10 | 4 | smoke rising over a fire |
+| `effects/bomb/blast` | 32 x 32 | 5 | bomb explosion, the last frame is smoke |
+| `effects/bomb/rubble_a`, `rubble_b` | 8 x 32 | 1 | rubble pile on a destroyed cell |
+| `effects/roach/crawl` | 8 x 5 | 3 | cockroach |
+| `effects/helicopter/fly` | 25 x 13 | 3 | helicopter facing right, flip for the other way |
+| `effects/helicopter/water` | 16 x 16 | 3 | water drop that ends in a splash |
+| `effects/santa/sleigh` | 56 x 22 | 3 | sleigh and two reindeer facing left |
+| `effects/treasure/chest` | 14 x 9 | 3 | treasure chest with a moving glint |
+| `effects/burnt/overlay` | 8 x 32 | 1 | soot over one floor tile |
+
+`pnpm art:build` also writes `docs/art/effects-preview.png` (4x), one row per effect.

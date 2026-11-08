@@ -13,6 +13,7 @@ import {
   type UnitType,
 } from '@tower-magnate/shared';
 import { leaveQueues } from './elevator-queues';
+import { stressBand, type StressBand } from './person-stress';
 import { nextInt, nextUint32 } from './rng';
 import type { SimulationSystem, StepContext } from './step';
 
@@ -46,6 +47,7 @@ export interface PersonView {
   trip: number;
   dueStep: number;
   stress: number;
+  stressBand: StressBand;
   nameSeed: number;
   followed: boolean;
 }
@@ -255,6 +257,7 @@ export function personAt(pool: PersonPool, slot: number): PersonView {
     trip: readSlot(pool.trip, slot),
     dueStep: readSlot(pool.dueStep, slot),
     stress: readSlot(pool.stress, slot),
+    stressBand: stressBand(readSlot(pool.stress, slot)),
     nameSeed: readSlot(pool.nameSeed, slot),
     followed: pool.followed.includes(id),
   };

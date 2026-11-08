@@ -20,6 +20,13 @@ export type MessageHandler<T extends ClientMessageType> = (
   context: MessageContext,
 ) => void | Promise<void>;
 
+/** Frames outside the shared protocol, such as the dev-only debug messages. */
+export interface DebugFrames {
+  /** The message type when the raw frame is one of these, whether or not it is valid. */
+  typeOf(rawData: unknown): string | null;
+  handle(rawData: unknown, context: MessageContext): Promise<void>;
+}
+
 export type MessageHandlers = { [T in ClientMessageType]?: MessageHandler<T> };
 
 /** Reads one raw frame into a client message, or answers with an error frame and returns null. */

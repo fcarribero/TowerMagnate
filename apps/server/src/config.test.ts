@@ -14,6 +14,7 @@ describe('readConfig', () => {
       migrateOnStart: true,
       secureCookies: false,
       allowedOrigins: ['http://localhost:5173'],
+      debugCommands: true,
     });
   });
 
@@ -26,6 +27,7 @@ describe('readConfig', () => {
       migrateOnStart: true,
       secureCookies: false,
       allowedOrigins: ['http://localhost:5173'],
+      debugCommands: true,
     });
   });
 
@@ -94,5 +96,15 @@ describe('readConfig', () => {
       'https://tower.example',
     ]);
     expect(origins({ NODE_ENV: 'production' })).toEqual([]);
+  });
+});
+
+describe('readConfig debug commands', () => {
+  it('turns them off in production only', () => {
+    const debugCommands = (nodeEnv: string | undefined) =>
+      readConfig({ DATABASE_URL: databaseUrl, NODE_ENV: nodeEnv }).debugCommands;
+    expect(debugCommands('production')).toBe(false);
+    expect(debugCommands('development')).toBe(true);
+    expect(debugCommands(undefined)).toBe(true);
   });
 });

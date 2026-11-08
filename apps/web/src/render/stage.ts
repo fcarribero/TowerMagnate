@@ -5,6 +5,9 @@ import 'pixi.js/unsafe-eval';
 import { loadSprites } from './atlasLoader';
 import {
   centerCamera,
+  centerCameraOnRect,
+  screenRectOf,
+  type ScreenRect,
   createCamera,
   nextZoom,
   resizeCamera,
@@ -16,7 +19,7 @@ import { attachCameraInput, type CameraChange } from './cameraInput';
 import { canvasSizeFromCssPixels, canvasSizeFromObservedBox, type CanvasSize } from './canvasSize';
 import { cellAtCanvasPoint, type Cell } from './cellAtPoint';
 import { CulledRows } from './culledRows';
-import { GhostLayer, type Footprint, type GhostInput } from './ghostLayer';
+import { GhostLayer, type Footprint, type GhostInput, type RunInput } from './ghostLayer';
 import { levelAtCanvasY } from './levelRuler';
 import { levelTop } from './levels';
 import type { Zoom } from './metrics';
@@ -46,11 +49,24 @@ export type CameraListener = (camera: Camera) => void;
 export type HoverLevelListener = (level: Level | null) => void;
 export type HoverCellListener = (cell: Cell | null) => void;
 
+/** A primary-button press or release on the tower, or a right click. `cell` is null off the tower. */
+export interface CellInput {
+  kind: 'down' | 'up' | 'cancel';
+  cell: Cell | null;
+  clientX: number;
+  clientY: number;
+}
+export type CellInputListener = (input: CellInput) => void;
+
 export interface Stage {
   sprites: SpriteRegistry;
   camera(): Camera;
   /** Puts a world point (zoom 1 pixels) at the centre of the view. */
   centerOn(worldX: number, worldY: number): void;
+  /** Moves the view to a drawn unit at the current zoom; false when the unit is not drawn. */
+  centerOnUnit(unitId: string): boolean;
+  /** The unit's rectangle in canvas device pixels, or null when it is off screen or not drawn. */
+  unitScreenRect(unitId: string): ScreenRect | null;
   /** One zoom level in or out, keeping the centre of the view in place. */
   zoomStep(direction: 1 | -1): void;
   onCameraChange(listener: CameraListener): () => void;
@@ -58,6 +74,12 @@ export interface Stage {
   onHoverLevel(listener: HoverLevelListener): () => void;
   /** Called with the tile under the pointer, or null when the pointer leaves the tower. */
   onHoverCell(listener: HoverCellListener): () => void;
+  /** Called for presses, releases and right clicks, for tools that build by clicking or dragging. */
+  onCellInput(listener: CellInputListener): () => void;
+  /** When false, dragging with the primary button no longer scrolls the view. */
+  setPrimaryDragPans(pans: boolean): void;
+  /** Draws a filled run of tiles, such as a floor being dragged out; null removes it. */
+  showRun(run: RunInput | null): void;
   /** Draws the placement ghost, snapped to tiles; null removes it. */
   showGhost(ghost: GhostInput | null): void;
   /** Frames a footprint, such as the unit under the pointer; null removes the frame. */
@@ -120,6 +142,8 @@ export async function mountStage(host: HTMLElement, options: StageOptions = {}):
   let hoveredLevel: Level | null = null;
   const hoverCellListeners = new Set<HoverCellListener>();
   let hoveredCell: Cell | null = null;
+  const cellInputListeners = new Set<CellInputListener>();
+  let primaryDragPans = true;
   let pointerCanvasX: number | null = null;
   let pointerCanvasY: number | null = null;
 
@@ -184,7 +208,34 @@ export async function mountStage(host: HTMLElement, options: StageOptions = {}):
       camera = change(camera);
       showCamera();
     },
+    () => primaryDragPans,
   );
+  const emitCellInput = (kind: CellInput['kind'], event: MouseEvent): void => {
+    const canvasRect = app.canvas.getBoundingClientRect();
+    const scale = cssPerDevicePixel();
+    const cell = cellAtCanvasPoint(
+      camera,
+      (event.clientX - canvasRect.left) / scale,
+      (event.clientY - canvasRect.top) / scale,
+    );
+    for (const listener of cellInputListeners) {
+      listener({ kind, cell, clientX: event.clientX, clientY: event.clientY });
+    }
+  };
+  const onPointerDown = (event: PointerEvent): void => {
+    if (event.button === 0) {
+      emitCellInput('down', event);
+    }
+  };
+  const onPointerUp = (event: PointerEvent): void => {
+    if (event.button === 0) {
+      emitCellInput('up', event);
+    }
+  };
+  const onContextMenu = (event: MouseEvent): void => {
+    event.preventDefault();
+    emitCellInput('cancel', event);
+  };
   const onPointerMove = (event: PointerEvent): void => {
     pointerCanvasX = event.offsetX / cssPerDevicePixel();
     pointerCanvasY = event.offsetY / cssPerDevicePixel();
@@ -199,6 +250,9 @@ export async function mountStage(host: HTMLElement, options: StageOptions = {}):
   };
   app.canvas.addEventListener('pointermove', onPointerMove);
   app.canvas.addEventListener('pointerleave', onPointerLeave);
+  app.canvas.addEventListener('pointerdown', onPointerDown);
+  window.addEventListener('pointerup', onPointerUp);
+  app.canvas.addEventListener('contextmenu', onContextMenu);
   let carSource: CarSource | null = null;
   const drawCars = (): void => {
     const next = carSource?.();
@@ -222,6 +276,19 @@ export async function mountStage(host: HTMLElement, options: StageOptions = {}):
       camera = centerCamera(camera, worldX, worldY);
       showCamera();
     },
+    centerOnUnit(unitId) {
+      const rect = units.rectOf(unitId);
+      if (rect === undefined) {
+        return false;
+      }
+      camera = centerCameraOnRect(camera, rect);
+      showCamera();
+      return true;
+    },
+    unitScreenRect(unitId) {
+      const rect = units.rectOf(unitId);
+      return rect === undefined ? null : screenRectOf(camera, rect);
+    },
     zoomStep(direction) {
       const zoom = nextZoom(camera.zoom, direction);
       camera = zoomCamera(camera, zoom, camera.viewWidth / 2, camera.viewHeight / 2);
@@ -238,6 +305,16 @@ export async function mountStage(host: HTMLElement, options: StageOptions = {}):
     onHoverCell(listener) {
       hoverCellListeners.add(listener);
       return () => hoverCellListeners.delete(listener);
+    },
+    onCellInput(listener) {
+      cellInputListeners.add(listener);
+      return () => cellInputListeners.delete(listener);
+    },
+    setPrimaryDragPans(pans) {
+      primaryDragPans = pans;
+    },
+    showRun(input) {
+      ghost.showRun(input);
     },
     showGhost(input) {
       ghost.showGhost(input);
@@ -263,6 +340,10 @@ export async function mountStage(host: HTMLElement, options: StageOptions = {}):
       cameraListeners.clear();
       hoverListeners.clear();
       hoverCellListeners.clear();
+      cellInputListeners.clear();
+      app.canvas.removeEventListener('pointerdown', onPointerDown);
+      window.removeEventListener('pointerup', onPointerUp);
+      app.canvas.removeEventListener('contextmenu', onContextMenu);
       app.canvas.removeEventListener('pointermove', onPointerMove);
       app.canvas.removeEventListener('pointerleave', onPointerLeave);
       window.clearInterval(statsTimer);
