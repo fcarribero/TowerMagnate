@@ -5,6 +5,7 @@ import { pageTitle } from '../index';
 import { TowerContentStore } from '../model/towerContent';
 import { useGameConnection } from '../net/useGameConnection';
 import { placeholderTowerContent } from '../render/placeholderTower';
+import { bindPreview, previewToolOf } from '../render/placementSource';
 import type { Stage } from '../render/stage';
 import { bindStructure, fullWidthTestTower, testTowerFromQuery } from '../render/structureSource';
 import { DEBUG_UNIT_FLOORS, bindUnits, debugUnits, testUnitsFromQuery } from '../render/unitSource';
@@ -12,19 +13,23 @@ import { isMapToggleKey } from './keys';
 import { ConnectionOverlay } from './ConnectionOverlay';
 import { LevelRuler } from './LevelRuler';
 import { StageHost } from './StageHost';
-import './kit';
+import { WindowLayer } from './kit';
+import { RestartTowerDialogs, type RestartStep } from './menu/RestartTowerDialogs';
 import { StatusPanel, type StatusWindowId } from './status/StatusPanel';
 import { debugStarsFromQuery } from './toolbar/debugStars';
+import { t } from './strings';
 import { Toolbar } from './toolbar/Toolbar';
 import { DEFAULT_LOBBY_HEIGHT, DEFAULT_TOOL, type ToolId } from './toolbar/toolbarModel';
 import { TowerMapWindow } from './TowerMapWindow';
 
 export interface AppProps {
   onLogout: () => void;
+  /** Resolves true when the server started a new tower. */
+  onRestartTower: () => Promise<boolean>;
   onSessionLost: () => void;
 }
 
-export function App({ onLogout, onSessionLost }: AppProps) {
+export function App({ onLogout, onRestartTower, onSessionLost }: AppProps) {
   const {
     connection,
     status: connectionStatus,
@@ -38,6 +43,7 @@ export function App({ onLogout, onSessionLost }: AppProps) {
   }, []);
   const [stage, setStage] = useState<Stage | null>(null);
   const [mapOpen, setMapOpen] = useState(false);
+  const [restartStep, setRestartStep] = useState<RestartStep | null>(null);
   const [tool, setTool] = useState<ToolId>(DEFAULT_TOOL);
   const [lobbyHeight, setLobbyHeight] = useState(DEFAULT_LOBBY_HEIGHT);
   // Replaced by the tower's rating once the game state reaches the client.
@@ -52,6 +58,15 @@ export function App({ onLogout, onSessionLost }: AppProps) {
     if (event.target instanceof Element && event.target.closest('button') !== null) {
       playTrigger('ui.click');
     }
+  };
+
+  const restartTower = (): void => {
+    setRestartStep(null);
+    void onRestartTower().then((restarted) => {
+      if (!restarted) {
+        setRestartStep('failed');
+      }
+    });
   };
 
   useEffect(() => {
@@ -82,6 +97,13 @@ export function App({ onLogout, onSessionLost }: AppProps) {
   }, [stage, connection]);
 
   useEffect(() => {
+    if (stage === null) {
+      return;
+    }
+    return bindPreview(stage, connection.store, previewToolOf(tool));
+  }, [stage, connection, tool]);
+
+  useEffect(() => {
     const onKeyDown = (event: KeyboardEvent): void => {
       if (isMapToggleKey(event)) {
         setMapOpen((open) => !open);
@@ -102,6 +124,9 @@ export function App({ onLogout, onSessionLost }: AppProps) {
           onOpenWindow={onOpenWindow}
           onZoom={(direction) => stage?.zoomStep(direction)}
           onLogout={onLogout}
+          extraMenuItems={[
+            { id: 'newTower', label: t('ui.newTower'), onSelect: () => setRestartStep('first') },
+          ]}
         />
         <Toolbar
           stars={stars}
@@ -119,6 +144,13 @@ export function App({ onLogout, onSessionLost }: AppProps) {
         {mapOpen && stage && (
           <TowerMapWindow content={content} stage={stage} onClose={() => setMapOpen(false)} />
         )}
+        <WindowLayer class="ui-windows">
+          <RestartTowerDialogs
+            step={restartStep}
+            onStep={setRestartStep}
+            onRestart={restartTower}
+          />
+        </WindowLayer>
       </div>
     </>
   );
