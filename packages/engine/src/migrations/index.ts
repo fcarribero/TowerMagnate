@@ -38,6 +38,7 @@ const MIGRATIONS: readonly Migration[] = [
   addPersonPool,
   addStarRating,
   addHallQueues,
+  addStarState,
 ];
 
 /** Version 2 records each unit's price level, what was paid for it and when it was placed. */
@@ -118,6 +119,17 @@ function addHallQueues(raw: Record<string, unknown>): Record<string, unknown> {
     }
   }
   return { ...raw, schemaVersion: 9, shafts };
+}
+
+/** Version 10 keeps the star check state. Earlier towers have no VIP approval and no failures. */
+function addStarState(raw: Record<string, unknown>): Record<string, unknown> {
+  return {
+    vipApproved: false,
+    lastMedicalFailureStep: null,
+    lastParkingFailureStep: null,
+    ...raw,
+    schemaVersion: 10,
+  };
 }
 
 function isUint32(value: unknown): value is number {
@@ -306,6 +318,29 @@ function assertCurrentShape(raw: Record<string, unknown>): TowerState {
     activeEvents: readActiveEvents(raw.activeEvents),
     closedDecisions: readClosedDecisions(raw.closedDecisions),
     treasureLevels: readTreasureLevels(raw.treasureLevels),
+    ...readStarState(raw),
+  };
+}
+
+type StarState = Pick<
+  TowerState,
+  'vipApproved' | 'lastMedicalFailureStep' | 'lastParkingFailureStep'
+>;
+
+function readStarState(raw: Record<string, unknown>): StarState {
+  const { vipApproved, lastMedicalFailureStep, lastParkingFailureStep } = raw;
+  if (typeof vipApproved !== 'boolean') {
+    throw new StateMigrationError('State vipApproved must be true or false');
+  }
+  for (const failure of [lastMedicalFailureStep, lastParkingFailureStep]) {
+    if (failure !== null && !isNonNegativeInteger(failure)) {
+      throw new StateMigrationError('State failure steps must be null or non-negative integers');
+    }
+  }
+  return {
+    vipApproved,
+    lastMedicalFailureStep: lastMedicalFailureStep as number | null,
+    lastParkingFailureStep: lastParkingFailureStep as number | null,
   };
 }
 

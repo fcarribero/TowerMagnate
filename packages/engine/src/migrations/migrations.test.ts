@@ -297,3 +297,16 @@ describe('migrateState stars', () => {
     }
   });
 });
+
+describe('migrateState star check state', () => {
+  it('starts a version 8 save with no VIP approval and no failures', () => {
+    const tower = migrateState(JSON.parse(VERSION_8_SAVE));
+    expect(tower.schemaVersion).toBe(SCHEMA_VERSION);
+    expect(tower).toMatchObject({
+      stars: 3,
+      vipApproved: false,
+      lastMedicalFailureStep: null,
+      lastParkingFailureStep: null,
+    });
+  });
+});

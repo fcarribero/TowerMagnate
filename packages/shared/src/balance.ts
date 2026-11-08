@@ -37,6 +37,12 @@ export const STAR_POPULATION_THRESHOLDS: Readonly<Record<Exclude<StarRating, 6>,
   5: 15_000,
 };
 
+/** Suites (not infested) a tower needs to reach 4 stars. */
+export const SUITES_FOR_FOUR_STARS = 2;
+
+/** People one recycling center covers. */
+export const RECYCLING_PEOPLE_PER_CENTER = 2_500;
+
 function fixedHeight(floors: number): UnitHeight {
   return { kind: 'fixed', floors };
 }
