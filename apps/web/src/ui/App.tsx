@@ -16,7 +16,6 @@ import './kit';
 import { WindowLayer } from './kit';
 import { GameMenu } from './menu/GameMenu';
 import { RestartTowerDialogs, type RestartStep } from './menu/RestartTowerDialogs';
-import { t } from './strings';
 import { debugStarsFromQuery } from './toolbar/debugStars';
 import { Toolbar } from './toolbar/Toolbar';
 import { DEFAULT_LOBBY_HEIGHT, DEFAULT_TOOL, type ToolId } from './toolbar/toolbarModel';
