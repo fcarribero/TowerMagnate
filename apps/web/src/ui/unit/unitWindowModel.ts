@@ -3,9 +3,9 @@ import {
   CONDO_SALE_PRICE,
   HOTEL_NIGHTLY_PRICE,
   PRICE_LEVELS,
-  UNIT_CATALOG,
   WEEKLY_RENT,
   type Evaluation,
+  type InspectedUnitDetails,
   type Level,
   type PriceLevel,
   type PriceTable,
@@ -19,7 +19,6 @@ import { t, type StringKey } from '../strings';
 export const NAME_MAX_LENGTH = 24;
 export const FILM_CHANGE_COST = 300_000;
 const FIRST_CATHEDRAL_LEVEL = 101;
-const DAYS_PER_WEEK = 7;
 
 export function levelText(level: Level): string {
   if (level < 0) {
@@ -38,11 +37,10 @@ export function unitTitle(unit: Pick<UnitInspect, 'name' | 'type' | 'level'>): s
   );
 }
 
-export function locationText(unit: Pick<UnitInspect, 'type' | 'level' | 'x'>): string {
-  const lastColumn = unit.x + UNIT_CATALOG[unit.type].width - 1;
+export function locationText(unit: Pick<UnitInspect, 'level' | 'from' | 'to'>): string {
   return t('window.unit.locationValue', {
     level: levelText(unit.level),
-    columns: t('ui.columns', { x0: unit.x, x1: lastColumn }),
+    columns: t('ui.columns', { x0: unit.from, x1: unit.to }),
   });
 }
 
@@ -83,8 +81,14 @@ export function priceLabelKey(type: UnitType): StringKey | null {
   return type === 'condo' ? 'window.unit.salePrice' : null;
 }
 
-export function isSoldCondo(unit: Pick<UnitInspect, 'type' | 'contract'>): boolean {
-  return unit.type === 'condo' && unit.contract?.state === 'sold';
+export function isSoldCondo(unit: Pick<UnitInspect, 'details'>): boolean {
+  return unit.details?.group === 'condo' && unit.details.state === 'sold';
+}
+
+/** The price level the server last sent, for the types that have a price choice. */
+export function priceOf(unit: Pick<UnitInspect, 'details'>): PriceLevel | null {
+  const { details } = unit;
+  return details === null ? null : details.price;
 }
 
 export type EvaluationColor = 'sky-deep' | 'lamp' | 'cloth-red' | 'gray';
@@ -119,11 +123,6 @@ export interface UnitRow {
   evaluationColor?: EvaluationColor;
 }
 
-export interface UnitRowContext {
-  /** The unit's drawn variant; hotel rooms read their state from it. */
-  variant: string | undefined;
-}
-
 function weekdayName(weekday: number): string {
   return t(`calendar.weekday.${weekday}` as StringKey);
 }
@@ -148,8 +147,8 @@ function countOf(n: number, max: number): string {
   return t('window.unit.countOf', { n, max });
 }
 
-function evaluationRow(unit: UnitInspect): UnitRow {
-  const view = evaluationView(unit.evaluation);
+function evaluationRow(evaluation: Evaluation | null): UnitRow {
+  const view = evaluationView(evaluation);
   return {
     id: 'evaluation',
     label: t('window.unit.evaluation'),
@@ -158,39 +157,39 @@ function evaluationRow(unit: UnitInspect): UnitRow {
   };
 }
 
-function leaseRows(unit: UnitInspect): UnitRow[] {
-  const { contract } = unit;
-  const leased = contract?.state === 'leased';
-  const week = contract?.week ?? null;
+type Details<G extends InspectedUnitDetails['group']> = Extract<InspectedUnitDetails, { group: G }>;
+
+function leaseRows(lease: Details<'lease'>): UnitRow[] {
+  const leased = lease.state === 'occupied';
   const rows: UnitRow[] = [
     {
       id: 'status',
       label: t('window.unit.status'),
       value: t(leased ? 'value.lease.occupied' : 'value.lease.forRent'),
     },
-    { id: 'people', label: t('window.unit.people'), value: countOf(unit.occupants, unit.capacity) },
-    evaluationRow(unit),
+    { id: 'people', label: t('window.unit.people'), value: countOf(lease.persons, lease.capacity) },
+    evaluationRow(lease.evaluation),
     {
       id: 'lease',
       label: t('window.unit.lease'),
       value:
-        leased && week !== null
-          ? t('window.unit.leaseWeek', { k: week })
+        leased && lease.leaseWeek !== null
+          ? t('window.unit.leaseWeek', { k: lease.leaseWeek })
           : t('window.unit.noLease'),
     },
   ];
-  if (contract?.nextPaymentStep != null) {
+  if (lease.nextPaymentStep !== null) {
     rows.push({
       id: 'nextPayment',
       label: t('window.unit.nextPayment'),
-      value: weekdayAndTime(contract.nextPaymentStep),
+      value: weekdayAndTime(lease.nextPaymentStep),
     });
   }
   return rows;
 }
 
-function condoRows(unit: UnitInspect): UnitRow[] {
-  const sold = isSoldCondo(unit);
+function condoRows(condo: Details<'condo'>): UnitRow[] {
+  const sold = condo.state === 'sold';
   const rows: UnitRow[] = [
     {
       id: 'status',
@@ -200,85 +199,74 @@ function condoRows(unit: UnitInspect): UnitRow[] {
     {
       id: 'residents',
       label: t('window.unit.residents'),
-      value: countOf(unit.occupants, unit.capacity),
+      value: countOf(condo.residents, condo.capacity),
     },
-    evaluationRow(unit),
+    evaluationRow(condo.evaluation),
   ];
-  if (sold && unit.contract?.nextPaymentStep != null) {
+  if (sold && condo.nextEvaluationStep !== null) {
     rows.push({
       id: 'nextEvaluation',
       label: t('window.unit.nextEvaluation'),
-      value: weekdayAndDay(unit.contract.nextPaymentStep),
+      value: weekdayAndDay(condo.nextEvaluationStep),
     });
   }
   return rows;
 }
 
-function roomStateKey(unit: UnitInspect, context: UnitRowContext): StringKey {
-  if (unit.occupants > 0) {
-    return 'value.room.occupied';
-  }
-  if (context.variant === 'dirty') {
-    return 'value.room.dirty';
-  }
-  return context.variant === 'infested' ? 'value.room.infested' : 'value.room.free';
-}
+const ROOM_STATE_KEYS: Readonly<Record<Details<'hotel'>['state'], StringKey>> = {
+  clean: 'value.room.free',
+  occupied: 'value.room.occupied',
+  dirty: 'value.room.dirty',
+  infested: 'value.room.infested',
+};
 
-function hotelRows(unit: UnitInspect, context: UnitRowContext): UnitRow[] {
+function hotelRows(hotel: Details<'hotel'>): UnitRow[] {
   const rows: UnitRow[] = [
-    { id: 'status', label: t('window.unit.status'), value: t(roomStateKey(unit, context)) },
-    { id: 'guests', label: t('window.unit.guests'), value: countOf(unit.occupants, unit.capacity) },
-    evaluationRow(unit),
+    { id: 'status', label: t('window.unit.status'), value: t(ROOM_STATE_KEYS[hotel.state]) },
+    { id: 'guests', label: t('window.unit.guests'), value: countOf(hotel.guests, hotel.capacity) },
+    evaluationRow(hotel.evaluation),
   ];
-  if (unit.occupants > 0 && unit.hotelStayEndStep !== null) {
+  if (hotel.state === 'occupied' && hotel.checkoutStep !== null) {
     rows.push({
       id: 'checkout',
       label: t('window.unit.checkout'),
-      value: weekdayAndTime(unit.hotelStayEndStep),
+      value: weekdayAndTime(hotel.checkoutStep),
     });
   }
   return rows;
 }
 
-/** Film weeks count from 1; a film starts at age 0. */
-function filmText(filmAgeDays: number): string {
-  return t('window.unit.filmAge', {
-    w: Math.floor(filmAgeDays / DAYS_PER_WEEK) + 1,
-    age: filmAgeDays,
-  });
-}
-
-function cinemaRows(unit: UnitInspect): UnitRow[] {
-  if (unit.filmAgeDays === null) {
+function cinemaRows(cinema: Details<'cinema'>): UnitRow[] {
+  if (cinema.filmWeek === null || cinema.filmAgeDays === null) {
     return [];
   }
-  return [{ id: 'film', label: t('window.unit.film'), value: filmText(unit.filmAgeDays) }];
+  const value = t('window.unit.filmAge', { w: cinema.filmWeek, age: cinema.filmAgeDays });
+  return [{ id: 'film', label: t('window.unit.film'), value }];
 }
 
 function inServiceRows(): UnitRow[] {
   return [{ id: 'status', label: t('window.unit.status'), value: t('value.service.active') }];
 }
 
-/** Rows below Nombre and Ubicación. Types whose data is not sent yet have none. */
-export function unitRows(unit: UnitInspect, context: UnitRowContext): UnitRow[] {
-  switch (unit.type) {
-    case 'office':
-    case 'retail-shop':
-      return leaseRows(unit);
+function detailRows(details: InspectedUnitDetails): UnitRow[] {
+  switch (details.group) {
+    case 'lease':
+      return leaseRows(details);
     case 'condo':
-      return condoRows(unit);
-    case 'single-room':
-    case 'double-room':
-    case 'suite':
-      return hotelRows(unit, context);
+      return condoRows(details);
+    case 'hotel':
+      return hotelRows(details);
     case 'cinema':
-      return cinemaRows(unit);
-    case 'security':
-    case 'subway-station':
-      return inServiceRows();
-    default:
-      return [];
+      return cinemaRows(details);
   }
+}
+
+/** Rows below Nombre and Ubicacion. Types without details have none, or an in-service row. */
+export function unitRows(unit: UnitInspect): UnitRow[] {
+  if (unit.details !== null) {
+    return detailRows(unit.details);
+  }
+  return unit.type === 'security' || unit.type === 'subway-station' ? inServiceRows() : [];
 }
 
 export interface FilmChangeState {

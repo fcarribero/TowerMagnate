@@ -17,6 +17,7 @@ import {
   isSoldCondo,
   locationText,
   priceLabelKey,
+  priceOf,
   priceOptions,
   typeName,
   unitRows,
@@ -82,13 +83,14 @@ export function UnitWindow({ unitId, connection }: UnitWindowProps) {
   const { commands } = connection;
   const { loaded, view, money } = useTowerFacts(connection, unitId);
   const data = useUnitInspect(connection, unitId);
-  const gone = loaded && view === undefined;
+  const found = data?.status === 'ok' ? data : undefined;
+  const gone = data?.status === 'gone' || (loaded && view === undefined);
   const windowId = unitWindowId(unitId);
   const filmDialogId = `changeFilm:${unitId}`;
   const [, redraw] = useState(0);
 
-  const known = data ?? view;
-  const customName = data?.name ?? view?.name ?? null;
+  const known = found ?? view;
+  const customName = found?.name ?? view?.name ?? null;
   const [draft, setDraft] = useState<string | null>(null);
   const shownName = draft ?? customName ?? '';
 
@@ -115,8 +117,9 @@ export function UnitWindow({ unitId, connection }: UnitWindowProps) {
   };
 
   const title = known === undefined ? '' : unitTitle(known);
-  const sold = data !== undefined && isSoldCondo(data);
-  const priceLabel = data === undefined ? null : priceLabelKey(data.type);
+  const sold = found !== undefined && isSoldCondo(found);
+  const priceLabel = found === undefined ? null : priceLabelKey(found.type);
+  const price = found === undefined ? null : priceOf(found);
 
   return (
     <>
@@ -143,21 +146,21 @@ export function UnitWindow({ unitId, connection }: UnitWindowProps) {
             }}
           />
         </div>
-        {data !== undefined && (
+        {found !== undefined && (
           <dl class="tm-unit__rows">
-            <Row label={t('window.unit.location')} value={locationText(data)} />
-            {unitRows(data, { variant: view?.variant }).map((row) => (
+            <Row label={t('window.unit.location')} value={locationText(found)} />
+            {unitRows(found).map((row) => (
               <Row key={row.id} label={row.label} value={row.value} swatch={row.evaluationColor} />
             ))}
           </dl>
         )}
-        {data !== undefined && priceLabel !== null && (
+        {found !== undefined && priceLabel !== null && price !== null && (
           <>
             <RadioGroup
               name={`${windowId}-price`}
               label={t(priceLabel)}
-              options={priceOptions(data.type)}
-              value={data.price}
+              options={priceOptions(found.type)}
+              value={price}
               disabled={gone || sold}
               onChange={(price) => {
                 void commands.setPrice(unitId, price);
@@ -168,7 +171,7 @@ export function UnitWindow({ unitId, connection }: UnitWindowProps) {
             {sold && <p class="tm-unit__note">{t('window.unit.alreadySold')}</p>}
           </>
         )}
-        {data?.type === 'cinema' && (
+        {found?.type === 'cinema' && (
           <FilmButton
             disabled={filmChange.disabled}
             tooltip={filmChange.tooltip}

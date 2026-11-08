@@ -2,7 +2,7 @@ import { act, cleanup, fireEvent, render, screen } from '@testing-library/preact
 import type { ClientMessage, ServerMessage, UnitView } from '@tower-magnate/shared';
 import { afterEach, describe, expect, it } from 'vitest';
 import { ClientStore } from '../../model/clientStore';
-import { InspectStore, type UnitInspect } from '../../model/inspectStore';
+import { InspectStore, type UnitInspect, type UnitInspectData } from '../../model/inspectStore';
 import { CommandClient } from '../../net/commandClient';
 import type { GameConnection } from '../../net/gameConnection';
 import { useFakeLayoutSizes } from '../../testing/fakeLayout';
@@ -27,21 +27,33 @@ function unitView(id: string, type: UnitView['type'] = 'office'): UnitView {
   };
 }
 
+type Details = NonNullable<UnitInspect['details']>;
+
+function leaseDetails(fields: Partial<Extract<Details, { group: 'lease' }>> = {}): Details {
+  return {
+    group: 'lease',
+    state: 'occupied',
+    persons: 2,
+    capacity: 6,
+    evaluation: 'good',
+    price: 'normal',
+    leaseWeek: 1,
+    nextPaymentStep: null,
+    ...fields,
+  };
+}
+
 function inspectOf(id: string, fields: Partial<UnitInspect> = {}): UnitInspect {
   return {
     kind: 'unit',
     id,
+    status: 'ok',
     type: 'office',
     name: null,
     level: 3,
-    x: 10,
-    occupants: 2,
-    capacity: 6,
-    evaluation: 'good',
-    price: 'normal',
-    contract: { state: 'leased', week: 1, nextPaymentStep: null },
-    hotelStayEndStep: null,
-    filmAgeDays: null,
+    from: 10,
+    to: 18,
+    details: leaseDetails(),
     ...fields,
   };
 }
@@ -66,7 +78,7 @@ function setup(units: UnitView[], money = 2_000_000) {
   const receive = (message: ServerMessage): void => {
     act(() => inspect.receive(message));
   };
-  const show = (data: UnitInspect): void => receive({ v: 1, t: 'inspect', p: data });
+  const show = (data: UnitInspectData): void => receive({ v: 1, t: 'inspect', p: data });
   const open = (id: string): void => {
     act(() => inspect.requestUnitWindow(id));
   };
@@ -123,7 +135,7 @@ describe('unit windows', () => {
     expect(
       (screen.getByRole('radio', { name: 'Normal $10.000' }) as HTMLInputElement).checked,
     ).toBe(true);
-    show(inspectOf('u1', { price: 'low' }));
+    show(inspectOf('u1', { details: leaseDetails({ price: 'low' }) }));
     expect((screen.getByRole('radio', { name: 'Bajo $5.000' }) as HTMLInputElement).checked).toBe(
       true,
     );
@@ -135,8 +147,15 @@ describe('unit windows', () => {
     show(
       inspectOf('u1', {
         type: 'condo',
-        capacity: 3,
-        contract: { state: 'sold', week: null, nextPaymentStep: null },
+        details: {
+          group: 'condo',
+          state: 'sold',
+          residents: 2,
+          capacity: 3,
+          evaluation: null,
+          price: 'normal',
+          nextEvaluationStep: null,
+        },
       }),
     );
     expect(screen.getByText('Ya está vendido.')).toBeTruthy();
@@ -145,6 +164,15 @@ describe('unit windows', () => {
         ':disabled',
       ),
     ).toBe(true);
+  });
+
+  it('shows a unit the server reports gone, with controls disabled', () => {
+    const { open, show } = setup([unitView('u1')]);
+    open('u1');
+    show(inspectOf('u1'));
+    show({ kind: 'unit', id: 'u1', status: 'gone' });
+    expect(screen.getByText('Ya no está en la torre.')).toBeTruthy();
+    expect((screen.getByLabelText('Nombre') as HTMLInputElement).disabled).toBe(true);
   });
 
   it('keeps four windows and closes the oldest on a fifth', () => {
@@ -175,7 +203,11 @@ describe('unit windows', () => {
 
   describe('cinema', () => {
     const cinema = (fields: Partial<UnitInspect> = {}) =>
-      inspectOf('u1', { type: 'cinema', contract: null, filmAgeDays: 9, ...fields });
+      inspectOf('u1', {
+        type: 'cinema',
+        details: { group: 'cinema', filmWeek: 2, filmAgeDays: 9, price: 'normal' },
+        ...fields,
+      });
 
     it('asks before changing the film', () => {
       const { open, show, commandsSent } = setup([unitView('u1', 'cinema')]);

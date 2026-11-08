@@ -1,6 +1,7 @@
 import type { InspectData, ServerMessage } from '@tower-magnate/shared';
 
-export type UnitInspect = Extract<InspectData, { kind: 'unit' }>;
+export type UnitInspectData = Extract<InspectData, { kind: 'unit' }>;
+export type UnitInspect = Extract<UnitInspectData, { status: 'ok' }>;
 
 type Listener = () => void;
 type OpenRequestListener = (unitId: string) => void;
@@ -10,7 +11,7 @@ type OpenRequestListener = (unitId: string) => void;
  * a time, so a unit that is not in front keeps the data it last received.
  */
 export class InspectStore {
-  private readonly units = new Map<string, UnitInspect>();
+  private readonly units = new Map<string, UnitInspectData>();
   private readonly listeners = new Set<Listener>();
   private readonly openRequests = new Set<OpenRequestListener>();
 
@@ -24,7 +25,7 @@ export class InspectStore {
     }
   }
 
-  unit(unitId: string): UnitInspect | undefined {
+  unit(unitId: string): UnitInspectData | undefined {
     return this.units.get(unitId);
   }
 
