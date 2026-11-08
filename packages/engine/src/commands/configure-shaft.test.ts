@@ -47,6 +47,21 @@ describe('configureShaft', () => {
     expect(state.shafts.s1?.schedule.weekday[1]?.mode).toBe('expressUp');
   });
 
+  it('keeps all 12 band rows exactly as sent', () => {
+    const modes = ['normal', 'expressUp', 'expressDown'] as const;
+    const row = (index: number) => ({
+      mode: modes[index % 3] ?? 'normal',
+      dwellSeconds: (index % 7) * 10,
+      responseDistance: index + 1,
+    });
+    const schedule: ShaftSchedule = {
+      weekday: [0, 1, 2, 3, 4, 5].map(row),
+      weekend: [6, 7, 8, 9, 10, 11].map(row),
+    };
+    const { state } = accept(towerWithShafts(), configure('s1', allLevels, [1], schedule));
+    expect(state.shafts.s1?.schedule).toEqual(schedule);
+  });
+
   it('refuses invalid settings', () => {
     const tower = towerWithShafts();
     const badBand = (change: object) => {
