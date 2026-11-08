@@ -177,7 +177,7 @@ function promote(context: StepContext): void {
     stars: state.stars,
     unlocked: unitsUnlockedAt(state.stars),
   });
-  context.events.push({ type: 'news', step: state.step, key: 'news.starsUp', unitId: null });
+  context.events.push({ type: 'news', step: state.step, key: 'news.starsUp', n: state.stars });
 }
 
 export const starCheckHook: ScheduledHook = {
