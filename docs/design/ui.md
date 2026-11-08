@@ -494,11 +494,11 @@ Centered, one "Aceptar" button, close button allowed. They do not stop anything.
 
 | Trigger | Title | Body |
 |---|---|---|
-| `starsChanged` up to 2-5 | ¡{n} estrellas! | La torre llegó a {n} estrellas. Ahora podés construir: {list of unit names unlocked at n}. |
+| `starsChanged` up to 2-5 (not 6) | ¡{n} estrellas! | La torre llegó a {n} estrellas. Ahora podés construir: {list of unit names unlocked at n}. |
 | `weddingCompleted` | ¡Rango Torre! | Los novios se casaron en la catedral. Tu edificio es oficialmente una Torre. |
-| First login of a new tower | Bienvenida | Tenés $2.000.000 para empezar. Construí el lobby en el piso 1 y después los pisos, las oficinas y los ascensores. |
+| First snapshot of a session with `step` 0 | Bienvenida | Tenés $2.000.000 para empezar. Construí el lobby en el piso 1 y después los pisos, las oficinas y los ascensores. |
 
-Stars can only go up in the current rules; if a later spec lowers them, a notice is enough.
+Stars can only go up in the current rules; if a later spec lowers them, a notice is enough. The placeholder sources, the unlock list per rating, the sounds and the order of dialogs are in messages.md 11.1.
 
 ### 9.3 Confirm dialogs
 
@@ -1005,6 +1005,12 @@ All texts of section 9 are keyed `dialog.{id}.title`, `dialog.{id}.body` and `di
 | `dialog.changeFilm.confirm` | Cambiar |
 | `dialog.newTower.confirm` | Demoler y empezar |
 | `dialog.protocolMismatch.reload` | Recargar |
+| `dialog.starsUp.title` | ¡{n} estrellas! |
+| `dialog.starsUp.body` | La torre llegó a {n} estrellas. Ahora podés construir: {units}. |
+| `dialog.towerRank.title` | ¡Rango Torre! |
+| `dialog.towerRank.body` | Los novios se casaron en la catedral. Tu edificio es oficialmente una Torre. |
+| `dialog.welcome.title` | Bienvenida |
+| `dialog.welcome.body` | Tenés $2.000.000 para empezar. Construí el lobby en el piso 1 y después los pisos, las oficinas y los ascensores. |
 
 ### 13.12 Login and register
 
