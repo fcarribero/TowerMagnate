@@ -3,7 +3,14 @@ import { describe, expect, it } from 'vitest';
 import { FLOOR_HEIGHT, TILE_WIDTH } from './metrics';
 import { isPlacedUnit, planTransport, planUnit } from './unitPlan';
 
-const base = { id: 'u1', x: 10, level: 5, occupied: false, variant: 'empty' } as const;
+const base = {
+  id: 'u1',
+  x: 10,
+  level: 5,
+  occupied: false,
+  variant: 'empty',
+  price: 'normal',
+} as const;
 
 describe('planUnit', () => {
   it('draws 18 unit types', () => {

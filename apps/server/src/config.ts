@@ -11,6 +11,8 @@ export interface ServerConfig {
   secureCookies: boolean;
   /** Web origins allowed to send state-changing API requests. */
   allowedOrigins: string[];
+  /** Dev-only debug socket messages. Never on when NODE_ENV is production. */
+  debugCommands: boolean;
 }
 
 const DEFAULT_HOST = '0.0.0.0';
@@ -41,6 +43,7 @@ export function readConfig(env: NodeJS.ProcessEnv): ServerConfig {
     webDir: env.WEB_DIR || undefined,
     secureCookies: readSecureCookies(env.SECURE_COOKIES, env.NODE_ENV),
     allowedOrigins: readAllowedOrigins(env.ALLOWED_ORIGINS, env.NODE_ENV),
+    debugCommands: env.NODE_ENV !== 'production',
   };
 }
 
