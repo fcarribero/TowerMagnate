@@ -11,6 +11,7 @@ import {
   VERSION_7_SAVE,
   VERSION_8_SAVE,
   VERSION_9_SAVE,
+  VERSION_11_SAVE,
 } from './fixtures';
 import { migrateState, StateMigrationError } from './index';
 
@@ -131,6 +132,7 @@ describe('migrateState fixtures', () => {
       placedAtStep: 0,
       used: false,
       lease: null,
+      sale: null,
       hotel: null,
     });
   });
@@ -290,6 +292,21 @@ describe('migrateState stars', () => {
 
   it('loads a frozen version 8 save', () => {
     expect(migrateState(JSON.parse(VERSION_8_SAVE)).stars).toBe(3);
+  });
+
+  it('loads a frozen version 11 save with every condo for sale', () => {
+    const tower = migrateState(JSON.parse(VERSION_11_SAVE));
+    expect(tower.schemaVersion).toBe(SCHEMA_VERSION);
+    expect(tower.units.u1?.sale).toBeNull();
+  });
+
+  it('keeps a recorded condo sale and refuses a malformed one', () => {
+    const tower = JSON.parse(JSON.stringify(migrateState(JSON.parse(VERSION_11_SAVE))));
+    const sale = { price: 150_000, anchorStep: 100, nextEvaluationStep: 100 + 241_920 };
+    tower.units.u1.sale = sale;
+    expect(migrateState(tower).units.u1?.sale).toEqual(sale);
+    tower.units.u1.sale = { ...sale, price: -1 };
+    expect(() => migrateState(tower)).toThrow(StateMigrationError);
   });
 
   it('refuses a star rating outside 1 to 6', () => {

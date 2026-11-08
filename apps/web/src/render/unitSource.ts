@@ -1,12 +1,14 @@
 import { UNIT_CATALOG, UNIT_TYPES, type UnitView } from '@tower-magnate/shared';
 import type { ClientStore } from '../model/clientStore';
 import type { GameState } from '../model/gameState';
+import type { OverlayId } from './overlayColors';
 import { stepAtHour, timeOfDayAt } from './timeOfDay';
 import type { UnitsInput } from './unitLayer';
 import { isPlacedUnit, type TransportSource } from './unitPlan';
 
-export function unitsOf(state: GameState): UnitsInput {
+export function unitsOf(state: GameState, overlay: OverlayId = 'normal'): UnitsInput {
   return {
+    overlay: { id: overlay, data: state.overlays },
     units: state.units.values(),
     transports: state.transports.values(),
     time: timeOfDayAt(state.step),
@@ -17,9 +19,14 @@ export function unitsOf(state: GameState): UnitsInput {
  * Feeds `show` from the store on every frame that changes a unit, a transport
  * or the time of day, so a variant change in a delta is drawn on the next frame.
  */
-export function bindUnits(store: ClientStore, show: (input: UnitsInput) => void): () => void {
+export function bindUnits(
+  store: ClientStore,
+  overlay: OverlayId,
+  show: (input: UnitsInput) => void,
+): () => void {
   return store.select(
     (state) => ({
+      overlays: state.overlays,
       units: state.units,
       transports: state.transports,
       time: timeOfDayAt(state.step),
@@ -29,6 +36,7 @@ export function bindUnits(store: ClientStore, show: (input: UnitsInput) => void)
         units: selected.units.values(),
         transports: selected.transports.values(),
         time: selected.time,
+        overlay: { id: overlay, data: selected.overlays },
       }),
   );
 }
@@ -37,7 +45,10 @@ const DEBUG_ROW_SPACING = 5;
 const DEBUG_FIRST_LEVEL = 4;
 
 /** Every placed unit type twice, empty on the first row and occupied on the second, plus stairs and an escalator. */
-export function debugUnits(hour: number): UnitsInput & {
+export function debugUnits(
+  hour: number,
+  overlay: OverlayId = 'normal',
+): UnitsInput & {
   units: UnitView[];
   transports: TransportSource[];
 } {
@@ -76,6 +87,7 @@ export function debugUnits(hour: number): UnitsInput & {
       },
     ],
     time: timeOfDayAt(stepAtHour(hour)),
+    overlay: { id: overlay, data: { evaluation: {}, price: {}, hotel: {} } },
   };
 }
 

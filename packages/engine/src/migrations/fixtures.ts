@@ -54,3 +54,13 @@ export const VERSION_9_SAVE =
   '"shafts":{},"transports":{},"activeEvents":[],"closedDecisions":[],"treasureLevels":[],' +
   '"people":{"nextId":1,"id":[],"kind":[],"homeUnit":[],"level":[],"column":[],"trip":[],' +
   '"dueStep":[],"stress":[],"nameSeed":[],"followed":[]}}';
+
+export const VERSION_11_SAVE =
+  '{"schemaVersion":11,"step":8640,"rng":{"a":1,"b":2,"c":3,"d":4},"nextId":2,"stars":2,' +
+  '"vipApproved":false,"lastMedicalFailureStep":null,"lastParkingFailureStep":null,' +
+  '"units":{"u1":{"id":"u1","type":"condo","x":10,"level":2,"name":null,' +
+  '"priceLevel":"normal","paid":50000,"placedAtStep":120,"used":false,"lease":null,' +
+  '"hotel":null}},' +
+  '"shafts":{},"transports":{},"activeEvents":[],"closedDecisions":[],"treasureLevels":[],' +
+  '"people":{"nextId":1,"id":[],"kind":[],"homeUnit":[],"level":[],"column":[],"trip":[],' +
+  '"dueStep":[],"stress":[],"nameSeed":[],"followed":[]}}';

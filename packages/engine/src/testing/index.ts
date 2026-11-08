@@ -12,3 +12,4 @@ export type {
   ShaftType,
   TowerPlan,
 } from './tower-builder';
+export { addFlight, hundredFloorTower } from './hundred-floor-tower';
