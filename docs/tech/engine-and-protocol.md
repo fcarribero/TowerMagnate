@@ -475,6 +475,8 @@ While an `inspect` target is set, the server sends `inspect` once per second and
 | Elevator | shaft type and range, stops, cars with home levels, full weekday and weekend schedule |
 | Finances | balance, this week and last week income and expenses by `MoneyReason` |
 
+Unit targets (`{ kind: 'unit', id }`) are answered as follows. Each socket has one target: a new `inspect` replaces it, `target: null`, a socket close or a new `hello` clears it. The first answer comes right after the set, then once per second, plus one extra answer after a successful `setPrice` or `renameUnit` on the target. An answer for a unit that is demolished or unknown is `{ kind: 'unit', id, status: 'gone' }`, sent once, and the target is cleared. A found unit has `status: 'ok'`, the common fields (`name`, `type`, `level`, `from`, `to`) and `details` for its type: `lease` (office, shop), `condo`, `hotel` (rooms) or `cinema`; other types have `details: null`. Evaluation and the cinema film fields are `null` until the engine stores them. Person, shaft and finances targets are not answered yet.
+
 ### 8.10 Coverage of the GDD interface
 
 | GDD Interfaz item | Where it comes from |
