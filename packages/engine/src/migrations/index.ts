@@ -5,6 +5,7 @@ import {
   SHAFT_TYPES,
   UNIT_TYPES,
   type ElevatorCar,
+  type CondoSale,
   type Lease,
   type QueueEntry,
   type RngState,
@@ -38,6 +39,7 @@ const MIGRATIONS: readonly Migration[] = [
   addPersonPool,
   addStarRating,
   addHallQueues,
+  addCondoSaleRecord,
 ];
 
 /** Version 2 records each unit's price level, what was paid for it and when it was placed. */
@@ -120,6 +122,18 @@ function addHallQueues(raw: Record<string, unknown>): Record<string, unknown> {
   return { ...raw, schemaVersion: 9, shafts };
 }
 
+/** Version 10 records each condo's sale; every condo in an older save is still for sale. */
+function addCondoSaleRecord(raw: Record<string, unknown>): Record<string, unknown> {
+  if (!isRecord(raw.units)) {
+    return { ...raw, schemaVersion: 10 };
+  }
+  const units: Record<string, unknown> = {};
+  for (const [id, unit] of Object.entries(raw.units)) {
+    units[id] = isRecord(unit) ? { sale: null, ...unit } : unit;
+  }
+  return { ...raw, schemaVersion: 10, units };
+}
+
 function isUint32(value: unknown): value is number {
   return Number.isInteger(value) && (value as number) >= 0 && (value as number) <= 0xffff_ffff;
 }
@@ -150,7 +164,18 @@ function isUnit(value: unknown): value is Unit {
     isNonNegativeInteger(value.paid) &&
     isNonNegativeInteger(value.placedAtStep) &&
     typeof value.used === 'boolean' &&
-    (value.lease === null || isLease(value.lease))
+    (value.lease === null || isLease(value.lease)) &&
+    (value.sale === null || isCondoSale(value.sale))
+  );
+}
+
+function isCondoSale(value: unknown): value is CondoSale {
+  return (
+    isRecord(value) &&
+    isNonNegativeInteger(value.price) &&
+    isNonNegativeInteger(value.anchorStep) &&
+    isNonNegativeInteger(value.nextEvaluationStep) &&
+    value.nextEvaluationStep > value.anchorStep
   );
 }
 
@@ -187,6 +212,7 @@ function readUnits(raw: unknown): Record<UnitId, Unit> {
       placedAtStep: unit.placedAtStep,
       used: unit.used,
       lease: unit.lease === null ? null : { ...unit.lease },
+      sale: unit.sale === null ? null : { ...unit.sale },
     };
   }
   return units;

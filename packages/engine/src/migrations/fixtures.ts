@@ -44,3 +44,10 @@ export const VERSION_8_SAVE =
   '"units":{},"shafts":{},"people":{"nextId":4,"id":[1,3],"kind":[0,2],"homeUnit":[0,0],' +
   '"level":[1,5],"column":[10,40],"trip":[0,0],"dueStep":[8700,-1],"stress":[0,12.5],' +
   '"nameSeed":[77,91],"followed":[3]}}';
+
+export const VERSION_9_SAVE =
+  '{"schemaVersion":9,"step":8640,"rng":{"a":1,"b":2,"c":3,"d":4},"nextId":2,"stars":2,' +
+  '"units":{"u1":{"id":"u1","type":"condo","x":10,"level":2,"name":null,' +
+  '"priceLevel":"normal","paid":50000,"placedAtStep":120,"used":false,"lease":null}},' +
+  '"shafts":{},"people":{"nextId":1,"id":[],"kind":[],"homeUnit":[],"level":[],"column":[],' +
+  '"trip":[],"dueStep":[],"stress":[],"nameSeed":[],"followed":[]}}';

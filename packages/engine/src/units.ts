@@ -18,6 +18,7 @@ export function newUnit(id: EntityId, type: UnitType, x: number, level: Level): 
     placedAtStep: 0,
     used: false,
     lease: null,
+    sale: null,
   };
 }
 

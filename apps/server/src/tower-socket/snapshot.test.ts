@@ -27,6 +27,7 @@ function office(id: string, x: number, name: string | null): Unit {
     placedAtStep: 0,
     used: false,
     lease: null,
+    sale: null,
   };
 }
 

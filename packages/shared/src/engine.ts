@@ -74,6 +74,8 @@ export interface Unit {
   used: boolean;
   /** The current office or shop tenant's lease; null while the unit is for rent. */
   lease: Lease | null;
+  /** The current owners' purchase of a condo; null while the condo is for sale. */
+  sale: CondoSale | null;
 }
 
 /** A staircase or escalator. Its cells on `level` are the footprint; the level above has the landing. */
@@ -135,6 +137,15 @@ export interface Lease {
   anchorStep: number;
   /** The next payment or, at the end of the term, the evaluation. */
   nextDueStep: number;
+}
+
+export interface CondoSale {
+  /** Whole dollars the owners paid; a buyback returns exactly this. */
+  price: number;
+  /** The step of the sale, which starts the 4-week evaluation cycle. */
+  anchorStep: number;
+  /** The next owner evaluation. */
+  nextEvaluationStep: number;
 }
 
 export type TenantEvaluation = 'good' | 'fair' | 'poor';
@@ -201,6 +212,7 @@ export type EngineEvent =
       name: string | null;
     }
   | { type: 'leaseSigned' | 'leaseRenewed' | 'leaseEnded'; step: number; unitId: UnitId }
+  | { type: 'condoSold' | 'condoVacated'; step: number; unitId: UnitId }
   | {
       type: 'decisionOpened';
       step: number;

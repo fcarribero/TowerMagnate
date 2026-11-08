@@ -39,6 +39,7 @@ export {
 
 export { hashState } from './hash';
 export { migrateState, StateMigrationError } from './migrations';
+export { createCondoSystem, sellCondo } from './condos';
 export { createLeaseSystem, isLeasable, moveInTenant, STEPS_PER_WEEK } from './leases';
 export type { TenantEvaluator } from './leases';
 export {
