@@ -134,7 +134,7 @@ export const resizeShaft: CommandHandler<'resizeShaft'> = (context, command) => 
     return { ok: false, error: 'SHAFT_IN_USE' };
   }
 
-  const previous = { bottom: shaft.bottom, top: shaft.top };
+  const previous = { x: shaft.x, bottom: shaft.bottom, top: shaft.top };
   vacate(state, shaft);
   shaft.bottom = bottom;
   shaft.top = top;

@@ -76,6 +76,8 @@ export interface Unit {
   lease: Lease | null;
   /** The state of a hotel room; null for every other unit. */
   hotel: HotelRoom | null;
+  /** The current owners' purchase of a condo; null while the condo is for sale. */
+  sale: CondoSale | null;
 }
 
 export interface HotelRoom {
@@ -195,6 +197,15 @@ export interface Lease {
   nextDueStep: number;
 }
 
+export interface CondoSale {
+  /** Whole dollars the owners paid; a buyback returns exactly this. */
+  price: number;
+  /** The step of the sale, which starts the 4-week evaluation cycle. */
+  anchorStep: number;
+  /** The next owner evaluation. */
+  nextEvaluationStep: number;
+}
+
 export type TenantEvaluation = 'good' | 'fair' | 'poor';
 
 export interface TowerState {
@@ -265,6 +276,7 @@ export type EngineEvent =
       name: string | null;
     }
   | { type: 'leaseSigned' | 'leaseRenewed' | 'leaseEnded'; step: number; unitId: UnitId }
+  | { type: 'condoSold' | 'condoVacated'; step: number; unitId: UnitId }
   | {
       type: 'rideFinished';
       step: number;

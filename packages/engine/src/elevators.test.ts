@@ -394,3 +394,64 @@ describe('time bands and modes', () => {
     expect(carOf(tower).phase).toBe('closing');
   });
 });
+
+describe('stop changes and bands in motion', () => {
+  it('lets a rider off at the nearest enabled stop when theirs is disabled (elevators 13.5)', () => {
+    const tower = shaftTower('standard', 30);
+    const shaft = shaftOf(tower);
+    shaft.stops = [8, 11, 12, 13];
+    const car = carOf(tower);
+    car.homeLevel = 8;
+    car.level = 8;
+    car.direction = 'up';
+    car.phase = 'moving';
+    loadRiders(car, [12]);
+    const rider = car.riders[0] as EntityId;
+
+    const { schedule } = shaft;
+    const disable = {
+      type: 'configureShaft' as const,
+      shaftId: tower.shaftId,
+      stops: [8, 11, 13],
+      carHomes: [8],
+      schedule,
+    };
+    const first = step(tower.state, [{ id: 'c1', command: disable }], 1);
+    tower.state = first.state;
+    const events = [...first.events, ...run(tower, 10)];
+
+    const finished = rides(events);
+    expect(finished).toHaveLength(1);
+    expect(finished[0]).toMatchObject({ person: rider, level: 13 });
+    expect(carOf(tower).riders).toEqual([]);
+  });
+
+  it('keeps the dwell of the band a stop opened in (elevators 13.6)', () => {
+    const tower = shaftTower('standard', 30);
+    const { schedule } = shaftOf(tower);
+    schedule.weekday[4] = { mode: 'normal', dwellSeconds: 60, responseDistance: 5 };
+    schedule.weekday[5] = { mode: 'normal', dwellSeconds: 0, responseDistance: 5 };
+
+    callAt(tower, 6_118, 1, 'up', 2);
+    run(tower, 1);
+    expect(tower.state.step).toBe(6_119);
+    expect(carOf(tower).phase).toBe('dwelling');
+    expect(carOf(tower).phaseStepsLeft).toBe(6);
+
+    run(tower, 2);
+    expect(tower.state.step).toBe(6_121);
+    expect(carOf(tower).phaseStepsLeft).toBe(4);
+  });
+
+  it('opens with the dwell of the new band from 17:00 on Monday (elevators 13.6)', () => {
+    const tower = shaftTower('standard', 30);
+    const { schedule } = shaftOf(tower);
+    schedule.weekday[4] = { mode: 'normal', dwellSeconds: 60, responseDistance: 5 };
+    schedule.weekday[5] = { mode: 'normal', dwellSeconds: 0, responseDistance: 5 };
+
+    callAt(tower, 6_119, 1, 'up', 2);
+    run(tower, 1);
+    expect(tower.state.step).toBe(6_120);
+    expect(carOf(tower).phase).toBe('closing');
+  });
+});

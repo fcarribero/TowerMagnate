@@ -13,6 +13,7 @@ import {
   SHAFT_TYPES,
   UNIT_TYPES,
   type ElevatorCar,
+  type CondoSale,
   type HallCall,
   type HotelRoom,
   type Lease,
@@ -57,6 +58,7 @@ const MIGRATIONS: readonly Migration[] = [
   addHallQueues,
   addStarState,
   addHotelRooms,
+  addCondoSaleRecord,
   addCarMotion,
 ];
 
@@ -152,7 +154,7 @@ function addStarState(raw: Record<string, unknown>): Record<string, unknown> {
 }
 
 /**
- * Version 12 gives each car its motion state and each queued person a destination, and each shaft its stops and band schedule. Older cars
+ * Version 13 gives each car its motion state and each queued person a destination, and each shaft its stops and band schedule. Older cars
  * stand idle and their riders get off at the next stop; queued people head for the end of the shaft.
  */
 function addCarMotion(raw: Record<string, unknown>): Record<string, unknown> {
@@ -163,7 +165,7 @@ function addCarMotion(raw: Record<string, unknown>): Record<string, unknown> {
       shafts[id] = isRecord(shaft) ? withCarMotion(shaft, step) : shaft;
     }
   }
-  return { ...raw, schemaVersion: 12, shafts };
+  return { ...raw, schemaVersion: 13, shafts };
 }
 
 function withCarMotion(shaft: Record<string, unknown>, step: number): Record<string, unknown> {
@@ -230,6 +232,18 @@ function hotelRoomFor(type: unknown): HotelRoom | null {
   return isRoom ? newHotelRoom() : null;
 }
 
+/** Version 12 records each condo's sale; every condo in an older save is still for sale. */
+function addCondoSaleRecord(raw: Record<string, unknown>): Record<string, unknown> {
+  if (!isRecord(raw.units)) {
+    return { ...raw, schemaVersion: 12 };
+  }
+  const units: Record<string, unknown> = {};
+  for (const [id, unit] of Object.entries(raw.units)) {
+    units[id] = isRecord(unit) ? { sale: null, ...unit } : unit;
+  }
+  return { ...raw, schemaVersion: 12, units };
+}
+
 function isUint32(value: unknown): value is number {
   return Number.isInteger(value) && (value as number) >= 0 && (value as number) <= 0xffff_ffff;
 }
@@ -261,7 +275,8 @@ function isUnit(value: unknown): value is Unit {
     isNonNegativeInteger(value.placedAtStep) &&
     typeof value.used === 'boolean' &&
     (value.lease === null || isLease(value.lease)) &&
-    (value.hotel === null || isHotelRoom(value.hotel))
+    (value.hotel === null || isHotelRoom(value.hotel)) &&
+    (value.sale === null || isCondoSale(value.sale))
   );
 }
 
@@ -271,6 +286,16 @@ function isHotelRoom(value: unknown): value is HotelRoom {
     (HotelRoomStateSchema.options as readonly unknown[]).includes(value.state) &&
     (value.stayEndStep === null || isNonNegativeInteger(value.stayEndStep)) &&
     (value.state === 'occupied') === (value.stayEndStep !== null)
+  );
+}
+
+function isCondoSale(value: unknown): value is CondoSale {
+  return (
+    isRecord(value) &&
+    isNonNegativeInteger(value.price) &&
+    isNonNegativeInteger(value.anchorStep) &&
+    isNonNegativeInteger(value.nextEvaluationStep) &&
+    value.nextEvaluationStep > value.anchorStep
   );
 }
 
@@ -307,6 +332,7 @@ function readUnits(raw: unknown): Record<UnitId, Unit> {
       placedAtStep: unit.placedAtStep,
       used: unit.used,
       lease: unit.lease === null ? null : { ...unit.lease },
+      sale: unit.sale === null ? null : { ...unit.sale },
       hotel: unit.hotel === null ? null : { ...unit.hotel },
     };
   }
