@@ -10,6 +10,7 @@ import {
   VERSION_6_SAVE,
   VERSION_7_SAVE,
   VERSION_8_SAVE,
+  VERSION_9_SAVE,
 } from './fixtures';
 import { migrateState, StateMigrationError } from './index';
 
@@ -130,6 +131,7 @@ describe('migrateState fixtures', () => {
       placedAtStep: 0,
       used: false,
       lease: null,
+      hotel: null,
     });
   });
 
@@ -344,6 +346,37 @@ describe('migrateState star check state', () => {
   });
 });
 
+describe('migrateState hotel rooms', () => {
+  it('loads a frozen version 9 save with clean empty rooms and no state on other units', () => {
+    const tower = migrateState(JSON.parse(VERSION_9_SAVE));
+    expect(tower.schemaVersion).toBe(SCHEMA_VERSION);
+    expect(tower.units.u1?.hotel).toBeNull();
+    expect(tower.units.u3?.hotel).toEqual({ state: 'clean', stayEndStep: null });
+  });
+
+  it('keeps an occupied room with its stay end', () => {
+    const tower = createTower(5);
+    tower.units.u2 = {
+      ...newUnit('u2', 'double-room', 0, 2),
+      used: true,
+      hotel: { state: 'occupied', stayEndStep: 12_960 },
+    };
+    expect(migrateState(JSON.parse(JSON.stringify(tower)))).toEqual(tower);
+  });
+
+  it('refuses a malformed hotel room', () => {
+    const bad = [
+      { state: 'sleeping', stayEndStep: null },
+      { state: 'occupied', stayEndStep: null },
+      { state: 'dirty', stayEndStep: 100 },
+      { state: 'clean', stayEndStep: -1 },
+    ];
+    for (const hotel of bad) {
+      const saved = JSON.parse(JSON.stringify(createTower(5)));
+      saved.units = { u1: { ...newUnit('u1', 'suite', 0, 2), hotel } };
+      expect(() => migrateState(saved)).toThrow(StateMigrationError);
+    }
+
 describe('migrateState car motion', () => {
   it('leaves old cars idle and sends their riders to the next stop', () => {
     const tower = migrateState(JSON.parse(VERSION_4_SAVE));
@@ -361,7 +394,7 @@ describe('migrateState car motion', () => {
 
   it('gives queued people the far end of the shaft as destination', () => {
     const saved = JSON.parse(JSON.stringify(createTower(5)));
-    saved.schemaVersion = 10;
+    saved.schemaVersion = 11;
     saved.shafts = {
       s2: {
         id: 's2',
