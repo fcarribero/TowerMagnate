@@ -231,6 +231,11 @@ function diners(state: TowerState): Map<number, number> {
   return byVenue;
 }
 
+/** Office workers eating at this fast food right now. */
+export function officeDinersAt(state: TowerState, venue: number): number {
+  return diners(state).get(venue) ?? 0;
+}
+
 function changeDiners(state: TowerState, venue: number, change: number): void {
   const byVenue = diners(state);
   byVenue.set(venue, Math.max(0, (byVenue.get(venue) ?? 0) + change));
