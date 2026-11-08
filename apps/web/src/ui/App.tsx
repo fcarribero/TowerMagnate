@@ -1,5 +1,6 @@
 import type { StarRating } from '@tower-magnate/shared';
 import { useEffect, useMemo, useState } from 'preact/hooks';
+import { TOWER_LAYOUT, type Level } from '@tower-magnate/shared';
 import { createCommandApi } from '../api/commandApi';
 import { useSfx } from '../audio/useSfx';
 import { pageTitle } from '../index';
@@ -12,10 +13,10 @@ import { bindStructure, fullWidthTestTower, testTowerFromQuery } from '../render
 import { DEBUG_UNIT_FLOORS, bindUnits, debugUnits, testUnitsFromQuery } from '../render/unitSource';
 import { isMapToggleKey } from './keys';
 import { ConnectionOverlay } from './ConnectionOverlay';
-import { BuildFeedback } from './build/BuildFeedback';
-import { bindBuildInput } from './build/bindBuildInput';
-import { buildMode } from './build/buildPlan';
-import { useBuildFeedback } from './build/useBuildFeedback';
+import { BuildFeedback } from './placement/BuildFeedback';
+import { bindBuildInput, type DragLabel } from './placement/bindBuildInput';
+import { buildMode, shaftIdAt } from './placement/buildPlan';
+import { useBuildFeedback } from './placement/useBuildFeedback';
 import { LevelRuler } from './LevelRuler';
 import { StageHost } from './StageHost';
 import { WindowLayer } from './kit';
@@ -73,6 +74,10 @@ export function App({ onLogout, onRestartTower, onSessionLost }: AppProps) {
     return api;
   }, [connection, director]);
   const { toasts, floats, report } = useBuildFeedback();
+  const [dragLabel, setDragLabel] = useState<DragLabel | null>(null);
+  const [mainLobbyHeight, setMainLobbyHeight] = useState<number | null>(null);
+  const [pointerLevel, setPointerLevel] = useState<Level | null>(null);
+  const onMainLobbyLevel = pointerLevel === TOWER_LAYOUT.mainLobbyFloor;
   const onUiClick = (event: MouseEvent): void => {
     if (event.target instanceof Element && event.target.closest('button') !== null) {
       playTrigger('ui.click');
@@ -132,13 +137,38 @@ export function App({ onLogout, onRestartTower, onSessionLost }: AppProps) {
       api: commandApi,
       tool,
       lobbyHeight,
+      lobbyHeightAt: (level) =>
+        level === TOWER_LAYOUT.mainLobbyFloor
+          ? (connection.store.current?.latest.mainLobbyHeight ?? null)
+          : null,
+      shaftAt: (cell) => shaftIdAt(connection.store.current?.latest.shafts.values(), cell),
+      onDragLabel: setDragLabel,
       onOutcome: (outcome, _command, at) => report(outcome, at),
     });
     return () => {
       unbind();
       stage.setPrimaryDragPans(true);
     };
-  }, [stage, commandApi, tool, lobbyHeight, report]);
+  }, [stage, connection, commandApi, tool, lobbyHeight, report]);
+
+  useEffect(() => {
+    if (stage === null) {
+      return;
+    }
+    const stopHover = stage.onHoverLevel((level) => {
+      if (level !== null) {
+        setPointerLevel(level);
+      }
+    });
+    const stopHeight = connection.store.select(
+      (state) => state.mainLobbyHeight,
+      setMainLobbyHeight,
+    );
+    return () => {
+      stopHover();
+      stopHeight();
+    };
+  }, [stage, connection]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent): void => {
@@ -171,9 +201,11 @@ export function App({ onLogout, onRestartTower, onSessionLost }: AppProps) {
           onSelectTool={setTool}
           lobbyHeight={lobbyHeight}
           onLobbyHeightChange={setLobbyHeight}
+          lockedLobbyHeight={onMainLobbyLevel ? (mainLobbyHeight ?? undefined) : undefined}
+          showMainLobbyWarning={onMainLobbyLevel && mainLobbyHeight === null}
           disabled={!connected}
         />
-        <BuildFeedback toasts={toasts} floats={floats} />
+        <BuildFeedback toasts={toasts} floats={floats} dragLabel={dragLabel} />
         <ConnectionOverlay
           status={connectionStatus}
           protocolMismatch={protocolMismatch}
