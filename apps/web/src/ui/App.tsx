@@ -34,6 +34,10 @@ import { t } from './strings';
 import { Toolbar } from './toolbar/Toolbar';
 import { DEFAULT_LOBBY_HEIGHT, DEFAULT_TOOL, type ToolId } from './toolbar/toolbarModel';
 import { TowerMapWindow } from './TowerMapWindow';
+import { AvisosWindow } from './notices/AvisosWindow';
+import { DecisionDialogs } from './notices/DecisionDialogs';
+import { NewsLine } from './notices/NewsLine';
+import { useNotices } from './notices/useNotices';
 import { Toasts } from './toast/Toasts';
 import { UnitWindows } from './unit/UnitWindows';
 
@@ -59,6 +63,8 @@ export function App({ onLogout, onRestartTower, onSessionLost }: AppProps) {
   const [stage, setStage] = useState<Stage | null>(null);
   const [mapOpen, setMapOpen] = useState(false);
   const [financeOpen, setFinanceOpen] = useState(false);
+  const [avisosOpen, setAvisosOpen] = useState(false);
+  const notices = useNotices(connection);
   const [restartStep, setRestartStep] = useState<RestartStep | null>(null);
   const [overlay, setOverlay] = useState<OverlayId>('normal');
   const [tool, setTool] = useState<ToolId>(DEFAULT_TOOL);
@@ -253,11 +259,24 @@ export function App({ onLogout, onRestartTower, onSessionLost }: AppProps) {
           <TowerMapWindow content={content} stage={stage} onClose={() => setMapOpen(false)} />
         )}
         <Toasts commands={connection.commands} />
+        <NewsLine subscribe={notices.subscribeLine} onOpenAvisos={() => setAvisosOpen(true)} />
         <WindowLayer class="ui-windows">
           {financeOpen && (
             <FinanceWindow store={connection.store} onClose={() => setFinanceOpen(false)} />
           )}
+          {avisosOpen && (
+            <AvisosWindow
+              notices={notices.avisos}
+              onSeeUnit={(unitId) => stage?.centerOnUnit(unitId)}
+              onClose={() => setAvisosOpen(false)}
+            />
+          )}
           <UnitWindows connection={connection} />
+          <DecisionDialogs
+            store={connection.store}
+            onAnswer={notices.answerEvent}
+            closedIds={notices.closedIds}
+          />
           <RestartTowerDialogs
             step={restartStep}
             onStep={setRestartStep}
