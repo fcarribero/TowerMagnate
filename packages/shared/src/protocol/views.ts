@@ -38,11 +38,11 @@ import {
 export const MAX_FOLLOWED_PEOPLE = 20;
 const MAX_CAR_LOAD = 42;
 
-/** One character per column: '.' none, 'f' floor, 'l' lobby. */
+/** One character per column: '.' none, 'f' floor, 'l' lobby, 'r' ruins. */
 export const StructureRowSchema = z
   .string()
   .length(TOWER_LAYOUT.siteWidthCells)
-  .regex(/^[.fl]*$/);
+  .regex(/^[.flr]*$/);
 
 const ColumnPositionSchema = z.number().min(0).max(TOWER_LAYOUT.siteWidthCells);
 const DenseLevelPositionSchema = z.number().nonnegative();

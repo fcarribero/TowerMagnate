@@ -52,8 +52,21 @@ export function planUnit(
   if (!isPlacedUnit(unit.type)) {
     return null;
   }
-  const state = unit.occupied || unit.variant === 'occupied' ? 'occupied' : 'empty';
+  const state = unitState(unit);
   return footprint(unit.id, `units/${unit.type}`, unit, { state, time }, overlay);
+}
+
+const HOTEL_ROOMS: readonly UnitType[] = ['single-room', 'double-room', 'suite'];
+
+function unitState(unit: UnitSource): string {
+  const { type, variant } = unit;
+  if ((variant === 'dirty' || variant === 'infested') && HOTEL_ROOMS.includes(type)) {
+    return variant;
+  }
+  if (variant === 'disconnected' && type === 'parking-space') {
+    return variant;
+  }
+  return unit.occupied || variant === 'occupied' ? 'occupied' : 'empty';
 }
 
 export function planTransport(

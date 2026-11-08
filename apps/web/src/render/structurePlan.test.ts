@@ -65,6 +65,17 @@ describe('planStructureRow', () => {
     expect(pieces).toContainEqual({ subject: 'edge-right', x: 160, y: 0 });
   });
 
+  it('draws ruins in place of floor and in basements', () => {
+    const above = planStructureRow(
+      3,
+      source({ 3: row({ ...span(10, 14, 'f'), ...span(15, 16, 'r') }) }),
+    );
+    expect(above).toContainEqual({ subject: 'floor', x: 80, y: 0, width: 40 });
+    expect(above).toContainEqual({ subject: 'ruins', x: 120, y: 0, width: 16 });
+    const below = planStructureRow(-3, source({ '-3': row(span(5, 6, 'r')) }));
+    expect(below).toContainEqual({ subject: 'ruins', x: 40, y: 0, width: 16 });
+  });
+
   it('puts a roof only over columns with nothing above', () => {
     const pieces = planStructureRow(
       3,

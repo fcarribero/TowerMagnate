@@ -22,6 +22,7 @@ import { chance, nextInt } from './rng';
 import type { HookOccurrence, ScheduledHook } from './scheduler';
 import type { SimulationSystem, StepContext } from './step';
 import { drawMinuteFromWindow } from './time-windows';
+import { cancelTrek, isOnTrek, startTrek } from './trek';
 import { unitNumber } from './units';
 
 export interface Place {
@@ -30,7 +31,12 @@ export interface Place {
 }
 
 /** Steps a trip takes between two places, or null when there is no route. */
-export type RoutePlanner = (state: TowerState, from: Place, to: Place) => number | null;
+export type RoutePlanner = (
+  state: TowerState,
+  from: Place,
+  to: Place,
+  context: StepContext,
+) => number | null;
 
 /** Until the routing system exists: every place is reachable, one step per column and six per level. */
 export const straightLineRoutes: RoutePlanner = (_state, from, to) =>
@@ -119,6 +125,7 @@ function minuteStep(dayStart: number, minute: number): number {
   return dayStart + minute * STEPS_PER_MINUTE;
 }
 
+/** Marks the worker as having nothing to do until the next daily plan. */
 function stayOutside(pool: PersonPool, slot: number): void {
   pool.trip[slot] = NO_TRIP;
   pool.dueStep[slot] = NOTHING_DUE;
@@ -134,6 +141,7 @@ function drawPlans(context: StepContext, occurrence: HookOccurrence): void {
   const worksToday = !isWeekendDay(occurrence.weekday);
   for (let slot = 0; slot < pool.id.length; slot++) {
     if (!isOfficeWorker(pool, slot)) continue;
+    if (isOnTrek(pool, slot)) cancelTrek(context, slot);
     stayOutside(pool, slot);
     if (!worksToday) continue;
     const arrivalMinute = drawMinuteFromWindow(state.rng, OFFICE_WORKER_ARRIVAL);
@@ -222,6 +230,7 @@ function openFastFoods(state: TowerState, minuteOfDay: number): Unit[] {
 
 /** Draws up to three distinct venues; the cheapest reachable one wins, ties go to the lower id. */
 function chooseFastFood(
+  context: StepContext,
   state: TowerState,
   routes: RoutePlanner,
   from: Place,
@@ -236,7 +245,7 @@ function chooseFastFood(
   drawn.sort((a, b) => unitNumber(a.id) - unitNumber(b.id));
   let best: { unit: Unit; steps: number } | null = null;
   for (const unit of drawn) {
-    const steps = routes(state, from, unitPlace(unit));
+    const steps = routes(state, from, unitPlace(unit), context);
     if (steps !== null && (best === null || steps < best.steps)) best = { unit, steps };
   }
   return best;
@@ -247,11 +256,44 @@ function venueUnit(state: TowerState, venue: number): Unit | null {
 }
 
 interface Worker {
+  context: StepContext;
   state: TowerState;
+  /** Whether trips are walked by the trek system or only timed by the route planner. */
+  treks: boolean;
   slot: number;
   routine: OfficeRoutine;
   desk: Place;
   dayStart: number;
+}
+
+/**
+ * Starts a trip that ends in `phase`. With treks the person walks it step by step and is due
+ * when they arrive; without, the planner's step count is the whole trip. When there is no
+ * route the phase is put back and false is returned.
+ */
+function beginTravel(
+  worker: Worker,
+  phase: RoutinePhase,
+  from: Place,
+  to: Place,
+  estimatedSteps: number,
+): boolean {
+  const { state, slot, routine } = worker;
+  if (!worker.treks) {
+    routine.phase = phase;
+    save(worker, state.step + estimatedSteps);
+    return true;
+  }
+  const pool = state.people;
+  const previous = routine.phase;
+  routine.phase = phase;
+  pool.level[slot] = from.level;
+  pool.column[slot] = from.column;
+  save(worker, NOTHING_DUE);
+  if (startTrek(worker.context, slot, to)) return true;
+  routine.phase = previous;
+  pool.trip[slot] = encodeRoutine(routine);
+  return false;
 }
 
 function save(worker: Worker, dueStep: number): void {
@@ -287,17 +329,15 @@ function startArrival(worker: Worker, routes: RoutePlanner): void {
   const { state, routine } = worker;
   routine.entranceOnRight = chance(state.rng, 0.5);
   const entrance = entrancePlace(state, routine.entranceOnRight);
-  const steps = entrance ? routes(state, entrance, worker.desk) : null;
-  if (steps === null) {
+  const steps = entrance ? routes(state, entrance, worker.desk, worker.context) : null;
+  if (!entrance || steps === null) {
     retryArrival(worker);
     return;
   }
-  const arrivesAt = state.step + steps;
-  if (arrivesAt > leaveStep(worker)) {
+  if (state.step + steps > leaveStep(worker)) {
     giveUpArrival(worker);
-  } else {
-    routine.phase = 'walkingIn';
-    save(worker, arrivesAt);
+  } else if (!beginTravel(worker, 'walkingIn', entrance, worker.desk, steps)) {
+    retryArrival(worker);
   }
 }
 
@@ -321,26 +361,27 @@ function startLunch(worker: Worker, routes: RoutePlanner): void {
   const { routine, state } = worker;
   routine.lunchHandled = true;
   const goesOut = chance(state.rng, OFFICE_WORKER_LUNCH_CHANCE);
-  const choice = goesOut ? chooseFastFood(state, routes, worker.desk, minuteOfDay(worker)) : null;
+  const choice = goesOut
+    ? chooseFastFood(worker.context, state, routes, worker.desk, minuteOfDay(worker))
+    : null;
   if (!choice) {
     settleAtOffice(worker);
     return;
   }
-  routine.phase = 'toLunch';
+  const previousVenue = routine.venue;
   routine.venue = unitNumber(choice.unit.id);
-  save(worker, state.step + choice.steps);
+  if (!beginTravel(worker, 'toLunch', worker.desk, unitPlace(choice.unit), choice.steps)) {
+    routine.venue = previousVenue;
+    settleAtOffice(worker);
+  }
 }
 
 function startLeaving(worker: Worker, routes: RoutePlanner): void {
   const { routine, state } = worker;
   for (const onRight of [routine.entranceOnRight, !routine.entranceOnRight]) {
     const exit = entrancePlace(state, onRight);
-    const steps = exit ? routes(state, worker.desk, exit) : null;
-    if (steps !== null) {
-      routine.phase = 'leaving';
-      save(worker, state.step + steps);
-      return;
-    }
+    const steps = exit ? routes(state, worker.desk, exit, worker.context) : null;
+    if (exit && steps !== null && beginTravel(worker, 'leaving', worker.desk, exit, steps)) return;
   }
   save(worker, state.step + ROUTE_RETRY_STEPS);
 }
@@ -366,13 +407,11 @@ function arriveAtFastFood(worker: Worker, routes: RoutePlanner): void {
 function startReturn(worker: Worker, routes: RoutePlanner): void {
   const { routine, state } = worker;
   const venue = venueUnit(state, routine.venue);
-  const steps = routes(state, venue ? unitPlace(venue) : worker.desk, worker.desk);
-  if (steps === null) {
+  const from = venue ? unitPlace(venue) : worker.desk;
+  const steps = routes(state, from, worker.desk, worker.context);
+  if (steps === null || !beginTravel(worker, 'backFromLunch', from, worker.desk, steps)) {
     save(worker, state.step + ROUTE_RETRY_STEPS);
-    return;
   }
-  routine.phase = 'backFromLunch';
-  save(worker, state.step + steps);
 }
 
 function atOfficeDue(worker: Worker, routes: RoutePlanner): void {
@@ -412,23 +451,27 @@ function advance(worker: Worker, routes: RoutePlanner): void {
   }
 }
 
-function deskOf(pool: PersonPool, slot: number): Place {
+/** Where the worker's desk is. Without treks the person never moves, so their cell is the desk. */
+function deskOf(state: TowerState, slot: number, treks: boolean): Place {
+  const pool = state.people;
+  const home = treks ? state.units[`u${pool.homeUnit[slot]}`] : undefined;
+  if (home) return unitPlace(home);
   return { level: (pool.level[slot] ?? 1) as Level, column: pool.column[slot] ?? 0 };
 }
 
-function runWorker(context: StepContext, slot: number, routes: RoutePlanner): void {
+function runWorker(context: StepContext, slot: number, routes: RoutePlanner, treks: boolean): void {
   const { state } = context;
   const pool = state.people;
   if (!isOfficeWorker(pool, slot)) return;
   const dayStart = Math.floor(state.step / STEPS_PER_DAY) * STEPS_PER_DAY;
-  const desk = deskOf(pool, slot);
+  const desk = deskOf(state, slot, treks);
   while (pool.dueStep[slot] === state.step) {
     const routine = routineAt(pool, slot);
     if (!routine) {
       stayOutside(pool, slot);
       return;
     }
-    advance({ state, slot, routine, desk, dayStart }, routes);
+    advance({ context, state, treks, slot, routine, desk, dayStart }, routes);
   }
 }
 
@@ -438,13 +481,17 @@ export interface OfficeRoutineSystems {
 }
 
 /** The daily 00:00 plan and the system that walks office workers through it (people spec 6). */
-export function createOfficeRoutine(routes: RoutePlanner): OfficeRoutineSystems {
+export function createOfficeRoutine(
+  routes: RoutePlanner,
+  options: { treks?: boolean } = {},
+): OfficeRoutineSystems {
+  const treks = options.treks ?? false;
   return {
     planHook: {
       name: 'office-worker-plans',
       schedule: { every: 'day', hour: 0, minute: 0 },
       run: drawPlans,
     },
-    system: createPeopleSystem((context, slot) => runWorker(context, slot, routes)),
+    system: createPeopleSystem((context, slot) => runWorker(context, slot, routes, treks)),
   };
 }

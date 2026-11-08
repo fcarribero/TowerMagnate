@@ -24,6 +24,7 @@ import { levelAtCanvasY } from './levelRuler';
 import { levelTop } from './levels';
 import type { Zoom } from './metrics';
 import { ElevatorLayer } from './elevatorLayer';
+import { PeopleLayer } from './peopleLayer';
 import { SKY_BACKGROUND, createSkyRows, setSkyTime } from './skyRows';
 import type { SkyTime } from './timeOfDay';
 import type { SpriteRegistry } from './spriteRegistry';
@@ -134,6 +135,8 @@ export async function mountStage(host: HTMLElement, options: StageOptions = {}):
   world.addChild(elevators.shaftView);
   world.addChild(units.view);
   world.addChild(elevators.carView);
+  const people = new PeopleLayer(sprites);
+  world.addChild(people.view);
   const ghost = new GhostLayer(sprites);
   world.addChild(ghost.view);
   app.stage.addChild(world);
@@ -187,6 +190,7 @@ export async function mountStage(host: HTMLElement, options: StageOptions = {}):
     structure.rows.showOnly(onScreen);
     units.showOnly(onScreen);
     elevators.showOnly(onScreen);
+    people.showOnly(onScreen);
     for (const listener of cameraListeners) {
       listener(camera);
     }
@@ -261,6 +265,7 @@ export async function mountStage(host: HTMLElement, options: StageOptions = {}):
     const next = carSource?.();
     if (next) {
       elevators.showCars(next.frame, next.shafts);
+      people.show(next.frame);
     }
   };
   app.ticker.add(drawCars);
