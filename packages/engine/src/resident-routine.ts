@@ -41,6 +41,7 @@ import type { HookOccurrence, ScheduledHook } from './scheduler';
 import type { SimulationSystem, StepContext } from './step';
 import { drawMinuteFromWindow } from './time-windows';
 import { cancelTrek, isOnTrek, startTrek } from './trek';
+import { fileShopVisit } from './unit-evaluation';
 import { unitNumber } from './units';
 
 export type ResidentPlanKind = 'works' | 'staysHome' | 'weekend';
@@ -415,6 +416,7 @@ function startWalkHome(resident: Resident, from: Place): void {
 function arriveAtVenue(resident: Resident): void {
   const { state, routine } = resident;
   const venue = venueUnit(state, routine.venue);
+  if (venue) fileShopVisit(state, venue, state.people.id[resident.slot] as number);
   const type = venue?.type as VisitedVenueType | undefined;
   if (!venue || !type || !isOpen(type, minuteOfDay(resident)) || !hasRoom(state, venue, type)) {
     startWalkHome(resident, venue ? unitPlace(venue) : resident.home);

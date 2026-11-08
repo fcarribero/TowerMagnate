@@ -34,3 +34,9 @@ export {
   timeSecurityRuns,
 } from './security-scenario';
 export type { SecurityRun } from './security-scenario';
+export {
+  EVALUATED_UNITS,
+  MAX_DAILY_GRADES_MS,
+  evaluationTower,
+  timeDailyGrades,
+} from './evaluation-scenario';

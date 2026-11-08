@@ -108,6 +108,13 @@ describe('inspecting a unit', () => {
     });
   });
 
+  it('shows the stored grade of the unit', () => {
+    const { state, id } = towerWith('retail-shop');
+    unitOf(state).evaluation = 'poor';
+
+    expect(inspectUnit(state, id)).toMatchObject({ details: { evaluation: 'poor' } });
+  });
+
   it('answers a condo for sale and a sold one', () => {
     const { state, id } = towerWith('condo');
     const forSale = inspectUnit(state, id);

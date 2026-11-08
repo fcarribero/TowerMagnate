@@ -168,3 +168,4 @@ export type {
   UserClass,
   WalkableRun,
 } from './routing';
+export { isEvaluatedUnit } from './unit-evaluation';

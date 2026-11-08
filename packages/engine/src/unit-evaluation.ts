@@ -9,7 +9,7 @@ import {
 } from '@tower-magnate/shared';
 import { STEPS_PER_DAY } from './clock';
 import { evaluateUnit } from './evaluation';
-import { isNoisy } from './noise';
+import { isNoisy, noisyUnitIds } from './noise';
 import type { SimulationSystem } from './step';
 import { unitNumber } from './units';
 
@@ -78,18 +78,26 @@ function priceOf(unit: Unit): PriceLevel {
 }
 
 /** The grade of the unit at `state.step` from its ledger, price, noise and the tower rating. */
-export function gradeUnit(state: TowerState, unit: Unit): TenantEvaluation {
+export function gradeUnit(
+  state: TowerState,
+  unit: Unit,
+  noisy = isNoisy(state, unit),
+): TenantEvaluation {
   return evaluateUnit({
     base: unitBase(state, unit),
     price: priceOf(unit),
-    noisy: isNoisy(state, unit),
+    noisy,
     stars: state.stars,
   }).grade;
 }
 
 /** Grades the unit and stores the grade: lease end, condo evaluation and hotel stay end (SE-19). */
-export function storeGrade(state: TowerState, unit: Unit): TenantEvaluation {
-  const grade = gradeUnit(state, unit);
+export function storeGrade(
+  state: TowerState,
+  unit: Unit,
+  noisy = isNoisy(state, unit),
+): TenantEvaluation {
+  const grade = gradeUnit(state, unit, noisy);
   unit.evaluation = grade;
   return grade;
 }
@@ -102,14 +110,14 @@ function hasOccupants(unit: Unit): boolean {
  * The daily 00:00 grade of offices, shops and condos (SE-20). A unit with no tenant or owners
  * has no grade; one with no trips in its window keeps the grade it had.
  */
-export function storeDailyGrade(state: TowerState, unit: Unit): void {
+export function storeDailyGrade(state: TowerState, unit: Unit, noisy = isNoisy(state, unit)): void {
   if (!isEvaluatedUnit(unit) || isHotelRoom(unit)) return;
   if (!hasOccupants(unit)) {
     unit.evaluation = null;
     return;
   }
   if (tripsInWindow(state, unit, state.step).count === 0) return;
-  storeGrade(state, unit);
+  storeGrade(state, unit, noisy);
 }
 
 /**
@@ -129,6 +137,19 @@ export function fileUnitTrip(state: TowerState, unit: Unit, endStep: number, str
   state.unitLedger[unit.id] = kept;
 }
 
+/**
+ * Files the trip a person ended at a shop's door in the shop's ledger. Only a trip that ended
+ * at this step counts, so a visit made without a trip files nothing.
+ */
+export function fileShopVisit(state: TowerState, shop: Unit, personId: number): void {
+  if (shop.type !== 'retail-shop') return;
+  const flat = state.tripLedger[String(personId)] ?? [];
+  const endStep = flat[flat.length - 2];
+  const stress = flat[flat.length - 1];
+  if (endStep !== state.step || stress === undefined) return;
+  fileUnitTrip(state, shop, endStep, stress);
+}
+
 /** A new office or shop tenant, a condo sale or a new hotel stay starts the ledger over (SE-13). */
 export function clearUnitLedger(state: TowerState, unitId: UnitId): void {
   Reflect.deleteProperty(state.unitLedger, unitId);
@@ -140,8 +161,13 @@ export function clearUnitLedger(state: TowerState, unitId: UnitId): void {
  */
 export function createDailyGradeSystem(): SimulationSystem {
   return ({ state }) => {
-    if (state.step % STEPS_PER_DAY !== 0) return;
-    const units = Object.values(state.units).sort((a, b) => unitNumber(a.id) - unitNumber(b.id));
-    for (const unit of units) storeDailyGrade(state, unit);
+    if (state.step % STEPS_PER_DAY === 0) storeDailyGrades(state);
   };
+}
+
+/** The 00:00 grade of every unit, in unit order. */
+export function storeDailyGrades(state: TowerState): void {
+  const noisy = noisyUnitIds(state);
+  const units = Object.values(state.units).sort((a, b) => unitNumber(a.id) - unitNumber(b.id));
+  for (const unit of units) storeDailyGrade(state, unit, noisy.has(unit.id));
 }

@@ -1,6 +1,7 @@
 import {
   buildEventViews,
   findPerson,
+  isEvaluatedUnit,
   isExpressStop,
   listPeople,
   NO_TRIP,
@@ -81,12 +82,21 @@ export function buildSnapshot(state: TowerState, viewport: Viewport | null): Sna
     activeEvents: buildEventViews(state),
     notices: state.notices.map(noticeView),
     overlays: {
-      evaluation: {},
+      evaluation: evaluationOverlay(state),
       price: Object.fromEntries(units.map((unit) => [unit.id, unit.price])),
       hotel: {},
     },
     finances: financeSummary(state),
   };
+}
+
+/** The stored grade of every evaluated unit; null shows "Sin evaluar". */
+function evaluationOverlay(state: TowerState): Snapshot['overlays']['evaluation'] {
+  const grades: Snapshot['overlays']['evaluation'] = {};
+  for (const unit of Object.values(state.units)) {
+    if (isEvaluatedUnit(unit)) grades[unit.id] = unit.evaluation;
+  }
+  return grades;
 }
 
 function unitView(unit: TowerState['units'][string], occupied: boolean): UnitView {

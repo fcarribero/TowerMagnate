@@ -18,6 +18,7 @@ import { recordTrip } from './trip-ledger';
 import {
   clearUnitLedger,
   createDailyGradeSystem,
+  fileShopVisit,
   fileUnitTrip,
   storeDailyGrade,
   storeGrade,
@@ -250,6 +251,47 @@ describe('filing trips', () => {
     state.people.tripSum[0] = 75;
     recordTrip(state, 0);
     expect(state.unitLedger[office.id]).toEqual([EVALUATION_STEP, 75]);
+  });
+
+  function residentAtShop() {
+    const { state, units } = towerWith(
+      { type: 'condo', level: 3, x: 0 },
+      { type: 'retail-shop', level: 3, x: 40 },
+      { type: 'fast-food', level: 3, x: 80 },
+    );
+    const [condo, shop, fastFood] = units as [Unit, Unit, Unit];
+    addPerson(state, {
+      kind: 'resident',
+      homeUnit: Number(condo.id.slice(1)),
+      level: 3,
+      column: 41,
+    });
+    return { state, condo, shop, fastFood, personId: state.people.id[0] as number };
+  }
+
+  it('files the trip a resident ended at a shop door in the shop ledger', () => {
+    const { state, shop, personId } = residentAtShop();
+    state.people.tripSum[0] = 60;
+    recordTrip(state, 0);
+    fileShopVisit(state, shop, personId);
+    expect(state.unitLedger[shop.id]).toEqual([EVALUATION_STEP, 60]);
+  });
+
+  it('files nothing for a visit with no trip ended at this step', () => {
+    const { state, shop, personId } = residentAtShop();
+    state.people.tripSum[0] = 60;
+    recordTrip(state, 0);
+    state.step += 1;
+    fileShopVisit(state, shop, personId);
+    expect(state.unitLedger[shop.id]).toBeUndefined();
+  });
+
+  it('files nothing at a venue that is not a shop', () => {
+    const { state, fastFood, personId } = residentAtShop();
+    state.people.tripSum[0] = 60;
+    recordTrip(state, 0);
+    fileShopVisit(state, fastFood, personId);
+    expect(state.unitLedger[fastFood.id]).toBeUndefined();
   });
 });
 
