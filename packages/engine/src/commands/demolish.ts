@@ -30,6 +30,7 @@ import {
   isInteger,
   refundConstruction,
 } from './structure';
+import { clearUnitLedger } from '../unit-evaluation';
 
 type Rejection = { ok: false; error: ErrorCode };
 type Plan = Rejection | { ok: true; apply: () => number };
@@ -82,6 +83,7 @@ function planUnit(state: TowerState, unitId: string): Plan {
         setStructure(state.grid, level, unit.x, x1, 'floor');
       }
       Reflect.deleteProperty(state.units, unit.id);
+      clearUnitLedger(state, unit.id);
       return refundConstruction(state, unit);
     },
   };

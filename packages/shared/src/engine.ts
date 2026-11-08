@@ -78,12 +78,18 @@ export interface Unit {
   hotel: HotelRoom | null;
   /** The current owners' purchase of a condo; null while the condo is for sale. */
   sale: CondoSale | null;
+  /** The last grade of an office, shop, condo or hotel room; null shows "Sin evaluar". */
+  evaluation: TenantEvaluation | null;
 }
 
 export interface HotelRoom {
   state: HotelRoomState;
   /** When the current stay ends (10:00 on its last day); null while nobody is staying. */
   stayEndStep: number | null;
+  /** Check-in step of the current or last stay; null before the first stay. */
+  checkInStep: number | null;
+  /** Price level the current or last stay paid at check-in; null before the first stay. */
+  paidLevel: PriceLevel | null;
 }
 
 /** A staircase or escalator. Its cells on `level` are the footprint; the level above has the landing. */
@@ -227,6 +233,11 @@ export interface TowerState {
    * end step and trip stress, oldest first.
    */
   tripLedger: Record<string, number[]>;
+  /**
+   * Trips filed for each evaluated unit since its ledger was last cleared, keyed by unit id:
+   * pairs of end step and trip stress, oldest first.
+   */
+  unitLedger: Record<UnitId, number[]>;
   ledger: Ledger;
   /** At most one bomb threat or fire at a time. */
   activeEvents: ActiveEvent[];

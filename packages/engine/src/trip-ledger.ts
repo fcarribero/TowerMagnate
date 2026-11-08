@@ -19,6 +19,7 @@ import { floorIndex } from './routing/transport-graph';
 import type { ScheduledHook } from './scheduler';
 import type { StepContext } from './step';
 import { cappedStress, finishedTripStress, tallLobbyCut } from './trip-stress';
+import { fileUnitTrip } from './unit-evaluation';
 
 const MAID_KIND = PERSON_KINDS.indexOf('maid');
 const GUARD_KIND = PERSON_KINDS.indexOf('guard');
@@ -123,6 +124,8 @@ export function recordTrip(
     state.step,
     stress,
   ];
+  const home = state.units[`u${field(pool.homeUnit, slot)}`];
+  if (home && home.type !== 'retail-shop') fileUnitTrip(state, home, state.step, stress);
   clearParts(pool, slot);
   refreshPersonStress(state, slot, false);
 }

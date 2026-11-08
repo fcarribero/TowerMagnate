@@ -14,7 +14,7 @@ export function isHotelRoomType(type: UnitType): boolean {
 }
 
 export function newHotelRoom(): HotelRoom {
-  return { state: 'clean', stayEndStep: null };
+  return { state: 'clean', stayEndStep: null, checkInStep: null, paidLevel: null };
 }
 
 export function newUnit(id: EntityId, type: UnitType, x: number, level: Level): Unit {
@@ -31,6 +31,7 @@ export function newUnit(id: EntityId, type: UnitType, x: number, level: Level): 
     lease: null,
     sale: null,
     hotel: isHotelRoomType(type) ? newHotelRoom() : null,
+    evaluation: null,
   };
 }
 

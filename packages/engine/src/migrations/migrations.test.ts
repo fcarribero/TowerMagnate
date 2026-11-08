@@ -135,6 +135,7 @@ describe('migrateState fixtures', () => {
       lease: null,
       sale: null,
       hotel: null,
+      evaluation: null,
     });
   });
 
@@ -373,7 +374,12 @@ describe('migrateState hotel rooms', () => {
     const tower = migrateState(JSON.parse(VERSION_9_SAVE));
     expect(tower.schemaVersion).toBe(SCHEMA_VERSION);
     expect(tower.units.u1?.hotel).toBeNull();
-    expect(tower.units.u3?.hotel).toEqual({ state: 'clean', stayEndStep: null });
+    expect(tower.units.u3?.hotel).toEqual({
+      state: 'clean',
+      stayEndStep: null,
+      checkInStep: null,
+      paidLevel: null,
+    });
   });
 
   it('keeps an occupied room with its stay end', () => {
@@ -381,7 +387,7 @@ describe('migrateState hotel rooms', () => {
     tower.units.u2 = {
       ...newUnit('u2', 'double-room', 0, 2),
       used: true,
-      hotel: { state: 'occupied', stayEndStep: 12_960 },
+      hotel: { state: 'occupied', stayEndStep: 12_960, checkInStep: null, paidLevel: null },
     };
     expect(migrateState(JSON.parse(JSON.stringify(tower)))).toEqual(tower);
   });
@@ -472,5 +478,58 @@ describe('migrateState medical day', () => {
       migrateState({ ...saved, medicalDay: { day: 2, visits: { '4': -1 }, noticed: [] } }),
     ).toThrow(StateMigrationError);
     expect(() => migrateState({ ...saved, medicalDay: null })).toThrow(StateMigrationError);
+  });
+});
+
+describe('migrateState unit evaluation', () => {
+  function version19Save(): Record<string, unknown> {
+    const tower = createTower(5);
+    tower.units.u2 = newUnit('u2', 'double-room', 0, 2);
+    tower.units.u3 = newUnit('u3', 'office', 10, 2);
+    const raw = JSON.parse(JSON.stringify(tower)) as Record<string, unknown>;
+    const units = raw.units as Record<string, Record<string, unknown>>;
+    for (const unit of Object.values(units)) {
+      delete unit.evaluation;
+      if (unit.hotel) unit.hotel = { state: 'clean', stayEndStep: null };
+    }
+    delete raw.unitLedger;
+    return { ...raw, schemaVersion: 19 };
+  }
+
+  it('gives a version 19 save no grades, no filed trips and rooms with no stay paid', () => {
+    const tower = migrateState(version19Save());
+    expect(tower.schemaVersion).toBe(SCHEMA_VERSION);
+    expect(tower.unitLedger).toEqual({});
+    expect(tower.units.u3?.evaluation).toBeNull();
+    expect(tower.units.u2?.hotel).toEqual({
+      state: 'clean',
+      stayEndStep: null,
+      checkInStep: null,
+      paidLevel: null,
+    });
+  });
+
+  it('keeps grades and unit ledgers', () => {
+    const tower = createTower(5);
+    tower.units.u3 = { ...newUnit('u3', 'office', 10, 2), evaluation: 'fair' };
+    tower.unitLedger = { u3: [100, 40, 200, 60] };
+    expect(migrateState(JSON.parse(JSON.stringify(tower)))).toEqual(tower);
+  });
+
+  it('refuses a ledger of a unit that does not exist or a malformed one', () => {
+    const tower = createTower(5);
+    tower.units.u3 = newUnit('u3', 'office', 10, 2);
+    for (const unitLedger of [{ u9: [1, 2] }, { u3: [1] }, { u3: [1, 'a'] }]) {
+      const raw = { ...JSON.parse(JSON.stringify(tower)), unitLedger };
+      expect(() => migrateState(raw)).toThrow(StateMigrationError);
+    }
+  });
+
+  it('refuses a malformed grade', () => {
+    const tower = createTower(5);
+    tower.units.u3 = newUnit('u3', 'office', 10, 2);
+    const raw = JSON.parse(JSON.stringify(tower)) as { units: Record<string, unknown> };
+    raw.units.u3 = { ...(raw.units.u3 as object), evaluation: 'great' };
+    expect(() => migrateState(raw)).toThrow(StateMigrationError);
   });
 });
