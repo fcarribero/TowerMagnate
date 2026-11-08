@@ -139,6 +139,32 @@ Status is one of: works, bug (with the task filed), not built yet (feature missi
 | Save and restore after SIGKILL | works | Same step, money, units, shafts and cars |
 | Weekly finance roll | works with normal steps | Wrong after a `setClock` jump: TM-239. Still open on the re-run |
 
+## Re-check on 22 January
+
+Fixes merged on 21 January were checked on `develop` at 51a9c03 (merged into this branch). Same stack and port block (4170, `tm-gd`). The server health check and the web page answered, and the unit suites for the four fixes passed (8 files, 107 tests). No bomb, lease or dialog was played in the browser this time, so these are code and test results only.
+
+- TM-237 bulldozer and ruins: fixed in code. `demolishPlan.ts` maps `r` cells to a `ruins` run, so a drag along a level clears a whole run, which also answers the one-cell-per-command note below. The in-browser bomb check is left for the next full run.
+- TM-177 info dialogs: `InfoDialogs`, `infoDialogModel` and `Dialog` tests pass. Not opened in the browser.
+- TM-103 lease and condo evaluations: `evaluation`, `unit-evaluation` and `evaluation-effects` tests pass.
+- TM-236 closed sprite for venues at night: not merged, still in QA (PR 229). Not checked.
+- Still open: TM-238 and TM-239. TM-109 (fire) is not in `develop`.
+
+## Test plan for 4 stars to Torre
+
+Run once TM-35 (hotel guests) and TM-110 (VIP visit) are in `develop`. Start from a saved 3-star tower with 5 suites, 3 double and 2 single rooms, housekeeping, security and 20,000,000 or more in cash.
+
+1. Hotel guests (TM-35): at least one guest checks in on each room type. Check that suites are used, housekeeping cleans after check-out, and rent is charged once per stay.
+2. VIP visit (TM-110): the VIP arrives at 3 stars, picks a suite, and the visit ends with approved or refused. The notice `news.starBlockedVip` stops once approved.
+3. Star check at 17:00 on a weekday: the 3 to 4 step passes after an approved VIP visit and used suites. Note the day, step and population. Medical sufficiency may block it again (TM-144), so read the star notice reason.
+4. 4-star unlocks: the subway station is accepted and no longer answers `STAR_LOCKED`. Check TM-230 customers arrive in the subway.
+5. 4 to 5 stars: build to the 5-star requirements in `docs/design` and log what the check reports each weekday.
+6. 5-star unlocks: the cathedral is accepted. Run a wedding (TM-106) and check its notices.
+7. Torre: confirm the rank notice and record the game date, step, population and real time at 15 minutes per day.
+8. Events at 4 and 5 stars: bomb with and without security, ruins cleared by one Topadora drag (TM-237), fire with TM-109 if merged, and VIP and Santa.
+9. Evaluations over the longer run: lease renewals and condo departures follow TM-103, with no empty-week finances after normal steps.
+10. Save and restore with SIGKILL once at 5 stars: same step, money, units and hotel stays.
+11. File a bug per defect with steps and priority, and update the Result section above.
+
 ## Balance and design notes
 
 Medical sufficiency failed on both weekdays checked with 918 offices and 9 centers, while people.md 16 expects 6 centers to be enough for 800 offices. The centers had 30, 58, 92, 100, 86, 21, 71, 62 and 4 visits that day: 524 visits for 900 places. Workers pick the cheapest route among 3 drawn centers, so one center fills, and the next worker who already chose it fails as "full on arrival" at about 19:14. One failure blocks the star check. The note is on TM-144.
