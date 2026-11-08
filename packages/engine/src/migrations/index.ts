@@ -11,6 +11,7 @@ import {
   RESPONSE_DISTANCE_MAX,
   RESPONSE_DISTANCE_MIN,
   SHAFT_TYPES,
+  SHOP_EARLY_LEAVE_MIN_VISITS,
   UNIT_TYPES,
   type ElevatorCar,
   type CondoSale,
@@ -78,6 +79,7 @@ const MIGRATIONS: readonly Migration[] = [
   addWeddingAttempt,
   addLobbyPurchases,
   addUnitEvaluation,
+  addShopWeekVisits,
 ];
 
 /** Version 2 records each unit's price level, what was paid for it and when it was placed. */
@@ -414,6 +416,26 @@ function withUnitEvaluation(unit: Record<string, unknown>): Record<string, unkno
   return { evaluation: null, ...unit, hotel };
 }
 
+/**
+ * Version 27 counts each lease's customer visits for the shop early-leave check. A lease saved
+ * before that starts at the minimum, so no shop leaves for a week it was never counted in.
+ */
+function addShopWeekVisits(raw: Record<string, unknown>): Record<string, unknown> {
+  if (!isRecord(raw.units)) {
+    return { ...raw, schemaVersion: 27 };
+  }
+  const units: Record<string, unknown> = {};
+  for (const [id, unit] of Object.entries(raw.units)) {
+    units[id] = isRecord(unit) ? withWeekVisits(unit) : unit;
+  }
+  return { ...raw, schemaVersion: 27, units };
+}
+
+function withWeekVisits(unit: Record<string, unknown>): Record<string, unknown> {
+  if (!isRecord(unit.lease)) return unit;
+  return { ...unit, lease: { weekVisits: SHOP_EARLY_LEAVE_MIN_VISITS, ...unit.lease } };
+}
+
 /** Version 11 gives each hotel room a state; every room in an older tower is clean and empty. */
 function addHotelRooms(raw: Record<string, unknown>): Record<string, unknown> {
   if (!isRecord(raw.units)) {
@@ -530,7 +552,8 @@ function isLease(value: unknown): value is Lease {
     isRecord(value) &&
     isNonNegativeInteger(value.anchorStep) &&
     isNonNegativeInteger(value.nextDueStep) &&
-    value.nextDueStep > value.anchorStep
+    value.nextDueStep > value.anchorStep &&
+    isNonNegativeInteger(value.weekVisits)
   );
 }
 

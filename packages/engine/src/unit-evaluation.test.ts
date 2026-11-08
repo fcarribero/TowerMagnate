@@ -144,7 +144,7 @@ describe('retail shop evaluation (10.6)', () => {
   function leasedShop() {
     const { state, units } = towerWith({ type: 'retail-shop', level: 3, x: 40 });
     const shop = units[0] as Unit;
-    shop.lease = { anchorStep: 0, nextDueStep: EVALUATION_STEP };
+    shop.lease = { anchorStep: 0, nextDueStep: EVALUATION_STEP, weekVisits: 0 };
     fileTrips(state, shop, 180, 14_580);
     return { state, shop };
   }
@@ -198,7 +198,11 @@ describe('daily grade at 00:00', () => {
   function leasedOffice() {
     const { state, units } = towerWith({ type: 'office', level: 3, x: 40 });
     const office = units[0] as Unit;
-    office.lease = { anchorStep: 0, nextDueStep: EVALUATION_STEP + 7 * STEPS_PER_DAY };
+    office.lease = {
+      anchorStep: 0,
+      nextDueStep: EVALUATION_STEP + 7 * STEPS_PER_DAY,
+      weekVisits: 0,
+    };
     return { state, office };
   }
 
@@ -302,7 +306,7 @@ describe('grades at lease end, condo evaluation and stay end', () => {
     const { state, units } = towerWith({ type: 'office', level: 3, x: 40 });
     const office = units[0] as Unit;
     const termEnd = LEASE_CONTRACT_WEEKS * WEEK;
-    office.lease = { anchorStep: 0, nextDueStep: termEnd };
+    office.lease = { anchorStep: 0, nextDueStep: termEnd, weekVisits: 0 };
     state.step = termEnd - 1;
     const engine = createEngine({ commandHandlers: {}, systems: [createLeaseSystem()] });
     const after = engine.step(state, [], 1).state;
