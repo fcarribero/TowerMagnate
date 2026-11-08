@@ -81,8 +81,11 @@ describe('snapshot from tower state', () => {
     ]);
   });
 
-  it('counts the population without maids', () => {
-    expect(buildSnapshot(towerWithPeople(), null).population).toBe(2);
+  it('counts 6 for each office with a tenant', () => {
+    const state = towerWithPeople();
+    expect(buildSnapshot(state, null).population).toBe(0);
+    (state.units.u5 as { lease: unknown }).lease = { anchorStep: 0, nextDueStep: 60480 };
+    expect(buildSnapshot(state, null).population).toBe(6);
   });
 
   it('reports this and last week of the ledger by money reason', () => {
