@@ -20,7 +20,7 @@ import {
 } from './structure';
 
 const LOBBY_HEIGHTS: readonly unknown[] = [1, 2, 3];
-const SKY_LOBBY_LEVELS: readonly Level[] = TOWER_LAYOUT.skyLobbyFloors;
+export const SKY_LOBBY_LEVELS: readonly Level[] = TOWER_LAYOUT.skyLobbyFloors;
 
 function isLobbyHeight(value: unknown): value is LobbyHeight {
   return LOBBY_HEIGHTS.includes(value);
@@ -35,7 +35,7 @@ function isLobbyLevel(level: Level): boolean {
 }
 
 /** The lobby level and the levels above it that a lobby of this height covers. */
-function lobbyRows(level: Level, height: LobbyHeight): Level[] {
+export function lobbyRows(level: Level, height: LobbyHeight): Level[] {
   const rows: Level[] = [level];
   let row: Level | null = level;
   while (rows.length < height) {
@@ -46,7 +46,7 @@ function lobbyRows(level: Level, height: LobbyHeight): Level[] {
   return rows;
 }
 
-function heightOnLevel(grid: GridState, level: Level): LobbyHeight | null {
+export function heightOnLevel(grid: GridState, level: Level): LobbyHeight | null {
   if (isMainLobbyLevel(level)) return grid.mainLobbyHeight;
   return grid.skyLobbyHeights[level] ?? null;
 }
