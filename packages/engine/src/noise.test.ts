@@ -1,6 +1,6 @@
 import { UNIT_CATALOG, type TowerState, type Unit, type UnitType } from '@tower-magnate/shared';
 import { describe, expect, it } from 'vitest';
-import { isNoisy } from './noise';
+import { isNoisy, noisyUnitIds } from './noise';
 import { buildTower } from './testing';
 
 interface Placement {
@@ -26,7 +26,9 @@ function noisyWith(unit: UnitType, ...sources: Placement[]): boolean {
     ],
   });
   const [unitId] = unitIds as [string];
-  return isNoisy(state, unitById(state, unitId));
+  const noisy = isNoisy(state, unitById(state, unitId));
+  expect(noisyUnitIds(state).has(unitId)).toBe(noisy);
+  return noisy;
 }
 
 function rightOf(unit: UnitType, gap: number): number {

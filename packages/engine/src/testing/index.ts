@@ -53,6 +53,12 @@ export {
 } from './customer-day';
 export type { SubwayStepTiming } from './customer-day';
 export {
+  EVALUATED_UNITS,
+  MAX_DAILY_GRADES_MS,
+  evaluationTower,
+  timeDailyGrades,
+} from './evaluation-scenario';
+export {
   createEconomyEngine,
   firstLedgerMismatch,
   ledgerChanges,
