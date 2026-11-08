@@ -8,7 +8,7 @@ import {
 } from './support/game';
 import { CENTER_COLUMN } from './support/towerCanvas';
 import { restartServer, waitForHealthy, type RestartMode } from './support/stack';
-import { resolveE2eTarget } from './support/target';
+import { DEBUG_TAG, resolveE2eTarget } from './support/target';
 
 const target = resolveE2eTarget(process.env);
 
@@ -58,27 +58,31 @@ function moneyAtStep(samples: TowerState[], step: number): number[] {
   return [before, after].flatMap((sample) => (sample === undefined ? [] : [sample.money]));
 }
 
-test('the tower survives a graceful and a hard server restart', async ({ page }) => {
-  test.skip(!target.startsStack, 'needs the compose stack the tests start themselves');
-  test.setTimeout(2 * RESTART_TIMEOUT_MS + 4 * 60_000);
+test(
+  'the tower survives a graceful and a hard server restart',
+  { tag: DEBUG_TAG },
+  async ({ page }) => {
+    test.skip(!target.startsStack, 'needs the compose stack the tests start themselves');
+    test.setTimeout(2 * RESTART_TIMEOUT_MS + 4 * 60_000);
 
-  await openGame(page);
-  await buildSmallTower(page);
-  expect(await fastForward(page, STEPS_PER_GAME_DAY)).toMatchObject({ ok: true });
+    await openGame(page);
+    await buildSmallTower(page);
+    expect(await fastForward(page, STEPS_PER_GAME_DAY)).toMatchObject({ ok: true });
 
-  for (const mode of ['graceful', 'hard'] as const) {
-    const samples = await sampleWhileAutosaving(page);
-    const lastSeen = samples.at(-1) as TowerState;
-    expect(lastSeen.units.length).toBeGreaterThan(0);
-    expect(lastSeen.shafts).toHaveLength(1);
+    for (const mode of ['graceful', 'hard'] as const) {
+      const samples = await sampleWhileAutosaving(page);
+      const lastSeen = samples.at(-1) as TowerState;
+      expect(lastSeen.units.length).toBeGreaterThan(0);
+      expect(lastSeen.shafts).toHaveLength(1);
 
-    await restartAndReload(page, mode);
-    const restored = await readTowerState(page);
+      await restartAndReload(page, mode);
+      const restored = await readTowerState(page);
 
-    expect(restored.units, mode).toEqual(lastSeen.units);
-    expect(restored.shafts, mode).toEqual(lastSeen.shafts);
-    expect(restored.stars, mode).toBe(lastSeen.stars);
-    expect(restored.step, mode).toBeGreaterThanOrEqual(lastSeen.step - STEPS_IN_30_SECONDS);
-    expect(moneyAtStep(samples, restored.step), mode).toContain(restored.money);
-  }
-});
+      expect(restored.units, mode).toEqual(lastSeen.units);
+      expect(restored.shafts, mode).toEqual(lastSeen.shafts);
+      expect(restored.stars, mode).toBe(lastSeen.stars);
+      expect(restored.step, mode).toBeGreaterThanOrEqual(lastSeen.step - STEPS_IN_30_SECONDS);
+      expect(moneyAtStep(samples, restored.step), mode).toContain(restored.money);
+    }
+  },
+);

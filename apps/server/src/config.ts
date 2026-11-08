@@ -13,6 +13,8 @@ export interface ServerConfig {
   allowedOrigins: string[];
   /** Dev-only debug socket messages. Never on when NODE_ENV is production. */
   debugCommands: boolean;
+  /** Login and register attempts per client and minute. Unset keeps the server default. */
+  authAttemptsPerMinute?: number;
 }
 
 const DEFAULT_HOST = '0.0.0.0';
@@ -44,6 +46,7 @@ export function readConfig(env: NodeJS.ProcessEnv): ServerConfig {
     secureCookies: readSecureCookies(env.SECURE_COOKIES, env.NODE_ENV),
     allowedOrigins: readAllowedOrigins(env.ALLOWED_ORIGINS, env.NODE_ENV),
     debugCommands: env.NODE_ENV !== 'production',
+    authAttemptsPerMinute: readAuthAttemptsPerMinute(env.AUTH_ATTEMPTS_PER_MINUTE),
   };
 }
 
@@ -56,6 +59,17 @@ function readPort(value: string | undefined): number {
     throw new Error(`PORT must be an integer between 0 and 65535, got "${value}"`);
   }
   return port;
+}
+
+function readAuthAttemptsPerMinute(value: string | undefined): number | undefined {
+  if (value === undefined || value === '') {
+    return undefined;
+  }
+  const attempts = Number(value);
+  if (!Number.isInteger(attempts) || attempts < 1) {
+    throw new Error(`AUTH_ATTEMPTS_PER_MINUTE must be a positive integer, got "${value}"`);
+  }
+  return attempts;
 }
 
 function readLogLevel(value: string | undefined): LogLevel {
