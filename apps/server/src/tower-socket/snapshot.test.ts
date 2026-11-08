@@ -35,6 +35,7 @@ function office(id: string, x: number, name: string | null): Unit {
     sale: null,
     hotel: null,
     evaluation: null,
+    venue: null,
   };
 }
 
