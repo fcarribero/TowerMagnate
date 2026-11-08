@@ -307,5 +307,7 @@ export type EngineEvent =
       eventId: EventId;
       choice: string;
     }
+  | { type: 'treasureFound'; step: number; commandId: string; level: Level; amount: number }
+  | { type: 'news'; step: number; commandId: string; key: 'news.treasure'; level: Level }
   | { type: 'news'; step: number; key: 'news.decisionDefault'; eventId: EventId; choice: string }
   | { type: 'news'; step: number; key: string; unitId: UnitId | null };

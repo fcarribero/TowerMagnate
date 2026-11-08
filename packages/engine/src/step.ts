@@ -9,6 +9,7 @@ import type {
 } from '@tower-magnate/shared';
 import { STEPS_PER_DAY } from './clock';
 import { towerCommandHandlers } from './commands';
+import { rollBasementTreasure } from './events/treasure';
 import { createElevatorSystem } from './elevators';
 import { eventsPhase } from './events';
 import { createCondoSystem } from './condos';
@@ -138,6 +139,7 @@ export function createEngine(rules: EngineRules): Engine {
     if (!outcome.ok) {
       return { id, ok: false, step: currentStep, error: outcome.error };
     }
+    outcome.events.push(...rollBasementTreasure(draft.state, context.state.grid));
     context.state = draft.state;
     for (const event of outcome.events) {
       context.events.push({ ...event, step: currentStep, commandId: id } as EngineEvent);
