@@ -1,10 +1,21 @@
 import type { Level } from '@tower-magnate/shared';
 import { Application, Container, TextureSource, type TilingSprite } from 'pixi.js';
+import 'pixi.js/unsafe-eval';
 import { loadSprites } from './atlasLoader';
-import { centerCamera, createCamera, resizeCamera, visibleLevels, type Camera } from './camera';
+import {
+  centerCamera,
+  createCamera,
+  nextZoom,
+  resizeCamera,
+  visibleLevels,
+  zoomCamera,
+  type Camera,
+} from './camera';
 import { attachCameraInput, type CameraChange } from './cameraInput';
 import { canvasSizeFromCssPixels, canvasSizeFromObservedBox, type CanvasSize } from './canvasSize';
+import { cellAtCanvasPoint, type Cell } from './cellAtPoint';
 import { CulledRows } from './culledRows';
+import { GhostLayer, type Footprint, type GhostInput } from './ghostLayer';
 import { levelAtCanvasY } from './levelRuler';
 import { levelTop } from './levels';
 import type { Zoom } from './metrics';
@@ -30,15 +41,24 @@ export interface StageOptions {
 
 export type CameraListener = (camera: Camera) => void;
 export type HoverLevelListener = (level: Level | null) => void;
+export type HoverCellListener = (cell: Cell | null) => void;
 
 export interface Stage {
   sprites: SpriteRegistry;
   camera(): Camera;
   /** Puts a world point (zoom 1 pixels) at the centre of the view. */
   centerOn(worldX: number, worldY: number): void;
+  /** One zoom level in or out, keeping the centre of the view in place. */
+  zoomStep(direction: 1 | -1): void;
   onCameraChange(listener: CameraListener): () => void;
   /** Called with the level under the pointer, or null when the pointer leaves the tower. */
   onHoverLevel(listener: HoverLevelListener): () => void;
+  /** Called with the tile under the pointer, or null when the pointer leaves the tower. */
+  onHoverCell(listener: HoverCellListener): () => void;
+  /** Draws the placement ghost, snapped to tiles; null removes it. */
+  showGhost(ghost: GhostInput | null): void;
+  /** Frames a footprint, such as the unit under the pointer; null removes the frame. */
+  showHighlight(highlight: Footprint | null): void;
   /** CSS pixels per canvas device pixel, to place DOM overlays over the canvas. */
   cssPerDevicePixel(): number;
   /** Draws the tower structure; later calls redraw only the levels that changed. */
@@ -76,6 +96,8 @@ export async function mountStage(host: HTMLElement, options: StageOptions = {}):
   world.addChild(structure.view);
   const units = new UnitLayer(sprites);
   world.addChild(units.view);
+  const ghost = new GhostLayer(sprites);
+  world.addChild(ghost.view);
   app.stage.addChild(world);
 
   const firstSize = measureHost(host);
@@ -83,6 +105,9 @@ export async function mountStage(host: HTMLElement, options: StageOptions = {}):
   const cameraListeners = new Set<CameraListener>();
   const hoverListeners = new Set<HoverLevelListener>();
   let hoveredLevel: Level | null = null;
+  const hoverCellListeners = new Set<HoverCellListener>();
+  let hoveredCell: Cell | null = null;
+  let pointerCanvasX: number | null = null;
   let pointerCanvasY: number | null = null;
 
   const cssPerDevicePixel = (): number =>
@@ -99,8 +124,23 @@ export async function mountStage(host: HTMLElement, options: StageOptions = {}):
     }
   };
 
+  const updateHoveredCell = (): void => {
+    const cell =
+      pointerCanvasX === null || pointerCanvasY === null
+        ? null
+        : cellAtCanvasPoint(camera, pointerCanvasX, pointerCanvasY);
+    if (cell?.x === hoveredCell?.x && cell?.level === hoveredCell?.level) {
+      return;
+    }
+    hoveredCell = cell;
+    for (const listener of hoverCellListeners) {
+      listener(cell);
+    }
+  };
+
   const showCamera = (): void => {
     world.scale.set(camera.zoom);
+    ghost.setZoom(camera.zoom);
     world.position.set(-camera.left, -camera.top);
     const onScreen = visibleLevels(camera);
     sky.showOnly(onScreen);
@@ -110,6 +150,7 @@ export async function mountStage(host: HTMLElement, options: StageOptions = {}):
       listener(camera);
     }
     updateHoveredLevel();
+    updateHoveredCell();
   };
 
   const applySize = (size: CanvasSize): void => {
@@ -131,12 +172,16 @@ export async function mountStage(host: HTMLElement, options: StageOptions = {}):
     },
   );
   const onPointerMove = (event: PointerEvent): void => {
+    pointerCanvasX = event.offsetX / cssPerDevicePixel();
     pointerCanvasY = event.offsetY / cssPerDevicePixel();
     updateHoveredLevel();
+    updateHoveredCell();
   };
   const onPointerLeave = (): void => {
+    pointerCanvasX = null;
     pointerCanvasY = null;
     updateHoveredLevel();
+    updateHoveredCell();
   };
   app.canvas.addEventListener('pointermove', onPointerMove);
   app.canvas.addEventListener('pointerleave', onPointerLeave);
@@ -155,6 +200,11 @@ export async function mountStage(host: HTMLElement, options: StageOptions = {}):
       camera = centerCamera(camera, worldX, worldY);
       showCamera();
     },
+    zoomStep(direction) {
+      const zoom = nextZoom(camera.zoom, direction);
+      camera = zoomCamera(camera, zoom, camera.viewWidth / 2, camera.viewHeight / 2);
+      showCamera();
+    },
     onCameraChange(listener) {
       cameraListeners.add(listener);
       return () => cameraListeners.delete(listener);
@@ -162,6 +212,16 @@ export async function mountStage(host: HTMLElement, options: StageOptions = {}):
     onHoverLevel(listener) {
       hoverListeners.add(listener);
       return () => hoverListeners.delete(listener);
+    },
+    onHoverCell(listener) {
+      hoverCellListeners.add(listener);
+      return () => hoverCellListeners.delete(listener);
+    },
+    showGhost(input) {
+      ghost.showGhost(input);
+    },
+    showHighlight(input) {
+      ghost.showHighlight(input);
     },
     cssPerDevicePixel,
     showStructure(input) {
@@ -173,6 +233,7 @@ export async function mountStage(host: HTMLElement, options: StageOptions = {}):
     destroy() {
       cameraListeners.clear();
       hoverListeners.clear();
+      hoverCellListeners.clear();
       app.canvas.removeEventListener('pointermove', onPointerMove);
       app.canvas.removeEventListener('pointerleave', onPointerLeave);
       window.clearInterval(statsTimer);

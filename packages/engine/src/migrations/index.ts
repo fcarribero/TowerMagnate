@@ -1,4 +1,5 @@
 import {
+  ELEVATOR_QUEUE_CAPACITY,
   HotelRoomStateSchema,
   isLevel,
   PRICE_LEVELS,
@@ -7,9 +8,11 @@ import {
   type ElevatorCar,
   type HotelRoom,
   type Lease,
+  type QueueEntry,
   type RngState,
   type Shaft,
   type ShaftId,
+  type StopQueues,
   type TowerState,
   type Unit,
   type UnitId,
@@ -21,6 +24,7 @@ import { readActiveEvents, readClosedDecisions, readTreasureLevels } from './eve
 import { readGrid } from './grid';
 import { readLedger, readMoney } from './money';
 import { readPeople } from './people';
+import { readStars } from './stars';
 import { readTransports } from './transports';
 
 export { StateMigrationError } from './errors';
@@ -34,6 +38,9 @@ const MIGRATIONS: readonly Migration[] = [
   addShafts,
   addTransportRecord,
   addEventState,
+  addPersonPool,
+  addStarRating,
+  addHallQueues,
   addHotelRooms,
 ];
 
@@ -82,16 +89,51 @@ function addEventState(raw: Record<string, unknown>): Record<string, unknown> {
   };
 }
 
-/** Version 7 gives each hotel room a state; every room in an older tower is clean and empty. */
+const EMPTY_VERSION_7_PEOPLE = {
+  nextId: 1,
+  id: [],
+  kind: [],
+  homeUnit: [],
+  level: [],
+  column: [],
+  trip: [],
+  dueStep: [],
+  stress: [],
+  nameSeed: [],
+  followed: [],
+};
+
+/** Version 7 saves the person pool; older saves could only load without people. */
+function addPersonPool(raw: Record<string, unknown>): Record<string, unknown> {
+  return { people: EMPTY_VERSION_7_PEOPLE, ...raw, schemaVersion: 7 };
+}
+
+/** Version 8 records the star rating; older towers start at one star. */
+function addStarRating(raw: Record<string, unknown>): Record<string, unknown> {
+  return { stars: 1, ...raw, schemaVersion: 8 };
+}
+
+/** Version 9 gives every shaft its floor queues; nobody was waiting in older saves. */
+function addHallQueues(raw: Record<string, unknown>): Record<string, unknown> {
+  const shafts: Record<string, unknown> = {};
+  if (isRecord(raw.shafts)) {
+    for (const [id, shaft] of Object.entries(raw.shafts)) {
+      shafts[id] = isRecord(shaft) ? { queues: {}, ...shaft } : shaft;
+    }
+  }
+  return { ...raw, schemaVersion: 9, shafts };
+}
+
+/** Version 10 gives each hotel room a state; every room in an older tower is clean and empty. */
 function addHotelRooms(raw: Record<string, unknown>): Record<string, unknown> {
   if (!isRecord(raw.units)) {
-    return { ...raw, schemaVersion: 7 };
+    return { ...raw, schemaVersion: 10 };
   }
   const units: Record<string, unknown> = {};
   for (const [id, unit] of Object.entries(raw.units)) {
     units[id] = isRecord(unit) ? { hotel: hotelRoomFor(unit.type), ...unit } : unit;
   }
-  return { ...raw, schemaVersion: 7, units };
+  return { ...raw, schemaVersion: 10, units };
 }
 
 function hotelRoomFor(type: unknown): HotelRoom | null {
@@ -195,6 +237,24 @@ function isElevatorCar(value: unknown): value is ElevatorCar {
   );
 }
 
+function isQueueEntry(value: unknown): value is QueueEntry {
+  return (
+    isRecord(value) && typeof value.person === 'string' && isNonNegativeInteger(value.joinedStep)
+  );
+}
+
+function isStopQueues(value: unknown): value is StopQueues {
+  return (
+    isRecord(value) &&
+    Array.isArray(value.up) &&
+    Array.isArray(value.down) &&
+    value.up.length <= ELEVATOR_QUEUE_CAPACITY &&
+    value.down.length <= ELEVATOR_QUEUE_CAPACITY &&
+    value.up.every(isQueueEntry) &&
+    value.down.every(isQueueEntry)
+  );
+}
+
 function isShaft(value: unknown): value is Shaft {
   return (
     isRecord(value) &&
@@ -207,9 +267,15 @@ function isShaft(value: unknown): value is Shaft {
     Array.isArray(value.cars) &&
     value.cars.length > 0 &&
     value.cars.every(isElevatorCar) &&
+    isRecord(value.queues) &&
+    Object.values(value.queues).every(isStopQueues) &&
     isNonNegativeInteger(value.paid) &&
     isNonNegativeInteger(value.placedAtStep)
   );
+}
+
+function copyEntry(entry: QueueEntry): QueueEntry {
+  return { person: entry.person, joinedStep: entry.joinedStep };
 }
 
 function readShafts(raw: unknown): Record<ShaftId, Shaft> {
@@ -234,6 +300,12 @@ function readShafts(raw: unknown): Record<ShaftId, Shaft> {
         paid: car.paid,
         placedAtStep: car.placedAtStep,
       })),
+      queues: Object.fromEntries(
+        Object.entries(shaft.queues).map(([level, stop]) => [
+          level,
+          { up: stop.up.map(copyEntry), down: stop.down.map(copyEntry) },
+        ]),
+      ),
       paid: shaft.paid,
       placedAtStep: shaft.placedAtStep,
     };
@@ -257,6 +329,7 @@ function assertCurrentShape(raw: Record<string, unknown>): TowerState {
     rng: { a: raw.rng.a, b: raw.rng.b, c: raw.rng.c, d: raw.rng.d },
     nextId: raw.nextId,
     money: readMoney(raw.money),
+    stars: readStars(raw.stars),
     units: readUnits(raw.units),
     transports: readTransports(raw.transports),
     shafts: readShafts(raw.shafts),

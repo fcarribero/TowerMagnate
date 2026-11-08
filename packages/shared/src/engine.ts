@@ -2,7 +2,7 @@ import type { Ledger } from './ledger';
 import type { Level } from './levels';
 import type { DecisionKind, HotelRoomState, TransportType } from './protocol/primitives';
 import type { PersonPool } from './people';
-import type { PriceLevel, ShaftType, UnitType } from './units';
+import type { PriceLevel, ShaftType, StarRating, UnitType } from './units';
 
 /** Id of a placed unit, transport or shaft, with a type prefix: `u12`, `t3`, `s4`. */
 export type EntityId = string;
@@ -108,6 +108,20 @@ export interface ElevatorCar {
   placedAtStep: number;
 }
 
+export type HallDirection = 'up' | 'down';
+
+/** A person waiting at a stop, and the step they joined the queue. */
+export interface QueueEntry {
+  person: EntityId;
+  joinedStep: number;
+}
+
+/** The two floor queues of one stop, first in line at index 0. */
+export interface StopQueues {
+  up: QueueEntry[];
+  down: QueueEntry[];
+}
+
 export interface Shaft {
   id: ShaftId;
   type: ShaftType;
@@ -117,6 +131,8 @@ export interface Shaft {
   top: Level;
   /** 1 to 8 cars; car index is the position in this list. */
   cars: ElevatorCar[];
+  /** Stops that have someone waiting, by level number. Empty queues are not stored. */
+  queues: Record<string, StopQueues>;
   /** Whole dollars charged for the shaft itself, cars not included. */
   paid: number;
   placedAtStep: number;
@@ -138,6 +154,8 @@ export interface TowerState {
   nextId: number;
   /** Whole dollars, may be negative, never above MONEY_CAP. */
   money: number;
+  /** The tower's star rating, which unlocks unit types. */
+  stars: StarRating;
   units: Record<UnitId, Unit>;
   transports: Record<EntityId, Transport>;
   shafts: Record<ShaftId, Shaft>;

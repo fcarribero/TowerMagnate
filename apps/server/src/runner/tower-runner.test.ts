@@ -1,5 +1,5 @@
-import { createTower, STEPS_PER_DAY } from '@tower-magnate/engine';
-import type { TowerState } from '@tower-magnate/shared';
+import { createTower, setStructure, STEPS_PER_DAY, structureAt } from '@tower-magnate/engine';
+import type { QueuedCommand, TowerState } from '@tower-magnate/shared';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { REAL_MS_PER_GAME_DAY } from './real-time';
 import { TowerRunner, UnknownTowerError, type AdvanceTower } from './tower-runner';
@@ -22,7 +22,10 @@ class MemoryStore implements TowerStore {
   }
 }
 
-const countingAdvance: AdvanceTower = (state, steps) => ({ ...state, step: state.step + steps });
+const countingAdvance: AdvanceTower = (state, steps) => ({
+  state: { ...state, step: state.step + steps },
+  events: [],
+});
 
 describe('tower runner', () => {
   let clock: number;
@@ -55,6 +58,27 @@ describe('tower runner', () => {
     passTime(REAL_MS_PER_GAME_DAY);
 
     expect(stepOf('1')).toBe(STEPS_PER_DAY);
+  });
+
+  it('hands over each event once, oldest first', async () => {
+    runner = new TowerRunner({
+      store,
+      now: () => clock,
+      advance: (state, steps) => ({
+        state: { ...state, step: state.step + steps },
+        events: [{ type: 'news', step: state.step + steps, key: 'news.test', unitId: null }],
+      }),
+    });
+    await runner.resume('1');
+    passTime(300);
+
+    const first = runner.takeEvents('1');
+
+    expect(first.length).toBeGreaterThan(0);
+    expect(first.map((event) => event.step)).toEqual(
+      [...first.map((event) => event.step)].sort((a, b) => a - b),
+    );
+    expect(runner.takeEvents('1')).toEqual([]);
   });
 
   it('does not drift when ticks arrive late and unevenly', async () => {
@@ -316,5 +340,77 @@ describe('tower runner autosave', () => {
     stop();
 
     expect(store.saves).toEqual([]);
+  });
+});
+
+describe('tower runner commands', () => {
+  let clock = 1_000_000;
+  let store: MemoryStore;
+  let runner: TowerRunner;
+
+  const buildFloor: QueuedCommand = {
+    id: 'c1',
+    command: { type: 'buildFloor', level: 2, x0: 10, x1: 14 },
+  };
+
+  beforeEach(() => {
+    clock = 1_000_000;
+    store = new MemoryStore();
+    const tower = createTower(1);
+    setStructure(tower.grid, 1, 10, 29, 'lobby');
+    tower.grid.mainLobbyHeight = 1;
+    store.towers.set('1', tower);
+    runner = new TowerRunner({ store, now: () => clock });
+  });
+
+  it('applies a command on the next tick, answers it and saves the tower', async () => {
+    await runner.resume('1');
+    const answer = runner.submit('1', buildFloor);
+
+    runner.tick();
+
+    expect(await answer).toMatchObject({ id: 'c1', ok: true, cost: 2500 });
+    const state = runner.stateOf('1');
+    expect(state && structureAt(state.grid, 2, 10)).toBe('floor');
+    await vi.waitFor(() => expect(store.saves).toHaveLength(1));
+  });
+
+  it('applies commands in arrival order', async () => {
+    await runner.resume('1');
+    const first = runner.submit('1', buildFloor);
+    const second = runner.submit('1', { ...buildFloor, id: 'c2' });
+
+    runner.tick();
+
+    expect(await first).toMatchObject({ ok: true });
+    expect(await second).toMatchObject({ id: 'c2', ok: false, error: 'NOTHING_TO_BUILD' });
+  });
+
+  it('does not save a tick whose commands were all rejected', async () => {
+    await runner.resume('1');
+    const answer = runner.submit('1', {
+      ...buildFloor,
+      id: 'c3',
+      command: { ...buildFloor.command, level: 6 } as never,
+    });
+
+    runner.tick();
+
+    expect(await answer).toMatchObject({ ok: false });
+    expect(store.saves).toEqual([]);
+  });
+
+  it('answers a command still queued when the tower pauses', async () => {
+    await runner.resume('1');
+    const answer = runner.submit('1', buildFloor);
+
+    await runner.pause('1');
+
+    expect(await answer).toMatchObject({ ok: true });
+    expect(store.saves).toHaveLength(1);
+  });
+
+  it('rejects a command for a tower that is not running', async () => {
+    await expect(runner.submit('1', buildFloor)).rejects.toBeInstanceOf(UnknownTowerError);
   });
 });
