@@ -22,6 +22,9 @@ import { isFinanceToggleKey, isMapToggleKey, isPlainShortcut } from './keys';
 import { ConnectionOverlay } from './ConnectionOverlay';
 import { BuildFeedback } from './placement/BuildFeedback';
 import { bindBuildInput, type DragLabel } from './placement/bindBuildInput';
+import { bindDemolishInput } from './placement/bindDemolishInput';
+import { DemolishConfirm } from './placement/DemolishConfirm';
+import type { Confirmation } from './placement/demolishPlan';
 import { buildMode, shaftIdAt } from './placement/buildPlan';
 import { useBuildFeedback } from './placement/useBuildFeedback';
 import { LevelRuler } from './LevelRuler';
@@ -88,6 +91,10 @@ export function App({ onLogout, onRestartTower, onSessionLost }: AppProps) {
     return api;
   }, [connection, director]);
   const { toasts, floats, report } = useBuildFeedback();
+  const [pendingDemolition, setPendingDemolition] = useState<{
+    confirmation: Confirmation;
+    proceed: () => void;
+  } | null>(null);
   const [dragLabel, setDragLabel] = useState<DragLabel | null>(null);
   const [mainLobbyHeight, setMainLobbyHeight] = useState<number | null>(null);
   const [pointerLevel, setPointerLevel] = useState<Level | null>(null);
@@ -142,6 +149,9 @@ export function App({ onLogout, onRestartTower, onSessionLost }: AppProps) {
     if (stage === null) {
       return;
     }
+    if (tool === 'bulldozer') {
+      return;
+    }
     return bindPreview(stage, connection.store, previewToolOf(tool));
   }, [stage, connection, tool]);
 
@@ -159,6 +169,41 @@ export function App({ onLogout, onRestartTower, onSessionLost }: AppProps) {
       return;
     }
     stage.setPrimaryDragPans(buildMode(tool) === 'none');
+    if (tool === 'bulldozer') {
+      const unbindDemolish = bindDemolishInput({
+        stage,
+        api: commandApi,
+        world: () => {
+          const state = connection.store.current?.latest;
+          return state === undefined
+            ? null
+            : {
+                structure: state.structure,
+                units: state.units.values(),
+                transports: state.transports.values(),
+                shafts: state.shafts.values(),
+                cars: state.cars.values(),
+              };
+        },
+        watchWorld: (listener) =>
+          connection.store.select(
+            (state) => ({
+              structure: state.structure,
+              units: state.units,
+              transports: state.transports,
+              shafts: state.shafts,
+            }),
+            listener,
+          ),
+        confirm: (confirmation, proceed) => setPendingDemolition({ confirmation, proceed }),
+        onOutcome: (outcome, _command, at) => report(outcome, at),
+      });
+      return () => {
+        unbindDemolish();
+        setPendingDemolition(null);
+        stage.setPrimaryDragPans(true);
+      };
+    }
     const unbind = bindBuildInput({
       stage,
       api: commandApi,
@@ -254,6 +299,14 @@ export function App({ onLogout, onRestartTower, onSessionLost }: AppProps) {
         )}
         <Toasts commands={connection.commands} />
         <WindowLayer class="ui-windows">
+          <DemolishConfirm
+            confirmation={pendingDemolition?.confirmation ?? null}
+            onConfirm={() => {
+              pendingDemolition?.proceed();
+              setPendingDemolition(null);
+            }}
+            onCancel={() => setPendingDemolition(null)}
+          />
           {financeOpen && (
             <FinanceWindow store={connection.store} onClose={() => setFinanceOpen(false)} />
           )}

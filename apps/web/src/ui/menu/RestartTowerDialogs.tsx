@@ -59,7 +59,7 @@ export function RestartTowerDialogs({ step, onStep, onRestart }: RestartTowerDia
 }
 
 /** Keeps the window open in the manager for as long as its dialog is mounted. */
-function Opened({ id, children }: { id: string; children: ComponentChildren }) {
+export function Opened({ id, children }: { id: string; children: ComponentChildren }) {
   const manager = useWindowManager();
   useEffect(() => {
     manager.open(dialogRequest(id));
