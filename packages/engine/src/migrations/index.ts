@@ -1,13 +1,16 @@
 import {
+  ELEVATOR_QUEUE_CAPACITY,
   isLevel,
   PRICE_LEVELS,
   SHAFT_TYPES,
   UNIT_TYPES,
   type ElevatorCar,
   type Lease,
+  type QueueEntry,
   type RngState,
   type Shaft,
   type ShaftId,
+  type StopQueues,
   type TowerState,
   type Unit,
   type UnitId,
@@ -34,6 +37,7 @@ const MIGRATIONS: readonly Migration[] = [
   addEventState,
   addPersonPool,
   addStarRating,
+  addHallQueues,
 ];
 
 /** Version 2 records each unit's price level, what was paid for it and when it was placed. */
@@ -103,6 +107,17 @@ function addPersonPool(raw: Record<string, unknown>): Record<string, unknown> {
 /** Version 8 records the star rating; older towers start at one star. */
 function addStarRating(raw: Record<string, unknown>): Record<string, unknown> {
   return { stars: 1, ...raw, schemaVersion: 8 };
+}
+
+/** Version 9 gives every shaft its floor queues; nobody was waiting in older saves. */
+function addHallQueues(raw: Record<string, unknown>): Record<string, unknown> {
+  const shafts: Record<string, unknown> = {};
+  if (isRecord(raw.shafts)) {
+    for (const [id, shaft] of Object.entries(raw.shafts)) {
+      shafts[id] = isRecord(shaft) ? { queues: {}, ...shaft } : shaft;
+    }
+  }
+  return { ...raw, schemaVersion: 9, shafts };
 }
 
 function isUint32(value: unknown): value is number {
@@ -189,6 +204,24 @@ function isElevatorCar(value: unknown): value is ElevatorCar {
   );
 }
 
+function isQueueEntry(value: unknown): value is QueueEntry {
+  return (
+    isRecord(value) && typeof value.person === 'string' && isNonNegativeInteger(value.joinedStep)
+  );
+}
+
+function isStopQueues(value: unknown): value is StopQueues {
+  return (
+    isRecord(value) &&
+    Array.isArray(value.up) &&
+    Array.isArray(value.down) &&
+    value.up.length <= ELEVATOR_QUEUE_CAPACITY &&
+    value.down.length <= ELEVATOR_QUEUE_CAPACITY &&
+    value.up.every(isQueueEntry) &&
+    value.down.every(isQueueEntry)
+  );
+}
+
 function isShaft(value: unknown): value is Shaft {
   return (
     isRecord(value) &&
@@ -201,9 +234,15 @@ function isShaft(value: unknown): value is Shaft {
     Array.isArray(value.cars) &&
     value.cars.length > 0 &&
     value.cars.every(isElevatorCar) &&
+    isRecord(value.queues) &&
+    Object.values(value.queues).every(isStopQueues) &&
     isNonNegativeInteger(value.paid) &&
     isNonNegativeInteger(value.placedAtStep)
   );
+}
+
+function copyEntry(entry: QueueEntry): QueueEntry {
+  return { person: entry.person, joinedStep: entry.joinedStep };
 }
 
 function readShafts(raw: unknown): Record<ShaftId, Shaft> {
@@ -228,6 +267,12 @@ function readShafts(raw: unknown): Record<ShaftId, Shaft> {
         paid: car.paid,
         placedAtStep: car.placedAtStep,
       })),
+      queues: Object.fromEntries(
+        Object.entries(shaft.queues).map(([level, stop]) => [
+          level,
+          { up: stop.up.map(copyEntry), down: stop.down.map(copyEntry) },
+        ]),
+      ),
       paid: shaft.paid,
       placedAtStep: shaft.placedAtStep,
     };

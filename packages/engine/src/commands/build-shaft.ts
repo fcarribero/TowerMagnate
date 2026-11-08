@@ -75,6 +75,7 @@ export const buildShaft: CommandHandler<'buildShaft'> = (context, command) => {
     type: type.data,
     ...range,
     cars: [idleCar(bottom, prices.car, state.step)],
+    queues: {},
     paid: prices.shaft,
     placedAtStep: state.step,
   };
