@@ -533,6 +533,15 @@ export const EVAL_GOOD_BELOW = 90;
 export const EVAL_FAIR_BELOW = 180;
 export const EVAL_FAIR_BELOW_FROM_FOUR_STARS = 240;
 
+/** Trips that ended within this many steps (one week) count toward a person's stress. */
+export const STRESS_WINDOW_STEPS = 60_480;
+export const STRESS_ALTO_FROM = 90;
+export const STRESS_MUY_ALTO_FROM = 180;
+/** Venue stress factor by the average trip stress at its door (SE-10). */
+export const VENUE_STRESS_FACTOR_NORMAL = 1;
+export const VENUE_STRESS_FACTOR_ALTO = 0.8;
+export const VENUE_STRESS_FACTOR_MUY_ALTO = 0.6;
+
 /** People per direction at one stop of an elevator shaft. */
 export const ELEVATOR_QUEUE_CAPACITY = 40;
 /** Steps a person waits beside a full queue before checking it again (1 game minute). */
