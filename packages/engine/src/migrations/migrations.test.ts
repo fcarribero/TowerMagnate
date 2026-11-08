@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { defaultSchedule } from '../commands/shafts';
 import { createTower, SCHEMA_VERSION } from '../state';
-import { newUnit } from '../units';
+import { newUnit, newVenueDay } from '../units';
 import {
   VERSION_1_SAVE,
   VERSION_2_SAVE,
@@ -100,9 +100,43 @@ describe('migrateState unit leases', () => {
   it('keeps the day counts of a venue', () => {
     const cinema = {
       ...newUnit('u3', 'cinema', 0, 2),
-      venue: { visits: 70, eveningShowVisits: 90, yesterday: { visits: 80, result: 10_000 } },
+      venue: {
+        visits: 70,
+        eveningShowVisits: 90,
+        yesterday: { visits: 80, result: 10_000 },
+        countToday: 160,
+        previousDayCount: 150,
+        stressSum: 900,
+        stressTrips: 12,
+        customers: [],
+      },
     };
     expect(migratedUnit(JSON.parse(JSON.stringify(cinema)))).toEqual(cinema);
+  });
+
+  it('keeps the outside customers still to come', () => {
+    const shop = { ...newUnit('u3', 'retail-shop', 0, 2) };
+    shop.venue = { ...newVenueDay(), countToday: 4, customers: [3_600, 3_660, 4_200] };
+    expect(migratedUnit(JSON.parse(JSON.stringify(shop)))).toEqual(shop);
+  });
+
+  it('gives a version 21 save day counts, stress sums and no customers', () => {
+    const food = {
+      ...newUnit('u3', 'fast-food', 0, 2),
+      venue: { visits: 12, eveningShowVisits: 0, yesterday: null },
+    };
+    const shop = { ...newUnit('u4', 'retail-shop', 10, 2), venue: null };
+    const office = newUnit('u5', 'office', 20, 2);
+    const save = {
+      ...createTower(5),
+      schemaVersion: 20,
+      units: { u3: food, u4: shop, u5: office },
+    };
+    const tower = migrateState(JSON.parse(JSON.stringify(save)));
+    expect(tower.schemaVersion).toBe(SCHEMA_VERSION);
+    expect(tower.units.u3?.venue).toEqual({ ...newVenueDay(), visits: 12 });
+    expect(tower.units.u4?.venue).toEqual(newVenueDay());
+    expect(tower.units.u5?.venue).toBeNull();
   });
 
   it('gives venues of a version 19 save zero counts and other units none', () => {
@@ -115,7 +149,7 @@ describe('migrateState unit leases', () => {
     const office = withoutVenue(newUnit('u4', 'office', 5, 2));
     const save = { ...createTower(5), schemaVersion: 19, units: { u3: food, u4: office } };
     const tower = migrateState(save);
-    expect(tower.units.u3?.venue).toEqual({ visits: 0, eveningShowVisits: 0, yesterday: null });
+    expect(tower.units.u3?.venue).toEqual(newVenueDay());
     expect(tower.units.u4?.venue).toBeNull();
   });
 
@@ -123,9 +157,13 @@ describe('migrateState unit leases', () => {
     const food = newUnit('u3', 'fast-food', 0, 2);
     const badCounts = [
       'u3',
-      { visits: -1, eveningShowVisits: 0, yesterday: null },
-      { visits: 1.5, eveningShowVisits: 0, yesterday: null },
-      { visits: 0, eveningShowVisits: 0, yesterday: { visits: 0 } },
+      { ...newVenueDay(), visits: -1 },
+      { ...newVenueDay(), visits: 1.5 },
+      { ...newVenueDay(), yesterday: { visits: 0 } },
+      { ...newVenueDay(), countToday: -1 },
+      { ...newVenueDay(), stressTrips: 0.5 },
+      { ...newVenueDay(), customers: [100, -6] },
+      { ...newVenueDay(), customers: null },
     ];
     for (const venue of badCounts) {
       expect(() => migratedUnit({ ...food, venue })).toThrow(StateMigrationError);
@@ -515,10 +553,10 @@ describe('migrateState medical day', () => {
 });
 
 describe('migrateState construction refund records', () => {
-  it('gives a version 20 save unrefundable transports and no floor purchases', () => {
+  it('gives a version 22 save unrefundable transports and no floor purchases', () => {
     const old = JSON.parse(JSON.stringify(createTower(5))) as Record<string, unknown>;
     delete old.floorPurchases;
-    old.schemaVersion = 20;
+    old.schemaVersion = 22;
     old.transports = { t2: { id: 't2', type: 'stairs', x: 10, level: 3 } };
     const tower = migrateState(old);
     expect(tower.transports.t2).toEqual({

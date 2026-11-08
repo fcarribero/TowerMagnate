@@ -76,7 +76,7 @@ describe('snapshot from tower state', () => {
 
   it('sends open decisions with ransom and fire level, also after a reconnect', () => {
     const state = createTower(7);
-    openBombThreat({ state, events: [] }, 300_000);
+    openBombThreat({ state, events: [] }, 300_000, { x: 0, level: 2 });
 
     const snapshot = buildSnapshot(structuredClone(state), null);
 

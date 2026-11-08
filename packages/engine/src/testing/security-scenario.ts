@@ -99,7 +99,7 @@ function timeWindow(timed: Timed, state: TowerState, steps: number): TowerState 
 
 function bombSearchRun(timed: Timed, atTen: TowerState) {
   const context: StepContext = { state: atTen, events: [] };
-  const bomb = openBombThreat(context, RANSOM) as BombThreat;
+  const bomb = openBombThreat(context, RANSOM, { x: OFFICE_X, level: BOMB_LEVEL }) as BombThreat;
   startBombSearch(context, bomb, BOMB_LEVEL);
   let searched = 0;
   let foundStep: number | null = null;

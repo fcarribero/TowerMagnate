@@ -476,6 +476,23 @@ export const SEARCH_COLUMNS_PER_MINUTE = 4;
 export const SEARCH_STEPS_PER_MINUTE = 6;
 export const FIRE_SPREAD_STEPS = 6;
 export const FIRE_FRONT_CONTAINMENT = 10;
+/** Papá Noel crosses the sky once a year at this date and time. */
+export const SANTA_TIME = { month: 12, day: 24, hour: 22, minute: 0 } as const;
+export const BOMB_DAILY_ODDS = 60;
+export const BOMB_MIN_STARS = 2;
+export const BOMB_ROLL_HOUR = 9;
+export const BOMB_EXPLODE_HOUR = 13;
+export const BOMB_BLAST_COLUMNS_LEFT = 20;
+export const BOMB_BLAST_COLUMNS_RIGHT = 19;
+export const BOMB_BLAST_LEVELS_BELOW = 2;
+export const BOMB_BLAST_LEVELS_ABOVE = 3;
+
+/** The ransom asked when a bomb threat opens, by star rating. */
+export function bombRansom(stars: StarRating): number {
+  if (stars <= 2) return 200_000;
+  if (stars === 3) return 300_000;
+  return 1_000_000;
+}
 
 function flatUpkeep(basis: UpkeepRule['basis'], amount: number): UpkeepRule {
   return { basis, amountByStars: [{ minStars: 1, amount }] };

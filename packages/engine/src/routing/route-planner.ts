@@ -226,7 +226,11 @@ function withinBudget(link: Link, counters: Counters): boolean {
   return counters.rides + 1 <= MAX_RIDES_PER_TRIP;
 }
 
-/** Best remaining value from every state, for one destination point and user class. */
+/**
+ * Best remaining value from every state, for one destination run and user class. Destinations
+ * on the same run that lie beyond all of its nodes on the same side differ only by the columns
+ * walked at the end, so they share the table of the nearest such point and add the difference.
+ */
 interface DestinationTable {
   point: RoutePoint;
   run: number;
@@ -236,6 +240,8 @@ interface DestinationTable {
 
 interface FirstOption {
   value: number;
+  /** Number of the link's transport id, for the tie break. */
+  viaNumber: number;
   entry: GraphNode;
   link: Link | null;
 }
@@ -246,10 +252,41 @@ interface RunOption {
   x: number;
   link: Link;
   kindAfter: PreviousLeg;
+  /** Table key of the target node and previous leg, before the counters are added. */
+  targetKey: number;
+  /** What the code gains when the leg is taken. */
+  codeDelta: number;
+  /** Floors of stairs and escalator and rides the leg adds to the counters. */
+  stairFloors: number;
+  escalatorFloors: number;
+  rides: number;
+  /** Whether a ride before this one adds the transfer cost. */
+  transferable: boolean;
+  /** Leg cost for a first ride and, for stairs, for a flight that joins the leg in progress. */
+  cost: number;
+  mergedCost: number;
 }
 
-const MAX_CACHED_DESTINATIONS = 256;
-const MAX_CACHED_FIRST_OPTIONS = 4096;
+/** The nodes and options of a run in column order, so one sweep ranks every node's options. */
+interface RunByX {
+  nodes: NodeId[];
+  nodeX: number[];
+  options: RunOption[];
+  /** The options as parallel arrays, in the same order, for the hot loop. */
+  columns: Float64Array;
+  targetKeys: Float64Array;
+  codeDeltas: Uint8Array;
+  stairFloors: Uint8Array;
+  escalatorFloors: Uint8Array;
+  rides: Uint8Array;
+  transferable: Uint8Array;
+  kindsAfter: Uint8Array;
+  firstCosts: Float64Array;
+  mergedCosts: Float64Array;
+}
+
+const MAX_CACHED_DESTINATIONS = 4096;
+const MAX_CACHED_FIRST_OPTIONS = 65536;
 
 /**
  * Route choice of routing sections 5 to 9. The best route from every state to a destination is
@@ -261,6 +298,7 @@ export class TripPlanner {
   private tables = new Map<string, DestinationTable>();
   private firstOptions = new Map<string, FirstOption[]>();
   private runOptions = new Map<number, RunOption[]>();
+  private runsByX = new Map<number, RunByX>();
 
   constructor(private readonly graph: TransportGraph) {}
 
@@ -282,8 +320,8 @@ export class TripPlanner {
       escalator: budget.escalatorFloors,
       rides: budget.rides,
     };
-    const table = this.tableFor(request.to, goalRun.id, request.userClass);
-    const options = this.optionsFor(table, request, startRun.id, counters);
+    const { table, extraColumns } = this.tableFor(request.to, goalRun.id, request.userClass);
+    const options = this.optionsFor(table, extraColumns, request, startRun.id, counters);
     const chosen = this.pickWithQueues(state, options);
     if (!chosen) return null;
     return this.describe(table, request, chosen, counters, state);
@@ -333,6 +371,7 @@ export class TripPlanner {
     this.tables.clear();
     this.firstOptions.clear();
     this.runOptions.clear();
+    this.runsByX.clear();
   }
 
   private runOptionsOf(run: number, userClass: UserClass): RunOption[] {
@@ -343,7 +382,20 @@ export class TripPlanner {
       for (const entryId of this.graph.run(run).nodes) {
         const x = this.graph.node(entryId).x;
         for (const link of this.graph.neighbours(entryId, userClass)) {
-          options.push({ entry: entryId, x, link, kindAfter: previousLegOf(link.kind) });
+          options.push({
+            entry: entryId,
+            x,
+            link,
+            kindAfter: previousLegOf(link.kind),
+            targetKey: link.to * STATES_PER_NODE + previousLegOf(link.kind),
+            codeDelta: codeAfter(link, 0),
+            stairFloors: link.kind === 'stairs' ? link.floors : 0,
+            escalatorFloors: link.kind === 'escalator' ? link.floors : 0,
+            rides: link.kind === 'stairs' || link.kind === 'escalator' ? 0 : 1,
+            transferable: link.kind !== 'stairs' && link.kind !== 'escalator',
+            cost: legCost(link, 0, false),
+            mergedCost: legCost(link, 0, true),
+          });
         }
       }
       this.runOptions.set(key, options);
@@ -351,26 +403,35 @@ export class TripPlanner {
     return options;
   }
 
-  private tableFor(point: RoutePoint, run: number, userClass: UserClass): DestinationTable {
-    const key = `${userClass}:${point.level}:${point.x}`;
+  private tableFor(
+    point: RoutePoint,
+    run: number,
+    userClass: UserClass,
+  ): { table: DestinationTable; extraColumns: number } {
+    const nodeColumns = this.graph.run(run).nodes.map((id) => this.graph.node(id).x);
+    const first = Math.min(...nodeColumns);
+    const last = Math.max(...nodeColumns);
+    const shared = point.x >= last ? last : point.x <= first ? first : point.x;
+    const key = `${userClass}:${run}:${shared}`;
     let table = this.tables.get(key);
     if (!table) {
       if (this.tables.size >= MAX_CACHED_DESTINATIONS) this.tables.clear();
-      table = { point, run, userClass, values: new Map() };
+      table = { point: { level: point.level, x: shared }, run, userClass, values: new Map() };
       this.tables.set(key, table);
     }
-    return table;
+    return { table, extraColumns: Math.abs(point.x - shared) };
   }
 
   /** Every way to start the trip from the start run, best first by base value and tie breaks. */
   private optionsFor(
     table: DestinationTable,
+    extraColumns: number,
     request: RouteRequest,
     startRun: number,
     counters: Counters,
   ): FirstOption[] {
     const { from } = request;
-    const key = `${request.userClass}:${table.point.level}:${table.point.x}|${from.level}:${from.x}|${counters.stairs},${counters.escalator},${counters.rides}`;
+    const key = `${request.userClass}:${request.to.level}:${request.to.x}|${from.level}:${from.x}|${counters.stairs},${counters.escalator},${counters.rides}`;
     const cached = this.firstOptions.get(key);
     if (cached) return cached;
 
@@ -382,13 +443,14 @@ export class TripPlanner {
       for (const link of this.graph.neighbours(nodeId, request.userClass)) {
         if (!withinBudget(link, counters)) continue;
         const previous = previousLegOf(link.kind);
-        const rest = this.valueAt(table, link.to, codeAfter(link, startCode), previous);
-        if (rest === Infinity) continue;
+        const shared = this.valueAt(table, link.to, codeAfter(link, startCode), previous);
+        if (shared === Infinity) continue;
+        const rest = shared + extraColumns * END_RANGE;
         const own = pack(legCost(link, counters.rides, false), 1, walk, 0);
         const value = isWalkedLeg(previous)
           ? own + rest
           : own + withoutEnd(rest) + this.endOf(link.to);
-        options.push({ value, entry, link });
+        options.push({ value, viaNumber: idNumber(link.via), entry, link });
       }
     }
     options.sort((a, b) => this.compareOptions(a, b));
@@ -417,7 +479,7 @@ export class TripPlanner {
     const bLink = b.link as Link;
     const rank = firstLegRank(aLink.kind) - firstLegRank(bLink.kind);
     if (rank !== 0) return rank;
-    const id = idNumber(aLink.via) - idNumber(bLink.via);
+    const id = a.viaNumber - b.viaNumber;
     if (id !== 0) return id;
     return (a.value % END_RANGE) - (b.value % END_RANGE);
   }
@@ -530,12 +592,130 @@ export class TripPlanner {
     const key = at * STATES_PER_NODE + counterKey(code, previous);
     const known = table.values.get(key);
     if (known !== undefined) return known;
-    let best = Infinity;
-    this.eachOption(table, at, code, previous, (value) => {
-      if (value < best) best = value;
-    });
-    table.values.set(key, best);
-    return best;
+    const here = this.graph.node(at);
+    if (here.run === table.run) {
+      // Finishing costs nothing and every other move costs something, so it always wins.
+      const chainEnd = isWalkedLeg(previous) ? this.endOf(at) : 0;
+      const best = pack(0, 0, Math.abs(here.x - table.point.x), chainEnd);
+      table.values.set(key, best);
+      return best;
+    }
+    this.fillRunValues(table, here.run, code, previous);
+    return table.values.get(key) as number;
+  }
+
+  private runByX(run: number, userClass: UserClass): RunByX {
+    const key = run * 2 + (userClass === 'maid' ? 1 : 0);
+    let sorted = this.runsByX.get(key);
+    if (!sorted) {
+      const nodes = [...this.graph.run(run).nodes].sort(
+        (a, b) => this.graph.node(a).x - this.graph.node(b).x || a - b,
+      );
+      const options = [...this.runOptionsOf(run, userClass)].sort((a, b) => a.x - b.x);
+      sorted = {
+        nodes,
+        nodeX: nodes.map((id) => this.graph.node(id).x),
+        options,
+        columns: Float64Array.from(options, (option) => option.x),
+        targetKeys: Float64Array.from(options, (option) => option.targetKey),
+        codeDeltas: Uint8Array.from(options, (option) => option.codeDelta),
+        stairFloors: Uint8Array.from(options, (option) => option.stairFloors),
+        escalatorFloors: Uint8Array.from(options, (option) => option.escalatorFloors),
+        rides: Uint8Array.from(options, (option) => option.rides),
+        transferable: Uint8Array.from(options, (option) => (option.transferable ? 1 : 0)),
+        kindsAfter: Uint8Array.from(options, (option) => option.kindAfter),
+        firstCosts: Float64Array.from(options, (option) => option.cost),
+        mergedCosts: Float64Array.from(options, (option) => option.mergedCost),
+      };
+      this.runsByX.set(key, sorted);
+    }
+    return sorted;
+  }
+
+  /**
+   * The best value of every node on a run for one counter code and previous leg, all in one pass.
+   * Walking to a link costs the distance in columns, so each node's best option comes from a sweep
+   * over the options on either side of it instead of a loop over all of them.
+   */
+  private fillRunValues(
+    table: DestinationTable,
+    run: number,
+    code: CounterCode,
+    previous: PreviousLeg,
+  ): void {
+    const run_ = this.runByX(run, table.userClass);
+    const { nodes, nodeX, options } = run_;
+    const walked = isWalkedLeg(previous);
+    const rides = ridesIn(code);
+    const stairs = code >> 5;
+    const escalators = (code >> 2) & 7;
+    const values = table.values;
+    // Looking up the rest of a move can fill other runs, so every call owns its buffers.
+    const xs = new Float64Array(options.length);
+    const bases = new Float64Array(options.length);
+    const joins = new Uint8Array(options.length);
+    let valid = 0;
+    for (let index = 0; index < options.length; index++) {
+      if (stairs + (run_.stairFloors[index] as number) > MAX_STAIR_FLOORS_PER_TRIP) continue;
+      if (escalators + (run_.escalatorFloors[index] as number) > MAX_ESCALATOR_FLOORS_PER_TRIP) {
+        continue;
+      }
+      if (rides + (run_.rides[index] as number) > MAX_RIDES_PER_TRIP) continue;
+      const nextCode = code + (run_.codeDeltas[index] as number);
+      const kindAfter = run_.kindsAfter[index] as PreviousLeg;
+      const rest =
+        values.get((run_.targetKeys[index] as number) + nextCode * 4) ??
+        this.valueAt(table, (options[index] as RunOption).link.to, nextCode, kindAfter);
+      if (rest === Infinity) continue;
+      const merges = kindAfter === previous && walked;
+      const transfer = run_.transferable[index] === 1 && rides >= 1;
+      const cost =
+        (merges ? (run_.mergedCosts[index] as number) : (run_.firstCosts[index] as number)) +
+        (transfer ? ROUTE_TRANSFER_COST : 0);
+      const own = pack(cost, merges ? 0 : 1, 0, 0);
+      xs[valid] = run_.columns[index] as number;
+      bases[valid] = merges ? own + rest : own + withoutEnd(rest);
+      joins[valid] = merges ? 1 : 0;
+      valid++;
+    }
+
+    const count = nodes.length;
+    const best = new Float64Array(count);
+    let leftJoin = Infinity;
+    let leftNew = Infinity;
+    let next = 0;
+    for (let index = 0; index < count; index++) {
+      const x = nodeX[index] as number;
+      for (; next < valid && (xs[next] as number) <= x; next++) {
+        const shifted = (bases[next] as number) - (xs[next] as number) * END_RANGE;
+        if (joins[next]) leftJoin = Math.min(leftJoin, shifted);
+        else leftNew = Math.min(leftNew, shifted);
+      }
+      const end = this.chainEndIf(walked, nodes[index] as NodeId);
+      best[index] = Math.min(leftJoin, leftNew + end) + x * END_RANGE;
+    }
+    let rightJoin = Infinity;
+    let rightNew = Infinity;
+    next = valid - 1;
+    for (let index = count - 1; index >= 0; index--) {
+      const x = nodeX[index] as number;
+      for (; next >= 0 && (xs[next] as number) >= x; next--) {
+        const shifted = (bases[next] as number) + (xs[next] as number) * END_RANGE;
+        if (joins[next]) rightJoin = Math.min(rightJoin, shifted);
+        else rightNew = Math.min(rightNew, shifted);
+      }
+      const end = this.chainEndIf(walked, nodes[index] as NodeId);
+      const fromRight = Math.min(rightJoin, rightNew + end) - x * END_RANGE;
+      const value = Math.min(best[index] as number, fromRight);
+      table.values.set(
+        (nodes[index] as NodeId) * STATES_PER_NODE + counterKey(code, previous),
+        value,
+      );
+    }
+  }
+
+  private chainEndIf(walked: boolean, node: NodeId): number {
+    return walked ? this.endOf(node) : 0;
   }
 
   /**

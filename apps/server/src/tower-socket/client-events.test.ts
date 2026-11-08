@@ -17,6 +17,13 @@ describe('toClientEvents', () => {
     ]);
   });
 
+  it('passes a bomb blast on with its ruined cells', () => {
+    const cells = [{ level: 5, x0: 100, x1: 139 }];
+    const events: EngineEvent[] = [{ type: 'disaster', step: 7, kind: 'bomb', cells }];
+
+    expect(toClientEvents(events)).toEqual([{ type: 'disaster', step: 7, kind: 'bomb', cells }]);
+  });
+
   it('marks a decision closed without a command as timed out', () => {
     const events: EngineEvent[] = [
       { type: 'decisionClosed', step: 9, eventId: 'e1', choice: 'refuse' },

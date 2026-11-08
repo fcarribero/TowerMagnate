@@ -1,6 +1,6 @@
 import type { Ledger } from './ledger';
 import type { Level } from './levels';
-import type { DecisionKind, HotelRoomState, TransportType } from './protocol/primitives';
+import type { CellRange, DecisionKind, HotelRoomState, TransportType } from './protocol/primitives';
 import type { PersonPool } from './people';
 import type { PriceLevel, ShaftType, StarRating, UnitType } from './units';
 
@@ -78,7 +78,7 @@ export interface Unit {
   hotel: HotelRoom | null;
   /** The current owners' purchase of a condo; null while the condo is for sale. */
   sale: CondoSale | null;
-  /** The day's visit counts of a food or entertainment venue; null for every other unit. */
+  /** The day's visit counts of a food, entertainment or retail venue; null for every other unit. */
   venue: VenueDay | null;
 }
 
@@ -89,6 +89,16 @@ export interface VenueDay {
   eveningShowVisits: number;
   /** Count and payout of the last paid day; null until the first payout. */
   yesterday: { visits: number; result: number | null } | null;
+  /** Visits started today inside the venue's counting hours, retail shops included. */
+  countToday: number;
+  /** The count of the day that ended at the last 00:00 (stars spec 3.2). */
+  previousDayCount: number;
+  /** Trip stress, in steps, of today's counted visits whose trip was walked. */
+  stressSum: number;
+  /** How many of today's counted visits added to `stressSum`. */
+  stressTrips: number;
+  /** Steps at which today's outside customers still to come appear, earliest first. */
+  customers: number[];
 }
 
 export interface HotelRoom {
@@ -328,11 +338,19 @@ export interface BombSearch {
   unreachable: Record<number, Level[]>;
 }
 
+/** The cell of a bomb: a column on the bottom level of the unit it was drawn in. */
+export interface BombCell {
+  x: number;
+  level: Level;
+}
+
 export interface BombThreat {
   kind: 'bomb';
   id: EventId;
   decision: Decision;
   ransom: number;
+  /** Fixed when the threat opens; never sent to the client. */
+  bomb: BombCell;
   /** Null until the search starts. */
   search: BombSearch | null;
 }
@@ -421,5 +439,8 @@ export type EngineEvent =
     }
   | { type: 'treasureFound'; step: number; commandId: string; level: Level; amount: number }
   | { type: 'news'; step: number; commandId: string; key: 'news.treasure'; level: Level }
+  | { type: 'news'; step: number; commandId: string; key: 'news.bombPaid'; unitId: null }
+  | { type: 'disaster'; step: number; kind: DecisionKind; cells: CellRange[] }
+  | { type: 'news'; step: number; key: 'news.bombExploded'; level: Level }
   | { type: 'news'; step: number; key: 'news.decisionDefault'; eventId: EventId; choice: string }
   | { type: 'news'; step: number; key: string; unitId: UnitId | null };

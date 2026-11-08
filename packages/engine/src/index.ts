@@ -41,6 +41,7 @@ export {
   eventsPhase,
   openBombThreat,
   openFire,
+  openRandomBombThreat,
 } from './events';
 
 export { hashState } from './hash';
@@ -127,7 +128,9 @@ export { createEngine, runDays, step } from './step';
 export { populationOf } from './population';
 export type { PopulationBreakdown } from './population';
 export { chargeWeeklyUpkeep, weeklyUpkeepHook } from './upkeep';
-export { recordVenueVisit, venuePayoutHooks } from './venues';
+export { countVenueVisit, recordVenueVisit, rollVenueDay, venuePayoutHooks } from './venues';
+export { createCustomers, outsideCustomerCount } from './customers';
+export type { CustomerSystems, OutsideCustomerFactors } from './customers';
 export { newUnit } from './units';
 export type {
   CommandContext,
