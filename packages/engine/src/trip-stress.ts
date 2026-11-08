@@ -40,11 +40,15 @@ export function emptyTripParts(): TripStressParts {
   };
 }
 
+/** Wait steps a tall lobby takes off an up ride that boards in it. */
+export function tallLobbyCut(direction: 'up' | 'down', lobbyHeight: number | null): number {
+  if (direction !== 'up' || lobbyHeight === null) return 0;
+  return STRESS_TALL_LOBBY_CUT[lobbyHeight] ?? 0;
+}
+
 /** The wait counted for stress: an up ride from a tall lobby loses part of it, never below 0. */
 function countedWait(ride: RideStress): number {
-  if (ride.direction !== 'up' || ride.boardingLobbyHeight === null) return ride.waitSteps;
-  const cut = STRESS_TALL_LOBBY_CUT[ride.boardingLobbyHeight] ?? 0;
-  return Math.max(0, ride.waitSteps - cut);
+  return Math.max(0, ride.waitSteps - tallLobbyCut(ride.direction, ride.boardingLobbyHeight));
 }
 
 /** Standard and service ride floors plus stair floors; express and escalators add none. */
@@ -73,10 +77,20 @@ function partsSum(parts: TripStressParts): number {
 
 /** Stress so far for person stress: no long-trip extra, capped like a finished trip. */
 export function tripStressSoFar(parts: TripStressParts): number {
-  return Math.min(STRESS_TRIP_CAP, partsSum(parts));
+  return cappedStress(partsSum(parts));
+}
+
+/** Stress so far from running totals, for a trip in progress. */
+export function cappedStress(sum: number): number {
+  return Math.min(STRESS_TRIP_CAP, sum);
+}
+
+/** Trip stress T from the running totals of a finished trip. */
+export function finishedTripStress(sum: number, slowFloorCount: number): number {
+  return Math.min(STRESS_TRIP_CAP, sum + longTripExtra(slowFloorCount));
 }
 
 /** Trip stress T in steps (SE-01 to SE-05). */
 export function tripStress(parts: TripStressParts): number {
-  return Math.min(STRESS_TRIP_CAP, partsSum(parts) + longTripExtra(slowFloors(parts)));
+  return finishedTripStress(partsSum(parts), slowFloors(parts));
 }

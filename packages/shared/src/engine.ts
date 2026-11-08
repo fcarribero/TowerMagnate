@@ -222,6 +222,11 @@ export interface TowerState {
   shafts: Record<ShaftId, Shaft>;
   grid: GridState;
   people: PersonPool;
+  /**
+   * Trips each person ended in the last STRESS_WINDOW_STEPS, keyed by person number: pairs of
+   * end step and trip stress, oldest first.
+   */
+  tripLedger: Record<string, number[]>;
   ledger: Ledger;
   /** At most one bomb threat or fire at a time. */
   activeEvents: ActiveEvent[];

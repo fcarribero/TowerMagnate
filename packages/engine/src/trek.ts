@@ -12,6 +12,18 @@ import {
   type PersonPool,
 } from '@tower-magnate/shared';
 import { isQueueFull, joinQueue, nextQueueCheckStep } from './elevator-queues';
+import {
+  addFailedSearch,
+  addFlight,
+  addFullQueueEvent,
+  boardCar,
+  finishRide,
+  recordTrip,
+  refreshPersonStress,
+  settlePartUnderWay,
+  startWait,
+  type PartUnderWay,
+} from './trip-ledger';
 import { parsePersonId, personEntityId, slotOfPerson } from './people';
 import { floorIndex } from './routing/transport-graph';
 import {
@@ -190,6 +202,7 @@ function replan(context: StepContext, slot: number): void {
   const pool = context.state.people;
   pool.trek[slot] = NO_ROUTE;
   pool.legStep[slot] = context.state.step + ROUTE_RETRY_STEPS;
+  addFailedSearch(pool, slot);
   context.events.push({
     type: 'routeSearchFailed',
     step: context.state.step,
@@ -208,6 +221,7 @@ export function startTrek(context: StepContext, slot: number, to: TrekPlace): bo
   pool.trekBudget[slot] = packBudget({ stairFloors: 0, escalatorFloors: 0, rides: 0 });
   const started = planNextLeg(context, slot);
   if (!started) clearTrek(pool, slot);
+  else if (isOnTrek(pool, slot)) refreshPersonStress(context.state, slot, true);
   return started;
 }
 
@@ -230,13 +244,28 @@ export function plannedTripSteps(
   return plan.columnsWalked + stairs * STAIR_FLIGHT_STEPS + plan.transportLegs;
 }
 
-/** Ends the trip wherever the person stands. */
-export function cancelTrek(context: StepContext, slot: number): void {
+/**
+ * Ends the trip wherever the person stands and records what it has. The night reset adds one
+ * more failed attempt to it.
+ */
+export function cancelTrek(
+  context: StepContext,
+  slot: number,
+  options: { nightReset?: boolean } = {},
+): void {
   const pool = context.state.people;
+  settlePartUnderWay(context.state, slot, partUnderWay(pool.trek[slot] as number));
   if (pool.trek[slot] === QUEUED) leaveQueueOf(context, slot);
   if (pool.trek[slot] === RIDING) leaveCarOf(context, slot);
   clearTrek(pool, slot);
+  recordTrip(context.state, slot, options);
   reportTripFinished(context, slot, false);
+}
+
+function partUnderWay(phase: number): PartUnderWay {
+  if (phase === QUEUED) return 'queued';
+  if (phase === RIDING) return 'riding';
+  return null;
 }
 
 function reportTripFinished(context: StepContext, slot: number, arrived: boolean): void {
@@ -288,6 +317,7 @@ function clearTrek(pool: PersonPool, slot: number): void {
 function arrive(context: StepContext, slot: number): void {
   const pool = context.state.people;
   clearTrek(pool, slot);
+  recordTrip(context.state, slot);
   pool.dueStep[slot] = context.state.step;
   reportTripFinished(context, slot, true);
 }
@@ -316,10 +346,12 @@ function enterQueueOrWait(context: StepContext, slot: number): void {
   if (isQueueFull(shaft, level, direction)) {
     pool.trek[slot] = WAITING_BESIDE_QUEUE;
     pool.legStep[slot] = nextQueueCheckStep(state.step);
+    addFullQueueEvent(pool, slot);
     return;
   }
   const person = personEntityId(pool.id[slot] as number);
   joinQueue(shaft, level, direction, person, destination, state.step);
+  startWait(state, slot, shaft, direction);
   pool.trek[slot] = QUEUED;
 }
 
@@ -348,6 +380,7 @@ export function boardRider(context: StepContext, person: EntityId): void {
   const slot = slotOfEntity(context, person);
   if (slot >= 0 && context.state.people.trek[slot] === QUEUED) {
     context.state.people.trek[slot] = RIDING;
+    boardCar(context.state, slot);
   }
 }
 
@@ -359,6 +392,7 @@ export function alightRider(context: StepContext, person: EntityId, level: Level
   const budget = unpackBudget(pool.trekBudget[slot] as number);
   const ride = { kind: 'standard', via: '', from: 0, to: 0, floors: 1 } as const;
   pool.trekBudget[slot] = packBudget(spendBudget(budget, ride));
+  finishRide(context.state, slot, context.state.shafts[`s${pool.legVia[slot]}`], level);
   pool.level[slot] = level;
   replan(context, slot);
 }
@@ -369,6 +403,7 @@ function finishFlight(context: StepContext, slot: number): void {
   const budget = unpackBudget(pool.trekBudget[slot] as number);
   const flight = { kind, via: '', from: 0, to: 0, floors: 1 } as const;
   pool.trekBudget[slot] = packBudget(spendBudget(budget, flight));
+  addFlight(pool, slot, kind);
   pool.level[slot] = pool.legLevel[slot] as number;
   replan(context, slot);
 }
@@ -454,7 +489,11 @@ export function createTrekSystem(): SimulationSystem {
       replanBrokenLegs(context);
     }
     for (let slot = 0; slot < pool.id.length; slot++) {
+      const sumBefore = pool.tripSum[slot];
       stepPerson(context, slot);
+      const part = partUnderWay(pool.trek[slot] as number);
+      const changed = part !== null || pool.tripSum[slot] !== sumBefore;
+      if (changed && isOnTrek(pool, slot)) refreshPersonStress(context.state, slot, true, part);
     }
   };
 }

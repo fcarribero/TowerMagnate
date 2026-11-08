@@ -21,7 +21,8 @@ import { ledgerWeekRollHook } from './money';
 import { createOfficeRoutine } from './office-routine';
 import { createProspectDemand } from './prospects';
 import { createScheduler } from './scheduler';
-import { createTrekSystem, plannedTripSteps } from './trek';
+import { cancelTrek, createTrekSystem, isOnTrek, plannedTripSteps } from './trek';
+import { createNightReset } from './trip-ledger';
 import { TransportGraph, type ShaftStops } from './routing';
 import { starCheckHook } from './stars';
 import { weeklyUpkeepHook } from './upkeep';
@@ -193,9 +194,15 @@ const officeRoutine = createOfficeRoutine(
 
 const prospects = createProspectDemand();
 
+const nightReset = createNightReset(
+  (context, slot) => cancelTrek(context, slot, { nightReset: true }),
+  (pool, slot) => isOnTrek(pool, slot),
+);
+
 export const towerSystems: readonly SimulationSystem[] = [
   createScheduler([
     ledgerWeekRollHook,
+    nightReset,
     weeklyUpkeepHook,
     officeRoutine.planHook,
     ...prospects.rollHooks,
