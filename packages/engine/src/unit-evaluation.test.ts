@@ -101,6 +101,8 @@ describe('hotel room evaluation (10.5)', () => {
       stayEndStep: at(WEDNESDAY, 10),
       checkInStep: at(MONDAY, 17),
       paidLevel: 'high',
+      arrivalStep: null,
+      rollDue: false,
     };
     room.priceLevel = 'low';
     const trips: [number, number][] = [

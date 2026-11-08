@@ -456,6 +456,8 @@ describe('migrateState hotel rooms', () => {
       stayEndStep: null,
       checkInStep: null,
       paidLevel: null,
+      arrivalStep: null,
+      rollDue: true,
     });
   });
 
@@ -464,7 +466,14 @@ describe('migrateState hotel rooms', () => {
     tower.units.u2 = {
       ...newUnit('u2', 'double-room', 0, 2),
       used: true,
-      hotel: { state: 'occupied', stayEndStep: 12_960, checkInStep: null, paidLevel: null },
+      hotel: {
+        state: 'occupied',
+        stayEndStep: 12_960,
+        checkInStep: null,
+        paidLevel: null,
+        arrivalStep: null,
+        rollDue: false,
+      },
     };
     expect(migrateState(JSON.parse(JSON.stringify(tower)))).toEqual(tower);
   });
@@ -583,6 +592,8 @@ describe('migrateState unit evaluation', () => {
       stayEndStep: null,
       checkInStep: null,
       paidLevel: null,
+      arrivalStep: null,
+      rollDue: false,
     });
   });
 
@@ -679,5 +690,34 @@ describe('migrateState sky lobby purchases', () => {
     const negative = [{ ...lobbyPurchases[0], paidPerColumn: -1 }];
     expect(() => migrateState({ ...saved, lobbyPurchases: negative })).toThrow(StateMigrationError);
     expect(() => migrateState({ ...saved, lobbyPurchases: null })).toThrow(StateMigrationError);
+  });
+});
+
+describe('migrateState hotel bookings', () => {
+  it('gives the rooms of a version 26 save no booking and no pending roll', () => {
+    const tower = createTower(5);
+    tower.units.u3 = newUnit('u3', 'suite', 10, 2);
+    const old = JSON.parse(JSON.stringify(tower)) as {
+      schemaVersion: number;
+      units: Record<string, { hotel: Record<string, unknown> }>;
+    };
+    old.schemaVersion = 26;
+    delete old.units.u3?.hotel.arrivalStep;
+    delete old.units.u3?.hotel.rollDue;
+    expect(migrateState(old).units.u3?.hotel).toMatchObject({ arrivalStep: null, rollDue: false });
+  });
+
+  it('keeps a booking and refuses a malformed one', () => {
+    const tower = createTower(5);
+    tower.units.u3 = newUnit('u3', 'single-room', 10, 2);
+    const raw = JSON.parse(JSON.stringify(tower)) as { units: Record<string, { hotel: object }> };
+    const hotel = raw.units.u3?.hotel as object;
+    const booked = { ...hotel, arrivalStep: 7_398, rollDue: false };
+    raw.units.u3 = { ...(raw.units.u3 as object), hotel: booked };
+    expect(migrateState(raw).units.u3?.hotel?.arrivalStep).toBe(7_398);
+    for (const bad of [{ arrivalStep: -6 }, { rollDue: 'yes' }]) {
+      raw.units.u3 = { ...(raw.units.u3 as object), hotel: { ...booked, ...bad } };
+      expect(() => migrateState(raw)).toThrow(StateMigrationError);
+    }
   });
 });

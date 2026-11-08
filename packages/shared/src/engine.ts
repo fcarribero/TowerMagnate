@@ -111,6 +111,10 @@ export interface HotelRoom {
   checkInStep: number | null;
   /** Price level the current or last stay paid at check-in; null before the first stay. */
   paidLevel: PriceLevel | null;
+  /** Arrival step of the booked party until it checks in or gives up; null with no booking. */
+  arrivalStep: number | null;
+  /** The room just became clean and rolls for a booking at once if the clock allows it. */
+  rollDue: boolean;
 }
 
 /** A staircase or escalator. Its cells on `level` are the footprint; the level above has the landing. */

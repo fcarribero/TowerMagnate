@@ -15,6 +15,7 @@ import { eventsPhase } from './events';
 import { createCondoSystem } from './condos';
 import { createCustomers } from './customers';
 import { createHotelSystem } from './hotel';
+import { createHotelGuests } from './hotel-guests';
 import { createLeaseSystem } from './leases';
 import { parkingAssignmentHook } from './parking';
 import { recordNotices } from './notices';
@@ -224,6 +225,8 @@ const prospects = createProspectDemand();
 
 const customers = createCustomers();
 
+const hotelGuests = createHotelGuests();
+
 const nightReset = createNightReset(
   (context, slot) => cancelTrek(context, slot, { nightReset: true }),
   (pool, slot) => isOnTrek(pool, slot),
@@ -238,7 +241,11 @@ export const towerSystems: readonly SimulationSystem[] = [
     officeRoutine.planHook,
     parkingAssignmentHook,
     residentRoutine.planHook,
+    hotelGuests.planHook,
+    hotelGuests.nightHook,
     ...prospects.rollHooks,
+    hotelGuests.bookingHook,
+    hotelGuests.giveUpHook,
     customers.planHook,
     customers.nightHook,
     weddingAttemptHook,
@@ -251,6 +258,7 @@ export const towerSystems: readonly SimulationSystem[] = [
   prospects.system,
   officeRoutine.system,
   residentRoutine.system,
+  hotelGuests.system,
   customers.system,
   weddingSystem,
   createElevatorSystem(),

@@ -10,6 +10,7 @@ import {
 } from '@tower-magnate/shared';
 import { dateOfStep, STEPS_PER_HOUR } from './calendar';
 import { STEPS_PER_DAY } from './clock';
+import { releaseStayGuests } from './hotel-guest-trip';
 import { creditMoney } from './money';
 import { nextInt } from './rng';
 import type { SimulationSystem, StepContext } from './step';
@@ -83,6 +84,8 @@ export function checkIn(context: StepContext, roomId: UnitId): CheckInResult {
   room.hotel.stayEndStep = stayEndStep(step, nights);
   room.hotel.checkInStep = step;
   room.hotel.paidLevel = room.priceLevel;
+  room.hotel.arrivalStep = null;
+  room.hotel.rollDue = false;
   clearUnitLedger(context.state, room.id);
   room.used = true;
   context.events.push({ type: 'hotelCheckIn', step, unitId: room.id, nights, paid });
@@ -95,6 +98,7 @@ function checkOut(context: StepContext, room: RoomUnit): void {
   room.hotel.stayEndStep = null;
   context.events.push({ type: 'hotelCheckOut', step: context.state.step, unitId: room.id });
   setRoomState(context, room, 'dirty');
+  releaseStayGuests(context, unitNumber(room.id));
 }
 
 function stayersEndingAt(step: number, units: Record<UnitId, Unit>): RoomUnit[] {

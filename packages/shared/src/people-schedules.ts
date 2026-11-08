@@ -196,3 +196,68 @@ export const WEDDING_DEADLINE_MINUTE = minutes(12, 30);
 
 /** Every wedding guest leaves the tower at this minute of the day (people spec 15). */
 export const WEDDING_GUESTS_LEAVE_MINUTE = minutes(15);
+
+/** Hotel guests (people spec 8). */
+export const HOTEL_BOOKING_CHANCE: Readonly<Record<'good' | 'fair' | 'poor' | 'none', number>> = {
+  good: 0.9,
+  fair: 0.7,
+  poor: 0.4,
+  none: 0.8,
+};
+
+/** Every room that can take a booking rolls once at this minute of the day. */
+export const HOTEL_BOOKING_ROLL_MINUTE = minutes(12);
+
+/** A room that becomes clean before this minute rolls for a booking at once. */
+export const HOTEL_LATE_ROLL_BEFORE_MINUTE = minutes(21);
+
+/** Arrival of a party booked by the 12:00 roll. */
+export const HOTEL_NOON_ARRIVAL: readonly WindowPart[] = [
+  { from: minutes(12), to: minutes(17), weight: 25 },
+  { from: minutes(17), to: minutes(21), weight: 55 },
+  { from: minutes(21), to: minutes(22, 30), weight: 20 },
+];
+
+/** A party booked after 12:00 arrives at least this long after the roll. */
+export const HOTEL_LATE_ARRIVAL_DELAY_MINUTES = 30;
+
+/** No party arrives at or after this minute. */
+export const HOTEL_LAST_ARRIVAL_MINUTE = minutes(22, 30);
+
+/** A party with nobody in the room at this minute gives up. */
+export const HOTEL_GIVE_UP_MINUTE = minutes(23);
+
+/** Evening outing on the check-in day: a uniform minute from check-in plus the delay to the end. */
+export const HOTEL_CHECK_IN_OUTING_CHANCE = 0.4;
+export const HOTEL_CHECK_IN_OUTING_DELAY_MINUTES = 30;
+export const HOTEL_OUTING_END_MINUTE = minutes(21, 30);
+
+export const HOTEL_DAY_OUT_CHANCE = 0.5;
+
+export const HOTEL_DAY_OUT_LEAVE: readonly WindowPart[] = [
+  { from: minutes(9), to: minutes(11), weight: 100 },
+];
+
+export const HOTEL_DAY_OUT_RETURN: readonly WindowPart[] = [
+  { from: minutes(16), to: minutes(20), weight: 100 },
+];
+
+export const HOTEL_EVENING_OUTING_CHANCE = 0.4;
+
+export const HOTEL_EVENING_OUTING: readonly WindowPart[] = [
+  { from: minutes(19), to: HOTEL_OUTING_END_MINUTE, weight: 100 },
+];
+
+export const HOTEL_CHECK_OUT_LEAVE: readonly WindowPart[] = [
+  { from: minutes(6), to: minutes(7), weight: 15 },
+  { from: minutes(7), to: minutes(8), weight: 25 },
+  { from: minutes(8), to: minutes(9), weight: 35 },
+  { from: minutes(9), to: minutes(10), weight: 25 },
+];
+
+/** Where a guest goes on an outing, in percent, highest first. */
+export const HOTEL_OUTING_VENUES: readonly { type: VisitedVenueType; weight: number }[] = [
+  { type: 'restaurant', weight: 50 },
+  { type: 'fast-food', weight: 25 },
+  { type: 'retail-shop', weight: 25 },
+];
