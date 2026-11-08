@@ -121,6 +121,11 @@ describe('medical visits', () => {
     expect(news(result.events, 'news.medicalDemanded')).toBe(2);
   });
 
+  it('sends nobody to the center on the weekend', () => {
+    const result = runWeekday({ ...base, centers: 0, offices: 2 }, 7);
+    expect(news(result.events, 'news.medicalDemanded')).toBe(5);
+  });
+
   it('takes 100 visits a day and fails the 101st', () => {
     const result = runWeekday({ ...base, offices: 20 });
     const [count] = Object.values(result.state.medicalDay.visits);
