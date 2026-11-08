@@ -441,5 +441,6 @@ export const SPANISH_STRINGS = {
   'auth.usernameTaken': 'Ese usuario ya existe. Probá con otro.',
   'auth.wrongCredentials': 'Usuario o contraseña incorrectos.',
   'auth.sessionClosed': 'La sesión se cerró. Entrá de nuevo.',
+  'auth.rateLimited': 'Hiciste demasiados intentos. Esperá un minuto y probá de nuevo.',
   'auth.networkError': 'No se pudo conectar. Probá de nuevo.',
 } as const;
