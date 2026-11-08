@@ -30,6 +30,11 @@ describe('addCar', () => {
       homeLevel: 8,
       level: 8,
       riders: [],
+      phase: 'idle',
+      direction: 'idle',
+      phaseStepsLeft: 0,
+      assigned: [],
+      trips: [],
       paid: 80_000,
       placedAtStep: 0,
     });

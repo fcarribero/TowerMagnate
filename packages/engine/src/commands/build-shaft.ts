@@ -1,5 +1,6 @@
 import {
   ShaftTypeSchema,
+  levelToIndex,
   TOWER_LIMITS,
   type Level,
   type OccupantRef,
@@ -7,8 +8,11 @@ import {
   type TowerState,
 } from '@tower-magnate/shared';
 import { addOccupant, removeOccupant } from '../grid';
+import { applyStops } from './configure-shaft';
 import type { CommandHandler } from '../step';
 import {
+  defaultSchedule,
+  defaultStops,
   idleCar,
   isInsideShaft,
   shaftLevels,
@@ -40,6 +44,22 @@ function vacate(state: TowerState, shaft: Shaft): void {
 
 function clampLevel(level: Level, range: ShaftRange): Level {
   return Math.min(Math.max(level, range.bottom), range.top);
+}
+
+/** Elevators 9.3: new levels join the stops, levels outside the new range leave them. */
+function resizedStops(shaft: Shaft, previous: ShaftRange): Level[] {
+  const kept = shaft.stops.filter((level) => isInsideShaft(shaft, level));
+  const added = defaultStops(shaft.type, shaft).filter((level) => !isInsideShaft(previous, level));
+  return [...kept, ...added].sort((a, b) => levelToIndex(a) - levelToIndex(b));
+}
+
+/** The nearest stop to a level, the lower one on a tie. */
+function nearestStop(stops: Level[], level: Level): Level {
+  const distance = (stop: Level) => Math.abs(levelToIndex(stop) - levelToIndex(level));
+  return stops.reduce(
+    (best, stop) => (distance(stop) < distance(best) ? stop : best),
+    stops[0] ?? level,
+  );
 }
 
 /** C-33 to C-40. Places the shaft with one idle car at the bottom level. */
@@ -75,6 +95,8 @@ export const buildShaft: CommandHandler<'buildShaft'> = (context, command) => {
     type: type.data,
     ...range,
     cars: [idleCar(bottom, prices.car, state.step)],
+    stops: defaultStops(type.data, range),
+    schedule: defaultSchedule(),
     queues: {},
     paid: prices.shaft,
     placedAtStep: state.step,
@@ -112,11 +134,13 @@ export const resizeShaft: CommandHandler<'resizeShaft'> = (context, command) => 
     return { ok: false, error: 'SHAFT_IN_USE' };
   }
 
+  const previous = { x: shaft.x, bottom: shaft.bottom, top: shaft.top };
   vacate(state, shaft);
   shaft.bottom = bottom;
   shaft.top = top;
+  applyStops(shaft, resizedStops(shaft, previous));
   for (const car of shaft.cars) {
-    car.homeLevel = clampLevel(car.homeLevel, range);
+    car.homeLevel = nearestStop(shaft.stops, car.homeLevel);
     car.level = clampLevel(car.level, range);
   }
   occupy(state, shaft);
