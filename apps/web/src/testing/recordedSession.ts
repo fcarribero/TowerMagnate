@@ -1,4 +1,11 @@
-import type { Delta, PersonView, Snapshot, UnitView } from '@tower-magnate/shared';
+import {
+  packCar,
+  packPerson,
+  type Delta,
+  type PersonView,
+  type Snapshot,
+  type UnitView,
+} from '@tower-magnate/shared';
 import { car, office, snapshot as startSnapshot, walker } from './protocolFixtures';
 
 const STEPS_PER_GAME_MINUTE = 6;
@@ -44,7 +51,11 @@ function sameJson(a: unknown, b: unknown): boolean {
 
 /** What the server sends between two tower states, or null when nothing visible changed. */
 function deltaBetween(before: Snapshot, after: Snapshot, heartbeatDue: boolean): Delta | null {
-  const delta: Delta = { step: after.step, cars: after.cars, people: after.people };
+  const delta: Delta = {
+    step: after.step,
+    cars: after.cars.map(packCar),
+    people: after.people.map(packPerson),
+  };
   let changed = !sameJson(before.cars, after.cars) || !sameJson(before.people, after.people);
   if (before.money !== after.money) {
     delta.money = after.money;

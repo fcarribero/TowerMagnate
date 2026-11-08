@@ -394,7 +394,11 @@ const EVENT_GAP = 4;
 
 // Every wedding bell and petal burst frame side by side on the day sky, bells first.
 export function drawEventSheet(sprites) {
-  const rows = ['events/wedding-bell/swing', 'events/wedding-petals/burst'].map((prefix) =>
+  const rows = [
+    'events/wedding-bell/swing',
+    'events/wedding-petals/burst',
+    'events/wedding-couple/walk',
+  ].map((prefix) =>
     Object.keys(sprites)
       .filter((id) => id.startsWith(prefix + '_'))
       .sort()

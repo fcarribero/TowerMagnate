@@ -1,5 +1,6 @@
 import {
   COMMAND_TYPES,
+  packCar,
   serverMessage,
   type CarView,
   type ClientEvent,
@@ -140,7 +141,7 @@ function car(doors: CarView['doors'], index = 0): CarView {
 }
 
 function delta(cars: CarView[]) {
-  return serverMessage('delta', { step: 2, cars, people: [] });
+  return serverMessage('delta', { step: 2, cars: cars.map(packCar), people: [] });
 }
 
 function setup() {

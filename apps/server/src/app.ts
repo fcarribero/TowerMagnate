@@ -11,6 +11,7 @@ import { registerAuthRateLimit, registerOriginCheck, registerSecurityHeaders } f
 import { createSnapshotRepository } from './snapshots';
 import {
   DeltaBroadcaster,
+  Inspections,
   sessionIdentityResolver,
   towerSocketHandlers,
   Viewports,
@@ -74,9 +75,10 @@ export function buildApp(options: AppOptions): FastifyInstance {
 
   const viewports = new Viewports();
   const broadcaster = new DeltaBroadcaster({ runner, viewports });
+  const inspections = new Inspections({ runner });
   const gateway = registerGateway(app, {
     resolveIdentity: options.resolveSocketIdentity ?? sessionIdentityResolver(pool),
-    handlers: towerSocketHandlers({ runner, viewports, broadcaster }),
+    handlers: towerSocketHandlers({ runner, viewports, broadcaster, inspections }),
     debugFrames: createDebugFrames({ runner, enabled: options.debugCommands ?? false }),
     heartbeatIntervalMs: options.heartbeatIntervalMs,
     helloTimeoutMs: options.helloTimeoutMs,
@@ -84,9 +86,11 @@ export function buildApp(options: AppOptions): FastifyInstance {
   followConnections(gateway.registry, runner, app.log);
   const stopRunner = runner.start(options.runnerTickIntervalMs);
   const stopDeltas = broadcaster.start(gateway.registry, options.deltaIntervalMs);
+  const stopInspections = inspections.start(gateway.registry);
   const stopAutosave = runner.startAutosave(options.snapshotIntervalMs);
   app.addHook('preClose', async () => {
     stopDeltas();
+    stopInspections();
     stopAutosave();
     stopRunner();
     await runner.shutdown();
