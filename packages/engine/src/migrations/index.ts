@@ -71,6 +71,7 @@ const MIGRATIONS: readonly Migration[] = [
   addTripLedger,
   addGuardEventState,
   addVenueDayCounts,
+  addVenueCustomers,
 ];
 
 /** Version 2 records each unit's price level, what was paid for it and when it was placed. */
@@ -313,9 +314,34 @@ function addVenueDayCounts(raw: Record<string, unknown>): Record<string, unknown
   return { ...raw, schemaVersion: 20, units };
 }
 
-function venueDayFor(type: unknown): VenueDay | null {
+function venueDayFor(type: unknown): Record<string, unknown> | null {
   const isVenue = (UNIT_TYPES as readonly unknown[]).includes(type) && isVenueType(type as never);
-  return isVenue ? newVenueDay() : null;
+  return isVenue ? { visits: 0, eveningShowVisits: 0, yesterday: null } : null;
+}
+
+/**
+ * Version 21 keeps each venue's day count until 00:00, the trip stress of its visits and its
+ * outside customers still to come. Retail shops get counts as well.
+ */
+function addVenueCustomers(raw: Record<string, unknown>): Record<string, unknown> {
+  if (!isRecord(raw.units)) {
+    return { ...raw, schemaVersion: 21 };
+  }
+  const units: Record<string, unknown> = {};
+  for (const [id, unit] of Object.entries(raw.units)) {
+    units[id] = isRecord(unit) ? withCustomerCounts(unit) : unit;
+  }
+  return { ...raw, schemaVersion: 21, units };
+}
+
+function withCustomerCounts(unit: Record<string, unknown>): Record<string, unknown> {
+  if (isRecord(unit.venue)) {
+    return { ...unit, venue: { ...newVenueDay(), ...unit.venue } };
+  }
+  if (unit.type === 'retail-shop') {
+    return { ...unit, venue: newVenueDay() };
+  }
+  return unit;
 }
 
 /** Version 11 gives each hotel room a state; every room in an older tower is clean and empty. */
@@ -393,7 +419,13 @@ function isVenueDay(value: unknown): value is VenueDay {
     (value.yesterday === null ||
       (isRecord(value.yesterday) &&
         isNonNegativeInteger(value.yesterday.visits) &&
-        (value.yesterday.result === null || Number.isSafeInteger(value.yesterday.result))))
+        (value.yesterday.result === null || Number.isSafeInteger(value.yesterday.result)))) &&
+    isNonNegativeInteger(value.countToday) &&
+    isNonNegativeInteger(value.previousDayCount) &&
+    isNonNegativeInteger(value.stressSum) &&
+    isNonNegativeInteger(value.stressTrips) &&
+    Array.isArray(value.customers) &&
+    value.customers.every(isNonNegativeInteger)
   );
 }
 
@@ -461,7 +493,11 @@ function readVenueDay(venue: VenueDay | null): VenueDay | null {
   if (venue === null) {
     return null;
   }
-  return { ...venue, yesterday: venue.yesterday === null ? null : { ...venue.yesterday } };
+  return {
+    ...venue,
+    yesterday: venue.yesterday === null ? null : { ...venue.yesterday },
+    customers: [...venue.customers],
+  };
 }
 
 function isElevatorCar(value: unknown): value is ElevatorCar {
