@@ -92,4 +92,28 @@ describe('PeopleLayer', () => {
     layer.show(frameOf(person('p1', { facing: 'left' })));
     expect(layer.view.children[0]?.scale.x).toBe(-1);
   });
+
+  it('updates 2,000 people well inside a 16.6 ms frame', () => {
+    const { layer } = layerWithArt();
+    layer.showOnly({ lowest: 0, highest: 99 });
+    const stresses = ['normal', 'stressed', 'veryStressed'] as const;
+    const crowd = (shift: number) =>
+      frameOf(
+        ...Array.from({ length: 2000 }, (_, index) =>
+          person(`p${index}`, {
+            x: (index % 200) + shift,
+            mode: index % 2 === 0 ? 'walk' : 'wait',
+            stress: stresses[index % 3],
+          }),
+        ),
+      );
+    layer.show(crowd(0));
+    const started = performance.now();
+    for (let frame = 1; frame <= 20; frame += 1) {
+      layer.show(crowd(frame * 0.25));
+    }
+    const perFrame = (performance.now() - started) / 20;
+    expect(layer.count).toBe(2000);
+    expect(perFrame).toBeLessThan(8);
+  });
 });
