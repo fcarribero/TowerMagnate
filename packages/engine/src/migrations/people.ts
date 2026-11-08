@@ -64,6 +64,21 @@ function readFacing(raw: unknown, count: number): number[] {
   return raw.slice();
 }
 
+const TRIP_FIELDS = ['tripSum', 'tripSlowFloors', 'tripPartStep', 'tripPartCut'] as const;
+
+export function readTripLedger(raw: unknown, ids: readonly number[]): Record<string, number[]> {
+  if (!isRecord(raw)) fail('trip ledger must be a record');
+  const known = new Set(ids.map(String));
+  const ledger: Record<string, number[]> = {};
+  for (const [person, trips] of Object.entries(raw)) {
+    const valid =
+      known.has(person) && isIntegerArray(trips) && trips.length % 2 === 0 && trips.length > 0;
+    if (!valid) fail(`trip ledger entry ${person} is malformed`);
+    ledger[person] = (trips as number[]).slice();
+  }
+  return ledger;
+}
+
 export function readPeople(raw: unknown): PersonPool {
   if (!isRecord(raw)) fail('must be a person pool');
   const { nextId, id } = readIds(raw);
@@ -83,6 +98,13 @@ export function readPeople(raw: unknown): PersonPool {
     fail('kind must index PERSON_KINDS');
   }
   for (const field of TREK_FIELDS) {
+    const values = raw[field];
+    if (!isIntegerArray(values) || values.length !== id.length) {
+      fail(`${field} must hold one integer per person`);
+    }
+    pool[field] = values.slice();
+  }
+  for (const field of TRIP_FIELDS) {
     const values = raw[field];
     if (!isIntegerArray(values) || values.length !== id.length) {
       fail(`${field} must hold one integer per person`);
