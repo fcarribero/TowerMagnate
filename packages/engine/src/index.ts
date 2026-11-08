@@ -97,6 +97,15 @@ export {
 } from './elevator-queues';
 export type { NewPerson, PersonHandler, PersonView } from './people';
 export {
+  cancelTrek,
+  createTrekSystem,
+  isOnTrek,
+  startTrek,
+  trekPhaseAt,
+  TREK_PHASES,
+} from './trek';
+export type { TrekPhase, TrekPlace } from './trek';
+export {
   createOfficeRoutine,
   decodeRoutine,
   routineAt,
