@@ -581,3 +581,23 @@ describe('migrateState construction refund records', () => {
     expect(() => migrateState({ ...saved, floorPurchases: null })).toThrow(StateMigrationError);
   });
 });
+
+describe('migrateState sky lobby purchases', () => {
+  it('gives a version 23 save no lobby purchases', () => {
+    const old = JSON.parse(JSON.stringify(createTower(5))) as Record<string, unknown>;
+    delete old.lobbyPurchases;
+    old.schemaVersion = 23;
+    expect(migrateState(old).lobbyPurchases).toEqual([]);
+  });
+
+  it('keeps lobby purchases and refuses a malformed one', () => {
+    const saved = JSON.parse(JSON.stringify(createTower(5))) as Record<string, unknown>;
+    const lobbyPurchases = [
+      { level: 15, x0: 100, x1: 103, paidPerColumn: 10_000, placedAtStep: 7 },
+    ];
+    expect(migrateState({ ...saved, lobbyPurchases }).lobbyPurchases).toEqual(lobbyPurchases);
+    const negative = [{ ...lobbyPurchases[0], paidPerColumn: -1 }];
+    expect(() => migrateState({ ...saved, lobbyPurchases: negative })).toThrow(StateMigrationError);
+    expect(() => migrateState({ ...saved, lobbyPurchases: null })).toThrow(StateMigrationError);
+  });
+});
