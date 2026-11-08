@@ -92,3 +92,32 @@ describe('createAuthApi', () => {
     );
   });
 });
+
+describe('ensureTower', () => {
+  const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status });
+
+  it('creates a tower for an account without one', async () => {
+    const fetchImpl = vi
+      .fn()
+      .mockResolvedValueOnce(json({ user: { id: 1, username: 'ana' }, tower: null }))
+      .mockResolvedValueOnce(json({ tower: { id: 7 } }, 201));
+    expect(await createAuthApi(fetchImpl).ensureTower()).toBe(true);
+    expect(fetchImpl).toHaveBeenLastCalledWith(
+      '/api/tower',
+      expect.objectContaining({ method: 'POST' }),
+    );
+  });
+
+  it('leaves an account that already has a tower alone', async () => {
+    const fetchImpl = vi
+      .fn()
+      .mockResolvedValueOnce(json({ user: { id: 1, username: 'ana' }, tower: { id: 7 } }));
+    expect(await createAuthApi(fetchImpl).ensureTower()).toBe(true);
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+  });
+
+  it('reports false when the server cannot be reached', async () => {
+    const fetchImpl = vi.fn().mockRejectedValue(new TypeError('offline'));
+    expect(await createAuthApi(fetchImpl).ensureTower()).toBe(false);
+  });
+});

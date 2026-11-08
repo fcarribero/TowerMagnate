@@ -21,7 +21,7 @@ describe('account and tower routes', () => {
   beforeAll(async () => {
     database = await startTestDatabase({ migrate: true });
     pool = new pg.Pool({ connectionString: database.url });
-    app = buildApp({ version: 'test', databaseUrl: database.url });
+    app = buildApp({ version: 'test', databaseUrl: database.url, authAttemptsPerMinute: 1000 });
   });
 
   afterAll(async () => {
