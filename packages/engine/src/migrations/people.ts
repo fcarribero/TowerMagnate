@@ -55,6 +55,15 @@ function readFollowed(raw: unknown, ids: number[]): number[] {
   return raw.slice();
 }
 
+/** Saves from before facing was kept have everyone facing right. */
+function readFacing(raw: unknown, count: number): number[] {
+  if (raw === undefined) return Array<number>(count).fill(0);
+  if (!isIntegerArray(raw) || raw.length !== count || !raw.every((v) => v === 0 || v === 1)) {
+    fail('facing must hold 0 or 1 per person');
+  }
+  return raw.slice();
+}
+
 export function readPeople(raw: unknown): PersonPool {
   if (!isRecord(raw)) fail('must be a person pool');
   const { nextId, id } = readIds(raw);
@@ -80,6 +89,7 @@ export function readPeople(raw: unknown): PersonPool {
     }
     pool[field] = values.slice();
   }
+  pool.facing = readFacing(raw.facing, id.length);
   pool.followed = readFollowed(raw.followed, id);
   return pool;
 }
