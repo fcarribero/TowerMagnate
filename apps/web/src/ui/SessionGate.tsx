@@ -58,13 +58,7 @@ export function SessionGate({ api, children }: SessionGateProps) {
   }
 
   if (session.status === 'signedOut') {
-    return (
-      <AuthScreen
-        api={api}
-        notice={session.notice}
-        onSignedIn={enterGame}
-      />
-    );
+    return <AuthScreen api={api} notice={session.notice} onSignedIn={enterGame} />;
   }
 
   // Waiting for the server keeps a late logout from clearing the cookie of the next login.
