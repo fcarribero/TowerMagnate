@@ -44,3 +44,19 @@ export {
 } from './trek-crowd';
 export type { TrekCrowdTiming } from './trek-crowd';
 export { OFFICE_WEEK_BUDGET_MS, tenFloorOfficeTowerPlan } from './ten-floor-office-tower';
+export {
+  createEconomyEngine,
+  firstLedgerMismatch,
+  ledgerChanges,
+  runEconomyScenario,
+} from './economy-scenario';
+export type {
+  CategoryChanges,
+  DayCommand,
+  EconomyAction,
+  EconomyDay,
+  EconomyRun,
+  EconomyScript,
+  ExpectedDay,
+  TimedEconomyAction,
+} from './economy-scenario';
