@@ -236,3 +236,34 @@ function enabledStops(shaft: Shaft, chosen: readonly Level[] | undefined): Level
   const levels = chosen ?? shaftLevels(shaft);
   return [...new Set(levels.filter(allowed))].sort((a, b) => floorIndex(a) - floorIndex(b));
 }
+
+/**
+ * Everything the graph is built from, as one string: the rows of every level, the subway
+ * stations, the flights and the shafts with their stops. Two states with the same key give
+ * the same graph.
+ */
+export function graphInputsKey(state: TowerState): string {
+  const parts: string[] = [];
+  for (const [level, row] of Object.entries(state.grid.levels)) {
+    if (!row) continue;
+    parts.push(`L${level}`);
+    for (const span of row.structure) parts.push(`${span.kind}${span.x0}-${span.x1}`);
+    for (const span of row.occupants) {
+      const { occupant } = span;
+      const id = occupant.kind === 'ruins' ? '' : occupant.id;
+      parts.push(`${occupant.kind}${id}@${span.x0}-${span.x1}`);
+    }
+  }
+  for (const unit of Object.values(state.units)) {
+    if (unit.type === 'subway-station') parts.push(`S${unit.id}@${unit.level}:${unit.x}`);
+  }
+  for (const flight of Object.values(state.transports)) {
+    parts.push(`F${flight.id}:${flight.type}@${flight.level}:${flight.x}`);
+  }
+  for (const shaft of Object.values(state.shafts)) {
+    parts.push(
+      `E${shaft.id}:${shaft.type}@${shaft.x}:${shaft.bottom}-${shaft.top}:${shaft.stops.join(',')}`,
+    );
+  }
+  return parts.join('|');
+}

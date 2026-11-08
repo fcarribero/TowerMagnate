@@ -5,6 +5,7 @@ import {
   creditMoney,
   defaultSchedule,
   followPerson,
+  newUnit,
   openBombThreat,
   openFire,
   rollLedgerWeek,
@@ -76,7 +77,7 @@ describe('snapshot from tower state', () => {
 
   it('sends open decisions with ransom and fire level, also after a reconnect', () => {
     const state = createTower(7);
-    openBombThreat({ state, events: [] }, 300_000);
+    openBombThreat({ state, events: [] }, 300_000, { x: 0, level: 2 });
 
     const snapshot = buildSnapshot(structuredClone(state), null);
 
@@ -317,6 +318,18 @@ describe('snapshot from tower state', () => {
     expect(buildSnapshot(state, null).population).toBe(0);
     (state.units.u5 as { lease: unknown }).lease = { anchorStep: 0, nextDueStep: 60480 };
     expect(buildSnapshot(state, null).population).toBe(6);
+  });
+
+  it('lists the next star step requirements and whether each is met', () => {
+    const state = towerWithPeople();
+    state.stars = 2;
+    expect(buildSnapshot(state, null).starRequirements).toEqual([
+      { requirement: 'security', met: false },
+    ]);
+    state.units.u99 = newUnit('u99', 'security', 0, 2);
+    expect(buildSnapshot(state, null).starRequirements).toEqual([
+      { requirement: 'security', met: true },
+    ]);
   });
 
   it('reports this and last week of the ledger by money reason', () => {

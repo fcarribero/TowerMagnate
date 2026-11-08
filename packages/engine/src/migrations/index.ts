@@ -72,6 +72,8 @@ const MIGRATIONS: readonly Migration[] = [
   addTripLedger,
   addGuardEventState,
   addVenueDayCounts,
+  addBombCell,
+  addVenueCustomers,
   addUnitEvaluation,
 ];
 
@@ -315,24 +317,65 @@ function addVenueDayCounts(raw: Record<string, unknown>): Record<string, unknown
   return { ...raw, schemaVersion: 20, units };
 }
 
-function venueDayFor(type: unknown): VenueDay | null {
+function venueDayFor(type: unknown): Record<string, unknown> | null {
   const isVenue = (UNIT_TYPES as readonly unknown[]).includes(type) && isVenueType(type as never);
-  return isVenue ? newVenueDay() : null;
+  return isVenue ? { visits: 0, eveningShowVisits: 0, yesterday: null } : null;
 }
 
 /**
- * Version 21 stores each unit's grade, each evaluated unit's trip ledger and what a hotel stay
+ * Version 22 keeps each venue's day count until 00:00, the trip stress of its visits and its
+ * outside customers still to come. Retail shops get counts as well.
+ */
+function addVenueCustomers(raw: Record<string, unknown>): Record<string, unknown> {
+  if (!isRecord(raw.units)) {
+    return { ...raw, schemaVersion: 22 };
+  }
+  const units: Record<string, unknown> = {};
+  for (const [id, unit] of Object.entries(raw.units)) {
+    units[id] = isRecord(unit) ? withCustomerCounts(unit) : unit;
+  }
+  return { ...raw, schemaVersion: 22, units };
+}
+
+function withCustomerCounts(unit: Record<string, unknown>): Record<string, unknown> {
+  if (isRecord(unit.venue)) {
+    return { ...unit, venue: { ...newVenueDay(), ...unit.venue } };
+  }
+  if (unit.type === 'retail-shop') {
+    return { ...unit, venue: newVenueDay() };
+  }
+  return unit;
+}
+
+/**
+ * Version 21 keeps where a bomb is hidden. A threat saved before that has no cell; it gets the
+ * level its search was given, or level 1, which a blast never ruins.
+ */
+function addBombCell(raw: Record<string, unknown>): Record<string, unknown> {
+  const activeEvents = Array.isArray(raw.activeEvents)
+    ? raw.activeEvents.map((event) => {
+        if (!isRecord(event) || event.kind !== 'bomb') return event;
+        const search = isRecord(event.search) ? event.search : null;
+        const level = search && isLevel(search.bombLevel) ? search.bombLevel : 1;
+        return { bomb: { x: 0, level }, ...event };
+      })
+    : raw.activeEvents;
+  return { ...raw, activeEvents, schemaVersion: 21 };
+}
+
+/**
+ * Version 23 stores each unit's grade, each evaluated unit's trip ledger and what a hotel stay
  * paid at check-in. Older saves have no grades and no filed trips.
  */
 function addUnitEvaluation(raw: Record<string, unknown>): Record<string, unknown> {
   if (!isRecord(raw.units)) {
-    return { unitLedger: {}, ...raw, schemaVersion: 21 };
+    return { unitLedger: {}, ...raw, schemaVersion: 23 };
   }
   const units: Record<string, unknown> = {};
   for (const [id, unit] of Object.entries(raw.units)) {
     units[id] = isRecord(unit) ? withUnitEvaluation(unit) : unit;
   }
-  return { unitLedger: {}, ...raw, schemaVersion: 21, units };
+  return { unitLedger: {}, ...raw, schemaVersion: 23, units };
 }
 
 function withUnitEvaluation(unit: Record<string, unknown>): Record<string, unknown> {
@@ -418,7 +461,13 @@ function isVenueDay(value: unknown): value is VenueDay {
     (value.yesterday === null ||
       (isRecord(value.yesterday) &&
         isNonNegativeInteger(value.yesterday.visits) &&
-        (value.yesterday.result === null || Number.isSafeInteger(value.yesterday.result))))
+        (value.yesterday.result === null || Number.isSafeInteger(value.yesterday.result)))) &&
+    isNonNegativeInteger(value.countToday) &&
+    isNonNegativeInteger(value.previousDayCount) &&
+    isNonNegativeInteger(value.stressSum) &&
+    isNonNegativeInteger(value.stressTrips) &&
+    Array.isArray(value.customers) &&
+    value.customers.every(isNonNegativeInteger)
   );
 }
 
@@ -512,7 +561,11 @@ function readVenueDay(venue: VenueDay | null): VenueDay | null {
   if (venue === null) {
     return null;
   }
-  return { ...venue, yesterday: venue.yesterday === null ? null : { ...venue.yesterday } };
+  return {
+    ...venue,
+    yesterday: venue.yesterday === null ? null : { ...venue.yesterday },
+    customers: [...venue.customers],
+  };
 }
 
 function isElevatorCar(value: unknown): value is ElevatorCar {

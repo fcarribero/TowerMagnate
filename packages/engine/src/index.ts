@@ -41,6 +41,7 @@ export {
   eventsPhase,
   openBombThreat,
   openFire,
+  openRandomBombThreat,
 } from './events';
 
 export { hashState } from './hash';
@@ -118,7 +119,8 @@ export { createProspectDemand } from './prospects';
 export type { ProspectDemand } from './prospects';
 export { chance, createRng, nextFloat, nextInt, nextUint32 } from './rng';
 export { createScheduler } from './scheduler';
-export { runStarCheck, starCheckHook } from './stars';
+export { nextCheckWindowStart, nextStarRequirements, runStarCheck, starCheckHook } from './stars';
+export type { RequirementStatus } from './stars';
 export type { HookOccurrence, HookSchedule, ScheduledHook, TimeOfDay } from './scheduler';
 export { deserializeState, serializeState } from './serialization';
 export { cloneState, createTower, SCHEMA_VERSION } from './state';
@@ -126,7 +128,9 @@ export { createEngine, runDays, step } from './step';
 export { populationOf } from './population';
 export type { PopulationBreakdown } from './population';
 export { chargeWeeklyUpkeep, weeklyUpkeepHook } from './upkeep';
-export { recordVenueVisit, venuePayoutHooks } from './venues';
+export { countVenueVisit, recordVenueVisit, rollVenueDay, venuePayoutHooks } from './venues';
+export { createCustomers, outsideCustomerCount } from './customers';
+export type { CustomerSystems, OutsideCustomerFactors } from './customers';
 export { newUnit } from './units';
 export type {
   CommandContext,

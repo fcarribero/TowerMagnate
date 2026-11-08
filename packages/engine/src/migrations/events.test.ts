@@ -21,7 +21,7 @@ describe('migrateState events', () => {
     const fire = openFire({ state: tower, events: [] }, 5);
     tower.activeEvents = [];
     tower.closedDecisions.push(fire?.id ?? '');
-    openBombThreat({ state: tower, events: [] }, 200_000);
+    openBombThreat({ state: tower, events: [] }, 200_000, { x: 0, level: 2 });
     tower.treasureLevels.push(-3, -1);
     expect(migrateState(roundTrip(tower))).toEqual(tower);
   });
@@ -42,7 +42,7 @@ describe('migrateState events', () => {
 
   it('gives a version 15 save a bomb with no search and a fire with no burning levels', () => {
     const tower = createTower(2);
-    openBombThreat({ state: tower, events: [] }, 200_000);
+    openBombThreat({ state: tower, events: [] }, 200_000, { x: 0, level: 2 });
     const old = roundTrip(tower) as Record<string, unknown> & { activeEvents: object[] };
     for (const event of old.activeEvents) delete (event as { search?: unknown }).search;
     old.schemaVersion = 15;
@@ -59,9 +59,33 @@ describe('migrateState events', () => {
     expect(migrateState(oldFire).activeEvents[0]).toMatchObject({ levels: {}, guards: {} });
   });
 
+  it('gives a version 20 bomb a cell on its search level, or on level 1 before the search', () => {
+    const tower = createTower(2);
+    const bomb = openBombThreat({ state: tower, events: [] }, 200_000, { x: 40, level: 6 });
+    if (!bomb) throw new Error('Expected a bomb threat');
+    const waiting = roundTrip(tower) as Record<string, unknown> & { activeEvents: object[] };
+    for (const event of waiting.activeEvents) delete (event as { bomb?: unknown }).bomb;
+    waiting.schemaVersion = 20;
+    expect(migrateState(waiting).activeEvents[0]).toMatchObject({ bomb: { x: 0, level: 1 } });
+
+    bomb.search = { bombLevel: 6, levels: { 6: 'unsearched' }, guards: {}, unreachable: {} };
+    const searching = roundTrip(tower) as Record<string, unknown> & { activeEvents: object[] };
+    for (const event of searching.activeEvents) delete (event as { bomb?: unknown }).bomb;
+    searching.schemaVersion = 20;
+    expect(migrateState(searching).activeEvents[0]).toMatchObject({ bomb: { x: 0, level: 6 } });
+  });
+
+  it('refuses a bomb cell off the site', () => {
+    const tower = createTower(2);
+    openBombThreat({ state: tower, events: [] }, 200_000, { x: 0, level: 2 });
+    const saved = roundTrip(tower) as { activeEvents: Record<string, unknown>[] };
+    const offSite = { ...saved.activeEvents[0], bomb: { x: 375, level: 2 } };
+    expect(() => migrateState({ ...saved, activeEvents: [offSite] })).toThrow(StateMigrationError);
+  });
+
   it('keeps a bomb search and a fire with burning levels and guards', () => {
     const tower = createTower(2);
-    const bomb = openBombThreat({ state: tower, events: [] }, 200_000);
+    const bomb = openBombThreat({ state: tower, events: [] }, 200_000, { x: 0, level: 2 });
     if (!bomb) throw new Error('Expected a bomb threat');
     bomb.search = {
       bombLevel: 4,
@@ -85,7 +109,7 @@ describe('migrateState events', () => {
 
   it('refuses a malformed search or fire guard', () => {
     const tower = createTower(2);
-    const bomb = openBombThreat({ state: tower, events: [] }, 200_000);
+    const bomb = openBombThreat({ state: tower, events: [] }, 200_000, { x: 0, level: 2 });
     if (!bomb) throw new Error('Expected a bomb threat');
     const saved = roundTrip(tower) as { activeEvents: Record<string, unknown>[] };
     const badLevel = {

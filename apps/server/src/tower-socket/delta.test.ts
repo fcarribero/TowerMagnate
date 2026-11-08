@@ -100,6 +100,20 @@ describe('delta between snapshots', () => {
     expect(DeltaSchema.safeParse(delta).success).toBe(true);
   });
 
+  it('sends the star requirements when one changes', () => {
+    const state = tower();
+    state.stars = 2;
+    const before = snapshotOf(state);
+    state.units.u9 = newUnit('u9', 'security', 0, 2);
+    const after = snapshotOf(state);
+
+    const { delta, quiet } = diffSnapshots(before, after);
+
+    expect(quiet).toBe(false);
+    expect(delta.starRequirements).toEqual([{ requirement: 'security', met: true }]);
+    expect(diffSnapshots(after, after).delta).not.toHaveProperty('starRequirements');
+  });
+
   it('is not quiet when a person moves', () => {
     const before = snapshotOf(tower());
     const after = structuredClone(before);

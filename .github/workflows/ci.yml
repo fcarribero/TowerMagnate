@@ -43,6 +43,9 @@ jobs:
       - name: Snapshot save benchmark
         run: pnpm bench:snapshots
 
+      - name: Transport step benchmark
+        run: pnpm bench:transport
+
       - name: Transport graph benchmark
         run: pnpm bench:graph
 
@@ -57,6 +60,9 @@ jobs:
 
       - name: Security events benchmark
         run: pnpm bench:events
+
+      - name: Venue customers benchmark
+        run: pnpm bench:customers
 
       - name: Unit evaluation benchmark
         run: pnpm bench:evaluation

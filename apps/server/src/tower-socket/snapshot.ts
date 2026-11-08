@@ -5,6 +5,7 @@ import {
   isExpressStop,
   listPeople,
   NO_TRIP,
+  nextStarRequirements,
   populationOf,
   shaftLevels,
   STEPS_PER_DAY,
@@ -69,6 +70,7 @@ export function buildSnapshot(state: TowerState, viewport: Viewport | null): Sna
     money: state.money,
     stars: state.stars,
     population: populationOf(state).total,
+    starRequirements: nextStarRequirements(state),
     grid: {
       levels: structureRows(state),
       mainLobbyHeight: state.grid.mainLobbyHeight,

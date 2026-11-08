@@ -3,6 +3,7 @@ import {
   DECISION_DEADLINE_STEPS,
   HELICOPTER_COST,
   type ActiveEvent,
+  type BombCell,
   type BombThreat,
   type DecisionKind,
   type ErrorCode,
@@ -54,7 +55,7 @@ function openDecision(state: TowerState, kind: DecisionKind) {
   };
 }
 
-function hasActiveDisaster(state: TowerState): boolean {
+export function hasActiveDisaster(state: TowerState): boolean {
   return state.activeEvents.some((event) => event.kind === 'bomb' || event.kind === 'fire');
 }
 
@@ -70,19 +71,24 @@ function emitOpened(context: StepContext, event: ActiveEvent): void {
 }
 
 /** Opens a bomb threat with its ransom decision, or returns null while a disaster is active. */
-export function openBombThreat(context: StepContext, ransom: number): BombThreat | null {
+export function openBombThreat(
+  context: StepContext,
+  ransom: number,
+  bomb: BombCell,
+): BombThreat | null {
   if (hasActiveDisaster(context.state)) {
     return null;
   }
-  const bomb: BombThreat = {
+  const threat: BombThreat = {
     kind: 'bomb',
     ...openDecision(context.state, 'bomb'),
     ransom,
+    bomb: { ...bomb },
     search: null,
   };
-  context.state.activeEvents.push(bomb);
-  emitOpened(context, bomb);
-  return bomb;
+  context.state.activeEvents.push(threat);
+  emitOpened(context, threat);
+  return threat;
 }
 
 /** Opens a fire with its helicopter decision, or returns null while a disaster is active. */

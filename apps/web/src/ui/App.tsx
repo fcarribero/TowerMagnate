@@ -1,5 +1,5 @@
 import type { StarRating } from '@tower-magnate/shared';
-import { useEffect, useMemo, useState } from 'preact/hooks';
+import { useCallback, useEffect, useMemo, useState } from 'preact/hooks';
 import { TOWER_LAYOUT, type Level } from '@tower-magnate/shared';
 import { createCommandApi } from '../api/commandApi';
 import { useSfx } from '../audio/useSfx';
@@ -47,6 +47,10 @@ import { t } from './strings';
 import { Toolbar } from './toolbar/Toolbar';
 import { DEFAULT_LOBBY_HEIGHT, DEFAULT_TOOL, type ToolId } from './toolbar/toolbarModel';
 import { TowerMapWindow } from './TowerMapWindow';
+import { AvisosWindow } from './notices/AvisosWindow';
+import { DecisionDialogs } from './notices/DecisionDialogs';
+import { NewsLine } from './notices/NewsLine';
+import { useNotices } from './notices/useNotices';
 import { Toasts } from './toast/Toasts';
 import { ElevatorWindows } from './elevator/ElevatorWindows';
 import { UnitWindows } from './unit/UnitWindows';
@@ -73,6 +77,7 @@ export function App({ onLogout, onRestartTower, onSessionLost }: AppProps) {
   const [stage, setStage] = useState<Stage | null>(null);
   const [mapOpen, setMapOpen] = useState(false);
   const [financeOpen, setFinanceOpen] = useState(false);
+  const [avisosOpen, setAvisosOpen] = useState(false);
   const [starsOpen, setStarsOpen] = useState(false);
   const [restartStep, setRestartStep] = useState<RestartStep | null>(null);
   const [overlay, setOverlay] = useState<OverlayId>('normal');
@@ -86,6 +91,9 @@ export function App({ onLogout, onRestartTower, onSessionLost }: AppProps) {
     }
     if (id === 'finance') {
       setFinanceOpen((open) => !open);
+    }
+    if (id === 'notices') {
+      setAvisosOpen((open) => !open);
     }
     if (id === 'stars') {
       setStarsOpen((open) => !open);
@@ -106,6 +114,10 @@ export function App({ onLogout, onRestartTower, onSessionLost }: AppProps) {
     return api;
   }, [connection, director]);
   const { toasts, floats, report } = useBuildFeedback();
+  const notices = useNotices(
+    connection,
+    useCallback((error: string) => report({ ok: false, error }, { x: 0, y: 0 }), [report]),
+  );
   const incomeFloats = useIncomeFloaters(stage, connection);
   const [pendingDemolition, setPendingDemolition] = useState<{
     confirmation: Confirmation;
@@ -319,6 +331,7 @@ export function App({ onLogout, onRestartTower, onSessionLost }: AppProps) {
           <TowerMapWindow content={content} stage={stage} onClose={() => setMapOpen(false)} />
         )}
         <Toasts commands={connection.commands} />
+        <NewsLine subscribe={notices.subscribeLine} onOpenAvisos={() => setAvisosOpen(true)} />
         <WindowLayer class="ui-windows">
           <DemolishConfirm
             confirmation={pendingDemolition?.confirmation ?? null}
@@ -331,10 +344,25 @@ export function App({ onLogout, onRestartTower, onSessionLost }: AppProps) {
           {financeOpen && (
             <FinanceWindow store={connection.store} onClose={() => setFinanceOpen(false)} />
           )}
+          {avisosOpen && (
+            <AvisosWindow
+              notices={notices.avisos}
+              onSeeUnit={(unitId) => {
+                stage?.centerOnUnit(unitId);
+                connection.inspect.requestUnitWindow(unitId);
+              }}
+              onClose={() => setAvisosOpen(false)}
+            />
+          )}
           {starsOpen && (
             <StarsWindow store={connection.store} onClose={() => setStarsOpen(false)} />
           )}
           <UnitWindows connection={connection} />
+          <DecisionDialogs
+            store={connection.store}
+            onAnswer={notices.answerEvent}
+            closedIds={notices.closedIds}
+          />
           <ElevatorWindows connection={connection} />
           <RestartTowerDialogs
             step={restartStep}

@@ -321,6 +321,23 @@ describe('tie breaks and caching', () => {
     expect(fresh).toEqual(first);
   });
 
+  it('plans each destination beyond the shafts as a planner that has only seen it', () => {
+    const built = setup({
+      plan: tower(9, 0, 300, [{ type: 'standard', x: 10, bottom: 1, top: 9 }]),
+      flights: [{ type: 'stairs', x: 50, level: 1 }],
+    });
+    const columns = [40, 70, 120, 200];
+    for (const column of columns) plan(built, [1, 100], [9, column]);
+    for (const column of columns) {
+      const fresh = new TripPlanner(built.graph).plan(built.state, {
+        from: { level: 1, x: 100 },
+        to: { level: 9, x: column },
+        userClass: 'other',
+      });
+      expect(plan(built, [1, 100], [9, column])).toEqual(fresh);
+    }
+  });
+
   it('drops cached routes when the graph is rebuilt', () => {
     const built = setup({
       plan: tower(9, 0, 300, [{ type: 'standard', x: 10, bottom: 1, top: 9 }]),

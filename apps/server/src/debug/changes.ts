@@ -1,13 +1,13 @@
 import {
   DAYS_PER_WEEK,
-  openBombThreat,
   openFire,
+  openRandomBombThreat,
   STEPS_PER_DAY,
   STEPS_PER_MINUTE,
   weekdayOfDay,
   type StepContext,
 } from '@tower-magnate/engine';
-import type { ErrorCode, StarRating, TowerState } from '@tower-magnate/shared';
+import type { ErrorCode, TowerState } from '@tower-magnate/shared';
 import type { TowerChange } from '../runner';
 import type { DebugEventKind } from './messages';
 
@@ -17,18 +17,6 @@ export class DebugRefusal extends Error {
     super(code);
     this.name = 'DebugRefusal';
   }
-}
-
-const RANSOM_BY_STARS: Readonly<Record<number, number>> = { 2: 200_000, 3: 300_000 };
-const RANSOM_FROM_4_STARS = 1_000_000;
-const RANSOM_BELOW_2_STARS = 200_000;
-
-/** Events design 4.2: the ransom is fixed by the rating when the threat opens. */
-export function ransomForStars(stars: StarRating): number {
-  if (stars < 2) {
-    return RANSOM_BELOW_2_STARS;
-  }
-  return RANSOM_BY_STARS[stars] ?? RANSOM_FROM_4_STARS;
 }
 
 function highestBuiltLevel(state: TowerState): number {
@@ -41,7 +29,7 @@ export function forceEvent(kind: DebugEventKind): TowerChange {
     const context: StepContext = { state: structuredClone(state), events: [] };
     const opened =
       kind === 'bomb'
-        ? openBombThreat(context, ransomForStars(context.state.stars))
+        ? openRandomBombThreat(context)
         : kind === 'fire'
           ? openFire(context, highestBuiltLevel(context.state))
           : undefined;
@@ -49,7 +37,9 @@ export function forceEvent(kind: DebugEventKind): TowerChange {
       throw new DebugRefusal('INVALID_COMMAND');
     }
     if (opened === null) {
-      throw new DebugRefusal('BOMB_EVENT_ACTIVE');
+      throw new DebugRefusal(
+        context.state.activeEvents.length > 0 ? 'BOMB_EVENT_ACTIVE' : 'UNKNOWN_ENTITY',
+      );
     }
     return { state: context.state, events: context.events };
   };

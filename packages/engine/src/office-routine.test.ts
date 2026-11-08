@@ -381,6 +381,11 @@ describe('fast food capacity', () => {
     const finishedLunch = only(sightings, 'atLunch');
     expect(mostEating).toBeLessThanOrEqual(FAST_FOOD_CAPACITY);
     expect(finishedLunch.length).toBeLessThan(startedLunch.length);
+    const counted = Object.values(state.units).reduce(
+      (sum, unit) => sum + (unit.venue?.countToday ?? 0),
+      0,
+    );
+    expect(counted).toBe(finishedLunch.length);
     expect(only(sightings, 'backFromLunch').length).toBe(startedLunch.length);
     expect(state.people.dueStep.every((due) => due === NOTHING_DUE)).toBe(true);
   });
