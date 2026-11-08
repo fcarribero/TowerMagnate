@@ -15,6 +15,7 @@ export interface Toast {
 export interface FloatingCost {
   id: number;
   text: string;
+  kind: 'cost' | 'refund';
   at: ScreenPoint;
 }
 
@@ -24,19 +25,28 @@ export function useBuildFeedback() {
   const [floats, setFloats] = useState<FloatingCost[]>([]);
   const nextId = useRef(0);
 
-  const report = useCallback((outcome: CommandOutcome, at: ScreenPoint): void => {
-    nextId.current += 1;
-    const id = nextId.current;
-    if (outcome.ok) {
-      if (outcome.cost > 0) {
-        setFloats((list) => [...list, { id, text: formatMoney(-outcome.cost), at }]);
-        setTimeout(() => setFloats((list) => list.filter((item) => item.id !== id)), FLOAT_MS);
-      }
-      return;
-    }
-    setToasts((list) => [...list, { id, text: errorText(outcome.error) }]);
-    setTimeout(() => setToasts((list) => list.filter((item) => item.id !== id)), TOAST_MS);
+  const showFloat = useCallback((float: FloatingCost): void => {
+    setFloats((list) => [...list, float]);
+    setTimeout(() => setFloats((list) => list.filter((item) => item.id !== float.id)), FLOAT_MS);
   }, []);
+
+  const report = useCallback(
+    (outcome: CommandOutcome, at: ScreenPoint): void => {
+      nextId.current += 1;
+      const id = nextId.current;
+      if (outcome.ok) {
+        if (outcome.cost > 0) {
+          showFloat({ id, text: formatMoney(-outcome.cost), kind: 'cost', at });
+        } else if (outcome.refund > 0) {
+          showFloat({ id, text: `+${formatMoney(outcome.refund)}`, kind: 'refund', at });
+        }
+        return;
+      }
+      setToasts((list) => [...list, { id, text: errorText(outcome.error) }]);
+      setTimeout(() => setToasts((list) => list.filter((item) => item.id !== id)), TOAST_MS);
+    },
+    [showFloat],
+  );
 
   return { toasts, floats, report };
 }

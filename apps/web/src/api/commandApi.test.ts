@@ -23,7 +23,7 @@ describe('createCommandApi', () => {
     const outcome = api.send(FLOOR);
     expect(sent).toMatchObject([{ t: 'command', p: { id: 'a1', command: FLOOR } }]);
     api.receive(result({ id: 'a1', ok: true, step: 5, cost: 2000, refund: 0 }));
-    await expect(outcome).resolves.toEqual({ ok: true, cost: 2000 });
+    await expect(outcome).resolves.toEqual({ ok: true, cost: 2000, refund: 0 });
   });
 
   it('resolves with the error code when the server refuses', async () => {
