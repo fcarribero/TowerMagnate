@@ -23,8 +23,22 @@ export function isVenueType(type: UnitType): type is keyof typeof VENUE_PAYOUT_H
   return type in VENUE_PAYOUT_HOURS;
 }
 
+/** Units that keep daily visit counts: the paid venues and retail shops. */
+export function holdsVenueDay(type: UnitType): boolean {
+  return isVenueType(type) || type === 'retail-shop';
+}
+
 export function newVenueDay(): VenueDay {
-  return { visits: 0, eveningShowVisits: 0, yesterday: null };
+  return {
+    visits: 0,
+    eveningShowVisits: 0,
+    yesterday: null,
+    countToday: 0,
+    previousDayCount: 0,
+    stressSum: 0,
+    stressTrips: 0,
+    customers: [],
+  };
 }
 
 export function newUnit(id: EntityId, type: UnitType, x: number, level: Level): Unit {
@@ -41,7 +55,7 @@ export function newUnit(id: EntityId, type: UnitType, x: number, level: Level): 
     lease: null,
     sale: null,
     hotel: isHotelRoomType(type) ? newHotelRoom() : null,
-    venue: isVenueType(type) ? newVenueDay() : null,
+    venue: holdsVenueDay(type) ? newVenueDay() : null,
   };
 }
 

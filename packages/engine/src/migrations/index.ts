@@ -44,8 +44,8 @@ import { readActiveEvents, readClosedDecisions, readNotices, readTreasureLevels 
 import { readGrid } from './grid';
 import { readLedger, readMoney } from './money';
 import { readPeople, readTripLedger } from './people';
-import { readStars } from './stars';
-import { readTransports } from './transports';
+import { readStars, readWedding } from './stars';
+import { readFloorPurchases, readTransports } from './transports';
 
 export { StateMigrationError } from './errors';
 
@@ -73,6 +73,9 @@ const MIGRATIONS: readonly Migration[] = [
   addGuardEventState,
   addVenueDayCounts,
   addBombCell,
+  addVenueCustomers,
+  addTransportPurchaseRecord,
+  addWeddingAttempt,
   addShopWeekVisits,
 ];
 
@@ -316,9 +319,34 @@ function addVenueDayCounts(raw: Record<string, unknown>): Record<string, unknown
   return { ...raw, schemaVersion: 20, units };
 }
 
-function venueDayFor(type: unknown): VenueDay | null {
+function venueDayFor(type: unknown): Record<string, unknown> | null {
   const isVenue = (UNIT_TYPES as readonly unknown[]).includes(type) && isVenueType(type as never);
-  return isVenue ? newVenueDay() : null;
+  return isVenue ? { visits: 0, eveningShowVisits: 0, yesterday: null } : null;
+}
+
+/**
+ * Version 22 keeps each venue's day count until 00:00, the trip stress of its visits and its
+ * outside customers still to come. Retail shops get counts as well.
+ */
+function addVenueCustomers(raw: Record<string, unknown>): Record<string, unknown> {
+  if (!isRecord(raw.units)) {
+    return { ...raw, schemaVersion: 22 };
+  }
+  const units: Record<string, unknown> = {};
+  for (const [id, unit] of Object.entries(raw.units)) {
+    units[id] = isRecord(unit) ? withCustomerCounts(unit) : unit;
+  }
+  return { ...raw, schemaVersion: 22, units };
+}
+
+function withCustomerCounts(unit: Record<string, unknown>): Record<string, unknown> {
+  if (isRecord(unit.venue)) {
+    return { ...unit, venue: { ...newVenueDay(), ...unit.venue } };
+  }
+  if (unit.type === 'retail-shop') {
+    return { ...unit, venue: newVenueDay() };
+  }
+  return unit;
 }
 
 /**
@@ -338,18 +366,39 @@ function addBombCell(raw: Record<string, unknown>): Record<string, unknown> {
 }
 
 /**
- * Version 22 counts each lease's customer visits for the shop early-leave check. A lease saved
+ * Version 23 records what each staircase and escalator cost and when it was placed, and keeps
+ * floor tool purchases. Older transports and floor are past the refund window, so they get zero.
+ */
+function addTransportPurchaseRecord(raw: Record<string, unknown>): Record<string, unknown> {
+  const transports = isRecord(raw.transports)
+    ? Object.fromEntries(
+        Object.entries(raw.transports).map(([id, transport]) => [
+          id,
+          isRecord(transport) ? { paid: 0, placedAtStep: 0, ...transport } : transport,
+        ]),
+      )
+    : raw.transports;
+  return { ...raw, transports, floorPurchases: [], schemaVersion: 23 };
+}
+
+/** Version 24 keeps the day's wedding attempt; an older tower has none under way. */
+function addWeddingAttempt(raw: Record<string, unknown>): Record<string, unknown> {
+  return { wedding: null, ...raw, schemaVersion: 24 };
+}
+
+/**
+ * Version 25 counts each lease's customer visits for the shop early-leave check. A lease saved
  * before that starts at the minimum, so no shop leaves for a week it was never counted in.
  */
 function addShopWeekVisits(raw: Record<string, unknown>): Record<string, unknown> {
   if (!isRecord(raw.units)) {
-    return { ...raw, schemaVersion: 22 };
+    return { ...raw, schemaVersion: 25 };
   }
   const units: Record<string, unknown> = {};
   for (const [id, unit] of Object.entries(raw.units)) {
     units[id] = isRecord(unit) ? withWeekVisits(unit) : unit;
   }
-  return { ...raw, schemaVersion: 22, units };
+  return { ...raw, schemaVersion: 25, units };
 }
 
 function withWeekVisits(unit: Record<string, unknown>): Record<string, unknown> {
@@ -432,7 +481,13 @@ function isVenueDay(value: unknown): value is VenueDay {
     (value.yesterday === null ||
       (isRecord(value.yesterday) &&
         isNonNegativeInteger(value.yesterday.visits) &&
-        (value.yesterday.result === null || Number.isSafeInteger(value.yesterday.result))))
+        (value.yesterday.result === null || Number.isSafeInteger(value.yesterday.result)))) &&
+    isNonNegativeInteger(value.countToday) &&
+    isNonNegativeInteger(value.previousDayCount) &&
+    isNonNegativeInteger(value.stressSum) &&
+    isNonNegativeInteger(value.stressTrips) &&
+    Array.isArray(value.customers) &&
+    value.customers.every(isNonNegativeInteger)
   );
 }
 
@@ -501,7 +556,11 @@ function readVenueDay(venue: VenueDay | null): VenueDay | null {
   if (venue === null) {
     return null;
   }
-  return { ...venue, yesterday: venue.yesterday === null ? null : { ...venue.yesterday } };
+  return {
+    ...venue,
+    yesterday: venue.yesterday === null ? null : { ...venue.yesterday },
+    customers: [...venue.customers],
+  };
 }
 
 function isElevatorCar(value: unknown): value is ElevatorCar {
@@ -678,6 +737,7 @@ function assertCurrentShape(raw: Record<string, unknown>): TowerState {
     transports: readTransports(raw.transports),
     shafts: readShafts(raw.shafts),
     grid: readGrid(raw.grid),
+    floorPurchases: readFloorPurchases(raw.floorPurchases),
     people: people,
     tripLedger: readTripLedger(raw.tripLedger, people.id),
     ledger: readLedger(raw.ledger),
@@ -688,6 +748,7 @@ function assertCurrentShape(raw: Record<string, unknown>): TowerState {
     ...readStarState(raw),
     medicalDay: readMedicalDay(raw.medicalDay),
     parking: readParking(raw.parking),
+    wedding: readWedding(raw.wedding),
   };
 }
 

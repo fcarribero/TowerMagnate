@@ -61,6 +61,9 @@ jobs:
       - name: Security events benchmark
         run: pnpm bench:events
 
+      - name: Venue customers benchmark
+        run: pnpm bench:customers
+
   e2e:
     name: End-to-end tests
     if: (github.event_name == 'pull_request' && github.base_ref == 'develop') || (github.event_name == 'push' && github.ref == 'refs/heads/develop')

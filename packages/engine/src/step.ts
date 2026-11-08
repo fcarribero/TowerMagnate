@@ -13,6 +13,7 @@ import { rollBasementTreasure } from './events/treasure';
 import { createElevatorSystem } from './elevators';
 import { eventsPhase } from './events';
 import { createCondoSystem } from './condos';
+import { createCustomers } from './customers';
 import { createHotelSystem } from './hotel';
 import { createLeaseSystem } from './leases';
 import { parkingAssignmentHook } from './parking';
@@ -28,6 +29,7 @@ import { createNightReset } from './trip-ledger';
 import { graphInputsKey, TransportGraph, type ShaftStops } from './routing';
 import { starCheckHook } from './stars';
 import { weeklyUpkeepHook } from './upkeep';
+import { weddingAttemptHook, weddingSystem } from './wedding';
 import { venuePayoutHooks } from './venues';
 
 export interface StepResult {
@@ -219,6 +221,8 @@ const residentRoutine = createResidentRoutine(
 
 const prospects = createProspectDemand();
 
+const customers = createCustomers();
+
 const nightReset = createNightReset(
   (context, slot) => cancelTrek(context, slot, { nightReset: true }),
   (pool, slot) => isOnTrek(pool, slot),
@@ -234,6 +238,9 @@ export const towerSystems: readonly SimulationSystem[] = [
     parkingAssignmentHook,
     residentRoutine.planHook,
     ...prospects.rollHooks,
+    customers.planHook,
+    customers.nightHook,
+    weddingAttemptHook,
   ]),
   createLeaseSystem(),
   createHotelSystem(),
@@ -242,6 +249,8 @@ export const towerSystems: readonly SimulationSystem[] = [
   prospects.system,
   officeRoutine.system,
   residentRoutine.system,
+  customers.system,
+  weddingSystem,
   createElevatorSystem(),
   createScheduler([starCheckHook]),
   eventsPhase,
