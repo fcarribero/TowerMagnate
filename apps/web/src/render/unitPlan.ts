@@ -4,6 +4,7 @@ import type { SpriteVariant } from './spriteRegistry';
 import { levelToIndex, levelTop } from './levels';
 import { FLOOR_HEIGHT, TILE_WIDTH } from './metrics';
 import type { TimeOfDay } from './structurePlan';
+import { ALL_VENUES_OPEN, isVenue, type OpenVenues } from './venueHours';
 
 /** What the unit layer needs to draw one unit or transport, in world pixels. */
 export interface UnitDrawing {
@@ -48,18 +49,22 @@ export function planUnit(
   unit: UnitSource,
   time: TimeOfDay,
   overlay: OverlayColor | null = null,
+  openVenues: OpenVenues = ALL_VENUES_OPEN,
 ): UnitDrawing | null {
   if (!isPlacedUnit(unit.type)) {
     return null;
   }
-  const state = unitState(unit);
+  const state = unitState(unit, openVenues);
   return footprint(unit.id, `units/${unit.type}`, unit, { state, time }, overlay);
 }
 
 const HOTEL_ROOMS: readonly UnitType[] = ['single-room', 'double-room', 'suite'];
 
-function unitState(unit: UnitSource): string {
+function unitState(unit: UnitSource, openVenues: OpenVenues): string {
   const { type, variant } = unit;
+  if (isVenue(type) && !openVenues.has(type)) {
+    return 'closed';
+  }
   if ((variant === 'dirty' || variant === 'infested') && HOTEL_ROOMS.includes(type)) {
     return variant;
   }

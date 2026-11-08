@@ -14,11 +14,14 @@ import {
   type UnitDrawing,
   type UnitSource,
 } from './unitPlan';
+import type { OpenVenues } from './venueHours';
 
 export interface UnitsInput {
   units: Iterable<UnitSource>;
   transports: Iterable<TransportSource>;
   time: TimeOfDay;
+  /** Venue types inside their opening hours; the rest show their closed sprite. */
+  openVenues: OpenVenues;
   /** The active overlay; left out, units are drawn normally. */
   overlay?: { id: OverlayId; data: OverlayData };
 }
@@ -51,7 +54,7 @@ export class UnitLayer {
     const drawings: UnitDrawing[] = [];
     for (const unit of input.units) {
       const color = input.overlay && overlayColorOf(input.overlay.id, unit, input.overlay.data);
-      const drawing = planUnit(unit, input.time, color);
+      const drawing = planUnit(unit, input.time, color, input.openVenues);
       if (drawing !== null) {
         drawings.push(drawing);
       }
