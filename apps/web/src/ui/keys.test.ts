@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isMapToggleKey, type KeyPress } from './keys';
+import { isFinanceToggleKey, isMapToggleKey, type KeyPress } from './keys';
 
 function press(key: string, extra: Partial<KeyPress> = {}): KeyPress {
   return { key, ctrlKey: false, altKey: false, metaKey: false, target: null, ...extra };
@@ -19,5 +19,18 @@ describe('isMapToggleKey', () => {
   it('ignores typing in a text field', () => {
     const input = { tagName: 'INPUT' } as unknown as EventTarget;
     expect(isMapToggleKey(press('m', { target: input }))).toBe(false);
+  });
+});
+
+describe('isFinanceToggleKey', () => {
+  it('accepts F in either case', () => {
+    expect(isFinanceToggleKey(press('f'))).toBe(true);
+    expect(isFinanceToggleKey(press('F'))).toBe(true);
+  });
+
+  it('ignores shortcuts and typing in a text field', () => {
+    const input = { tagName: 'INPUT' } as unknown as EventTarget;
+    expect(isFinanceToggleKey(press('f', { ctrlKey: true }))).toBe(false);
+    expect(isFinanceToggleKey(press('f', { target: input }))).toBe(false);
   });
 });
