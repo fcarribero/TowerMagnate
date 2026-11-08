@@ -206,6 +206,7 @@ describe('snapshot from tower state', () => {
       queued: 'wait',
       waitingBesideQueue: 'wait',
       riding: 'ride',
+      noRoute: 'walk',
     };
     for (const phase of TREK_PHASES) {
       const state = towerWithPeople();
