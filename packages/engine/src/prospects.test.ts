@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { STEPS_PER_HOUR } from './calendar';
 import { STEPS_PER_DAY } from './clock';
 import { towerCommandHandlers } from './commands';
-import { countPeopleByKind, listPeople } from './people';
+import { addPerson, countPeopleByKind, listPeople } from './people';
 import { createProspectDemand } from './prospects';
 import { createScheduler } from './scheduler';
 import { createEngine } from './step';
@@ -108,6 +108,23 @@ describe('prospect move-in', () => {
     expect(lease?.anchorStep).toBe(signed[0]?.step);
     expect(lease?.anchorStep).toBeGreaterThan(FIRST_ROLL);
     expect(prospectCount(after)).toBe(0);
+  });
+
+  it('creates the office workers when the tenant moves in', () => {
+    const { state, id } = towerWithVacantUnit({ unit: 'office', priceLevel: 'minimum' });
+    expect(countPeopleByKind(state.people).officeWorker ?? 0).toBe(0);
+    const { state: after } = engine.step(state, [], STEPS_PER_DAY);
+    expect(after.units[id]?.lease).toBeDefined();
+    const workers = listPeople(after.people).filter((person) => person.kind === 'officeWorker');
+    expect(workers.length).toBeGreaterThan(0);
+    expect(workers.every((person) => person.homeUnit === id)).toBe(true);
+  });
+
+  it('sends a prospect still in the tower away at 03:00', () => {
+    const { state } = towerWithVacantUnit({ unit: 'office', reachable: false });
+    addPerson(state, { kind: 'prospect', homeUnit: 1, level: 1, column: 5 });
+    expect(prospectCount(engine.step(state, [], 3 * STEPS_PER_HOUR - 1).state)).toBe(1);
+    expect(prospectCount(engine.step(state, [], 3 * STEPS_PER_HOUR).state)).toBe(0);
   });
 
   it('sells a condo, keeps the prospect as resident 1 and adds two more residents', () => {

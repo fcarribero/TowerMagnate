@@ -11,6 +11,7 @@ import { sellCondo } from './condos';
 import { isLeasable, moveInTenant } from './leases';
 import { entrancePlace, unitPlace } from './office-routine';
 import {
+  addPeopleForUnit,
   addPerson,
   createPeopleSystem,
   NOTHING_DUE,
@@ -116,6 +117,17 @@ function settleProspect(context: StepContext, slot: number): void {
   }
   moveInTenant(context, unit.id);
   removePerson(state, personId);
+  if (unit.type === 'office') addPeopleForUnit(state, unit.id);
+}
+
+/** People spec 4.1: at 03:00 every prospect still on the way leaves the simulation. */
+function sendProspectsHome(context: StepContext): void {
+  const pool = context.state.people;
+  const leaving: number[] = [];
+  for (let slot = 0; slot < pool.id.length; slot++) {
+    if (pool.kind[slot] === PROSPECT_KIND) leaving.push(pool.id[slot] as number);
+  }
+  for (const personId of leaving) removePerson(context.state, personId);
 }
 
 export interface ProspectDemand {
@@ -135,6 +147,11 @@ export function createProspectDemand(): ProspectDemand {
   }
   const system = createPeopleSystem((context, slot) => {
     if (context.state.people.kind[slot] === PROSPECT_KIND) settleProspect(context, slot);
+  });
+  rollHooks.push({
+    name: 'prospect-night-leave',
+    schedule: { every: 'day', hour: 3, minute: 0 },
+    run: sendProspectsHome,
   });
   return { rollHooks, system };
 }
