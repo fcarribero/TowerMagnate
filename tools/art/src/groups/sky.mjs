@@ -9,8 +9,9 @@ const BACKDROP_WIDTH = 128;
 const SKYLINE_HEIGHT = 48;
 const HILLS_HEIGHT = 16;
 
-// The top band fades into the color below it through a 2 x 2 checker. The
-// middle band covers many floors in a row, so it mixes its two colors evenly
+// The top band fades into the color below it through ordered dithering that
+// gets denser each row and ends on a solid row, so it meets the middle band
+// without a hard edge. The middle band covers many floors in a row, so it mixes its two colors evenly
 // instead and repeats without a seam in both directions.
 // Dusk is shared by sunrise and sunset.
 const bands = {
@@ -31,16 +32,24 @@ const bands = {
   },
 };
 
+const FADE_THRESHOLDS = [
+  [0, 8, 2, 10],
+  [12, 4, 14, 6],
+  [3, 11, 1, 9],
+  [15, 7, 13, 5],
+];
+
 const starredBands = new Set(['night/top', 'night/middle']);
 
 function skyBand(color, nextColor) {
   const height = metrics.floorHeight;
   const tile = new PixelCanvas(BAND_WIDTH, height);
   tile.fillRect(0, 0, BAND_WIDTH, height, color);
-  for (let y = height - DITHER_ROWS; y < height; y++) {
+  for (let row = 0; row < DITHER_ROWS; row++) {
+    const y = height - DITHER_ROWS + row;
+    const coverage = ((row + 1) * 16) / DITHER_ROWS;
     for (let x = 0; x < BAND_WIDTH; x++) {
-      const isNextColorSquare = (Math.floor(x / 2) + Math.floor(y / 2)) % 2 === 0;
-      if (isNextColorSquare) {
+      if (FADE_THRESHOLDS[y % 4][x % 4] < coverage) {
         tile.set(x, y, nextColor);
       }
     }
