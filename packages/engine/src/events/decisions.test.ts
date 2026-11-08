@@ -29,7 +29,7 @@ function opened<T>(event: T | null): T {
 function towerWithFire(): { state: TowerState; id: string } {
   const tower = createTower(1);
   tower.step = FIRE_OPEN_STEP;
-  return { state: tower, id: opened(openFire(withContext(tower))).id };
+  return { state: tower, id: opened(openFire(withContext(tower), 5)).id };
 }
 
 function towerWithBomb(): { state: TowerState; id: string } {
@@ -47,11 +47,12 @@ describe('opening a decision', () => {
     tower.step = 500;
     tower.nextId = 7;
     const context = withContext(tower);
-    const fire = openFire(context);
+    const fire = openFire(context, 5);
     expect(fire).toEqual({
       kind: 'fire',
       id: 'e7',
       startStep: 500,
+      level: 5,
       decision: {
         openStep: 500,
         deadlineStep: 860,
@@ -84,7 +85,7 @@ describe('opening a decision', () => {
   it('keeps a single disaster active at a time', () => {
     const { state } = towerWithBomb();
     const context = withContext(state);
-    expect(openFire(context)).toBeNull();
+    expect(openFire(context, 5)).toBeNull();
     expect(openBombThreat(context, RANSOM)).toBeNull();
     expect(state.activeEvents).toHaveLength(1);
     expect(context.events).toEqual([]);
@@ -275,7 +276,7 @@ describe('closed decisions', () => {
     let tower = createTower(1);
     const ids: string[] = [];
     for (let index = 0; index < count; index++) {
-      const fire = opened(openFire(withContext(tower)));
+      const fire = opened(openFire(withContext(tower), 5));
       ids.push(fire.id);
       tower = step(tower, [answer(fire.id, 'burn')], 0).state;
       endDisaster(withContext(tower), fire.id);
@@ -308,7 +309,7 @@ describe('determinism', () => {
     function play() {
       const tower = createTower(42);
       const context = withContext(tower);
-      const fire = opened(openFire(context));
+      const fire = opened(openFire(context, 5));
       const answered = step(tower, [answer(fire.id, 'helicopter')], 10);
       endDisaster(withContext(answered.state), fire.id);
       const bomb = opened(openBombThreat(withContext(answered.state), RANSOM));

@@ -5,6 +5,8 @@ import {
   creditMoney,
   defaultSchedule,
   followPerson,
+  openBombThreat,
+  openFire,
   rollLedgerWeek,
   setStructure,
   STEPS_PER_DAY,
@@ -56,6 +58,46 @@ describe('snapshot from tower state', () => {
     for (const field of ['rng', 'dueStep', 'nameSeed', 'nextId', 'occupants']) {
       expect(text).not.toContain(`"${field}"`);
     }
+  });
+
+  it('sends the notices with their unit and time', () => {
+    const state = createTower(7);
+    state.notices.push({ id: 'n5.0', step: 5, key: 'news.officeLeft', unitId: 'u1' });
+
+    const snapshot = buildSnapshot(state, null);
+
+    expect(snapshot.notices).toEqual([
+      { id: 'n5.0', step: 5, key: 'news.officeLeft', unitId: 'u1', params: {} },
+    ]);
+    expect(SnapshotSchema.safeParse(snapshot).success).toBe(true);
+  });
+
+  it('sends open decisions with ransom and fire level, also after a reconnect', () => {
+    const state = createTower(7);
+    openBombThreat({ state, events: [] }, 300_000);
+
+    const snapshot = buildSnapshot(structuredClone(state), null);
+
+    expect(snapshot.activeEvents).toEqual([
+      {
+        kind: 'decision',
+        id: 'e1',
+        decision: 'bomb',
+        deadlineStep: 360,
+        options: ['pay', 'refuse'],
+        ransom: 300_000,
+      },
+    ]);
+    expect(SnapshotSchema.safeParse(snapshot).success).toBe(true);
+  });
+
+  it('sends an open fire with the level it burns on', () => {
+    const state = createTower(7);
+    openFire({ state, events: [] }, 8);
+
+    expect(buildSnapshot(state, null).activeEvents).toMatchObject([
+      { kind: 'decision', decision: 'fire', level: 8 },
+    ]);
   });
 
   it('sends the placed stairs and escalators', () => {

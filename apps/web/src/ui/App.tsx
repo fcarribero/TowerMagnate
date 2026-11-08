@@ -48,6 +48,7 @@ import { Toolbar } from './toolbar/Toolbar';
 import { DEFAULT_LOBBY_HEIGHT, DEFAULT_TOOL, type ToolId } from './toolbar/toolbarModel';
 import { TowerMapWindow } from './TowerMapWindow';
 import { Toasts } from './toast/Toasts';
+import { ElevatorWindows } from './elevator/ElevatorWindows';
 import { UnitWindows } from './unit/UnitWindows';
 
 export interface AppProps {
@@ -177,9 +178,10 @@ export function App({ onLogout, onRestartTower, onSessionLost }: AppProps) {
     if (stage === null || tool !== 'inspect') {
       return;
     }
-    return bindUnitClicks(stage, connection.store, (unitId) =>
-      connection.inspect.requestUnitWindow(unitId),
-    );
+    return bindUnitClicks(stage, connection.store, {
+      unit: (unitId) => connection.inspect.requestUnitWindow(unitId),
+      shaft: (shaftId) => connection.inspect.requestShaftWindow(shaftId),
+    });
   }, [stage, connection, tool]);
 
   useEffect(() => {
@@ -333,6 +335,7 @@ export function App({ onLogout, onRestartTower, onSessionLost }: AppProps) {
             <StarsWindow store={connection.store} onClose={() => setStarsOpen(false)} />
           )}
           <UnitWindows connection={connection} />
+          <ElevatorWindows connection={connection} />
           <RestartTowerDialogs
             step={restartStep}
             onStep={setRestartStep}

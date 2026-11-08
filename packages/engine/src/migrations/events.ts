@@ -5,6 +5,7 @@ import {
   type Decision,
   type EventId,
   type Level,
+  type Notice,
 } from '@tower-magnate/shared';
 import { isRecord, StateMigrationError } from './errors';
 
@@ -52,10 +53,10 @@ function readActiveEvent(raw: unknown): ActiveEvent {
     }
     return { kind: 'bomb', id: raw.id, decision, ransom: raw.ransom as number };
   }
-  if (!isStep(raw.startStep)) {
-    throw new StateMigrationError(`Fire ${raw.id} has a malformed start step`);
+  if (!isStep(raw.startStep) || !isLevel(raw.level)) {
+    throw new StateMigrationError(`Fire ${raw.id} has a malformed start step or level`);
   }
-  return { kind: 'fire', id: raw.id, decision, startStep: raw.startStep };
+  return { kind: 'fire', id: raw.id, decision, startStep: raw.startStep, level: raw.level };
 }
 
 /** Towers saved before events existed have no `activeEvents`; they start with none. */
@@ -89,4 +90,32 @@ export function readTreasureLevels(raw: unknown): Level[] {
     throw new StateMigrationError('State treasureLevels must be a list of basement levels');
   }
   return [...(raw as Level[])];
+}
+
+function readNotice(raw: unknown): Notice {
+  const valid =
+    isRecord(raw) &&
+    typeof raw.id === 'string' &&
+    isStep(raw.step) &&
+    typeof raw.key === 'string' &&
+    (raw.unitId === null || typeof raw.unitId === 'string');
+  if (!valid) {
+    throw new StateMigrationError('State notice is malformed');
+  }
+  return {
+    id: raw.id as string,
+    step: raw.step as number,
+    key: raw.key as string,
+    unitId: raw.unitId as string | null,
+  };
+}
+
+export function readNotices(raw: unknown): Notice[] {
+  if (raw === undefined) {
+    return [];
+  }
+  if (!Array.isArray(raw)) {
+    throw new StateMigrationError('State notices must be a list');
+  }
+  return raw.map(readNotice);
 }

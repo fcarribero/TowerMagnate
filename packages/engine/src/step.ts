@@ -9,11 +9,13 @@ import type {
 } from '@tower-magnate/shared';
 import { STEPS_PER_DAY } from './clock';
 import { towerCommandHandlers } from './commands';
+import { rollBasementTreasure } from './events/treasure';
 import { createElevatorSystem } from './elevators';
 import { eventsPhase } from './events';
 import { createCondoSystem } from './condos';
 import { createHotelSystem } from './hotel';
 import { createLeaseSystem } from './leases';
+import { recordNotices } from './notices';
 import { cloneState } from './state';
 import { ledgerWeekRollHook } from './money';
 import { createOfficeRoutine } from './office-routine';
@@ -139,6 +141,7 @@ export function createEngine(rules: EngineRules): Engine {
     if (!outcome.ok) {
       return { id, ok: false, step: currentStep, error: outcome.error };
     }
+    outcome.events.push(...rollBasementTreasure(draft.state, context.state.grid));
     context.state = draft.state;
     for (const event of outcome.events) {
       context.events.push({ ...event, step: currentStep, commandId: id } as EngineEvent);
@@ -171,6 +174,7 @@ export function createEngine(rules: EngineRules): Engine {
     for (let count = 0; count < steps; count++) {
       advanceOneStep(context);
     }
+    recordNotices(context.state, context.events);
     return { state: context.state, results, events: context.events, graph: currentGraph };
   }
 

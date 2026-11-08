@@ -13,7 +13,17 @@ describe('toClientEvents', () => {
 
     expect(toClientEvents(events)).toEqual([
       { type: 'news', step: 4, key: 'news.officeLeft', unitId: 'u1' },
-      { type: 'decisionClosed', step: 5, eventId: 'e1', choice: 'pay' },
+      { type: 'decisionClosed', step: 5, eventId: 'e1', choice: 'pay', timedOut: false },
+    ]);
+  });
+
+  it('marks a decision closed without a command as timed out', () => {
+    const events: EngineEvent[] = [
+      { type: 'decisionClosed', step: 9, eventId: 'e1', choice: 'refuse' },
+    ];
+
+    expect(toClientEvents(events)).toEqual([
+      { type: 'decisionClosed', step: 9, eventId: 'e1', choice: 'refuse', timedOut: true },
     ]);
   });
 

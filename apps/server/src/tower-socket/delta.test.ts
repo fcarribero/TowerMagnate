@@ -4,6 +4,7 @@ import {
   createTower,
   defaultSchedule,
   newUnit,
+  openFire,
   setStructure,
   TREK_PHASES,
 } from '@tower-magnate/engine';
@@ -69,6 +70,21 @@ describe('delta between snapshots', () => {
     expect(delta.money).toBe(after.money);
     expect(delta).not.toHaveProperty('population');
     expect(delta).not.toHaveProperty('finances');
+    expect(DeltaSchema.safeParse(delta).success).toBe(true);
+  });
+
+  it('sends notices and active events when they change', () => {
+    const state = tower();
+    const before = snapshotOf(state);
+    state.notices.push({ id: 'n9.0', step: 9, key: 'news.starsUp', unitId: null });
+    openFire({ state, events: [] }, 3);
+    const after = snapshotOf(state);
+
+    const { delta, quiet } = diffSnapshots(before, after);
+
+    expect(quiet).toBe(false);
+    expect(delta.notices).toEqual(after.notices);
+    expect(delta.activeEvents).toMatchObject([{ decision: 'fire', level: 3 }]);
     expect(DeltaSchema.safeParse(delta).success).toBe(true);
   });
 
