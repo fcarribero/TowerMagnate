@@ -90,6 +90,8 @@ export const sampleClientMessages: ClientMessage[] = [
   { v, t: 'inspect', p: { target: { kind: 'person', id: 'p3401' } } },
   { v, t: 'inspect', p: { target: { kind: 'finances' } } },
   { v, t: 'inspect', p: { target: null } },
+  { v, t: 'inspectAdd', p: { target: { kind: 'unit', id: 'u13' } } },
+  { v, t: 'inspectRemove', p: { target: { kind: 'unit', id: 'u13' } } },
   { v, t: 'ping', p: { clientTime: 1234.5 } },
 ];
 
