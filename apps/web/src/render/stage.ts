@@ -1,5 +1,6 @@
-import type { Level } from '@tower-magnate/shared';
+import type { Level, ShaftView } from '@tower-magnate/shared';
 import { Application, Container, TextureSource, type TilingSprite } from 'pixi.js';
+import type { DrawnFrame } from '../model/interpolation';
 import 'pixi.js/unsafe-eval';
 import { loadSprites } from './atlasLoader';
 import {
@@ -19,6 +20,7 @@ import { GhostLayer, type Footprint, type GhostInput, type RunInput } from './gh
 import { levelAtCanvasY } from './levelRuler';
 import { levelTop } from './levels';
 import type { Zoom } from './metrics';
+import { ElevatorLayer } from './elevatorLayer';
 import { createSkyRows } from './skyRows';
 import type { SpriteRegistry } from './spriteRegistry';
 import { StructureLayer } from './structureLayer';
@@ -39,6 +41,7 @@ export interface StageOptions {
   onStats?: (stats: RenderStats) => void;
 }
 
+export type CarSource = () => { frame: DrawnFrame; shafts: ReadonlyMap<string, ShaftView> } | null;
 export type CameraListener = (camera: Camera) => void;
 export type HoverLevelListener = (level: Level | null) => void;
 export type HoverCellListener = (cell: Cell | null) => void;
@@ -80,6 +83,13 @@ export interface Stage {
   showStructure(input: StructureInput): void;
   /** Draws units and transports; later calls change only what differs. */
   showUnits(input: UnitsInput): void;
+  /** Draws elevator shafts; later calls change only the shafts that differ. */
+  showShafts(shafts: Iterable<ShaftView>): void;
+  /**
+   * Asks `source` for the cars and riders to draw on every frame. It returns
+   * null while there is nothing to draw, and `shafts` says where each car runs.
+   */
+  feedCars(source: CarSource | null): void;
   destroy(): void;
 }
 
@@ -110,7 +120,10 @@ export async function mountStage(host: HTMLElement, options: StageOptions = {}):
   const structure = new StructureLayer(sprites);
   world.addChild(structure.view);
   const units = new UnitLayer(sprites);
+  const elevators = new ElevatorLayer(sprites);
+  world.addChild(elevators.shaftView);
   world.addChild(units.view);
+  world.addChild(elevators.carView);
   const ghost = new GhostLayer(sprites);
   world.addChild(ghost.view);
   app.stage.addChild(world);
@@ -163,6 +176,7 @@ export async function mountStage(host: HTMLElement, options: StageOptions = {}):
     sky.showOnly(onScreen);
     structure.rows.showOnly(onScreen);
     units.showOnly(onScreen);
+    elevators.showOnly(onScreen);
     for (const listener of cameraListeners) {
       listener(camera);
     }
@@ -232,6 +246,14 @@ export async function mountStage(host: HTMLElement, options: StageOptions = {}):
   app.canvas.addEventListener('pointerdown', onPointerDown);
   window.addEventListener('pointerup', onPointerUp);
   app.canvas.addEventListener('contextmenu', onContextMenu);
+  let carSource: CarSource | null = null;
+  const drawCars = (): void => {
+    const next = carSource?.();
+    if (next) {
+      elevators.showCars(next.frame, next.shafts);
+    }
+  };
+  app.ticker.add(drawCars);
   const statsTimer = window.setInterval(() => {
     options.onStats?.({
       fps: Math.round(app.ticker.FPS),
@@ -287,7 +309,14 @@ export async function mountStage(host: HTMLElement, options: StageOptions = {}):
     showUnits(input) {
       units.update(input);
     },
+    showShafts(shafts) {
+      elevators.showShafts(shafts);
+    },
+    feedCars(source) {
+      carSource = source;
+    },
     destroy() {
+      app.ticker.remove(drawCars);
       cameraListeners.clear();
       hoverListeners.clear();
       hoverCellListeners.clear();
