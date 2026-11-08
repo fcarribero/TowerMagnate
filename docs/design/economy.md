@@ -314,7 +314,7 @@ These are planning numbers for the playtest balance pass, not engine rules. Each
 | Single room | $22,000 | 70% of nights | $7,800 | 2.8 |
 | Double room | $53,000 | 70% of nights | $11,700 | 4.5 |
 | Suite | $105,000 | 70% of nights | $23,400 | 4.5 |
-| Fast food | $108,000 | 35 to 49 a day | $21,000 | 5.1 |
+| Fast food | $108,000 | 35 to 49 a day; 50 or more on weekdays next to 6 or more offices | $21,000; $31,000 next to offices | 5.1; 3.5 next to offices |
 | Restaurant | $212,000 | 35 to 49 a day | $42,000 | 5.0 |
 | Party hall | $112,000 | 40 or more a day | $50,000 | 2.2 |
 | Cinema | $515,500 | full, film changed every 6 weeks | $43,000 | 12 |
