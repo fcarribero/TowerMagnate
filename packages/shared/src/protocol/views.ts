@@ -352,3 +352,4 @@ export type Snapshot = z.infer<typeof SnapshotSchema>;
 export type Delta = z.infer<typeof DeltaSchema>;
 export type ClientEvent = z.infer<typeof ClientEventSchema>;
 export type InspectData = z.infer<typeof InspectDataSchema>;
+export type InspectedUnitDetails = z.infer<typeof InspectedUnitDetailsSchema>;
