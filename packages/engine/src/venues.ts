@@ -12,6 +12,7 @@ import {
 } from '@tower-magnate/shared';
 import { STEPS_PER_HOUR, STEPS_PER_MINUTE } from './calendar';
 import { STEPS_PER_DAY } from './clock';
+import { recordShopVisit } from './leases';
 import { chargeMoney, creditMoney } from './money';
 import type { ScheduledHook } from './scheduler';
 import type { StepContext } from './step';
@@ -87,6 +88,7 @@ export function countVenueVisit(
   if (isVenue(unit) && !addPayoutVisit(unit, stepOfDay)) return false;
   unit.used = true;
   venue.countToday += 1;
+  recordShopVisit(unit);
   if (tripStress !== null) {
     venue.stressSum += tripStress;
     venue.stressTrips += 1;

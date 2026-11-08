@@ -115,7 +115,7 @@ describe('demolish', () => {
     const leased = structuredClone(state);
     const office = leased.units[id] as TowerState['units'][string];
     office.used = true;
-    office.lease = { anchorStep: 0, nextDueStep: 100 };
+    office.lease = { anchorStep: 0, nextDueStep: 100, weekVisits: 0 };
     addPeopleForUnit(leased, id);
     expect(listPeople(leased.people).length).toBeGreaterThan(0);
 

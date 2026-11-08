@@ -37,6 +37,7 @@ function office(id: string, x: number, name: string | null): Unit {
     lease: null,
     sale: null,
     hotel: null,
+    evaluation: null,
     venue: null,
   };
 }
@@ -243,6 +244,17 @@ describe('snapshot from tower state', () => {
     expect(snapshot.overlays.price).toEqual({ u5: 'normal', u6: 'normal' });
   });
 
+  it('sends the stored grade of each evaluated unit in the evaluation overlay', () => {
+    const state = towerWithPeople();
+    (state.units.u5 as Unit).evaluation = 'fair';
+    state.units.u8 = { ...office('u8', 30, null), type: 'fast-food' };
+
+    const snapshot = buildSnapshot(state, null);
+
+    expect(snapshot.overlays.evaluation).toEqual({ u5: 'fair', u6: null });
+    expect(SnapshotSchema.safeParse(snapshot).success).toBe(true);
+  });
+
   it('sends only the people inside the viewport', () => {
     const snapshot = buildSnapshot(towerWithPeople(), LOBBY_VIEW);
 
@@ -359,7 +371,11 @@ describe('snapshot from tower state', () => {
   it('counts 6 for each office with a tenant', () => {
     const state = towerWithPeople();
     expect(buildSnapshot(state, null).population).toBe(0);
-    (state.units.u5 as { lease: unknown }).lease = { anchorStep: 0, nextDueStep: 60480 };
+    (state.units.u5 as { lease: unknown }).lease = {
+      anchorStep: 0,
+      nextDueStep: 60480,
+      weekVisits: 0,
+    };
     expect(buildSnapshot(state, null).population).toBe(6);
   });
 
