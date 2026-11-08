@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { openGame } from './support/game';
 import { registerUser, uniqueUser } from './support/users';
 
 const canvas = (page: Page) => page.locator('#app canvas');
@@ -85,4 +86,29 @@ test('a short username and a short password get their messages and stay on the f
   await expect(password).toHaveAccessibleDescription(/La contraseña lleva al menos 8 caracteres\./);
   await expect(page.getByLabel('Repetir contraseña')).toHaveAttribute('aria-invalid', 'false');
   await expect(canvas(page)).toHaveCount(0);
+});
+
+test('Empezar una torre nueva asks twice and starts again on the first day with the starting money', async ({
+  page,
+}) => {
+  await openGame(page);
+  const bar = page.getByRole('toolbar');
+  await expect(bar).toContainText('Lunes 1 de enero, año 1');
+  await expect(bar).toContainText('$2.000.000');
+
+  await page.getByRole('button', { name: 'Menú' }).click();
+  await page.getByRole('menuitem', { name: 'Empezar una torre nueva' }).click();
+  await page.getByRole('button', { name: 'Cancelar' }).click();
+  await expect(page.getByText('¿Estás seguro?')).toHaveCount(0);
+
+  await page.getByRole('button', { name: 'Menú' }).click();
+  await page.getByRole('menuitem', { name: 'Empezar una torre nueva' }).click();
+  await page.getByRole('button', { name: 'Demoler y empezar' }).click();
+  await expect(page.getByText('¿Estás seguro?')).toBeVisible();
+  await page.getByRole('button', { name: 'Sí, demoler todo' }).click();
+
+  await expect(page.getByText('¿Estás seguro?')).toHaveCount(0);
+  await expect(bar).toContainText('Lunes 1 de enero, año 1');
+  await expect(bar).toContainText('$2.000.000');
+  await expect(canvas(page)).toBeVisible();
 });
