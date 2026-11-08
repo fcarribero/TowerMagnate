@@ -405,8 +405,8 @@ export interface Delta {
   transportsRemoved?: TransportId[];
   shaftsUpserted?: ShaftView[];
   shaftsRemoved?: ShaftId[];
-  cars: CarView[];            // every car of the tower, every delta
-  people: PersonView[];       // every person in the viewport, every delta
+  cars: PackedCar[];          // every car of the tower, every delta, as number tuples
+  people: PackedPerson[];     // every person in the viewport, every delta, as number tuples
   peopleGone?: PersonId[];    // left the viewport or the tower since the last delta
   followed?: FollowedView[];
   activeEvents?: EventView[]; // full list when it changes
@@ -498,7 +498,7 @@ The zod schemas for every message, command and view are in `packages/shared/src/
 ## 9. Performance budgets
 
 - One `step` call with `steps = 1` on a tower of 15,000 people stays under 5 ms on the CI machine. Engine scenario tests that run a game week stay under 10 s.
-- A delta for a full-screen viewport stays under 50 KB of JSON. If it grows past that, we switch `people` to packed arrays before considering a binary format.
+- A delta for a full-screen viewport stays under 50 KB of JSON. People and cars are already packed arrays; a binary format is the next step if it grows past that.
 - Snapshot size is not budgeted, but it is gzip-compressed with permessage-deflate. Messages under 1 KB skip compression.
 
 ## 10. What goes where

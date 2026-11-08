@@ -1,5 +1,5 @@
 import { addPerson, createTower, setStructure } from '@tower-magnate/engine';
-import { DeltaSchema, type Snapshot, type TowerState } from '@tower-magnate/shared';
+import { DeltaSchema, packPerson, type Snapshot, type TowerState } from '@tower-magnate/shared';
 import { describe, expect, it } from 'vitest';
 import { diffSnapshots, needsFreshSnapshot } from './delta';
 import { buildSnapshot } from './snapshot';
@@ -25,7 +25,7 @@ describe('delta between snapshots', () => {
     const { delta, quiet } = diffSnapshots(before, after);
 
     expect(quiet).toBe(true);
-    expect(delta).toEqual({ step: after.step, cars: [], people: before.people });
+    expect(delta).toEqual({ step: after.step, cars: [], people: before.people.map(packPerson) });
   });
 
   it('carries only the fields that changed', () => {
@@ -126,8 +126,8 @@ describe('delta between snapshots', () => {
     const removed = diffSnapshots(withShaft, snapshotOf(state)).delta;
 
     expect(added.shaftsUpserted?.map((shaft) => shaft.id)).toEqual(['s1']);
-    expect(added.cars?.map((view) => view.index)).toEqual([0, 1]);
+    expect(added.cars.map(([, carIndex]) => carIndex)).toEqual([0, 1]);
     expect(DeltaSchema.safeParse(added).success).toBe(true);
-    expect(removed.cars?.map((view) => view.index)).toEqual([0]);
+    expect(removed.cars.map(([, carIndex]) => carIndex)).toEqual([0]);
   });
 });

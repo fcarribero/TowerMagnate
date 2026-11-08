@@ -1,4 +1,4 @@
-import type { Delta, Snapshot } from '@tower-magnate/shared';
+import { packCar, packPerson, type Delta, type Snapshot } from '@tower-magnate/shared';
 
 /** Same JSON means same view, because views are plain data built in a fixed key order. */
 function same(a: unknown, b: unknown): boolean {
@@ -52,12 +52,16 @@ export interface DeltaResult {
 }
 
 /**
- * What changed from `before` to `after`. `cars` and `people` are always complete; the other
+ * What changed from `before` to `after`. `cars` and `people` are always complete and packed; the other
  * fields are present only when they differ. The result is `quiet` when neither those two nor
  * any optional field changed, so the caller can skip it unless a heartbeat is due.
  */
 export function diffSnapshots(before: Snapshot, after: Snapshot): DeltaResult {
-  const delta: Delta = { step: after.step, cars: after.cars, people: after.people };
+  const delta: Delta = {
+    step: after.step,
+    cars: after.cars.map(packCar),
+    people: after.people.map(packPerson),
+  };
   let quiet = same(before.cars, after.cars) && same(before.people, after.people);
 
   const set = <K extends keyof Delta>(key: K, value: Delta[K]) => {
