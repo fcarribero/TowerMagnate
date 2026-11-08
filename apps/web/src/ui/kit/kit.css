@@ -8,6 +8,7 @@
   --tm-sky-deep: #3d6fb6;
   --tm-lamp: #f2d36b;
   --tm-cloth-red: #b0353a;
+  --tm-dusk: #e0875a;
   --tm-ui-scale: 1;
   --tm-px: calc(var(--tm-ui-scale) * 1px);
   --tm-font: 'Tiny5', monospace;

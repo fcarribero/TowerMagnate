@@ -3,13 +3,24 @@ import { useSoundSettings } from '../../audio/useSfx';
 import { t } from '../strings';
 import './menu.css';
 
-export interface GameMenuProps {
-  onRestartTower: () => void;
-  onLogout: () => void;
+export interface MenuItem {
+  id: string;
+  label: string;
+  onSelect: () => void;
 }
 
-export function GameMenu({ onRestartTower, onLogout }: GameMenuProps) {
+export interface GameMenuProps {
+  /** Status bar buttons that did not fit on the bar. */
+  items?: readonly MenuItem[];
+  onLogout?: () => void;
+}
+
+export function GameMenu({ items = [], onLogout }: GameMenuProps) {
   const [open, setOpen] = useState(false);
+  const choose = (action: () => void): void => {
+    setOpen(false);
+    action();
+  };
 
   useEffect(() => {
     if (!open) {
@@ -37,19 +48,21 @@ export function GameMenu({ onRestartTower, onLogout }: GameMenuProps) {
       {open && (
         <div class="game-menu-list" role="menu">
           <SoundItems />
-          <button
-            type="button"
-            role="menuitem"
-            onClick={() => {
-              setOpen(false);
-              onRestartTower();
-            }}
-          >
-            {t('ui.newTower')}
-          </button>
-          <button type="button" role="menuitem" onClick={onLogout}>
-            {t('ui.logout')}
-          </button>
+          {items.map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              role="menuitem"
+              onClick={() => choose(item.onSelect)}
+            >
+              {item.label}
+            </button>
+          ))}
+          {onLogout && (
+            <button type="button" role="menuitem" onClick={() => choose(onLogout)}>
+              {t('ui.logout')}
+            </button>
+          )}
         </div>
       )}
     </div>

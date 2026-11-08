@@ -2,6 +2,7 @@ import {
   clientMessage,
   PROTOCOL_VERSION,
   ServerMessageSchema,
+  TOWER_SOCKET_PATH,
   type ClientMessage,
   type ServerMessage,
 } from '@tower-magnate/shared';
@@ -228,8 +229,8 @@ export class GameSocket {
   }
 }
 
-/** The `/ws` address on the page's own host, which Vite proxies to the server in development. */
+/** The tower socket address on the page's own host, which Vite proxies to the server in development. */
 export function gameSocketUrl(location: Pick<Location, 'protocol' | 'host'>): string {
   const scheme = location.protocol === 'https:' ? 'wss:' : 'ws:';
-  return `${scheme}//${location.host}/ws`;
+  return `${scheme}//${location.host}${TOWER_SOCKET_PATH}`;
 }

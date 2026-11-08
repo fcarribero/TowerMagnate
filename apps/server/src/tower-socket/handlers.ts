@@ -1,21 +1,24 @@
 import { PROTOCOL_VERSION, serverMessage } from '@tower-magnate/shared';
 import { CLOSE_CODES, sendError, sendMessage, type MessageHandlers } from '../gateway';
 import type { TowerRunner } from '../runner';
+import type { DeltaBroadcaster } from './delta-broadcaster';
 import { buildSnapshot } from './snapshot';
 import type { Viewports } from './viewports';
 
 export interface TowerSocketDependencies {
   runner: TowerRunner;
   viewports: Viewports;
+  broadcaster: DeltaBroadcaster;
 }
 
 /**
  * `hello` joins the socket to its tower and answers with a snapshot; a second `hello` on the
- * same socket asks for a fresh one. Deltas and commands come in later tasks.
+ * same socket asks for a fresh one. Deltas follow from the broadcaster; commands come later.
  */
 export function towerSocketHandlers({
   runner,
   viewports,
+  broadcaster,
 }: TowerSocketDependencies): MessageHandlers {
   return {
     hello: async (message, { socket, identity, join }) => {
@@ -28,7 +31,7 @@ export function towerSocketHandlers({
       await runner.resume(identity.towerId);
       const state = runner.stateOf(identity.towerId);
       if (state) {
-        sendMessage(socket, serverMessage('snapshot', buildSnapshot(state, viewports.get(socket))));
+        broadcaster.sendSnapshot(socket, buildSnapshot(state, viewports.get(socket)));
       }
     },
     viewport: (message, { socket }) => {

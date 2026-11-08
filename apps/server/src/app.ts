@@ -8,7 +8,12 @@ import { towerRoutes } from './towers/routes';
 import { createTowerStore, followConnections, TowerRunner } from './runner';
 import { registerAuthRateLimit, registerOriginCheck, registerSecurityHeaders } from './security';
 import { createSnapshotRepository } from './snapshots';
-import { sessionIdentityResolver, towerSocketHandlers, Viewports } from './tower-socket';
+import {
+  DeltaBroadcaster,
+  sessionIdentityResolver,
+  towerSocketHandlers,
+  Viewports,
+} from './tower-socket';
 import { registerWebStatics } from './webStatics';
 
 export interface AppOptions {
@@ -26,6 +31,7 @@ export interface AppOptions {
   heartbeatIntervalMs?: number;
   helloTimeoutMs?: number;
   runnerTickIntervalMs?: number;
+  deltaIntervalMs?: number;
   snapshotIntervalMs?: number;
 }
 
@@ -63,16 +69,20 @@ export function buildApp(options: AppOptions): FastifyInstance {
     });
   }
 
+  const viewports = new Viewports();
+  const broadcaster = new DeltaBroadcaster({ runner, viewports });
   const gateway = registerGateway(app, {
     resolveIdentity: options.resolveSocketIdentity ?? sessionIdentityResolver(pool),
-    handlers: towerSocketHandlers({ runner, viewports: new Viewports() }),
+    handlers: towerSocketHandlers({ runner, viewports, broadcaster }),
     heartbeatIntervalMs: options.heartbeatIntervalMs,
     helloTimeoutMs: options.helloTimeoutMs,
   });
   followConnections(gateway.registry, runner, app.log);
   const stopRunner = runner.start(options.runnerTickIntervalMs);
+  const stopDeltas = broadcaster.start(gateway.registry, options.deltaIntervalMs);
   const stopAutosave = runner.startAutosave(options.snapshotIntervalMs);
   app.addHook('preClose', async () => {
+    stopDeltas();
     stopAutosave();
     stopRunner();
     await runner.shutdown();

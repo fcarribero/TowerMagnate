@@ -12,11 +12,11 @@ import { isMapToggleKey } from './keys';
 import { ConnectionOverlay } from './ConnectionOverlay';
 import { LevelRuler } from './LevelRuler';
 import { StageHost } from './StageHost';
-import './kit';
 import { WindowLayer } from './kit';
-import { GameMenu } from './menu/GameMenu';
 import { RestartTowerDialogs, type RestartStep } from './menu/RestartTowerDialogs';
+import { StatusPanel, type StatusWindowId } from './status/StatusPanel';
 import { debugStarsFromQuery } from './toolbar/debugStars';
+import { t } from './strings';
 import { Toolbar } from './toolbar/Toolbar';
 import { DEFAULT_LOBBY_HEIGHT, DEFAULT_TOOL, type ToolId } from './toolbar/toolbarModel';
 import { TowerMapWindow } from './TowerMapWindow';
@@ -47,7 +47,11 @@ export function App({ onLogout, onRestartTower, onSessionLost }: AppProps) {
   const [lobbyHeight, setLobbyHeight] = useState(DEFAULT_LOBBY_HEIGHT);
   // Replaced by the tower's rating once the game state reaches the client.
   const stars: StarRating = (import.meta.env.DEV && debugStarsFromQuery(location.search)) || 1;
-  const toggleMap = (): void => setMapOpen((open) => !open);
+  const onOpenWindow = (id: StatusWindowId): void => {
+    if (id === 'map') {
+      setMapOpen((open) => !open);
+    }
+  };
   const { playTrigger } = useSfx();
   const onUiClick = (event: MouseEvent): void => {
     if (event.target instanceof Element && event.target.closest('button') !== null) {
@@ -106,12 +110,16 @@ export function App({ onLogout, onRestartTower, onSessionLost }: AppProps) {
       <StageHost onStage={setStage} />
       <div class="ui-layer" onClick={onUiClick}>
         {stage && <LevelRuler stage={stage} />}
-        <div class="status-panel">
-          <GameMenu onRestartTower={() => setRestartStep('first')} onLogout={onLogout} />
-          <button type="button" class="status-button" onClick={toggleMap}>
-            Mapa
-          </button>
-        </div>
+        <StatusPanel
+          store={connection.store}
+          offline={connectionStatus !== 'live'}
+          onOpenWindow={onOpenWindow}
+          onZoom={(direction) => stage?.zoomStep(direction)}
+          onLogout={onLogout}
+          extraMenuItems={[
+            { id: 'newTower', label: t('ui.newTower'), onSelect: () => setRestartStep('first') },
+          ]}
+        />
         <Toolbar
           stars={stars}
           currentTool={tool}

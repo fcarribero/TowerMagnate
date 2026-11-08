@@ -6,6 +6,7 @@ import { SfxProvider } from '../../audio/useSfx';
 import { FakeAudioContext } from '../../testing/fakeAudio';
 import { useFakeLayoutSizes } from '../../testing/fakeLayout';
 import { WindowLayer } from '../kit/WindowLayer';
+import { t } from '../strings';
 import { GameMenu } from './GameMenu';
 import { RestartTowerDialogs, type RestartStep } from './RestartTowerDialogs';
 
@@ -35,7 +36,10 @@ function Harness({ restart, onLogout }: { restart: () => Promise<boolean>; onLog
   };
   return (
     <SfxProvider player={player} settingsStore={{ read: () => null, write: () => {} }}>
-      <GameMenu onRestartTower={() => setStep('first')} onLogout={onLogout} />
+      <GameMenu
+        items={[{ id: 'newTower', label: t('ui.newTower'), onSelect: () => setStep('first') }]}
+        onLogout={onLogout}
+      />
       <WindowLayer>
         <RestartTowerDialogs step={step} onStep={setStep} onRestart={onRestart} />
       </WindowLayer>
