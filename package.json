@@ -16,6 +16,7 @@
     "test": "pnpm art:build && vitest run",
     "test:watch": "vitest",
     "bench:snapshots": "pnpm --filter @tower-magnate/server bench:snapshots",
+    "bench:graph": "tsx scripts/bench-transport-graph.ts",
     "art:build": "pnpm --filter @tower-magnate/art build",
     "stack": "tsx scripts/stack.ts",
     "e2e": "playwright test -c e2e",

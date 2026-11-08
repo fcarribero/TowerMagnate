@@ -103,4 +103,31 @@ describe('delta between snapshots', () => {
 
     expect(needsFreshSnapshot(before, after)).toBe(false);
   });
+
+  it('carries a new shaft and its cars, then drops a removed car', () => {
+    const state = tower();
+    const before = snapshotOf(state);
+    const car = { homeLevel: 1, level: 1, riders: [], paid: 0, placedAtStep: 0 };
+    state.shafts.s1 = {
+      id: 's1',
+      type: 'standard',
+      x: 40,
+      bottom: 1,
+      top: 3,
+      cars: [car, { ...car }],
+      queues: {},
+      paid: 0,
+      placedAtStep: 0,
+    };
+    const withShaft = snapshotOf(state);
+
+    const added = diffSnapshots(before, withShaft).delta;
+    state.shafts.s1.cars.pop();
+    const removed = diffSnapshots(withShaft, snapshotOf(state)).delta;
+
+    expect(added.shaftsUpserted?.map((shaft) => shaft.id)).toEqual(['s1']);
+    expect(added.cars?.map((view) => view.index)).toEqual([0, 1]);
+    expect(DeltaSchema.safeParse(added).success).toBe(true);
+    expect(removed.cars?.map((view) => view.index)).toEqual([0]);
+  });
 });
