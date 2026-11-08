@@ -1,9 +1,13 @@
-import { Texture } from 'pixi.js';
-import { describe, expect, it } from 'vitest';
+import { UNIT_CATALOG } from '@tower-magnate/shared';
+import { Texture, TilingSprite } from 'pixi.js';
+import { describe, expect, it, vi } from 'vitest';
+import { FLOOR_HEIGHT, TILE_WIDTH } from './metrics';
 import { SpriteRegistry } from './spriteRegistry';
 import { levelToIndex, levelTop } from './levels';
 import { UnitLayer } from './unitLayer';
 import type { UnitSource } from './unitPlan';
+
+vi.mock('./overlayChecker', () => ({ checkerTexture: () => new Texture() }));
 
 function layerWith(ids: string[]) {
   const textures: Record<string, Texture> = {};
@@ -23,6 +27,7 @@ const office: UnitSource = {
   x: 4,
   level: 3,
   occupied: false,
+  price: 'normal',
   variant: 'empty',
 };
 
@@ -80,5 +85,29 @@ describe('UnitLayer', () => {
     expect(layer.rectOf('u1')?.y).toBe(levelTop(levelToIndex(3)));
     layer.update({ units: [], transports: [], time: 'day' });
     expect(layer.rectOf('u1')).toBeUndefined();
+  });
+
+  it('draws a checker over a unit under an overlay and removes it in Normal', () => {
+    const { layer } = layerWith(ids);
+    const data = { evaluation: {}, price: {}, hotel: {} };
+    layer.update({ units: [office], transports: [], time: 'day', overlay: { id: 'price', data } });
+    const container = layer.view.children[0];
+    expect(container?.children).toHaveLength(2);
+    expect(container?.children[1]).toBeInstanceOf(TilingSprite);
+    expect(container?.children[1]).toMatchObject({
+      width: UNIT_CATALOG.office.width * TILE_WIDTH,
+      height: FLOOR_HEIGHT,
+    });
+
+    layer.update({ units: [office], transports: [], time: 'day', overlay: { id: 'normal', data } });
+    expect(container?.children).toHaveLength(1);
+  });
+
+  it('covers stairs with a checker under any overlay but Normal', () => {
+    const { layer } = layerWith(['transport/stairs/empty_day', 'transport/stairs/day']);
+    const data = { evaluation: {}, price: {}, hotel: {} };
+    const stairs = { id: 's1', type: 'stairs', x: 0, level: 2 } as const;
+    layer.update({ units: [], transports: [stairs], time: 'day', overlay: { id: 'hotel', data } });
+    expect(layer.view.children[0]?.children.some((c) => c instanceof TilingSprite)).toBe(true);
   });
 });

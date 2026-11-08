@@ -1,7 +1,10 @@
-import { Container, Sprite } from 'pixi.js';
+import type { OverlayData } from '@tower-magnate/shared';
+import { Container, Sprite, TilingSprite } from 'pixi.js';
 import { CulledRows } from './culledRows';
 import type { LevelRange, WorldRect } from './camera';
 import { levelTop } from './levels';
+import { checkerTexture } from './overlayChecker';
+import { overlayColorOf, transportOverlayColor, type OverlayId } from './overlayColors';
 import type { SpriteRegistry } from './spriteRegistry';
 import type { TimeOfDay } from './structurePlan';
 import {
@@ -16,6 +19,8 @@ export interface UnitsInput {
   units: Iterable<UnitSource>;
   transports: Iterable<TransportSource>;
   time: TimeOfDay;
+  /** The active overlay; left out, units are drawn normally. */
+  overlay?: { id: OverlayId; data: OverlayData };
 }
 
 /** The tallest footprint is 4 floors, so a unit can show while its bottom level is just off screen. */
@@ -25,6 +30,7 @@ interface DrawnUnit {
   sprite: Sprite;
   container: Container;
   textureId: string;
+  checker: TilingSprite | null;
 }
 
 /**
@@ -44,13 +50,15 @@ export class UnitLayer {
   update(input: UnitsInput): void {
     const drawings: UnitDrawing[] = [];
     for (const unit of input.units) {
-      const drawing = planUnit(unit, input.time);
+      const color = input.overlay && overlayColorOf(input.overlay.id, unit, input.overlay.data);
+      const drawing = planUnit(unit, input.time, color);
       if (drawing !== null) {
         drawings.push(drawing);
       }
     }
     for (const transport of input.transports) {
-      drawings.push(planTransport(transport, input.time));
+      const color = input.overlay && transportOverlayColor(input.overlay.id);
+      drawings.push(planTransport(transport, input.time, color));
     }
     this.removeMissing(new Set(drawings.map((drawing) => drawing.id)));
     this.rects.clear();
@@ -80,6 +88,7 @@ export class UnitLayer {
     for (const [id, entry] of this.drawn) {
       if (!keep.has(id)) {
         entry.sprite.destroy();
+        entry.checker?.destroy();
         this.drawn.delete(id);
       }
     }
@@ -98,6 +107,7 @@ export class UnitLayer {
       existing.container = container;
     }
     this.place(existing.sprite, drawing);
+    this.showChecker(existing, drawing);
     if (existing.textureId !== textureId) {
       existing.sprite.texture = this.sprites.variant(drawing.subject, drawing.variant);
       existing.textureId = textureId;
@@ -109,7 +119,28 @@ export class UnitLayer {
     const container = this.containerFor(drawing.bottomIndex);
     container.addChild(sprite);
     this.place(sprite, drawing);
-    return { sprite, container, textureId };
+    const entry: DrawnUnit = { sprite, container, textureId, checker: null };
+    this.showChecker(entry, drawing);
+    return entry;
+  }
+
+  /** The checker sits right above its sprite, so it is culled with it. */
+  private showChecker(entry: DrawnUnit, drawing: UnitDrawing): void {
+    if (drawing.overlay === null) {
+      entry.checker?.destroy();
+      entry.checker = null;
+      return;
+    }
+    if (entry.checker === null) {
+      entry.checker = new TilingSprite({ texture: checkerTexture(drawing.overlay) });
+    }
+    const checker = entry.checker;
+    checker.texture = checkerTexture(drawing.overlay);
+    checker.position.set(drawing.x, drawing.y);
+    checker.width = drawing.width;
+    checker.height = drawing.height;
+    entry.container.addChild(checker);
+    entry.container.setChildIndex(checker, entry.container.children.length - 1);
   }
 
   /** Placeholders are one tile big, so every sprite is sized to the footprint. */
