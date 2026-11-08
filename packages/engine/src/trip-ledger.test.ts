@@ -29,6 +29,30 @@ const engine = createEngine({
   systems: [createTrekSystem(), createElevatorSystem()],
 });
 
+function stressTraceInOneCall(start: TowerState, id: number, steps: number): number[] {
+  const trace: number[] = [];
+  const tracing = createEngine({
+    commandHandlers: {},
+    systems: [
+      createTrekSystem(),
+      createElevatorSystem(),
+      ({ state }) => trace.push(findPerson(state.people, id)?.stress ?? -1),
+    ],
+  });
+  tracing.step(start, [], steps);
+  return trace;
+}
+
+function stressTraceStepByStep(start: TowerState, id: number, steps: number): number[] {
+  const trace: number[] = [];
+  let state = start;
+  for (let count = 0; count < steps; count++) {
+    state = engine.step(state, [], 1).state;
+    trace.push(findPerson(state.people, id)?.stress ?? -1);
+  }
+  return trace;
+}
+
 const walkingOnly = createEngine({ commandHandlers: {}, systems: [createTrekSystem()] });
 
 const SHAFT_COLUMN = 62;
@@ -104,6 +128,25 @@ describe('trip ledger', () => {
     const id = sendRider(state, 'officeWorker', 4);
     const waiting = engine.step(state, [], 3).state;
     expect(findPerson(waiting.people, id)?.stress).toBe(3);
+  });
+
+  it('keeps the stress of a waiting and riding person exact within one long step call', () => {
+    const state = buildRideTower();
+    const id = sendRider(state, 'officeWorker', 4);
+    state.tripLedger[String(id)] = [state.step, 7];
+    const inOneCall = stressTraceInOneCall(state, id, 40);
+    expect(inOneCall).toEqual(stressTraceStepByStep(state, id, 40));
+    expect(new Set(inOneCall).size).toBeGreaterThan(3);
+  });
+
+  it('drops a trip that leaves the week window while the person waits', () => {
+    const state = buildRideTower();
+    state.step = STRESS_WINDOW_STEPS + 100;
+    const id = sendRider(state, 'officeWorker', 4);
+    state.tripLedger[String(id)] = [state.step - STRESS_WINDOW_STEPS + 2, 300];
+    const inOneCall = stressTraceInOneCall(state, id, 6);
+    expect(inOneCall).toEqual(stressTraceStepByStep(state, id, 6));
+    expect(inOneCall.at(-1)).toBeLessThan(10);
   });
 
   it('counts one full-queue event and the time beside the full queue as wait', () => {

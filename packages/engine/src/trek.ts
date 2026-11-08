@@ -536,6 +536,80 @@ function stressMayHaveMoved(
 /** Graphs are rebuilt when the tower changes, so each new graph gets one sweep for broken legs. */
 const sweptGraphs = new WeakSet<TransportGraph>();
 
+/** The stored stress of a queued or riding person and what it was computed from. */
+interface StressCheckpoint {
+  phase: number;
+  stress: number;
+  tripSum: number;
+  partStep: number;
+  partCut: number;
+  ledger: readonly number[] | undefined;
+  /** First step at which the stress can change if none of the above does. */
+  holdsUntil: number;
+}
+
+/** Checkpoints by person id, kept for the pool of one engine step call. */
+const stressCheckpoints = new WeakMap<PersonPool, Map<number, StressCheckpoint>>();
+
+function checkpointsOf(pool: PersonPool): Map<number, StressCheckpoint> {
+  let checkpoints = stressCheckpoints.get(pool);
+  if (!checkpoints) {
+    checkpoints = new Map();
+    stressCheckpoints.set(pool, checkpoints);
+  }
+  return checkpoints;
+}
+
+function ledgerOf(context: StepContext, slot: number): readonly number[] | undefined {
+  return context.state.tripLedger[String(context.state.people.id[slot])];
+}
+
+function stressStillHolds(
+  context: StepContext,
+  slot: number,
+  checkpoint: StressCheckpoint,
+): boolean {
+  const pool = context.state.people;
+  return (
+    context.state.step < checkpoint.holdsUntil &&
+    pool.trek[slot] === checkpoint.phase &&
+    pool.stress[slot] === checkpoint.stress &&
+    pool.tripSum[slot] === checkpoint.tripSum &&
+    pool.tripPartStep[slot] === checkpoint.partStep &&
+    pool.tripPartCut[slot] === checkpoint.partCut &&
+    ledgerOf(context, slot) === checkpoint.ledger
+  );
+}
+
+/**
+ * Refreshes the stress of a person on a trip. A queued or riding person's stress grows by a
+ * known amount each step, so it is only recomputed on the step it can change.
+ */
+function refreshTravellerStress(context: StepContext, slot: number): void {
+  const pool = context.state.people;
+  const phase = pool.trek[slot] as number;
+  const part = partUnderWay(phase);
+  const steady = phase === QUEUED || phase === RIDING;
+  const checkpoints = checkpointsOf(pool);
+  const personId = pool.id[slot] as number;
+  const checkpoint = checkpoints.get(personId);
+  if (steady && checkpoint && stressStillHolds(context, slot, checkpoint)) return;
+  const holdsUntil = refreshPersonStress(context.state, slot, true, part);
+  if (!steady) {
+    checkpoints.delete(personId);
+    return;
+  }
+  checkpoints.set(personId, {
+    phase,
+    stress: pool.stress[slot] as number,
+    tripSum: pool.tripSum[slot] as number,
+    partStep: pool.tripPartStep[slot] as number,
+    partCut: pool.tripPartCut[slot] as number,
+    ledger: ledgerOf(context, slot),
+    holdsUntil,
+  });
+}
+
 function stepPerson(context: StepContext, slot: number): void {
   const pool = context.state.people;
   const phase = pool.trek[slot] as number;
@@ -571,8 +645,7 @@ export function createTrekSystem(): SimulationSystem {
       };
       stepPerson(context, slot);
       if (isOnTrek(pool, slot) && stressMayHaveMoved(pool, slot, before)) {
-        const part = partUnderWay(pool.trek[slot] as number);
-        refreshPersonStress(context.state, slot, true, part);
+        refreshTravellerStress(context, slot);
       }
     }
   };
