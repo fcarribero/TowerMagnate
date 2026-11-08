@@ -7,6 +7,7 @@ import {
   VERSION_3_SAVE,
   VERSION_4_SAVE,
   VERSION_5_SAVE,
+  VERSION_7_SAVE,
 } from './fixtures';
 import { migrateState, StateMigrationError } from './index';
 
@@ -225,5 +226,24 @@ describe('migrateState transports', () => {
     expect(tower.activeEvents).toEqual([]);
     expect(tower.closedDecisions).toEqual([]);
     expect(tower.treasureLevels).toEqual([]);
+  });
+});
+
+describe('migrateState star rating', () => {
+  it('starts a version 7 save at 1 star with no VIP and no failures', () => {
+    const tower = migrateState(JSON.parse(VERSION_7_SAVE));
+    expect(tower.schemaVersion).toBe(SCHEMA_VERSION);
+    expect(tower).toMatchObject({
+      stars: 1,
+      vipApproved: false,
+      lastMedicalFailureStep: null,
+      lastParkingFailureStep: null,
+    });
+  });
+
+  it('keeps a saved rating and refuses one out of range', () => {
+    const tower = createTower(5);
+    expect(migrateState({ ...tower, stars: 4 }).stars).toBe(4);
+    expect(() => migrateState({ ...tower, stars: 7 })).toThrow(StateMigrationError);
   });
 });

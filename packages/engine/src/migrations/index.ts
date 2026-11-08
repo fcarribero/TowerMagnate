@@ -6,6 +6,7 @@ import {
   type ElevatorCar,
   type Lease,
   type RngState,
+  type StarRating,
   type Shaft,
   type ShaftId,
   type TowerState,
@@ -32,6 +33,7 @@ const MIGRATIONS: readonly Migration[] = [
   addTransportRecord,
   addEventState,
   addPersonPool,
+  addStarState,
 ];
 
 /** Version 2 records each unit's price level, what was paid for it and when it was placed. */
@@ -96,6 +98,18 @@ const EMPTY_VERSION_7_PEOPLE = {
 /** Version 7 saves the person pool; older saves could only load without people. */
 function addPersonPool(raw: Record<string, unknown>): Record<string, unknown> {
   return { people: EMPTY_VERSION_7_PEOPLE, ...raw, schemaVersion: 7 };
+}
+
+/** Version 8 keeps the tower rating. Earlier towers could not rise, so they start at 1 star. */
+function addStarState(raw: Record<string, unknown>): Record<string, unknown> {
+  return {
+    stars: 1,
+    vipApproved: false,
+    lastMedicalFailureStep: null,
+    lastParkingFailureStep: null,
+    ...raw,
+    schemaVersion: 8,
+  };
 }
 
 function isUint32(value: unknown): value is number {
@@ -253,6 +267,33 @@ function assertCurrentShape(raw: Record<string, unknown>): TowerState {
     activeEvents: readActiveEvents(raw.activeEvents),
     closedDecisions: readClosedDecisions(raw.closedDecisions),
     treasureLevels: readTreasureLevels(raw.treasureLevels),
+    ...readStarState(raw),
+  };
+}
+
+type StarState = Pick<
+  TowerState,
+  'stars' | 'vipApproved' | 'lastMedicalFailureStep' | 'lastParkingFailureStep'
+>;
+
+function readStarState(raw: Record<string, unknown>): StarState {
+  const { stars, vipApproved, lastMedicalFailureStep, lastParkingFailureStep } = raw;
+  if (!Number.isInteger(stars) || (stars as number) < 1 || (stars as number) > 6) {
+    throw new StateMigrationError('State stars must be a whole number from 1 to 6');
+  }
+  if (typeof vipApproved !== 'boolean') {
+    throw new StateMigrationError('State vipApproved must be true or false');
+  }
+  for (const failure of [lastMedicalFailureStep, lastParkingFailureStep]) {
+    if (failure !== null && !isNonNegativeInteger(failure)) {
+      throw new StateMigrationError('State failure steps must be null or non-negative integers');
+    }
+  }
+  return {
+    stars: stars as StarRating,
+    vipApproved,
+    lastMedicalFailureStep: lastMedicalFailureStep as number | null,
+    lastParkingFailureStep: lastParkingFailureStep as number | null,
   };
 }
 

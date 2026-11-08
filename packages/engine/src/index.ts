@@ -80,6 +80,7 @@ export {
 export type { NewPerson, PersonHandler, PersonView } from './people';
 export { chance, createRng, nextFloat, nextInt, nextUint32 } from './rng';
 export { createScheduler } from './scheduler';
+export { runStarCheck, starCheckHook } from './stars';
 export type { HookOccurrence, HookSchedule, ScheduledHook, TimeOfDay } from './scheduler';
 export { deserializeState, serializeState } from './serialization';
 export { cloneState, createTower, SCHEMA_VERSION } from './state';

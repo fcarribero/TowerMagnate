@@ -2,7 +2,7 @@ import type { Ledger } from './ledger';
 import type { Level } from './levels';
 import type { DecisionKind, TransportType } from './protocol/primitives';
 import type { PersonPool } from './people';
-import type { PriceLevel, ShaftType, UnitType } from './units';
+import type { PriceLevel, ShaftType, StarRating, UnitType } from './units';
 
 /** Id of a placed unit, transport or shaft, with a type prefix: `u12`, `t3`, `s4`. */
 export type EntityId = string;
@@ -142,6 +142,14 @@ export interface TowerState {
   closedDecisions: EventId[];
   /** Basement levels that have already given treasure. */
   treasureLevels: Level[];
+  /** Tower rating, 1 to 6 (6 is the Torre rank). Never goes down. */
+  stars: StarRating;
+  /** Set when a VIP visit that started at 3 stars ends approved. */
+  vipApproved: boolean;
+  /** Step of the last medical visit that failed; null if none yet. */
+  lastMedicalFailureStep: number | null;
+  /** Step of the last parking failure; null if none yet. */
+  lastParkingFailureStep: number | null;
 }
 
 /** Id of a tower event, such as `e7`. */
@@ -183,6 +191,7 @@ export type EngineEvent =
       name: string | null;
     }
   | { type: 'leaseSigned' | 'leaseRenewed' | 'leaseEnded'; step: number; unitId: UnitId }
+  | { type: 'starsChanged'; step: number; stars: StarRating; unlocked: UnitType[] }
   | {
       type: 'decisionOpened';
       step: number;
