@@ -1,4 +1,5 @@
 import { PixelCanvas } from '../canvas.mjs';
+import { allIcons } from '../icons/index.mjs';
 import { metrics } from '../metrics.mjs';
 
 const { floorHeight, slabHeight } = metrics;
@@ -40,6 +41,7 @@ export const uiGroup = {
       { id: 'ui/ruler-background', canvas: rulerBackground() },
       { id: 'ui/ruler-plate', canvas: rulerPlate({ hovered: false }) },
       { id: 'ui/ruler-plate-hover', canvas: rulerPlate({ hovered: true }) },
+      ...allIcons(),
     ];
   },
 };
