@@ -280,7 +280,7 @@ Events caused by a player command carry that command's id in `commandId`. A hand
 
 `MoneyReason` uses the ledger category ids of economy.md section 9.1: `rent`, `hotel`, `condoSales`, `venues`, `events`, `construction`, `upkeep`, `condoBuybacks`, `films`. The finance window and `FinanceSummary` use the same ids, so nothing needs mapping. A demolition refund is a positive `construction` entry. Ransom, helicopter and treasure amounts go under `events`.
 
-`news` carries a key, not text. The client looks up the Spanish text. `sound` events let the client play construction, cash register, alarms and bells at the right place; the elevator sound is driven by car state on the client.
+`news` carries a key, not text. The client looks up the Spanish text. The engine event also carries the values its text fills in (`level`, `amount`, `n`, or `choice` for `news.decisionDefault`); the notice keeps them, and the server sends them in `params` of both the `news` client event and `NoticeView`, already as text where messages.md asks for it: `level` as the ruler label ("12", "S3") and `amount` as money text ("$50.000"). `sound` events let the client play construction, cash register, alarms and bells at the right place; the elevator sound is driven by car state on the client.
 
 ## 8. Wire protocol
 
