@@ -52,6 +52,7 @@ import { DecisionDialogs } from './notices/DecisionDialogs';
 import { NewsLine } from './notices/NewsLine';
 import { useNotices } from './notices/useNotices';
 import { Toasts } from './toast/Toasts';
+import { ElevatorWindows } from './elevator/ElevatorWindows';
 import { UnitWindows } from './unit/UnitWindows';
 
 export interface AppProps {
@@ -186,9 +187,10 @@ export function App({ onLogout, onRestartTower, onSessionLost }: AppProps) {
     if (stage === null || tool !== 'inspect') {
       return;
     }
-    return bindUnitClicks(stage, connection.store, (unitId) =>
-      connection.inspect.requestUnitWindow(unitId),
-    );
+    return bindUnitClicks(stage, connection.store, {
+      unit: (unitId) => connection.inspect.requestUnitWindow(unitId),
+      shaft: (shaftId) => connection.inspect.requestShaftWindow(shaftId),
+    });
   }, [stage, connection, tool]);
 
   useEffect(() => {
@@ -355,6 +357,7 @@ export function App({ onLogout, onRestartTower, onSessionLost }: AppProps) {
             onAnswer={notices.answerEvent}
             closedIds={notices.closedIds}
           />
+          <ElevatorWindows connection={connection} />
           <RestartTowerDialogs
             step={restartStep}
             onStep={setRestartStep}
