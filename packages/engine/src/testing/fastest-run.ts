@@ -22,3 +22,8 @@ export function medianRunMillis(work: () => void, runs = 3): number {
   times.sort((a, b) => a - b);
   return times[Math.floor(times.length / 2)] as number;
 }
+
+export function medianOf(values: readonly number[]): number {
+  const sorted = [...values].sort((a, b) => a - b);
+  return sorted[Math.floor(sorted.length / 2)] as number;
+}
