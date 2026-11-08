@@ -4,7 +4,7 @@ import type { GameState } from '../model/gameState';
 import type { OverlayId } from './overlayColors';
 import { fullWidthTestTower } from './structureSource';
 import type { StructureInput } from './structureRows';
-import { stepAtHour, timeOfDayAt } from './timeOfDay';
+import { skyTimeAt, stepAtHour, timeOfDayAt, type SkyTime } from './timeOfDay';
 import type { UnitsInput } from './unitLayer';
 import { isPlacedUnit, type TransportSource } from './unitPlan';
 
@@ -41,6 +41,11 @@ export function bindUnits(
         overlay: { id: overlay, data: selected.overlays },
       }),
   );
+}
+
+/** Feeds `show` the sky time, and only when it changes. */
+export function bindSky(store: ClientStore, show: (time: SkyTime) => void): () => void {
+  return store.select((state) => skyTimeAt(state.step), show);
 }
 
 const DEBUG_ROW_SPACING = 5;
