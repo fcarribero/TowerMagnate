@@ -4,6 +4,17 @@ import { isRecord, StateMigrationError } from './errors';
 
 const SLOT_FIELDS = ['kind', 'homeUnit', 'level', 'column', 'trip', 'dueStep', 'nameSeed'] as const;
 
+const TREK_FIELDS = [
+  'trek',
+  'trekLevel',
+  'trekColumn',
+  'trekBudget',
+  'legVia',
+  'legLevel',
+  'legColumn',
+  'legStep',
+] as const;
+
 function isIntegerArray(value: unknown): value is number[] {
   return Array.isArray(value) && value.every((item) => Number.isInteger(item));
 }
@@ -61,6 +72,13 @@ export function readPeople(raw: unknown): PersonPool {
   pool.stress = raw.stress.slice();
   if (!pool.kind.every((kind) => kind >= 0 && kind < PERSON_KINDS.length)) {
     fail('kind must index PERSON_KINDS');
+  }
+  for (const field of TREK_FIELDS) {
+    const values = raw[field];
+    if (!isIntegerArray(values) || values.length !== id.length) {
+      fail(`${field} must hold one integer per person`);
+    }
+    pool[field] = values.slice();
   }
   pool.followed = readFollowed(raw.followed, id);
   return pool;

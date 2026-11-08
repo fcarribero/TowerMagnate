@@ -51,6 +51,26 @@ describe('reading the person pool', () => {
     expect(people.followed).toEqual([3]);
   });
 
+  it('gives every person of an older save an idle trip', () => {
+    const { people } = migrateState(JSON.parse(VERSION_7_SAVE));
+    expect(people.trek).toEqual([0, 0]);
+    expect(people.trekBudget).toEqual([0, 0]);
+    expect(people.legStep).toEqual([0, 0]);
+  });
+
+  it('keeps the trip of a person who is walking when the tower is saved', () => {
+    const tower = towerWithPeople(2);
+    tower.people.trek[1] = 2;
+    tower.people.trekLevel[1] = 5;
+    tower.people.trekColumn[1] = 40;
+    tower.people.trekBudget[1] = 9;
+    tower.people.legVia[1] = 12;
+    tower.people.legLevel[1] = 3;
+    tower.people.legColumn[1] = 24;
+    tower.people.legStep[1] = 77;
+    expect(deserializeState(serializeState(tower)).people).toEqual(tower.people);
+  });
+
   it('refuses a current save without a pool', () => {
     const saved: Record<string, unknown> = JSON.parse(serializeState(createTower(1)));
     delete saved.people;

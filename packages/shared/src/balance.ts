@@ -557,6 +557,11 @@ export const ROUTE_RIDE_COST = 500;
 export const ROUTE_STAIR_LEG_COST = 600;
 export const ROUTE_TRANSFER_COST = 2_500;
 
+/** Movement times per routing.md section 8.1, in steps. */
+export const WALK_COLUMNS_PER_STEP = 1;
+export const STAIR_FLIGHT_STEPS = 12;
+export const ESCALATOR_FLIGHT_STEPS = 6;
+
 /** Limits for one trip (routing section 5.2). */
 export const MAX_STAIR_FLOORS_PER_TRIP = 3;
 export const MAX_ESCALATOR_FLOORS_PER_TRIP = 7;

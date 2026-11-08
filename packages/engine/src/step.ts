@@ -18,7 +18,8 @@ import { cloneState } from './state';
 import { ledgerWeekRollHook } from './money';
 import { createOfficeRoutine, straightLineRoutes } from './office-routine';
 import { createScheduler } from './scheduler';
-import { TransportGraph } from './routing';
+import { createTrekSystem } from './trek';
+import { TransportGraph, type ShaftStops } from './routing';
 import { starCheckHook } from './stars';
 import { weeklyUpkeepHook } from './upkeep';
 
@@ -34,6 +35,8 @@ export interface StepResult {
 export interface StepContext {
   state: TowerState;
   events: EngineEvent[];
+  /** The graph of the tower for this step; systems that need one build it when it is missing. */
+  graph?: TransportGraph;
 }
 
 /** What a command handler may change: only the working copy of the tower. */
@@ -75,6 +78,10 @@ const GRAPH_COMMANDS: ReadonlySet<string> = new Set([
   'demolish',
   'configureShaft',
 ]);
+
+function shaftStops(state: TowerState): ShaftStops {
+  return new Map(Object.values(state.shafts).map((shaft) => [shaft.id, shaft.stops]));
+}
 
 export interface EngineRules {
   commandHandlers: CommandHandlers;
@@ -157,7 +164,9 @@ export function createEngine(rules: EngineRules): Engine {
     const changesGraph = results.some(
       (result, index) => result.ok && GRAPH_COMMANDS.has(commandTypeOf(commands[index])),
     );
-    const currentGraph = graph && !changesGraph ? graph : new TransportGraph(context.state);
+    const currentGraph =
+      graph && !changesGraph ? graph : new TransportGraph(context.state, shaftStops(context.state));
+    context.graph = currentGraph;
     for (let count = 0; count < steps; count++) {
       advanceOneStep(context);
     }
@@ -181,6 +190,7 @@ const towerEngine = createEngine({
     createLeaseSystem(),
     createHotelSystem(),
     createCondoSystem(),
+    createTrekSystem(),
     officeRoutine.system,
     createElevatorSystem(),
     createScheduler([starCheckHook]),
