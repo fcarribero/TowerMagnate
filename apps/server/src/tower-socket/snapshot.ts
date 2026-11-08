@@ -25,6 +25,8 @@ import {
   type Shaft,
   type ShaftView,
   type Snapshot,
+  type Transport,
+  type TransportView,
   type TowerState,
   type UnitView,
   type Viewport,
@@ -66,7 +68,7 @@ export function buildSnapshot(state: TowerState, viewport: Viewport | null): Sna
       mainLobbyHeight: state.grid.mainLobbyHeight,
     },
     units,
-    transports: [],
+    transports: Object.values(state.transports).map(transportView),
     shafts: Object.values(state.shafts).map(shaftView),
     cars: Object.values(state.shafts).flatMap(carViews),
     people: viewport ? people.filter((person) => isInside(person, viewport)).map(personView) : [],
@@ -93,6 +95,10 @@ function unitView(unit: TowerState['units'][string], occupied: boolean): UnitVie
     occupied,
     variant: occupied ? 'occupied' : 'empty',
   };
+}
+
+function transportView(transport: Transport): TransportView {
+  return { id: transport.id, type: transport.type, x: transport.x, level: transport.level };
 }
 
 function shaftView(shaft: Shaft): ShaftView {
