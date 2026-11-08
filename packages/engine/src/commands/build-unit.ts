@@ -15,6 +15,7 @@ import {
 } from '@tower-magnate/shared';
 import { addOccupant, isSpanFree, levelError, setStructure, structureAt } from '../grid';
 import type { CommandHandler } from '../step';
+import { escalatorLevels, isEscalatorUnit } from './escalator-floors';
 import { newUnit } from '../units';
 import {
   columnRuns,
@@ -143,6 +144,11 @@ export const buildUnit: CommandHandler<'buildUnit'> = (context, command) => {
   }
   if (!isFootprintSupported(grid, footprint)) {
     return { ok: false, error: 'NO_SUPPORT' };
+  }
+
+  const onEscalatorLevel = footprint.levels.some((row) => escalatorLevels(state).has(row));
+  if (onEscalatorLevel && !isEscalatorUnit(definition.type)) {
+    return { ok: false, error: 'ESCALATOR_FLOOR_TYPE' };
   }
 
   const newFloor = autoFloorColumns(grid, footprint);
