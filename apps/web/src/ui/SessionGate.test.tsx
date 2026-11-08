@@ -14,6 +14,7 @@ function fakeApi(check: SessionCheck): AuthApi {
     login: vi.fn(async () => ({ ok: true as const, user })),
     register: vi.fn(async () => ({ ok: true as const, user })),
     logout: vi.fn(async () => {}),
+    ensureTower: vi.fn(async () => true),
   };
 }
 
@@ -56,6 +57,23 @@ describe('SessionGate', () => {
     await ui.type(screen.getByLabelText('Contraseña'), 'secreto123{Enter}');
 
     expect(await screen.findByText('Juego de ana_42')).toBeTruthy();
+  });
+
+  it('makes sure the account has a tower before opening the game', async () => {
+    const api = fakeApi({ status: 'signedIn', user });
+    renderGate(api);
+    await screen.findByText('Juego de ana_42');
+    expect(api.ensureTower).toHaveBeenCalledTimes(1);
+  });
+
+  it('stays out of the game with a notice when the tower cannot be set up', async () => {
+    const api = fakeApi({ status: 'signedIn', user });
+    api.ensureTower = vi.fn(async () => false);
+    renderGate(api);
+    expect((await screen.findByRole('status')).textContent).toBe(
+      'No se pudo conectar. Probá de nuevo.',
+    );
+    expect(screen.queryByText('Juego de ana_42')).toBeNull();
   });
 
   it('logs out and returns to the login screen', async () => {

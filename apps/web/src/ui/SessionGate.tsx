@@ -25,6 +25,15 @@ export interface SessionGateProps {
 export function SessionGate({ api, children }: SessionGateProps) {
   const [session, setSession] = useState<Session>({ status: 'checking' });
 
+  const enterGame = (user: AuthUser): void => {
+    setSession({ status: 'checking' });
+    void api.ensureTower().then((ready) => {
+      setSession(
+        ready ? { status: 'signedIn', user } : { status: 'signedOut', notice: 'auth.networkError' },
+      );
+    });
+  };
+
   useEffect(() => {
     let cancelled = false;
     void api.currentUser().then((check) => {
@@ -32,7 +41,7 @@ export function SessionGate({ api, children }: SessionGateProps) {
         return;
       }
       if (check.status === 'signedIn') {
-        setSession({ status: 'signedIn', user: check.user });
+        enterGame(check.user);
       } else if (check.status === 'unreachable') {
         setSession({ status: 'signedOut', notice: 'auth.networkError' });
       } else {
@@ -53,7 +62,7 @@ export function SessionGate({ api, children }: SessionGateProps) {
       <AuthScreen
         api={api}
         notice={session.notice}
-        onSignedIn={(user) => setSession({ status: 'signedIn', user })}
+        onSignedIn={enterGame}
       />
     );
   }
