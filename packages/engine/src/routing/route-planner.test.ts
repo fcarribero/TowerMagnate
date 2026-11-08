@@ -47,7 +47,7 @@ function fillQueue(state: TowerState, shaftId: string, level: Level, direction: 
   const shaft = state.shafts[shaftId] as Shaft;
   const queue = (shaft.queues[String(level)] ??= { up: [], down: [] });
   for (let index = 0; index < ELEVATOR_QUEUE_CAPACITY; index++) {
-    queue[direction].push({ person: `p${index}`, joinedStep: 0 });
+    queue[direction].push({ person: `p${index}`, destination: level, joinedStep: 0 });
   }
 }
 
