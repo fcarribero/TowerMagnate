@@ -14,6 +14,7 @@ import { creditMoney } from './money';
 import { nextInt } from './rng';
 import type { SimulationSystem, StepContext } from './step';
 import { unitNumber } from './units';
+import { clearUnitLedger, storeGrade } from './unit-evaluation';
 
 type RoomType = keyof typeof HOTEL_NIGHTLY_PRICE;
 type RoomUnit = Unit & { type: RoomType; hotel: NonNullable<Unit['hotel']> };
@@ -80,6 +81,9 @@ export function checkIn(context: StepContext, roomId: UnitId): CheckInResult {
     nights * HOTEL_NIGHTLY_PRICE[room.type][room.priceLevel],
   );
   room.hotel.stayEndStep = stayEndStep(step, nights);
+  room.hotel.checkInStep = step;
+  room.hotel.paidLevel = room.priceLevel;
+  clearUnitLedger(context.state, room.id);
   room.used = true;
   context.events.push({ type: 'hotelCheckIn', step, unitId: room.id, nights, paid });
   setRoomState(context, room, 'occupied');
@@ -87,6 +91,7 @@ export function checkIn(context: StepContext, roomId: UnitId): CheckInResult {
 }
 
 function checkOut(context: StepContext, room: RoomUnit): void {
+  storeGrade(context.state, room);
   room.hotel.stayEndStep = null;
   context.events.push({ type: 'hotelCheckOut', step: context.state.step, unitId: room.id });
   setRoomState(context, room, 'dirty');
