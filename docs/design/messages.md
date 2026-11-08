@@ -179,6 +179,48 @@ The dialogs of ui.md section 9. Decision dialogs are opened by `decisionOpened` 
 
 The `NOT_AUTHENTICATED` notice above the login form is `error.NOT_AUTHENTICATED` (ui.md 13.8), and the rejected-answer toast is `error.EVENT_EXPIRED`; neither is part of this catalog.
 
+### 11.1 Event dialogs
+
+Three engine events open dialogs on the client: `weddingCompleted`, `starsChanged` and `decisionOpened`. Each row gives the event, its trigger, the dialog keys, the placeholders and where each value comes from, and the sound. TM-177 builds the information dialogs and TM-173 the decision dialogs from this section.
+
+| Event | Dialog id | Opens when | Title key | Body key | Buttons | Sound |
+|---|---|---|---|---|---|---|
+| `starsChanged` | `starsUp` | `stars` is 2, 3, 4 or 5 | `dialog.starsUp.title` | `dialog.starsUp.body` | `ui.accept` | none of its own; `news.starsUp` plays `notification` |
+| `weddingCompleted` | `towerRank` | the event arrives | `dialog.towerRank.title` | `dialog.towerRank.body` | `ui.accept` | `wedding-bells`, trigger `event.wedding` (sound.md SND-06) |
+| none (first snapshot of a new tower) | `welcome` | a snapshot arrives with `step` 0 | `dialog.welcome.title` | `dialog.welcome.body` | `ui.accept` | none |
+| `decisionOpened` | `bomb` or `fire`, the event `kind` | the event arrives | `dialog.{kind}.title` | `dialog.{kind}.body` | `dialog.{kind}.{option}` for each id in `options` | `bomb-alarm` or `fire-alarm`, trigger `event.bomb` or `event.fire` (sound.md SND-01, SND-02) |
+
+Placeholders and their source:
+
+| Dialog | Placeholder | Source | Shown as |
+|---|---|---|---|
+| `starsUp` title and body | `{n}` | `starsChanged.stars` | the number, "3" |
+| `starsUp` body | `{units}` | every catalog unit whose `unlockStars` equals `stars` (construction.md 4), in catalog order | `unit.{id}` texts joined with ", " |
+| `towerRank` | none | | |
+| `welcome` | none | | |
+| `bomb` body and `dialog.bomb.pay` | `{ransom}` | `params.ransom` of `decisionOpened` | money format, "$300.000" |
+| `fire` body | `{level}` | `params.level` of `decisionOpened` | level label, "12" |
+| deadline line | `{time}`, `{weekday}` | `deadlineStep` of `decisionOpened` | ui.md 9.1 |
+
+The `decisionOpened` event in `packages/shared` and in `docs/tech/engine-and-protocol.md` has no `params` today, and the client cannot work out the ransom or the fire level from the snapshot (events.md 4.3 fixes the ransom when the threat opens). `decisionOpened` gains `params`: `{ ransom: number }` for `bomb` and `{ level: number }` for `fire`, with the values of events.md 4.3 and 5.2. TM-173 adds the field to the engine event, the `ClientEvent` schema and the snapshot's open decision, so a reload shows the same dialog.
+
+Units unlocked by each `starsChanged` value, as `{units}` shows them:
+
+| `stars` | `{units}` |
+|---|---|
+| 2 | Habitación simple, Habitación doble, Suite, Limpieza, Seguridad |
+| 3 | Restaurante, Local comercial, Cine, Salón de fiestas, Centro médico, Rampa de estacionamiento, Cochera, Centro de reciclaje |
+| 4 | Estación de subte |
+| 5 | Catedral |
+
+So the dialog for 4 stars reads "La torre llegó a 4 estrellas. Ahora podés construir: Estación de subte." The client builds the list from the catalog, so a change to a Stars value in construction.md 4 changes the dialog and this table must follow.
+
+Rating 6 (Torre) comes from the wedding. The engine emits `starsChanged` with `stars` 6 and `weddingCompleted` in the same step; the client opens only the `towerRank` dialog and `news.towerRank` is the only star notice (`news.starsUp` is not emitted for 6). The Estrellas window and the status panel still update from `starsChanged`.
+
+If several dialogs are due in the same step they open one after another, in the order `starsUp`, `towerRank`, and a decision dialog is never queued behind an information dialog: it opens at once and the information dialog waits until it closes (ui.md 9.1, always above every other window).
+
+The welcome dialog opens when the first snapshot of a session has `step` 0, which is a new tower or one restarted with `newTower`. It opens once per session and closes with "Aceptar". The dollar amount in its body is the starting cash of `packages/shared` ($2.000.000).
+
 ## 12. Changes to other specs
 
 - people.md 21 keys move from `notice.*` to `news.*`; texts unchanged.
@@ -223,3 +265,15 @@ MSG-16. `news.decisionDefault` shows the text of the applied option's button: "N
 MSG-17. Every dialog text of ui.md section 9 has a key and text in section 11, and the button order and defaults follow ui.md 9.1 and 9.3.
 
 MSG-18. `MESSAGE_IDS` in `packages/shared` lists every key of sections 5 to 9 and 11, and `NEWS_RULES` gives each news key the alert flag and scope of its row and a gap of 60 game minutes. A test fails if a key in this document is missing from `MESSAGE_IDS` or the reverse.
+
+MSG-19. `starsChanged` with `stars` 2 to 5 opens `dialog.starsUp` with `{n}` set to `stars` and `{units}` set to the `unit.{id}` texts of the catalog units whose `unlockStars` equals `stars`, in catalog order, joined with ", ". `starsChanged` with `stars` 6 opens no `starsUp` dialog.
+
+MSG-20. `weddingCompleted` opens `dialog.towerRank` with no placeholders and plays `wedding-bells`. It is the only dialog and the only star notice (`news.towerRank`) for rating 6.
+
+MSG-21. A snapshot with `step` 0 opens `dialog.welcome` once per session. It has no placeholders and no sound.
+
+MSG-22. `decisionOpened` opens `dialog.{kind}` with one button per id in `options`, in that order, the default last, and starts the alarm of that kind. A `bomb` event carries `params.ransom` and a `fire` event carries `params.level`; the dialog and the `dialog.bomb.pay` button take their placeholders from `params`.
+
+MSG-23. Every placeholder used by the three event dialogs is supplied by the event, its `params` or the catalog, as listed in section 11.1. No dialog reads the tower state to fill a placeholder.
+
+MSG-24. Information dialogs have one "Aceptar" button (`ui.accept`). A decision dialog is never delayed by an information dialog.

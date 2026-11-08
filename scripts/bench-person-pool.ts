@@ -10,6 +10,7 @@ import {
   createEngine,
   createPeopleSystem,
   createTower,
+  newUnit,
   peopleCount,
 } from '@tower-magnate/engine';
 
@@ -35,29 +36,11 @@ function towerWithPeople(): TowerState {
   const offices = Math.floor(PEOPLE / 6);
   for (let index = 1; index <= offices; index++) {
     const id = `u${index}`;
-    state.units[id] = {
-      id,
-      type: 'office',
-      x: 0,
-      level: 2,
-      name: null,
-      priceLevel: 'normal',
-      paid: 0,
-      placedAtStep: 0,
-    };
+    state.units[id] = newUnit(id, 'office', 0, 2);
     addPeopleForUnit(state, id);
   }
   const roomId = `u${offices + 1}`;
-  state.units[roomId] = {
-    id: roomId,
-    type: 'double-room',
-    x: 0,
-    level: 3,
-    name: null,
-    priceLevel: 'normal',
-    paid: 0,
-    placedAtStep: 0,
-  };
+  state.units[roomId] = newUnit(roomId, 'double-room', 0, 3);
   addPeopleForUnit(state, roomId);
   return state;
 }

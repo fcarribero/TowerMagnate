@@ -15,6 +15,8 @@ import {
 } from '@tower-magnate/shared';
 import { addOccupant, isSpanFree, levelError, setStructure, structureAt } from '../grid';
 import type { CommandHandler } from '../step';
+import { escalatorLevels, isEscalatorUnit } from './escalator-floors';
+import { newUnit } from '../units';
 import {
   columnRuns,
   columnsBetween,
@@ -144,6 +146,11 @@ export const buildUnit: CommandHandler<'buildUnit'> = (context, command) => {
     return { ok: false, error: 'NO_SUPPORT' };
   }
 
+  const onEscalatorLevel = footprint.levels.some((row) => escalatorLevels(state).has(row));
+  if (onEscalatorLevel && !isEscalatorUnit(definition.type)) {
+    return { ok: false, error: 'ESCALATOR_FLOOR_TYPE' };
+  }
+
   const newFloor = autoFloorColumns(grid, footprint);
   const cost = unitPrice(definition) + newFloor.length * pricePerCell('floor');
   const paymentError = payForConstruction(state, cost);
@@ -160,12 +167,7 @@ export const buildUnit: CommandHandler<'buildUnit'> = (context, command) => {
     addOccupant(grid, row, footprint.x0, footprint.x1, { kind: 'unit', id });
   }
   state.units[id] = {
-    id,
-    type: definition.type,
-    x,
-    level,
-    name: null,
-    priceLevel: 'normal',
+    ...newUnit(id, definition.type, x, level),
     paid: cost,
     placedAtStep: state.step,
   };

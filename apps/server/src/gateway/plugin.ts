@@ -3,20 +3,22 @@ import type { FastifyInstance, FastifyRequest } from 'fastify';
 import type { ConnectionRegistry } from './connection-registry';
 import { Gateway } from './gateway';
 import type { MessageHandlers } from './message-router';
-import type { SocketIdentity } from './socket';
+import { CLOSE_CODES, sendError, type GatewaySocket, type SocketIdentity } from './socket';
 
 export const MAX_CLIENT_MESSAGE_BYTES = 64 * 1024;
 
-export const TOWER_SOCKET_PATH = '/ws/towers/:towerId';
+export const TOWER_SOCKET_PATH = '/ws';
 
-export type IdentityResolver = (
-  request: FastifyRequest,
-) => SocketIdentity | null | Promise<SocketIdentity | null>;
+/** The socket's user and tower, or a reason to refuse it. */
+export type IdentityResult = { identity: SocketIdentity } | { refused: string };
+
+export type IdentityResolver = (request: FastifyRequest) => Promise<IdentityResult>;
 
 export interface GatewayOptions {
   resolveIdentity: IdentityResolver;
   handlers?: MessageHandlers;
   heartbeatIntervalMs?: number;
+  helloTimeoutMs?: number;
 }
 
 declare module 'fastify' {
@@ -24,12 +26,15 @@ declare module 'fastify' {
     towerConnections: ConnectionRegistry;
   }
   interface FastifyRequest {
-    socketIdentity?: SocketIdentity;
+    socketIdentity?: IdentityResult;
   }
 }
 
 export function registerGateway(app: FastifyInstance, options: GatewayOptions): Gateway {
-  const gateway = new Gateway(options.handlers ?? {}, { logger: app.log });
+  const gateway = new Gateway(options.handlers, {
+    helloTimeoutMs: options.helloTimeoutMs,
+    logger: app.log,
+  });
   app.decorate('towerConnections', gateway.registry);
 
   gateway.registry.on('tower-activated', (identity) => app.log.info(identity, 'Tower activated'));
@@ -45,18 +50,19 @@ export function registerGateway(app: FastifyInstance, options: GatewayOptions): 
     errorHandler: handleSocketError,
   });
   app.register(async (scope) => {
-    scope.addHook('preValidation', async (request, reply) => {
-      const identity = await options.resolveIdentity(request);
-      if (!identity) {
-        return reply.code(401).send({ error: 'unauthorized' });
-      }
-      request.socketIdentity = identity;
+    // The lookup runs before the upgrade so no early message is missed by the socket handler.
+    scope.addHook('preValidation', async (request) => {
+      request.socketIdentity = await resolveSafely(options.resolveIdentity, request);
     });
 
+    // Browsers cannot read an HTTP status from a failed upgrade, so refusals are close codes.
     scope.get(TOWER_SOCKET_PATH, { websocket: true }, (socket, request) => {
-      if (request.socketIdentity) {
-        gateway.attach(socket, request.socketIdentity);
+      const result = request.socketIdentity ?? { refused: 'Not authenticated' };
+      if ('refused' in result) {
+        refuse(socket, result.refused);
+        return;
       }
+      gateway.attach(socket, result.identity);
     });
   });
 
@@ -76,11 +82,19 @@ const handleSocketError: NonNullable<WebsocketPluginOptions['errorHandler']> = (
   }
 };
 
-export function resolveIdentityFromQuery(request: FastifyRequest): SocketIdentity | null {
-  const { towerId } = request.params as { towerId?: string };
-  const { user } = request.query as { user?: string };
-  if (!towerId || !user) {
-    return null;
+async function resolveSafely(
+  resolveIdentity: IdentityResolver,
+  request: FastifyRequest,
+): Promise<IdentityResult> {
+  try {
+    return await resolveIdentity(request);
+  } catch (error) {
+    request.log.error({ err: error }, 'Socket identity lookup failed');
+    return { refused: 'Could not check the session' };
   }
-  return { userId: user, towerId };
+}
+
+function refuse(socket: GatewaySocket, reason: string): void {
+  sendError(socket, 'NOT_AUTHENTICATED', reason);
+  socket.close(CLOSE_CODES.notAuthenticated, 'Not authenticated');
 }
