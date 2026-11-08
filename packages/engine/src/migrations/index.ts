@@ -62,6 +62,7 @@ const MIGRATIONS: readonly Migration[] = [
   addCarMotion,
   addTrekState,
   addNoticesAndFireLevel,
+  addGuardEventState,
 ];
 
 /** Version 2 records each unit's price level, what was paid for it and when it was placed. */
@@ -245,6 +246,19 @@ function addNoticesAndFireLevel(raw: Record<string, unknown>): Record<string, un
       )
     : raw.activeEvents;
   return { notices: [], ...raw, activeEvents, schemaVersion: 15 };
+}
+
+/** Version 16 gives a bomb threat its search and a fire its burning levels and guards. */
+function addGuardEventState(raw: Record<string, unknown>): Record<string, unknown> {
+  const activeEvents = Array.isArray(raw.activeEvents)
+    ? raw.activeEvents.map((event) => {
+        if (!isRecord(event)) return event;
+        if (event.kind === 'bomb') return { search: null, ...event };
+        if (event.kind === 'fire') return { levels: {}, guards: {}, ...event };
+        return event;
+      })
+    : raw.activeEvents;
+  return { ...raw, activeEvents, schemaVersion: 16 };
 }
 
 /** Version 11 gives each hotel room a state; every room in an older tower is clean and empty. */
