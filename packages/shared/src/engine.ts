@@ -78,7 +78,7 @@ export interface Unit {
   hotel: HotelRoom | null;
   /** The current owners' purchase of a condo; null while the condo is for sale. */
   sale: CondoSale | null;
-  /** The day's visit counts of a food or entertainment venue; null for every other unit. */
+  /** The day's visit counts of a food, entertainment or retail venue; null for every other unit. */
   venue: VenueDay | null;
 }
 
@@ -89,6 +89,16 @@ export interface VenueDay {
   eveningShowVisits: number;
   /** Count and payout of the last paid day; null until the first payout. */
   yesterday: { visits: number; result: number | null } | null;
+  /** Visits started today inside the venue's counting hours, retail shops included. */
+  countToday: number;
+  /** The count of the day that ended at the last 00:00 (stars spec 3.2). */
+  previousDayCount: number;
+  /** Trip stress, in steps, of today's counted visits whose trip was walked. */
+  stressSum: number;
+  /** How many of today's counted visits added to `stressSum`. */
+  stressTrips: number;
+  /** Steps at which today's outside customers still to come appear, earliest first. */
+  customers: number[];
 }
 
 export interface HotelRoom {

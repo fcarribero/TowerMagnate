@@ -57,3 +57,9 @@
 .tm-avisos__text {
   flex: 1;
 }
+
+.tm-avisos__empty {
+  margin: 0;
+  padding: calc(2 * var(--tm-px)) 0;
+  color: #8a8a8a;
+}

@@ -11,7 +11,8 @@ import { STEPS_PER_DAY } from './clock';
 import { createScheduler } from './scheduler';
 import { createEngine, step } from './step';
 import { buildTower, plainTowerPlan } from './testing';
-import { recordVenueVisit, venuePayoutHooks } from './venues';
+import { newVenueDay } from './units';
+import { recordVenueVisit, rollVenueDay, venuePayoutHooks } from './venues';
 
 type VenueType = keyof typeof VENUE_PAYOUT_HOURS;
 
@@ -152,7 +153,7 @@ describe('venue daily income', () => {
     const { tower, id } = towerWith('party-hall');
     setCounts(tower, id, 30);
     const after = runThroughPayout(tower, 'party-hall');
-    expect(after.units[id]?.venue).toEqual({
+    expect(after.units[id]?.venue).toMatchObject({
       visits: 0,
       eveningShowVisits: 0,
       yesterday: { visits: 30, result: 5_000 },
@@ -184,6 +185,46 @@ describe('recording visits', () => {
     expect(visit(tower, id, 19)).toBe(true);
     expect(visit(tower, id, 21)).toBe(false);
     expect(tower.units[id]?.venue).toMatchObject({ visits: 2, eveningShowVisits: 1 });
+  });
+
+  it('counts retail shop visits from 10:00 to 20:00 only while the shop has a tenant', () => {
+    const { state, unitIds } = buildTower({
+      ...plainTowerPlan(3, 0, 60),
+      units: [{ type: 'retail-shop', x: 0, level: 2 }],
+    });
+    const id = unitIds[0] as UnitId;
+    expect(visit(state, id, 12)).toBe(false);
+    (state.units[id] as { lease: unknown }).lease = { anchorStep: 0, nextDueStep: at(8, 0) };
+    expect(visit(state, id, 9, 59)).toBe(false);
+    expect(visit(state, id, 10)).toBe(true);
+    expect(visit(state, id, 19, 59)).toBe(true);
+    expect(visit(state, id, 20)).toBe(false);
+    expect(state.units[id]?.venue).toMatchObject({ visits: 0, countToday: 2 });
+    expect(state.units[id]?.used).toBe(true);
+  });
+
+  it('adds the trip stress of counted visits that were walked', () => {
+    const { tower, id } = towerWith('restaurant');
+    tower.step = at(1, 18);
+    expect(recordVenueVisit(tower, id, 120)).toBe(true);
+    expect(recordVenueVisit(tower, id, 30)).toBe(true);
+    expect(recordVenueVisit(tower, id)).toBe(true);
+    tower.step = at(1, 23);
+    expect(recordVenueVisit(tower, id, 500)).toBe(false);
+    expect(tower.units[id]?.venue).toMatchObject({
+      visits: 3,
+      countToday: 3,
+      stressSum: 150,
+      stressTrips: 2,
+    });
+  });
+
+  it('rolls the day over into the previous-day count with the average stress', () => {
+    const venue = { ...newVenueDay(), countToday: 9, stressSum: 301, stressTrips: 3 };
+    expect(rollVenueDay(venue)).toBe(100);
+    expect(venue).toMatchObject({ countToday: 0, previousDayCount: 9, stressSum: 0 });
+    expect(rollVenueDay(venue)).toBeNull();
+    expect(venue.previousDayCount).toBe(0);
   });
 
   it('refuses a unit that is not a venue', () => {

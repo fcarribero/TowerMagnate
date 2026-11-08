@@ -92,6 +92,9 @@ export function App({ onLogout, onRestartTower, onSessionLost }: AppProps) {
     if (id === 'finance') {
       setFinanceOpen((open) => !open);
     }
+    if (id === 'notices') {
+      setAvisosOpen((open) => !open);
+    }
     if (id === 'stars') {
       setStarsOpen((open) => !open);
     }
@@ -344,7 +347,10 @@ export function App({ onLogout, onRestartTower, onSessionLost }: AppProps) {
           {avisosOpen && (
             <AvisosWindow
               notices={notices.avisos}
-              onSeeUnit={(unitId) => stage?.centerOnUnit(unitId)}
+              onSeeUnit={(unitId) => {
+                stage?.centerOnUnit(unitId);
+                connection.inspect.requestUnitWindow(unitId);
+              }}
               onClose={() => setAvisosOpen(false)}
             />
           )}
