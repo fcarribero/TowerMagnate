@@ -59,19 +59,19 @@ describe('migrateState events', () => {
     expect(migrateState(oldFire).activeEvents[0]).toMatchObject({ levels: {}, guards: {} });
   });
 
-  it('gives a version 19 bomb a cell on its search level, or on level 1 before the search', () => {
+  it('gives a version 20 bomb a cell on its search level, or on level 1 before the search', () => {
     const tower = createTower(2);
     const bomb = openBombThreat({ state: tower, events: [] }, 200_000, { x: 40, level: 6 });
     if (!bomb) throw new Error('Expected a bomb threat');
     const waiting = roundTrip(tower) as Record<string, unknown> & { activeEvents: object[] };
     for (const event of waiting.activeEvents) delete (event as { bomb?: unknown }).bomb;
-    waiting.schemaVersion = 19;
+    waiting.schemaVersion = 20;
     expect(migrateState(waiting).activeEvents[0]).toMatchObject({ bomb: { x: 0, level: 1 } });
 
     bomb.search = { bombLevel: 6, levels: { 6: 'unsearched' }, guards: {}, unreachable: {} };
     const searching = roundTrip(tower) as Record<string, unknown> & { activeEvents: object[] };
     for (const event of searching.activeEvents) delete (event as { bomb?: unknown }).bomb;
-    searching.schemaVersion = 19;
+    searching.schemaVersion = 20;
     expect(migrateState(searching).activeEvents[0]).toMatchObject({ bomb: { x: 0, level: 6 } });
   });
 

@@ -447,6 +447,18 @@ export const DAILY_INCOME_BRACKETS: Readonly<
   ],
 };
 
+/** Economy spec 7. Visits count from `opens` until `pays`; the payout lands at the first step of `pays`. */
+export const VENUE_PAYOUT_HOURS = {
+  'fast-food': { opens: 8, pays: 20 },
+  restaurant: { opens: 17, pays: 23 },
+  'party-hall': { opens: 13, pays: 17 },
+  cinema: { opens: 14, pays: 21 },
+} as const;
+
+/** Cinema shows start at these hours and each lasts 2 hours. */
+export const CINEMA_SHOW_HOURS = [14, 19] as const;
+export const CINEMA_SHOW_LENGTH_HOURS = 2;
+
 export const CINEMA_MOVIE_CHANGE_COST = 300_000;
 
 /** People spec sections 16 and 17. */
