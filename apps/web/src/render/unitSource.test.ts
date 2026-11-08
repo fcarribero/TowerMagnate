@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { ClientStore } from '../model/clientStore';
 import { delta, office, snapshot } from '../testing/protocolFixtures';
+import { stepAtHour } from './timeOfDay';
 import type { UnitsInput } from './unitLayer';
 import {
   DEBUG_VARIANT_LEVEL,
@@ -28,6 +29,20 @@ describe('bindUnits', () => {
     expect(shown).toHaveLength(2);
     expect([...(shown[1]?.units ?? [])][0]?.variant).toBe('empty');
   });
+
+  it('shows again when a venue closes, even if the time of day stays the same', () => {
+    const store = new ClientStore({ requestResync: () => {} });
+    const lateEvening = stepAtHour(22);
+    store.applySnapshot({ ...snapshot, step: lateEvening });
+    const shown: UnitsInput[] = [];
+    bindUnits(store, 'normal', (input) => shown.push(input));
+    store.applyDelta(delta({ step: lateEvening + 1 }));
+    expect(shown).toHaveLength(1);
+
+    store.applyDelta(delta({ step: stepAtHour(23) }));
+    expect(shown.map((input) => input.time)).toEqual(['night', 'night']);
+    expect(shown.map((input) => [...input.openVenues])).toEqual([['restaurant'], []]);
+  });
 });
 
 describe('debugUnits', () => {
@@ -51,6 +66,7 @@ describe('debugUnits', () => {
   it('follows the hour', () => {
     expect(debugUnits(12).time).toBe('day');
     expect(debugUnits(23).time).toBe('night');
+    expect(debugUnits(23).openVenues.size).toBe(0);
   });
 });
 
