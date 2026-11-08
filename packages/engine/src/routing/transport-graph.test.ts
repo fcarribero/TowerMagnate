@@ -192,6 +192,43 @@ describe('transport graph', () => {
   });
 });
 
+const RUN_AGREEMENT = 0.15;
+const MAX_ATTEMPTS = 10;
+
+function timeRuns(action: () => void): number[] {
+  return [0, 0, 0].map(() => {
+    const start = performance.now();
+    action();
+    return performance.now() - start;
+  });
+}
+
+/** Median of three runs, or null when the runs differ by more than 15% in every attempt. */
+function medianIfRunsAgree(durations: readonly number[]): number | null {
+  const sorted = [...durations].sort((a, b) => a - b);
+  const [fastest, median, slowest] = sorted;
+  if (fastest === undefined || median === undefined || slowest === undefined) return null;
+  return slowest - fastest <= fastest * RUN_AGREEMENT ? median : null;
+}
+
+function timeUntilRunsAgree(action: () => void): number | null {
+  for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+    const median = medianIfRunsAgree(timeRuns(action));
+    if (median !== null) return median;
+  }
+  return null;
+}
+
+describe('timing agreement', () => {
+  it('uses the median when the runs are within 15% of each other', () => {
+    expect(medianIfRunsAgree([20, 22, 23])).toBe(22);
+  });
+
+  it('voids the result when the slowest run is more than 15% above the fastest', () => {
+    expect(medianIfRunsAgree([20, 22, 24])).toBeNull();
+  });
+});
+
 describe('transport graph on a full tower', () => {
   function bigTower() {
     const shafts: PlannedShaft[] = [];
@@ -205,16 +242,13 @@ describe('transport graph on a full tower', () => {
     return state;
   }
 
-  it('rebuilds in under 50 ms by the median of three runs', () => {
+  it('rebuilds in under 50 ms by the median of three agreeing runs', () => {
     const state = bigTower();
     const graph = new TransportGraph(state);
-    const durations = [0, 0, 0].map(() => {
-      const start = performance.now();
-      graph.rebuild(state);
-      return performance.now() - start;
-    });
-    const median = [...durations].sort((a, b) => a - b)[1] ?? Infinity;
-    expect(median).toBeLessThan(50);
+    graph.rebuild(state);
+    const result = timeUntilRunsAgree(() => graph.rebuild(state));
+    expect(result).not.toBeNull();
+    expect(result).toBeLessThan(50);
   });
 
   it('answers a neighbour lookup with the same array every time', () => {
