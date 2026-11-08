@@ -64,6 +64,9 @@ jobs:
       - name: Venue customers benchmark
         run: pnpm bench:customers
 
+      - name: Subway customers benchmark
+        run: pnpm bench:subway
+
   e2e:
     name: End-to-end tests
     if: (github.event_name == 'pull_request' && github.base_ref == 'develop') || (github.event_name == 'push' && github.ref == 'refs/heads/develop')
