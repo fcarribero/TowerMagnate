@@ -13,6 +13,8 @@ import {
   DEFAULT_PRICE_LEVEL,
   levelToIndex,
   LEDGER_CATEGORIES,
+  STRESS_ALTO_FROM,
+  STRESS_MUY_ALTO_FROM,
   TOWER_LAYOUT,
   type FinanceSummary,
   type FinanceWeek,
@@ -34,8 +36,6 @@ import {
 } from '@tower-magnate/shared';
 
 const STEPS_PER_WEEK = STEPS_PER_DAY * DAYS_PER_WEEK;
-const STRESSED_FROM_MINUTES = 15;
-const VERY_STRESSED_FROM_MINUTES = 30;
 
 /** Where each ledger category shows up in the finance window's reasons. */
 const REASON_OF_CATEGORY: Record<LedgerCategory, { income: MoneyReason; expense: MoneyReason }> = {
@@ -175,11 +175,11 @@ function personView(person: EnginePerson): PersonView {
   };
 }
 
-function stressLevel(minutes: number): PersonView['stress'] {
-  if (minutes >= VERY_STRESSED_FROM_MINUTES) {
+function stressLevel(steps: number): PersonView['stress'] {
+  if (steps >= STRESS_MUY_ALTO_FROM) {
     return 'veryStressed';
   }
-  if (minutes >= STRESSED_FROM_MINUTES) {
+  if (steps >= STRESS_ALTO_FROM) {
     return 'stressed';
   }
   return 'normal';
