@@ -145,3 +145,29 @@ body,
 .ui-windows > * {
   pointer-events: auto;
 }
+
+.ui-layer > .level-ruler {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: calc(80 * var(--tm-px));
+  width: calc(20 * var(--tm-px));
+  overflow: hidden;
+  pointer-events: none;
+  background: rgb(20 18 24 / 60%);
+}
+
+.level-ruler-mark {
+  position: absolute;
+  right: 0;
+  left: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding-right: calc(2 * var(--tm-px));
+  color: var(--tm-white);
+}
+
+.level-ruler-mark.is-hovered {
+  color: var(--tm-lamp);
+}

@@ -6,7 +6,9 @@ import { TowerContentStore } from '../model/towerContent';
 import { useGameConnection } from '../net/useGameConnection';
 import { placeholderTowerContent } from '../render/placeholderTower';
 import type { Stage } from '../render/stage';
+import { bindStructure, fullWidthTestTower, testTowerFromQuery } from '../render/structureSource';
 import { isMapToggleKey } from './keys';
+import { LevelRuler } from './LevelRuler';
 import { StageHost } from './StageHost';
 import './kit';
 import { WindowLayer } from './kit';
@@ -25,7 +27,7 @@ export interface AppProps {
 }
 
 export function App({ onLogout, onRestartTower }: AppProps) {
-  const { status: connectionStatus } = useGameConnection();
+  const { connection, status: connectionStatus } = useGameConnection();
   const content = useMemo(() => {
     const store = new TowerContentStore();
     store.applySnapshot(placeholderTowerContent());
@@ -60,6 +62,18 @@ export function App({ onLogout, onRestartTower }: AppProps) {
   }, []);
 
   useEffect(() => {
+    if (stage === null) {
+      return;
+    }
+    const testTowerFloors = import.meta.env.DEV && testTowerFromQuery(location.search);
+    if (testTowerFloors) {
+      stage.showStructure(fullWidthTestTower(testTowerFloors));
+      return;
+    }
+    return bindStructure(connection.store, (input) => stage.showStructure(input));
+  }, [stage, connection]);
+
+  useEffect(() => {
     const onKeyDown = (event: KeyboardEvent): void => {
       if (isMapToggleKey(event)) {
         setMapOpen((open) => !open);
@@ -73,6 +87,7 @@ export function App({ onLogout, onRestartTower }: AppProps) {
     <>
       <StageHost onStage={setStage} />
       <div class="ui-layer" onClick={onUiClick}>
+        {stage && <LevelRuler stage={stage} />}
         <div class="status-panel">
           <GameMenu onRestartTower={() => setRestartStep('first')} onLogout={onLogout} />
           {connectionStatus !== 'live' && t('ui.serverOffline')}

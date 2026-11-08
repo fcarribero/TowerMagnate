@@ -74,6 +74,13 @@ describe('tower socket against postgres', () => {
     expect(await client.waitForClose()).toBe(CLOSE_CODES.notAuthenticated);
   });
 
+  it('refuses a socket that names a user but has no session', async () => {
+    const client = await connect(undefined, `?user=${player.userId}`);
+
+    expect(await client.waitForClose()).toBe(CLOSE_CODES.notAuthenticated);
+    expect(app.towerRunner.isRunning(player.towerId)).toBe(false);
+  });
+
   it('refuses a tower that belongs to another user', async () => {
     const other = await createPlayer(pool);
 
