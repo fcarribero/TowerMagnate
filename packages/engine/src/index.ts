@@ -83,6 +83,8 @@ export type { HookOccurrence, HookSchedule, ScheduledHook, TimeOfDay } from './s
 export { deserializeState, serializeState } from './serialization';
 export { cloneState, createTower, SCHEMA_VERSION } from './state';
 export { createEngine, runDays, step } from './step';
+export { OFFICE_POPULATION, populationOf } from './population';
+export type { PopulationBreakdown } from './population';
 export { newUnit } from './units';
 export type {
   CommandContext,

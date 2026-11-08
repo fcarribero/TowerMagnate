@@ -2,6 +2,7 @@ import {
   findPerson,
   listPeople,
   NO_TRIP,
+  populationOf,
   STEPS_PER_DAY,
   DAYS_PER_WEEK,
 } from '@tower-magnate/engine';
@@ -53,7 +54,7 @@ export function buildSnapshot(state: TowerState, viewport: Viewport | null): Sna
     step: state.step,
     money: state.money,
     stars: 1,
-    population: people.filter((person) => person.kind !== 'maid').length,
+    population: populationOf(state).total,
     grid: {
       levels: structureRows(state),
       mainLobbyHeight: state.grid.mainLobbyHeight,
