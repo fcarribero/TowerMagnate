@@ -22,6 +22,8 @@ import {
   type RngState,
   type ShaftBand,
   type Level,
+  type MedicalDay,
+  type ParkingState,
   type Shaft,
   type ShaftSchedule,
   type ShaftType,
@@ -30,15 +32,17 @@ import {
   type TowerState,
   type Unit,
   type UnitId,
+  type VenueDay,
 } from '@tower-magnate/shared';
 import { defaultSchedule, defaultStops } from '../commands/shafts';
+import { STEPS_PER_DAY } from '../clock';
 import { SCHEMA_VERSION } from '../state';
-import { isHotelRoomType, newHotelRoom } from '../units';
+import { isHotelRoomType, isVenueType, newHotelRoom, newVenueDay } from '../units';
 import { isRecord, StateMigrationError } from './errors';
 import { readActiveEvents, readClosedDecisions, readNotices, readTreasureLevels } from './events';
 import { readGrid } from './grid';
 import { readLedger, readMoney } from './money';
-import { readPeople } from './people';
+import { readPeople, readTripLedger } from './people';
 import { readStars } from './stars';
 import { readTransports } from './transports';
 
@@ -62,6 +66,12 @@ const MIGRATIONS: readonly Migration[] = [
   addCarMotion,
   addTrekState,
   addNoticesAndFireLevel,
+  addMedicalDay,
+  addParkingState,
+  addTripLedger,
+  addGuardEventState,
+  addVenueDayCounts,
+  addBombCell,
 ];
 
 /** Version 2 records each unit's price level, what was paid for it and when it was placed. */
@@ -247,6 +257,84 @@ function addNoticesAndFireLevel(raw: Record<string, unknown>): Record<string, un
   return { notices: [], ...raw, activeEvents, schemaVersion: 15 };
 }
 
+/** Version 16 counts medical center visits per day; an older save starts with none today. */
+function addMedicalDay(raw: Record<string, unknown>): Record<string, unknown> {
+  const day = isNonNegativeInteger(raw.step) ? Math.floor(raw.step / STEPS_PER_DAY) : 0;
+  return { medicalDay: { day, visits: {}, noticed: [] }, ...raw, schemaVersion: 16 };
+}
+
+/** Version 17 stores parking holders; people in an older save have not rolled for a car. */
+function addParkingState(raw: Record<string, unknown>): Record<string, unknown> {
+  return { parking: { spaces: {}, noticeDay: 0, noticed: [] }, ...raw, schemaVersion: 17 };
+}
+
+/** Version 18 keeps the trips each person ended and the stress of the trip in progress; older saves have none. */
+function addTripLedger(raw: Record<string, unknown>): Record<string, unknown> {
+  const people = raw.people;
+  if (!isRecord(people) || !Array.isArray(people.id)) {
+    return { tripLedger: {}, ...raw, schemaVersion: 18 };
+  }
+  const zeros = (): number[] => (people.id as unknown[]).map(() => 0);
+  const tripFields = {
+    tripSum: zeros(),
+    tripSlowFloors: zeros(),
+    tripPartStep: zeros(),
+    tripPartCut: zeros(),
+  };
+  return {
+    tripLedger: {},
+    ...raw,
+    people: { ...tripFields, ...people },
+    schemaVersion: 18,
+  };
+}
+
+/** Version 19 gives a bomb threat its search and a fire its burning levels and guards. */
+function addGuardEventState(raw: Record<string, unknown>): Record<string, unknown> {
+  const activeEvents = Array.isArray(raw.activeEvents)
+    ? raw.activeEvents.map((event) => {
+        if (!isRecord(event)) return event;
+        if (event.kind === 'bomb') return { search: null, ...event };
+        if (event.kind === 'fire') return { levels: {}, guards: {}, ...event };
+        return event;
+      })
+    : raw.activeEvents;
+  return { ...raw, activeEvents, schemaVersion: 19 };
+}
+
+/** Version 20 gives each food and entertainment venue its day counts; older venues start at zero. */
+function addVenueDayCounts(raw: Record<string, unknown>): Record<string, unknown> {
+  if (!isRecord(raw.units)) {
+    return { ...raw, schemaVersion: 20 };
+  }
+  const units: Record<string, unknown> = {};
+  for (const [id, unit] of Object.entries(raw.units)) {
+    units[id] = isRecord(unit) ? { venue: venueDayFor(unit.type), ...unit } : unit;
+  }
+  return { ...raw, schemaVersion: 20, units };
+}
+
+function venueDayFor(type: unknown): VenueDay | null {
+  const isVenue = (UNIT_TYPES as readonly unknown[]).includes(type) && isVenueType(type as never);
+  return isVenue ? newVenueDay() : null;
+}
+
+/**
+ * Version 21 keeps where a bomb is hidden. A threat saved before that has no cell; it gets the
+ * level its search was given, or level 1, which a blast never ruins.
+ */
+function addBombCell(raw: Record<string, unknown>): Record<string, unknown> {
+  const activeEvents = Array.isArray(raw.activeEvents)
+    ? raw.activeEvents.map((event) => {
+        if (!isRecord(event) || event.kind !== 'bomb') return event;
+        const search = isRecord(event.search) ? event.search : null;
+        const level = search && isLevel(search.bombLevel) ? search.bombLevel : 1;
+        return { bomb: { x: 0, level }, ...event };
+      })
+    : raw.activeEvents;
+  return { ...raw, activeEvents, schemaVersion: 21 };
+}
+
 /** Version 11 gives each hotel room a state; every room in an older tower is clean and empty. */
 function addHotelRooms(raw: Record<string, unknown>): Record<string, unknown> {
   if (!isRecord(raw.units)) {
@@ -309,7 +397,20 @@ function isUnit(value: unknown): value is Unit {
     typeof value.used === 'boolean' &&
     (value.lease === null || isLease(value.lease)) &&
     (value.hotel === null || isHotelRoom(value.hotel)) &&
-    (value.sale === null || isCondoSale(value.sale))
+    (value.sale === null || isCondoSale(value.sale)) &&
+    (value.venue === null || isVenueDay(value.venue))
+  );
+}
+
+function isVenueDay(value: unknown): value is VenueDay {
+  return (
+    isRecord(value) &&
+    isNonNegativeInteger(value.visits) &&
+    isNonNegativeInteger(value.eveningShowVisits) &&
+    (value.yesterday === null ||
+      (isRecord(value.yesterday) &&
+        isNonNegativeInteger(value.yesterday.visits) &&
+        (value.yesterday.result === null || Number.isSafeInteger(value.yesterday.result))))
   );
 }
 
@@ -367,9 +468,17 @@ function readUnits(raw: unknown): Record<UnitId, Unit> {
       lease: unit.lease === null ? null : { ...unit.lease },
       sale: unit.sale === null ? null : { ...unit.sale },
       hotel: unit.hotel === null ? null : { ...unit.hotel },
+      venue: readVenueDay(unit.venue),
     };
   }
   return units;
+}
+
+function readVenueDay(venue: VenueDay | null): VenueDay | null {
+  if (venue === null) {
+    return null;
+  }
+  return { ...venue, yesterday: venue.yesterday === null ? null : { ...venue.yesterday } };
 }
 
 function isElevatorCar(value: unknown): value is ElevatorCar {
@@ -534,6 +643,7 @@ function assertCurrentShape(raw: Record<string, unknown>): TowerState {
   if (!isNonNegativeInteger(raw.nextId)) {
     throw new StateMigrationError('State nextId must be a non-negative integer');
   }
+  const people = readPeople(raw.people);
   return {
     schemaVersion: SCHEMA_VERSION,
     step: raw.step,
@@ -545,13 +655,16 @@ function assertCurrentShape(raw: Record<string, unknown>): TowerState {
     transports: readTransports(raw.transports),
     shafts: readShafts(raw.shafts),
     grid: readGrid(raw.grid),
-    people: readPeople(raw.people),
+    people: people,
+    tripLedger: readTripLedger(raw.tripLedger, people.id),
     ledger: readLedger(raw.ledger),
     activeEvents: readActiveEvents(raw.activeEvents),
     closedDecisions: readClosedDecisions(raw.closedDecisions),
     notices: readNotices(raw.notices),
     treasureLevels: readTreasureLevels(raw.treasureLevels),
     ...readStarState(raw),
+    medicalDay: readMedicalDay(raw.medicalDay),
+    parking: readParking(raw.parking),
   };
 }
 
@@ -575,6 +688,39 @@ function readStarState(raw: Record<string, unknown>): StarState {
     lastMedicalFailureStep: lastMedicalFailureStep as number | null,
     lastParkingFailureStep: lastParkingFailureStep as number | null,
   };
+}
+
+function readParking(raw: unknown): ParkingState {
+  const fail = (): never => {
+    throw new StateMigrationError('State parking must hold holder spaces and notice keys');
+  };
+  if (!isRecord(raw) || !isRecord(raw.spaces) || !isNonNegativeInteger(raw.noticeDay))
+    return fail();
+  if (!Array.isArray(raw.noticed) || !raw.noticed.every((key) => typeof key === 'string')) {
+    return fail();
+  }
+  const spaces: Record<number, number> = {};
+  for (const [person, space] of Object.entries(raw.spaces)) {
+    if (!isNonNegativeInteger(Number(person)) || !isNonNegativeInteger(space)) return fail();
+    spaces[Number(person)] = space;
+  }
+  return { spaces, noticeDay: raw.noticeDay, noticed: [...(raw.noticed as string[])] };
+}
+
+function readMedicalDay(raw: unknown): MedicalDay {
+  const fail = (): never => {
+    throw new StateMigrationError('State medicalDay must hold a day, visit counts and notice keys');
+  };
+  if (!isRecord(raw) || !isNonNegativeInteger(raw.day) || !isRecord(raw.visits)) return fail();
+  if (!Array.isArray(raw.noticed) || !raw.noticed.every((key) => typeof key === 'string')) {
+    return fail();
+  }
+  const visits: Record<number, number> = {};
+  for (const [center, count] of Object.entries(raw.visits)) {
+    if (!isNonNegativeInteger(Number(center)) || !isNonNegativeInteger(count)) return fail();
+    visits[Number(center)] = count;
+  }
+  return { day: raw.day, visits, noticed: [...(raw.noticed as string[])] };
 }
 
 export function migrateState(raw: unknown): TowerState {

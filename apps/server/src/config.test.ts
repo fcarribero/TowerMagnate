@@ -108,3 +108,23 @@ describe('readConfig debug commands', () => {
     expect(debugCommands(undefined)).toBe(true);
   });
 });
+
+describe('readConfig auth attempts', () => {
+  const attempts = (value: string | undefined) =>
+    readConfig({ DATABASE_URL: databaseUrl, AUTH_ATTEMPTS_PER_MINUTE: value })
+      .authAttemptsPerMinute;
+
+  it('keeps the server default when unset', () => {
+    expect(attempts(undefined)).toBeUndefined();
+    expect(attempts('')).toBeUndefined();
+  });
+
+  it('reads a positive integer', () => {
+    expect(attempts('500')).toBe(500);
+  });
+
+  it('rejects anything else', () => {
+    expect(() => attempts('0')).toThrow('AUTH_ATTEMPTS_PER_MINUTE');
+    expect(() => attempts('ten')).toThrow('AUTH_ATTEMPTS_PER_MINUTE');
+  });
+});

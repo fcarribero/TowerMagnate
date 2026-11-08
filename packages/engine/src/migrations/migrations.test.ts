@@ -97,6 +97,41 @@ describe('migrateState unit leases', () => {
     expect(migratedUnit(JSON.parse(JSON.stringify(rented)))).toEqual(rented);
   });
 
+  it('keeps the day counts of a venue', () => {
+    const cinema = {
+      ...newUnit('u3', 'cinema', 0, 2),
+      venue: { visits: 70, eveningShowVisits: 90, yesterday: { visits: 80, result: 10_000 } },
+    };
+    expect(migratedUnit(JSON.parse(JSON.stringify(cinema)))).toEqual(cinema);
+  });
+
+  it('gives venues of a version 19 save zero counts and other units none', () => {
+    const withoutVenue = (unit: object) => {
+      const copy: { venue?: unknown } = { ...unit };
+      delete copy.venue;
+      return copy;
+    };
+    const food = withoutVenue(newUnit('u3', 'fast-food', 0, 2));
+    const office = withoutVenue(newUnit('u4', 'office', 5, 2));
+    const save = { ...createTower(5), schemaVersion: 19, units: { u3: food, u4: office } };
+    const tower = migrateState(save);
+    expect(tower.units.u3?.venue).toEqual({ visits: 0, eveningShowVisits: 0, yesterday: null });
+    expect(tower.units.u4?.venue).toBeNull();
+  });
+
+  it('refuses malformed venue counts', () => {
+    const food = newUnit('u3', 'fast-food', 0, 2);
+    const badCounts = [
+      'u3',
+      { visits: -1, eveningShowVisits: 0, yesterday: null },
+      { visits: 1.5, eveningShowVisits: 0, yesterday: null },
+      { visits: 0, eveningShowVisits: 0, yesterday: { visits: 0 } },
+    ];
+    for (const venue of badCounts) {
+      expect(() => migratedUnit({ ...food, venue })).toThrow(StateMigrationError);
+    }
+  });
+
   it('refuses a malformed used flag', () => {
     const office = newUnit('u3', 'office', 0, 1);
     expect(() => migratedUnit({ ...office, used: 'yes' })).toThrow(StateMigrationError);
@@ -135,6 +170,7 @@ describe('migrateState fixtures', () => {
       lease: null,
       sale: null,
       hotel: null,
+      venue: null,
     });
   });
 
@@ -451,5 +487,26 @@ describe('migrateState car motion', () => {
     };
     const queue = migrateState(saved).shafts.s2?.queues['2'];
     expect(queue?.up).toEqual([{ person: 'p1', destination: 5, joinedStep: 4 }]);
+  });
+});
+
+describe('migrateState medical day', () => {
+  it('gives an older save an empty medical day for its current day', () => {
+    const old = JSON.parse(JSON.stringify(createTower(5))) as Record<string, unknown>;
+    delete old.medicalDay;
+    old.schemaVersion = 15;
+    old.step = 3 * 8640 + 50;
+    const tower = migrateState(old);
+    expect(tower.medicalDay).toEqual({ day: 3, visits: {}, noticed: [] });
+  });
+
+  it('keeps visit counts and refuses a malformed medical day', () => {
+    const saved = JSON.parse(JSON.stringify(createTower(5))) as Record<string, unknown>;
+    const medicalDay = { day: 2, visits: { '4': 17 }, noticed: ['news.medicalFull'] };
+    expect(migrateState({ ...saved, medicalDay }).medicalDay).toEqual(medicalDay);
+    expect(() =>
+      migrateState({ ...saved, medicalDay: { day: 2, visits: { '4': -1 }, noticed: [] } }),
+    ).toThrow(StateMigrationError);
+    expect(() => migrateState({ ...saved, medicalDay: null })).toThrow(StateMigrationError);
   });
 });

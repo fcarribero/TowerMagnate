@@ -2,7 +2,7 @@ name: CI
 
 on:
   pull_request:
-    branches: [develop, master]
+    branches: [develop, master, 'release/**']
   push:
     branches: [develop, master, 'release/**']
 
@@ -43,11 +43,23 @@ jobs:
       - name: Snapshot save benchmark
         run: pnpm bench:snapshots
 
+      - name: Transport step benchmark
+        run: pnpm bench:transport
+
       - name: Transport graph benchmark
         run: pnpm bench:graph
 
       - name: People layer benchmark
         run: pnpm bench:people-layer
+
+      - name: Trek step benchmark
+        run: pnpm bench:trek
+
+      - name: Office tower week benchmark
+        run: pnpm bench:office-week
+
+      - name: Security events benchmark
+        run: pnpm bench:events
 
   e2e:
     name: End-to-end tests
@@ -90,7 +102,7 @@ jobs:
 
   e2e-prod:
     name: End-to-end tests on the production build
-    if: startsWith(github.ref_name, 'release/') || (github.event_name == 'pull_request' && github.base_ref == 'master')
+    if: startsWith(github.ref_name, 'release/') || (github.event_name == 'pull_request' && (github.base_ref == 'master' || startsWith(github.base_ref, 'release/')))
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:

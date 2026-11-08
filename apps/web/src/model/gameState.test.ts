@@ -30,13 +30,28 @@ describe('applyDelta', () => {
     expect(next.finances).toBe(start.finances);
   });
 
+  it('takes the full notice list from a delta that carries one', () => {
+    const notices = [{ id: 'n1.0', step: 1, key: 'news.x', unitId: 'u12', params: {} }];
+    expect(applyDelta(start, delta({ notices })).notices).toEqual(notices);
+    expect(applyDelta(start, delta()).notices).toBe(start.notices);
+  });
+
   it('replaces optional fields that are present', () => {
     const finances = { ...snapshot.finances, lastWeek: snapshot.finances.thisWeek };
+    const starRequirements = [{ requirement: 'security', met: false }] as const;
     const next = applyDelta(
       start,
-      delta({ money: 5, stars: 2, population: 40, finances, activeEvents: [], followed: [] }),
+      delta({
+        money: 5,
+        stars: 2,
+        population: 40,
+        starRequirements: [...starRequirements],
+        finances,
+        activeEvents: [],
+        followed: [],
+      }),
     );
-    expect(next).toMatchObject({ money: 5, stars: 2, population: 40, finances });
+    expect(next).toMatchObject({ money: 5, stars: 2, population: 40, starRequirements, finances });
   });
 
   it('upserts and removes units, transports and shafts', () => {

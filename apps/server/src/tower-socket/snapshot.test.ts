@@ -5,11 +5,14 @@ import {
   creditMoney,
   defaultSchedule,
   followPerson,
+  newUnit,
   openBombThreat,
   openFire,
   rollLedgerWeek,
   setStructure,
   STEPS_PER_DAY,
+  TREK_PHASES,
+  type TrekPhase,
 } from '@tower-magnate/engine';
 import { levelToIndex, SnapshotSchema, type TowerState, type Unit } from '@tower-magnate/shared';
 import { describe, expect, it } from 'vitest';
@@ -32,6 +35,7 @@ function office(id: string, x: number, name: string | null): Unit {
     lease: null,
     sale: null,
     hotel: null,
+    venue: null,
   };
 }
 
@@ -72,7 +76,7 @@ describe('snapshot from tower state', () => {
 
   it('sends open decisions with ransom and fire level, also after a reconnect', () => {
     const state = createTower(7);
-    openBombThreat({ state, events: [] }, 300_000);
+    openBombThreat({ state, events: [] }, 300_000, { x: 0, level: 2 });
 
     const snapshot = buildSnapshot(structuredClone(state), null);
 
@@ -191,6 +195,84 @@ describe('snapshot from tower state', () => {
     expect(snapshot.people[0]).toMatchObject({ x: 3, level: 2, mode: 'inside', carRef: null });
   });
 
+  it('maps each trip phase to a person mode', () => {
+    const wide = { levelFrom: 1, levelTo: 40, xFrom: 0, xTo: 100 };
+    const expected: Record<TrekPhase, string> = {
+      idle: 'inside',
+      walkingToDestination: 'walk',
+      walkingToStairs: 'walk',
+      walkingToEscalator: 'walk',
+      walkingToShaft: 'walk',
+      onStairs: 'stairs',
+      onEscalator: 'stairs',
+      queued: 'wait',
+      waitingBesideQueue: 'wait',
+      riding: 'ride',
+      noRoute: 'walk',
+    };
+    for (const phase of TREK_PHASES) {
+      const state = towerWithPeople();
+      state.people.trek[0] = TREK_PHASES.indexOf(phase);
+      state.people.trip[0] = phase === 'idle' ? 0 : 1;
+      const snapshot = buildSnapshot(state, wide);
+      expect(snapshot.people[0]?.mode, phase).toBe(expected[phase]);
+    }
+  });
+
+  it('keeps the last horizontal facing while the person is not walking', () => {
+    const state = towerWithPeople();
+    state.people.facing[0] = 1;
+    for (const phase of TREK_PHASES) {
+      state.people.trek[0] = TREK_PHASES.indexOf(phase);
+      expect(buildSnapshot(state, LOBBY_VIEW).people[0]?.facing, phase).toBe('left');
+    }
+    state.people.facing[0] = 0;
+    expect(buildSnapshot(state, LOBBY_VIEW).people[0]?.facing).toBe('right');
+  });
+
+  it('sets carRef and the car position only while riding', () => {
+    const state = towerWithPeople();
+    state.shafts.s1 = {
+      id: 's1',
+      type: 'standard',
+      x: 5,
+      bottom: 1,
+      top: 3,
+      stops: [1, 2, 3],
+      schedule: defaultSchedule(),
+      cars: [
+        {
+          homeLevel: 1,
+          level: 3,
+          riders: ['p1'],
+          trips: [],
+          phase: 'moving' as const,
+          direction: 'up' as const,
+          phaseStepsLeft: 0,
+          assigned: [],
+          paid: 0,
+          placedAtStep: 0,
+        },
+      ],
+      queues: {},
+      paid: 0,
+      placedAtStep: 0,
+    };
+    state.people.trek[0] = TREK_PHASES.indexOf('queued');
+    expect(buildSnapshot(state, LOBBY_VIEW).people[0]).toMatchObject({
+      mode: 'wait',
+      carRef: null,
+    });
+
+    state.people.trek[0] = TREK_PHASES.indexOf('riding');
+    expect(buildSnapshot(state, LOBBY_VIEW).people[0]).toMatchObject({
+      mode: 'ride',
+      carRef: { shaftId: 's1', index: 0 },
+      x: 5,
+      level: 3,
+    });
+  });
+
   it('tints stress at 90 and 180 steps', () => {
     const state = towerWithPeople();
     const steps = [89, 90, 180];
@@ -224,6 +306,18 @@ describe('snapshot from tower state', () => {
     expect(buildSnapshot(state, null).population).toBe(0);
     (state.units.u5 as { lease: unknown }).lease = { anchorStep: 0, nextDueStep: 60480 };
     expect(buildSnapshot(state, null).population).toBe(6);
+  });
+
+  it('lists the next star step requirements and whether each is met', () => {
+    const state = towerWithPeople();
+    state.stars = 2;
+    expect(buildSnapshot(state, null).starRequirements).toEqual([
+      { requirement: 'security', met: false },
+    ]);
+    state.units.u99 = newUnit('u99', 'security', 0, 2);
+    expect(buildSnapshot(state, null).starRequirements).toEqual([
+      { requirement: 'security', met: true },
+    ]);
   });
 
   it('reports this and last week of the ledger by money reason', () => {

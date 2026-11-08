@@ -12,6 +12,7 @@ import { isLeasable, moveInTenant } from './leases';
 import { entrancePlace, unitPlace } from './office-routine';
 import {
   addPeopleForUnit,
+  rollParkingHolder,
   addPerson,
   createPeopleSystem,
   NOTHING_DUE,
@@ -110,6 +111,7 @@ function settleProspect(context: StepContext, slot: number): void {
   }
   if (unit.type === 'condo') {
     sellCondo(context, unit.id);
+    rollParkingHolder(state, personId, 'condo');
     pool.kind[slot] = RESIDENT_KIND;
     pool.dueStep[slot] = NOTHING_DUE;
     addOtherResidents(state, unit);

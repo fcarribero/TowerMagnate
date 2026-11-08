@@ -15,16 +15,20 @@ import { eventsPhase } from './events';
 import { createCondoSystem } from './condos';
 import { createHotelSystem } from './hotel';
 import { createLeaseSystem } from './leases';
+import { parkingAssignmentHook } from './parking';
 import { recordNotices } from './notices';
 import { cloneState } from './state';
 import { ledgerWeekRollHook } from './money';
 import { createOfficeRoutine } from './office-routine';
+import { createResidentRoutine } from './resident-routine';
 import { createProspectDemand } from './prospects';
 import { createScheduler } from './scheduler';
-import { createTrekSystem, plannedTripSteps } from './trek';
-import { TransportGraph, type ShaftStops } from './routing';
+import { cancelTrek, createTrekSystem, isOnTrek, plannedTripSteps } from './trek';
+import { createNightReset } from './trip-ledger';
+import { graphInputsKey, TransportGraph, type ShaftStops } from './routing';
 import { starCheckHook } from './stars';
 import { weeklyUpkeepHook } from './upkeep';
+import { venuePayoutHooks } from './venues';
 
 export interface StepResult {
   state: TowerState;
@@ -118,6 +122,18 @@ function commandTypeOf(queued: QueuedCommand | undefined): string {
 }
 
 export function createEngine(rules: EngineRules): Engine {
+  /**
+   * The graph of each state this engine returned, so stepping on from it keeps the planner's
+   * caches. The key catches a state changed in place after it was returned.
+   */
+  const graphsByState = new WeakMap<TowerState, { graph: TransportGraph; key: string }>();
+
+  function graphKeptFor(state: TowerState): TransportGraph | undefined {
+    const kept = graphsByState.get(state);
+    if (!kept || kept.key !== graphInputsKey(state)) return undefined;
+    return kept.graph;
+  }
+
   function handlerFor(command: unknown): AnyCommandHandler | undefined {
     if (!isRecord(command) || typeof command.type !== 'string') {
       return undefined;
@@ -168,12 +184,17 @@ export function createEngine(rules: EngineRules): Engine {
     const changesGraph = results.some(
       (result, index) => result.ok && GRAPH_COMMANDS.has(commandTypeOf(commands[index])),
     );
+    const known = graph ?? graphKeptFor(state);
     const currentGraph =
-      graph && !changesGraph ? graph : new TransportGraph(context.state, shaftStops(context.state));
+      known && !changesGraph ? known : new TransportGraph(context.state, shaftStops(context.state));
     context.graph = currentGraph;
     for (let count = 0; count < steps; count++) {
       advanceOneStep(context);
     }
+    graphsByState.set(context.state, {
+      graph: currentGraph,
+      key: graphInputsKey(context.state),
+    });
     recordNotices(context.state, context.events);
     return { state: context.state, results, events: context.events, graph: currentGraph };
   }
@@ -191,13 +212,27 @@ const officeRoutine = createOfficeRoutine(
   { treks: true },
 );
 
+const residentRoutine = createResidentRoutine(
+  (_state, from, to, context) => plannedTripSteps(context, from, to),
+  { treks: true },
+);
+
 const prospects = createProspectDemand();
+
+const nightReset = createNightReset(
+  (context, slot) => cancelTrek(context, slot, { nightReset: true }),
+  (pool, slot) => isOnTrek(pool, slot),
+);
 
 export const towerSystems: readonly SimulationSystem[] = [
   createScheduler([
     ledgerWeekRollHook,
+    nightReset,
     weeklyUpkeepHook,
+    ...venuePayoutHooks,
     officeRoutine.planHook,
+    parkingAssignmentHook,
+    residentRoutine.planHook,
     ...prospects.rollHooks,
   ]),
   createLeaseSystem(),
@@ -206,6 +241,7 @@ export const towerSystems: readonly SimulationSystem[] = [
   createTrekSystem(),
   prospects.system,
   officeRoutine.system,
+  residentRoutine.system,
   createElevatorSystem(),
   createScheduler([starCheckHook]),
   eventsPhase,

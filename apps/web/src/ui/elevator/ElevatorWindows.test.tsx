@@ -59,7 +59,10 @@ describe('elevator windows', () => {
     const { inspect, sent } = setup();
     act(() => inspect.requestShaftWindow('s4'));
     act(() => inspect.receive({ v: 1, t: 'inspect', p: shaftData }));
-    expect(sent.at(-1)).toMatchObject({ t: 'inspect', p: { target: { kind: 'shaft', id: 's4' } } });
+    expect(sent.at(-1)).toMatchObject({
+      t: 'inspectAdd',
+      p: { target: { kind: 'shaft', id: 's4' } },
+    });
     fireEvent.click(screen.getByRole('tab', { name: 'Cabinas' }));
     expect(screen.getByRole('button', { name: 'Agregar cabina ($150.000)' })).toBeTruthy();
   });
@@ -69,7 +72,10 @@ describe('elevator windows', () => {
     act(() => inspect.requestShaftWindow('s4'));
     act(() => inspect.receive({ v: 1, t: 'inspect', p: shaftData }));
     fireEvent.click(screen.getByRole('button', { name: /cerrar/i }));
-    expect(sent.at(-1)).toMatchObject({ t: 'inspect', p: { target: null } });
+    expect(sent.at(-1)).toMatchObject({
+      t: 'inspectRemove',
+      p: { target: { kind: 'shaft', id: 's4' } },
+    });
   });
 
   it('closes the window when the shaft is gone', () => {
@@ -80,6 +86,9 @@ describe('elevator windows', () => {
       inspect.receive({ v: 1, t: 'inspect', p: { kind: 'shaft', id: 's4', status: 'gone' } }),
     );
     expect(screen.queryByRole('tab', { name: 'Cabinas' })).toBeNull();
-    expect(sent.at(-1)).toMatchObject({ t: 'inspect', p: { target: null } });
+    expect(sent.at(-1)).toMatchObject({
+      t: 'inspectRemove',
+      p: { target: { kind: 'shaft', id: 's4' } },
+    });
   });
 });

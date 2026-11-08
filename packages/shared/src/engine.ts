@@ -1,6 +1,6 @@
 import type { Ledger } from './ledger';
 import type { Level } from './levels';
-import type { DecisionKind, HotelRoomState, TransportType } from './protocol/primitives';
+import type { CellRange, DecisionKind, HotelRoomState, TransportType } from './protocol/primitives';
 import type { PersonPool } from './people';
 import type { PriceLevel, ShaftType, StarRating, UnitType } from './units';
 
@@ -78,6 +78,17 @@ export interface Unit {
   hotel: HotelRoom | null;
   /** The current owners' purchase of a condo; null while the condo is for sale. */
   sale: CondoSale | null;
+  /** The day's visit counts of a food or entertainment venue; null for every other unit. */
+  venue: VenueDay | null;
+}
+
+export interface VenueDay {
+  /** Visits started today inside the venue's hours. For a cinema: the 14:00 show. */
+  visits: number;
+  /** Visits to the cinema's 19:00 show today; always 0 for other venues. */
+  eveningShowVisits: number;
+  /** Count and payout of the last paid day; null until the first payout. */
+  yesterday: { visits: number; result: number | null } | null;
 }
 
 export interface HotelRoom {
@@ -222,6 +233,11 @@ export interface TowerState {
   shafts: Record<ShaftId, Shaft>;
   grid: GridState;
   people: PersonPool;
+  /**
+   * Trips each person ended in the last STRESS_WINDOW_STEPS, keyed by person number: pairs of
+   * end step and trip stress, oldest first.
+   */
+  tripLedger: Record<string, number[]>;
   ledger: Ledger;
   /** At most one bomb threat or fire at a time. */
   activeEvents: ActiveEvent[];
@@ -237,6 +253,27 @@ export interface TowerState {
   lastMedicalFailureStep: number | null;
   /** Step of the last parking failure; null if none yet. */
   lastParkingFailureStep: number | null;
+  /** Medical center visits and notices of one game day; a new day starts them over. */
+  medicalDay: MedicalDay;
+  parking: ParkingState;
+}
+
+export interface ParkingState {
+  /** Parking holders by person number; the value is the unit number of their space, or 0 for none. */
+  spaces: Record<number, number>;
+  /** Day number of the notices below; a new day starts them over. */
+  noticeDay: number;
+  /** News keys already shown on `noticeDay`. */
+  noticed: string[];
+}
+
+export interface MedicalDay {
+  /** Day number, from 0 at step 0. */
+  day: number;
+  /** Visits so far today, by unit number of the medical center. */
+  visits: Record<number, number>;
+  /** News keys already shown today. */
+  noticed: string[];
 }
 
 /** A news line the player was shown; `key` names its text. */
@@ -261,11 +298,38 @@ export interface Decision {
   choice: string | null;
 }
 
+export type SearchLevelState = 'unsearched' | 'taken' | 'searched';
+
+/** A guard on the bomb search: its level, and the step its search ends once it has arrived. */
+export interface SearchingGuard {
+  level: Level;
+  endStep: number | null;
+}
+
+export interface BombSearch {
+  bombLevel: Level;
+  levels: Partial<Record<Level, SearchLevelState>>;
+  /** Keyed by person number. */
+  guards: Record<number, SearchingGuard>;
+  /** Levels each guard found unreachable, keyed by person number. */
+  unreachable: Record<number, Level[]>;
+}
+
+/** The cell of a bomb: a column on the bottom level of the unit it was drawn in. */
+export interface BombCell {
+  x: number;
+  level: Level;
+}
+
 export interface BombThreat {
   kind: 'bomb';
   id: EventId;
   decision: Decision;
   ransom: number;
+  /** Fixed when the threat opens; never sent to the client. */
+  bomb: BombCell;
+  /** Null until the search starts. */
+  search: BombSearch | null;
 }
 
 export interface Fire {
@@ -275,6 +339,34 @@ export interface Fire {
   startStep: number;
   /** The floor where the fire started. */
   level: Level;
+  /** Every level that has burned in this fire. */
+  levels: Partial<Record<Level, BurningLevel>>;
+  /** Guards with a target, keyed by person number. */
+  guards: Record<number, FireGuard>;
+}
+
+export interface FireFront {
+  x: number;
+  /** Guard minutes spent on this front; it is out at FIRE_FRONT_CONTAINMENT. */
+  progress: number;
+  out: boolean;
+}
+
+export interface BurningLevel {
+  ignitionStep: number;
+  ignitionColumn: number;
+  left: FireFront;
+  right: FireFront;
+}
+
+export type FireSide = 'left' | 'right';
+
+export interface FireGuard {
+  level: Level;
+  /** Null while the guard is still travelling to the level. */
+  side: FireSide | null;
+  /** Step of arrival, null while travelling. */
+  arrivedStep: number | null;
 }
 
 export type ActiveEvent = BombThreat | Fire;
@@ -300,6 +392,8 @@ export type EngineEvent =
       waitSteps: number;
       rideSteps: number;
     }
+  | { type: 'tripFinished'; step: number; person: EntityId; arrived: boolean }
+  | { type: 'routeSearchFailed'; step: number; person: EntityId }
   | { type: 'hotelCheckIn'; step: number; unitId: UnitId; nights: number; paid: number }
   | { type: 'hotelCheckOut'; step: number; unitId: UnitId }
   | { type: 'roomStateChanged'; step: number; unitId: UnitId; state: HotelRoomState }
@@ -322,5 +416,8 @@ export type EngineEvent =
     }
   | { type: 'treasureFound'; step: number; commandId: string; level: Level; amount: number }
   | { type: 'news'; step: number; commandId: string; key: 'news.treasure'; level: Level }
+  | { type: 'news'; step: number; commandId: string; key: 'news.bombPaid'; unitId: null }
+  | { type: 'disaster'; step: number; kind: DecisionKind; cells: CellRange[] }
+  | { type: 'news'; step: number; key: 'news.bombExploded'; level: Level }
   | { type: 'news'; step: number; key: 'news.decisionDefault'; eventId: EventId; choice: string }
   | { type: 'news'; step: number; key: string; unitId: UnitId | null };

@@ -36,6 +36,14 @@ describe('isFinanceToggleKey', () => {
 });
 
 describe('isPlainShortcut', () => {
+  it('ignores letters typed in a contenteditable element', () => {
+    const editor = document.createElement('div');
+    editor.setAttribute('contenteditable', 'true');
+    document.body.append(editor);
+    expect(isPlainShortcut(press('f', { target: editor }))).toBe(false);
+    editor.remove();
+  });
+
   it('accepts a digit on the page', () => {
     expect(isPlainShortcut(press('1'))).toBe(true);
   });

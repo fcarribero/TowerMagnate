@@ -4,10 +4,13 @@ import {
   isExpressStop,
   listPeople,
   NO_TRIP,
+  nextStarRequirements,
   populationOf,
   shaftLevels,
   STEPS_PER_DAY,
   DAYS_PER_WEEK,
+  trekPhaseAt,
+  type TrekPhase,
 } from '@tower-magnate/engine';
 import type { PersonView as EnginePerson } from '@tower-magnate/engine';
 import {
@@ -66,6 +69,7 @@ export function buildSnapshot(state: TowerState, viewport: Viewport | null): Sna
     money: state.money,
     stars: state.stars,
     population: populationOf(state).total,
+    starRequirements: nextStarRequirements(state),
     grid: {
       levels: structureRows(state),
       mainLobbyHeight: state.grid.mainLobbyHeight,
@@ -74,7 +78,7 @@ export function buildSnapshot(state: TowerState, viewport: Viewport | null): Sna
     transports: Object.values(state.transports).map(transportView),
     shafts: Object.values(state.shafts).map(shaftView),
     cars: Object.values(state.shafts).flatMap(carViews),
-    people: viewport ? people.filter((person) => isInside(person, viewport)).map(personView) : [],
+    people: viewport ? peopleViews(state, people, viewport) : [],
     followed: followedPeople(state),
     activeEvents: buildEventViews(state),
     notices: state.notices.map(noticeView),
@@ -165,7 +169,7 @@ function structureString(row: LevelRow): string {
   return cells.join('');
 }
 
-function isInside(person: EnginePerson, viewport: Viewport): boolean {
+function isInside(person: { level: number; column: number }, viewport: Viewport): boolean {
   return (
     person.level >= viewport.levelFrom &&
     person.level <= viewport.levelTo &&
@@ -174,15 +178,82 @@ function isInside(person: EnginePerson, viewport: Viewport): boolean {
   );
 }
 
-function personView(person: EnginePerson): PersonView {
+interface RidePlace {
+  carRef: NonNullable<PersonView['carRef']>;
+  x: number;
+  level: number;
+}
+
+function ridePlaces(state: TowerState): Map<string, RidePlace> {
+  const places = new Map<string, RidePlace>();
+  for (const shaft of Object.values(state.shafts)) {
+    shaft.cars.forEach((car, index) => {
+      for (const rider of car.riders) {
+        places.set(rider, { carRef: { shaftId: shaft.id, index }, x: shaft.x, level: car.level });
+      }
+    });
+  }
+  return places;
+}
+
+function modeOfPhase(phase: TrekPhase, atHome: boolean): PersonView['mode'] {
+  switch (phase) {
+    case 'idle':
+      return atHome ? 'inside' : 'walk';
+    case 'onStairs':
+    case 'onEscalator':
+      return 'stairs';
+    case 'queued':
+    case 'waitingBesideQueue':
+      return 'wait';
+    case 'riding':
+      return 'ride';
+    default:
+      return 'walk';
+  }
+}
+
+function facingOf(state: TowerState, slot: number): PersonView['facing'] {
+  return state.people.facing[slot] === 1 ? 'left' : 'right';
+}
+
+export function peopleViews(
+  state: TowerState,
+  people: EnginePerson[],
+  viewport: Viewport,
+): PersonView[] {
+  const rides = ridePlaces(state);
+  const views: PersonView[] = [];
+  people.forEach((person, slot) => {
+    const phase = trekPhaseAt(state.people, slot);
+    const ride = phase === 'riding' ? rides.get(person.id) : undefined;
+    const place = {
+      level: ride?.level ?? person.level,
+      column: ride?.x ?? person.column,
+    };
+    if (isInside(place, viewport)) {
+      views.push(personView(state, person, slot, phase, place, ride));
+    }
+  });
+  return views;
+}
+
+function personView(
+  state: TowerState,
+  person: EnginePerson,
+  slot: number,
+  phase: TrekPhase,
+  place: { level: number; column: number },
+  ride: RidePlace | undefined,
+): PersonView {
   return {
     id: person.id,
     kind: person.kind,
-    x: person.column,
-    level: person.level,
-    facing: 'right',
-    mode: person.trip === NO_TRIP ? 'inside' : 'walk',
-    carRef: null,
+    x: place.column,
+    level: place.level,
+    facing: facingOf(state, slot),
+    mode: modeOfPhase(phase, person.trip === NO_TRIP),
+    carRef: ride?.carRef ?? null,
     stress: stressLevel(person.stress),
   };
 }
