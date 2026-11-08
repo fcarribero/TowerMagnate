@@ -242,12 +242,6 @@ export const ClientEventSchema = z.discriminatedUnion('type', [
   }),
 ]);
 
-const ContractSchema = z.object({
-  state: z.enum(['leased', 'forLease', 'sold', 'forSale']),
-  week: z.int().positive().nullable(),
-  nextPaymentStep: StepSchema.nullable(),
-});
-
 const PersonDestinationSchema = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('unit'), unitId: UnitEntityIdSchema, level: LevelSchema }),
   z.object({ kind: z.literal('exit') }),
@@ -259,22 +253,66 @@ const InspectedCarSchema = z.object({
   load: CarLoadSchema,
 });
 
-export const InspectDataSchema = z.discriminatedUnion('kind', [
+const InspectedUnitDetailsSchema = z.discriminatedUnion('group', [
   z.object({
-    kind: z.literal('unit'),
-    id: UnitEntityIdSchema,
-    type: UnitTypeSchema,
-    name: DisplayNameSchema.nullable(),
-    level: LevelSchema,
-    x: ColumnSchema,
-    occupants: z.int().nonnegative(),
-    capacity: z.int().nonnegative(),
+    group: z.literal('lease'),
+    state: z.enum(['occupied', 'forRent']),
+    persons: z.int().nonnegative(),
+    capacity: z.int().positive(),
     evaluation: EvaluationSchema.nullable(),
     price: PriceLevelSchema,
-    contract: ContractSchema.nullable(),
-    hotelStayEndStep: StepSchema.nullable(),
-    filmAgeDays: z.int().nonnegative().nullable(),
+    leaseWeek: z.int().positive().nullable(),
+    nextPaymentStep: StepSchema.nullable(),
   }),
+  z.object({
+    group: z.literal('condo'),
+    state: z.enum(['sold', 'forSale']),
+    residents: z.int().nonnegative(),
+    capacity: z.int().positive(),
+    evaluation: EvaluationSchema.nullable(),
+    price: PriceLevelSchema,
+    nextEvaluationStep: StepSchema.nullable(),
+  }),
+  z.object({
+    group: z.literal('hotel'),
+    state: HotelRoomStateSchema,
+    guests: z.int().nonnegative(),
+    capacity: z.int().positive(),
+    evaluation: EvaluationSchema.nullable(),
+    price: PriceLevelSchema,
+    checkoutStep: StepSchema.nullable(),
+  }),
+  z.object({
+    group: z.literal('cinema'),
+    filmWeek: z.int().positive().nullable(),
+    filmAgeDays: z.int().nonnegative().nullable(),
+    price: PriceLevelSchema,
+  }),
+]);
+
+/** A unit that is gone or never existed: sent once, then the server drops the target. */
+const InspectedUnitGoneSchema = z.object({
+  kind: z.literal('unit'),
+  id: UnitEntityIdSchema,
+  status: z.literal('gone'),
+});
+
+const InspectedUnitFoundSchema = z.object({
+  kind: z.literal('unit'),
+  id: UnitEntityIdSchema,
+  status: z.literal('ok'),
+  name: DisplayNameSchema.nullable(),
+  type: UnitTypeSchema,
+  level: LevelSchema,
+  from: ColumnSchema,
+  to: ColumnSchema,
+  /** Fields of the unit's type; null for types that show only the common ones. */
+  details: InspectedUnitDetailsSchema.nullable(),
+});
+
+export const InspectDataSchema = z.union([
+  InspectedUnitFoundSchema,
+  InspectedUnitGoneSchema,
   z.object({
     kind: z.literal('person'),
     id: PersonEntityIdSchema,

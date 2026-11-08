@@ -2,6 +2,7 @@ import { PROTOCOL_VERSION, serverMessage } from '@tower-magnate/shared';
 import { CLOSE_CODES, sendError, sendMessage, type MessageHandlers } from '../gateway';
 import type { TowerRunner } from '../runner';
 import type { DeltaBroadcaster } from './delta-broadcaster';
+import type { Inspections } from './inspections';
 import { buildSnapshot } from './snapshot';
 import type { Viewports } from './viewports';
 
@@ -9,17 +10,19 @@ export interface TowerSocketDependencies {
   runner: TowerRunner;
   viewports: Viewports;
   broadcaster: DeltaBroadcaster;
+  inspections: Inspections;
 }
 
 /**
  * `hello` joins the socket to its tower and answers with a snapshot; a second `hello` on the
- * same socket asks for a fresh one. Deltas follow from the broadcaster. `command` is queued on the
+ * same socket asks for a fresh one and drops its inspect target. Deltas follow from the broadcaster. `command` is queued on the
  * runner and answered with its `commandResult`.
  */
 export function towerSocketHandlers({
   runner,
   viewports,
   broadcaster,
+  inspections,
 }: TowerSocketDependencies): MessageHandlers {
   return {
     hello: async (message, { socket, identity, join }) => {
@@ -29,6 +32,7 @@ export function towerSocketHandlers({
         return;
       }
       join();
+      inspections.clear(socket);
       await runner.resume(identity.towerId);
       const state = runner.stateOf(identity.towerId);
       if (state) {
@@ -38,6 +42,15 @@ export function towerSocketHandlers({
     command: async (message, { socket, identity }) => {
       const result = await runner.submit(identity.towerId, message.p);
       sendMessage(socket, serverMessage('commandResult', result));
+      const { command } = message.p;
+      if (result.ok && (command.type === 'setPrice' || command.type === 'renameUnit')) {
+        inspections.pushChange(socket, command.unitId);
+      }
+    },
+    inspect: (message, { socket, identity }) => {
+      if (!inspections.set(socket, identity.towerId, message.p.target)) {
+        sendError(socket, 'INVALID_COMMAND', 'Only units can be inspected so far');
+      }
     },
     viewport: (message, { socket }) => {
       viewports.update(socket, message.p);
