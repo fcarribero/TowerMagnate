@@ -87,11 +87,47 @@ describe('delta between snapshots', () => {
     expect(removed.unitsRemoved).toEqual(['u9']);
   });
 
-  it('asks for a fresh snapshot when the lobby height changes', () => {
+  it('sends the lobby height only when it changes', () => {
+    const before = snapshotOf(createTower(3));
+    const built = { ...before, grid: { ...before.grid, mainLobbyHeight: 1 as const } };
+    const raised = { ...built, grid: { ...built.grid, mainLobbyHeight: 2 as const } };
+
+    expect(diffSnapshots(before, built).delta.mainLobbyHeight).toBe(1);
+    expect(diffSnapshots(built, built).delta.mainLobbyHeight).toBeUndefined();
+    expect(diffSnapshots(built, raised).delta.mainLobbyHeight).toBe(2);
+  });
+
+  it('keeps the same snapshot when only the lobby height changes', () => {
     const before = snapshotOf(tower());
     const after = { ...before, grid: { ...before.grid, mainLobbyHeight: 2 as const } };
 
-    expect(needsFreshSnapshot(before, after)).toBe(true);
-    expect(needsFreshSnapshot(before, before)).toBe(false);
+    expect(needsFreshSnapshot(before, after)).toBe(false);
+  });
+
+  it('carries a new shaft and its cars, then drops a removed car', () => {
+    const state = tower();
+    const before = snapshotOf(state);
+    const car = { homeLevel: 1, level: 1, riders: [], paid: 0, placedAtStep: 0 };
+    state.shafts.s1 = {
+      id: 's1',
+      type: 'standard',
+      x: 40,
+      bottom: 1,
+      top: 3,
+      cars: [car, { ...car }],
+      queues: {},
+      paid: 0,
+      placedAtStep: 0,
+    };
+    const withShaft = snapshotOf(state);
+
+    const added = diffSnapshots(before, withShaft).delta;
+    state.shafts.s1.cars.pop();
+    const removed = diffSnapshots(withShaft, snapshotOf(state)).delta;
+
+    expect(added.shaftsUpserted?.map((shaft) => shaft.id)).toEqual(['s1']);
+    expect(added.cars?.map((view) => view.index)).toEqual([0, 1]);
+    expect(DeltaSchema.safeParse(added).success).toBe(true);
+    expect(removed.cars?.map((view) => view.index)).toEqual([0]);
   });
 });

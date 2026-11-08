@@ -1,6 +1,6 @@
 import type { Ledger } from './ledger';
 import type { Level } from './levels';
-import type { DecisionKind, TransportType } from './protocol/primitives';
+import type { DecisionKind, HotelRoomState, TransportType } from './protocol/primitives';
 import type { PersonPool } from './people';
 import type { PriceLevel, ShaftType, StarRating, UnitType } from './units';
 
@@ -74,6 +74,16 @@ export interface Unit {
   used: boolean;
   /** The current office or shop tenant's lease; null while the unit is for rent. */
   lease: Lease | null;
+  /** The state of a hotel room; null for every other unit. */
+  hotel: HotelRoom | null;
+  /** The current owners' purchase of a condo; null while the condo is for sale. */
+  sale: CondoSale | null;
+}
+
+export interface HotelRoom {
+  state: HotelRoomState;
+  /** When the current stay ends (10:00 on its last day); null while nobody is staying. */
+  stayEndStep: number | null;
 }
 
 /** A staircase or escalator. Its cells on `level` are the footprint; the level above has the landing. */
@@ -137,6 +147,15 @@ export interface Lease {
   nextDueStep: number;
 }
 
+export interface CondoSale {
+  /** Whole dollars the owners paid; a buyback returns exactly this. */
+  price: number;
+  /** The step of the sale, which starts the 4-week evaluation cycle. */
+  anchorStep: number;
+  /** The next owner evaluation. */
+  nextEvaluationStep: number;
+}
+
 export type TenantEvaluation = 'good' | 'fair' | 'poor';
 
 export interface TowerState {
@@ -160,6 +179,12 @@ export interface TowerState {
   closedDecisions: EventId[];
   /** Basement levels that have already given treasure. */
   treasureLevels: Level[];
+  /** Set when a VIP visit that started at 3 stars ends approved. */
+  vipApproved: boolean;
+  /** Step of the last medical visit that failed; null if none yet. */
+  lastMedicalFailureStep: number | null;
+  /** Step of the last parking failure; null if none yet. */
+  lastParkingFailureStep: number | null;
 }
 
 /** Id of a tower event, such as `e7`. */
@@ -201,6 +226,11 @@ export type EngineEvent =
       name: string | null;
     }
   | { type: 'leaseSigned' | 'leaseRenewed' | 'leaseEnded'; step: number; unitId: UnitId }
+  | { type: 'condoSold' | 'condoVacated'; step: number; unitId: UnitId }
+  | { type: 'hotelCheckIn'; step: number; unitId: UnitId; nights: number; paid: number }
+  | { type: 'hotelCheckOut'; step: number; unitId: UnitId }
+  | { type: 'roomStateChanged'; step: number; unitId: UnitId; state: HotelRoomState }
+  | { type: 'starsChanged'; step: number; stars: StarRating; unlocked: UnitType[] }
   | {
       type: 'decisionOpened';
       step: number;

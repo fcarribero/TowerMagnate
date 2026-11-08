@@ -17,6 +17,7 @@ import { SHAFT_UNIT_TYPES } from './units';
 
 export const STARTING_MONEY = 2_000_000;
 export const MONEY_CAP = 99_999_999;
+export const OFFICE_POPULATION = 6;
 
 export const TOWER_LAYOUT = {
   floorsAboveGround: 100,
@@ -35,6 +36,12 @@ export const STAR_POPULATION_THRESHOLDS: Readonly<Record<Exclude<StarRating, 6>,
   4: 10_000,
   5: 15_000,
 };
+
+/** Suites (not infested) a tower needs to reach 4 stars. */
+export const SUITES_FOR_FOUR_STARS = 2;
+
+/** People one recycling center covers. */
+export const RECYCLING_PEOPLE_PER_CENTER = 2_500;
 
 function fixedHeight(floors: number): UnitHeight {
   return { kind: 'fixed', floors };
@@ -397,6 +404,12 @@ export const HOTEL_NIGHTLY_PRICE: Readonly<
 };
 
 export const HOTEL_STAY_NIGHTS = { min: 1, max: 4 } as const;
+
+/** Percent chance of a stay of 1, 2, 3 and 4 nights. */
+export const HOTEL_STAY_NIGHT_WEIGHTS = [40, 30, 20, 10] as const;
+
+export const HOTEL_CHECK_IN_HOURS = { from: 12, until: 23 } as const;
+export const HOTEL_CHECK_OUT_HOUR = 10;
 
 export const CONDO_SALE_PRICE: PriceTable = {
   high: 200_000,

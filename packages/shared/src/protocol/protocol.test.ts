@@ -144,6 +144,20 @@ describe('rejected messages', () => {
   });
 });
 
+describe('delta lobby height', () => {
+  const deltaWith = (mainLobbyHeight: number) =>
+    ServerMessageSchema.safeParse({
+      v: PROTOCOL_VERSION,
+      t: 'delta',
+      p: { step: 1, cars: [], people: [], mainLobbyHeight },
+    }).success;
+
+  it('accepts heights 1, 2 and 3 and rejects 0 and 4', () => {
+    expect([1, 2, 3].map(deltaWith)).toEqual([true, true, true]);
+    expect([0, 4].map(deltaWith)).toEqual([false, false]);
+  });
+});
+
 describe('message builders', () => {
   it('stamp the current protocol version', () => {
     expect(clientMessage('ping', { clientTime: 5 })).toEqual({
