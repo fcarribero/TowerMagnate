@@ -12,6 +12,7 @@ import {
   type FireGuard,
   type Level,
   type Notice,
+  type NoticeParams,
 } from '@tower-magnate/shared';
 import { isRecord, StateMigrationError } from './errors';
 
@@ -207,6 +208,27 @@ export function readTreasureLevels(raw: unknown): Level[] {
   return [...(raw as Level[])];
 }
 
+function readNoticeParams(raw: unknown): NoticeParams {
+  if (raw === undefined) {
+    return {};
+  }
+  const valid =
+    isRecord(raw) &&
+    (raw.level === undefined || isLevel(raw.level)) &&
+    (raw.amount === undefined || Number.isInteger(raw.amount)) &&
+    (raw.n === undefined || Number.isInteger(raw.n)) &&
+    (raw.option === undefined || typeof raw.option === 'string');
+  if (!valid) {
+    throw new StateMigrationError('State notice params are malformed');
+  }
+  const params: NoticeParams = {};
+  if (raw.level !== undefined) params.level = raw.level as Level;
+  if (raw.amount !== undefined) params.amount = raw.amount as number;
+  if (raw.n !== undefined) params.n = raw.n as number;
+  if (raw.option !== undefined) params.option = raw.option as string;
+  return params;
+}
+
 function readNotice(raw: unknown): Notice {
   const valid =
     isRecord(raw) &&
@@ -222,6 +244,7 @@ function readNotice(raw: unknown): Notice {
     step: raw.step as number,
     key: raw.key as string,
     unitId: raw.unitId as string | null,
+    params: readNoticeParams(raw.params),
   };
 }
 

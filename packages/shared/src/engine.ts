@@ -128,6 +128,15 @@ export interface FloorPurchase extends ColumnSpan {
   placedAtStep: number;
 }
 
+/** Sky lobby columns bought on one lobby level, kept while they can still be refunded. */
+export interface LobbyPurchase extends ColumnSpan {
+  /** The sky lobby level the run stands on. */
+  level: Level;
+  /** Whole dollars charged for each column, all its rows together. */
+  paidPerColumn: number;
+  placedAtStep: number;
+}
+
 /** Instance id of a placed elevator shaft, such as `s4`. */
 export type ShaftId = string;
 
@@ -255,6 +264,8 @@ export interface TowerState {
   grid: GridState;
   /** Floor tool purchases still inside the refund window; older ones may linger until pruned. */
   floorPurchases: FloorPurchase[];
+  /** Sky lobby purchases still inside the refund window; older ones may linger until pruned. */
+  lobbyPurchases: LobbyPurchase[];
   people: PersonPool;
   /**
    * Trips each person ended in the last STRESS_WINDOW_STEPS, keyed by person number: pairs of
@@ -316,6 +327,15 @@ export interface MedicalDay {
   noticed: string[];
 }
 
+/** The values a news text fills in, as the engine knows them (messages.md, params column). */
+export interface NoticeParams {
+  level?: Level;
+  amount?: number;
+  n?: number;
+  /** Id of the option a decision applied by default; the client shows its button text. */
+  option?: string;
+}
+
 /** A news line the player was shown; `key` names its text. */
 export interface Notice {
   /** `n<step>.<index>`, unique within the tower. */
@@ -323,6 +343,7 @@ export interface Notice {
   step: number;
   key: string;
   unitId: UnitId | null;
+  params: NoticeParams;
 }
 
 /** Id of a tower event, such as `e7`. */
@@ -456,9 +477,17 @@ export type EngineEvent =
       choice: string;
     }
   | { type: 'treasureFound'; step: number; commandId: string; level: Level; amount: number }
-  | { type: 'news'; step: number; commandId: string; key: 'news.treasure'; level: Level }
+  | {
+      type: 'news';
+      step: number;
+      commandId: string;
+      key: 'news.treasure';
+      level: Level;
+      amount: number;
+    }
   | { type: 'news'; step: number; commandId: string; key: 'news.bombPaid'; unitId: null }
   | { type: 'disaster'; step: number; kind: DecisionKind; cells: CellRange[] }
   | { type: 'news'; step: number; key: 'news.bombExploded'; level: Level }
+  | { type: 'news'; step: number; key: 'news.starsUp'; n: number }
   | { type: 'news'; step: number; key: 'news.decisionDefault'; eventId: EventId; choice: string }
   | { type: 'news'; step: number; key: string; unitId: UnitId | null };

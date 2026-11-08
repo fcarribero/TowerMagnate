@@ -1,5 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 import { fastForward, openGame } from './support/game';
+import { DEBUG_TAG } from './support/target';
 import { canvasBox, CENTER_COLUMN, tilePoint } from './support/towerCanvas';
 
 const STEPS_PER_GAME_DAY = 8_640;
@@ -54,41 +55,43 @@ async function clickCell(page: Page, column: number, level: number): Promise<voi
   await page.mouse.up();
 }
 
-test('building from the toolbar charges the cost on the label and a tenant fills the office', async ({
-  page,
-}) => {
-  await openGame(page);
-  await expect(page.getByRole('navigation')).toBeVisible();
-  await expect(page.locator('.status-panel__population')).toHaveText(/Población 0$/);
+test(
+  'building from the toolbar charges the cost on the label and a tenant fills the office',
+  { tag: DEBUG_TAG },
+  async ({ page }) => {
+    await openGame(page);
+    await expect(page.getByRole('navigation')).toBeVisible();
+    await expect(page.locator('.status-panel__population')).toHaveText(/Población 0$/);
 
-  await chooseTool(page, 0, 'lobby');
-  const lobbyCost = await floatedCost(page, () => dragAcross(page, 1, LOBBY_FIRST, LOBBY_LAST));
-  expect(lobbyCost).toBe(32 * 5_000);
+    await chooseTool(page, 0, 'lobby');
+    const lobbyCost = await floatedCost(page, () => dragAcross(page, 1, LOBBY_FIRST, LOBBY_LAST));
+    expect(lobbyCost).toBe(32 * 5_000);
 
-  await chooseTool(page, 0, 'floor');
-  const floorCost = await floatedCost(page, () => dragAcross(page, 2, LOBBY_FIRST, LOBBY_LAST));
-  expect(floorCost).toBe(32 * 500);
+    await chooseTool(page, 0, 'floor');
+    const floorCost = await floatedCost(page, () => dragAcross(page, 2, LOBBY_FIRST, LOBBY_LAST));
+    expect(floorCost).toBe(32 * 500);
 
-  await chooseTool(page, 2, 'office');
-  const officeCost = await floatedCost(page, () => clickCell(page, OFFICE_COLUMN, 2));
-  expect(officeCost).toBe(40_000);
+    await chooseTool(page, 2, 'office');
+    const officeCost = await floatedCost(page, () => clickCell(page, OFFICE_COLUMN, 2));
+    expect(officeCost).toBe(40_000);
 
-  await chooseTool(page, 1, 'stairs');
-  const stairsCost = await floatedCost(page, () => clickCell(page, STAIRS_COLUMN, 1));
-  expect(stairsCost).toBe(5_000);
+    await chooseTool(page, 1, 'stairs');
+    const stairsCost = await floatedCost(page, () => clickCell(page, STAIRS_COLUMN, 1));
+    expect(stairsCost).toBe(5_000);
 
-  await chooseTool(page, 1, 'standard-elevator');
-  const before = await moneyOf(page);
-  await pointAt(page, ELEVATOR_COLUMN, 1);
-  await page.mouse.down();
-  await pointAt(page, ELEVATOR_COLUMN, 2);
-  const dragLabel = page.locator('.tm-drag-label');
-  await expect(dragLabel).toBeVisible();
-  const shownCost = parseMoney((await dragLabel.innerText()).split(' - ')[1] ?? '');
-  await page.mouse.up();
-  expect(shownCost).toBe(280_000);
-  await expect.poll(() => moneyOf(page)).toBe(before - shownCost);
+    await chooseTool(page, 1, 'standard-elevator');
+    const before = await moneyOf(page);
+    await pointAt(page, ELEVATOR_COLUMN, 1);
+    await page.mouse.down();
+    await pointAt(page, ELEVATOR_COLUMN, 2);
+    const dragLabel = page.locator('.tm-drag-label');
+    await expect(dragLabel).toBeVisible();
+    const shownCost = parseMoney((await dragLabel.innerText()).split(' - ')[1] ?? '');
+    await page.mouse.up();
+    expect(shownCost).toBe(280_000);
+    await expect.poll(() => moneyOf(page)).toBe(before - shownCost);
 
-  await fastForward(page, STEPS_PER_GAME_DAY);
-  await expect(page.locator('.status-panel__population')).toHaveText(/Población 6$/);
-});
+    await fastForward(page, STEPS_PER_GAME_DAY);
+    await expect(page.locator('.status-panel__population')).toHaveText(/Población 6$/);
+  },
+);

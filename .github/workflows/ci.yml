@@ -2,7 +2,7 @@ name: CI
 
 on:
   pull_request:
-    branches: [develop, master]
+    branches: [develop, master, 'release/**']
   push:
     branches: [develop, master, 'release/**']
 
@@ -64,6 +64,9 @@ jobs:
       - name: Venue customers benchmark
         run: pnpm bench:customers
 
+      - name: Subway customers benchmark
+        run: pnpm bench:subway
+
   e2e:
     name: End-to-end tests
     if: (github.event_name == 'pull_request' && github.base_ref == 'develop') || (github.event_name == 'push' && github.ref == 'refs/heads/develop')
@@ -105,7 +108,7 @@ jobs:
 
   e2e-prod:
     name: End-to-end tests on the production build
-    if: startsWith(github.ref_name, 'release/') || (github.event_name == 'pull_request' && github.base_ref == 'master')
+    if: startsWith(github.ref_name, 'release/') || (github.event_name == 'pull_request' && (github.base_ref == 'master' || startsWith(github.base_ref, 'release/')))
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:

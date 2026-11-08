@@ -76,7 +76,13 @@ describe('delta between snapshots', () => {
   it('sends notices and active events when they change', () => {
     const state = tower();
     const before = snapshotOf(state);
-    state.notices.push({ id: 'n9.0', step: 9, key: 'news.starsUp', unitId: null });
+    state.notices.push({
+      id: 'n9.0',
+      step: 9,
+      key: 'news.starsUp',
+      unitId: null,
+      params: { n: 2 },
+    });
     openFire({ state, events: [] }, 3);
     const after = snapshotOf(state);
 
