@@ -6,7 +6,9 @@ import { TowerContentStore } from '../model/towerContent';
 import { useGameConnection } from '../net/useGameConnection';
 import { placeholderTowerContent } from '../render/placeholderTower';
 import type { Stage } from '../render/stage';
+import { bindStructure, fullWidthTestTower, testTowerFromQuery } from '../render/structureSource';
 import { isMapToggleKey } from './keys';
+import { LevelRuler } from './LevelRuler';
 import { StageHost } from './StageHost';
 import './kit';
 import { StatusPanel, type StatusWindowId } from './status/StatusPanel';
@@ -49,6 +51,18 @@ export function App({ onLogout }: AppProps) {
   }, []);
 
   useEffect(() => {
+    if (stage === null) {
+      return;
+    }
+    const testTowerFloors = import.meta.env.DEV && testTowerFromQuery(location.search);
+    if (testTowerFloors) {
+      stage.showStructure(fullWidthTestTower(testTowerFloors));
+      return;
+    }
+    return bindStructure(connection.store, (input) => stage.showStructure(input));
+  }, [stage, connection]);
+
+  useEffect(() => {
     const onKeyDown = (event: KeyboardEvent): void => {
       if (isMapToggleKey(event)) {
         setMapOpen((open) => !open);
@@ -62,6 +76,7 @@ export function App({ onLogout }: AppProps) {
     <>
       <StageHost onStage={setStage} />
       <div class="ui-layer" onClick={onUiClick}>
+        {stage && <LevelRuler stage={stage} />}
         <StatusPanel
           store={connection.store}
           offline={connectionStatus !== 'live'}
