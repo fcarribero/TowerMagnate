@@ -461,6 +461,12 @@ export const CINEMA_SHOW_LENGTH_HOURS = 2;
 
 export const CINEMA_MOVIE_CHANGE_COST = 300_000;
 
+/** People spec sections 16 and 17. */
+export const MEDICAL_VISIT_CHANCE = 0.1;
+export const MEDICAL_VISIT_MINUTES = 60;
+export const MEDICAL_CENTER_DAILY_VISITS = 100;
+export const PARKING_HOLDER_CHANCE = { office: 0.15, condo: 0.25, suite: 0.5 } as const;
+
 /** Events spec section 15. One game hour. */
 export const DECISION_DEADLINE_STEPS = 360;
 export const CLOSED_DECISIONS_KEPT = 20;
@@ -545,6 +551,20 @@ export const NOISE_RULES: Readonly<Partial<Record<UnitType, NoiseRule>>> = {
 export const EVAL_GOOD_BELOW = 90;
 export const EVAL_FAIR_BELOW = 180;
 export const EVAL_FAIR_BELOW_FROM_FOUR_STARS = 240;
+
+/** Trip stress parts in steps (SE-01 to SE-09). */
+export const STRESS_STAIR_FLOOR = 30;
+export const STRESS_ESCALATOR_FLOOR = 6;
+export const STRESS_QUEUE_FULL = 12;
+export const STRESS_NO_ROUTE = 360;
+export const STRESS_TRIP_CAP = 540;
+/** Wait steps removed from an up ride that boards in a lobby, by lobby height. */
+export const STRESS_TALL_LOBBY_CUT: Readonly<Record<number, number>> = { 1: 0, 2: 18, 3: 36 };
+/** Extra stress of a trip by its slow floors: the first row whose `from` is reached applies. */
+export const STRESS_LONG_TRIP: readonly { from: number; extra: number }[] = [
+  { from: 25, extra: 60 },
+  { from: 15, extra: 30 },
+];
 
 /** Trips that ended within this many steps (one week) count toward a person's stress. */
 export const STRESS_WINDOW_STEPS = 60_480;

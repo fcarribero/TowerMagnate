@@ -105,7 +105,7 @@ describe('migrateState unit leases', () => {
     expect(migratedUnit(JSON.parse(JSON.stringify(cinema)))).toEqual(cinema);
   });
 
-  it('gives venues of a version 15 save zero counts and other units none', () => {
+  it('gives venues of a version 18 save zero counts and other units none', () => {
     const withoutVenue = (unit: object) => {
       const copy: { venue?: unknown } = { ...unit };
       delete copy.venue;
@@ -113,7 +113,7 @@ describe('migrateState unit leases', () => {
     };
     const food = withoutVenue(newUnit('u3', 'fast-food', 0, 2));
     const office = withoutVenue(newUnit('u4', 'office', 5, 2));
-    const save = { ...createTower(5), schemaVersion: 15, units: { u3: food, u4: office } };
+    const save = { ...createTower(5), schemaVersion: 18, units: { u3: food, u4: office } };
     const tower = migrateState(save);
     expect(tower.units.u3?.venue).toEqual({ visits: 0, eveningShowVisits: 0, yesterday: null });
     expect(tower.units.u4?.venue).toBeNull();
@@ -487,5 +487,26 @@ describe('migrateState car motion', () => {
     };
     const queue = migrateState(saved).shafts.s2?.queues['2'];
     expect(queue?.up).toEqual([{ person: 'p1', destination: 5, joinedStep: 4 }]);
+  });
+});
+
+describe('migrateState medical day', () => {
+  it('gives an older save an empty medical day for its current day', () => {
+    const old = JSON.parse(JSON.stringify(createTower(5))) as Record<string, unknown>;
+    delete old.medicalDay;
+    old.schemaVersion = 15;
+    old.step = 3 * 8640 + 50;
+    const tower = migrateState(old);
+    expect(tower.medicalDay).toEqual({ day: 3, visits: {}, noticed: [] });
+  });
+
+  it('keeps visit counts and refuses a malformed medical day', () => {
+    const saved = JSON.parse(JSON.stringify(createTower(5))) as Record<string, unknown>;
+    const medicalDay = { day: 2, visits: { '4': 17 }, noticed: ['news.medicalFull'] };
+    expect(migrateState({ ...saved, medicalDay }).medicalDay).toEqual(medicalDay);
+    expect(() =>
+      migrateState({ ...saved, medicalDay: { day: 2, visits: { '4': -1 }, noticed: [] } }),
+    ).toThrow(StateMigrationError);
+    expect(() => migrateState({ ...saved, medicalDay: null })).toThrow(StateMigrationError);
   });
 });

@@ -22,6 +22,8 @@ import {
   type RngState,
   type ShaftBand,
   type Level,
+  type MedicalDay,
+  type ParkingState,
   type Shaft,
   type ShaftSchedule,
   type ShaftType,
@@ -33,13 +35,14 @@ import {
   type VenueDay,
 } from '@tower-magnate/shared';
 import { defaultSchedule, defaultStops } from '../commands/shafts';
+import { STEPS_PER_DAY } from '../clock';
 import { SCHEMA_VERSION } from '../state';
 import { isHotelRoomType, isVenueType, newHotelRoom, newVenueDay } from '../units';
 import { isRecord, StateMigrationError } from './errors';
 import { readActiveEvents, readClosedDecisions, readNotices, readTreasureLevels } from './events';
 import { readGrid } from './grid';
 import { readLedger, readMoney } from './money';
-import { readPeople } from './people';
+import { readPeople, readTripLedger } from './people';
 import { readStars } from './stars';
 import { readTransports } from './transports';
 
@@ -63,6 +66,9 @@ const MIGRATIONS: readonly Migration[] = [
   addCarMotion,
   addTrekState,
   addNoticesAndFireLevel,
+  addMedicalDay,
+  addParkingState,
+  addTripLedger,
   addVenueDayCounts,
 ];
 
@@ -249,16 +255,48 @@ function addNoticesAndFireLevel(raw: Record<string, unknown>): Record<string, un
   return { notices: [], ...raw, activeEvents, schemaVersion: 15 };
 }
 
-/** Version 16 gives each food and entertainment venue its day counts; older venues start at zero. */
+/** Version 16 counts medical center visits per day; an older save starts with none today. */
+function addMedicalDay(raw: Record<string, unknown>): Record<string, unknown> {
+  const day = isNonNegativeInteger(raw.step) ? Math.floor(raw.step / STEPS_PER_DAY) : 0;
+  return { medicalDay: { day, visits: {}, noticed: [] }, ...raw, schemaVersion: 16 };
+}
+
+/** Version 17 stores parking holders; people in an older save have not rolled for a car. */
+function addParkingState(raw: Record<string, unknown>): Record<string, unknown> {
+  return { parking: { spaces: {}, noticeDay: 0, noticed: [] }, ...raw, schemaVersion: 17 };
+}
+
+/** Version 18 keeps the trips each person ended and the stress of the trip in progress; older saves have none. */
+function addTripLedger(raw: Record<string, unknown>): Record<string, unknown> {
+  const people = raw.people;
+  if (!isRecord(people) || !Array.isArray(people.id)) {
+    return { tripLedger: {}, ...raw, schemaVersion: 18 };
+  }
+  const zeros = (): number[] => (people.id as unknown[]).map(() => 0);
+  const tripFields = {
+    tripSum: zeros(),
+    tripSlowFloors: zeros(),
+    tripPartStep: zeros(),
+    tripPartCut: zeros(),
+  };
+  return {
+    tripLedger: {},
+    ...raw,
+    people: { ...tripFields, ...people },
+    schemaVersion: 18,
+  };
+}
+
+/** Version 19 gives each food and entertainment venue its day counts; older venues start at zero. */
 function addVenueDayCounts(raw: Record<string, unknown>): Record<string, unknown> {
   if (!isRecord(raw.units)) {
-    return { ...raw, schemaVersion: 16 };
+    return { ...raw, schemaVersion: 19 };
   }
   const units: Record<string, unknown> = {};
   for (const [id, unit] of Object.entries(raw.units)) {
     units[id] = isRecord(unit) ? { venue: venueDayFor(unit.type), ...unit } : unit;
   }
-  return { ...raw, schemaVersion: 16, units };
+  return { ...raw, schemaVersion: 19, units };
 }
 
 function venueDayFor(type: unknown): VenueDay | null {
@@ -574,6 +612,7 @@ function assertCurrentShape(raw: Record<string, unknown>): TowerState {
   if (!isNonNegativeInteger(raw.nextId)) {
     throw new StateMigrationError('State nextId must be a non-negative integer');
   }
+  const people = readPeople(raw.people);
   return {
     schemaVersion: SCHEMA_VERSION,
     step: raw.step,
@@ -585,13 +624,16 @@ function assertCurrentShape(raw: Record<string, unknown>): TowerState {
     transports: readTransports(raw.transports),
     shafts: readShafts(raw.shafts),
     grid: readGrid(raw.grid),
-    people: readPeople(raw.people),
+    people: people,
+    tripLedger: readTripLedger(raw.tripLedger, people.id),
     ledger: readLedger(raw.ledger),
     activeEvents: readActiveEvents(raw.activeEvents),
     closedDecisions: readClosedDecisions(raw.closedDecisions),
     notices: readNotices(raw.notices),
     treasureLevels: readTreasureLevels(raw.treasureLevels),
     ...readStarState(raw),
+    medicalDay: readMedicalDay(raw.medicalDay),
+    parking: readParking(raw.parking),
   };
 }
 
@@ -615,6 +657,39 @@ function readStarState(raw: Record<string, unknown>): StarState {
     lastMedicalFailureStep: lastMedicalFailureStep as number | null,
     lastParkingFailureStep: lastParkingFailureStep as number | null,
   };
+}
+
+function readParking(raw: unknown): ParkingState {
+  const fail = (): never => {
+    throw new StateMigrationError('State parking must hold holder spaces and notice keys');
+  };
+  if (!isRecord(raw) || !isRecord(raw.spaces) || !isNonNegativeInteger(raw.noticeDay))
+    return fail();
+  if (!Array.isArray(raw.noticed) || !raw.noticed.every((key) => typeof key === 'string')) {
+    return fail();
+  }
+  const spaces: Record<number, number> = {};
+  for (const [person, space] of Object.entries(raw.spaces)) {
+    if (!isNonNegativeInteger(Number(person)) || !isNonNegativeInteger(space)) return fail();
+    spaces[Number(person)] = space;
+  }
+  return { spaces, noticeDay: raw.noticeDay, noticed: [...(raw.noticed as string[])] };
+}
+
+function readMedicalDay(raw: unknown): MedicalDay {
+  const fail = (): never => {
+    throw new StateMigrationError('State medicalDay must hold a day, visit counts and notice keys');
+  };
+  if (!isRecord(raw) || !isNonNegativeInteger(raw.day) || !isRecord(raw.visits)) return fail();
+  if (!Array.isArray(raw.noticed) || !raw.noticed.every((key) => typeof key === 'string')) {
+    return fail();
+  }
+  const visits: Record<number, number> = {};
+  for (const [center, count] of Object.entries(raw.visits)) {
+    if (!isNonNegativeInteger(Number(center)) || !isNonNegativeInteger(count)) return fail();
+    visits[Number(center)] = count;
+  }
+  return { day: raw.day, visits, noticed: [...(raw.noticed as string[])] };
 }
 
 export function migrateState(raw: unknown): TowerState {

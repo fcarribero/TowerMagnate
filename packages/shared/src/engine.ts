@@ -233,6 +233,11 @@ export interface TowerState {
   shafts: Record<ShaftId, Shaft>;
   grid: GridState;
   people: PersonPool;
+  /**
+   * Trips each person ended in the last STRESS_WINDOW_STEPS, keyed by person number: pairs of
+   * end step and trip stress, oldest first.
+   */
+  tripLedger: Record<string, number[]>;
   ledger: Ledger;
   /** At most one bomb threat or fire at a time. */
   activeEvents: ActiveEvent[];
@@ -248,6 +253,27 @@ export interface TowerState {
   lastMedicalFailureStep: number | null;
   /** Step of the last parking failure; null if none yet. */
   lastParkingFailureStep: number | null;
+  /** Medical center visits and notices of one game day; a new day starts them over. */
+  medicalDay: MedicalDay;
+  parking: ParkingState;
+}
+
+export interface ParkingState {
+  /** Parking holders by person number; the value is the unit number of their space, or 0 for none. */
+  spaces: Record<number, number>;
+  /** Day number of the notices below; a new day starts them over. */
+  noticeDay: number;
+  /** News keys already shown on `noticeDay`. */
+  noticed: string[];
+}
+
+export interface MedicalDay {
+  /** Day number, from 0 at step 0. */
+  day: number;
+  /** Visits so far today, by unit number of the medical center. */
+  visits: Record<number, number>;
+  /** News keys already shown today. */
+  noticed: string[];
 }
 
 /** A news line the player was shown; `key` names its text. */

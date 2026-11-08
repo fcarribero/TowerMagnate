@@ -1,5 +1,6 @@
 import {
   MAX_FOLLOWED_PEOPLE,
+  PARKING_HOLDER_CHANCE,
   PERSON_KINDS,
   UNIT_CATALOG,
   type CapacityRole,
@@ -7,6 +8,7 @@ import {
   type ErrorCode,
   type Level,
   type PersonKind,
+  type ParkingState,
   type PersonPool,
   type TowerState,
   type UnitId,
@@ -14,7 +16,7 @@ import {
 } from '@tower-magnate/shared';
 import { leaveQueues } from './elevator-queues';
 import { stressBand, type StressBand } from './person-stress';
-import { nextInt, nextUint32 } from './rng';
+import { chance, nextInt, nextUint32 } from './rng';
 import type { SimulationSystem, StepContext } from './step';
 
 export const NOTHING_DUE = -1;
@@ -63,6 +65,10 @@ export function createPersonPool(): PersonPool {
     trip: [],
     dueStep: [],
     stress: [],
+    tripSum: [],
+    tripSlowFloors: [],
+    tripPartStep: [],
+    tripPartCut: [],
     trek: [],
     trekLevel: [],
     trekColumn: [],
@@ -89,6 +95,10 @@ export function clonePersonPool(pool: PersonPool): PersonPool {
     trip: pool.trip.slice(),
     dueStep: pool.dueStep.slice(),
     stress: pool.stress.slice(),
+    tripSum: pool.tripSum.slice(),
+    tripSlowFloors: pool.tripSlowFloors.slice(),
+    tripPartStep: pool.tripPartStep.slice(),
+    tripPartCut: pool.tripPartCut.slice(),
     trek: pool.trek.slice(),
     trekLevel: pool.trekLevel.slice(),
     trekColumn: pool.trekColumn.slice(),
@@ -144,6 +154,10 @@ export function addPerson(state: TowerState, person: NewPerson): number {
   pool.trip.push(NO_TRIP);
   pool.dueStep.push(NOTHING_DUE);
   pool.stress.push(0);
+  pool.tripSum.push(0);
+  pool.tripSlowFloors.push(0);
+  pool.tripPartStep.push(0);
+  pool.tripPartCut.push(0);
   pool.trek.push(0);
   pool.trekLevel.push(0);
   pool.trekColumn.push(0);
@@ -156,6 +170,15 @@ export function addPerson(state: TowerState, person: NewPerson): number {
   pool.nameSeed.push(nextUint32(state.rng));
   pool.nextId += 1;
   return id;
+}
+
+/** Rolls once whether the first person of a new tenant, owner or guest party wants a car (people spec 17.1). */
+export function rollParkingHolder(
+  state: TowerState,
+  personId: number,
+  holder: keyof typeof PARKING_HOLDER_CHANCE,
+): void {
+  if (chance(state.rng, PARKING_HOLDER_CHANCE[holder])) state.parking.spaces[personId] = 0;
 }
 
 /** The kind and number of people a unit of this type holds, or null if it holds none. */
@@ -192,6 +215,7 @@ export function addPeopleForUnit(state: TowerState, unitId: UnitId): EntityId[] 
     const column = unit.x + nextInt(state.rng, 0, width - 1);
     const id = addPerson(state, { kind: people.kind, homeUnit, level: unit.level, column });
     created.push(personEntityId(id));
+    if (index === 0 && unit.type === 'office') rollParkingHolder(state, id, 'office');
   }
   return created;
 }
@@ -204,21 +228,39 @@ export function addPeopleForUnit(state: TowerState, unitId: UnitId): EntityId[] 
 export function removePeopleOfUnit(state: TowerState, unitId: UnitId): EntityId[] {
   const homeUnit = parseUnitNumber(unitId);
   if (homeUnit === null) return [];
-  const removed = removePeopleWhere(state.people, (pool, slot) => pool.homeUnit[slot] === homeUnit);
+  const removed = removePeopleWhere(
+    state.parking,
+    state.people,
+    (pool, slot) => pool.homeUnit[slot] === homeUnit,
+  );
   leaveQueues(state, removed);
+  forgetTrips(state, removed);
   return removed;
+}
+
+function forgetTrips(state: TowerState, removed: readonly EntityId[]): void {
+  const gone = new Set(removed.map((person) => person.slice(1)));
+  state.tripLedger = Object.fromEntries(
+    Object.entries(state.tripLedger).filter(([person]) => !gone.has(person)),
+  );
 }
 
 /** Removes one person; returns false if there was no such person. */
 export function removePerson(state: TowerState, personId: number): boolean {
   if (slotOfPerson(state.people, personId) < 0) return false;
-  const removed = removePeopleWhere(state.people, (pool, slot) => pool.id[slot] === personId);
+  const removed = removePeopleWhere(
+    state.parking,
+    state.people,
+    (pool, slot) => pool.id[slot] === personId,
+  );
   leaveQueues(state, removed);
+  forgetTrips(state, removed);
   return true;
 }
 
 /** Keeps the pool dense and in id order by sliding the kept people down over the removed ones. */
 function removePeopleWhere(
+  parking: ParkingState,
   pool: PersonPool,
   shouldRemove: (pool: PersonPool, slot: number) => boolean,
 ): EntityId[] {
@@ -237,6 +279,7 @@ function removePeopleWhere(
   if (removed.length > 0) {
     const removedIds = new Set(removed);
     pool.followed = pool.followed.filter((id) => !removedIds.has(id));
+    for (const id of removed) Reflect.deleteProperty(parking.spaces, id);
   }
   return removed.map(personEntityId);
 }
@@ -378,6 +421,10 @@ function poolArrays(pool: PersonPool): number[][] {
     pool.trip,
     pool.dueStep,
     pool.stress,
+    pool.tripSum,
+    pool.tripSlowFloors,
+    pool.tripPartStep,
+    pool.tripPartCut,
     pool.trek,
     pool.trekLevel,
     pool.trekColumn,

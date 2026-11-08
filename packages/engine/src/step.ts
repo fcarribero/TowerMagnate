@@ -15,6 +15,7 @@ import { eventsPhase } from './events';
 import { createCondoSystem } from './condos';
 import { createHotelSystem } from './hotel';
 import { createLeaseSystem } from './leases';
+import { parkingAssignmentHook } from './parking';
 import { recordNotices } from './notices';
 import { cloneState } from './state';
 import { ledgerWeekRollHook } from './money';
@@ -22,7 +23,8 @@ import { createOfficeRoutine } from './office-routine';
 import { createResidentRoutine } from './resident-routine';
 import { createProspectDemand } from './prospects';
 import { createScheduler } from './scheduler';
-import { createTrekSystem, plannedTripSteps } from './trek';
+import { cancelTrek, createTrekSystem, isOnTrek, plannedTripSteps } from './trek';
+import { createNightReset } from './trip-ledger';
 import { TransportGraph, type ShaftStops } from './routing';
 import { starCheckHook } from './stars';
 import { weeklyUpkeepHook } from './upkeep';
@@ -200,12 +202,19 @@ const residentRoutine = createResidentRoutine(
 
 const prospects = createProspectDemand();
 
+const nightReset = createNightReset(
+  (context, slot) => cancelTrek(context, slot, { nightReset: true }),
+  (pool, slot) => isOnTrek(pool, slot),
+);
+
 export const towerSystems: readonly SimulationSystem[] = [
   createScheduler([
     ledgerWeekRollHook,
+    nightReset,
     weeklyUpkeepHook,
     ...venuePayoutHooks,
     officeRoutine.planHook,
+    parkingAssignmentHook,
     residentRoutine.planHook,
     ...prospects.rollHooks,
   ]),
