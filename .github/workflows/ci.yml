@@ -43,6 +43,9 @@ jobs:
       - name: Snapshot save benchmark
         run: pnpm bench:snapshots
 
+      - name: Transport step benchmark
+        run: pnpm bench:transport
+
       - name: Transport graph benchmark
         run: pnpm bench:graph
 
