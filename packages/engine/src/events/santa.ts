@@ -13,7 +13,10 @@ export function isSantaStep(step: number): boolean {
 
 /** Events spec section 8: a cosmetic notice for the client, with no draw and no other effect. */
 export function runSanta(context: StepContext): void {
-  const { step } = context.state;
-  if (!isSantaStep(step)) return;
-  context.events.push({ type: 'news', step, key: 'news.santa', unitId: null });
+  if (!isSantaStep(context.state.step)) return;
+  announceSanta(context);
+}
+
+export function announceSanta(context: StepContext): void {
+  context.events.push({ type: 'news', step: context.state.step, key: 'news.santa', unitId: null });
 }
