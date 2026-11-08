@@ -397,6 +397,7 @@ export interface Delta {
   money?: number;
   stars?: StarRating;
   population?: number;
+  mainLobbyHeight?: 1 | 2 | 3; // when the first lobby is built or its height changes
   structure?: { level: Level; structure: string }[]; // whole changed rows
   unitsUpserted?: UnitView[];
   unitsRemoved?: UnitId[];
@@ -414,7 +415,7 @@ export interface Delta {
 }
 ```
 
-Optional fields are present only when they changed. `cars` and `people` are always complete for their scope, so a lost or late frame never leaves stale positions behind. At most 24 shafts × 8 cars = 192 cars, which is small. People are bounded by the viewport.
+Optional fields are present only when they changed. `mainLobbyHeight` is sent in the first delta after the level 1 lobby is built and again only if its height changes; before that the snapshot value is used. `cars` and `people` are always complete for their scope, so a lost or late frame never leaves stale positions behind. At most 24 shafts × 8 cars = 192 cars, which is small. People are bounded by the viewport.
 
 ### 8.6 Interpolation fields
 
