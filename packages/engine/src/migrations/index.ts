@@ -18,13 +18,19 @@ import { readActiveEvents, readClosedDecisions, readTreasureLevels } from './eve
 import { readGrid } from './grid';
 import { readLedger, readMoney } from './money';
 import { readPeople } from './people';
+import { readTransports } from './transports';
 
 export { StateMigrationError } from './errors';
 
 type Migration = (raw: Record<string, unknown>) => Record<string, unknown>;
 
 /** MIGRATIONS[n] turns a version n+1 state into version n+2. */
-const MIGRATIONS: readonly Migration[] = [addUnitPurchaseRecord, addUnitLeaseRecord, addShafts];
+const MIGRATIONS: readonly Migration[] = [
+  addUnitPurchaseRecord,
+  addUnitLeaseRecord,
+  addShafts,
+  addTransportRecord,
+];
 
 /** Version 2 records each unit's price level, what was paid for it and when it was placed. */
 function addUnitPurchaseRecord(raw: Record<string, unknown>): Record<string, unknown> {
@@ -53,6 +59,11 @@ function addUnitLeaseRecord(raw: Record<string, unknown>): Record<string, unknow
 /** Version 4 keeps elevator shafts in their own record. */
 function addShafts(raw: Record<string, unknown>): Record<string, unknown> {
   return { ...raw, schemaVersion: 4, shafts: raw.shafts ?? {} };
+}
+
+/** Version 5 records the stairs and escalators; older towers have none. */
+function addTransportRecord(raw: Record<string, unknown>): Record<string, unknown> {
+  return { transports: {}, ...raw, schemaVersion: 5 };
 }
 
 function isUint32(value: unknown): value is number {
@@ -202,6 +213,7 @@ function assertCurrentShape(raw: Record<string, unknown>): TowerState {
     nextId: raw.nextId,
     money: readMoney(raw.money),
     units: readUnits(raw.units),
+    transports: readTransports(raw.transports),
     shafts: readShafts(raw.shafts),
     grid: readGrid(raw.grid),
     people: readPeople(raw.people),
