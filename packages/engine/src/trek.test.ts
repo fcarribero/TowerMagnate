@@ -261,6 +261,32 @@ describe('elevator queues', () => {
     expect(queueOf(joined, 1, 'up')).toHaveLength(ELEVATOR_QUEUE_CAPACITY);
   });
 
+  it('lets people beside a full queue join one by one while there is room', () => {
+    const state = buildTestTower({ floors: 4, shafts: [shaft] });
+    const built = Object.values(state.shafts)[0] as Shaft;
+    built.queues['1'] = {
+      up: Array.from({ length: ELEVATOR_QUEUE_CAPACITY }, (_, index) => ({
+        person: `p${1000 + index}`,
+        destination: 4 as Level,
+        joinedStep: 0,
+      })),
+      down: [],
+    };
+    const waiters = [1, 2, 3].map(() => addWalker(state, 1, shaftColumn));
+    for (const id of waiters) sendTo(state, id, { level: 3, column: 30 });
+    expect(waiters.map((id) => view(state, id).phase)).toEqual(Array(3).fill('waitingBesideQueue'));
+
+    const room = structuredClone(state);
+    (Object.values(room.shafts)[0] as Shaft).queues['1']?.up.splice(0, 2);
+    const after = runSteps(room, FULL_QUEUE_RECHECK_STEPS);
+    expect(waiters.map((id) => view(after, id).phase)).toEqual([
+      'queued',
+      'queued',
+      'waitingBesideQueue',
+    ]);
+    expect(queueOf(after, 1, 'up')).toHaveLength(ELEVATOR_QUEUE_CAPACITY);
+  });
+
   it('leaves the queue when the trip is cancelled', () => {
     const state = buildTestTower({ floors: 4, shafts: [shaft] });
     const id = addWalker(state, 1, shaftColumn);

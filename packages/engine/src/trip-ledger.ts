@@ -4,6 +4,7 @@ import {
   STRESS_NO_ROUTE,
   STRESS_QUEUE_FULL,
   STRESS_STAIR_FLOOR,
+  STRESS_TRIP_CAP,
   STRESS_WINDOW_STEPS,
   type GridState,
   type HallDirection,
@@ -53,29 +54,72 @@ function underWaySteps(state: TowerState, slot: number, part: PartUnderWay): num
   return 0;
 }
 
+interface LedgerWindow {
+  sum: number;
+  count: number;
+  /** First step after the current one at which a trip enters or leaves the window. */
+  nextChange: number;
+}
+
+function ledgerWindow(state: TowerState, slot: number): LedgerWindow {
+  const flat = state.tripLedger[String(field(state.people.id, slot))] ?? [];
+  const oldest = state.step - STRESS_WINDOW_STEPS;
+  let sum = 0;
+  let count = 0;
+  let nextChange = Infinity;
+  for (let at = 0; at < flat.length; at += 2) {
+    const endStep = field(flat, at);
+    if (endStep > state.step) {
+      nextChange = Math.min(nextChange, endStep);
+      continue;
+    }
+    if (endStep < oldest) continue;
+    sum += field(flat, at + 1);
+    count += 1;
+    nextChange = Math.min(nextChange, endStep + STRESS_WINDOW_STEPS + 1);
+  }
+  return { sum, count, nextChange };
+}
+
+/**
+ * First step at which the stress so far of the part under way pushes the average up by one, or
+ * Infinity when it can't before the trip cap.
+ */
+function nextStressRise(
+  state: TowerState,
+  slot: number,
+  part: PartUnderWay,
+  window: LedgerWindow,
+  stress: number,
+): number {
+  if (part === null) return Infinity;
+  const pool = state.people;
+  const neededSoFar = (stress + 1) * (window.count + 1) - window.sum;
+  if (neededSoFar > STRESS_TRIP_CAP) return Infinity;
+  const startsCounting =
+    field(pool.tripPartStep, slot) + (part === 'queued' ? field(pool.tripPartCut, slot) : 0);
+  return startsCounting + neededSoFar - field(pool.tripSum, slot);
+}
+
 /**
  * Sets the stored person stress P from the trips ended in the last week and, when the person is
- * on a trip, the stress so far of that trip including the wait or ride under way.
+ * on a trip, the stress so far of that trip including the wait or ride under way. Returns the
+ * first later step at which P can change while the trip parts stay as they are.
  */
 export function refreshPersonStress(
   state: TowerState,
   slot: number,
   onTrip: boolean,
   part: PartUnderWay = null,
-): void {
+): number {
   const pool = state.people;
-  if (!recordsStress(pool, slot)) return;
+  if (!recordsStress(pool, slot)) return Infinity;
   const soFar = field(pool.tripSum, slot) + underWaySteps(state, slot, part);
-  const flat = state.tripLedger[String(field(pool.id, slot))] ?? [];
-  const oldest = state.step - STRESS_WINDOW_STEPS;
-  let sum = 0;
-  let count = 0;
-  for (let at = 0; at < flat.length; at += 2) {
-    if (field(flat, at) < oldest || field(flat, at) > state.step) continue;
-    sum += field(flat, at + 1);
-    count += 1;
-  }
-  pool.stress[slot] = averageStress(sum, count, onTrip ? cappedStress(soFar) : null);
+  const window = ledgerWindow(state, slot);
+  const stress = averageStress(window.sum, window.count, onTrip ? cappedStress(soFar) : null);
+  pool.stress[slot] = stress;
+  const rise = onTrip ? nextStressRise(state, slot, part, window, stress) : Infinity;
+  return Math.max(state.step + 1, Math.min(window.nextChange, rise));
 }
 
 /** A trip that ends mid-wait or mid-ride keeps the part under way. */
