@@ -86,7 +86,7 @@ export const SPANISH_STRINGS = {
   'ui.shaftCarHome': 'Base:',
   'ui.shaftCarLoad': '{n} pasajeros',
   'ui.shaftRemoveCar': 'Quitar',
-  'ui.shaftAddCar': 'Agregar cabina',
+  'ui.shaftAddCar': 'Agregar cabina ({price})',
   'ui.shaftDiscard': 'Descartar',
 
   // 13.4 Status bar, calendar and menus

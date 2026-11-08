@@ -1,7 +1,16 @@
-import { levelLabel, type Command, type InspectData, type Level } from '@tower-magnate/shared';
+import {
+  SHAFT_UNIT_TYPES,
+  UNIT_CATALOG,
+  levelLabel,
+  type Command,
+  type InspectData,
+  type Level,
+} from '@tower-magnate/shared';
 import { useState } from 'preact/hooks';
 import type { CommandOutcome } from '../../api/commandApi';
+import { elevatorWindowId } from '../inspectTarget';
 import { Button, Tabs, Window } from '../kit';
+import { formatMoney } from '../money';
 import { errorText, t, type StringKey } from '../strings';
 import {
   canAddCar,
@@ -50,6 +59,11 @@ function LevelSelect(props: {
       </select>
     </label>
   );
+}
+
+function carPrice(type: ShaftData['type']): number {
+  const { cost } = UNIT_CATALOG[SHAFT_UNIT_TYPES[type]];
+  return cost.kind === 'shaft' ? cost.perCarAmount : 0;
 }
 
 export function ElevatorWindow({ shaft, send, onClose }: ElevatorWindowProps) {
@@ -151,13 +165,13 @@ export function ElevatorWindow({ shaft, send, onClose }: ElevatorWindowProps) {
           })
         }
       >
-        {t('ui.shaftAddCar')}
+        {t('ui.shaftAddCar', { price: formatMoney(carPrice(shaft.type)) })}
       </Button>
     </div>
   );
 
   return (
-    <Window id={`elevator-${shaft.id}`} title={title} onClose={onClose}>
+    <Window id={elevatorWindowId(shaft.id)} title={title} onClose={onClose}>
       <Tabs
         id="elevator-tabs"
         label={title}

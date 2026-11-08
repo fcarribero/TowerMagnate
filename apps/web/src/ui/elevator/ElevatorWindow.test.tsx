@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { CommandOutcome } from '../../api/commandApi';
 import { useFakeLayoutSizes } from '../../testing/fakeLayout';
 import { WindowLayer, useWindowManager } from '../kit';
+import { elevatorWindowId } from '../inspectTarget';
 import { ElevatorWindow, type ShaftData } from './ElevatorWindow';
 
 useFakeLayoutSizes({ clientWidth: 800, clientHeight: 600, offsetWidth: 200, offsetHeight: 100 });
@@ -33,7 +34,7 @@ type Props = Parameters<typeof ElevatorWindow>[0];
 function Open(props: Props) {
   const manager = useWindowManager();
   useEffect(() => {
-    manager.open({ id: `elevator-${props.shaft.id}`, position: { x: 10, y: 10 } });
+    manager.open({ id: elevatorWindowId(props.shaft.id), position: { x: 10, y: 10 } });
   }, []);
   return <ElevatorWindow {...props} />;
 }
@@ -78,7 +79,7 @@ describe('ElevatorWindow', () => {
     expect((screen.getByRole('button', { name: 'Quitar' }) as HTMLButtonElement).disabled).toBe(
       true,
     );
-    await userEvent.click(screen.getByRole('button', { name: 'Agregar cabina' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Agregar cabina ($80.000)' }));
     expect(send).toHaveBeenCalledWith({ type: 'addCar', shaftId: 's4', homeLevel: 1 });
   });
 
@@ -87,7 +88,8 @@ describe('ElevatorWindow', () => {
     show(shaft({ cars }));
     await userEvent.click(screen.getByRole('tab', { name: 'Cabinas' }));
     expect(
-      (screen.getByRole('button', { name: 'Agregar cabina' }) as HTMLButtonElement).disabled,
+      (screen.getByRole('button', { name: 'Agregar cabina ($80.000)' }) as HTMLButtonElement)
+        .disabled,
     ).toBe(true);
   });
 
