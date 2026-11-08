@@ -7,6 +7,7 @@ import { encodePng } from '../src/png.mjs';
 import { PERSON_TYPES, PERSON_VARIANTS } from '../src/groups/people.mjs';
 import {
   drawEventSheet,
+  drawEffectsSheet,
   drawIconSheet,
   drawPeopleSheet,
   drawServiceSheet,
@@ -83,3 +84,4 @@ writePreview('ui-icons-preview.png', drawIconSheet(sprites), PEOPLE_ZOOM);
 writePreview('walkway-preview.png', drawWalkwayPreview(sprites), TRANSPORT_ZOOM);
 writePreview('events-preview-1x.png', drawEventSheet(sprites), 1);
 writePreview('events-preview.png', drawEventSheet(sprites), PEOPLE_ZOOM);
+writePreview('effects-preview.png', drawEffectsSheet(sprites), PEOPLE_ZOOM);
