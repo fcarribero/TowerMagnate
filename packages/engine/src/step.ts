@@ -28,6 +28,7 @@ import { createNightReset } from './trip-ledger';
 import { graphInputsKey, TransportGraph, type ShaftStops } from './routing';
 import { starCheckHook } from './stars';
 import { weeklyUpkeepHook } from './upkeep';
+import { weddingAttemptHook, weddingSystem } from './wedding';
 import { venuePayoutHooks } from './venues';
 
 export interface StepResult {
@@ -234,6 +235,7 @@ export const towerSystems: readonly SimulationSystem[] = [
     parkingAssignmentHook,
     residentRoutine.planHook,
     ...prospects.rollHooks,
+    weddingAttemptHook,
   ]),
   createLeaseSystem(),
   createHotelSystem(),
@@ -242,6 +244,7 @@ export const towerSystems: readonly SimulationSystem[] = [
   prospects.system,
   officeRoutine.system,
   residentRoutine.system,
+  weddingSystem,
   createElevatorSystem(),
   createScheduler([starCheckHook]),
   eventsPhase,
