@@ -2,7 +2,7 @@ import type { Ledger } from './ledger';
 import type { Level } from './levels';
 import type { DecisionKind } from './protocol/primitives';
 import type { PersonPool } from './people';
-import type { PriceLevel, UnitType } from './units';
+import type { PriceLevel, ShaftType, UnitType } from './units';
 
 /** Id of a placed unit, transport or shaft, with a type prefix: `u12`, `t3`, `s4`. */
 export type EntityId = string;
@@ -76,6 +76,34 @@ export interface Unit {
   lease: Lease | null;
 }
 
+/** Instance id of a placed elevator shaft, such as `s4`. */
+export type ShaftId = string;
+
+export interface ElevatorCar {
+  /** Where the car waits when idle. Always inside the shaft's range. */
+  homeLevel: Level;
+  level: Level;
+  /** Person entity ids of the people inside the car. */
+  riders: EntityId[];
+  /** Whole dollars charged for this car. */
+  paid: number;
+  placedAtStep: number;
+}
+
+export interface Shaft {
+  id: ShaftId;
+  type: ShaftType;
+  /** Leftmost column. */
+  x: number;
+  bottom: Level;
+  top: Level;
+  /** 1 to 8 cars; car index is the position in this list. */
+  cars: ElevatorCar[];
+  /** Whole dollars charged for the shaft itself, cars not included. */
+  paid: number;
+  placedAtStep: number;
+}
+
 export interface Lease {
   /** Move-in or last renewal step. Payments fall on whole weeks after it. */
   anchorStep: number;
@@ -93,6 +121,7 @@ export interface TowerState {
   /** Whole dollars, may be negative, never above MONEY_CAP. */
   money: number;
   units: Record<UnitId, Unit>;
+  shafts: Record<ShaftId, Shaft>;
   grid: GridState;
   people: PersonPool;
   ledger: Ledger;
