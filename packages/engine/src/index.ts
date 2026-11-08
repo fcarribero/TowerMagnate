@@ -26,6 +26,7 @@ export {
   spanError,
   structureAt,
 } from './grid';
+export { isExpressStop, shaftLevels } from './commands/shafts';
 export { evaluateUnit, gradeOfScore, unitScore } from './evaluation';
 export type { UnitEvaluation, UnitEvaluationInput, UnitGrade } from './evaluation';
 export {
