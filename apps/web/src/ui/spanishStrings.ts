@@ -370,6 +370,7 @@ export const SPANISH_STRINGS = {
   'error.INVALID_CHOICE': 'Esa opción no está disponible.',
   'error.FOLLOW_LIMIT': 'Ya seguís a 20 personas.',
   'error.INVALID_SCHEDULE': 'Revisá las paradas y las bases de las cabinas.',
+  'error.INSPECT_LIMIT': 'Podés tener hasta 5 ventanas abiertas.',
   'error.PROTOCOL_MISMATCH': 'Hay una versión nueva del juego. Recargá la página.',
   'error.NOT_AUTHENTICATED': 'La sesión se cerró. Entrá de nuevo.',
   'error.RATE_LIMITED': 'Demasiadas órdenes seguidas. Esperá un momento.',

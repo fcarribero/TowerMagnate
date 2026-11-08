@@ -68,6 +68,7 @@ describe('error codes', () => {
         "INVALID_CHOICE",
         "FOLLOW_LIMIT",
         "INVALID_SCHEDULE",
+        "INSPECT_LIMIT",
       ]
     `);
   });

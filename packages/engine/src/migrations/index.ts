@@ -35,7 +35,7 @@ import { defaultSchedule, defaultStops } from '../commands/shafts';
 import { SCHEMA_VERSION } from '../state';
 import { isHotelRoomType, newHotelRoom } from '../units';
 import { isRecord, StateMigrationError } from './errors';
-import { readActiveEvents, readClosedDecisions, readTreasureLevels } from './events';
+import { readActiveEvents, readClosedDecisions, readNotices, readTreasureLevels } from './events';
 import { readGrid } from './grid';
 import { readLedger, readMoney } from './money';
 import { readPeople } from './people';
@@ -61,6 +61,7 @@ const MIGRATIONS: readonly Migration[] = [
   addCondoSaleRecord,
   addCarMotion,
   addTrekState,
+  addNoticesAndFireLevel,
 ];
 
 /** Version 2 records each unit's price level, what was paid for it and when it was placed. */
@@ -234,6 +235,16 @@ function addTrekState(raw: Record<string, unknown>): Record<string, unknown> {
     legStep: idle(),
   };
   return { ...raw, schemaVersion: 14, people: { ...trekFields, ...people } };
+}
+
+/** Version 15 keeps the last notices and records the floor of each fire; older fires burn on level 1. */
+function addNoticesAndFireLevel(raw: Record<string, unknown>): Record<string, unknown> {
+  const activeEvents = Array.isArray(raw.activeEvents)
+    ? raw.activeEvents.map((event) =>
+        isRecord(event) && event.kind === 'fire' ? { level: 1, ...event } : event,
+      )
+    : raw.activeEvents;
+  return { notices: [], ...raw, activeEvents, schemaVersion: 15 };
 }
 
 /** Version 11 gives each hotel room a state; every room in an older tower is clean and empty. */
@@ -538,6 +549,7 @@ function assertCurrentShape(raw: Record<string, unknown>): TowerState {
     ledger: readLedger(raw.ledger),
     activeEvents: readActiveEvents(raw.activeEvents),
     closedDecisions: readClosedDecisions(raw.closedDecisions),
+    notices: readNotices(raw.notices),
     treasureLevels: readTreasureLevels(raw.treasureLevels),
     ...readStarState(raw),
   };
