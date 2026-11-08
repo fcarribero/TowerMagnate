@@ -28,6 +28,7 @@ import { createNightReset } from './trip-ledger';
 import { TransportGraph, type ShaftStops } from './routing';
 import { starCheckHook } from './stars';
 import { weeklyUpkeepHook } from './upkeep';
+import { venuePayoutHooks } from './venues';
 
 export interface StepResult {
   state: TowerState;
@@ -211,6 +212,7 @@ export const towerSystems: readonly SimulationSystem[] = [
     ledgerWeekRollHook,
     nightReset,
     weeklyUpkeepHook,
+    ...venuePayoutHooks,
     officeRoutine.planHook,
     parkingAssignmentHook,
     residentRoutine.planHook,

@@ -126,6 +126,7 @@ export { createEngine, runDays, step } from './step';
 export { populationOf } from './population';
 export type { PopulationBreakdown } from './population';
 export { chargeWeeklyUpkeep, weeklyUpkeepHook } from './upkeep';
+export { recordVenueVisit, venuePayoutHooks } from './venues';
 export { newUnit } from './units';
 export type {
   CommandContext,
