@@ -53,6 +53,8 @@ describe('opening a decision', () => {
       id: 'e7',
       startStep: 500,
       level: 5,
+      levels: {},
+      guards: {},
       decision: {
         openStep: 500,
         deadlineStep: 860,

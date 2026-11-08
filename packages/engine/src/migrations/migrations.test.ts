@@ -105,7 +105,7 @@ describe('migrateState unit leases', () => {
     expect(migratedUnit(JSON.parse(JSON.stringify(cinema)))).toEqual(cinema);
   });
 
-  it('gives venues of a version 18 save zero counts and other units none', () => {
+  it('gives venues of a version 19 save zero counts and other units none', () => {
     const withoutVenue = (unit: object) => {
       const copy: { venue?: unknown } = { ...unit };
       delete copy.venue;
@@ -113,7 +113,7 @@ describe('migrateState unit leases', () => {
     };
     const food = withoutVenue(newUnit('u3', 'fast-food', 0, 2));
     const office = withoutVenue(newUnit('u4', 'office', 5, 2));
-    const save = { ...createTower(5), schemaVersion: 18, units: { u3: food, u4: office } };
+    const save = { ...createTower(5), schemaVersion: 19, units: { u3: food, u4: office } };
     const tower = migrateState(save);
     expect(tower.units.u3?.venue).toEqual({ visits: 0, eveningShowVisits: 0, yesterday: null });
     expect(tower.units.u4?.venue).toBeNull();

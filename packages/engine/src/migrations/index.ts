@@ -69,6 +69,7 @@ const MIGRATIONS: readonly Migration[] = [
   addMedicalDay,
   addParkingState,
   addTripLedger,
+  addGuardEventState,
   addVenueDayCounts,
 ];
 
@@ -287,16 +288,29 @@ function addTripLedger(raw: Record<string, unknown>): Record<string, unknown> {
   };
 }
 
-/** Version 19 gives each food and entertainment venue its day counts; older venues start at zero. */
+/** Version 19 gives a bomb threat its search and a fire its burning levels and guards. */
+function addGuardEventState(raw: Record<string, unknown>): Record<string, unknown> {
+  const activeEvents = Array.isArray(raw.activeEvents)
+    ? raw.activeEvents.map((event) => {
+        if (!isRecord(event)) return event;
+        if (event.kind === 'bomb') return { search: null, ...event };
+        if (event.kind === 'fire') return { levels: {}, guards: {}, ...event };
+        return event;
+      })
+    : raw.activeEvents;
+  return { ...raw, activeEvents, schemaVersion: 19 };
+}
+
+/** Version 20 gives each food and entertainment venue its day counts; older venues start at zero. */
 function addVenueDayCounts(raw: Record<string, unknown>): Record<string, unknown> {
   if (!isRecord(raw.units)) {
-    return { ...raw, schemaVersion: 19 };
+    return { ...raw, schemaVersion: 20 };
   }
   const units: Record<string, unknown> = {};
   for (const [id, unit] of Object.entries(raw.units)) {
     units[id] = isRecord(unit) ? { venue: venueDayFor(unit.type), ...unit } : unit;
   }
-  return { ...raw, schemaVersion: 19, units };
+  return { ...raw, schemaVersion: 20, units };
 }
 
 function venueDayFor(type: unknown): VenueDay | null {

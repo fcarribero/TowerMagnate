@@ -26,3 +26,11 @@ export {
   weekdayReport,
 } from './transport-scenario';
 export type { WeekdayRun } from './transport-scenario';
+export {
+  MAX_EVENT_STEP_MS,
+  medianEventCosts,
+  runSecurityEvents,
+  securityTower,
+  timeSecurityRuns,
+} from './security-scenario';
+export type { SecurityRun } from './security-scenario';

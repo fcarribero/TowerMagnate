@@ -298,11 +298,30 @@ export interface Decision {
   choice: string | null;
 }
 
+export type SearchLevelState = 'unsearched' | 'taken' | 'searched';
+
+/** A guard on the bomb search: its level, and the step its search ends once it has arrived. */
+export interface SearchingGuard {
+  level: Level;
+  endStep: number | null;
+}
+
+export interface BombSearch {
+  bombLevel: Level;
+  levels: Partial<Record<Level, SearchLevelState>>;
+  /** Keyed by person number. */
+  guards: Record<number, SearchingGuard>;
+  /** Levels each guard found unreachable, keyed by person number. */
+  unreachable: Record<number, Level[]>;
+}
+
 export interface BombThreat {
   kind: 'bomb';
   id: EventId;
   decision: Decision;
   ransom: number;
+  /** Null until the search starts. */
+  search: BombSearch | null;
 }
 
 export interface Fire {
@@ -312,6 +331,34 @@ export interface Fire {
   startStep: number;
   /** The floor where the fire started. */
   level: Level;
+  /** Every level that has burned in this fire. */
+  levels: Partial<Record<Level, BurningLevel>>;
+  /** Guards with a target, keyed by person number. */
+  guards: Record<number, FireGuard>;
+}
+
+export interface FireFront {
+  x: number;
+  /** Guard minutes spent on this front; it is out at FIRE_FRONT_CONTAINMENT. */
+  progress: number;
+  out: boolean;
+}
+
+export interface BurningLevel {
+  ignitionStep: number;
+  ignitionColumn: number;
+  left: FireFront;
+  right: FireFront;
+}
+
+export type FireSide = 'left' | 'right';
+
+export interface FireGuard {
+  level: Level;
+  /** Null while the guard is still travelling to the level. */
+  side: FireSide | null;
+  /** Step of arrival, null while travelling. */
+  arrivedStep: number | null;
 }
 
 export type ActiveEvent = BombThreat | Fire;
