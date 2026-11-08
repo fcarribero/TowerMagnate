@@ -43,7 +43,7 @@ function towerWith({ stars, leasedOffices, others = [] }: TowerSetup): TowerStat
   });
   for (const unit of Object.values(state.units)) {
     if (unit.type === 'office') {
-      unit.lease = { anchorStep: 0, nextDueStep: FAR_FUTURE };
+      unit.lease = { anchorStep: 0, nextDueStep: FAR_FUTURE, weekVisits: 0 };
     }
   }
   state.stars = stars;

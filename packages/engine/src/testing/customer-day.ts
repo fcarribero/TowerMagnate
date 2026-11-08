@@ -34,7 +34,7 @@ const STATION_X = 110;
 function letAllShops(state: TowerState): void {
   for (const unit of Object.values(state.units)) {
     if (unit.type === 'retail-shop')
-      unit.lease = { anchorStep: 0, nextDueStep: 30 * STEPS_PER_DAY };
+      unit.lease = { anchorStep: 0, nextDueStep: 30 * STEPS_PER_DAY, weekVisits: 0 };
   }
 }
 

@@ -26,6 +26,7 @@ import { createProspectDemand } from './prospects';
 import { createScheduler } from './scheduler';
 import { cancelTrek, createTrekSystem, isOnTrek, plannedTripSteps } from './trek';
 import { createNightReset } from './trip-ledger';
+import { createDailyGradeSystem, storedGrade } from './unit-evaluation';
 import { graphInputsKey, TransportGraph, type ShaftStops } from './routing';
 import { starCheckHook } from './stars';
 import { weeklyUpkeepHook } from './upkeep';
@@ -242,9 +243,10 @@ export const towerSystems: readonly SimulationSystem[] = [
     customers.nightHook,
     weddingAttemptHook,
   ]),
-  createLeaseSystem(),
+  createLeaseSystem(storedGrade),
   createHotelSystem(),
-  createCondoSystem(),
+  createCondoSystem(storedGrade),
+  createDailyGradeSystem(),
   createTrekSystem(),
   prospects.system,
   officeRoutine.system,

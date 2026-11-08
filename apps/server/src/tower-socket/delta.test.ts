@@ -73,6 +73,18 @@ describe('delta between snapshots', () => {
     expect(DeltaSchema.safeParse(delta).success).toBe(true);
   });
 
+  it('sends the evaluation overlay when a unit grade changes', () => {
+    const state = towerWithOffices(2);
+    const before = buildSnapshot(state, null);
+    (state.units.u2 as TowerState['units'][string]).evaluation = 'good';
+
+    const { delta, quiet } = diffSnapshots(before, buildSnapshot(state, null));
+
+    expect(quiet).toBe(false);
+    expect(delta.overlays?.evaluation).toEqual({ u1: null, u2: 'good' });
+    expect(DeltaSchema.safeParse(delta).success).toBe(true);
+  });
+
   it('sends notices and active events when they change', () => {
     const state = tower();
     const before = snapshotOf(state);

@@ -23,7 +23,7 @@ const THREE_AM = STEPS_PER_DAY + 3 * STEPS_PER_HOUR;
 
 export const MAX_SPREAD = 0.15;
 export const MAX_AVERAGE_MS = 1.0;
-export const MAX_P99_MS = 7;
+export const MAX_P99_MS = 5;
 
 /** Matches the order of `towerSystems`. */
 export const SYSTEM_NAMES = [
@@ -31,8 +31,11 @@ export const SYSTEM_NAMES = [
   'leases',
   'hotels',
   'condos',
+  'daily grades',
   'trek',
+  'prospects',
   'office routine',
+  'resident routine',
   'elevators',
   'scheduler (star check)',
   'events',

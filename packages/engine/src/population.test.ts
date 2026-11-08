@@ -34,7 +34,7 @@ function unitOf(state: TowerState, id: UnitId | undefined): Unit {
 }
 
 function lease(state: TowerState, id: UnitId | undefined): void {
-  unitOf(state, id).lease = { anchorStep: 0, nextDueStep: STEPS_PER_WEEK };
+  unitOf(state, id).lease = { anchorStep: 0, nextDueStep: STEPS_PER_WEEK, weekVisits: 0 };
 }
 
 function sell(state: TowerState, id: UnitId | undefined): void {
@@ -46,7 +46,12 @@ function sell(state: TowerState, id: UnitId | undefined): void {
 }
 
 function occupy(state: TowerState, id: UnitId | undefined): void {
-  unitOf(state, id).hotel = { state: 'occupied', stayEndStep: at(THURSDAY, 10) };
+  unitOf(state, id).hotel = {
+    state: 'occupied',
+    stayEndStep: at(THURSDAY, 10),
+    checkInStep: null,
+    paidLevel: null,
+  };
 }
 
 function setPreviousDayCount(state: TowerState, id: UnitId | undefined, count: number): void {
@@ -266,13 +271,18 @@ describe('population worked examples', () => {
       state,
       office as Unit,
       520,
-      (unit) => (unit.lease = { anchorStep: 0, nextDueStep: 1 }),
+      (unit) => (unit.lease = { anchorStep: 0, nextDueStep: 1, weekVisits: 0 }),
     );
     addCopies(state, condo as Unit, 300, (unit) => {
       unit.sale = { price: 150_000, anchorStep: 0, nextEvaluationStep: 1 };
     });
     const stay = (unit: Unit) =>
-      (unit.hotel = { state: 'occupied', stayEndStep: at(THURSDAY, 10) });
+      (unit.hotel = {
+        state: 'occupied',
+        stayEndStep: at(THURSDAY, 10),
+        checkInStep: null,
+        paidLevel: null,
+      });
     addCopies(state, single as Unit, 40, stay);
     addCopies(state, double as Unit, 30, stay);
     addCopies(state, suite as Unit, 11, stay);
