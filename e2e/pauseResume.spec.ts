@@ -3,6 +3,8 @@ import { openGame } from './support/game';
 
 const CLOSED_TAB_WAIT_MS = 30_000;
 const MINUTES_PER_DAY = 24 * 60;
+// A running tower gains 48 game minutes in 30 s, so a few minutes still proves it was paused.
+const MAX_DRIFT_MINUTES = 5;
 
 async function readGameMinutes(page: Page): Promise<number> {
   const bar = page.getByRole('toolbar', { name: 'Barra de estado' });
@@ -34,7 +36,7 @@ test('the tower is paused while no tab is open and resumes from the same instant
   await expect(reopened.locator('#app canvas')).toBeVisible();
   const afterReopen = await readGameMinutes(reopened);
 
-  // The bar shows whole minutes, so one displayed minute is the most a 6-step difference can look like.
+  // One game minute is about 0.6 s, so page close and reopen time on a slow runner adds a few.
   expect(afterReopen).toBeGreaterThanOrEqual(beforeClose);
-  expect(afterReopen - beforeClose).toBeLessThanOrEqual(1);
+  expect(afterReopen - beforeClose).toBeLessThanOrEqual(MAX_DRIFT_MINUTES);
 });

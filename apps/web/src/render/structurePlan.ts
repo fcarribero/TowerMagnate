@@ -109,7 +109,7 @@ function planBasement(level: Level, row: string | undefined): StructurePiece[] {
     { subject: soilSubject(level), x: 0, y: 0, width: WORLD_WIDTH },
   ];
   for (const run of builtRuns(row)) {
-    pieces.push(tiledRun('basement', run));
+    pieces.push(tiledRun(run.cell === 'r' ? 'ruins' : 'basement', run));
     pieces.push({ subject: 'basement-edge-left', x: run.from * TILE_WIDTH - EDGE_WIDTH, y: 0 });
     pieces.push({ subject: 'basement-edge-right', x: (run.to + 1) * TILE_WIDTH, y: 0 });
   }
@@ -123,7 +123,11 @@ function planAboveGround(level: Level, source: StructureSource): StructurePiece[
   }
   const pieces: StructurePiece[] = [];
   for (const run of builtRuns(row)) {
-    pieces.push(...(run.cell === 'l' ? lobbyRun(level, run, source) : [tiledRun('floor', run)]));
+    pieces.push(
+      ...(run.cell === 'l'
+        ? lobbyRun(level, run, source)
+        : [tiledRun(floorSubject(run.cell), run)]),
+    );
   }
   for (const run of runsWhere([...row].map(isBuilt))) {
     pieces.push({ subject: 'edge-left', x: run.from * TILE_WIDTH - EDGE_WIDTH, y: 0 });
@@ -197,6 +201,10 @@ function roofLevelAbove(level: Level, row: string, source: StructureSource): Lev
     return MAIN_LOBBY_LEVEL + (source.mainLobbyHeight ?? 1);
   }
   return level + 1;
+}
+
+function floorSubject(cell: string): StructureSubject {
+  return cell === 'r' ? 'ruins' : 'floor';
 }
 
 function isBuilt(cell: string): boolean {

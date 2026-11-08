@@ -149,6 +149,19 @@ describe('snapshot from tower state', () => {
     expect(snapshot.people[0]).toMatchObject({ x: 3, level: 2, mode: 'inside', carRef: null });
   });
 
+  it('tints stress at 90 and 180 steps', () => {
+    const state = towerWithPeople();
+    const steps = [89, 90, 180];
+    steps.forEach((value, index) => {
+      state.people.stress[index] = value;
+    });
+
+    const snapshot = buildSnapshot(state, { levelFrom: 1, levelTo: 40, xFrom: 0, xTo: 100 });
+
+    const byId = Object.fromEntries(snapshot.people.map((person) => [person.id, person.stress]));
+    expect(byId).toEqual({ p1: 'normal', p2: 'stressed', p3: 'veryStressed' });
+  });
+
   it('sends no people without a viewport', () => {
     expect(buildSnapshot(towerWithPeople(), null).people).toEqual([]);
   });

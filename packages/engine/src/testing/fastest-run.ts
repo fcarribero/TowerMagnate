@@ -11,3 +11,14 @@ export function fastestRunMillis(work: () => void, runs = 3): number {
   }
   return fastest;
 }
+
+export function medianRunMillis(work: () => void, runs = 3): number {
+  const times: number[] = [];
+  for (let run = 0; run < runs; run++) {
+    const started = performance.now();
+    work();
+    times.push(performance.now() - started);
+  }
+  times.sort((a, b) => a - b);
+  return times[Math.floor(times.length / 2)] as number;
+}

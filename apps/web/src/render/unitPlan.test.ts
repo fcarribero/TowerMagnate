@@ -27,9 +27,18 @@ describe('planUnit', () => {
     expect(occupied?.variant).toEqual({ state: 'occupied', time: 'night' });
   });
 
-  it('draws stage 2 variants as empty or occupied', () => {
+  it('draws dirty and infested hotel rooms and a disconnected parking space', () => {
     const dirty = planUnit({ ...base, type: 'single-room', variant: 'dirty' }, 'day');
-    expect(dirty?.variant.state).toBe('empty');
+    const infested = planUnit({ ...base, type: 'suite', variant: 'infested' }, 'night');
+    const cut = planUnit({ ...base, type: 'parking-space', variant: 'disconnected' }, 'day');
+    expect(dirty?.variant).toEqual({ state: 'dirty', time: 'day' });
+    expect(infested?.variant).toEqual({ state: 'infested', time: 'night' });
+    expect(cut?.variant).toEqual({ state: 'disconnected', time: 'day' });
+  });
+
+  it('falls back to empty for a variant the unit has no sprite for', () => {
+    const office = planUnit({ ...base, type: 'office', variant: 'dirty' }, 'day');
+    expect(office?.variant.state).toBe('empty');
   });
 
   it('covers the footprint, growing up from the bottom level', () => {

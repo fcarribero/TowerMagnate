@@ -60,6 +60,7 @@ const MIGRATIONS: readonly Migration[] = [
   addHotelRooms,
   addCondoSaleRecord,
   addCarMotion,
+  addTrekState,
 ];
 
 /** Version 2 records each unit's price level, what was paid for it and when it was placed. */
@@ -212,6 +213,27 @@ function stopWithDestinations(
     up: withDestination(stop.up, shaft.top),
     down: withDestination(stop.down, shaft.bottom),
   };
+}
+
+/** Version 14 gives each person the state of the trip they are on; nobody is travelling in an older save. */
+function addTrekState(raw: Record<string, unknown>): Record<string, unknown> {
+  const people = raw.people;
+  if (!isRecord(people) || !Array.isArray(people.id)) {
+    return { ...raw, schemaVersion: 14 };
+  }
+  const ids: unknown[] = people.id;
+  const idle = (): number[] => ids.map(() => 0);
+  const trekFields = {
+    trek: idle(),
+    trekLevel: idle(),
+    trekColumn: idle(),
+    trekBudget: idle(),
+    legVia: idle(),
+    legLevel: idle(),
+    legColumn: idle(),
+    legStep: idle(),
+  };
+  return { ...raw, schemaVersion: 14, people: { ...trekFields, ...people } };
 }
 
 /** Version 11 gives each hotel room a state; every room in an older tower is clean and empty. */
