@@ -25,12 +25,34 @@ function notSent(id: string): CommandResult {
 export class CommandClient {
   private nextId = 1;
   private readonly pending = new Map<string, (result: CommandResult) => void>();
+  private readonly rejectionListeners = new Set<(code: string) => void>();
 
   constructor(private readonly sender: MessageSender) {}
 
+  /** Called with the error code of every rejected command and every server error. */
+  onRejection(listener: (code: string) => void): () => void {
+    this.rejectionListeners.add(listener);
+    return () => {
+      this.rejectionListeners.delete(listener);
+    };
+  }
+
+  private reject(code: string): void {
+    for (const listener of this.rejectionListeners) {
+      listener(code);
+    }
+  }
+
   receive(message: ServerMessage): void {
+    if (message.t === 'error') {
+      this.reject(message.p.code);
+      return;
+    }
     if (message.t !== 'commandResult') {
       return;
+    }
+    if (!message.p.ok) {
+      this.reject(message.p.error);
     }
     const settle = this.pending.get(message.p.id);
     if (settle !== undefined) {
@@ -43,6 +65,7 @@ export class CommandClient {
   abandonPending(): void {
     for (const [id, settle] of this.pending) {
       settle(notSent(id));
+      this.reject('INVALID_COMMAND');
     }
     this.pending.clear();
   }

@@ -45,6 +45,10 @@ export type CarSource = () => { frame: DrawnFrame; shafts: ReadonlyMap<string, S
 export type CameraListener = (camera: Camera) => void;
 export type HoverLevelListener = (level: Level | null) => void;
 export type HoverCellListener = (cell: Cell | null) => void;
+export type CellClickListener = (cell: Cell) => void;
+
+/** A press that moves farther than this many CSS pixels is a drag, not a click. */
+const CLICK_MOVE_LIMIT = 4;
 
 export interface Stage {
   sprites: SpriteRegistry;
@@ -58,6 +62,8 @@ export interface Stage {
   onHoverLevel(listener: HoverLevelListener): () => void;
   /** Called with the tile under the pointer, or null when the pointer leaves the tower. */
   onHoverCell(listener: HoverCellListener): () => void;
+  /** Called with the tile under a left click that did not drag the view. */
+  onCellClick(listener: CellClickListener): () => void;
   /** Draws the placement ghost, snapped to tiles; null removes it. */
   showGhost(ghost: GhostInput | null): void;
   /** Frames a footprint, such as the unit under the pointer; null removes the frame. */
@@ -120,6 +126,8 @@ export async function mountStage(host: HTMLElement, options: StageOptions = {}):
   let hoveredLevel: Level | null = null;
   const hoverCellListeners = new Set<HoverCellListener>();
   let hoveredCell: Cell | null = null;
+  const cellClickListeners = new Set<CellClickListener>();
+  let press: { pointerId: number; clientX: number; clientY: number } | null = null;
   let pointerCanvasX: number | null = null;
   let pointerCanvasY: number | null = null;
 
@@ -197,6 +205,36 @@ export async function mountStage(host: HTMLElement, options: StageOptions = {}):
     updateHoveredLevel();
     updateHoveredCell();
   };
+  const onPointerDown = (event: PointerEvent): void => {
+    press =
+      event.button === 0
+        ? { pointerId: event.pointerId, clientX: event.clientX, clientY: event.clientY }
+        : null;
+  };
+  const onPointerUp = (event: PointerEvent): void => {
+    const started = press;
+    press = null;
+    if (started === null || started.pointerId !== event.pointerId) {
+      return;
+    }
+    const moved = Math.hypot(event.clientX - started.clientX, event.clientY - started.clientY);
+    if (moved > CLICK_MOVE_LIMIT) {
+      return;
+    }
+    const cell = cellAtCanvasPoint(
+      camera,
+      event.offsetX / cssPerDevicePixel(),
+      event.offsetY / cssPerDevicePixel(),
+    );
+    if (cell === null) {
+      return;
+    }
+    for (const listener of cellClickListeners) {
+      listener(cell);
+    }
+  };
+  app.canvas.addEventListener('pointerdown', onPointerDown);
+  app.canvas.addEventListener('pointerup', onPointerUp);
   app.canvas.addEventListener('pointermove', onPointerMove);
   app.canvas.addEventListener('pointerleave', onPointerLeave);
   let carSource: CarSource | null = null;
@@ -239,6 +277,10 @@ export async function mountStage(host: HTMLElement, options: StageOptions = {}):
       hoverCellListeners.add(listener);
       return () => hoverCellListeners.delete(listener);
     },
+    onCellClick(listener) {
+      cellClickListeners.add(listener);
+      return () => cellClickListeners.delete(listener);
+    },
     showGhost(input) {
       ghost.showGhost(input);
     },
@@ -263,6 +305,8 @@ export async function mountStage(host: HTMLElement, options: StageOptions = {}):
       cameraListeners.clear();
       hoverListeners.clear();
       hoverCellListeners.clear();
+      app.canvas.removeEventListener('pointerdown', onPointerDown);
+      app.canvas.removeEventListener('pointerup', onPointerUp);
       app.canvas.removeEventListener('pointermove', onPointerMove);
       app.canvas.removeEventListener('pointerleave', onPointerLeave);
       window.clearInterval(statsTimer);

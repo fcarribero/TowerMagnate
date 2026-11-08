@@ -7,6 +7,7 @@ import { useGameConnection } from '../net/useGameConnection';
 import { placeholderTowerContent } from '../render/placeholderTower';
 import { bindPreview, previewToolOf } from '../render/placementSource';
 import type { Stage } from '../render/stage';
+import { bindUnitClicks } from '../render/unitClick';
 import { bindShafts, carSourceOf } from '../render/elevatorSource';
 import { bindStructure, fullWidthTestTower, testTowerFromQuery } from '../render/structureSource';
 import { DEBUG_UNIT_FLOORS, bindUnits, debugUnits, testUnitsFromQuery } from '../render/unitSource';
@@ -22,6 +23,7 @@ import { t } from './strings';
 import { Toolbar } from './toolbar/Toolbar';
 import { DEFAULT_LOBBY_HEIGHT, DEFAULT_TOOL, type ToolId } from './toolbar/toolbarModel';
 import { TowerMapWindow } from './TowerMapWindow';
+import { Toasts } from './toast/Toasts';
 import { UnitWindows } from './unit/UnitWindows';
 
 export interface AppProps {
@@ -110,6 +112,15 @@ export function App({ onLogout, onRestartTower, onSessionLost }: AppProps) {
   }, [stage, connection, tool]);
 
   useEffect(() => {
+    if (stage === null || tool !== 'inspect') {
+      return;
+    }
+    return bindUnitClicks(stage, connection.store, (unitId) =>
+      connection.inspect.requestUnitWindow(unitId),
+    );
+  }, [stage, connection, tool]);
+
+  useEffect(() => {
     const onKeyDown = (event: KeyboardEvent): void => {
       if (isMapToggleKey(event)) {
         setMapOpen((open) => !open);
@@ -150,6 +161,7 @@ export function App({ onLogout, onRestartTower, onSessionLost }: AppProps) {
         {mapOpen && stage && (
           <TowerMapWindow content={content} stage={stage} onClose={() => setMapOpen(false)} />
         )}
+        <Toasts commands={connection.commands} />
         <WindowLayer class="ui-windows">
           <UnitWindows connection={connection} />
           <RestartTowerDialogs
