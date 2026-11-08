@@ -122,6 +122,7 @@ function placeShaft(state: TowerState, shaft: PlannedShaft): EntityId {
     bottom: shaft.bottom,
     top: shaft.top,
     cars: [car],
+    queues: {},
     paid: 0,
     placedAtStep: state.step,
   };
