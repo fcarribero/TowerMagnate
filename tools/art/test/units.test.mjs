@@ -139,3 +139,56 @@ describe('cathedral', () => {
     expect(byId['units/cathedral/wedding_night'].get(x, y)).not.toBe(colorIndex('night-deep'));
   });
 });
+
+describe('entertainment units', () => {
+  const variants = {
+    cinema: ['empty_day', 'empty_night', 'show_day', 'show_night'],
+    'party-hall': ['empty_day', 'empty_night', 'party_day', 'party_night'],
+  };
+  const widthTiles = { cinema: 31, 'party-hall': 24 };
+
+  it('draws every variant two floors tall at the catalog width', () => {
+    for (const [subject, names] of Object.entries(variants)) {
+      for (const name of names) {
+        const sprite = byId[`units/${subject}/${name}`];
+        expect(sprite, `${subject}/${name}`).toBeDefined();
+        expect(sprite.width).toBe(widthTiles[subject] * metrics.tileWidth);
+        expect(sprite.height).toBe(2 * metrics.floorHeight);
+      }
+    }
+  });
+
+  it('keeps a bare-tile slab along the bottom of both units', () => {
+    for (const subject of Object.keys(variants)) {
+      const day = byId[`units/${subject}/empty_day`];
+      const slabTop = day.height - metrics.slabHeight;
+      expect(day.get(day.width - 2, slabTop)).toBe(colorIndex('concrete-light'));
+    }
+  });
+
+  it('shows the film, the beam and an audience only during a show', () => {
+    const empty = byId['units/cinema/empty_day'];
+    const show = byId['units/cinema/show_day'];
+    expect(countColor(show, 'lamp-glow')).toBeGreaterThan(countColor(empty, 'lamp-glow') + 20);
+    expect(countColor(show, 'skin-mid')).toBeGreaterThan(countColor(empty, 'skin-mid'));
+    expect(countColor(byId['units/cinema/show_night'], 'sky')).toBe(countColor(show, 'sky'));
+  });
+
+  it('adds guests and confetti only during a party, and lights the windows at night', () => {
+    const empty = byId['units/party-hall/empty_day'];
+    const party = byId['units/party-hall/party_day'];
+    expect(countColor(party, 'skin-mid')).toBeGreaterThan(countColor(empty, 'skin-mid'));
+    expect(countColor(party, 'lamp')).toBeGreaterThan(countColor(empty, 'lamp'));
+    const [x, y] = [16, 12];
+    expect(byId['units/party-hall/empty_night'].get(x, y)).toBe(colorIndex('night-deep'));
+    expect(byId['units/party-hall/party_night'].get(x, y)).toBe(colorIndex('lamp-glow'));
+  });
+
+  it('has no middle slab inside the tall room', () => {
+    for (const subject of Object.keys(variants)) {
+      const day = byId[`units/${subject}/empty_day`];
+      const middleSlabRow = metrics.floorHeight - 1;
+      expect(day.get(day.width - 3, middleSlabRow)).not.toBe(colorIndex('concrete-dark'));
+    }
+  });
+});
