@@ -16,7 +16,18 @@ const STEPS_PER_WEEK = 7 * STEPS_PER_DAY;
 const LOBBY_VIEW = { levelFrom: 1, levelTo: 3, xFrom: 0, xTo: 50 };
 
 function office(id: string, x: number, name: string | null): Unit {
-  return { id, type: 'office', x, level: 2, name, priceLevel: 'normal', paid: 0, placedAtStep: 0 };
+  return {
+    id,
+    type: 'office',
+    x,
+    level: 2,
+    name,
+    priceLevel: 'normal',
+    paid: 0,
+    placedAtStep: 0,
+    used: false,
+    lease: null,
+  };
 }
 
 function towerWithPeople(): TowerState {
