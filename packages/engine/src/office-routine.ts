@@ -176,21 +176,44 @@ function unitPlace(unit: Unit): Place {
   return { level: unit.level, column: unit.x + Math.floor(UNIT_CATALOG[unit.type].width / 2) };
 }
 
-/** People eating at each fast food right now, by unit number. People still walking there do not count. */
-function diners(pool: PersonPool): Map<number, number> {
-  const counts = new Map<number, number>();
+interface DinerCount {
+  step: number;
+  byVenue: Map<number, number>;
+}
+
+const dinerCounts = new WeakMap<PersonPool, DinerCount>();
+
+function countDiners(pool: PersonPool): Map<number, number> {
+  const byVenue = new Map<number, number>();
   for (let slot = 0; slot < pool.id.length; slot++) {
     if (!isOfficeWorker(pool, slot)) continue;
     const routine = routineAt(pool, slot);
     if (routine?.phase === 'atLunch')
-      counts.set(routine.venue, (counts.get(routine.venue) ?? 0) + 1);
+      byVenue.set(routine.venue, (byVenue.get(routine.venue) ?? 0) + 1);
   }
-  return counts;
+  return byVenue;
+}
+
+/**
+ * People eating at each fast food right now, by unit number. People still walking there do not
+ * count. The count is built once per step and kept up to date as workers sit down and leave.
+ */
+function diners(state: TowerState): Map<number, number> {
+  const cached = dinerCounts.get(state.people);
+  if (cached && cached.step === state.step) return cached.byVenue;
+  const byVenue = countDiners(state.people);
+  dinerCounts.set(state.people, { step: state.step, byVenue });
+  return byVenue;
+}
+
+function changeDiners(state: TowerState, venue: number, change: number): void {
+  const byVenue = diners(state);
+  byVenue.set(venue, Math.max(0, (byVenue.get(venue) ?? 0) + change));
 }
 
 function openFastFoods(state: TowerState, minuteOfDay: number): Unit[] {
   if (!isFastFoodOpen(minuteOfDay)) return [];
-  const eating = diners(state.people);
+  const eating = diners(state);
   return Object.values(state.units)
     .filter((unit) => unit.type === 'fast-food')
     .filter((unit) => (eating.get(unitNumber(unit.id)) ?? 0) < FAST_FOOD_CAPACITY)
@@ -326,13 +349,14 @@ function startLeaving(worker: Worker, routes: RoutePlanner): void {
 function arriveAtFastFood(worker: Worker, routes: RoutePlanner): void {
   const { routine, state } = worker;
   const venue = venueUnit(state, routine.venue);
-  const eating = diners(state.people).get(routine.venue) ?? 0;
+  const eating = diners(state).get(routine.venue) ?? 0;
   const canEnter =
     venue?.type === 'fast-food' &&
     isFastFoodOpen(minuteOfDay(worker)) &&
     eating < FAST_FOOD_CAPACITY;
   if (canEnter) {
     routine.phase = 'atLunch';
+    changeDiners(state, routine.venue, 1);
     save(worker, state.step + FAST_FOOD_LUNCH_MINUTES * STEPS_PER_MINUTE);
   } else {
     startReturn(worker, routes);
@@ -382,6 +406,7 @@ function advance(worker: Worker, routes: RoutePlanner): void {
       arriveAtFastFood(worker, routes);
       break;
     case 'atLunch':
+      changeDiners(worker.state, worker.routine.venue, -1);
       startReturn(worker, routes);
       break;
   }

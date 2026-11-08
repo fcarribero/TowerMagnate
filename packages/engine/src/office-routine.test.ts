@@ -383,6 +383,47 @@ describe('fast food capacity', () => {
   });
 });
 
+describe('a fast food removed during lunch', () => {
+  const walkToFastFood: RoutePlanner = (state, from, to) =>
+    from.level > 2 && to.level === 2 ? 3 * 360 : straightLineRoutes(state, from, to);
+
+  function anyoneIn(state: TowerState, phase: OfficeRoutine['phase']): boolean {
+    return state.people.trip.some((trip) => decodeRoutine(trip)?.phase === phase);
+  }
+
+  function removeFastFoodWhen(phase: OfficeRoutine['phase']) {
+    const tower = officeTower({ seed: 31, offices: 4 });
+    populate(tower);
+    const engine = engineWith(walkToFastFood, []);
+    let state = tower.state;
+    while (!anyoneIn(state, phase)) {
+      state = engine.step(state, [], 1).state;
+      expect(state.step).toBeLessThan(2 * STEPS_PER_DAY);
+    }
+    for (const id of tower.fastFoodIds) delete state.units[id];
+    const sightings: Sighting[] = [];
+    const rest = engineWith(walkToFastFood, sightings).step(
+      state,
+      [],
+      2 * STEPS_PER_DAY - 1 - state.step,
+    );
+    return { state: rest.state, sightings };
+  }
+
+  it('sends a worker back to the desk when the venue disappears during the walk', () => {
+    const { state, sightings } = removeFastFoodWhen('toLunch');
+    expect(only(sightings, 'atLunch')).toHaveLength(0);
+    expect(only(sightings, 'leaving').length).toBeGreaterThan(0);
+    expect(state.people.dueStep.every((due) => due === NOTHING_DUE)).toBe(true);
+  });
+
+  it('sends a worker back to the desk when the venue disappears during the meal', () => {
+    const { state, sightings } = removeFastFoodWhen('atLunch');
+    expect(only(sightings, 'leaving').length).toBeGreaterThan(0);
+    expect(state.people.dueStep.every((due) => due === NOTHING_DUE)).toBe(true);
+  });
+});
+
 describe('workers who arrive during the week', () => {
   it('start on the next weekday', () => {
     const tower = officeTower({ seed: 21, offices: 1 });
