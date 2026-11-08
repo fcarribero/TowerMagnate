@@ -6,6 +6,7 @@ import { groups } from '../src/groups/index.mjs';
 import { encodePng } from '../src/png.mjs';
 import { PERSON_TYPES, PERSON_VARIANTS } from '../src/groups/people.mjs';
 import {
+  drawIconSheet,
   drawPeopleSheet,
   drawServiceSheet,
   drawStructurePreview,
@@ -77,4 +78,5 @@ writePreview(
   drawTintVariantSheet(sprites, PERSON_TYPES, PERSON_VARIANTS),
   PEOPLE_ZOOM,
 );
+writePreview('ui-icons-preview.png', drawIconSheet(sprites), PEOPLE_ZOOM);
 writePreview('walkway-preview.png', drawWalkwayPreview(sprites), TRANSPORT_ZOOM);

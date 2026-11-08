@@ -3,6 +3,7 @@ import type {
   LimitGroupId,
   PriceLevel,
   PriceTable,
+  ShaftType,
   StarRating,
   UnitCost,
   UnitDefinition,
@@ -10,6 +11,7 @@ import type {
   UnitType,
   UpkeepRule,
 } from './units';
+import { SHAFT_UNIT_TYPES } from './units';
 
 // Every tunable balance number of the game lives in this module.
 
@@ -488,3 +490,15 @@ export const EVAL_NOISE = 60;
 export const EVAL_GOOD_BELOW = 90;
 export const EVAL_FAIR_BELOW = 180;
 export const EVAL_FAIR_BELOW_FROM_FOUR_STARS = 240;
+
+/** People per direction at one stop of an elevator shaft. */
+export const ELEVATOR_QUEUE_CAPACITY = 40;
+/** Steps a person waits beside a full queue before checking it again (1 game minute). */
+export const FULL_QUEUE_RECHECK_STEPS = 6;
+/** Added to the route cost of a ride whose queue is full. */
+export const FULL_QUEUE_ROUTE_COST = 1_000;
+
+/** Riders a car holds, by shaft type, read from the catalog. */
+export function carCapacity(type: ShaftType): number {
+  return UNIT_CATALOG[SHAFT_UNIT_TYPES[type]].capacity?.people ?? 0;
+}

@@ -26,6 +26,13 @@ export const VERSION_5_SAVE =
   '{"schemaVersion":5,"step":8640,"rng":{"a":1,"b":2,"c":3,"d":4},"nextId":3,' +
   '"units":{},"shafts":{},"transports":{"t2":{"id":"t2","type":"escalator","x":20,"level":2}}}';
 
+export const VERSION_6_SAVE =
+  '{"schemaVersion":6,"step":8640,"rng":{"a":1,"b":2,"c":3,"d":4},"nextId":3,' +
+  '"units":{},"shafts":{"s2":{"id":"s2","type":"standard","x":30,"bottom":1,"top":5,' +
+  '"cars":[{"homeLevel":1,"level":1,"riders":[],"paid":80000,"placedAtStep":200}],' +
+  '"paid":200000,"placedAtStep":200}},"transports":{},"activeEvents":[],' +
+  '"closedDecisions":[],"treasureLevels":[]}';
+
 export const VERSION_7_SAVE =
   '{"schemaVersion":7,"step":8640,"rng":{"a":1,"b":2,"c":3,"d":4},"nextId":2,' +
   '"units":{},"shafts":{},"people":{"nextId":4,"id":[1,3],"kind":[0,2],"homeUnit":[0,0],' +
