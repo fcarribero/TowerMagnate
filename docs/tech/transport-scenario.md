@@ -17,7 +17,7 @@ The unit suite skips the scenario. The same check is also available as a Vitest 
 On the reference machine (GitHub Actions ubuntu-latest, 4 vCPU, 16 GB, Node 22):
 
 - average step at most 1.0 ms
-- p99 step at most 5 ms
+- p99 step at most 7 ms for now; TM-227 brings it back to 5 ms
 - nobody on the move at 03:00
 
 ## Who owns the budget

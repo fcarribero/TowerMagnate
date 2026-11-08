@@ -51,6 +51,18 @@ export const TransportTypeSchema = z.enum(['stairs', 'escalator']);
 export const EvaluationSchema = z.enum(['good', 'fair', 'poor']);
 export const HotelRoomStateSchema = z.enum(['clean', 'occupied', 'dirty', 'infested']);
 export const DecisionKindSchema = z.enum(['bomb', 'fire']);
+/** Requirements of the next star step besides population, in the order of stars.md section 5. */
+export const StarRequirementSchema = z.enum([
+  'security',
+  'vip',
+  'suites',
+  'recycling',
+  'medical',
+  'parking',
+  'subway',
+  'cathedral',
+  'wedding',
+]);
 
 export const PersonKindSchema = z.enum(PERSON_KINDS);
 
@@ -83,6 +95,7 @@ export type TransportType = z.infer<typeof TransportTypeSchema>;
 export type Evaluation = z.infer<typeof EvaluationSchema>;
 export type HotelRoomState = z.infer<typeof HotelRoomStateSchema>;
 export type DecisionKind = z.infer<typeof DecisionKindSchema>;
+export type StarRequirement = z.infer<typeof StarRequirementSchema>;
 export type PersonKind = z.infer<typeof PersonKindSchema>;
 export type MoneyReason = z.infer<typeof MoneyReasonSchema>;
 export type CellRange = z.infer<typeof CellRangeSchema>;

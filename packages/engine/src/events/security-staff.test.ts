@@ -39,7 +39,7 @@ function contextOf(state: TowerState): StepContext {
 }
 
 function bombOf(state: TowerState) {
-  const bomb = openBombThreat(contextOf(state), 200_000);
+  const bomb = openBombThreat(contextOf(state), 200_000, { x: 0, level: 2 });
   if (!bomb) throw new Error('Expected a bomb threat');
   return bomb;
 }

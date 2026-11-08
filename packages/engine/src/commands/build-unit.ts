@@ -18,7 +18,7 @@ import type { CommandHandler } from '../step';
 import { escalatorLevels, isEscalatorUnit } from './escalator-floors';
 import { addPeopleForUnit } from '../people';
 import { newUnit } from '../units';
-import { limitError, starLockError } from './unit-limits';
+import { bombLockError, limitError, starLockError } from './unit-limits';
 import {
   columnRuns,
   columnsBetween,
@@ -132,7 +132,10 @@ export const buildUnit: CommandHandler<'buildUnit'> = (context, command) => {
     return { ok: false, error: balanceError };
   }
 
-  const lockError = starLockError(state, definition) ?? limitError(state, definition);
+  const lockError =
+    starLockError(state, definition) ??
+    bombLockError(state, definition) ??
+    limitError(state, definition);
   if (lockError) {
     return { ok: false, error: lockError };
   }

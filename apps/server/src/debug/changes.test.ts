@@ -1,4 +1,5 @@
 import { createTower, hashState, step, STEPS_PER_DAY } from '@tower-magnate/engine';
+import { buildTower, plainTowerPlan } from '@tower-magnate/engine/testing';
 import type { StarRating, TowerState } from '@tower-magnate/shared';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { TowerRunner } from '../runner';
@@ -20,9 +21,15 @@ describe('debug changes on a running tower', () => {
   let store: MemoryStore;
   let runner: TowerRunner;
 
-  async function start(stars: StarRating = 2): Promise<void> {
-    store.towers.set('1', { ...createTower(1), stars });
+  async function start(stars: StarRating = 2, tower = createTower(1)): Promise<void> {
+    store.towers.set('1', { ...tower, stars });
     await runner.resume('1');
+  }
+
+  /** One office on level 2, somewhere to hide a bomb. */
+  function towerWithOffice(): TowerState {
+    return buildTower({ ...plainTowerPlan(2, 0, 20), units: [{ type: 'office', level: 2, x: 0 }] })
+      .state;
   }
 
   const state = (): TowerState => runner.stateOf('1') as TowerState;
@@ -40,7 +47,7 @@ describe('debug changes on a running tower', () => {
     [5, 1_000_000],
     [6, 1_000_000],
   ] as const)('opens a bomb threat at %i stars with a ransom of %i', async (stars, ransom) => {
-    await start(stars as StarRating);
+    await start(stars as StarRating, towerWithOffice());
 
     await runner.change('1', forceEvent('bomb'));
 
@@ -53,6 +60,7 @@ describe('debug changes on a running tower', () => {
     ]);
     expect(runner.takeEvents('1')).toEqual([
       expect.objectContaining({ type: 'decisionOpened', kind: 'bomb', step: state().step }),
+      expect.objectContaining({ type: 'news', key: 'news.bombThreat' }),
     ]);
   });
 
@@ -64,8 +72,17 @@ describe('debug changes on a running tower', () => {
     expect(state().activeEvents).toEqual([expect.objectContaining({ kind: 'fire' })]);
   });
 
-  it('refuses a second disaster and events the engine does not have yet', async () => {
+  it('refuses a bomb threat when no unit can hide the bomb', async () => {
     await start();
+
+    await expect(runner.change('1', forceEvent('bomb'))).rejects.toEqual(
+      new DebugRefusal('UNKNOWN_ENTITY'),
+    );
+    expect(state().activeEvents).toEqual([]);
+  });
+
+  it('refuses a second disaster and events the engine does not have yet', async () => {
+    await start(2, towerWithOffice());
     await runner.change('1', forceEvent('bomb'));
 
     await expect(runner.change('1', forceEvent('fire'))).rejects.toEqual(

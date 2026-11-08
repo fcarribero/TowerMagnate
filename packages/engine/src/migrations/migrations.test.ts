@@ -120,7 +120,7 @@ describe('migrateState unit leases', () => {
     expect(migratedUnit(JSON.parse(JSON.stringify(shop)))).toEqual(shop);
   });
 
-  it('gives a version 20 save day counts, stress sums and no customers', () => {
+  it('gives a version 21 save day counts, stress sums and no customers', () => {
     const food = {
       ...newUnit('u3', 'fast-food', 0, 2),
       venue: { visits: 12, eveningShowVisits: 0, yesterday: null },
