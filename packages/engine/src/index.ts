@@ -112,6 +112,8 @@ export {
   straightLineRoutes,
 } from './office-routine';
 export type { OfficeRoutine, Place, RoutePlanner, RoutinePhase } from './office-routine';
+export { createProspectDemand } from './prospects';
+export type { ProspectDemand } from './prospects';
 export { chance, createRng, nextFloat, nextInt, nextUint32 } from './rng';
 export { createScheduler } from './scheduler';
 export { runStarCheck, starCheckHook } from './stars';

@@ -17,6 +17,7 @@ import { createLeaseSystem } from './leases';
 import { cloneState } from './state';
 import { ledgerWeekRollHook } from './money';
 import { createOfficeRoutine } from './office-routine';
+import { createProspectDemand } from './prospects';
 import { createScheduler } from './scheduler';
 import { createTrekSystem, plannedTripSteps } from './trek';
 import { TransportGraph, type ShaftStops } from './routing';
@@ -186,14 +187,22 @@ const officeRoutine = createOfficeRoutine(
   { treks: true },
 );
 
+const prospects = createProspectDemand();
+
 const towerEngine = createEngine({
   commandHandlers: towerCommandHandlers,
   systems: [
-    createScheduler([ledgerWeekRollHook, weeklyUpkeepHook, officeRoutine.planHook]),
+    createScheduler([
+      ledgerWeekRollHook,
+      weeklyUpkeepHook,
+      officeRoutine.planHook,
+      ...prospects.rollHooks,
+    ]),
     createLeaseSystem(),
     createHotelSystem(),
     createCondoSystem(),
     createTrekSystem(),
+    prospects.system,
     officeRoutine.system,
     createElevatorSystem(),
     createScheduler([starCheckHook]),
