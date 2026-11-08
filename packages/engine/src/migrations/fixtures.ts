@@ -21,3 +21,19 @@ export const VERSION_4_SAVE =
   '"shafts":{"s2":{"id":"s2","type":"standard","x":30,"bottom":1,"top":5,' +
   '"cars":[{"homeLevel":1,"level":3,"riders":["p7"],"paid":80000,"placedAtStep":200}],' +
   '"paid":200000,"placedAtStep":200}}}';
+
+export const VERSION_5_SAVE =
+  '{"schemaVersion":5,"step":8640,"rng":{"a":1,"b":2,"c":3,"d":4},"nextId":3,' +
+  '"units":{},"shafts":{},"transports":{"t2":{"id":"t2","type":"escalator","x":20,"level":2}}}';
+
+export const VERSION_7_SAVE =
+  '{"schemaVersion":7,"step":8640,"rng":{"a":1,"b":2,"c":3,"d":4},"nextId":2,' +
+  '"units":{},"shafts":{},"people":{"nextId":4,"id":[1,3],"kind":[0,2],"homeUnit":[0,0],' +
+  '"level":[1,5],"column":[10,40],"trip":[0,0],"dueStep":[8700,-1],"stress":[0,12.5],' +
+  '"nameSeed":[77,91],"followed":[3]}}';
+
+export const VERSION_8_SAVE =
+  '{"schemaVersion":8,"step":8640,"rng":{"a":1,"b":2,"c":3,"d":4},"nextId":2,"stars":3,' +
+  '"units":{},"shafts":{},"people":{"nextId":4,"id":[1,3],"kind":[0,2],"homeUnit":[0,0],' +
+  '"level":[1,5],"column":[10,40],"trip":[0,0],"dueStep":[8700,-1],"stress":[0,12.5],' +
+  '"nameSeed":[77,91],"followed":[3]}}';

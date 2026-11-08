@@ -1,14 +1,18 @@
-import { PROTOCOL_VERSION, serverMessage, type ClientMessage } from '@tower-magnate/shared';
+import {
+  PROTOCOL_VERSION,
+  serverMessage,
+  TOWER_SOCKET_PATH,
+  type ClientMessage,
+} from '@tower-magnate/shared';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { delta, snapshot, walker } from '../testing/protocolFixtures';
 import { createGameConnection } from './gameConnection';
 import {
   CLOSE_NOT_AUTHENTICATED,
   CLOSE_PROTOCOL_MISMATCH,
-  FIRST_RETRY_DELAY_MS,
   GameSocket,
   gameSocketUrl,
-  MAX_RETRY_DELAY_MS,
+  RETRY_DELAY_MS,
   SILENCE_LIMIT_MS,
   type MessageSink,
   type SocketLike,
@@ -128,19 +132,19 @@ describe('GameSocket', () => {
     expect(sink.receive).toHaveBeenCalledTimes(1);
   });
 
-  it('reconnects with a doubling delay and tells the sink once it is back', () => {
+  it('retries every 2 seconds and tells the sink once it is back', () => {
     const { socket, sink, sockets, last } = setup();
     socket.connect();
     last().serverOpens();
     last().serverCloses();
     expect(socket.connectionStatus).toBe('retrying');
 
-    vi.advanceTimersByTime(FIRST_RETRY_DELAY_MS);
+    vi.advanceTimersByTime(RETRY_DELAY_MS - 1);
+    expect(sockets).toHaveLength(1);
+    vi.advanceTimersByTime(1);
     expect(sockets).toHaveLength(2);
     last().serverCloses();
-    vi.advanceTimersByTime(FIRST_RETRY_DELAY_MS);
-    expect(sockets).toHaveLength(2);
-    vi.advanceTimersByTime(FIRST_RETRY_DELAY_MS);
+    vi.advanceTimersByTime(RETRY_DELAY_MS);
     expect(sockets).toHaveLength(3);
 
     last().serverOpens();
@@ -148,12 +152,12 @@ describe('GameSocket', () => {
     expect(socket.connectionStatus).toBe('live');
   });
 
-  it(`never waits more than ${MAX_RETRY_DELAY_MS} ms between attempts`, () => {
+  it('keeps the same delay however many attempts fail', () => {
     const { socket, sockets, last } = setup();
     socket.connect();
     for (let attempt = 0; attempt < 10; attempt++) {
       last().serverCloses();
-      vi.advanceTimersByTime(MAX_RETRY_DELAY_MS);
+      vi.advanceTimersByTime(RETRY_DELAY_MS);
     }
     expect(sockets).toHaveLength(11);
   });
@@ -165,7 +169,7 @@ describe('GameSocket', () => {
       socket.connect();
       last().serverOpens();
       last().serverCloses(code);
-      vi.advanceTimersByTime(MAX_RETRY_DELAY_MS * 2);
+      vi.advanceTimersByTime(RETRY_DELAY_MS * 2);
       expect(sockets).toHaveLength(1);
       expect(onClosedForGood).toHaveBeenCalledWith(code);
       expect(socket.connectionStatus).toBe('closed');
@@ -184,7 +188,7 @@ describe('GameSocket', () => {
     vi.advanceTimersByTime(SILENCE_LIMIT_MS);
     expect(first.closed).toBe(true);
     expect(socket.connectionStatus).toBe('retrying');
-    vi.advanceTimersByTime(FIRST_RETRY_DELAY_MS);
+    vi.advanceTimersByTime(RETRY_DELAY_MS);
     expect(sockets).toHaveLength(2);
   });
 
@@ -205,7 +209,7 @@ describe('GameSocket', () => {
     last().serverOpens();
     socket.stop();
     last().serverCloses();
-    vi.advanceTimersByTime(MAX_RETRY_DELAY_MS);
+    vi.advanceTimersByTime(RETRY_DELAY_MS);
     expect(sockets).toHaveLength(1);
     expect(socket.connectionStatus).toBe('closed');
   });
@@ -242,7 +246,7 @@ describe('createGameConnection', () => {
     expect(store.current?.latest.people.has(walker.id)).toBe(true);
 
     vi.advanceTimersByTime(SILENCE_LIMIT_MS * 2);
-    vi.advanceTimersByTime(FIRST_RETRY_DELAY_MS);
+    vi.advanceTimersByTime(RETRY_DELAY_MS);
     expect(sockets).toHaveLength(2);
     last().serverOpens();
     expect(last().sentTypes()).toEqual(['hello']);
@@ -268,5 +272,11 @@ describe('gameSocketUrl', () => {
     expect(gameSocketUrl({ protocol: 'https:', host: 'tower.example' })).toBe(
       'wss://tower.example/ws',
     );
+  });
+
+  it('points at the path the server serves the tower socket on', () => {
+    const url = new URL(gameSocketUrl({ protocol: 'http:', host: 'localhost:5173' }));
+
+    expect(url.pathname).toBe(TOWER_SOCKET_PATH);
   });
 });

@@ -14,6 +14,7 @@ function fakeApi(result: AuthResult = { ok: true, user }): AuthApi {
     login: vi.fn(async () => result),
     register: vi.fn(async () => result),
     logout: vi.fn(async () => {}),
+    ensureTower: vi.fn(async () => true),
   };
 }
 
@@ -90,6 +91,21 @@ describe('AuthScreen', () => {
     const alert = await screen.findByRole('alert');
     expect(alert.textContent).toBe('No se pudo conectar. Probá de nuevo.');
     expect(button('Entrar').disabled).toBe(false);
+  });
+
+  it('shows the rate-limit message when the server answers 429', async () => {
+    const ui = userEvent.setup();
+    const api = fakeApi();
+    api.login = vi.fn(async () => ({ ok: false, reason: 'rateLimited' }) as const);
+    render(<AuthScreen api={api} onSignedIn={vi.fn()} />);
+
+    await ui.type(input('Usuario'), 'ana_42');
+    await ui.type(input('Contraseña'), 'secreto123{Enter}');
+
+    const alert = await screen.findByRole('alert');
+    expect(alert.textContent).toBe(
+      'Hiciste demasiados intentos. Esperá un minuto y probá de nuevo.',
+    );
   });
 
   it('switches to the register form with its hints', async () => {

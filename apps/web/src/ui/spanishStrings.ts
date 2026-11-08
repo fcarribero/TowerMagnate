@@ -76,6 +76,11 @@ export const SPANISH_STRINGS = {
   'ui.towerRank': 'TORRE',
   'ui.zoomIn': 'Acercar',
   'ui.zoomOut': 'Alejar',
+  'ui.windowMap': 'Mapa',
+  'ui.windowFinance': 'Finanzas',
+  'ui.windowFollowed': 'Seguidos',
+  'ui.windowNotices': 'Avisos',
+  'ui.statusBar': 'Barra de estado',
   'ui.soundOn': 'Sonido: sí',
   'ui.soundOff': 'Sonido: no',
   'ui.volume': 'Volumen',
@@ -435,5 +440,6 @@ export const SPANISH_STRINGS = {
   'auth.usernameTaken': 'Ese usuario ya existe. Probá con otro.',
   'auth.wrongCredentials': 'Usuario o contraseña incorrectos.',
   'auth.sessionClosed': 'La sesión se cerró. Entrá de nuevo.',
+  'auth.rateLimited': 'Hiciste demasiados intentos. Esperá un minuto y probá de nuevo.',
   'auth.networkError': 'No se pudo conectar. Probá de nuevo.',
 } as const;

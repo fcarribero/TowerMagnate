@@ -1,7 +1,15 @@
 import { describe, expect, it } from 'vitest';
 import { createTower, SCHEMA_VERSION } from '../state';
 import { newUnit } from '../units';
-import { VERSION_1_SAVE, VERSION_2_SAVE, VERSION_3_SAVE, VERSION_4_SAVE } from './fixtures';
+import {
+  VERSION_1_SAVE,
+  VERSION_2_SAVE,
+  VERSION_3_SAVE,
+  VERSION_4_SAVE,
+  VERSION_5_SAVE,
+  VERSION_7_SAVE,
+  VERSION_8_SAVE,
+} from './fixtures';
 import { migrateState, StateMigrationError } from './index';
 
 describe('migrateState', () => {
@@ -181,6 +189,62 @@ describe('migrateState shafts', () => {
     ).toEqual(valid);
     for (const shaft of badShafts) {
       expect(() => migrateState({ ...tower, shafts: { s3: shaft } })).toThrow(StateMigrationError);
+    }
+  });
+});
+
+describe('migrateState transports', () => {
+  it('gives a version 4 save an empty transports record', () => {
+    const tower = migrateState(JSON.parse(VERSION_4_SAVE));
+    expect(tower.schemaVersion).toBe(SCHEMA_VERSION);
+    expect(tower.transports).toEqual({});
+  });
+
+  it('loads a frozen version 5 save', () => {
+    const tower = migrateState(JSON.parse(VERSION_5_SAVE));
+    expect(tower.transports).toEqual({
+      t2: { id: 't2', type: 'escalator', x: 20, level: 2 },
+    });
+  });
+
+  it('refuses a malformed transport', () => {
+    const bad = [
+      { id: 't1', type: 'ramp', x: 0, level: 2 },
+      { id: 't1', type: 'stairs', x: 400, level: 2 },
+      { id: 't1', type: 'stairs', x: 0, level: 0 },
+      { id: 't9', type: 'stairs', x: 0, level: 2 },
+    ];
+    for (const transport of bad) {
+      const saved = JSON.parse(JSON.stringify(createTower(5)));
+      saved.transports = { t1: transport };
+      expect(() => migrateState(saved)).toThrow(StateMigrationError);
+    }
+  });
+
+  it('migrates a version 2 save to the event state version with empty event state', () => {
+    const tower = migrateState(JSON.parse(VERSION_2_SAVE));
+    expect(tower.schemaVersion).toBe(SCHEMA_VERSION);
+    expect(tower.activeEvents).toEqual([]);
+    expect(tower.closedDecisions).toEqual([]);
+    expect(tower.treasureLevels).toEqual([]);
+  });
+});
+
+describe('migrateState stars', () => {
+  it('gives a version 7 save one star', () => {
+    const tower = migrateState(JSON.parse(VERSION_7_SAVE));
+    expect(tower.schemaVersion).toBe(SCHEMA_VERSION);
+    expect(tower.stars).toBe(1);
+  });
+
+  it('loads a frozen version 8 save', () => {
+    expect(migrateState(JSON.parse(VERSION_8_SAVE)).stars).toBe(3);
+  });
+
+  it('refuses a star rating outside 1 to 6', () => {
+    for (const stars of [0, 7, 2.5, '3', null]) {
+      const saved = { ...JSON.parse(JSON.stringify(createTower(5))), stars };
+      expect(() => migrateState(saved)).toThrow(StateMigrationError);
     }
   });
 });

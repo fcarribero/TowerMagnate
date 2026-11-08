@@ -1,8 +1,8 @@
 import type { Ledger } from './ledger';
 import type { Level } from './levels';
-import type { DecisionKind } from './protocol/primitives';
+import type { DecisionKind, TransportType } from './protocol/primitives';
 import type { PersonPool } from './people';
-import type { PriceLevel, ShaftType, UnitType } from './units';
+import type { PriceLevel, ShaftType, StarRating, UnitType } from './units';
 
 /** Id of a placed unit, transport or shaft, with a type prefix: `u12`, `t3`, `s4`. */
 export type EntityId = string;
@@ -76,6 +76,16 @@ export interface Unit {
   lease: Lease | null;
 }
 
+/** A staircase or escalator. Its cells on `level` are the footprint; the level above has the landing. */
+export interface Transport {
+  id: EntityId;
+  type: TransportType;
+  /** Leftmost column. */
+  x: number;
+  /** Lower level. */
+  level: Level;
+}
+
 /** Instance id of a placed elevator shaft, such as `s4`. */
 export type ShaftId = string;
 
@@ -120,7 +130,10 @@ export interface TowerState {
   nextId: number;
   /** Whole dollars, may be negative, never above MONEY_CAP. */
   money: number;
+  /** The tower's star rating, which unlocks unit types. */
+  stars: StarRating;
   units: Record<UnitId, Unit>;
+  transports: Record<EntityId, Transport>;
   shafts: Record<ShaftId, Shaft>;
   grid: GridState;
   people: PersonPool;
