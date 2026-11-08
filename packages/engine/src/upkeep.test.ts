@@ -6,6 +6,15 @@ import { buildTower } from './testing';
 
 const FIRST_MONDAY = STEPS_PER_WEEK;
 
+function addStandardCar(state: TowerState): void {
+  for (const shaft of Object.values(state.shafts)) {
+    const [car] = shaft.cars;
+    if (shaft.type === 'standard' && car) {
+      shaft.cars.push({ ...car });
+    }
+  }
+}
+
 function upkeepTower(stars: 3 | 4, money = 2_000_000): TowerState {
   const { state } = buildTower({
     lobby: { x0: 0, x1: 9 },
@@ -16,8 +25,7 @@ function upkeepTower(stars: 3 | 4, money = 2_000_000): TowerState {
       { type: 'express', x: 14, bottom: 2, top: 10 },
     ],
   });
-  const standard = Object.values(state.shafts).find((shaft) => shaft.type === 'standard')!;
-  standard.cars.push({ ...standard.cars[0]! });
+  addStandardCar(state);
   state.transports.t1 = { id: 't1', type: 'escalator', x: 16, level: 3 };
   state.stars = stars;
   state.money = money;
@@ -59,8 +67,7 @@ describe('weekly upkeep', () => {
   it('charges a full week for a car added one step before Monday', () => {
     const tower = upkeepTower(3);
     const before = runToStep(tower, FIRST_MONDAY - 1).state;
-    const shaft = Object.values(before.shafts).find((candidate) => candidate.type === 'standard')!;
-    shaft.cars.push({ ...shaft.cars[0]! });
+    addStandardCar(before);
     const { state } = runToStep(before, FIRST_MONDAY);
     expect(state.money).toBe(2_000_000 - 155_000);
   });
