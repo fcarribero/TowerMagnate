@@ -9,10 +9,13 @@ export interface ServerConfig {
   /** Set in production, where the server also serves the built web client. */
   webDir?: string;
   secureCookies: boolean;
+  /** Web origins allowed to send state-changing API requests. */
+  allowedOrigins: string[];
 }
 
 const DEFAULT_HOST = '0.0.0.0';
 const DEFAULT_PORT = 3000;
+const DEV_WEB_ORIGIN = 'http://localhost:5173';
 const DEFAULT_LOG_LEVEL: LogLevel = 'info';
 const LOG_LEVELS: readonly LogLevel[] = [
   'fatal',
@@ -37,6 +40,7 @@ export function readConfig(env: NodeJS.ProcessEnv): ServerConfig {
     migrateOnStart: readMigrateOnStart(env.MIGRATE_ON_START, env.NODE_ENV),
     webDir: env.WEB_DIR || undefined,
     secureCookies: readSecureCookies(env.SECURE_COOKIES, env.NODE_ENV),
+    allowedOrigins: readAllowedOrigins(env.ALLOWED_ORIGINS, env.NODE_ENV),
   };
 }
 
@@ -68,6 +72,16 @@ function readMigrateOnStart(value: string | undefined, nodeEnv: string | undefin
 
 function readSecureCookies(value: string | undefined, nodeEnv: string | undefined): boolean {
   return readBoolean('SECURE_COOKIES', value, nodeEnv === 'production');
+}
+
+function readAllowedOrigins(value: string | undefined, nodeEnv: string | undefined): string[] {
+  if (value === undefined || value === '') {
+    return nodeEnv === 'production' ? [] : [DEV_WEB_ORIGIN];
+  }
+  return value
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter((origin) => origin !== '');
 }
 
 function readBoolean(name: string, value: string | undefined, fallback: boolean): boolean {
