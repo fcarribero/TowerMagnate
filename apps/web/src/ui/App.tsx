@@ -23,6 +23,8 @@ import { ConnectionOverlay } from './ConnectionOverlay';
 import { BuildFeedback } from './placement/BuildFeedback';
 import { bindBuildInput, type DragLabel } from './placement/bindBuildInput';
 import { buildMode, shaftIdAt } from './placement/buildPlan';
+import { IncomeFloaters } from './income/IncomeFloaters';
+import { useIncomeFloaters } from './income/useIncomeFloaters';
 import { useBuildFeedback } from './placement/useBuildFeedback';
 import { LevelRuler } from './LevelRuler';
 import { StageHost } from './StageHost';
@@ -81,13 +83,14 @@ export function App({ onLogout, onRestartTower, onSessionLost }: AppProps) {
     });
     connection.onMessage((message) => {
       api.receive(message);
-      if (message.t === 'commandResult') {
+      if (message.t === 'commandResult' || message.t === 'events') {
         director.serverMessage(message);
       }
     });
     return api;
   }, [connection, director]);
   const { toasts, floats, report } = useBuildFeedback();
+  const incomeFloats = useIncomeFloaters(stage, connection);
   const [dragLabel, setDragLabel] = useState<DragLabel | null>(null);
   const [mainLobbyHeight, setMainLobbyHeight] = useState<number | null>(null);
   const [pointerLevel, setPointerLevel] = useState<Level | null>(null);
@@ -244,6 +247,7 @@ export function App({ onLogout, onRestartTower, onSessionLost }: AppProps) {
           disabled={!connected}
         />
         <BuildFeedback toasts={toasts} floats={floats} dragLabel={dragLabel} />
+        <IncomeFloaters floaters={incomeFloats} />
         <ConnectionOverlay
           status={connectionStatus}
           protocolMismatch={protocolMismatch}
