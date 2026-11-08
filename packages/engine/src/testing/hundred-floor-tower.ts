@@ -9,7 +9,7 @@ export function addFlight(
 ) {
   const id = `t${state.nextId}`;
   state.nextId += 1;
-  state.transports[id] = { id, type, x, level };
+  state.transports[id] = { id, type, x, level, paid: 0, placedAtStep: state.step };
   return id;
 }
 

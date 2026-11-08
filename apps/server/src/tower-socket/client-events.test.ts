@@ -24,6 +24,12 @@ describe('toClientEvents', () => {
     expect(toClientEvents(events)).toEqual([{ type: 'disaster', step: 7, kind: 'bomb', cells }]);
   });
 
+  it('passes the wedding on so the client opens the Torre dialog', () => {
+    const events: EngineEvent[] = [{ type: 'weddingCompleted', step: 12 }];
+
+    expect(toClientEvents(events)).toEqual([{ type: 'weddingCompleted', step: 12 }]);
+  });
+
   it('marks a decision closed without a command as timed out', () => {
     const events: EngineEvent[] = [
       { type: 'decisionClosed', step: 9, eventId: 'e1', choice: 'refuse' },

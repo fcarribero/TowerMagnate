@@ -29,6 +29,7 @@ import {
   hasStructure,
   isInteger,
   refundConstruction,
+  refundFloor,
 } from './structure';
 
 type Rejection = { ok: false; error: ErrorCode };
@@ -110,7 +111,7 @@ function planTransport(state: TowerState, transportId: string): Plan {
         });
       }
       Reflect.deleteProperty(state.transports, transport.id);
-      return 0;
+      return refundConstruction(state, transport);
     },
   };
 }
@@ -158,7 +159,7 @@ function planFloor(state: TowerState, level: Level, x0: number, x1: number): Pla
     ok: true,
     apply() {
       for (const run of columnRuns(floorColumns)) clearStructure(grid, level, run.x0, run.x1);
-      return 0;
+      return refundFloor(state, level, floorColumns);
     },
   };
 }
