@@ -1,0 +1,99 @@
+.tm-person__gone {
+  margin: 0 0 calc(6 * var(--tm-px));
+  color: var(--tm-cloth-red);
+}
+
+.tm-person__rows {
+  margin: 0 0 calc(6 * var(--tm-px));
+}
+
+.tm-person__row {
+  display: flex;
+  justify-content: space-between;
+  gap: calc(6 * var(--tm-px));
+  padding: calc(1 * var(--tm-px)) 0;
+}
+
+.tm-person__row dt {
+  color: var(--tm-slate);
+}
+
+.tm-person__row dd {
+  margin: 0;
+  text-align: right;
+}
+
+.tm-person__row dd.is-stressed {
+  color: #f07aa8;
+}
+
+.tm-person__row dd.is-veryStressed {
+  color: #d81e2a;
+}
+
+.tm-person__buttons {
+  display: flex;
+  gap: calc(6 * var(--tm-px));
+}
+
+.tm-person__empty {
+  margin: 0;
+}
+
+.tm-followed__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tm-followed__item {
+  display: flex;
+  align-items: center;
+  gap: calc(3 * var(--tm-px));
+}
+
+.tm-followed__row {
+  display: flex;
+  flex: 1;
+  gap: calc(4 * var(--tm-px));
+  align-items: center;
+  padding: calc(1 * var(--tm-px)) 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.tm-followed__name {
+  flex: 1;
+}
+
+.tm-followed__kind {
+  color: var(--tm-slate);
+}
+
+.tm-followed__remove {
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.tm-followed__swatch {
+  width: calc(6 * var(--tm-px));
+  height: calc(6 * var(--tm-px));
+  border: calc(1 * var(--tm-px)) solid var(--tm-ink);
+  box-sizing: border-box;
+  background: var(--tm-white);
+}
+
+.tm-followed__swatch.is-stressed {
+  background: #f07aa8;
+}
+
+.tm-followed__swatch.is-veryStressed {
+  background: #d81e2a;
+}

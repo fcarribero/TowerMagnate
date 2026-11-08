@@ -205,6 +205,7 @@ export const SPANISH_STRINGS = {
   'window.person.follow': 'Seguir',
   'window.person.unfollow': 'Dejar de seguir',
   'window.person.needsName': 'Poné un nombre para seguir a esta persona.',
+  'window.person.stressValue': '{n} min ({level})',
   'window.person.leavingTower': 'Sale de la torre',
   'window.followed.empty':
     'Todavía no seguís a nadie. Abrí una persona con la Lupa, ponele nombre y tocá Seguir.',
@@ -314,6 +315,7 @@ export const SPANISH_STRINGS = {
   'value.person.securityGuard': 'Guardia de seguridad',
   'value.person.vip': 'VIP',
   'value.person.weddingGuest': 'Invitado a la boda',
+  'value.person.prospect': 'Interesado',
 
   // 13.7 Overlays
   'overlay.name': 'Vista',

@@ -50,6 +50,9 @@ import { TowerMapWindow } from './TowerMapWindow';
 import { Toasts } from './toast/Toasts';
 import { ElevatorWindows } from './elevator/ElevatorWindows';
 import { UnitWindows } from './unit/UnitWindows';
+import { FollowedWindow } from './person/FollowedWindow';
+import { PersonWindows } from './person/PersonWindows';
+import { personWorldPoint } from '../render/personPoint';
 
 export interface AppProps {
   onLogout: () => void;
@@ -74,6 +77,7 @@ export function App({ onLogout, onRestartTower, onSessionLost }: AppProps) {
   const [mapOpen, setMapOpen] = useState(false);
   const [financeOpen, setFinanceOpen] = useState(false);
   const [starsOpen, setStarsOpen] = useState(false);
+  const [followedOpen, setFollowedOpen] = useState(false);
   const [restartStep, setRestartStep] = useState<RestartStep | null>(null);
   const [overlay, setOverlay] = useState<OverlayId>('normal');
   const [tool, setTool] = useState<ToolId>(DEFAULT_TOOL);
@@ -87,9 +91,16 @@ export function App({ onLogout, onRestartTower, onSessionLost }: AppProps) {
     if (id === 'finance') {
       setFinanceOpen((open) => !open);
     }
+    if (id === 'followed') {
+      setFollowedOpen((open) => !open);
+    }
     if (id === 'stars') {
       setStarsOpen((open) => !open);
     }
+  };
+  const centerOnPerson = (x: number, level: number): void => {
+    const point = personWorldPoint(x, level);
+    stage?.centerOn(point.x, point.y);
   };
   const { playTrigger, director } = useSfx();
   const commandApi = useMemo(() => {
@@ -181,6 +192,7 @@ export function App({ onLogout, onRestartTower, onSessionLost }: AppProps) {
     return bindUnitClicks(stage, connection.store, {
       unit: (unitId) => connection.inspect.requestUnitWindow(unitId),
       shaft: (shaftId) => connection.inspect.requestShaftWindow(shaftId),
+      person: (personId) => connection.inspect.requestPersonWindow(personId),
     });
   }, [stage, connection, tool]);
 
@@ -334,7 +346,15 @@ export function App({ onLogout, onRestartTower, onSessionLost }: AppProps) {
           {starsOpen && (
             <StarsWindow store={connection.store} onClose={() => setStarsOpen(false)} />
           )}
+          {followedOpen && (
+            <FollowedWindow
+              connection={connection}
+              onCenter={centerOnPerson}
+              onClose={() => setFollowedOpen(false)}
+            />
+          )}
           <UnitWindows connection={connection} />
+          <PersonWindows connection={connection} onCenter={centerOnPerson} />
           <ElevatorWindows connection={connection} />
           <RestartTowerDialogs
             step={restartStep}

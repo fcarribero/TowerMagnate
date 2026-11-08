@@ -93,6 +93,18 @@ export class CommandClient {
     return this.send({ type: 'changeFilm', unitId });
   }
 
+  renamePerson(personId: string, name: string): Promise<CommandResult> {
+    return this.send({ type: 'renamePerson', personId, name });
+  }
+
+  followPerson(personId: string): Promise<CommandResult> {
+    return this.send({ type: 'followPerson', personId });
+  }
+
+  unfollowPerson(personId: string): Promise<CommandResult> {
+    return this.send({ type: 'unfollowPerson', personId });
+  }
+
   inspect(target: InspectTarget | null): void {
     this.sender.send(clientMessage('inspect', { target }));
   }

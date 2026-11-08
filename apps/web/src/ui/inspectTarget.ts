@@ -2,6 +2,7 @@ import type { InspectTarget } from '@tower-magnate/shared';
 
 export const UNIT_WINDOW_KIND = 'unit';
 export const ELEVATOR_WINDOW_KIND = 'elevator';
+export const PERSON_WINDOW_KIND = 'person';
 
 export function unitWindowId(unitId: string): string {
   return `${UNIT_WINDOW_KIND}:${unitId}`;
@@ -9,6 +10,10 @@ export function unitWindowId(unitId: string): string {
 
 export function elevatorWindowId(shaftId: string): string {
   return `${ELEVATOR_WINDOW_KIND}:${shaftId}`;
+}
+
+export function personWindowId(personId: string): string {
+  return `${PERSON_WINDOW_KIND}:${personId}`;
 }
 
 export function entityOfWindow(windowId: string): string {
@@ -24,6 +29,9 @@ export function frontInspectTarget(
   }
   if (front?.kind === ELEVATOR_WINDOW_KIND) {
     return { kind: 'shaft', id: entityOfWindow(front.id) };
+  }
+  if (front?.kind === PERSON_WINDOW_KIND) {
+    return { kind: 'person', id: entityOfWindow(front.id) };
   }
   return null;
 }

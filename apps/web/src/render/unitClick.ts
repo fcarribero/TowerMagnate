@@ -1,4 +1,9 @@
-import { SHAFT_UNIT_TYPES, UNIT_CATALOG, type ShaftView } from '@tower-magnate/shared';
+import {
+  SHAFT_UNIT_TYPES,
+  UNIT_CATALOG,
+  type PersonView,
+  type ShaftView,
+} from '@tower-magnate/shared';
 import type { ClientStore } from '../model/clientStore';
 import type { Cell } from './cellAtPoint';
 import { unitAt } from './placementCheck';
@@ -18,8 +23,23 @@ export interface ClickStage {
 const CLICK_MOVE_LIMIT = 4;
 
 export interface InspectWindowOpeners {
+  person: (personId: string) => void;
   unit: (unitId: string) => void;
   shaft: (shaftId: string) => void;
+}
+
+/** A person is picked by clicking the cell they stand in; the nearest one wins. */
+export function personAt(people: Iterable<PersonView>, cell: Cell): PersonView | null {
+  let nearest: PersonView | null = null;
+  let nearestDistance = Infinity;
+  for (const person of people) {
+    const distance = Math.abs(person.x - (cell.x + 0.5));
+    if (person.level === cell.level && distance <= 1 && distance < nearestDistance) {
+      nearest = person;
+      nearestDistance = distance;
+    }
+  }
+  return nearest;
 }
 
 function shaftAt(shafts: Iterable<ShaftView>, cell: Cell): ShaftView | null {
@@ -33,7 +53,7 @@ function shaftAt(shafts: Iterable<ShaftView>, cell: Cell): ShaftView | null {
   return null;
 }
 
-/** With the inspect tool, a click on a unit or an elevator shaft asks for its window. */
+/** With the inspect tool, a click on a person, a unit or an elevator shaft asks for its window. */
 export function bindUnitClicks(
   stage: ClickStage,
   store: ClientStore,
@@ -56,6 +76,11 @@ export function bindUnitClicks(
     }
     const latest = store.current?.latest;
     if (latest === undefined) {
+      return;
+    }
+    const person = personAt(latest.people.values(), input.cell);
+    if (person !== null) {
+      open.person(person.id);
       return;
     }
     const unit = unitAt(latest.units.values(), input.cell.x, input.cell.level);

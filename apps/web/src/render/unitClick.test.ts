@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { ClientStore } from '../model/clientStore';
-import { snapshot } from '../testing/protocolFixtures';
+import { snapshot, walker } from '../testing/protocolFixtures';
 import type { Cell } from './cellAtPoint';
 import type { CellInput } from './stage';
 import { bindUnitClicks } from './unitClick';
@@ -33,6 +33,7 @@ function setup() {
   bindUnitClicks({ onCellInput: (listener) => ((input = listener), () => undefined) }, store, {
     unit: (id) => opened.push(id),
     shaft: (id) => opened.push(`shaft:${id}`),
+    person: (id) => opened.push(`person:${id}`),
   });
   const press = (cell: Cell | null, upOffset = 0): void => {
     input({ kind: 'down', cell, clientX: 100, clientY: 100 });
@@ -72,4 +73,33 @@ describe('bindUnitClicks', () => {
     press({ x: 10, level: 3 }, 20);
     expect(opened).toEqual([]);
   });
+
+  it('opens the window of the person in the clicked cell before anything behind them', () => {
+    const { click, opened } = setupWithPerson();
+    click({ x: 11, level: 3 });
+    expect(opened).toEqual(['person:p9']);
+  });
 });
+
+function setupWithPerson() {
+  const store = new ClientStore({ requestResync: () => undefined, now: () => 0 });
+  store.applySnapshot({
+    ...snapshot,
+    units: [office],
+    people: [{ ...walker, id: 'p9', x: 11.4, level: 3 }],
+  });
+  let input: (event: CellInput) => void = () => undefined;
+  const opened: string[] = [];
+  bindUnitClicks({ onCellInput: (listener) => ((input = listener), () => undefined) }, store, {
+    unit: (id) => opened.push(id),
+    shaft: (id) => opened.push(`shaft:${id}`),
+    person: (id) => opened.push(`person:${id}`),
+  });
+  return {
+    opened,
+    click: (cell: Cell) => {
+      input({ kind: 'down', cell, clientX: 100, clientY: 100 });
+      input({ kind: 'up', cell, clientX: 100, clientY: 100 });
+    },
+  };
+}

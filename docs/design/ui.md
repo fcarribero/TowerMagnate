@@ -777,6 +777,7 @@ Short button labels, used only on toolbar buttons:
 | `window.person.follow` | Seguir |
 | `window.person.unfollow` | Dejar de seguir |
 | `window.person.needsName` | Poné un nombre para seguir a esta persona. |
+| `window.person.stressValue` | {n} min ({level}) |
 | `window.person.leavingTower` | Sale de la torre |
 | `window.followed.empty` | Todavía no seguís a nadie. Abrí una persona con la Lupa, ponele nombre y tocá Seguir. |
 | `window.elevator.route` | Recorrido |
@@ -871,6 +872,7 @@ Finance categories use the TM-9 labels under `value.ledger.{categoryId}`: Alquil
 | `value.person.securityGuard` | Guardia de seguridad |
 | `value.person.vip` | VIP |
 | `value.person.weddingGuest` | Invitado a la boda |
+| `value.person.prospect` | Interesado |
 
 Unit states use the feminine form for oficina, habitación and cochera, and the masculine for departamento and the venues, matching the noun. The engine's state ids are mapped to these keys by the client.
 
