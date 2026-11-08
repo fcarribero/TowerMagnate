@@ -13,12 +13,26 @@ type Session =
 export interface SessionGateProps {
   api: AuthApi;
   /** The game, shown only to a signed-in player. */
-  children: (session: { user: AuthUser; logout: () => void }) => ComponentChildren;
+  children: (session: {
+    user: AuthUser;
+    logout: () => void;
+    /** The server no longer accepts the session: back to login with a notice. */
+    sessionLost: () => void;
+  }) => ComponentChildren;
 }
 
 /** Sends a signed-in player to the game and everyone else to the login screen. */
 export function SessionGate({ api, children }: SessionGateProps) {
   const [session, setSession] = useState<Session>({ status: 'checking' });
+
+  const enterGame = (user: AuthUser): void => {
+    setSession({ status: 'checking' });
+    void api.ensureTower().then((ready) => {
+      setSession(
+        ready ? { status: 'signedIn', user } : { status: 'signedOut', notice: 'auth.networkError' },
+      );
+    });
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -27,7 +41,7 @@ export function SessionGate({ api, children }: SessionGateProps) {
         return;
       }
       if (check.status === 'signedIn') {
-        setSession({ status: 'signedIn', user: check.user });
+        enterGame(check.user);
       } else if (check.status === 'unreachable') {
         setSession({ status: 'signedOut', notice: 'auth.networkError' });
       } else {
@@ -44,18 +58,13 @@ export function SessionGate({ api, children }: SessionGateProps) {
   }
 
   if (session.status === 'signedOut') {
-    return (
-      <AuthScreen
-        api={api}
-        notice={session.notice}
-        onSignedIn={(user) => setSession({ status: 'signedIn', user })}
-      />
-    );
+    return <AuthScreen api={api} notice={session.notice} onSignedIn={enterGame} />;
   }
 
   // Waiting for the server keeps a late logout from clearing the cookie of the next login.
   const logout = (): void => {
     void api.logout().then(() => setSession({ status: 'signedOut' }));
   };
-  return <>{children({ user: session.user, logout })}</>;
+  const sessionLost = (): void => setSession({ status: 'signedOut', notice: 'auth.sessionClosed' });
+  return <>{children({ user: session.user, logout, sessionLost })}</>;
 }
