@@ -40,6 +40,71 @@ describe('migrateState events', () => {
     expect(state.activeEvents[0]).toMatchObject({ kind: 'fire', level: 1 });
   });
 
+  it('gives a version 15 save a bomb with no search and a fire with no burning levels', () => {
+    const tower = createTower(2);
+    openBombThreat({ state: tower, events: [] }, 200_000);
+    const old = roundTrip(tower) as Record<string, unknown> & { activeEvents: object[] };
+    for (const event of old.activeEvents) delete (event as { search?: unknown }).search;
+    old.schemaVersion = 15;
+    expect(migrateState(old).activeEvents[0]).toMatchObject({ kind: 'bomb', search: null });
+
+    const burning = createTower(2);
+    openFire({ state: burning, events: [] }, 5);
+    const oldFire = roundTrip(burning) as Record<string, unknown> & { activeEvents: object[] };
+    for (const event of oldFire.activeEvents) {
+      delete (event as { levels?: unknown }).levels;
+      delete (event as { guards?: unknown }).guards;
+    }
+    oldFire.schemaVersion = 15;
+    expect(migrateState(oldFire).activeEvents[0]).toMatchObject({ levels: {}, guards: {} });
+  });
+
+  it('keeps a bomb search and a fire with burning levels and guards', () => {
+    const tower = createTower(2);
+    const bomb = openBombThreat({ state: tower, events: [] }, 200_000);
+    if (!bomb) throw new Error('Expected a bomb threat');
+    bomb.search = {
+      bombLevel: 4,
+      levels: { 2: 'searched', 3: 'taken', 4: 'unsearched' },
+      guards: { 7: { level: 3, endStep: null }, 8: { level: 2, endStep: 99 } },
+      unreachable: { 7: [9] },
+    };
+    expect(migrateState(roundTrip(tower))).toEqual(tower);
+
+    const burning = createTower(2);
+    const fire = openFire({ state: burning, events: [] }, 5);
+    if (!fire) throw new Error('Expected a fire');
+    const front = { x: 30, progress: 3, out: false };
+    fire.levels[5] = { ignitionStep: 10, ignitionColumn: 30, left: front, right: { ...front } };
+    fire.guards = {
+      7: { level: 5, side: 'left', arrivedStep: 12 },
+      8: { level: 5, side: null, arrivedStep: null },
+    };
+    expect(migrateState(roundTrip(burning))).toEqual(burning);
+  });
+
+  it('refuses a malformed search or fire guard', () => {
+    const tower = createTower(2);
+    const bomb = openBombThreat({ state: tower, events: [] }, 200_000);
+    if (!bomb) throw new Error('Expected a bomb threat');
+    const saved = roundTrip(tower) as { activeEvents: Record<string, unknown>[] };
+    const badLevel = {
+      ...saved.activeEvents[0],
+      search: { bombLevel: 0, levels: {}, guards: {}, unreachable: {} },
+    };
+    expect(() => migrateState({ ...saved, activeEvents: [badLevel] })).toThrow(StateMigrationError);
+    const burning = createTower(2);
+    openFire({ state: burning, events: [] }, 5);
+    const fireSaved = roundTrip(burning) as { activeEvents: Record<string, unknown>[] };
+    const badGuard = {
+      ...fireSaved.activeEvents[0],
+      guards: { 7: { level: 5, side: 'up', arrivedStep: null } },
+    };
+    expect(() => migrateState({ ...fireSaved, activeEvents: [badGuard] })).toThrow(
+      StateMigrationError,
+    );
+  });
+
   it('keeps notices and refuses malformed ones', () => {
     const tower = createTower(2);
     tower.notices.push({ id: 'n5.0', step: 5, key: 'news.starsUp', unitId: null });
