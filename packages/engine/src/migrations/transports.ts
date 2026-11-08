@@ -3,9 +3,14 @@ import {
   isLevel,
   TransportTypeSchema,
   type EntityId,
+  type FloorPurchase,
   type Transport,
 } from '@tower-magnate/shared';
 import { isRecord, StateMigrationError } from './errors';
+
+function isNonNegativeInteger(value: unknown): value is number {
+  return Number.isSafeInteger(value) && (value as number) >= 0;
+}
 
 function isTransport(value: unknown): value is Transport {
   return (
@@ -13,7 +18,9 @@ function isTransport(value: unknown): value is Transport {
     typeof value.id === 'string' &&
     TransportTypeSchema.safeParse(value.type).success &&
     isColumn(value.x) &&
-    isLevel(value.level)
+    isLevel(value.level) &&
+    isNonNegativeInteger(value.paid) &&
+    isNonNegativeInteger(value.placedAtStep)
   );
 }
 
@@ -33,7 +40,34 @@ export function readTransports(raw: unknown): Record<EntityId, Transport> {
       type: transport.type,
       x: transport.x,
       level: transport.level,
+      paid: transport.paid,
+      placedAtStep: transport.placedAtStep,
     };
   }
   return transports;
+}
+
+function isFloorPurchase(value: unknown): value is FloorPurchase {
+  return (
+    isRecord(value) &&
+    isLevel(value.level) &&
+    isColumn(value.x0) &&
+    isColumn(value.x1) &&
+    value.x0 <= value.x1 &&
+    isNonNegativeInteger(value.paidPerCell) &&
+    isNonNegativeInteger(value.placedAtStep)
+  );
+}
+
+export function readFloorPurchases(raw: unknown): FloorPurchase[] {
+  if (!Array.isArray(raw) || !raw.every(isFloorPurchase)) {
+    throw new StateMigrationError('State floorPurchases must be a list of floor purchases');
+  }
+  return raw.map((purchase) => ({
+    level: purchase.level,
+    x0: purchase.x0,
+    x1: purchase.x1,
+    paidPerCell: purchase.paidPerCell,
+    placedAtStep: purchase.placedAtStep,
+  }));
 }
