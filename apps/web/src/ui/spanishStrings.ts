@@ -282,6 +282,7 @@ export const SPANISH_STRINGS = {
   'value.person.weddingGuest': 'Invitado a la boda',
 
   // 13.7 Overlays
+  'overlay.name': 'Vista',
   'overlay.normal': 'Normal',
   'overlay.evaluation': 'Evaluación',
   'overlay.price': 'Precios',
@@ -338,6 +339,7 @@ export const SPANISH_STRINGS = {
   'error.PROTOCOL_MISMATCH': 'Hay una versión nueva del juego. Recargá la página.',
   'error.NOT_AUTHENTICATED': 'La sesión se cerró. Entrá de nuevo.',
   'error.RATE_LIMITED': 'Demasiadas órdenes seguidas. Esperá un momento.',
+  'error.NOT_ALLOWED': 'Esa acción no está permitida.',
   'error.unknown': 'No se pudo hacer.',
 
   // 13.9 News and notices

@@ -1,0 +1,39 @@
+.overlay-selector {
+  display: flex;
+  align-items: center;
+}
+
+.status-panel .overlay-selector__button.is-on {
+  background: var(--tm-lamp);
+  box-shadow: inset calc(1 * var(--tm-px)) calc(1 * var(--tm-px)) 0 var(--tm-slate);
+}
+
+.overlay-legend {
+  position: absolute;
+  bottom: calc(4 * var(--tm-px));
+  left: calc(84 * var(--tm-px));
+  padding: calc(3 * var(--tm-px));
+  color: var(--tm-ink);
+  background: var(--tm-cloud);
+  border: calc(1 * var(--tm-px)) solid var(--tm-ink);
+  box-shadow:
+    inset calc(1 * var(--tm-px)) calc(1 * var(--tm-px)) 0 var(--tm-white),
+    inset calc(-1 * var(--tm-px)) calc(-1 * var(--tm-px)) 0 var(--tm-slate);
+  pointer-events: none;
+}
+
+.overlay-legend__title {
+  margin-bottom: calc(2 * var(--tm-px));
+}
+
+.overlay-legend__row {
+  display: flex;
+  align-items: center;
+  gap: calc(3 * var(--tm-px));
+}
+
+.overlay-legend__swatch {
+  width: calc(6 * var(--tm-px));
+  height: calc(6 * var(--tm-px));
+  border: calc(1 * var(--tm-px)) solid var(--tm-ink);
+}
