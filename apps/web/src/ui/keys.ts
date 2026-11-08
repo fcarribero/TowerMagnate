@@ -21,3 +21,8 @@ export function isPlainShortcut(event: KeyPress): boolean {
 export function isMapToggleKey(event: KeyPress): boolean {
   return event.key.toLowerCase() === 'm' && isPlainShortcut(event);
 }
+
+/** F opens or closes the finance window. */
+export function isFinanceToggleKey(event: KeyPress): boolean {
+  return event.key.toLowerCase() === 'f' && isPlainShortcut(event);
+}
