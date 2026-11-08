@@ -30,6 +30,11 @@ export function noticeFromView(view: NoticeView): Notice {
   };
 }
 
+/** Snapshot notices arrive oldest first; Avisos keeps the newest 50, newest first. */
+export function avisosFromSnapshot(views: readonly NoticeView[]): Notice[] {
+  return views.map(noticeFromView).reverse().slice(0, AVISOS_KEPT);
+}
+
 /** The last 50 notices, newest first. */
 export function addToAvisos(list: readonly Notice[], notice: Notice): Notice[] {
   return [notice, ...list.filter((other) => other.id !== notice.id)].slice(0, AVISOS_KEPT);

@@ -155,6 +155,7 @@ export const SPANISH_STRINGS = {
   'window.map.title': 'Mapa de la torre',
   'window.followed.title': 'Personas seguidas ({n} de 20)',
   'window.notices.title': 'Avisos',
+  'window.notices.empty': 'Todavía no hay avisos.',
   'window.stars.title': 'Estrellas',
   'window.unit.name': 'Nombre',
   'window.unit.location': 'Ubicación',
