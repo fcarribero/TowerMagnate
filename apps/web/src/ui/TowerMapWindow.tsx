@@ -10,6 +10,7 @@ import {
   mapPointToWorld,
   paintTowerMap,
 } from '../render/towerMap';
+import { t } from './strings';
 import { throttle } from './throttle';
 
 const REDRAW_INTERVAL_MS = 1000;
@@ -82,10 +83,10 @@ export function TowerMapWindow({ content, stage, onClose }: TowerMapWindowProps)
   };
 
   return (
-    <section class="window tower-map-window" aria-label="Mapa de la torre">
+    <section class="window tower-map-window" aria-label={t('window.map.title')}>
       <header class="window-title">
-        <span>Mapa de la torre</span>
-        <button type="button" class="window-close" aria-label="Cerrar" onClick={onClose}>
+        <span>{t('window.map.title')}</span>
+        <button type="button" class="window-close" aria-label={t('ui.close')} onClick={onClose}>
           x
         </button>
       </header>
