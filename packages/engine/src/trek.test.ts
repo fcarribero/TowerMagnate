@@ -14,8 +14,15 @@ import { hashState } from './hash';
 import { addPerson, NOTHING_DUE, personEntityId, slotOfPerson } from './people';
 import { TransportGraph } from './routing';
 import { createEngine, type StepContext } from './step';
-import { addFlight, buildTower, plainTowerPlan, type PlannedShaft } from './testing';
-import { cancelTrek, createTrekSystem, startTrek, trekPhaseAt, type TrekPlace } from './trek';
+import { addFlight, buildTower, plainTowerPlan, trekCrowd, type PlannedShaft } from './testing';
+import {
+  cancelTrek,
+  createTrekSystem,
+  isOnTrek,
+  startTrek,
+  trekPhaseAt,
+  type TrekPlace,
+} from './trek';
 
 const engine = createEngine({ commandHandlers: {}, systems: [createTrekSystem()] });
 
@@ -297,40 +304,17 @@ describe('determinism', () => {
   });
 });
 
-describe('performance', () => {
-  const PEOPLE = 3000;
-  const STEPS = 200;
-  const AVERAGE_BUDGET_MS = 1.0;
-  const P99_BUDGET_MS = 5;
-
-  function timeSteps(): { average: number; p99: number } {
-    const state = buildTestTower({ floors: 2 });
-    for (let index = 0; index < PEOPLE; index++) {
-      const id = addWalker(state, 1, index % 100);
-      sendTo(state, id, { level: 1, column: (index * 37 + 50) % 100 });
-    }
+describe('crowd used by bench:trek', () => {
+  it('starts every walker on a trip and moves them when the trek system runs', () => {
+    const state = trekCrowd(50);
     const context = contextOf(state);
-    const system = createTrekSystem();
-    const durations: number[] = [];
-    for (let count = 0; count < STEPS; count++) {
-      context.state.step += 1;
-      const started = performance.now();
-      system(context);
-      durations.push(performance.now() - started);
-    }
-    durations.sort((a, b) => a - b);
-    const average = durations.reduce((sum, value) => sum + value, 0) / durations.length;
-    return { average, p99: durations[Math.floor(durations.length * 0.99)] as number };
-  }
-
-  it(`steps ${PEOPLE} walkers within ${AVERAGE_BUDGET_MS} ms on average and ${P99_BUDGET_MS} ms at p99`, () => {
-    const runs = [timeSteps(), timeSteps(), timeSteps()];
-    const median = (values: number[]) => [...values].sort((a, b) => a - b)[1] as number;
-    const average = median(runs.map((run) => run.average));
-    const p99 = median(runs.map((run) => run.p99));
-    console.info(`3000 walkers: average ${average.toFixed(3)} ms, p99 ${p99.toFixed(3)} ms`);
-    expect(average).toBeLessThan(AVERAGE_BUDGET_MS);
-    expect(p99).toBeLessThan(P99_BUDGET_MS);
+    const before = Array.from(state.people.column.slice(0, 50));
+    expect(Array.from({ length: 50 }, (_, slot) => isOnTrek(state.people, slot))).not.toContain(
+      false,
+    );
+    context.state.step += 1;
+    createTrekSystem()(context);
+    expect(Array.from(state.people.column.slice(0, 50))).not.toEqual(before);
   });
 });
 
