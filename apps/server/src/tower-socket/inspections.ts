@@ -1,14 +1,15 @@
 import { serverMessage, type InspectTarget } from '@tower-magnate/shared';
 import { sendMessage, type ConnectionRegistry, type GatewaySocket } from '../gateway';
 import type { TowerRunner } from '../runner';
-import { inspectUnit } from './inspect';
+import { inspectShaft, inspectUnit } from './inspect';
 
 export const INSPECT_INTERVAL_MS = 1000;
 const CHECK_INTERVAL_MS = 250;
 
 interface Target {
   towerId: string;
-  unitId: string;
+  kind: 'unit' | 'shaft';
+  id: string;
   sentAt: number;
 }
 
@@ -18,8 +19,8 @@ export interface InspectionsOptions {
 }
 
 /**
- * The unit each socket has open in its inspection window. A socket has at most one target; it
- * is answered right away, again once per second, and again after a change to that unit.
+ * The unit or shaft each socket has open in its inspection window. A socket has at most one
+ * target; it is answered right away, again once per second, and again after a change to a unit.
  */
 export class Inspections {
   private readonly targets = new WeakMap<GatewaySocket, Target>();
@@ -35,10 +36,10 @@ export class Inspections {
     if (target === null) {
       return true;
     }
-    if (target.kind !== 'unit') {
+    if (target.kind !== 'unit' && target.kind !== 'shaft') {
       return false;
     }
-    this.targets.set(socket, { towerId, unitId: target.id, sentAt: 0 });
+    this.targets.set(socket, { towerId, kind: target.kind, id: target.id, sentAt: 0 });
     this.send(socket);
     return true;
   }
@@ -49,7 +50,8 @@ export class Inspections {
 
   /** Answers again right away when the socket has this unit open. */
   pushChange(socket: GatewaySocket, unitId: string): void {
-    if (this.targets.get(socket)?.unitId === unitId) {
+    const target = this.targets.get(socket);
+    if (target?.kind === 'unit' && target.id === unitId) {
       this.send(socket);
     }
   }
@@ -77,9 +79,10 @@ export class Inspections {
     if (!target || !state) {
       return;
     }
-    const data = inspectUnit(state, target.unitId);
+    const data =
+      target.kind === 'shaft' ? inspectShaft(state, target.id) : inspectUnit(state, target.id);
     sendMessage(socket, serverMessage('inspect', data));
-    if (data.kind === 'unit' && data.status === 'gone') {
+    if ('status' in data && data.status === 'gone') {
       this.targets.delete(socket);
     } else {
       target.sentAt = this.now();

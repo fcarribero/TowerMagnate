@@ -214,6 +214,16 @@ A tower at 1 star reaches 1,250 population on Tuesday. At Tuesday 17:00 it rises
 
 A tower at 5 stars with a cathedral. At Saturday 00:00 population is 15,210, so an attempt is due. 39 guests are in the cathedral by 11:50; the 40th found no route at 10:24 and will retry at 12:24, reaches the cathedral at 12:41, and the attempt fails at 12:30 with `news.weddingFailed`. At Sunday 00:00 population is 14,980, because Saturday's shop counts were lower, and no attempt is due. The next attempt is the following Saturday if population is 15,000 or more at its 00:00.
 
+### 8.6 Vertical slice: 1 to 2 stars
+
+The 14-day scenario of TM-217 starts on Monday 00:00 (step 0) with the 10-floor tower: lobby on level 1, one standard shaft and 90 offices on levels 2 to 10, 10 per level, all at the normal price level. It has no hotel, condo, venue or security office, so population is 6 per leased office and nothing else (section 3.1). The 1 to 2 step needs population 300 and no other requirement (section 5), which is 50 leased offices (50 x 6 = 300). 49 offices give 294 and do not pass.
+
+Offices roll for a prospect at every whole hour from 08:00 to 18:00 on weekdays, 20% each at the normal level (people.md 18), so on a normal Monday most of the 90 offices find a tenant before 17:00.
+
+On Monday, 61 offices are leased at 17:00 (step 6,120). Population is 61 x 6 = 366, at least 300. No other requirement exists, so the rating becomes 2 at that step, `starsChanged` is emitted with stars 2 and `news.starsUp` is shown. If only 44 were leased (264), nothing would be shown, since population is below the threshold (S-07), and the next check is Tuesday 17:00 (step 14,760).
+
+The scenario passes when the rating is 2 after the Friday 17:00 check of day 4 (step 40,680) at the latest, with the `starsChanged` event at a step that is 17:00 of a weekday. It then stays 2 for the rest of the 14 days: the 2 to 3 step needs 1,000 population and the tower has at most 540 (90 x 6).
+
 ## 9. Notices
 
 The failure notices at the moment a visit or a parking pass fails stay in people.md 21. These are the notices of the check and the wedding. All check notices are alerts (ui.md 8.1). ui.md 13.9 gets these rows; TM-17 owns the final wording.
@@ -317,3 +327,9 @@ S-20. The tower reaches rating 6 (Torre) at the step the 40th guest of an attemp
 S-21. The attempt fails at 12:30 if fewer than 40 guests are inside, or at once if the cathedral is demolished; `news.weddingFailed` is shown. The next attempt can happen the next weekend day.
 
 S-22. Medical, parking and recycling do not affect the wedding.
+
+### Vertical slice
+
+S-23. In the TM-217 scenario the 1 to 2 requirement is population 300 and nothing else, which is 50 leased offices in a tower that has only offices. The first check that finds 300 raises the rating to 2 at 17:00 of a weekday, and the rating is 2 no later than the Friday 17:00 check of day 4 (step 40,680).
+
+S-24. In the TM-217 scenario the rating stays 2 until the end of day 14, because the tower holds at most 540 population (90 offices) against the 1,000 needed for 3 stars.
