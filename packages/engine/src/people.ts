@@ -299,6 +299,15 @@ export function listPeople(pool: PersonPool): PersonView[] {
   return people;
 }
 
+/** How many people belong to the unit. One pass over a number array, no allocation. */
+export function countPeopleOfUnit(pool: PersonPool, unitId: UnitId): number {
+  const homeUnit = parseUnitNumber(unitId);
+  if (homeUnit === null) return 0;
+  let count = 0;
+  for (const home of pool.homeUnit) if (home === homeUnit) count++;
+  return count;
+}
+
 /** How many people of each kind are in the pool. Kinds with nobody are left out. */
 export function countPeopleByKind(pool: PersonPool): Partial<Record<PersonKind, number>> {
   const counts: Partial<Record<PersonKind, number>> = {};
