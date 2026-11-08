@@ -2,8 +2,12 @@ import {
   isBasement,
   isLevel,
   type ActiveEvent,
+  type BombSearch,
+  type BurningLevel,
   type Decision,
   type EventId,
+  type FireFront,
+  type FireGuard,
   type Level,
   type Notice,
 } from '@tower-magnate/shared';
@@ -38,6 +42,93 @@ function readDecision(raw: unknown, id: string): Decision {
   };
 }
 
+function malformed(id: string, what: string): StateMigrationError {
+  return new StateMigrationError(`Event ${id} has a malformed ${what}`);
+}
+
+function readLevelKey(key: string, id: string): Level {
+  const level = Number(key);
+  if (!isLevel(level)) throw malformed(id, 'level');
+  return level;
+}
+
+function readPersonKey(key: string, id: string): number {
+  const person = Number(key);
+  if (!Number.isInteger(person) || person < 1) throw malformed(id, 'guard');
+  return person;
+}
+
+function readSearch(raw: unknown, id: string): BombSearch | null {
+  if (raw === null) return null;
+  if (!isRecord(raw) || !isLevel(raw.bombLevel) || !isRecord(raw.levels)) {
+    throw malformed(id, 'search');
+  }
+  if (!isRecord(raw.guards) || !isRecord(raw.unreachable)) throw malformed(id, 'search');
+  const search: BombSearch = { bombLevel: raw.bombLevel, levels: {}, guards: {}, unreachable: {} };
+  for (const [key, state] of Object.entries(raw.levels)) {
+    if (state !== 'unsearched' && state !== 'taken' && state !== 'searched') {
+      throw malformed(id, 'search level');
+    }
+    search.levels[readLevelKey(key, id)] = state;
+  }
+  for (const [key, guard] of Object.entries(raw.guards)) {
+    const valid =
+      isRecord(guard) && isLevel(guard.level) && (guard.endStep === null || isStep(guard.endStep));
+    if (!valid) throw malformed(id, 'searching guard');
+    const { level, endStep } = guard as { level: Level; endStep: number | null };
+    search.guards[readPersonKey(key, id)] = { level, endStep };
+  }
+  for (const [key, levels] of Object.entries(raw.unreachable)) {
+    if (!Array.isArray(levels) || !levels.every(isLevel)) throw malformed(id, 'unreachable list');
+    search.unreachable[readPersonKey(key, id)] = [...(levels as Level[])];
+  }
+  return search;
+}
+
+function readFront(raw: unknown, id: string): FireFront {
+  const valid =
+    isRecord(raw) &&
+    Number.isInteger(raw.x) &&
+    isStep(raw.progress) &&
+    typeof raw.out === 'boolean';
+  if (!valid) throw malformed(id, 'fire front');
+  const { x, progress, out } = raw as unknown as FireFront;
+  return { x, progress, out };
+}
+
+function readBurningLevels(raw: unknown, id: string): Partial<Record<Level, BurningLevel>> {
+  if (!isRecord(raw)) throw malformed(id, 'burning levels');
+  const levels: Partial<Record<Level, BurningLevel>> = {};
+  for (const [key, level] of Object.entries(raw)) {
+    const valid =
+      isRecord(level) && isStep(level.ignitionStep) && Number.isInteger(level.ignitionColumn);
+    if (!valid) throw malformed(id, 'burning level');
+    levels[readLevelKey(key, id)] = {
+      ignitionStep: level.ignitionStep as number,
+      ignitionColumn: level.ignitionColumn as number,
+      left: readFront(level.left, id),
+      right: readFront(level.right, id),
+    };
+  }
+  return levels;
+}
+
+function readFireGuards(raw: unknown, id: string): Record<number, FireGuard> {
+  if (!isRecord(raw)) throw malformed(id, 'fire guards');
+  const guards: Record<number, FireGuard> = {};
+  for (const [key, guard] of Object.entries(raw)) {
+    const valid =
+      isRecord(guard) &&
+      isLevel(guard.level) &&
+      (guard.side === null || guard.side === 'left' || guard.side === 'right') &&
+      (guard.arrivedStep === null || isStep(guard.arrivedStep));
+    if (!valid) throw malformed(id, 'fire guard');
+    const { level, side, arrivedStep } = guard as unknown as FireGuard;
+    guards[readPersonKey(key, id)] = { level, side, arrivedStep };
+  }
+  return guards;
+}
+
 function readActiveEvent(raw: unknown): ActiveEvent {
   if (
     !isRecord(raw) ||
@@ -51,12 +142,26 @@ function readActiveEvent(raw: unknown): ActiveEvent {
     if (!Number.isSafeInteger(raw.ransom) || (raw.ransom as number) < 0) {
       throw new StateMigrationError(`Bomb threat ${raw.id} has a malformed ransom`);
     }
-    return { kind: 'bomb', id: raw.id, decision, ransom: raw.ransom as number };
+    return {
+      kind: 'bomb',
+      id: raw.id,
+      decision,
+      ransom: raw.ransom as number,
+      search: readSearch(raw.search, raw.id),
+    };
   }
   if (!isStep(raw.startStep) || !isLevel(raw.level)) {
     throw new StateMigrationError(`Fire ${raw.id} has a malformed start step or level`);
   }
-  return { kind: 'fire', id: raw.id, decision, startStep: raw.startStep, level: raw.level };
+  return {
+    kind: 'fire',
+    id: raw.id,
+    decision,
+    startStep: raw.startStep,
+    level: raw.level,
+    levels: readBurningLevels(raw.levels, raw.id),
+    guards: readFireGuards(raw.guards, raw.id),
+  };
 }
 
 /** Towers saved before events existed have no `activeEvents`; they start with none. */
