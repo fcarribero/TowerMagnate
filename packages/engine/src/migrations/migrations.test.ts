@@ -8,6 +8,7 @@ import {
   VERSION_4_SAVE,
   VERSION_5_SAVE,
   VERSION_6_SAVE,
+  VERSION_7_SAVE,
 } from './fixtures';
 import { migrateState, StateMigrationError } from './index';
 
@@ -166,6 +167,15 @@ describe('migrateState hall queues', () => {
   it('gives every shaft of a version 6 save empty queues', () => {
     const tower = migrateState(JSON.parse(VERSION_6_SAVE));
     expect(tower.schemaVersion).toBe(SCHEMA_VERSION);
+    expect(tower.shafts.s2?.queues).toEqual({});
+  });
+
+  it('keeps the people of a version 7 save and adds empty queues', () => {
+    const tower = migrateState({
+      ...JSON.parse(VERSION_7_SAVE),
+      shafts: { s2: { ...JSON.parse(VERSION_6_SAVE).shafts.s2 } },
+    });
+    expect(tower.people.id).toEqual([1, 3]);
     expect(tower.shafts.s2?.queues).toEqual({});
   });
 
