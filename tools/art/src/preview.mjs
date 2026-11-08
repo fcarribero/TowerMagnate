@@ -181,6 +181,25 @@ export function drawServiceSheet(sprites, subjects) {
   return sheet;
 }
 
+const ICON_CELL = 20;
+const ICON_COLUMNS = 8;
+
+// Every UI icon on the sky color, in the order the group draws them.
+export function drawIconSheet(sprites) {
+  const icons = Object.entries(sprites)
+    .filter(([id]) => /^ui\/(tool|cat|unit|star|money|population)/.test(id))
+    .map(([, canvas]) => canvas);
+  const rows = Math.ceil(icons.length / ICON_COLUMNS);
+  const sheet = new PixelCanvas(ICON_COLUMNS * ICON_CELL, rows * ICON_CELL);
+  sheet.fillRect(0, 0, sheet.width, sheet.height, 'sky-light');
+  icons.forEach((icon, index) => {
+    const left = (index % ICON_COLUMNS) * ICON_CELL + 2;
+    const top = Math.floor(index / ICON_COLUMNS) * ICON_CELL + 2;
+    sheet.stamp(icon, left, top);
+  });
+  return sheet;
+}
+
 const SHAFT_LEVELS = 3;
 const CAR_INSET_X = 4;
 const CAR_TOP_IN_FLOOR =
