@@ -70,6 +70,7 @@ describe('people per unit type', () => {
       expect(person.trip).toBe(0);
       expect(person.dueStep).toBe(NOTHING_DUE);
       expect(person.stress).toBe(0);
+      expect(person.stressBand).toBe('normal');
       expect(person.followed).toBe(false);
     }
   });

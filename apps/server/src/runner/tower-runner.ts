@@ -16,6 +16,9 @@ export interface TowerAdvance {
 
 export type AdvanceTower = (state: TowerState, steps: number) => TowerAdvance;
 
+/** A change made to a running tower outside the engine's commands. It gets the engine's own advance. */
+export type TowerChange = (state: TowerState, advance: AdvanceTower) => TowerAdvance;
+
 export interface TowerRunnerOptions {
   store: TowerStore;
   now?: () => number;
@@ -128,6 +131,28 @@ export class TowerRunner {
       return Promise.reject(new UnknownTowerError(towerId));
     }
     return new Promise((resolve) => tower.pending.push({ queued, resolve }));
+  }
+
+  /**
+   * Applies a change that is not an engine command, such as a debug jump in time. The tower is
+   * brought up to date first, and its real-time clock restarts from the changed step so the
+   * runner does not try to make up for the jump. Rejects when the tower is not running.
+   */
+  change(towerId: TowerId, change: TowerChange): Promise<void> {
+    return this.inOrder(towerId, async () => {
+      const tower = this.running.get(towerId);
+      if (!tower) {
+        throw new UnknownTowerError(towerId);
+      }
+      this.applyPending(tower);
+      this.catchUp(tower);
+      const changed = change(tower.state, this.advance);
+      tower.state = changed.state;
+      tower.events.push(...changed.events);
+      tower.startedAt = this.now();
+      tower.startStep = tower.state.step;
+      await this.store.save(towerId, tower.state);
+    });
   }
 
   /** The events since the last call, oldest first. */

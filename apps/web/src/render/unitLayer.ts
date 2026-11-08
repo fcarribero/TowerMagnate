@@ -1,7 +1,7 @@
 import type { OverlayData } from '@tower-magnate/shared';
 import { Container, Sprite, TilingSprite } from 'pixi.js';
 import { CulledRows } from './culledRows';
-import type { LevelRange } from './camera';
+import type { LevelRange, WorldRect } from './camera';
 import { levelTop } from './levels';
 import { checkerTexture } from './overlayChecker';
 import { overlayColorOf, transportOverlayColor, type OverlayId } from './overlayColors';
@@ -43,6 +43,7 @@ export class UnitLayer {
   private readonly rows = new CulledRows<Container>();
   private readonly containers = new Map<number, Container>();
   private readonly drawn = new Map<string, DrawnUnit>();
+  private readonly rects = new Map<string, WorldRect>();
 
   constructor(private readonly sprites: SpriteRegistry) {}
 
@@ -60,9 +61,16 @@ export class UnitLayer {
       drawings.push(planTransport(transport, input.time, color));
     }
     this.removeMissing(new Set(drawings.map((drawing) => drawing.id)));
+    this.rects.clear();
     for (const drawing of drawings) {
       this.show(drawing);
+      this.rects.set(drawing.id, worldRectOf(drawing));
     }
+  }
+
+  /** Where a unit or transport is drawn in the world, or undefined when it is not drawn. */
+  rectOf(id: string): WorldRect | undefined {
+    return this.rects.get(id);
   }
 
   showOnly(range: LevelRange): void {
@@ -154,4 +162,13 @@ export class UnitLayer {
     this.view.addChild(container);
     return container;
   }
+}
+
+function worldRectOf(drawing: UnitDrawing): WorldRect {
+  return {
+    x: drawing.x,
+    y: levelTop(drawing.bottomIndex) + drawing.y,
+    width: drawing.width,
+    height: drawing.height,
+  };
 }
