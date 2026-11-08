@@ -12,6 +12,7 @@ import {
   type UnitId,
   type UnitType,
 } from '@tower-magnate/shared';
+import { leaveQueues } from './elevator-queues';
 import { nextInt, nextUint32 } from './rng';
 import type { SimulationSystem, StepContext } from './step';
 
@@ -174,13 +175,16 @@ export function addPeopleForUnit(state: TowerState, unitId: UnitId): EntityId[] 
 export function removePeopleOfUnit(state: TowerState, unitId: UnitId): EntityId[] {
   const homeUnit = parseUnitNumber(unitId);
   if (homeUnit === null) return [];
-  return removePeopleWhere(state.people, (pool, slot) => pool.homeUnit[slot] === homeUnit);
+  const removed = removePeopleWhere(state.people, (pool, slot) => pool.homeUnit[slot] === homeUnit);
+  leaveQueues(state, removed);
+  return removed;
 }
 
 /** Removes one person; returns false if there was no such person. */
 export function removePerson(state: TowerState, personId: number): boolean {
   if (slotOfPerson(state.people, personId) < 0) return false;
-  removePeopleWhere(state.people, (pool, slot) => pool.id[slot] === personId);
+  const removed = removePeopleWhere(state.people, (pool, slot) => pool.id[slot] === personId);
+  leaveQueues(state, removed);
   return true;
 }
 

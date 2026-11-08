@@ -100,6 +100,20 @@ export interface ElevatorCar {
   placedAtStep: number;
 }
 
+export type HallDirection = 'up' | 'down';
+
+/** A person waiting at a stop, and the step they joined the queue. */
+export interface QueueEntry {
+  person: EntityId;
+  joinedStep: number;
+}
+
+/** The two floor queues of one stop, first in line at index 0. */
+export interface StopQueues {
+  up: QueueEntry[];
+  down: QueueEntry[];
+}
+
 export interface Shaft {
   id: ShaftId;
   type: ShaftType;
@@ -109,6 +123,8 @@ export interface Shaft {
   top: Level;
   /** 1 to 8 cars; car index is the position in this list. */
   cars: ElevatorCar[];
+  /** Stops that have someone waiting, by level number. Empty queues are not stored. */
+  queues: Record<string, StopQueues>;
   /** Whole dollars charged for the shaft itself, cars not included. */
   paid: number;
   placedAtStep: number;
@@ -130,6 +146,8 @@ export interface TowerState {
   nextId: number;
   /** Whole dollars, may be negative, never above MONEY_CAP. */
   money: number;
+  /** The tower's star rating, which unlocks unit types. */
+  stars: StarRating;
   units: Record<UnitId, Unit>;
   transports: Record<EntityId, Transport>;
   shafts: Record<ShaftId, Shaft>;
@@ -142,8 +160,6 @@ export interface TowerState {
   closedDecisions: EventId[];
   /** Basement levels that have already given treasure. */
   treasureLevels: Level[];
-  /** Tower rating, 1 to 6 (6 is the Torre rank). Never goes down. */
-  stars: StarRating;
   /** Set when a VIP visit that started at 3 stars ends approved. */
   vipApproved: boolean;
   /** Step of the last medical visit that failed; null if none yet. */

@@ -10,6 +10,7 @@ function towerWith(units: { type: UnitType; level: number; x: number }[] = []): 
   plan.floors = [...(plan.floors ?? []), { from: -3, to: -1, x0: 0, x1: 80 }];
   const { state } = buildTower({ ...plan, units });
   state.money = 10_000_000;
+  state.stars = 6;
   return state;
 }
 

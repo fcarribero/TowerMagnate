@@ -7,7 +7,9 @@ import {
   VERSION_3_SAVE,
   VERSION_4_SAVE,
   VERSION_5_SAVE,
+  VERSION_6_SAVE,
   VERSION_7_SAVE,
+  VERSION_8_SAVE,
 } from './fixtures';
 import { migrateState, StateMigrationError } from './index';
 
@@ -162,6 +164,53 @@ describe('migrateState fixtures', () => {
   });
 });
 
+describe('migrateState hall queues', () => {
+  it('gives every shaft of a version 6 save empty queues', () => {
+    const tower = migrateState(JSON.parse(VERSION_6_SAVE));
+    expect(tower.schemaVersion).toBe(SCHEMA_VERSION);
+    expect(tower.shafts.s2?.queues).toEqual({});
+  });
+
+  it('keeps the people of a version 7 save and adds empty queues', () => {
+    const tower = migrateState({
+      ...JSON.parse(VERSION_7_SAVE),
+      shafts: { s2: { ...JSON.parse(VERSION_6_SAVE).shafts.s2 } },
+    });
+    expect(tower.people.id).toEqual([1, 3]);
+    expect(tower.shafts.s2?.queues).toEqual({});
+  });
+
+  it('refuses queues over 40 people or with a malformed entry', () => {
+    const tower = createTower(5);
+    const car = { homeLevel: 1, level: 1, riders: [], paid: 80_000, placedAtStep: 0 };
+    const shaft = (queues: unknown) => ({
+      id: 's3',
+      type: 'standard',
+      x: 0,
+      bottom: 1,
+      top: 4,
+      cars: [car],
+      queues,
+      paid: 200_000,
+      placedAtStep: 0,
+    });
+    const entry = { person: 'p1', joinedStep: 3 };
+    const full = Array.from({ length: 41 }, () => entry);
+    const bad = [
+      { '2': { up: full, down: [] } },
+      { '2': { up: [{ person: 7, joinedStep: 3 }], down: [] } },
+      { '2': { up: [] } },
+    ];
+    const good = { '2': { up: [entry], down: [] } };
+    expect(migrateState({ ...tower, shafts: { s3: shaft(good) } }).shafts.s3?.queues).toEqual(good);
+    for (const queues of bad) {
+      expect(() => migrateState({ ...tower, shafts: { s3: shaft(queues) } })).toThrow(
+        StateMigrationError,
+      );
+    }
+  });
+});
+
 describe('migrateState shafts', () => {
   it('refuses a malformed shaft', () => {
     const tower = createTower(5);
@@ -173,6 +222,7 @@ describe('migrateState shafts', () => {
       bottom: 1,
       top: 4,
       cars: [car],
+      queues: {},
       paid: 200_000,
       placedAtStep: 0,
     };
@@ -229,21 +279,34 @@ describe('migrateState transports', () => {
   });
 });
 
-describe('migrateState star rating', () => {
-  it('starts a version 7 save at 1 star with no VIP and no failures', () => {
+describe('migrateState stars', () => {
+  it('gives a version 7 save one star', () => {
     const tower = migrateState(JSON.parse(VERSION_7_SAVE));
     expect(tower.schemaVersion).toBe(SCHEMA_VERSION);
+    expect(tower.stars).toBe(1);
+  });
+
+  it('loads a frozen version 8 save', () => {
+    expect(migrateState(JSON.parse(VERSION_8_SAVE)).stars).toBe(3);
+  });
+
+  it('refuses a star rating outside 1 to 6', () => {
+    for (const stars of [0, 7, 2.5, '3', null]) {
+      const saved = { ...JSON.parse(JSON.stringify(createTower(5))), stars };
+      expect(() => migrateState(saved)).toThrow(StateMigrationError);
+    }
+  });
+});
+
+describe('migrateState star check state', () => {
+  it('starts a version 8 save with no VIP approval and no failures', () => {
+    const tower = migrateState(JSON.parse(VERSION_8_SAVE));
+    expect(tower.schemaVersion).toBe(SCHEMA_VERSION);
     expect(tower).toMatchObject({
-      stars: 1,
+      stars: 3,
       vipApproved: false,
       lastMedicalFailureStep: null,
       lastParkingFailureStep: null,
     });
-  });
-
-  it('keeps a saved rating and refuses one out of range', () => {
-    const tower = createTower(5);
-    expect(migrateState({ ...tower, stars: 4 }).stars).toBe(4);
-    expect(() => migrateState({ ...tower, stars: 7 })).toThrow(StateMigrationError);
   });
 });
