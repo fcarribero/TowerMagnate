@@ -38,7 +38,7 @@ const planOnly = createEngine({
 function letShop(tower: TowerState, id: UnitId): void {
   const unit = tower.units[id];
   if (!unit) throw new Error(`no unit ${id}`);
-  unit.lease = { anchorStep: 0, nextDueStep: at(30, 0) };
+  unit.lease = { anchorStep: 0, nextDueStep: at(30, 0), weekVisits: 0 };
 }
 
 function venueOf(tower: TowerState, id: UnitId) {
@@ -325,6 +325,24 @@ describe('customers in the tower', () => {
     const tower = step(state, [], 30 * STEPS_PER_MINUTE).state;
     expect(venueOf(tower, id)).toMatchObject({ countToday: 1, stressTrips: 1 });
     expect(customersIn(tower)).toBe(25);
+  });
+
+  it("count toward the shop's week, so a street shop they visit stays past its first week", () => {
+    const { state, id } = streetVenue('retail-shop');
+    const shop = state.units[id];
+    if (!shop) throw new Error(`no unit ${id}`);
+    shop.lease = { anchorStep: at(TUESDAY, 0), nextDueStep: at(TUESDAY + 7, 0), weekVisits: 0 };
+    state.step = at(TUESDAY, 0) - 1;
+    const beforeCheck = step(state, [], 7 * STEPS_PER_DAY).state;
+    const weekVisits = beforeCheck.units[id]?.lease?.weekVisits ?? 0;
+    expect(weekVisits).toBeGreaterThanOrEqual(70);
+
+    const { state: after, events } = step(beforeCheck, [], 1);
+    expect(after.units[id]?.lease).toMatchObject({
+      nextDueStep: at(TUESDAY + 14, 0),
+      weekVisits: 0,
+    });
+    expect(events.filter((event) => event.type === 'leaseEnded')).toHaveLength(0);
   });
 
   it('file their trips to a shop door in the shop ledger, even when turned away', () => {
