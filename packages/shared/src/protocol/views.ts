@@ -18,6 +18,7 @@ import {
   EvaluationSchema,
   EventIdSchema,
   HotelRoomStateSchema,
+  StarRequirementSchema,
   LevelSchema,
   LobbyHeightSchema,
   MoneyReasonSchema,
@@ -166,11 +167,18 @@ const LevelKeySchema = z
   .string()
   .refine((key) => LevelSchema.safeParse(Number(key)).success, { message: 'Not a level' });
 
+/** A requirement of the next star step besides population, as the next check would see it now. */
+export const StarRequirementViewSchema = z.object({
+  requirement: StarRequirementSchema,
+  met: z.boolean(),
+});
+
 export const SnapshotSchema = z.object({
   step: StepSchema,
   money: MoneySchema,
   stars: StarRatingSchema,
   population: z.int().nonnegative(),
+  starRequirements: z.array(StarRequirementViewSchema),
   grid: z.object({
     levels: z.record(LevelKeySchema, z.object({ structure: StructureRowSchema })),
     mainLobbyHeight: LobbyHeightSchema.nullable(),
@@ -192,6 +200,7 @@ export const DeltaSchema = z.object({
   money: MoneySchema.optional(),
   stars: StarRatingSchema.optional(),
   population: z.int().nonnegative().optional(),
+  starRequirements: z.array(StarRequirementViewSchema).optional(),
   mainLobbyHeight: LobbyHeightSchema.optional(),
   structure: z.array(z.object({ level: LevelSchema, structure: StructureRowSchema })).optional(),
   unitsUpserted: z.array(UnitViewSchema).optional(),
@@ -376,6 +385,7 @@ export type NoticeView = z.infer<typeof NoticeViewSchema>;
 export type OverlayData = z.infer<typeof OverlayDataSchema>;
 export type FinanceWeek = z.infer<typeof FinanceWeekSchema>;
 export type FinanceSummary = z.infer<typeof FinanceSummarySchema>;
+export type StarRequirementView = z.infer<typeof StarRequirementViewSchema>;
 export type Snapshot = z.infer<typeof SnapshotSchema>;
 export type Delta = z.infer<typeof DeltaSchema>;
 export type ClientEvent = z.infer<typeof ClientEventSchema>;

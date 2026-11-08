@@ -10,6 +10,7 @@ const DEMO_SNAPSHOT: Snapshot = {
   money: -12_500,
   stars: 6,
   population: 1_234,
+  starRequirements: [{ requirement: 'security', met: false }],
   grid: { levels: {}, mainLobbyHeight: null },
   units: [],
   transports: [],
