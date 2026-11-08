@@ -26,6 +26,8 @@ export {
   spanError,
   structureAt,
 } from './grid';
+export { personStress, stressBand, venueStressFactor } from './person-stress';
+export type { RecordedTrip, StressBand } from './person-stress';
 export { evaluateUnit, gradeOfScore, unitScore } from './evaluation';
 export type { UnitEvaluation, UnitEvaluationInput, UnitGrade } from './evaluation';
 export {
