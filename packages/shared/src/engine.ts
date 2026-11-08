@@ -227,6 +227,8 @@ export interface TowerState {
   activeEvents: ActiveEvent[];
   /** Ids of the last CLOSED_DECISIONS_KEPT closed decisions, newest last. */
   closedDecisions: EventId[];
+  /** The last NOTICES_KEPT notices, newest last. */
+  notices: Notice[];
   /** Basement levels that have already given treasure. */
   treasureLevels: Level[];
   /** Set when a VIP visit that started at 3 stars ends approved. */
@@ -235,6 +237,15 @@ export interface TowerState {
   lastMedicalFailureStep: number | null;
   /** Step of the last parking failure; null if none yet. */
   lastParkingFailureStep: number | null;
+}
+
+/** A news line the player was shown; `key` names its text. */
+export interface Notice {
+  /** `n<step>.<index>`, unique within the tower. */
+  id: string;
+  step: number;
+  key: string;
+  unitId: UnitId | null;
 }
 
 /** Id of a tower event, such as `e7`. */
@@ -262,6 +273,8 @@ export interface Fire {
   id: EventId;
   decision: Decision;
   startStep: number;
+  /** The floor where the fire started. */
+  level: Level;
 }
 
 export type ActiveEvent = BombThreat | Fire;
@@ -309,5 +322,7 @@ export type EngineEvent =
       eventId: EventId;
       choice: string;
     }
+  | { type: 'treasureFound'; step: number; commandId: string; level: Level; amount: number }
+  | { type: 'news'; step: number; commandId: string; key: 'news.treasure'; level: Level }
   | { type: 'news'; step: number; key: 'news.decisionDefault'; eventId: EventId; choice: string }
   | { type: 'news'; step: number; key: string; unitId: UnitId | null };

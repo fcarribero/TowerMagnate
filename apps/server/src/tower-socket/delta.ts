@@ -98,6 +98,8 @@ export function diffSnapshots(before: Snapshot, after: Snapshot): DeltaResult {
   if (!same(before.followed, after.followed)) set('followed', after.followed);
   if (!same(before.activeEvents, after.activeEvents)) set('activeEvents', after.activeEvents);
 
+  if (!same(before.notices, after.notices)) set('notices', after.notices);
+
   const overlays = changedOverlays(before, after);
   if (overlays && Object.keys(overlays).length) set('overlays', overlays);
 
