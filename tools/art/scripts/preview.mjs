@@ -4,8 +4,11 @@ import { fileURLToPath } from 'node:url';
 import { drawGroups } from '../src/build.mjs';
 import { groups } from '../src/groups/index.mjs';
 import { encodePng } from '../src/png.mjs';
+import { PERSON_TYPES, PERSON_VARIANTS } from '../src/groups/people.mjs';
 import {
+  drawPeopleSheet,
   drawStructurePreview,
+  drawTintSheet,
   drawTransportPreview,
   drawUnitSheet,
   drawWalkwayPreview,
@@ -13,6 +16,7 @@ import {
 
 const ZOOM = 2;
 const TRANSPORT_ZOOM = 3;
+const PEOPLE_ZOOM = 4;
 
 const scriptDir = dirname(fileURLToPath(import.meta.url));
 const docsDir = resolve(scriptDir, '../../../docs/art');
@@ -45,4 +49,11 @@ function writePreview(name, sheet, zoom) {
 writePreview('structure-preview.png', drawStructurePreview(sprites), ZOOM);
 writePreview('hotel-preview.png', drawUnitSheet(sprites, HOTEL_SUBJECTS), ZOOM);
 writePreview('transport-preview.png', drawTransportPreview(sprites), TRANSPORT_ZOOM);
+writePreview(
+  'people-preview.png',
+  drawPeopleSheet(sprites, PERSON_TYPES, PERSON_VARIANTS),
+  PEOPLE_ZOOM,
+);
+writePreview('people-tint-1x.png', drawTintSheet(sprites, PERSON_TYPES), 1);
+writePreview('people-tint-preview.png', drawTintSheet(sprites, PERSON_TYPES), TRANSPORT_ZOOM);
 writePreview('walkway-preview.png', drawWalkwayPreview(sprites), TRANSPORT_ZOOM);

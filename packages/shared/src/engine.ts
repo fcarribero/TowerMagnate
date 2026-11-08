@@ -70,7 +70,20 @@ export interface Unit {
   /** Whole dollars charged at placement, automatic floor included. */
   paid: number;
   placedAtStep: number;
+  /** Set on the first lease, sale, check-in or visitor. */
+  used: boolean;
+  /** The current office or shop tenant's lease; null while the unit is for rent. */
+  lease: Lease | null;
 }
+
+export interface Lease {
+  /** Move-in or last renewal step. Payments fall on whole weeks after it. */
+  anchorStep: number;
+  /** The next payment or, at the end of the term, the evaluation. */
+  nextDueStep: number;
+}
+
+export type TenantEvaluation = 'good' | 'fair' | 'poor';
 
 export interface TowerState {
   schemaVersion: number;
@@ -129,6 +142,7 @@ export type EngineEvent =
       unitId: UnitId;
       name: string | null;
     }
+  | { type: 'leaseSigned' | 'leaseRenewed' | 'leaseEnded'; step: number; unitId: UnitId }
   | {
       type: 'decisionOpened';
       step: number;
@@ -145,4 +159,5 @@ export type EngineEvent =
       eventId: EventId;
       choice: string;
     }
-  | { type: 'news'; step: number; key: 'news.decisionDefault'; eventId: EventId; choice: string };
+  | { type: 'news'; step: number; key: 'news.decisionDefault'; eventId: EventId; choice: string }
+  | { type: 'news'; step: number; key: string; unitId: UnitId | null };
