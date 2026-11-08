@@ -108,4 +108,34 @@ describe('ElevatorWindow', () => {
       expect(screen.getByRole('alert').textContent).toBe('Hay gente viajando en el ascensor.'),
     );
   });
+
+  it('resyncs the draft when a car is added or removed', async () => {
+    const send = vi.fn(async (): Promise<CommandOutcome> => ({ ok: true, cost: 0, refund: 0 }));
+    const props = (data: ShaftData) => (
+      <WindowLayer>
+        <Open shaft={data} send={send} onClose={() => undefined} />
+      </WindowLayer>
+    );
+    const { rerender } = render(props(shaft()));
+    await userEvent.click(screen.getByLabelText('Para en 2'));
+    rerender(
+      props(
+        shaft({
+          stops: [1, 2, 3],
+          cars: [
+            { index: 0, homeLevel: 1, load: 0 },
+            { index: 1, homeLevel: 3, load: 0 },
+          ],
+        }),
+      ),
+    );
+    await waitFor(() =>
+      expect((screen.getByLabelText('Para en 2') as HTMLInputElement).checked).toBe(true),
+    );
+    await userEvent.click(screen.getByLabelText('Para en 1'));
+    await userEvent.click(screen.getByRole('button', { name: 'Aplicar' }));
+    expect(send).toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'configureShaft', stops: [2, 3], carHomes: [2, 3] }),
+    );
+  });
 });

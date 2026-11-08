@@ -75,6 +75,16 @@ export function ElevatorWindow({ shaft, send, onClose }: ElevatorWindowProps) {
   const [to, setTo] = useState<Level>(shaft.top);
   const [error, setError] = useState<string | null>(null);
 
+  const savedKey = JSON.stringify([shaft.bottom, shaft.top, shaft.stops, savedHomes]);
+  const [syncedKey, setSyncedKey] = useState(savedKey);
+  if (savedKey !== syncedKey) {
+    setSyncedKey(savedKey);
+    setStops([...shaft.stops]);
+    setHomes(savedHomes);
+    setFrom(shaft.bottom);
+    setTo(shaft.top);
+  }
+
   const changed = hasChanges(
     { stops: shaft.stops, carHomes: savedHomes },
     { stops, carHomes: homes },
