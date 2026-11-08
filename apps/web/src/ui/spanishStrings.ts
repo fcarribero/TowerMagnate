@@ -351,9 +351,9 @@ export const SPANISH_STRINGS = {
   'news.starsUp': 'La torre llegó a {n} estrellas.',
   'news.towerRank': '¡Hubo boda en la catedral! La torre alcanzó el rango Torre.',
   'news.starBlockedParking':
-    'Alguien no consiguió cochera. Hoy la torre no puede subir de estrellas.',
+    'La torre no subió de estrellas: alguien no consiguió cochera desde la última revisión.',
   'news.starBlockedMedical':
-    'Alguien no pudo ir al centro médico. Hoy la torre no puede subir de estrellas.',
+    'La torre no subió de estrellas: alguien no pudo ir al centro médico desde la última revisión.',
   'news.bombThreat': 'Amenaza de bomba en la torre.',
   'news.bombPaid': 'Se pagó el rescate. La amenaza terminó.',
   'news.bombFound': 'Seguridad encontró la bomba y la desactivó.',
@@ -374,8 +374,9 @@ export const SPANISH_STRINGS = {
   'stars.req.2': 'Población de 300.',
   'stars.req.3': 'Población de 1.000 y al menos una oficina de seguridad.',
   'stars.req.4':
-    'Población de 5.000, visita del VIP aprobada, suites de hotel, y reciclaje y centro médico suficientes.',
-  'stars.req.5': 'Población de 10.000, estación de subte, y centro médico y reciclaje suficientes.',
+    'Población de 5.000, visita del VIP aprobada, 2 suites, un centro de reciclaje cada 2.500 personas, y nadie sin centro médico ni cochera desde la última revisión.',
+  'stars.req.5':
+    'Población de 10.000, estación de subte, un centro de reciclaje cada 2.500 personas, y nadie sin centro médico ni cochera desde la última revisión.',
   'stars.req.tower':
     'Población de 15.000, catedral construida y una boda completa un sábado o domingo antes de las 12:30.',
 
@@ -417,6 +418,11 @@ export const SPANISH_STRINGS = {
   'dialog.demolish': 'Demoler',
   'dialog.changeFilm.confirm': 'Cambiar',
   'dialog.newTower.confirm': 'Demoler y empezar',
+  'dialog.newTowerSure.title': '¿Estás seguro?',
+  'dialog.newTowerSure.body': 'Es la última advertencia: la torre actual se pierde para siempre.',
+  'dialog.newTowerSure.confirm': 'Sí, demoler todo',
+  'dialog.newTowerFailed.title': 'Torre nueva',
+  'dialog.newTowerFailed.body': 'No se pudo empezar una torre nueva. Tu torre sigue como estaba.',
   'dialog.protocolMismatch.reload': 'Recargar',
 
   // 13.12 Login and register
