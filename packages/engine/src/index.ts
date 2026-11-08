@@ -26,6 +26,7 @@ export {
   spanError,
   structureAt,
 } from './grid';
+export { isNoisy } from './noise';
 export { evaluateUnit, gradeOfScore, unitScore } from './evaluation';
 export type { UnitEvaluation, UnitEvaluationInput, UnitGrade } from './evaluation';
 export {
