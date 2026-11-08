@@ -115,6 +115,9 @@ function commandTypeOf(queued: QueuedCommand | undefined): string {
 }
 
 export function createEngine(rules: EngineRules): Engine {
+  /** The graph of each state this engine returned, so stepping on from it keeps the planner's caches. */
+  const graphsByState = new WeakMap<TowerState, TransportGraph>();
+
   function handlerFor(command: unknown): AnyCommandHandler | undefined {
     if (!isRecord(command) || typeof command.type !== 'string') {
       return undefined;
@@ -164,12 +167,14 @@ export function createEngine(rules: EngineRules): Engine {
     const changesGraph = results.some(
       (result, index) => result.ok && GRAPH_COMMANDS.has(commandTypeOf(commands[index])),
     );
+    const known = graph ?? graphsByState.get(state);
     const currentGraph =
-      graph && !changesGraph ? graph : new TransportGraph(context.state, shaftStops(context.state));
+      known && !changesGraph ? known : new TransportGraph(context.state, shaftStops(context.state));
     context.graph = currentGraph;
     for (let count = 0; count < steps; count++) {
       advanceOneStep(context);
     }
+    graphsByState.set(context.state, currentGraph);
     return { state: context.state, results, events: context.events, graph: currentGraph };
   }
 

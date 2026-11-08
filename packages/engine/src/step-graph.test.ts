@@ -26,6 +26,16 @@ describe('transport graph in step', () => {
     expect(step(first.state, [], 20, first.graph).graph).toBe(first.graph);
   });
 
+  it('keeps the graph of a returned state when no graph is passed', () => {
+    const first = step(fullSiteTower(), [], 1);
+    expect(step(first.state, [], 5).graph).toBe(first.graph);
+  });
+
+  it('builds a new graph for a state it did not return', () => {
+    const first = step(fullSiteTower(), [], 1);
+    expect(step(structuredClone(first.state), [], 1).graph).not.toBe(first.graph);
+  });
+
   it('keeps the graph when the command is rejected', () => {
     const first = step(fullSiteTower(), [], 1);
     const result = step(first.state, [badShaft], 1, first.graph);
