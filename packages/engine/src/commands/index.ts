@@ -5,6 +5,7 @@ import { buildLobby } from './build-lobby';
 import { buildTransport } from './build-transport';
 import { buildShaft, resizeShaft } from './build-shaft';
 import { buildUnit } from './build-unit';
+import { demolish } from './demolish';
 import { addCar, removeCar } from './elevator-cars';
 import { followPersonCommand, unfollowPersonCommand } from './follow-person';
 import { renameUnit } from './rename-unit';
@@ -19,6 +20,7 @@ export const towerCommandHandlers: CommandHandlers = {
   resizeShaft,
   addCar,
   removeCar,
+  demolish,
   renameUnit,
   followPerson: followPersonCommand,
   unfollowPerson: unfollowPersonCommand,
