@@ -9,6 +9,7 @@ import {
   drawPeopleSheet,
   drawStructurePreview,
   drawTintSheet,
+  drawTintVariantSheet,
   drawTransportPreview,
   drawUnitSheet,
   drawWalkwayPreview,
@@ -56,4 +57,14 @@ writePreview(
 );
 writePreview('people-tint-1x.png', drawTintSheet(sprites, PERSON_TYPES), 1);
 writePreview('people-tint-preview.png', drawTintSheet(sprites, PERSON_TYPES), TRANSPORT_ZOOM);
+writePreview(
+  'people-tint-variants-1x.png',
+  drawTintVariantSheet(sprites, PERSON_TYPES, PERSON_VARIANTS),
+  1,
+);
+writePreview(
+  'people-tint-variants.png',
+  drawTintVariantSheet(sprites, PERSON_TYPES, PERSON_VARIANTS),
+  PEOPLE_ZOOM,
+);
 writePreview('walkway-preview.png', drawWalkwayPreview(sprites), TRANSPORT_ZOOM);

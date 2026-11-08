@@ -1,0 +1,136 @@
+import { describe, expect, it } from 'vitest';
+import {
+  levelsAffectedBy,
+  planStructureRow,
+  soilSubject,
+  type LobbyHeight,
+  type StructurePiece,
+  type StructureSource,
+} from './structurePlan';
+
+const WIDTH = 375;
+
+function row(cells: Record<number, string>): string {
+  const chars = Array.from({ length: WIDTH }, () => '.');
+  for (const [column, cell] of Object.entries(cells)) {
+    chars[Number(column)] = cell;
+  }
+  return chars.join('');
+}
+
+function span(from: number, to: number, cell: string): Record<number, string> {
+  const cells: Record<number, string> = {};
+  for (let column = from; column <= to; column += 1) {
+    cells[column] = cell;
+  }
+  return cells;
+}
+
+function source(
+  rows: Record<number, string>,
+  mainLobbyHeight: LobbyHeight | null = null,
+): StructureSource {
+  return { row: (level) => rows[level], mainLobbyHeight };
+}
+
+function subjects(pieces: StructurePiece[]): string[] {
+  return pieces.map((piece) => piece.subject);
+}
+
+describe('soilSubject', () => {
+  it('follows the art guide from S1 to S9', () => {
+    expect([-1, -2, -3, -4, -6, -7, -8, -9].map(soilSubject)).toEqual([
+      'ground',
+      'dirt',
+      'dirt',
+      'clay',
+      'clay',
+      'dirt-deep',
+      'dirt-deep',
+      'bedrock',
+    ]);
+  });
+});
+
+describe('planStructureRow', () => {
+  it('draws nothing for level 0 or an empty level above ground', () => {
+    expect(planStructureRow(0, source({ 0: row(span(0, 10, 'f')) }))).toEqual([]);
+    expect(planStructureRow(5, source({}))).toEqual([]);
+  });
+
+  it('fills a floor run with one repeated tile and walls on both sides', () => {
+    const pieces = planStructureRow(3, source({ 3: row(span(10, 19, 'f')) }));
+    expect(pieces).toContainEqual({ subject: 'floor', x: 80, y: 0, width: 80 });
+    expect(pieces).toContainEqual({ subject: 'edge-left', x: 77, y: 0 });
+    expect(pieces).toContainEqual({ subject: 'edge-right', x: 160, y: 0 });
+  });
+
+  it('puts a roof only over columns with nothing above', () => {
+    const pieces = planStructureRow(
+      3,
+      source({ 3: row(span(10, 19, 'f')), 4: row(span(10, 14, 'f')) }),
+    );
+    const roofs = pieces.filter((piece) => piece.subject === 'roof');
+    expect(roofs).toEqual([{ subject: 'roof', x: 120, y: -4, width: 40 }]);
+  });
+
+  it('draws the main lobby as one tall sprite from level 1 with a column every 4 tiles', () => {
+    const lobby = row(span(8, 15, 'l'));
+    const rows = { 1: lobby, 2: lobby, 3: lobby };
+    const pieces = planStructureRow(1, source(rows, 3));
+    expect(pieces).toContainEqual({ subject: 'lobby-3', x: 64, y: -64, width: 64 });
+    expect(pieces.filter((piece) => piece.subject === 'lobby-3-column')).toEqual([
+      { subject: 'lobby-3-column', x: 64, y: -64 },
+      { subject: 'lobby-3-column', x: 96, y: -64 },
+    ]);
+    expect(pieces).toContainEqual({ subject: 'roof', x: 64, y: -68, width: 64 });
+  });
+
+  it('leaves the upper rows of a tall main lobby empty', () => {
+    const lobby = row(span(8, 15, 'l'));
+    const rows = { 1: lobby, 2: lobby, 3: lobby };
+    expect(planStructureRow(2, source(rows, 3))).toEqual([]);
+    expect(planStructureRow(3, source(rows, 3))).toEqual([]);
+  });
+
+  it('draws sky lobbies with the sky lobby sprite', () => {
+    const pieces = planStructureRow(15, source({ 15: row(span(4, 7, 'l')) }));
+    expect(subjects(pieces)).toContain('sky-lobby');
+    expect(subjects(pieces)).toContain('sky-lobby-column');
+  });
+
+  it('draws soil under a basement run with retaining walls', () => {
+    const pieces = planStructureRow(-2, source({ '-2': row(span(0, 3, 'f')) }));
+    expect(pieces[0]).toEqual({ subject: 'dirt', x: 0, y: 0, width: 3000 });
+    expect(pieces).toContainEqual({ subject: 'basement', x: 0, y: 0, width: 32 });
+    expect(subjects(pieces)).toEqual([
+      'dirt',
+      'basement',
+      'basement-edge-left',
+      'basement-edge-right',
+    ]);
+  });
+
+  it('draws the subway tunnel across the whole site on S10', () => {
+    const pieces = planStructureRow(-10, source({}));
+    expect(pieces[0]).toEqual({ subject: 'subway-tunnel', x: 0, y: 0, width: 3000 });
+    expect(subjects(pieces)).toContain('subway-tunnel-edge-left');
+    expect(pieces.at(-1)).toEqual({ subject: 'subway-tunnel-edge-right', x: 2992, y: 0 });
+  });
+});
+
+describe('levelsAffectedBy', () => {
+  it('includes the level below for its roof', () => {
+    expect(levelsAffectedBy(10)).toEqual([10, 9]);
+  });
+
+  it('never names level 0 or a basement for the roof', () => {
+    expect(levelsAffectedBy(-3)).toEqual([-3]);
+    expect(levelsAffectedBy(1)).toEqual([1, 2, 3]);
+  });
+
+  it('includes level 1 for the rows a tall main lobby reaches', () => {
+    expect(levelsAffectedBy(3)).toEqual([3, 2, 1]);
+    expect(levelsAffectedBy(4)).toEqual([4, 3, 1]);
+  });
+});

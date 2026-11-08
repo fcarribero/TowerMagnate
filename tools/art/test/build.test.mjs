@@ -50,10 +50,18 @@ describe('art build', () => {
       const outputRoot = mkdtempSync(join(tmpdir(), 'tm-art-cli-'));
       tempDirs.push(outputRoot);
       const manifestPath = join(outputRoot, 'atlasManifest.ts');
-      execFileSync(process.execPath, [buildScript, outputRoot, manifestPath], { stdio: 'ignore' });
-      return { outputRoot, manifest: readFileSync(manifestPath) };
+      const stressPalettePath = join(outputRoot, 'stressPalette.ts');
+      execFileSync(process.execPath, [buildScript, outputRoot, manifestPath, stressPalettePath], {
+        stdio: 'ignore',
+      });
+      return {
+        outputRoot,
+        manifest: readFileSync(manifestPath),
+        stressPalette: readFileSync(stressPalettePath),
+      };
     });
     expect(runs[1].manifest.equals(runs[0].manifest)).toBe(true);
+    expect(runs[1].stressPalette.equals(runs[0].stressPalette)).toBe(true);
     for (const { name } of groups) {
       for (const file of [`atlases/${name}.png`, `atlases/${name}.json`]) {
         const firstBytes = readFileSync(join(runs[0].outputRoot, file));
