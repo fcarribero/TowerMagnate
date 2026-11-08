@@ -1,4 +1,4 @@
-import { createTower, serializeState } from '@tower-magnate/engine';
+import { createTower, newUnit, serializeState } from '@tower-magnate/engine';
 import type { TowerState, Unit } from '@tower-magnate/shared';
 
 export const ONE_MEGABYTE = 1024 * 1024;
@@ -15,14 +15,8 @@ export function towerOfAtLeast(bytes: number): TowerState {
     for (let batch = 0; batch < 1000; batch++) {
       index += 1;
       const unit: Unit = {
-        id: `u${index}`,
-        type: 'office',
-        x: index,
-        level: 1,
+        ...newUnit(`u${index}`, 'office', index, 1),
         name: `${padding}${index}`,
-        priceLevel: 'normal',
-        paid: 0,
-        placedAtStep: 0,
       };
       tower.units[unit.id] = unit;
     }
