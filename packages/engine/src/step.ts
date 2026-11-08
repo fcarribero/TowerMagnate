@@ -15,6 +15,7 @@ import { cloneState } from './state';
 import { ledgerWeekRollHook } from './money';
 import { createOfficeRoutine, straightLineRoutes } from './office-routine';
 import { createScheduler } from './scheduler';
+import { starCheckHook } from './stars';
 
 export interface StepResult {
   state: TowerState;
@@ -142,6 +143,7 @@ const towerEngine = createEngine({
     createScheduler([ledgerWeekRollHook, officeRoutine.planHook]),
     createLeaseSystem(),
     officeRoutine.system,
+    createScheduler([starCheckHook]),
     eventsPhase,
   ],
 });
