@@ -11,6 +11,7 @@ export type AuthFailure =
   | { ok: false; reason: 'usernameTaken' }
   | { ok: false; reason: 'wrongCredentials' }
   | { ok: false; reason: 'rejected'; message: string }
+  | { ok: false; reason: 'rateLimited' }
   | { ok: false; reason: 'network' };
 
 export type AuthResult = { ok: true; user: AuthUser } | AuthFailure;
@@ -86,6 +87,9 @@ async function failureFor(response: Response): Promise<AuthFailure> {
   }
   if (response.status === 401) {
     return { ok: false, reason: 'wrongCredentials' };
+  }
+  if (response.status === 429) {
+    return { ok: false, reason: 'rateLimited' };
   }
   if (response.status === 400) {
     const message = await readErrorMessage(response);
