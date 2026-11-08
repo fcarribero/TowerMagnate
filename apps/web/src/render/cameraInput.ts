@@ -1,4 +1,4 @@
-import { isShortcutBlocked } from '../input/keyboard';
+import { isShortcutBlocked, isSpaceHeld, trackSpaceKey } from '../input/keyboard';
 import { nextZoom, panCamera, zoomCamera, type Camera } from './camera';
 
 export type CameraChange = (camera: Camera) => Camera;
@@ -12,9 +12,11 @@ interface Drag {
 
 const WHEEL_LINE_PIXELS = 16;
 const WHEEL_ZOOM_THRESHOLD = 100;
+const KEY_SCROLL_CSS_PIXELS = 48;
 
 /**
- * Drag to scroll, wheel to scroll, Ctrl + wheel or +/- to zoom. Returns a
+ * Drag (or Space + drag) to scroll, wheel, arrows and W A S D to scroll,
+ * Ctrl + wheel or +/- to zoom. Returns a
  * function that removes the listeners.
  */
 export function attachCameraInput(
@@ -30,7 +32,8 @@ export function attachCameraInput(
   const toDevicePixels = (cssPixels: number): number => cssPixels * window.devicePixelRatio;
 
   const onPointerDown = (event: PointerEvent): void => {
-    const pans = event.button === 1 || (event.button === 0 && primaryButtonPans());
+    const pans =
+      event.button === 1 || (event.button === 0 && (primaryButtonPans() || isSpaceHeld()));
     if (!pans) {
       return;
     }
@@ -83,6 +86,13 @@ export function attachCameraInput(
     if (isShortcutBlocked(event)) {
       return;
     }
+    const scroll = scrollKeyDirection(event.key);
+    if (scroll !== null) {
+      const step = toDevicePixels(KEY_SCROLL_CSS_PIXELS);
+      update((camera) => panCamera(camera, scroll.x * step, scroll.y * step));
+      event.preventDefault();
+      return;
+    }
     const direction = zoomKeyDirection(event.key);
     if (direction === null) {
       return;
@@ -103,8 +113,10 @@ export function attachCameraInput(
   canvas.addEventListener('pointercancel', onPointerEnd);
   canvas.addEventListener('wheel', onWheel, { passive: false });
   window.addEventListener('keydown', onKeyDown);
+  const stopSpaceTracking = trackSpaceKey();
 
   return () => {
+    stopSpaceTracking();
     canvas.removeEventListener('pointerdown', onPointerDown);
     canvas.removeEventListener('pointermove', onPointerMove);
     canvas.removeEventListener('pointerup', onPointerEnd);
@@ -122,4 +134,28 @@ export function zoomKeyDirection(key: string): 1 | -1 | null {
     return -1;
   }
   return null;
+}
+
+/** Direction the content moves when the view scrolls with this key. */
+export function scrollKeyDirection(key: string): { x: -1 | 0 | 1; y: -1 | 0 | 1 } | null {
+  switch (key) {
+    case 'ArrowLeft':
+    case 'a':
+    case 'A':
+      return { x: 1, y: 0 };
+    case 'ArrowRight':
+    case 'd':
+    case 'D':
+      return { x: -1, y: 0 };
+    case 'ArrowUp':
+    case 'w':
+    case 'W':
+      return { x: 0, y: 1 };
+    case 'ArrowDown':
+    case 's':
+    case 'S':
+      return { x: 0, y: -1 };
+    default:
+      return null;
+  }
 }
