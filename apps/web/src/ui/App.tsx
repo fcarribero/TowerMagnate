@@ -22,6 +22,7 @@ import { t } from './strings';
 import { Toolbar } from './toolbar/Toolbar';
 import { DEFAULT_LOBBY_HEIGHT, DEFAULT_TOOL, type ToolId } from './toolbar/toolbarModel';
 import { TowerMapWindow } from './TowerMapWindow';
+import { UnitWindows } from './unit/UnitWindows';
 
 export interface AppProps {
   onLogout: () => void;
@@ -150,6 +151,7 @@ export function App({ onLogout, onRestartTower, onSessionLost }: AppProps) {
           <TowerMapWindow content={content} stage={stage} onClose={() => setMapOpen(false)} />
         )}
         <WindowLayer class="ui-windows">
+          <UnitWindows connection={connection} />
           <RestartTowerDialogs
             step={restartStep}
             onStep={setRestartStep}
