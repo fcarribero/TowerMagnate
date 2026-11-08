@@ -1,3 +1,5 @@
+import { isTextEntryTarget } from '../input/keyboard';
+
 const TEXT_FIELD_TAGS = new Set(['INPUT', 'TEXTAREA', 'SELECT']);
 
 export interface KeyPress {
@@ -14,7 +16,7 @@ export function isPlainShortcut(event: KeyPress): boolean {
     return false;
   }
   const tag = (event.target as { tagName?: string } | null)?.tagName;
-  return tag === undefined || !TEXT_FIELD_TAGS.has(tag);
+  return (tag === undefined || !TEXT_FIELD_TAGS.has(tag)) && !isTextEntryTarget(event.target);
 }
 
 /** M opens or closes the tower map. */

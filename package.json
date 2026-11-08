@@ -1,6 +1,6 @@
 {
   "name": "tower-magnate",
-  "version": "0.8.0",
+  "version": "0.9.0",
   "private": true,
   "type": "module",
   "packageManager": "pnpm@10.18.3",
@@ -16,6 +16,7 @@
     "test": "pnpm art:build && vitest run",
     "test:watch": "vitest",
     "bench:snapshots": "pnpm --filter @tower-magnate/server bench:snapshots",
+    "bench:person-view": "pnpm --filter @tower-magnate/server bench:person-view",
     "bench:graph": "tsx scripts/bench-transport-graph.ts",
     "bench:people-layer": "tsx apps/web/src/render/peopleLayer.bench.ts",
     "bench:routes": "tsx scripts/bench-route-planner.ts",

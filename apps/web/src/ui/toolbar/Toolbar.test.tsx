@@ -125,8 +125,13 @@ describe('Toolbar', () => {
   });
 
   it('returns to the Lupa on Esc', () => {
+    vi.useFakeTimers();
     render(<Harness stars={1} initialTool="office" />);
     fireEvent.keyDown(window, { key: 'Escape' });
+    act(() => {
+      vi.runAllTimers();
+    });
+    vi.useRealTimers();
     expect(toolButton('Lupa').getAttribute('aria-pressed')).toBe('true');
     expect(toolButton('Oficina').getAttribute('aria-pressed')).toBe('false');
   });
@@ -135,7 +140,24 @@ describe('Toolbar', () => {
     render(<Harness stars={1} initialTool="office" />);
     const event = new KeyboardEvent('keydown', { key: 'Escape', cancelable: true });
     event.preventDefault();
+    vi.useFakeTimers();
     window.dispatchEvent(event);
+    act(() => {
+      vi.runAllTimers();
+    });
+    vi.useRealTimers();
+    expect(toolButton('Oficina').getAttribute('aria-pressed')).toBe('true');
+  });
+
+  it('leaves the tool alone when a handler marks Esc as handled after the toolbar', () => {
+    vi.useFakeTimers();
+    render(<Harness stars={1} initialTool="office" />);
+    window.addEventListener('keydown', (event) => event.preventDefault(), { once: true });
+    fireEvent.keyDown(window, { key: 'Escape', cancelable: true });
+    act(() => {
+      vi.runAllTimers();
+    });
+    vi.useRealTimers();
     expect(toolButton('Oficina').getAttribute('aria-pressed')).toBe('true');
   });
 

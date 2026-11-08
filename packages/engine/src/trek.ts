@@ -3,6 +3,7 @@ import {
   MAX_ESCALATOR_FLOORS_PER_TRIP,
   MAX_STAIR_FLOORS_PER_TRIP,
   PERSON_KINDS,
+  ROUTE_RETRY_STEPS,
   STAIR_FLIGHT_STEPS,
   WALK_COLUMNS_PER_STEP,
   type EntityId,
@@ -35,6 +36,7 @@ export const TREK_PHASES = [
   'queued',
   'waitingBesideQueue',
   'riding',
+  'noRoute',
 ] as const;
 
 export type TrekPhase = (typeof TREK_PHASES)[number];
@@ -49,6 +51,7 @@ const ON_ESCALATOR = TREK_PHASES.indexOf('onEscalator');
 const QUEUED = TREK_PHASES.indexOf('queued');
 const WAITING_BESIDE_QUEUE = TREK_PHASES.indexOf('waitingBesideQueue');
 const RIDING = TREK_PHASES.indexOf('riding');
+const NO_ROUTE = TREK_PHASES.indexOf('noRoute');
 
 const MAID_KIND = PERSON_KINDS.indexOf('maid');
 
@@ -174,6 +177,26 @@ function planNextLeg(context: StepContext, slot: number): boolean {
   return true;
 }
 
+function entityOf(pool: PersonPool, slot: number): EntityId {
+  return personEntityId(pool.id[slot] as number);
+}
+
+/**
+ * Plans again in the middle of a trip. With no route the person stays where they are and searches
+ * again after ROUTE_RETRY_STEPS, and the failed search is reported for stress (routing R-23).
+ */
+function replan(context: StepContext, slot: number): void {
+  if (planNextLeg(context, slot)) return;
+  const pool = context.state.people;
+  pool.trek[slot] = NO_ROUTE;
+  pool.legStep[slot] = context.state.step + ROUTE_RETRY_STEPS;
+  context.events.push({
+    type: 'routeSearchFailed',
+    step: context.state.step,
+    person: entityOf(pool, slot),
+  });
+}
+
 /**
  * Sends a person on a trip to `to` with an empty budget. Returns false, and changes nothing,
  * when no route exists. When the person gets there, their due step is set to that step.
@@ -213,6 +236,16 @@ export function cancelTrek(context: StepContext, slot: number): void {
   if (pool.trek[slot] === QUEUED) leaveQueueOf(context, slot);
   if (pool.trek[slot] === RIDING) leaveCarOf(context, slot);
   clearTrek(pool, slot);
+  reportTripFinished(context, slot, false);
+}
+
+function reportTripFinished(context: StepContext, slot: number, arrived: boolean): void {
+  context.events.push({
+    type: 'tripFinished',
+    step: context.state.step,
+    person: entityOf(context.state.people, slot),
+    arrived,
+  });
 }
 
 function leaveQueueOf(context: StepContext, slot: number): void {
@@ -256,6 +289,7 @@ function arrive(context: StepContext, slot: number): void {
   const pool = context.state.people;
   clearTrek(pool, slot);
   pool.dueStep[slot] = context.state.step;
+  reportTripFinished(context, slot, true);
 }
 
 function flightExists(context: StepContext, slot: number): boolean {
@@ -273,7 +307,7 @@ function enterQueueOrWait(context: StepContext, slot: number): void {
   const pool = state.people;
   const shaft = state.shafts[`s${pool.legVia[slot]}`];
   if (!shaft) {
-    planNextLeg(context, slot);
+    replan(context, slot);
     return;
   }
   const level = pool.level[slot] as Level;
@@ -296,7 +330,7 @@ function reachLegStart(context: StepContext, slot: number): void {
     arrive(context, slot);
   } else if (phase === WALKING_TO_STAIRS || phase === WALKING_TO_ESCALATOR) {
     const onStairs = phase === WALKING_TO_STAIRS;
-    if (!flightExists(context, slot)) planNextLeg(context, slot);
+    if (!flightExists(context, slot)) replan(context, slot);
     else if (onStairs) startFlight(context, slot, ON_STAIRS, STAIR_FLIGHT_STEPS);
     else startFlight(context, slot, ON_ESCALATOR, ESCALATOR_FLIGHT_STEPS);
   } else {
@@ -326,7 +360,7 @@ export function alightRider(context: StepContext, person: EntityId, level: Level
   const ride = { kind: 'standard', via: '', from: 0, to: 0, floors: 1 } as const;
   pool.trekBudget[slot] = packBudget(spendBudget(budget, ride));
   pool.level[slot] = level;
-  planNextLeg(context, slot);
+  replan(context, slot);
 }
 
 function finishFlight(context: StepContext, slot: number): void {
@@ -336,7 +370,7 @@ function finishFlight(context: StepContext, slot: number): void {
   const flight = { kind, via: '', from: 0, to: 0, floors: 1 } as const;
   pool.trekBudget[slot] = packBudget(spendBudget(budget, flight));
   pool.level[slot] = pool.legLevel[slot] as number;
-  planNextLeg(context, slot);
+  replan(context, slot);
 }
 
 /** Moves one column toward the leg's column; true when the person is there. */
@@ -345,8 +379,55 @@ function walk(pool: PersonPool, slot: number): boolean {
   const target = pool.legColumn[slot] as number;
   const distance = Math.min(WALK_COLUMNS_PER_STEP, Math.abs(target - column));
   pool.column[slot] = column + Math.sign(target - column) * distance;
+  if (distance > 0) pool.facing[slot] = target < column ? 1 : 0;
   return pool.column[slot] === target;
 }
+
+function usesShaft(phase: number): boolean {
+  return phase === WALKING_TO_SHAFT || phase === QUEUED || phase === WAITING_BESIDE_QUEUE;
+}
+
+function usesFlight(phase: number): boolean {
+  return (
+    phase === WALKING_TO_STAIRS ||
+    phase === WALKING_TO_ESCALATOR ||
+    phase === ON_STAIRS ||
+    phase === ON_ESCALATOR
+  );
+}
+
+function shaftStillServes(context: StepContext, slot: number): boolean {
+  const pool = context.state.people;
+  const shaft = context.state.shafts[`s${pool.legVia[slot]}`];
+  return (
+    shaft !== undefined &&
+    shaft.cars.length > 0 &&
+    shaft.stops.includes(pool.level[slot] as Level) &&
+    shaft.stops.includes(pool.legLevel[slot] as Level)
+  );
+}
+
+function isLegBroken(context: StepContext, slot: number, phase: number): boolean {
+  if (usesFlight(phase)) return !flightExists(context, slot);
+  return usesShaft(phase) && !shaftStillServes(context, slot);
+}
+
+/** Sends everyone whose leg no longer exists to plan again from where they stand (routing 8.4). */
+function replanBrokenLegs(context: StepContext): void {
+  const pool = context.state.people;
+  for (let slot = 0; slot < pool.id.length; slot++) {
+    const phase = pool.trek[slot] as number;
+    if (!isLegBroken(context, slot, phase)) continue;
+    if (phase === QUEUED) leaveQueueOf(context, slot);
+    if (phase === ON_STAIRS || phase === ON_ESCALATOR) {
+      pool.level[slot] = pool.legLevel[slot] as number;
+    }
+    replan(context, slot);
+  }
+}
+
+/** Graphs are rebuilt when the tower changes, so each new graph gets one sweep for broken legs. */
+const sweptGraphs = new WeakSet<TransportGraph>();
 
 function stepPerson(context: StepContext, slot: number): void {
   const pool = context.state.people;
@@ -355,7 +436,7 @@ function stepPerson(context: StepContext, slot: number): void {
   if (phase <= WALKING_TO_SHAFT) {
     if (walk(pool, slot)) reachLegStart(context, slot);
   } else if (pool.legStep[slot] === context.state.step) {
-    if (phase === WAITING_BESIDE_QUEUE) planNextLeg(context, slot);
+    if (phase === WAITING_BESIDE_QUEUE || phase === NO_ROUTE) replan(context, slot);
     else finishFlight(context, slot);
   }
 }
@@ -367,6 +448,11 @@ function stepPerson(context: StepContext, slot: number): void {
 export function createTrekSystem(): SimulationSystem {
   return (context) => {
     const pool = context.state.people;
+    const graph = graphOf(context);
+    if (!sweptGraphs.has(graph)) {
+      sweptGraphs.add(graph);
+      replanBrokenLegs(context);
+    }
     for (let slot = 0; slot < pool.id.length; slot++) {
       stepPerson(context, slot);
     }
