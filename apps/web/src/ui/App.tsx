@@ -7,6 +7,7 @@ import { useGameConnection } from '../net/useGameConnection';
 import { placeholderTowerContent } from '../render/placeholderTower';
 import type { Stage } from '../render/stage';
 import { bindStructure, fullWidthTestTower, testTowerFromQuery } from '../render/structureSource';
+import { DEBUG_UNIT_FLOORS, bindUnits, debugUnits, testUnitsFromQuery } from '../render/unitSource';
 import { isMapToggleKey } from './keys';
 import { ConnectionOverlay } from './ConnectionOverlay';
 import { LevelRuler } from './LevelRuler';
@@ -63,7 +64,18 @@ export function App({ onLogout, onSessionLost }: AppProps) {
       stage.showStructure(fullWidthTestTower(testTowerFloors));
       return;
     }
-    return bindStructure(connection.store, (input) => stage.showStructure(input));
+    const testUnitsHour = import.meta.env.DEV ? testUnitsFromQuery(location.search) : null;
+    if (testUnitsHour !== null) {
+      stage.showStructure(fullWidthTestTower(DEBUG_UNIT_FLOORS));
+      stage.showUnits(debugUnits(testUnitsHour));
+      return;
+    }
+    const unbindUnits = bindUnits(connection.store, (input) => stage.showUnits(input));
+    const unbindStructure = bindStructure(connection.store, (input) => stage.showStructure(input));
+    return () => {
+      unbindUnits();
+      unbindStructure();
+    };
   }, [stage, connection]);
 
   useEffect(() => {
