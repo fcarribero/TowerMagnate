@@ -303,7 +303,7 @@ The server validates every client message with `ClientMessageSchema.safeParse`. 
 Order and limits:
 
 - Messages before `hello` are dropped. A socket that sends no `hello` within 5 s is closed.
-- Close codes: 4401 not authenticated, 4409 protocol mismatch or a snapshot the engine refused, 4429 rate limited.
+- Close codes: 4400 no `hello` within 5 s, 4401 not authenticated, 4409 protocol mismatch or a snapshot the engine refused, 4429 rate limited.
 - At most 20 commands per second per socket and 16 KB per message. `viewport` is limited to 4 per second.
 - The upgrade checks `Origin` against the configured web origin. SameSite=Lax alone does not protect against sibling subdomains.
 
