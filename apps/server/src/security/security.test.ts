@@ -148,6 +148,17 @@ describe('auth hardening', () => {
       expect(response.headers['strict-transport-security']).toBeUndefined();
     });
 
+    it('lets the page start blob workers without opening scripts', async () => {
+      start();
+
+      const response = await app.inject({ method: 'GET', url: '/api/auth/me' });
+      const policy = String(response.headers['content-security-policy']);
+
+      expect(policy).toContain("worker-src 'self' blob:");
+      expect(policy).not.toContain('script-src');
+      expect(policy).not.toContain('unsafe-eval');
+    });
+
     it('adds HSTS when cookies are secure', async () => {
       start({ secureCookies: true });
 
