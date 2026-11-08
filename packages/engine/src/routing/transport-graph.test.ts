@@ -1,20 +1,14 @@
-import { UNIT_CATALOG, type Level, type TowerState } from '@tower-magnate/shared';
+import { UNIT_CATALOG, type Level } from '@tower-magnate/shared';
 import { describe, expect, it } from 'vitest';
 import { buildTower, plainTowerPlan, type PlannedShaft } from '../testing';
 import { TransportGraph, type ShaftStops, type UserClass } from './transport-graph';
+import { addFlight, hundredFloorTower } from '../testing';
 import { walkableRuns } from './walkable-runs';
 
 function tower(floors: number, shafts: readonly PlannedShaft[] = []) {
   const plan = plainTowerPlan(floors, 0, 374);
   plan.shafts = shafts;
   return buildTower(plan);
-}
-
-function addFlight(state: TowerState, type: 'stairs' | 'escalator', x: number, level: Level) {
-  const id = `t${state.nextId}`;
-  state.nextId += 1;
-  state.transports[id] = { id, type, x, level };
-  return id;
 }
 
 /** Each neighbour as "level:kind", sorted. */
@@ -192,67 +186,19 @@ describe('transport graph', () => {
   });
 });
 
-const RUN_AGREEMENT = 0.15;
-const MAX_ATTEMPTS = 10;
-
-function timeRuns(action: () => void): number[] {
-  return [0, 0, 0].map(() => {
-    const start = performance.now();
-    action();
-    return performance.now() - start;
-  });
-}
-
-/** Median of three runs, or null when the runs differ by more than 15% in every attempt. */
-function medianIfRunsAgree(durations: readonly number[]): number | null {
-  const sorted = [...durations].sort((a, b) => a - b);
-  const [fastest, median, slowest] = sorted;
-  if (fastest === undefined || median === undefined || slowest === undefined) return null;
-  return slowest - fastest <= fastest * RUN_AGREEMENT ? median : null;
-}
-
-function timeUntilRunsAgree(action: () => void): number | null {
-  for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
-    const median = medianIfRunsAgree(timeRuns(action));
-    if (median !== null) return median;
-  }
-  return null;
-}
-
-describe('timing agreement', () => {
-  it('uses the median when the runs are within 15% of each other', () => {
-    expect(medianIfRunsAgree([20, 22, 23])).toBe(22);
-  });
-
-  it('voids the result when the slowest run is more than 15% above the fastest', () => {
-    expect(medianIfRunsAgree([20, 22, 24])).toBeNull();
-  });
-});
-
 describe('transport graph on a full tower', () => {
-  function bigTower() {
-    const shafts: PlannedShaft[] = [];
-    for (let index = 0; index < 12; index++) {
-      const type = index < 8 ? 'standard' : index < 10 ? 'service' : 'express';
-      const bottom = type === 'express' ? 1 : 2 + index;
-      shafts.push({ type, x: 10 + index * 30, bottom, top: type === 'express' ? 90 : bottom + 28 });
-    }
-    const { state } = tower(100, shafts);
-    for (let level = 2; level < 100; level += 3) addFlight(state, 'stairs', 4, level);
-    return state;
-  }
-
-  it('rebuilds in under 50 ms by the median of three agreeing runs', () => {
-    const state = bigTower();
+  it('rebuilds a 100-floor tower with 12 shafts', () => {
+    const state = hundredFloorTower();
     const graph = new TransportGraph(state);
+    const before = graph.nodeAtCell(2, 8)?.id;
     graph.rebuild(state);
-    const result = timeUntilRunsAgree(() => graph.rebuild(state));
-    expect(result).not.toBeNull();
-    expect(result).toBeLessThan(50);
+    expect(graph.nodeAtCell(2, 8)?.id).toBe(before);
+    expect(graph.nodeAtCell(2, 8)).toBeDefined();
+    expect(graph.neighbours(before ?? -1, 'other').length).toBeGreaterThan(0);
   });
 
   it('answers a neighbour lookup with the same array every time', () => {
-    const graph = new TransportGraph(bigTower());
+    const graph = new TransportGraph(hundredFloorTower());
     const node = graph.nodeAtCell(2, 8);
     const id = node?.id ?? -1;
     expect(graph.neighbours(id, 'other')).toBe(graph.neighbours(id, 'other'));

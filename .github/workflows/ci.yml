@@ -43,6 +43,9 @@ jobs:
       - name: Snapshot save benchmark
         run: pnpm bench:snapshots
 
+      - name: Transport graph benchmark
+        run: pnpm bench:graph
+
   e2e:
     name: End-to-end tests
     if: github.event_name == 'pull_request' && github.base_ref == 'develop'
