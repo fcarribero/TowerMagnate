@@ -31,6 +31,7 @@ const MIGRATIONS: readonly Migration[] = [
   addShafts,
   addTransportRecord,
   addEventState,
+  addPersonPool,
 ];
 
 /** Version 2 records each unit's price level, what was paid for it and when it was placed. */
@@ -76,6 +77,25 @@ function addEventState(raw: Record<string, unknown>): Record<string, unknown> {
     closedDecisions: raw.closedDecisions ?? [],
     treasureLevels: raw.treasureLevels ?? [],
   };
+}
+
+const EMPTY_VERSION_7_PEOPLE = {
+  nextId: 1,
+  id: [],
+  kind: [],
+  homeUnit: [],
+  level: [],
+  column: [],
+  trip: [],
+  dueStep: [],
+  stress: [],
+  nameSeed: [],
+  followed: [],
+};
+
+/** Version 7 saves the person pool; older saves could only load without people. */
+function addPersonPool(raw: Record<string, unknown>): Record<string, unknown> {
+  return { people: EMPTY_VERSION_7_PEOPLE, ...raw, schemaVersion: 7 };
 }
 
 function isUint32(value: unknown): value is number {
