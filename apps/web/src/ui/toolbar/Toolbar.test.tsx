@@ -128,7 +128,9 @@ describe('Toolbar', () => {
     vi.useFakeTimers();
     render(<Harness stars={1} initialTool="office" />);
     fireEvent.keyDown(window, { key: 'Escape' });
-    act(() => vi.runAllTimers());
+    act(() => {
+      vi.runAllTimers();
+    });
     vi.useRealTimers();
     expect(toolButton('Lupa').getAttribute('aria-pressed')).toBe('true');
     expect(toolButton('Oficina').getAttribute('aria-pressed')).toBe('false');
@@ -140,7 +142,9 @@ describe('Toolbar', () => {
     event.preventDefault();
     vi.useFakeTimers();
     window.dispatchEvent(event);
-    act(() => vi.runAllTimers());
+    act(() => {
+      vi.runAllTimers();
+    });
     vi.useRealTimers();
     expect(toolButton('Oficina').getAttribute('aria-pressed')).toBe('true');
   });
@@ -150,7 +154,9 @@ describe('Toolbar', () => {
     render(<Harness stars={1} initialTool="office" />);
     window.addEventListener('keydown', (event) => event.preventDefault(), { once: true });
     fireEvent.keyDown(window, { key: 'Escape', cancelable: true });
-    act(() => vi.runAllTimers());
+    act(() => {
+      vi.runAllTimers();
+    });
     vi.useRealTimers();
     expect(toolButton('Oficina').getAttribute('aria-pressed')).toBe('true');
   });
