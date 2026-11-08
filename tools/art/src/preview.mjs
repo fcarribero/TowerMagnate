@@ -390,6 +390,36 @@ export function drawWalkwayPreview(sprites) {
   return sheet;
 }
 
+const EVENT_GAP = 4;
+
+// Every wedding bell and petal burst frame side by side on the day sky, bells first.
+export function drawEventSheet(sprites) {
+  const rows = ['events/wedding-bell/swing', 'events/wedding-petals/burst'].map((prefix) =>
+    Object.keys(sprites)
+      .filter((id) => id.startsWith(prefix + '_'))
+      .sort()
+      .map((id) => sprites[id]),
+  );
+  const rowWidth = (frames) =>
+    frames.reduce((sum, frame) => sum + frame.width + EVENT_GAP, EVENT_GAP);
+  const rowHeight = (frames) => Math.max(...frames.map((frame) => frame.height)) + EVENT_GAP;
+  const sheet = new PixelCanvas(
+    Math.max(...rows.map(rowWidth)),
+    rows.reduce((sum, frames) => sum + rowHeight(frames), EVENT_GAP),
+  );
+  sheet.fillRect(0, 0, sheet.width, sheet.height, 'sky');
+  let top = EVENT_GAP;
+  for (const frames of rows) {
+    let left = EVENT_GAP;
+    for (const frame of frames) {
+      sheet.stamp(frame, left, top);
+      left += frame.width + EVENT_GAP;
+    }
+    top += rowHeight(frames);
+  }
+  return sheet;
+}
+
 const EFFECT_GAP = 4;
 const EFFECT_FRAME = /_\d{2}$/;
 

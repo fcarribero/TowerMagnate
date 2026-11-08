@@ -30,4 +30,10 @@ describe('resolveE2eTarget', () => {
     expect(target.composeEnv.COMPOSE_PROJECT_NAME).toBe('tm-bp');
     expect(target.composeEnv.COMPOSE_PROFILES).toBe('dev');
   });
+
+  it('runs the production profile against the server port when E2E_PROFILE is prod', () => {
+    const target = resolveE2eTarget({ E2E_PROFILE: 'prod' });
+    expect(target.baseUrl).toBe('http://localhost:4301');
+    expect(target.composeEnv.COMPOSE_PROFILES).toBe('prod');
+  });
 });

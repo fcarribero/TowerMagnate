@@ -549,6 +549,19 @@ export const FULL_QUEUE_RECHECK_STEPS = 6;
 /** Added to the route cost of a ride whose queue is full. */
 export const FULL_QUEUE_ROUTE_COST = 1_000;
 
+/** Route costs per routing.md section 6, in cost points. */
+export const ROUTE_FLOOR_COST = 8;
+export const ROUTE_EXPRESS_FLOOR_COST = 3;
+export const ROUTE_ESCALATOR_LEG_COST = 0;
+export const ROUTE_RIDE_COST = 500;
+export const ROUTE_STAIR_LEG_COST = 600;
+export const ROUTE_TRANSFER_COST = 2_500;
+
+/** Limits for one trip (routing section 5.2). */
+export const MAX_STAIR_FLOORS_PER_TRIP = 3;
+export const MAX_ESCALATOR_FLOORS_PER_TRIP = 7;
+export const MAX_RIDES_PER_TRIP = 3;
+
 /** Riders a car holds, by shaft type, read from the catalog. */
 export function carCapacity(type: ShaftType): number {
   return UNIT_CATALOG[SHAFT_UNIT_TYPES[type]].capacity?.people ?? 0;
