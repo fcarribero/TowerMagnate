@@ -52,3 +52,19 @@ export {
   venueTower,
 } from './customer-day';
 export type { SubwayStepTiming } from './customer-day';
+export {
+  createEconomyEngine,
+  firstLedgerMismatch,
+  ledgerChanges,
+  runEconomyScenario,
+} from './economy-scenario';
+export type {
+  CategoryChanges,
+  DayCommand,
+  EconomyAction,
+  EconomyDay,
+  EconomyRun,
+  EconomyScript,
+  ExpectedDay,
+  TimedEconomyAction,
+} from './economy-scenario';

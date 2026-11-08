@@ -26,7 +26,7 @@ function upkeepTower(stars: 3 | 4, money = 2_000_000): TowerState {
     ],
   });
   addStandardCar(state);
-  state.transports.t1 = { id: 't1', type: 'escalator', x: 16, level: 3 };
+  state.transports.t1 = { id: 't1', type: 'escalator', x: 16, level: 3, paid: 0, placedAtStep: 0 };
   state.stars = stars;
   state.money = money;
   return state;

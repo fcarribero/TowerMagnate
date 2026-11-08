@@ -180,3 +180,19 @@ export const PROSPECT_CHANCE: Readonly<Record<'high' | 'normal' | 'low' | 'minim
   low: 0.3,
   minimum: 0.4,
 };
+
+/** Guests of one wedding attempt, the cathedral's capacity (people spec 2). */
+export const WEDDING_GUESTS = 40;
+
+/** When wedding guests appear at the street entrance on an attempt day (people spec 15). */
+export const WEDDING_GUEST_ARRIVAL: readonly WindowPart[] = [
+  { from: minutes(8), to: minutes(9), weight: 40 },
+  { from: minutes(9), to: minutes(10), weight: 40 },
+  { from: minutes(10), to: minutes(10, 30), weight: 20 },
+];
+
+/** The last guest must be inside the cathedral before this minute of the day (stars spec 7.2). */
+export const WEDDING_DEADLINE_MINUTE = minutes(12, 30);
+
+/** Every wedding guest leaves the tower at this minute of the day (people spec 15). */
+export const WEDDING_GUESTS_LEAVE_MINUTE = minutes(15);
