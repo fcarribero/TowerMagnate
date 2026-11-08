@@ -310,3 +310,39 @@ describe('migrateState star check state', () => {
     });
   });
 });
+
+describe('migrateState car motion', () => {
+  it('leaves old cars idle and sends their riders to the next stop', () => {
+    const tower = migrateState(JSON.parse(VERSION_4_SAVE));
+    const [car] = Object.values(tower.shafts)[0]?.cars ?? [];
+    expect(tower.schemaVersion).toBe(SCHEMA_VERSION);
+    expect(car).toMatchObject({
+      level: 3,
+      phase: 'idle',
+      direction: 'idle',
+      phaseStepsLeft: 0,
+      assigned: [],
+      trips: [{ destination: 3, boardedStep: 8640, waitSteps: 0 }],
+    });
+  });
+
+  it('gives queued people the far end of the shaft as destination', () => {
+    const saved = JSON.parse(JSON.stringify(createTower(5)));
+    saved.schemaVersion = 10;
+    saved.shafts = {
+      s2: {
+        id: 's2',
+        type: 'standard',
+        x: 30,
+        bottom: 1,
+        top: 5,
+        cars: [{ homeLevel: 1, level: 1, riders: [], paid: 0, placedAtStep: 0 }],
+        queues: { '2': { up: [{ person: 'p1', joinedStep: 4 }], down: [] } },
+        paid: 0,
+        placedAtStep: 0,
+      },
+    };
+    const queue = migrateState(saved).shafts.s2?.queues['2'];
+    expect(queue?.up).toEqual([{ person: 'p1', destination: 5, joinedStep: 4 }]);
+  });
+});

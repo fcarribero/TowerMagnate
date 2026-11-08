@@ -1,12 +1,16 @@
 import {
+  CAR_DIRECTIONS,
+  CAR_PHASES,
   ELEVATOR_QUEUE_CAPACITY,
   isLevel,
   PRICE_LEVELS,
   SHAFT_TYPES,
   UNIT_TYPES,
   type ElevatorCar,
+  type HallCall,
   type Lease,
   type QueueEntry,
+  type RiderTrip,
   type RngState,
   type Shaft,
   type ShaftId,
@@ -39,6 +43,7 @@ const MIGRATIONS: readonly Migration[] = [
   addStarRating,
   addHallQueues,
   addStarState,
+  addCarMotion,
 ];
 
 /** Version 2 records each unit's price level, what was paid for it and when it was placed. */
@@ -132,6 +137,56 @@ function addStarState(raw: Record<string, unknown>): Record<string, unknown> {
   };
 }
 
+/**
+ * Version 11 gives each car its motion state and each queued person a destination. Older cars
+ * stand idle and their riders get off at the next stop; queued people head for the end of the shaft.
+ */
+function addCarMotion(raw: Record<string, unknown>): Record<string, unknown> {
+  const step = isNonNegativeInteger(raw.step) ? raw.step : 0;
+  const shafts: Record<string, unknown> = {};
+  if (isRecord(raw.shafts)) {
+    for (const [id, shaft] of Object.entries(raw.shafts)) {
+      shafts[id] = isRecord(shaft) ? withCarMotion(shaft, step) : shaft;
+    }
+  }
+  return { ...raw, schemaVersion: 11, shafts };
+}
+
+function withCarMotion(shaft: Record<string, unknown>, step: number): Record<string, unknown> {
+  const cars = Array.isArray(shaft.cars) ? shaft.cars.map((car) => carWithMotion(car, step)) : [];
+  const queues: Record<string, unknown> = {};
+  if (isRecord(shaft.queues)) {
+    for (const [level, stop] of Object.entries(shaft.queues)) {
+      queues[level] = isRecord(stop) ? stopWithDestinations(stop, shaft) : stop;
+    }
+  }
+  return { ...shaft, cars, queues };
+}
+
+function carWithMotion(car: unknown, step: number): unknown {
+  if (!isRecord(car)) {
+    return car;
+  }
+  const riders = Array.isArray(car.riders) ? car.riders : [];
+  const trips = riders.map(() => ({ destination: car.level, boardedStep: step, waitSteps: 0 }));
+  return { trips, phase: 'idle', direction: 'idle', phaseStepsLeft: 0, assigned: [], ...car };
+}
+
+function stopWithDestinations(
+  stop: Record<string, unknown>,
+  shaft: Record<string, unknown>,
+): Record<string, unknown> {
+  const withDestination = (entries: unknown, destination: unknown): unknown =>
+    Array.isArray(entries)
+      ? entries.map((entry) => (isRecord(entry) ? { destination, ...entry } : entry))
+      : entries;
+  return {
+    ...stop,
+    up: withDestination(stop.up, shaft.top),
+    down: withDestination(stop.down, shaft.bottom),
+  };
+}
+
 function isUint32(value: unknown): value is number {
   return Number.isInteger(value) && (value as number) >= 0 && (value as number) <= 0xffff_ffff;
 }
@@ -211,14 +266,42 @@ function isElevatorCar(value: unknown): value is ElevatorCar {
     isLevel(value.level) &&
     Array.isArray(value.riders) &&
     value.riders.every((rider) => typeof rider === 'string') &&
+    Array.isArray(value.trips) &&
+    value.trips.length === value.riders.length &&
+    value.trips.every(isRiderTrip) &&
+    (CAR_PHASES as readonly unknown[]).includes(value.phase) &&
+    (CAR_DIRECTIONS as readonly unknown[]).includes(value.direction) &&
+    isNonNegativeInteger(value.phaseStepsLeft) &&
+    Array.isArray(value.assigned) &&
+    value.assigned.every(isHallCall) &&
     isNonNegativeInteger(value.paid) &&
     isNonNegativeInteger(value.placedAtStep)
   );
 }
 
+function isRiderTrip(value: unknown): value is RiderTrip {
+  return (
+    isRecord(value) &&
+    isLevel(value.destination) &&
+    isNonNegativeInteger(value.boardedStep) &&
+    isNonNegativeInteger(value.waitSteps)
+  );
+}
+
+function isHallCall(value: unknown): value is HallCall {
+  return (
+    isRecord(value) &&
+    isLevel(value.level) &&
+    (value.direction === 'up' || value.direction === 'down')
+  );
+}
+
 function isQueueEntry(value: unknown): value is QueueEntry {
   return (
-    isRecord(value) && typeof value.person === 'string' && isNonNegativeInteger(value.joinedStep)
+    isRecord(value) &&
+    typeof value.person === 'string' &&
+    isLevel(value.destination) &&
+    isNonNegativeInteger(value.joinedStep)
   );
 }
 
@@ -254,7 +337,7 @@ function isShaft(value: unknown): value is Shaft {
 }
 
 function copyEntry(entry: QueueEntry): QueueEntry {
-  return { person: entry.person, joinedStep: entry.joinedStep };
+  return { person: entry.person, destination: entry.destination, joinedStep: entry.joinedStep };
 }
 
 function readShafts(raw: unknown): Record<ShaftId, Shaft> {
@@ -276,6 +359,11 @@ function readShafts(raw: unknown): Record<ShaftId, Shaft> {
         homeLevel: car.homeLevel,
         level: car.level,
         riders: [...car.riders],
+        trips: car.trips.map((trip) => ({ ...trip })),
+        phase: car.phase,
+        direction: car.direction,
+        phaseStepsLeft: car.phaseStepsLeft,
+        assigned: car.assigned.map((call) => ({ ...call })),
         paid: car.paid,
         placedAtStep: car.placedAtStep,
       })),

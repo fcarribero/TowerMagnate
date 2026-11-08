@@ -509,3 +509,16 @@ export const FULL_QUEUE_ROUTE_COST = 1_000;
 export function carCapacity(type: ShaftType): number {
   return UNIT_CATALOG[SHAFT_UNIT_TYPES[type]].capacity?.people ?? 0;
 }
+
+/** Floors a car moves in one step, by shaft type (elevators 2.2). */
+export const CAR_FLOORS_PER_STEP = { standard: 1, service: 1, express: 3 } as const;
+/** Steps a car spends opening its doors at a stop. */
+export const DOOR_OPEN_STEPS = 1;
+/** Steps a car spends closing its doors before it can leave. */
+export const DOOR_CLOSE_STEPS = 1;
+/** Steps the doors stay open after opening (30 game seconds). */
+export const DEFAULT_DWELL_STEPS = 3;
+/** How far, in floors, a free car will go to answer a call. */
+export const DEFAULT_RESPONSE_DISTANCE = 5;
+/** Age in steps at which any free car answers a hall call (5 game minutes). */
+export const CALL_PATIENCE_STEPS = 30;

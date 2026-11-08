@@ -9,6 +9,7 @@ import type {
 } from '@tower-magnate/shared';
 import { STEPS_PER_DAY } from './clock';
 import { towerCommandHandlers } from './commands';
+import { createElevatorSystem } from './elevators';
 import { eventsPhase } from './events';
 import { createLeaseSystem } from './leases';
 import { cloneState } from './state';
@@ -143,6 +144,7 @@ const towerEngine = createEngine({
     createScheduler([ledgerWeekRollHook, officeRoutine.planHook]),
     createLeaseSystem(),
     officeRoutine.system,
+    createElevatorSystem(),
     createScheduler([starCheckHook]),
     eventsPhase,
   ],

@@ -85,7 +85,18 @@ export function shaftLevels(range: ShaftRange): Level[] {
 }
 
 export function idleCar(homeLevel: Level, paid: number, placedAtStep: number): ElevatorCar {
-  return { homeLevel, level: homeLevel, riders: [], paid, placedAtStep };
+  return {
+    homeLevel,
+    level: homeLevel,
+    riders: [],
+    trips: [],
+    phase: 'idle',
+    direction: 'idle',
+    phaseStepsLeft: 0,
+    assigned: [],
+    paid,
+    placedAtStep,
+  };
 }
 
 /** C-35: free, or already taken by the shaft being resized. */
