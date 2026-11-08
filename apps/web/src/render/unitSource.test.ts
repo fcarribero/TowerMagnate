@@ -9,7 +9,7 @@ describe('bindUnits', () => {
     const store = new ClientStore({ requestResync: () => {} });
     store.applySnapshot(snapshot);
     const shown: UnitsInput[] = [];
-    bindUnits(store, (input) => shown.push(input));
+    bindUnits(store, 'normal', (input) => shown.push(input));
     expect(shown).toHaveLength(1);
     expect([...(shown[0]?.units ?? [])].map((unit) => unit.id)).toContain('u12');
 

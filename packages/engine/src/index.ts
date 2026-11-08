@@ -26,6 +26,8 @@ export {
   spanError,
   structureAt,
 } from './grid';
+export { isNoisy } from './noise';
+export { isExpressStop, shaftLevels } from './commands/shafts';
 export { evaluateUnit, gradeOfScore, unitScore } from './evaluation';
 export type { UnitEvaluation, UnitEvaluationInput, UnitGrade } from './evaluation';
 export {
@@ -39,6 +41,9 @@ export {
 
 export { hashState } from './hash';
 export { migrateState, StateMigrationError } from './migrations';
+export { createCondoSystem, sellCondo } from './condos';
+export { checkIn, createHotelSystem, drawStayNights } from './hotel';
+export type { CheckInResult } from './hotel';
 export { createLeaseSystem, isLeasable, moveInTenant, STEPS_PER_WEEK } from './leases';
 export type { TenantEvaluator } from './leases';
 export {
@@ -104,6 +109,7 @@ export { cloneState, createTower, SCHEMA_VERSION } from './state';
 export { createEngine, runDays, step } from './step';
 export { populationOf } from './population';
 export type { PopulationBreakdown } from './population';
+export { chargeWeeklyUpkeep, weeklyUpkeepHook } from './upkeep';
 export { newUnit } from './units';
 export type {
   CommandContext,
@@ -117,3 +123,15 @@ export type {
   StepContext,
   StepResult,
 } from './step';
+export { TransportGraph, walkableLevelOfUnit, walkableRuns } from './routing';
+export type {
+  GraphNode,
+  Link,
+  LinkKind,
+  NodeId,
+  NodeRole,
+  RunId,
+  ShaftStops,
+  UserClass,
+  WalkableRun,
+} from './routing';

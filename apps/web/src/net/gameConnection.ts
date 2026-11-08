@@ -1,3 +1,4 @@
+import type { ServerMessage } from '@tower-magnate/shared';
 import { ClientStore } from '../model/clientStore';
 import { InspectStore } from '../model/inspectStore';
 import { CommandClient } from './commandClient';
@@ -8,6 +9,8 @@ export interface GameConnection {
   readonly inspect: InspectStore;
   readonly commands: CommandClient;
   readonly socket: GameSocket;
+  /** Calls `listener` with every server message, after the store has seen it. */
+  onMessage(listener: (message: ServerMessage) => void): () => void;
 }
 
 /**
@@ -22,6 +25,7 @@ export function createGameConnection(
   const store = new ClientStore({ requestResync: () => socket?.resync(), now });
   const inspect = new InspectStore();
   const commands = new CommandClient({ send: (message) => socket?.send(message) ?? false });
+  const listeners = new Set<(message: ServerMessage) => void>();
   socket = new GameSocket({
     ...options,
     sink: {
@@ -29,6 +33,9 @@ export function createGameConnection(
         store.receive(message);
         inspect.receive(message);
         commands.receive(message);
+        for (const listener of listeners) {
+          listener(message);
+        }
       },
       reconnected() {
         commands.abandonPending();
@@ -36,5 +43,14 @@ export function createGameConnection(
       },
     },
   });
-  return { store, inspect, commands, socket };
+  return {
+    store,
+    inspect,
+    commands,
+    socket,
+    onMessage(listener) {
+      listeners.add(listener);
+      return () => listeners.delete(listener);
+    },
+  };
 }

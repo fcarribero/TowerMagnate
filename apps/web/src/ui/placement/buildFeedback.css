@@ -1,0 +1,51 @@
+.tm-toasts {
+  position: absolute;
+  top: calc(28 * var(--tm-px));
+  left: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: calc(2 * var(--tm-px));
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.tm-toast {
+  padding: calc(2 * var(--tm-px)) calc(6 * var(--tm-px));
+  font-family: var(--tm-font);
+  font-size: var(--tm-font-size);
+  line-height: var(--tm-line-height);
+  color: var(--tm-white);
+  background: var(--tm-cloth-red);
+  border: calc(1 * var(--tm-px)) solid var(--tm-ink);
+}
+
+.tm-float-cost {
+  position: fixed;
+  font-family: var(--tm-font);
+  font-size: var(--tm-font-size);
+  color: var(--tm-cloth-red);
+  text-shadow: calc(1 * var(--tm-px)) calc(1 * var(--tm-px)) 0 var(--tm-white);
+  pointer-events: none;
+  transform: translate(-50%, -100%);
+  animation: tm-float-up 1.2s steps(8) forwards;
+}
+
+@keyframes tm-float-up {
+  to {
+    transform: translate(-50%, calc(-100% - 24px));
+    opacity: 0;
+  }
+}
+
+.tm-drag-label {
+  position: fixed;
+  padding: calc(1 * var(--tm-px)) calc(4 * var(--tm-px));
+  font-family: var(--tm-font);
+  font-size: var(--tm-font-size);
+  color: var(--tm-ink);
+  background: var(--tm-white);
+  border: calc(1 * var(--tm-px)) solid var(--tm-ink);
+  pointer-events: none;
+  transform: translate(12px, 12px);
+}

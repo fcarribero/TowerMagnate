@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { ClientStore } from '../model/clientStore';
 import { snapshot } from '../testing/protocolFixtures';
 import type { Cell } from './cellAtPoint';
+import type { CellInput } from './stage';
 import { bindUnitClicks } from './unitClick';
 
 const office = {
@@ -18,14 +19,18 @@ const office = {
 function setup() {
   const store = new ClientStore({ requestResync: () => undefined, now: () => 0 });
   store.applySnapshot({ ...snapshot, units: [office] });
-  let click: (cell: Cell) => void = () => undefined;
+  let input: (event: CellInput) => void = () => undefined;
   const opened: string[] = [];
   bindUnitClicks(
-    { onCellClick: (listener) => ((click = listener), () => undefined) },
+    { onCellInput: (listener) => ((input = listener), () => undefined) },
     store,
     (id) => opened.push(id),
   );
-  return { click: (cell: Cell) => click(cell), opened };
+  const press = (cell: Cell | null, upOffset = 0): void => {
+    input({ kind: 'down', cell, clientX: 100, clientY: 100 });
+    input({ kind: 'up', cell, clientX: 100 + upOffset, clientY: 100 });
+  };
+  return { click: (cell: Cell) => press(cell), press, opened };
 }
 
 describe('bindUnitClicks', () => {
@@ -38,6 +43,12 @@ describe('bindUnitClicks', () => {
   it('ignores a click on an empty cell', () => {
     const { click, opened } = setup();
     click({ x: 0, level: 3 });
+    expect(opened).toEqual([]);
+  });
+
+  it('ignores a press that dragged the view', () => {
+    const { press, opened } = setup();
+    press({ x: 10, level: 3 }, 20);
     expect(opened).toEqual([]);
   });
 });

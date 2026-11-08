@@ -56,6 +56,7 @@ const ERROR_CODES: Readonly<Record<ErrorCode | SocketErrorCode, true>> = {
   PROTOCOL_MISMATCH: true,
   NOT_AUTHENTICATED: true,
   RATE_LIMITED: true,
+  NOT_ALLOWED: true,
 };
 
 describe('strings', () => {
