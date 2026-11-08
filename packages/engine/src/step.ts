@@ -15,6 +15,7 @@ import { eventsPhase } from './events';
 import { createCondoSystem } from './condos';
 import { createHotelSystem } from './hotel';
 import { createLeaseSystem } from './leases';
+import { parkingAssignmentHook } from './parking';
 import { recordNotices } from './notices';
 import { cloneState } from './state';
 import { ledgerWeekRollHook } from './money';
@@ -221,6 +222,7 @@ export const towerSystems: readonly SimulationSystem[] = [
     ledgerWeekRollHook,
     weeklyUpkeepHook,
     officeRoutine.planHook,
+    parkingAssignmentHook,
     residentRoutine.planHook,
     ...prospects.rollHooks,
   ]),

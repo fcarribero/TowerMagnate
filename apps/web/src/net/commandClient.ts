@@ -96,4 +96,12 @@ export class CommandClient {
   inspect(target: InspectTarget | null): void {
     this.sender.send(clientMessage('inspect', { target }));
   }
+
+  inspectAdd(target: InspectTarget): void {
+    this.sender.send(clientMessage('inspectAdd', { target }));
+  }
+
+  inspectRemove(target: InspectTarget): void {
+    this.sender.send(clientMessage('inspectRemove', { target }));
+  }
 }

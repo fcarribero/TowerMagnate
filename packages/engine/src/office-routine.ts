@@ -2,6 +2,9 @@ import {
   FAST_FOOD_CAPACITY,
   FAST_FOOD_HOURS,
   FAST_FOOD_LUNCH_MINUTES,
+  MEDICAL_CENTER_DAILY_VISITS,
+  MEDICAL_VISIT_CHANCE,
+  MEDICAL_VISIT_MINUTES,
   OFFICE_WORKER_ARRIVAL,
   OFFICE_WORKER_LEAVE,
   OFFICE_WORKER_LUNCH_CHANCE,
@@ -11,6 +14,7 @@ import {
   UNIT_CATALOG,
   VENUE_CANDIDATES_DRAWN,
   type Level,
+  type MedicalDay,
   type PersonPool,
   type TowerState,
   type Unit,
@@ -50,6 +54,8 @@ export type RoutinePhase =
   | 'toLunch'
   | 'atLunch'
   | 'backFromLunch'
+  | 'toMedical'
+  | 'atMedical'
   | 'leaving';
 
 const PHASES: readonly RoutinePhase[] = [
@@ -60,6 +66,8 @@ const PHASES: readonly RoutinePhase[] = [
   'toLunch',
   'atLunch',
   'backFromLunch',
+  'toMedical',
+  'atMedical',
   'leaving',
 ];
 
@@ -69,8 +77,10 @@ export interface OfficeRoutine {
   lunchHandled: boolean;
   /** The street entrance used to come in, so the worker leaves by the same one. */
   entranceOnRight: boolean;
-  /** Unit number of the fast food being visited, or 0. */
+  /** Unit number of the fast food or medical center being visited, or 0. */
   venue: number;
+  /** Whether the worker goes to a medical center before leaving. */
+  medical: boolean;
   lunchMinute: number;
   leaveMinute: number;
 }
@@ -78,6 +88,8 @@ export interface OfficeRoutine {
 const MINUTES_PER_DAY = 24 * 60;
 const VENUE_RANGE = 1_000_000;
 const PHASE_RANGE = 16;
+/** Everything packed below the medical flag, which sits on top so older saves still decode. */
+const PACKED_RANGE = MINUTES_PER_DAY * MINUTES_PER_DAY * VENUE_RANGE * 2 * 2 * PHASE_RANGE;
 
 /** Packs the routine into a positive integer; a routine always has a phase, so it is never 0. */
 export function encodeRoutine(routine: OfficeRoutine): number {
@@ -86,11 +98,13 @@ export function encodeRoutine(routine: OfficeRoutine): number {
   packed = packed * VENUE_RANGE + routine.venue;
   packed = packed * 2 + (routine.entranceOnRight ? 1 : 0);
   packed = packed * 2 + (routine.lunchHandled ? 1 : 0);
-  return packed * PHASE_RANGE + phase;
+  return (routine.medical ? PACKED_RANGE : 0) + packed * PHASE_RANGE + phase;
 }
 
-export function decodeRoutine(trip: number): OfficeRoutine | null {
-  if (trip === NO_TRIP) return null;
+export function decodeRoutine(packedTrip: number): OfficeRoutine | null {
+  if (packedTrip === NO_TRIP) return null;
+  const medical = packedTrip >= PACKED_RANGE;
+  const trip = medical ? packedTrip - PACKED_RANGE : packedTrip;
   const phase = PHASES[(trip % PHASE_RANGE) - 1];
   if (!phase) return null;
   let rest = Math.floor(trip / PHASE_RANGE);
@@ -105,6 +119,7 @@ export function decodeRoutine(trip: number): OfficeRoutine | null {
     lunchHandled,
     entranceOnRight,
     venue,
+    medical,
     lunchMinute: Math.floor(times / MINUTES_PER_DAY),
     leaveMinute: times % MINUTES_PER_DAY,
   };
@@ -147,11 +162,13 @@ function drawPlans(context: StepContext, occurrence: HookOccurrence): void {
     const arrivalMinute = drawMinuteFromWindow(state.rng, OFFICE_WORKER_ARRIVAL);
     const lunchMinute = drawMinuteFromWindow(state.rng, OFFICE_WORKER_LUNCH_DEPARTURE);
     const leaveMinute = drawMinuteFromWindow(state.rng, OFFICE_WORKER_LEAVE);
+    const medical = state.stars >= 3 && chance(state.rng, MEDICAL_VISIT_CHANCE);
     pool.trip[slot] = encodeRoutine({
       phase: 'waitingToArrive',
       lunchHandled: false,
       entranceOnRight: false,
       venue: 0,
+      medical,
       lunchMinute,
       leaveMinute,
     });
@@ -234,14 +251,14 @@ function openFastFoods(state: TowerState, minuteOfDay: number): Unit[] {
 }
 
 /** Draws up to three distinct venues; the cheapest reachable one wins, ties go to the lower id. */
-function chooseFastFood(
+function chooseVenue(
   context: StepContext,
   state: TowerState,
   routes: RoutePlanner,
   from: Place,
-  minuteOfDay: number,
+  candidates: Unit[],
 ): { unit: Unit; steps: number } | null {
-  const remaining = openFastFoods(state, minuteOfDay);
+  const remaining = [...candidates];
   const drawn: Unit[] = [];
   while (drawn.length < VENUE_CANDIDATES_DRAWN && remaining.length > 0) {
     const [picked] = remaining.splice(nextInt(state.rng, 0, remaining.length - 1), 1);
@@ -367,7 +384,13 @@ function startLunch(worker: Worker, routes: RoutePlanner): void {
   routine.lunchHandled = true;
   const goesOut = chance(state.rng, OFFICE_WORKER_LUNCH_CHANCE);
   const choice = goesOut
-    ? chooseFastFood(worker.context, state, routes, worker.desk, minuteOfDay(worker))
+    ? chooseVenue(
+        worker.context,
+        state,
+        routes,
+        worker.desk,
+        openFastFoods(state, minuteOfDay(worker)),
+      )
     : null;
   if (!choice) {
     settleAtOffice(worker);
@@ -381,14 +404,87 @@ function startLunch(worker: Worker, routes: RoutePlanner): void {
   }
 }
 
-function startLeaving(worker: Worker, routes: RoutePlanner): void {
+function startLeaving(worker: Worker, routes: RoutePlanner, from: Place = worker.desk): void {
   const { routine, state } = worker;
+  if (routine.medical) {
+    routine.medical = false;
+    if (startMedicalVisit(worker, routes)) return;
+  }
   for (const onRight of [routine.entranceOnRight, !routine.entranceOnRight]) {
     const exit = entrancePlace(state, onRight);
-    const steps = exit ? routes(state, worker.desk, exit, worker.context) : null;
-    if (exit && steps !== null && beginTravel(worker, 'leaving', worker.desk, exit, steps)) return;
+    const steps = exit ? routes(state, from, exit, worker.context) : null;
+    if (exit && steps !== null && beginTravel(worker, 'leaving', from, exit, steps)) return;
   }
   save(worker, state.step + ROUTE_RETRY_STEPS);
+}
+
+function medicalCenters(state: TowerState): Unit[] {
+  return Object.values(state.units).filter((unit) => unit.type === 'medical-center');
+}
+
+/** Today's visit counts and notices; a new day starts them over. */
+function medicalDay(state: TowerState): MedicalDay {
+  const day = Math.floor(state.step / STEPS_PER_DAY);
+  if (state.medicalDay.day !== day) state.medicalDay = { day, visits: {}, noticed: [] };
+  return state.medicalDay;
+}
+
+function hasRoomToday(state: TowerState, center: number): boolean {
+  return (medicalDay(state).visits[center] ?? 0) < MEDICAL_CENTER_DAILY_VISITS;
+}
+
+function centersWithRoom(state: TowerState): Unit[] {
+  return medicalCenters(state)
+    .filter((unit) => hasRoomToday(state, unitNumber(unit.id)))
+    .sort((a, b) => unitNumber(a.id) - unitNumber(b.id));
+}
+
+/** Records the failed visit for the star check and shows the notice once a day. */
+function failMedicalVisit(worker: Worker, full: boolean): void {
+  const { state, context } = worker;
+  state.lastMedicalFailureStep = state.step;
+  const key = full ? 'news.medicalFull' : 'news.medicalDemanded';
+  const today = medicalDay(state);
+  if (today.noticed.includes(key)) return;
+  today.noticed.push(key);
+  context.events.push({ type: 'news', step: state.step, key, unitId: null });
+}
+
+/** Sends the worker to a medical center; on failure it is recorded and the worker goes home. */
+function startMedicalVisit(worker: Worker, routes: RoutePlanner): boolean {
+  const { state, routine } = worker;
+  const open = centersWithRoom(state);
+  const choice = chooseVenue(worker.context, state, routes, worker.desk, open);
+  if (choice) {
+    const previousVenue = routine.venue;
+    routine.venue = unitNumber(choice.unit.id);
+    if (beginTravel(worker, 'toMedical', worker.desk, unitPlace(choice.unit), choice.steps)) {
+      return true;
+    }
+    routine.venue = previousVenue;
+  }
+  failMedicalVisit(worker, open.length === 0 && medicalCenters(state).length > 0);
+  return false;
+}
+
+/** The worker reached the center: enter if it still has room, otherwise the visit fails. */
+function arriveAtMedicalCenter(worker: Worker, routes: RoutePlanner): void {
+  const { routine, state } = worker;
+  const center = venueUnit(state, routine.venue);
+  if (center?.type === 'medical-center' && hasRoomToday(state, routine.venue)) {
+    routine.phase = 'atMedical';
+    const today = medicalDay(state);
+    today.visits[routine.venue] = (today.visits[routine.venue] ?? 0) + 1;
+    save(worker, state.step + MEDICAL_VISIT_MINUTES * STEPS_PER_MINUTE);
+    return;
+  }
+  failMedicalVisit(worker, center?.type === 'medical-center');
+  startLeaving(worker, routes, center ? unitPlace(center) : worker.desk);
+}
+
+function leaveMedicalCenter(worker: Worker, routes: RoutePlanner): void {
+  const center = venueUnit(worker.state, worker.routine.venue);
+  startLeaving(worker, routes, center ? unitPlace(center) : worker.desk);
 }
 
 /** The worker reached the fast food: enter if it is still open and has room, otherwise walk back. */
@@ -448,6 +544,12 @@ function advance(worker: Worker, routes: RoutePlanner): void {
       break;
     case 'toLunch':
       arriveAtFastFood(worker, routes);
+      break;
+    case 'toMedical':
+      arriveAtMedicalCenter(worker, routes);
+      break;
+    case 'atMedical':
+      leaveMedicalCenter(worker, routes);
       break;
     case 'atLunch':
       changeDiners(worker.state, worker.routine.venue, -1);
