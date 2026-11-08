@@ -35,6 +35,9 @@ export function toClientEvents(events: readonly EngineEvent[]): ClientEvent[] {
           unitId: 'unitId' in event ? event.unitId : null,
         });
         break;
+      case 'weddingCompleted':
+        result.push({ type: 'weddingCompleted', step: event.step });
+        break;
       default:
         break;
     }
