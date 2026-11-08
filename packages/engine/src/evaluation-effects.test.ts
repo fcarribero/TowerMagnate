@@ -1,6 +1,7 @@
 import {
   CONDO_EVALUATION_WEEKS,
   LEASE_CONTRACT_WEEKS,
+  SHOP_EARLY_LEAVE_MIN_VISITS,
   WEEKLY_RENT,
   type Level,
   type StarRating,
@@ -48,7 +49,11 @@ function fileTrips(state: TowerState, unit: Unit, decisionStep: number, stress: 
 function leaseEndingNext(type: 'office' | 'retail-shop', stress: number, ...others: Placement[]) {
   const { state, units } = towerWith({ type, x: OFFICE_X }, ...others);
   const unit = units[0] as Unit;
-  unit.lease = { anchorStep: 0, nextDueStep: TERM_END };
+  unit.lease = {
+    anchorStep: 0,
+    nextDueStep: TERM_END,
+    weekVisits: SHOP_EARLY_LEAVE_MIN_VISITS,
+  };
   fileTrips(state, unit, TERM_END, stress);
   state.step = TERM_END - 1;
   return { state, unit };
@@ -89,7 +94,11 @@ describe('office lease end by grade (E-12)', () => {
     const result = stepOnce(state);
     const office = result.state.units[unit.id] as Unit;
     expect(office.evaluation).toBe('fair');
-    expect(office.lease).toEqual({ anchorStep: TERM_END, nextDueStep: TERM_END + STEPS_PER_WEEK });
+    expect(office.lease).toEqual({
+      anchorStep: TERM_END,
+      nextDueStep: TERM_END + STEPS_PER_WEEK,
+      weekVisits: 0,
+    });
     expect(result.state.money - state.money).toBe(WEEKLY_RENT.office.normal);
     expect(newsKeys(result)).toEqual([]);
   });
