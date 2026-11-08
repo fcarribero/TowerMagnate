@@ -32,6 +32,7 @@ export function NewsLine({ subscribe, onOpenAvisos, now = Date.now }: NewsLinePr
       queue.current.push(notice, now());
       refresh();
     });
+    refresh();
     return () => {
       stop();
       clearTimeout(timer);

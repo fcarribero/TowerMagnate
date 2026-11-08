@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import type { DecisionKind, NoticeView } from '@tower-magnate/shared';
 import type { GameConnection } from '../../net/gameConnection';
 import { optionLabel } from './decisionModel';
@@ -101,16 +101,18 @@ export function useNotices(
     });
   }, [connection]);
 
+  const subscribeLine = useCallback((listener: (notice: Notice) => void) => {
+    lineListeners.current.add(listener);
+    return () => {
+      lineListeners.current.delete(listener);
+    };
+  }, []);
+
   return useMemo(
     () => ({
       avisos,
       closedIds,
-      subscribeLine(listener) {
-        lineListeners.current.add(listener);
-        return () => {
-          lineListeners.current.delete(listener);
-        };
-      },
+      subscribeLine,
       answerEvent(eventId, choice) {
         answered.current.add(eventId);
         void connection.commands.send({ type: 'answerEvent', eventId, choice }).then((result) => {
@@ -121,6 +123,6 @@ export function useNotices(
         });
       },
     }),
-    [avisos, closedIds, connection, onRejected],
+    [avisos, closedIds, subscribeLine, connection, onRejected],
   );
 }
