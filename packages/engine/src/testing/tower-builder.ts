@@ -108,6 +108,23 @@ function placeShaft(state: TowerState, shaft: PlannedShaft): EntityId {
   const id = takeId(state, 's');
   const span = { x0: shaft.x, x1: shaft.x + definition.width - 1 };
   occupy(state, levelsBetween(shaft.bottom, shaft.top), span, { kind: 'shaft', id }, shaft.type);
+  const car = {
+    homeLevel: shaft.bottom,
+    level: shaft.bottom,
+    riders: [],
+    paid: 0,
+    placedAtStep: 0,
+  };
+  state.shafts[id] = {
+    id,
+    type: shaft.type,
+    x: shaft.x,
+    bottom: shaft.bottom,
+    top: shaft.top,
+    cars: [car],
+    paid: 0,
+    placedAtStep: state.step,
+  };
   return id;
 }
 
