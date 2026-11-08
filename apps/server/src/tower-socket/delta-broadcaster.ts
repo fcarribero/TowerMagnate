@@ -18,6 +18,8 @@ export interface DeltaBroadcasterOptions {
 interface SentState {
   snapshot: Snapshot;
   sentAt: number;
+  /** A snapshot sent between ticks already shows the events up to its step. */
+  shownEventsUpTo: number | null;
 }
 
 /**
@@ -34,8 +36,16 @@ export class DeltaBroadcaster {
 
   /** Records the snapshot a socket was just sent and sends it. */
   sendSnapshot(socket: GatewaySocket, snapshot: Snapshot): void {
+    this.recordSnapshot(socket, snapshot, snapshot.step);
+  }
+
+  private recordSnapshot(
+    socket: GatewaySocket,
+    snapshot: Snapshot,
+    shownEventsUpTo: number | null,
+  ): void {
     sendMessage(socket, serverMessage('snapshot', snapshot));
-    this.sent.set(socket, { snapshot, sentAt: this.now() });
+    this.sent.set(socket, { snapshot, sentAt: this.now(), shownEventsUpTo });
   }
 
   /** Sends one delta, heartbeat or replacement snapshot to every socket that has a baseline. */
@@ -68,10 +78,12 @@ export class DeltaBroadcaster {
     snapshot: Snapshot,
     events: readonly ClientEvent[],
   ): void {
-    if (snapshot.step === baseline.snapshot.step) {
+    const news = events.filter(
+      (event) => baseline.shownEventsUpTo === null || event.step > baseline.shownEventsUpTo,
+    );
+    if (snapshot.step === baseline.snapshot.step && news.length === 0) {
       return;
     }
-    const news = events.filter((event) => event.step > baseline.snapshot.step);
     this.sendUpdate(socket, baseline, snapshot, news.length > 0);
     if (news.length > 0) {
       sendMessage(socket, serverMessage('events', { events: news }));
@@ -87,7 +99,7 @@ export class DeltaBroadcaster {
   ): void {
     const now = this.now();
     if (needsFreshSnapshot(baseline.snapshot, snapshot)) {
-      this.sendSnapshot(socket, snapshot);
+      this.recordSnapshot(socket, snapshot, null);
       return;
     }
     const { delta, quiet } = diffSnapshots(baseline.snapshot, snapshot);
@@ -95,10 +107,10 @@ export class DeltaBroadcaster {
       return;
     }
     if (JSON.stringify(delta).length > JSON.stringify(snapshot).length) {
-      this.sendSnapshot(socket, snapshot);
+      this.recordSnapshot(socket, snapshot, null);
       return;
     }
     sendMessage(socket, serverMessage('delta', delta));
-    this.sent.set(socket, { snapshot, sentAt: now });
+    this.sent.set(socket, { snapshot, sentAt: now, shownEventsUpTo: null });
   }
 }

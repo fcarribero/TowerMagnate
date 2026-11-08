@@ -1,4 +1,5 @@
 import {
+  announceSanta,
   DAYS_PER_WEEK,
   openFire,
   openRandomBombThreat,
@@ -26,6 +27,7 @@ function highestBuiltLevel(state: TowerState): number {
 }
 
 export function forceEvent(kind: DebugEventKind): TowerChange {
+  if (kind === 'santa') return forceSanta;
   return (state) => {
     const context: StepContext = { state: structuredClone(state), events: [] };
     const opened =
@@ -45,6 +47,13 @@ export function forceEvent(kind: DebugEventKind): TowerChange {
     return { state: context.state, events: context.events };
   };
 }
+
+/** Santa is only a notice, so the tower stays exactly as it was. */
+const forceSanta: TowerChange = (state) => {
+  const context: StepContext = { state, events: [] };
+  announceSanta(context);
+  return { state, events: context.events };
+};
 
 /** Runs the steps through the same advance the real clock uses, so the result matches. */
 export function fastForward(steps: number): TowerChange {

@@ -88,10 +88,22 @@ describe('debug changes on a running tower', () => {
     await expect(runner.change('1', forceEvent('fire'))).rejects.toEqual(
       new DebugRefusal('BOMB_EVENT_ACTIVE'),
     );
-    await expect(runner.change('1', forceEvent('santa'))).rejects.toEqual(
+    await expect(runner.change('1', forceEvent('vip'))).rejects.toEqual(
       new DebugRefusal('INVALID_COMMAND'),
     );
     expect(state().activeEvents).toHaveLength(1);
+  });
+
+  it('announces santa at the current step and leaves the tower as it was', async () => {
+    await start(2, towerWithOffice());
+    const before = hashState(state());
+
+    await runner.change('1', forceEvent('santa'));
+
+    expect(runner.takeEvents('1')).toEqual([
+      { type: 'news', step: state().step, key: 'news.santa', unitId: null },
+    ]);
+    expect(hashState(state())).toBe(before);
   });
 
   it('fast forwards a day to the same state as running the steps', async () => {
