@@ -51,6 +51,8 @@ export interface PersonPool {
   legColumn: number[];
   /** Step at which a flight ends or a full queue is checked again. */
   legStep: number[];
+  /** 1 when the last horizontal move was to the left, otherwise 0. */
+  facing: number[];
   /** Ids of followed people, in increasing order, at most MAX_FOLLOWED_PEOPLE. */
   followed: number[];
 }
