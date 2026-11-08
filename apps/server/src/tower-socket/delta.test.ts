@@ -87,12 +87,21 @@ describe('delta between snapshots', () => {
     expect(removed.unitsRemoved).toEqual(['u9']);
   });
 
-  it('asks for a fresh snapshot when the lobby height changes', () => {
+  it('sends the lobby height only when it changes', () => {
+    const before = snapshotOf(createTower(3));
+    const built = { ...before, grid: { ...before.grid, mainLobbyHeight: 1 as const } };
+    const raised = { ...built, grid: { ...built.grid, mainLobbyHeight: 2 as const } };
+
+    expect(diffSnapshots(before, built).delta.mainLobbyHeight).toBe(1);
+    expect(diffSnapshots(built, built).delta.mainLobbyHeight).toBeUndefined();
+    expect(diffSnapshots(built, raised).delta.mainLobbyHeight).toBe(2);
+  });
+
+  it('keeps the same snapshot when only the lobby height changes', () => {
     const before = snapshotOf(tower());
     const after = { ...before, grid: { ...before.grid, mainLobbyHeight: 2 as const } };
 
-    expect(needsFreshSnapshot(before, after)).toBe(true);
-    expect(needsFreshSnapshot(before, before)).toBe(false);
+    expect(needsFreshSnapshot(before, after)).toBe(false);
   });
 
   it('carries a new shaft and its cars, then drops a removed car', () => {

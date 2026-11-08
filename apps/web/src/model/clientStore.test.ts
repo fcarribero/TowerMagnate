@@ -19,6 +19,17 @@ describe('ClientStore', () => {
     expect(requestResync).not.toHaveBeenCalled();
   });
 
+  it('takes the lobby height from a delta', () => {
+    const { store } = setup();
+    store.receive(
+      serverMessage('snapshot', { ...snapshot, grid: { ...snapshot.grid, mainLobbyHeight: null } }),
+    );
+    store.receive(serverMessage('delta', delta({ step: 101, mainLobbyHeight: 2 })));
+    expect(store.current?.latest.mainLobbyHeight).toBe(2);
+    store.receive(serverMessage('delta', delta({ step: 102 })));
+    expect(store.current?.latest.mainLobbyHeight).toBe(2);
+  });
+
   it('keeps the two latest states', () => {
     const { store } = setup();
     store.receive(serverMessage('snapshot', snapshot));
