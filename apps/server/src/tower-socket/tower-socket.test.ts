@@ -313,15 +313,38 @@ describe('tower socket against postgres', () => {
       return client;
     }
 
-    it('answers a malformed command with an error frame and keeps the socket open', async () => {
+    it('answers a malformed command with a failed commandResult and keeps the socket open', async () => {
       const client = await connectWithLobby();
 
-      sendCommand(client, 'c1', { type: 'buildFloor', level: '2', x0: 10, x1: 12 });
+      sendCommand(client, 'x1', {
+        type: 'configureShaft',
+        shaftId: 's1',
+        stops: [1],
+        carHomes: [1],
+        schedule: { weekday: [], weekend: [] },
+      });
+      const result = await client.next('commandResult');
+
+      expect(result.p).toEqual({
+        id: 'x1',
+        ok: false,
+        step: expect.any(Number),
+        error: 'INVALID_COMMAND',
+      });
+      expect(client.received.filter((message) => message.t === 'error')).toEqual([]);
+      expect(client.closeCode).toBeUndefined();
+    });
+
+    it('answers a command without an id with an error frame', async () => {
+      const client = await connectWithLobby();
+
+      client.sendRaw(
+        JSON.stringify({ v: 1, t: 'command', p: { command: { type: 'buildFloor' } } }),
+      );
       const error = await client.next('error');
 
       expect(error.p.code).toBe('INVALID_COMMAND');
       expect(client.received.filter((message) => message.t === 'commandResult')).toEqual([]);
-      expect(client.closeCode).toBeUndefined();
     });
 
     it('builds a floor, answers with its cost and saves the tower while it keeps running', async () => {

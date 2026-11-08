@@ -31,11 +31,20 @@ export interface PlannedUnit {
   x: number;
 }
 
+/** A stair or escalator flight from `level` to the level above, laid on free floor. */
+export interface PlannedFlight {
+  type: 'stairs' | 'escalator';
+  x: number;
+  level: Level;
+}
+
 export interface PlannedShaft {
   type: ShaftType;
   x: number;
   bottom: Level;
   top: Level;
+  /** Cars parked at the bottom level; one when left out. */
+  cars?: number;
 }
 
 /** A tower laid straight into the grid, without going through commands or their rules. */
@@ -45,12 +54,14 @@ export interface TowerPlan {
   floors?: readonly PlannedFloors[];
   units?: readonly PlannedUnit[];
   shafts?: readonly PlannedShaft[];
+  flights?: readonly PlannedFlight[];
 }
 
 export interface BuiltTower {
   state: TowerState;
   unitIds: EntityId[];
   shaftIds: EntityId[];
+  flightIds: EntityId[];
 }
 
 const MAIN_LOBBY_LEVEL: Level = 1;
@@ -68,7 +79,8 @@ export function buildTower(plan: TowerPlan): BuiltTower {
 
   const unitIds = (plan.units ?? []).map((unit) => placeUnit(state, unit));
   const shaftIds = (plan.shafts ?? []).map((shaft) => placeShaft(state, shaft));
-  return { state, unitIds, shaftIds };
+  const flightIds = (plan.flights ?? []).map((flight) => placeFlight(state, flight));
+  return { state, unitIds, shaftIds, flightIds };
 }
 
 /** A main lobby on level 1 and floors on levels 2..floorCount, all over the same columns. */
@@ -109,17 +121,34 @@ function placeShaft(state: TowerState, shaft: PlannedShaft): EntityId {
   const id = takeId(state, 's');
   const span = { x0: shaft.x, x1: shaft.x + definition.width - 1 };
   occupy(state, levelsBetween(shaft.bottom, shaft.top), span, { kind: 'shaft', id }, shaft.type);
-  const car = idleCar(shaft.bottom, 0, 0);
+  const cars = Array.from({ length: shaft.cars ?? 1 }, () => idleCar(shaft.bottom, 0, 0));
   state.shafts[id] = {
     id,
     type: shaft.type,
     x: shaft.x,
     bottom: shaft.bottom,
     top: shaft.top,
-    cars: [car],
+    cars,
     stops: defaultStops(shaft.type, shaft),
     schedule: defaultSchedule(),
     queues: {},
+    paid: 0,
+    placedAtStep: state.step,
+  };
+  return id;
+}
+
+function placeFlight(state: TowerState, flight: PlannedFlight): EntityId {
+  const id = takeId(state, 't');
+  const span = { x0: flight.x, x1: flight.x + UNIT_CATALOG[flight.type].width - 1 };
+  const landing = levelOffset(flight.level, 1);
+  occupy(state, [flight.level], span, { kind: 'transport', id, part: 'footprint' }, flight.type);
+  occupy(state, [landing], span, { kind: 'transport', id, part: 'landing' }, flight.type);
+  state.transports[id] = {
+    id,
+    type: flight.type,
+    x: flight.x,
+    level: flight.level,
     paid: 0,
     placedAtStep: state.step,
   };
@@ -141,7 +170,7 @@ function occupy(
   }
 }
 
-function takeId(state: TowerState, prefix: 'u' | 's'): EntityId {
+function takeId(state: TowerState, prefix: 'u' | 's' | 't'): EntityId {
   const id = `${prefix}${state.nextId}`;
   state.nextId += 1;
   return id;
