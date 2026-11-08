@@ -71,6 +71,7 @@ const MIGRATIONS: readonly Migration[] = [
   addTripLedger,
   addGuardEventState,
   addVenueDayCounts,
+  addBombCell,
 ];
 
 /** Version 2 records each unit's price level, what was paid for it and when it was placed. */
@@ -316,6 +317,22 @@ function addVenueDayCounts(raw: Record<string, unknown>): Record<string, unknown
 function venueDayFor(type: unknown): VenueDay | null {
   const isVenue = (UNIT_TYPES as readonly unknown[]).includes(type) && isVenueType(type as never);
   return isVenue ? newVenueDay() : null;
+}
+
+/**
+ * Version 21 keeps where a bomb is hidden. A threat saved before that has no cell; it gets the
+ * level its search was given, or level 1, which a blast never ruins.
+ */
+function addBombCell(raw: Record<string, unknown>): Record<string, unknown> {
+  const activeEvents = Array.isArray(raw.activeEvents)
+    ? raw.activeEvents.map((event) => {
+        if (!isRecord(event) || event.kind !== 'bomb') return event;
+        const search = isRecord(event.search) ? event.search : null;
+        const level = search && isLevel(search.bombLevel) ? search.bombLevel : 1;
+        return { bomb: { x: 0, level }, ...event };
+      })
+    : raw.activeEvents;
+  return { ...raw, activeEvents, schemaVersion: 21 };
 }
 
 /** Version 11 gives each hotel room a state; every room in an older tower is clean and empty. */

@@ -41,6 +41,7 @@ export {
   eventsPhase,
   openBombThreat,
   openFire,
+  openRandomBombThreat,
 } from './events';
 
 export { hashState } from './hash';

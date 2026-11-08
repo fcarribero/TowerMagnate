@@ -10,7 +10,7 @@ const context = (state: ReturnType<typeof createTower>) => ({ state, events: [] 
 describe('buildEventViews', () => {
   it('shows an open bomb decision with its ransom and without a cell', () => {
     const tower = createTower(1);
-    openBombThreat(context(tower), 250_000);
+    openBombThreat(context(tower), 250_000, { x: 0, level: 2 });
     const [view] = buildEventViews(tower);
     expect(view).toEqual({
       kind: 'decision',
@@ -50,7 +50,7 @@ describe('buildEventViews', () => {
 describe('event state in saved snapshots', () => {
   it('keeps the deadline of an open decision and lets the player answer after restore', () => {
     const tower = createTower(1);
-    openBombThreat(context(tower), 250_000);
+    openBombThreat(context(tower), 250_000, { x: 0, level: 2 });
     const deadline = tower.activeEvents[0]?.decision.deadlineStep;
     const restored = deserializeState(serializeState(tower));
     expect(restored.activeEvents[0]?.decision.deadlineStep).toBe(deadline);

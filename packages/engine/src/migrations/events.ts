@@ -1,7 +1,9 @@
 import {
   isBasement,
+  isColumn,
   isLevel,
   type ActiveEvent,
+  type BombCell,
   type BombSearch,
   type BurningLevel,
   type Decision,
@@ -85,6 +87,13 @@ function readSearch(raw: unknown, id: string): BombSearch | null {
   return search;
 }
 
+function readBombCell(raw: unknown, id: string): BombCell {
+  const valid = isRecord(raw) && isColumn(raw.x) && isLevel(raw.level);
+  if (!valid) throw malformed(id, 'bomb cell');
+  const { x, level } = raw as unknown as BombCell;
+  return { x, level };
+}
+
 function readFront(raw: unknown, id: string): FireFront {
   const valid =
     isRecord(raw) &&
@@ -147,6 +156,7 @@ function readActiveEvent(raw: unknown): ActiveEvent {
       id: raw.id,
       decision,
       ransom: raw.ransom as number,
+      bomb: readBombCell(raw.bomb, raw.id),
       search: readSearch(raw.search, raw.id),
     };
   }
