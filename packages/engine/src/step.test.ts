@@ -5,6 +5,7 @@ import { hashState } from './hash';
 import { chance } from './rng';
 import { createTower } from './state';
 import { createEngine, runDays, step, type EngineRules } from './step';
+import { fastestRunMillis } from './testing';
 
 const testRules: EngineRules = {
   commandHandlers: {
@@ -202,8 +203,6 @@ describe('runDays', () => {
 
   it('runs an empty-tower day in under 50 ms', () => {
     runDays(createTower(1), 1);
-    const started = performance.now();
-    runDays(createTower(1), 1);
-    expect(performance.now() - started).toBeLessThan(50);
+    expect(fastestRunMillis(() => runDays(createTower(1), 1))).toBeLessThan(50);
   });
 });

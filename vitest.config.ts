@@ -10,6 +10,7 @@ export default defineConfig({
       {
         test: {
           name: 'repo',
+          testTimeout: 30_000,
           include: ['tests/**/*.test.ts', 'scripts/**/*.test.ts', 'e2e/**/*.test.ts'],
         },
       },

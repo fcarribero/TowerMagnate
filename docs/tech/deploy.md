@@ -58,7 +58,7 @@ pnpm test        # runs art:build, then Vitest across every package
 pnpm e2e         # Playwright, starts its own compose stack
 ```
 
-Server tests start a postgres container through testcontainers. To use a running postgres instead, set `TEST_DATABASE_URL`. Install the e2e browser once with `pnpm exec playwright install chromium`.
+Server tests start one postgres container through testcontainers and give each test file its own database. To use a running postgres instead, set `TEST_DATABASE_URL`. Install the e2e browser once with `pnpm exec playwright install chromium`.
 
 ## Port blocks
 
