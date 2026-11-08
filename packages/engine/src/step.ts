@@ -25,6 +25,7 @@ import { createTrekSystem, plannedTripSteps } from './trek';
 import { TransportGraph, type ShaftStops } from './routing';
 import { starCheckHook } from './stars';
 import { weeklyUpkeepHook } from './upkeep';
+import { venuePayoutHooks } from './venues';
 
 export interface StepResult {
   state: TowerState;
@@ -197,6 +198,7 @@ export const towerSystems: readonly SimulationSystem[] = [
   createScheduler([
     ledgerWeekRollHook,
     weeklyUpkeepHook,
+    ...venuePayoutHooks,
     officeRoutine.planHook,
     ...prospects.rollHooks,
   ]),

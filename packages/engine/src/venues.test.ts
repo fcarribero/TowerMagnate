@@ -1,0 +1,196 @@
+import {
+  DAILY_INCOME_BRACKETS,
+  VENUE_HOURS,
+  type TowerState,
+  type UnitId,
+  type UnitType,
+} from '@tower-magnate/shared';
+import { describe, expect, it } from 'vitest';
+import { STEPS_PER_HOUR } from './calendar';
+import { STEPS_PER_DAY } from './clock';
+import { createScheduler } from './scheduler';
+import { createEngine } from './step';
+import { buildTower, plainTowerPlan } from './testing';
+import { recordVenueVisit, venuePayoutHooks } from './venues';
+
+type VenueType = keyof typeof VENUE_HOURS;
+
+const engine = createEngine({
+  commandHandlers: {},
+  systems: [createScheduler(venuePayoutHooks)],
+});
+
+const START_MONEY = 1_000_000;
+const STEPS_PER_MINUTE = STEPS_PER_HOUR / 60;
+
+function at(day: number, hour: number, minute = 0): number {
+  return day * STEPS_PER_DAY + hour * STEPS_PER_HOUR + minute * STEPS_PER_MINUTE;
+}
+
+function towerWith(type: VenueType, placedAtStep = 0): { tower: TowerState; id: UnitId } {
+  const { state, unitIds } = buildTower({
+    ...plainTowerPlan(3, 0, 60),
+    units: [{ type: type as UnitType, x: 0, level: 2 }],
+  });
+  state.money = START_MONEY;
+  const id = unitIds[0] as UnitId;
+  (state.units[id] as { placedAtStep: number }).placedAtStep = placedAtStep;
+  return { tower: state, id };
+}
+
+function setCounts(tower: TowerState, id: UnitId, visits: number, evening = 0): void {
+  const venue = tower.units[id]?.venue;
+  if (!venue) throw new Error('not a venue');
+  venue.visits = visits;
+  venue.eveningShowVisits = evening;
+}
+
+/** Runs from a few steps before the payout hour through its first step. */
+function runThroughPayout(tower: TowerState, type: VenueType, day = 1): TowerState {
+  const state = structuredClone(tower);
+  state.step = at(day, VENUE_HOURS[type].pays) - 5;
+  return engine.step(state, [], 6).state;
+}
+
+const BOUNDARIES: Record<VenueType, number[]> = {
+  'fast-food': [0, 24, 25, 34, 35, 49, 50],
+  restaurant: [0, 24, 25, 34, 35, 49, 50],
+  'party-hall': [0, 24, 25, 39, 40],
+  cinema: [0, 39, 40, 79, 80, 99, 100],
+};
+
+const VENUE_TYPES = Object.keys(BOUNDARIES) as VenueType[];
+
+function expectedAmount(type: VenueType, customers: number): number {
+  const reached = DAILY_INCOME_BRACKETS[type].filter(
+    (bracket) => customers >= bracket.minCustomers,
+  );
+  return (reached.at(-1) as { amount: number }).amount;
+}
+
+describe('venue daily income', () => {
+  for (const type of VENUE_TYPES) {
+    it.each(BOUNDARIES[type])(`pays a ${type} with %i customers by the table`, (customers) => {
+      const { tower, id } = towerWith(type);
+      // A cinema's customers are the average of two shows, so both shows get the same audience.
+      setCounts(tower, id, customers, type === 'cinema' ? customers : 0);
+      const after = runThroughPayout(tower, type);
+      const amount = expectedAmount(type, customers);
+      expect(after.money).toBe(START_MONEY + amount);
+      expect(after.ledger.currentWeek.venues.income).toBe(Math.max(amount, 0));
+      expect(after.ledger.currentWeek.venues.expense).toBe(Math.min(amount, 0));
+    });
+  }
+
+  it('averages the two cinema shows and rounds down', () => {
+    const { tower, id } = towerWith('cinema');
+    setCounts(tower, id, 80, 79);
+    expect(runThroughPayout(tower, 'cinema').money).toBe(START_MONEY + 2_000);
+    setCounts(tower, id, 100, 99);
+    expect(runThroughPayout(tower, 'cinema').money).toBe(START_MONEY + 10_000);
+  });
+
+  it.each(VENUE_TYPES)('pays %s once, at the first step of its payout hour', (type) => {
+    const { tower, id } = towerWith(type);
+    setCounts(tower, id, 100, 100);
+    const payStep = at(1, VENUE_HOURS[type].pays);
+    const before = structuredClone(tower);
+    before.step = payStep - 2;
+    const early = engine.step(before, [], 1).state;
+    expect(early.step).toBe(payStep - 1);
+    expect(early.money).toBe(START_MONEY);
+    const onTime = engine.step(early, [], 1).state;
+    expect(onTime.step).toBe(payStep);
+    expect(onTime.money).not.toBe(START_MONEY);
+    expect(engine.step(onTime, [], STEPS_PER_HOUR).state.money).toBe(onTime.money);
+  });
+
+  it('gives no payout the day a fast food is placed after it opened', () => {
+    const { tower, id } = towerWith('fast-food', at(1, 8, 1));
+    const after = runThroughPayout(tower, 'fast-food');
+    expect(after.money).toBe(START_MONEY);
+    expect(after.units[id]?.venue?.yesterday).toEqual({ visits: 0, result: null });
+  });
+
+  it('charges a fast food placed exactly at opening time', () => {
+    const { tower } = towerWith('fast-food', at(1, 8));
+    expect(runThroughPayout(tower, 'fast-food').money).toBe(START_MONEY - 3_000);
+  });
+
+  it('gives no payout the day a cinema is placed after the 14:00 show starts', () => {
+    const { tower, id } = towerWith('cinema', at(1, 14, 1));
+    setCounts(tower, id, 200, 200);
+    expect(runThroughPayout(tower, 'cinema').money).toBe(START_MONEY);
+  });
+
+  it('pays on the next day after a late placement', () => {
+    const { tower } = towerWith('fast-food', at(1, 8, 1));
+    expect(runThroughPayout(tower, 'fast-food', 2).money).toBe(START_MONEY - 3_000);
+  });
+
+  it('lets a restaurant loss take the balance below zero', () => {
+    const { tower } = towerWith('restaurant');
+    tower.money = 2_000;
+    expect(runThroughPayout(tower, 'restaurant').money).toBe(-4_000);
+  });
+
+  it('pays one entry per venue of the type', () => {
+    const { state, unitIds } = buildTower({
+      ...plainTowerPlan(3, 0, 60),
+      units: [
+        { type: 'fast-food', x: 0, level: 2 },
+        { type: 'fast-food', x: 20, level: 2 },
+      ],
+    });
+    state.money = START_MONEY;
+    setCounts(state, unitIds[0] as UnitId, 50);
+    const after = runThroughPayout(state, 'fast-food');
+    expect(after.money).toBe(START_MONEY + 5_000 - 3_000);
+  });
+
+  it('keeps yesterday and starts a new count after the payout', () => {
+    const { tower, id } = towerWith('party-hall');
+    setCounts(tower, id, 30);
+    const after = runThroughPayout(tower, 'party-hall');
+    expect(after.units[id]?.venue).toEqual({
+      visits: 0,
+      eveningShowVisits: 0,
+      yesterday: { visits: 30, result: 5_000 },
+    });
+  });
+});
+
+describe('recording visits', () => {
+  function visit(tower: TowerState, id: UnitId, hour: number, minute = 0): boolean {
+    tower.step = at(1, hour, minute);
+    return recordVenueVisit(tower, id);
+  }
+
+  it('counts visits that start between opening and payout', () => {
+    const { tower, id } = towerWith('fast-food');
+    expect(visit(tower, id, 7, 59)).toBe(false);
+    expect(visit(tower, id, 8)).toBe(true);
+    expect(visit(tower, id, 19, 59)).toBe(true);
+    expect(visit(tower, id, 20)).toBe(false);
+    expect(tower.units[id]?.venue?.visits).toBe(2);
+  });
+
+  it('counts a cinema entry only during the two show windows', () => {
+    const { tower, id } = towerWith('cinema');
+    expect(visit(tower, id, 13, 59)).toBe(false);
+    expect(visit(tower, id, 14)).toBe(true);
+    expect(visit(tower, id, 15, 59)).toBe(true);
+    expect(visit(tower, id, 17)).toBe(false);
+    expect(visit(tower, id, 19)).toBe(true);
+    expect(visit(tower, id, 21)).toBe(false);
+    expect(tower.units[id]?.venue).toMatchObject({ visits: 2, eveningShowVisits: 1 });
+  });
+
+  it('refuses a unit that is not a venue', () => {
+    const { state, unitIds } = buildTower({
+      ...plainTowerPlan(3, 0, 60),
+      units: [{ type: 'office', x: 0, level: 2 }],
+    });
+    expect(() => recordVenueVisit(state, unitIds[0] as UnitId)).toThrow('not a food');
+  });
+});
