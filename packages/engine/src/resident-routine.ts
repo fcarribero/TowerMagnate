@@ -35,6 +35,7 @@ import {
   type Place,
   type RoutePlanner,
 } from './office-routine';
+import { recordShopVisit } from './leases';
 import { createPeopleSystem, NO_TRIP, NOTHING_DUE } from './people';
 import { chance, nextInt } from './rng';
 import type { HookOccurrence, ScheduledHook } from './scheduler';
@@ -421,6 +422,7 @@ function arriveAtVenue(resident: Resident): void {
     return;
   }
   arriveAt(resident, unitPlace(venue));
+  recordShopVisit(venue);
   routine.phase = 'atVenue';
   save(resident, state.step + VENUE_VISIT_MINUTES[type] * STEPS_PER_MINUTE);
 }

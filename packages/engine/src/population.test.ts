@@ -23,7 +23,11 @@ describe('population', () => {
   it('counts 6 for each office with a tenant and nothing for a shop tenant yet', () => {
     const { state, ids } = towerWithUnits(['office', 'office', 'retail-shop']);
     for (const id of ids) {
-      (state.units[id] as { lease: unknown }).lease = { anchorStep: 0, nextDueStep: 1 };
+      (state.units[id] as { lease: unknown }).lease = {
+        anchorStep: 0,
+        nextDueStep: 1,
+        weekVisits: 0,
+      };
     }
     expect(populationOf(state)).toEqual({ offices: 12, total: 12 });
   });
@@ -46,7 +50,11 @@ describe('population', () => {
   it('drops an office when its unit is demolished', () => {
     const { state, ids } = towerWithUnits(['office', 'office']);
     for (const id of ids) {
-      (state.units[id] as { lease: unknown }).lease = { anchorStep: 0, nextDueStep: 1 };
+      (state.units[id] as { lease: unknown }).lease = {
+        anchorStep: 0,
+        nextDueStep: 1,
+        weekVisits: 0,
+      };
     }
     state.units = Object.fromEntries(Object.entries(state.units).filter(([id]) => id !== ids[0]));
     expect(populationOf(state).total).toBe(6);

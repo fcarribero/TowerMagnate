@@ -304,7 +304,11 @@ describe('snapshot from tower state', () => {
   it('counts 6 for each office with a tenant', () => {
     const state = towerWithPeople();
     expect(buildSnapshot(state, null).population).toBe(0);
-    (state.units.u5 as { lease: unknown }).lease = { anchorStep: 0, nextDueStep: 60480 };
+    (state.units.u5 as { lease: unknown }).lease = {
+      anchorStep: 0,
+      nextDueStep: 60480,
+      weekVisits: 0,
+    };
     expect(buildSnapshot(state, null).population).toBe(6);
   });
 

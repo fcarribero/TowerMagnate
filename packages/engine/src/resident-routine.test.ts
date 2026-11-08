@@ -127,7 +127,7 @@ function condoTower(seed: number, condos: number): CondoTower {
   VENUE_LAYOUT.forEach((venue, index) => {
     const unit = state.units[unitIds[index] ?? ''];
     if (unit && venue.type === 'retail-shop') {
-      unit.lease = { anchorStep: 0, nextDueStep: Number.MAX_SAFE_INTEGER };
+      unit.lease = { anchorStep: 0, nextDueStep: Number.MAX_SAFE_INTEGER, weekVisits: 0 };
     }
   });
   return {
@@ -397,5 +397,19 @@ describe('plans', () => {
     expect(early.people.trip.every((trip) => trip === NO_TRIP)).toBe(true);
     const later = engine.step(early, [], STEPS_PER_DAY / 2 + 2).state;
     expect(later.people.trip.some((trip) => trip !== NO_TRIP)).toBe(true);
+  });
+});
+
+describe('shop visits for the early-leave check', () => {
+  it('counts every resident who goes into a shop on that shop lease', () => {
+    const tower = condoTower(SEEDS[0] ?? 1, 30);
+    populate(tower);
+    const result = run(tower.state, 2 * STEPS_PER_DAY);
+    const shopVisits = result.visits.filter((visit) => visit.type === 'retail-shop').length;
+    const counted = Object.values(result.state.units)
+      .filter((unit) => unit.type === 'retail-shop')
+      .reduce((sum, unit) => sum + (unit.lease?.weekVisits ?? 0), 0);
+    expect(shopVisits).toBeGreaterThan(0);
+    expect(counted).toBe(shopVisits);
   });
 });

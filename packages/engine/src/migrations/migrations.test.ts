@@ -92,7 +92,7 @@ describe('migrateState unit leases', () => {
       ...newUnit('u3', 'office', 0, 1),
       priceLevel: 'high',
       used: true,
-      lease: { anchorStep: 100, nextDueStep: 60580 },
+      lease: { anchorStep: 100, nextDueStep: 60580, weekVisits: 0 },
     };
     expect(migratedUnit(JSON.parse(JSON.stringify(rented)))).toEqual(rented);
   });
@@ -508,5 +508,22 @@ describe('migrateState medical day', () => {
       migrateState({ ...saved, medicalDay: { day: 2, visits: { '4': -1 }, noticed: [] } }),
     ).toThrow(StateMigrationError);
     expect(() => migrateState({ ...saved, medicalDay: null })).toThrow(StateMigrationError);
+  });
+});
+
+describe('migrateState shop week visits', () => {
+  it('starts an older lease at the early-leave minimum so no shop leaves for an uncounted week', () => {
+    const old = JSON.parse(JSON.stringify(createTower(5))) as Record<string, unknown>;
+    old.schemaVersion = 21;
+    old.units = {
+      u3: {
+        ...newUnit('u3', 'retail-shop', 0, 2),
+        lease: { anchorStep: 100, nextDueStep: 60_580 },
+      },
+      u4: newUnit('u4', 'retail-shop', 20, 2),
+    };
+    const tower = migrateState(old);
+    expect(tower.units.u3?.lease).toEqual({ anchorStep: 100, nextDueStep: 60_580, weekVisits: 70 });
+    expect(tower.units.u4?.lease).toBeNull();
   });
 });

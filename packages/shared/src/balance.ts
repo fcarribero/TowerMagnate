@@ -388,6 +388,9 @@ export const TOWER_LIMITS: Readonly<Record<LimitGroupId, number>> = {
 export const DEFAULT_PRICE_LEVEL: PriceLevel = 'normal';
 
 export const LEASE_CONTRACT_WEEKS = 4;
+
+/** A shop with fewer customer visits than this in a lease week leaves at once (economy 4.3). */
+export const SHOP_EARLY_LEAVE_MIN_VISITS = 70;
 export const CONDO_EVALUATION_WEEKS = 4;
 
 export const WEEKLY_RENT: Readonly<Record<'office' | 'retail-shop', PriceTable>> = {
