@@ -134,10 +134,11 @@ People sprites are in `tools/art/src/groups/people.mjs`. Every person faces righ
 | `maid` | cloud dress and cap, cloth-blue or night apron | nothing |
 | `security` | cloth-blue uniform, ink cap, lamp badge, belt | nothing |
 | `vip` | ink or night-deep suit, sunglasses, lamp lapel pin | nothing |
+| `wedding-guest` | suit (night-deep, white shirt front, lapel pin) or red dress with a white corsage | none |
 | `bride` | white or cloud gown and veil | bouquet |
 | `groom` | ink or charcoal suit, white flower | nothing |
 
-Each type has 4 variants, `a` to `d`. Variants `a` and `c` are the tall build (14 px). Variants `b` and `d` are the short build (13 px) with a belly pixel. `a` and `d` wear the first outfit and `b` and `c` the second, and each variant has its own skin tone and hair (`d` has gray hair). Office workers in the engine use `worker`, hotel guests `guest`, guards `security`, and wedding guests `bride` and `groom`. Audience, party guests and prospects use `customer` or `resident` until they get their own sprites.
+Each type has 4 variants, `a` to `d`. Variants `a` and `c` are the tall build (14 px). Variants `b` and `d` are the short build (13 px) with a belly pixel. `a` and `d` wear the first outfit and `b` and `c` the second, and each variant has its own skin tone and hair (`d` has gray hair). Office workers in the engine use `worker`, hotel guests `guest`, guards `security`, and wedding guests `wedding-guest`. For `wedding-guest`, variants `a` and `d` wear the suit and `b` and `c` the dress. Audience, party guests and prospects use `customer` or `resident` until they get their own sprites.
 
 Each variant has `walk_01`, `walk_02` and `stand`, calm and with the `-pink` and `-red` tints, 9 sprites per variant. The tint recolors the top, the trousers or skirt and the clothing details. Skin, hair, shoes, badges, glasses and carried things keep their colors.
 
@@ -317,3 +318,5 @@ Effects are in `tools/art/src/groups/effects.mjs` and form the `effects` atlas. 
 | `effects/burnt/overlay` | 8 x 32 | 1 | soot over one floor tile |
 
 `pnpm art:build` also writes `docs/art/effects-preview.png` (4x), one row per effect.
+
+`events/wedding-couple/walk_01` and `_02` (16 x 16) are the bride and groom walking side by side, and `events/wedding-couple/stand` is the pair standing. They face right like every person and are drawn from the `bride-a` and `groom-c` sprites, so the feet are on the bottom row. The couple has no stress tint.

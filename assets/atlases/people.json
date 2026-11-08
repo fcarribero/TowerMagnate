@@ -5760,7 +5760,7 @@
         "h": 16
       }
     },
-    "people/worker-a/stand": {
+    "people/wedding-guest-a/stand": {
       "frame": {
         "x": 559,
         "y": 35,
@@ -5780,7 +5780,7 @@
         "h": 16
       }
     },
-    "people/worker-a/stand-pink": {
+    "people/wedding-guest-a/stand-pink": {
       "frame": {
         "x": 568,
         "y": 35,
@@ -5800,7 +5800,7 @@
         "h": 16
       }
     },
-    "people/worker-a/stand-red": {
+    "people/wedding-guest-a/stand-red": {
       "frame": {
         "x": 577,
         "y": 35,
@@ -5820,7 +5820,7 @@
         "h": 16
       }
     },
-    "people/worker-a/walk-pink_01": {
+    "people/wedding-guest-a/walk-pink_01": {
       "frame": {
         "x": 586,
         "y": 35,
@@ -5840,7 +5840,7 @@
         "h": 16
       }
     },
-    "people/worker-a/walk-pink_02": {
+    "people/wedding-guest-a/walk-pink_02": {
       "frame": {
         "x": 595,
         "y": 35,
@@ -5860,7 +5860,7 @@
         "h": 16
       }
     },
-    "people/worker-a/walk-red_01": {
+    "people/wedding-guest-a/walk-red_01": {
       "frame": {
         "x": 604,
         "y": 35,
@@ -5880,7 +5880,7 @@
         "h": 16
       }
     },
-    "people/worker-a/walk-red_02": {
+    "people/wedding-guest-a/walk-red_02": {
       "frame": {
         "x": 613,
         "y": 35,
@@ -5900,7 +5900,7 @@
         "h": 16
       }
     },
-    "people/worker-a/walk_01": {
+    "people/wedding-guest-a/walk_01": {
       "frame": {
         "x": 622,
         "y": 35,
@@ -5920,7 +5920,7 @@
         "h": 16
       }
     },
-    "people/worker-a/walk_02": {
+    "people/wedding-guest-a/walk_02": {
       "frame": {
         "x": 631,
         "y": 35,
@@ -5940,7 +5940,7 @@
         "h": 16
       }
     },
-    "people/worker-b/stand": {
+    "people/wedding-guest-b/stand": {
       "frame": {
         "x": 640,
         "y": 35,
@@ -5960,7 +5960,7 @@
         "h": 16
       }
     },
-    "people/worker-b/stand-pink": {
+    "people/wedding-guest-b/stand-pink": {
       "frame": {
         "x": 649,
         "y": 35,
@@ -5980,7 +5980,7 @@
         "h": 16
       }
     },
-    "people/worker-b/stand-red": {
+    "people/wedding-guest-b/stand-red": {
       "frame": {
         "x": 658,
         "y": 35,
@@ -6000,7 +6000,7 @@
         "h": 16
       }
     },
-    "people/worker-b/walk-pink_01": {
+    "people/wedding-guest-b/walk-pink_01": {
       "frame": {
         "x": 667,
         "y": 35,
@@ -6020,7 +6020,7 @@
         "h": 16
       }
     },
-    "people/worker-b/walk-pink_02": {
+    "people/wedding-guest-b/walk-pink_02": {
       "frame": {
         "x": 676,
         "y": 35,
@@ -6040,7 +6040,7 @@
         "h": 16
       }
     },
-    "people/worker-b/walk-red_01": {
+    "people/wedding-guest-b/walk-red_01": {
       "frame": {
         "x": 685,
         "y": 35,
@@ -6060,7 +6060,7 @@
         "h": 16
       }
     },
-    "people/worker-b/walk-red_02": {
+    "people/wedding-guest-b/walk-red_02": {
       "frame": {
         "x": 694,
         "y": 35,
@@ -6080,7 +6080,7 @@
         "h": 16
       }
     },
-    "people/worker-b/walk_01": {
+    "people/wedding-guest-b/walk_01": {
       "frame": {
         "x": 703,
         "y": 35,
@@ -6100,7 +6100,7 @@
         "h": 16
       }
     },
-    "people/worker-b/walk_02": {
+    "people/wedding-guest-b/walk_02": {
       "frame": {
         "x": 712,
         "y": 35,
@@ -6120,7 +6120,7 @@
         "h": 16
       }
     },
-    "people/worker-c/stand": {
+    "people/wedding-guest-c/stand": {
       "frame": {
         "x": 721,
         "y": 35,
@@ -6140,7 +6140,7 @@
         "h": 16
       }
     },
-    "people/worker-c/stand-pink": {
+    "people/wedding-guest-c/stand-pink": {
       "frame": {
         "x": 730,
         "y": 35,
@@ -6160,7 +6160,7 @@
         "h": 16
       }
     },
-    "people/worker-c/stand-red": {
+    "people/wedding-guest-c/stand-red": {
       "frame": {
         "x": 739,
         "y": 35,
@@ -6180,7 +6180,7 @@
         "h": 16
       }
     },
-    "people/worker-c/walk-pink_01": {
+    "people/wedding-guest-c/walk-pink_01": {
       "frame": {
         "x": 748,
         "y": 35,
@@ -6200,7 +6200,7 @@
         "h": 16
       }
     },
-    "people/worker-c/walk-pink_02": {
+    "people/wedding-guest-c/walk-pink_02": {
       "frame": {
         "x": 757,
         "y": 35,
@@ -6220,7 +6220,7 @@
         "h": 16
       }
     },
-    "people/worker-c/walk-red_01": {
+    "people/wedding-guest-c/walk-red_01": {
       "frame": {
         "x": 766,
         "y": 35,
@@ -6240,7 +6240,7 @@
         "h": 16
       }
     },
-    "people/worker-c/walk-red_02": {
+    "people/wedding-guest-c/walk-red_02": {
       "frame": {
         "x": 775,
         "y": 35,
@@ -6260,7 +6260,7 @@
         "h": 16
       }
     },
-    "people/worker-c/walk_01": {
+    "people/wedding-guest-c/walk_01": {
       "frame": {
         "x": 784,
         "y": 35,
@@ -6280,7 +6280,7 @@
         "h": 16
       }
     },
-    "people/worker-c/walk_02": {
+    "people/wedding-guest-c/walk_02": {
       "frame": {
         "x": 793,
         "y": 35,
@@ -6300,7 +6300,7 @@
         "h": 16
       }
     },
-    "people/worker-d/stand": {
+    "people/wedding-guest-d/stand": {
       "frame": {
         "x": 802,
         "y": 35,
@@ -6320,7 +6320,7 @@
         "h": 16
       }
     },
-    "people/worker-d/stand-pink": {
+    "people/wedding-guest-d/stand-pink": {
       "frame": {
         "x": 811,
         "y": 35,
@@ -6340,7 +6340,7 @@
         "h": 16
       }
     },
-    "people/worker-d/stand-red": {
+    "people/wedding-guest-d/stand-red": {
       "frame": {
         "x": 820,
         "y": 35,
@@ -6360,7 +6360,7 @@
         "h": 16
       }
     },
-    "people/worker-d/walk-pink_01": {
+    "people/wedding-guest-d/walk-pink_01": {
       "frame": {
         "x": 829,
         "y": 35,
@@ -6380,7 +6380,7 @@
         "h": 16
       }
     },
-    "people/worker-d/walk-pink_02": {
+    "people/wedding-guest-d/walk-pink_02": {
       "frame": {
         "x": 838,
         "y": 35,
@@ -6400,7 +6400,7 @@
         "h": 16
       }
     },
-    "people/worker-d/walk-red_01": {
+    "people/wedding-guest-d/walk-red_01": {
       "frame": {
         "x": 847,
         "y": 35,
@@ -6420,7 +6420,7 @@
         "h": 16
       }
     },
-    "people/worker-d/walk-red_02": {
+    "people/wedding-guest-d/walk-red_02": {
       "frame": {
         "x": 856,
         "y": 35,
@@ -6440,7 +6440,7 @@
         "h": 16
       }
     },
-    "people/worker-d/walk_01": {
+    "people/wedding-guest-d/walk_01": {
       "frame": {
         "x": 865,
         "y": 35,
@@ -6460,10 +6460,730 @@
         "h": 16
       }
     },
-    "people/worker-d/walk_02": {
+    "people/wedding-guest-d/walk_02": {
       "frame": {
         "x": 874,
         "y": 35,
+        "w": 8,
+        "h": 16
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 8,
+        "h": 16
+      },
+      "sourceSize": {
+        "w": 8,
+        "h": 16
+      }
+    },
+    "people/worker-a/stand": {
+      "frame": {
+        "x": 883,
+        "y": 35,
+        "w": 8,
+        "h": 16
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 8,
+        "h": 16
+      },
+      "sourceSize": {
+        "w": 8,
+        "h": 16
+      }
+    },
+    "people/worker-a/stand-pink": {
+      "frame": {
+        "x": 892,
+        "y": 35,
+        "w": 8,
+        "h": 16
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 8,
+        "h": 16
+      },
+      "sourceSize": {
+        "w": 8,
+        "h": 16
+      }
+    },
+    "people/worker-a/stand-red": {
+      "frame": {
+        "x": 901,
+        "y": 35,
+        "w": 8,
+        "h": 16
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 8,
+        "h": 16
+      },
+      "sourceSize": {
+        "w": 8,
+        "h": 16
+      }
+    },
+    "people/worker-a/walk-pink_01": {
+      "frame": {
+        "x": 910,
+        "y": 35,
+        "w": 8,
+        "h": 16
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 8,
+        "h": 16
+      },
+      "sourceSize": {
+        "w": 8,
+        "h": 16
+      }
+    },
+    "people/worker-a/walk-pink_02": {
+      "frame": {
+        "x": 919,
+        "y": 35,
+        "w": 8,
+        "h": 16
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 8,
+        "h": 16
+      },
+      "sourceSize": {
+        "w": 8,
+        "h": 16
+      }
+    },
+    "people/worker-a/walk-red_01": {
+      "frame": {
+        "x": 928,
+        "y": 35,
+        "w": 8,
+        "h": 16
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 8,
+        "h": 16
+      },
+      "sourceSize": {
+        "w": 8,
+        "h": 16
+      }
+    },
+    "people/worker-a/walk-red_02": {
+      "frame": {
+        "x": 937,
+        "y": 35,
+        "w": 8,
+        "h": 16
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 8,
+        "h": 16
+      },
+      "sourceSize": {
+        "w": 8,
+        "h": 16
+      }
+    },
+    "people/worker-a/walk_01": {
+      "frame": {
+        "x": 946,
+        "y": 35,
+        "w": 8,
+        "h": 16
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 8,
+        "h": 16
+      },
+      "sourceSize": {
+        "w": 8,
+        "h": 16
+      }
+    },
+    "people/worker-a/walk_02": {
+      "frame": {
+        "x": 955,
+        "y": 35,
+        "w": 8,
+        "h": 16
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 8,
+        "h": 16
+      },
+      "sourceSize": {
+        "w": 8,
+        "h": 16
+      }
+    },
+    "people/worker-b/stand": {
+      "frame": {
+        "x": 964,
+        "y": 35,
+        "w": 8,
+        "h": 16
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 8,
+        "h": 16
+      },
+      "sourceSize": {
+        "w": 8,
+        "h": 16
+      }
+    },
+    "people/worker-b/stand-pink": {
+      "frame": {
+        "x": 973,
+        "y": 35,
+        "w": 8,
+        "h": 16
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 8,
+        "h": 16
+      },
+      "sourceSize": {
+        "w": 8,
+        "h": 16
+      }
+    },
+    "people/worker-b/stand-red": {
+      "frame": {
+        "x": 982,
+        "y": 35,
+        "w": 8,
+        "h": 16
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 8,
+        "h": 16
+      },
+      "sourceSize": {
+        "w": 8,
+        "h": 16
+      }
+    },
+    "people/worker-b/walk-pink_01": {
+      "frame": {
+        "x": 991,
+        "y": 35,
+        "w": 8,
+        "h": 16
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 8,
+        "h": 16
+      },
+      "sourceSize": {
+        "w": 8,
+        "h": 16
+      }
+    },
+    "people/worker-b/walk-pink_02": {
+      "frame": {
+        "x": 1000,
+        "y": 35,
+        "w": 8,
+        "h": 16
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 8,
+        "h": 16
+      },
+      "sourceSize": {
+        "w": 8,
+        "h": 16
+      }
+    },
+    "people/worker-b/walk-red_01": {
+      "frame": {
+        "x": 1009,
+        "y": 35,
+        "w": 8,
+        "h": 16
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 8,
+        "h": 16
+      },
+      "sourceSize": {
+        "w": 8,
+        "h": 16
+      }
+    },
+    "people/worker-b/walk-red_02": {
+      "frame": {
+        "x": 1,
+        "y": 52,
+        "w": 8,
+        "h": 16
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 8,
+        "h": 16
+      },
+      "sourceSize": {
+        "w": 8,
+        "h": 16
+      }
+    },
+    "people/worker-b/walk_01": {
+      "frame": {
+        "x": 10,
+        "y": 52,
+        "w": 8,
+        "h": 16
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 8,
+        "h": 16
+      },
+      "sourceSize": {
+        "w": 8,
+        "h": 16
+      }
+    },
+    "people/worker-b/walk_02": {
+      "frame": {
+        "x": 19,
+        "y": 52,
+        "w": 8,
+        "h": 16
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 8,
+        "h": 16
+      },
+      "sourceSize": {
+        "w": 8,
+        "h": 16
+      }
+    },
+    "people/worker-c/stand": {
+      "frame": {
+        "x": 28,
+        "y": 52,
+        "w": 8,
+        "h": 16
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 8,
+        "h": 16
+      },
+      "sourceSize": {
+        "w": 8,
+        "h": 16
+      }
+    },
+    "people/worker-c/stand-pink": {
+      "frame": {
+        "x": 37,
+        "y": 52,
+        "w": 8,
+        "h": 16
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 8,
+        "h": 16
+      },
+      "sourceSize": {
+        "w": 8,
+        "h": 16
+      }
+    },
+    "people/worker-c/stand-red": {
+      "frame": {
+        "x": 46,
+        "y": 52,
+        "w": 8,
+        "h": 16
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 8,
+        "h": 16
+      },
+      "sourceSize": {
+        "w": 8,
+        "h": 16
+      }
+    },
+    "people/worker-c/walk-pink_01": {
+      "frame": {
+        "x": 55,
+        "y": 52,
+        "w": 8,
+        "h": 16
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 8,
+        "h": 16
+      },
+      "sourceSize": {
+        "w": 8,
+        "h": 16
+      }
+    },
+    "people/worker-c/walk-pink_02": {
+      "frame": {
+        "x": 64,
+        "y": 52,
+        "w": 8,
+        "h": 16
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 8,
+        "h": 16
+      },
+      "sourceSize": {
+        "w": 8,
+        "h": 16
+      }
+    },
+    "people/worker-c/walk-red_01": {
+      "frame": {
+        "x": 73,
+        "y": 52,
+        "w": 8,
+        "h": 16
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 8,
+        "h": 16
+      },
+      "sourceSize": {
+        "w": 8,
+        "h": 16
+      }
+    },
+    "people/worker-c/walk-red_02": {
+      "frame": {
+        "x": 82,
+        "y": 52,
+        "w": 8,
+        "h": 16
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 8,
+        "h": 16
+      },
+      "sourceSize": {
+        "w": 8,
+        "h": 16
+      }
+    },
+    "people/worker-c/walk_01": {
+      "frame": {
+        "x": 91,
+        "y": 52,
+        "w": 8,
+        "h": 16
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 8,
+        "h": 16
+      },
+      "sourceSize": {
+        "w": 8,
+        "h": 16
+      }
+    },
+    "people/worker-c/walk_02": {
+      "frame": {
+        "x": 100,
+        "y": 52,
+        "w": 8,
+        "h": 16
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 8,
+        "h": 16
+      },
+      "sourceSize": {
+        "w": 8,
+        "h": 16
+      }
+    },
+    "people/worker-d/stand": {
+      "frame": {
+        "x": 109,
+        "y": 52,
+        "w": 8,
+        "h": 16
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 8,
+        "h": 16
+      },
+      "sourceSize": {
+        "w": 8,
+        "h": 16
+      }
+    },
+    "people/worker-d/stand-pink": {
+      "frame": {
+        "x": 118,
+        "y": 52,
+        "w": 8,
+        "h": 16
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 8,
+        "h": 16
+      },
+      "sourceSize": {
+        "w": 8,
+        "h": 16
+      }
+    },
+    "people/worker-d/stand-red": {
+      "frame": {
+        "x": 127,
+        "y": 52,
+        "w": 8,
+        "h": 16
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 8,
+        "h": 16
+      },
+      "sourceSize": {
+        "w": 8,
+        "h": 16
+      }
+    },
+    "people/worker-d/walk-pink_01": {
+      "frame": {
+        "x": 136,
+        "y": 52,
+        "w": 8,
+        "h": 16
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 8,
+        "h": 16
+      },
+      "sourceSize": {
+        "w": 8,
+        "h": 16
+      }
+    },
+    "people/worker-d/walk-pink_02": {
+      "frame": {
+        "x": 145,
+        "y": 52,
+        "w": 8,
+        "h": 16
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 8,
+        "h": 16
+      },
+      "sourceSize": {
+        "w": 8,
+        "h": 16
+      }
+    },
+    "people/worker-d/walk-red_01": {
+      "frame": {
+        "x": 154,
+        "y": 52,
+        "w": 8,
+        "h": 16
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 8,
+        "h": 16
+      },
+      "sourceSize": {
+        "w": 8,
+        "h": 16
+      }
+    },
+    "people/worker-d/walk-red_02": {
+      "frame": {
+        "x": 163,
+        "y": 52,
+        "w": 8,
+        "h": 16
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 8,
+        "h": 16
+      },
+      "sourceSize": {
+        "w": 8,
+        "h": 16
+      }
+    },
+    "people/worker-d/walk_01": {
+      "frame": {
+        "x": 172,
+        "y": 52,
+        "w": 8,
+        "h": 16
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 8,
+        "h": 16
+      },
+      "sourceSize": {
+        "w": 8,
+        "h": 16
+      }
+    },
+    "people/worker-d/walk_02": {
+      "frame": {
+        "x": 181,
+        "y": 52,
         "w": 8,
         "h": 16
       },
@@ -6866,6 +7586,54 @@
       "people/vip-d/walk_01",
       "people/vip-d/walk_02"
     ],
+    "people/wedding-guest-a/walk-pink": [
+      "people/wedding-guest-a/walk-pink_01",
+      "people/wedding-guest-a/walk-pink_02"
+    ],
+    "people/wedding-guest-a/walk-red": [
+      "people/wedding-guest-a/walk-red_01",
+      "people/wedding-guest-a/walk-red_02"
+    ],
+    "people/wedding-guest-a/walk": [
+      "people/wedding-guest-a/walk_01",
+      "people/wedding-guest-a/walk_02"
+    ],
+    "people/wedding-guest-b/walk-pink": [
+      "people/wedding-guest-b/walk-pink_01",
+      "people/wedding-guest-b/walk-pink_02"
+    ],
+    "people/wedding-guest-b/walk-red": [
+      "people/wedding-guest-b/walk-red_01",
+      "people/wedding-guest-b/walk-red_02"
+    ],
+    "people/wedding-guest-b/walk": [
+      "people/wedding-guest-b/walk_01",
+      "people/wedding-guest-b/walk_02"
+    ],
+    "people/wedding-guest-c/walk-pink": [
+      "people/wedding-guest-c/walk-pink_01",
+      "people/wedding-guest-c/walk-pink_02"
+    ],
+    "people/wedding-guest-c/walk-red": [
+      "people/wedding-guest-c/walk-red_01",
+      "people/wedding-guest-c/walk-red_02"
+    ],
+    "people/wedding-guest-c/walk": [
+      "people/wedding-guest-c/walk_01",
+      "people/wedding-guest-c/walk_02"
+    ],
+    "people/wedding-guest-d/walk-pink": [
+      "people/wedding-guest-d/walk-pink_01",
+      "people/wedding-guest-d/walk-pink_02"
+    ],
+    "people/wedding-guest-d/walk-red": [
+      "people/wedding-guest-d/walk-red_01",
+      "people/wedding-guest-d/walk-red_02"
+    ],
+    "people/wedding-guest-d/walk": [
+      "people/wedding-guest-d/walk_01",
+      "people/wedding-guest-d/walk_02"
+    ],
     "people/worker-a/walk-pink": [
       "people/worker-a/walk-pink_01",
       "people/worker-a/walk-pink_02"
@@ -6922,7 +7690,7 @@
     "format": "RGBA8888",
     "size": {
       "w": 1018,
-      "h": 52
+      "h": 69
     },
     "scale": 1
   }

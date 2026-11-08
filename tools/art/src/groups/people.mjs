@@ -135,13 +135,14 @@ const DETAILS = {
 };
 
 function drawPerson(type, variant, pose, tint) {
-  const look = tinted({ ...type.outfits[variant.outfit], ...variant }, tint);
+  const outfit = type.outfits[variant.outfit];
+  const look = tinted({ ...outfit, ...variant }, tint);
   const parts = layout(variant.build);
   const person = new PixelCanvas(frameWidth, frameHeight);
   drawLowerBody(person, look, pose);
   drawTorso(person, parts, look);
   drawHead(person, parts, look);
-  for (const detail of type.details ?? []) {
+  for (const detail of outfit.details ?? type.details ?? []) {
     DETAILS[detail](person, parts, look);
   }
   if (type.prop) {
@@ -225,6 +226,19 @@ const TYPES = {
       { top: 'cloud', legs: 'cloud' },
     ],
   },
+  // Outfit 0 is a suit and outfit 1 a dress, so the four variants are two suits and two dresses.
+  'wedding-guest': {
+    lowerBody: 'trousers',
+    outfits: [
+      {
+        top: 'night-deep',
+        legs: 'night-deep',
+        accent: 'white',
+        details: ['shirtFront', 'lapelPin'],
+      },
+      { top: 'cloth-red', legs: 'cloth-red', lowerBody: 'skirt', details: ['boutonniere'] },
+    ],
+  },
   groom: {
     lowerBody: 'trousers',
     details: ['shirtFront', 'boutonniere'],
@@ -252,9 +266,21 @@ function poseId(pose, tint) {
   return frame === undefined ? state : `${state}_${frame}`;
 }
 
+function variantOf(type, variantName) {
+  const variant = VARIANTS[variantName];
+  const lowerBody = type.outfits[variant.outfit].lowerBody ?? type.lowerBody;
+  return { ...variant, lowerBody };
+}
+
+// A calm person in one pose, for sprites that combine people.
+export function drawCalmPerson(typeName, variantName, pose) {
+  const type = TYPES[typeName];
+  return drawPerson(type, variantOf(type, variantName), pose, TINTS[0]);
+}
+
 function personSprites(typeName, variantName) {
   const type = TYPES[typeName];
-  const variant = { ...VARIANTS[variantName], lowerBody: type.lowerBody };
+  const variant = variantOf(type, variantName);
   return TINTS.flatMap((tint) =>
     POSES.map((pose) => ({
       id: `people/${typeName}-${variantName}/${poseId(pose, tint)}`,
