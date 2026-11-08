@@ -1,4 +1,10 @@
-import { addPerson, createTower, newUnit, STEPS_PER_DAY } from '@tower-magnate/engine';
+import {
+  addPerson,
+  createTower,
+  defaultSchedule,
+  newUnit,
+  STEPS_PER_DAY,
+} from '@tower-magnate/engine';
 import {
   ServerMessageSchema,
   serverMessage,
@@ -6,7 +12,7 @@ import {
   type Unit,
 } from '@tower-magnate/shared';
 import { describe, expect, it } from 'vitest';
-import { inspectUnit } from './inspect';
+import { inspectShaft, inspectUnit } from './inspect';
 
 const STEPS_PER_WEEK = 7 * STEPS_PER_DAY;
 
@@ -184,5 +190,114 @@ describe('inspecting a unit', () => {
     }
 
     expect((performance.now() - started) / 100).toBeLessThan(1);
+  });
+});
+
+function carAt(homeLevel: number) {
+  return {
+    homeLevel,
+    level: homeLevel,
+    riders: [] as string[],
+    trips: [],
+    phase: 'idle' as const,
+    direction: 'idle' as const,
+    phaseStepsLeft: 0,
+    assigned: [],
+    paid: 0,
+    placedAtStep: 0,
+  };
+}
+
+function towerWithShaft(
+  type: 'standard' | 'express' | 'service',
+  homes: number[],
+  stops: number[],
+): TowerState {
+  const state = createTower(3);
+  state.shafts.s3 = {
+    id: 's3',
+    type,
+    x: 30,
+    bottom: stops[0] ?? 1,
+    top: stops[stops.length - 1] ?? 1,
+    stops,
+    schedule: defaultSchedule(),
+    cars: homes.map(carAt),
+    queues: {},
+    paid: 0,
+    placedAtStep: 0,
+  };
+  return state;
+}
+
+describe('inspecting a shaft', () => {
+  it('answers a standard shaft with its stops, cars and home levels', () => {
+    const state = towerWithShaft('standard', [1, 3], [1, 2, 3]);
+    state.shafts.s3?.cars[1]?.riders.push('p1', 'p2');
+
+    const data = inspectShaft(state, 's3');
+
+    expect(throughTheWire(data)).toBe(true);
+    expect(data).toMatchObject({
+      kind: 'shaft',
+      id: 's3',
+      status: 'ok',
+      type: 'standard',
+      bottom: 1,
+      top: 3,
+      stops: [1, 2, 3],
+      cars: [
+        { index: 0, homeLevel: 1, load: 0 },
+        { index: 1, homeLevel: 3, load: 2 },
+      ],
+    });
+  });
+
+  it('answers an express shaft with its express levels', () => {
+    const state = towerWithShaft('express', [1], [1, 15, 30]);
+
+    const data = inspectShaft(state, 's3');
+
+    expect(throughTheWire(data)).toBe(true);
+    expect(data).toMatchObject({ type: 'express', stops: [1, 15, 30] });
+  });
+
+  it('answers a service shaft', () => {
+    const data = inspectShaft(towerWithShaft('service', [2], [1, 2]), 's3');
+
+    expect(throughTheWire(data)).toBe(true);
+    expect(data).toMatchObject({ type: 'service', stops: [1, 2] });
+  });
+
+  it('answers gone for a removed or unknown shaft', () => {
+    const state = towerWithShaft('standard', [1], [1, 2]);
+    delete state.shafts.s3;
+
+    expect(inspectShaft(state, 's3')).toEqual({ kind: 'shaft', id: 's3', status: 'gone' });
+    expect(inspectShaft(state, 'constructor')).toEqual({
+      kind: 'shaft',
+      id: 'constructor',
+      status: 'gone',
+    });
+    expect(throughTheWire(inspectShaft(state, 's3'))).toBe(true);
+  });
+
+  it('leaves unit inspection unchanged', () => {
+    const { state, id } = towerWith('office');
+
+    expect(inspectUnit(state, id)).toMatchObject({ kind: 'unit', status: 'ok', type: 'office' });
+  });
+
+  it('answers in under half a millisecond for 8 cars and 100 levels', () => {
+    const levels = Array.from({ length: 100 }, (_, index) => index + 1);
+    const state = towerWithShaft('standard', [1, 10, 20, 30, 40, 50, 60, 70], levels);
+    inspectShaft(state, 's3');
+
+    const started = performance.now();
+    for (let run = 0; run < 100; run += 1) {
+      inspectShaft(state, 's3');
+    }
+
+    expect((performance.now() - started) / 100).toBeLessThan(0.5);
   });
 });

@@ -33,6 +33,8 @@ import { bindDemolishInput } from './placement/bindDemolishInput';
 import { DemolishConfirm } from './placement/DemolishConfirm';
 import type { Confirmation } from './placement/demolishPlan';
 import { buildMode, shaftIdAt } from './placement/buildPlan';
+import { IncomeFloaters } from './income/IncomeFloaters';
+import { useIncomeFloaters } from './income/useIncomeFloaters';
 import { useBuildFeedback } from './placement/useBuildFeedback';
 import { LevelRuler } from './LevelRuler';
 import { StageHost } from './StageHost';
@@ -97,7 +99,7 @@ export function App({ onLogout, onRestartTower, onSessionLost }: AppProps) {
     });
     connection.onMessage((message) => {
       api.receive(message);
-      if (message.t === 'commandResult') {
+      if (message.t === 'commandResult' || message.t === 'events') {
         director.serverMessage(message);
       }
     });
@@ -108,6 +110,7 @@ export function App({ onLogout, onRestartTower, onSessionLost }: AppProps) {
     connection,
     useCallback((error: string) => report({ ok: false, error }, { x: 0, y: 0 }), [report]),
   );
+  const incomeFloats = useIncomeFloaters(stage, connection);
   const [pendingDemolition, setPendingDemolition] = useState<{
     confirmation: Confirmation;
     proceed: () => void;
@@ -309,6 +312,7 @@ export function App({ onLogout, onRestartTower, onSessionLost }: AppProps) {
           disabled={!connected}
         />
         <BuildFeedback toasts={toasts} floats={floats} dragLabel={dragLabel} />
+        <IncomeFloaters floaters={incomeFloats} />
         <ConnectionOverlay
           status={connectionStatus}
           protocolMismatch={protocolMismatch}
