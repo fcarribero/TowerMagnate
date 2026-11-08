@@ -24,6 +24,7 @@ import type { SimulationSystem, StepContext } from './step';
 import { drawMinuteFromWindow } from './time-windows';
 import { startTrek } from './trek';
 import { stressOfTripEndedNow } from './trip-ledger';
+import { fileShopVisit } from './unit-evaluation';
 import { unitNumber } from './units';
 import {
   CUSTOMER_KIND,
@@ -195,6 +196,7 @@ function leaveTower(context: StepContext, slot: number, onRight: boolean): void 
 function arriveAtVenue(context: StepContext, slot: number, onRight: boolean): void {
   const { state } = context;
   const unit = customerVenueOf(state, slot);
+  if (unit) fileShopVisit(state, unit, state.people.id[slot] as number);
   const canEnter =
     unit !== null &&
     isOpen(unit, minuteOfDay(state)) &&

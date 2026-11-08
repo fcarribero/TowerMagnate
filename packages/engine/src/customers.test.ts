@@ -322,6 +322,26 @@ describe('customers in the tower', () => {
     expect(customersIn(tower)).toBe(25);
   });
 
+  it('file their trips to a shop door in the shop ledger, even when turned away', () => {
+    const { state, id } = streetVenue('retail-shop');
+    state.step = at(TUESDAY, 0) - 1;
+    const tower = step(state, [], STEPS_PER_DAY).state;
+    expect(venueOf(tower, id).countToday).toBe(20);
+    expect(tower.unitLedger[id]).toHaveLength(2 * 20);
+
+    const full = shopWithCustomersInside(25);
+    const turnedAway = step(full.state, [], 30 * STEPS_PER_MINUTE).state;
+    expect(venueOf(turnedAway, full.id).countToday).toBe(0);
+    expect(turnedAway.unitLedger[full.id]).toHaveLength(2);
+  });
+
+  it('file nothing in the ledger of a food venue', () => {
+    const { state, id } = streetVenue('fast-food');
+    state.step = at(TUESDAY, 0) - 1;
+    const tower = step(state, [], STEPS_PER_DAY).state;
+    expect(tower.unitLedger[id]).toBeUndefined();
+  });
+
   it('stay the venue time and then leave the tower', () => {
     const { state, id } = streetVenue('restaurant');
     state.step = at(TUESDAY, 17, 59);
