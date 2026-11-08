@@ -109,13 +109,26 @@ describe('sky group', () => {
     }
   });
 
-  it('dithers the bottom of a band into the next sky color', () => {
+  it('fades the bottom of the top band into the next sky color and ends solid', () => {
     const top = sprites['sky/day/top'];
     const bottom = metrics.floorHeight - 1;
     expect(top.get(0, 0)).toBe(colorIndex('sky-deep'));
-    expect([top.get(0, bottom), top.get(2, bottom)].sort()).toEqual(
-      [colorIndex('sky-deep'), colorIndex('sky')].sort(),
-    );
+    for (let x = 0; x < top.width; x++) {
+      expect(top.get(x, bottom)).toBe(colorIndex('sky'));
+    }
+  });
+
+  it('tiles the top band into the middle band without a seam, day and night', () => {
+    for (const time of ['day', 'night']) {
+      const top = sprites[`sky/${time}/top`];
+      const middle = sprites[`sky/${time}/middle`];
+      const bottom = metrics.floorHeight - 1;
+      expect(top.width % 4, time).toBe(0);
+      for (let x = 0; x < top.width; x++) {
+        expect(top.get(x, bottom), `${time} at ${x}`).toBe(middle.get(0, 0));
+        expect(top.get(x, bottom - 3), `${time} at ${x}`).toBe(top.get((x + 4) % top.width, bottom - 3));
+      }
+    }
   });
 
   it('repeats the middle band without a seam across floors and columns', () => {
