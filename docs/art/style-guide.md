@@ -259,6 +259,27 @@ Every state has a `day` and a `night` sprite. Hotel rooms have cloud walls with 
 
 `pnpm art:build` also writes `docs/art/hotel-preview.png`, a 2x sheet with one row per hotel subject and every variant left to right.
 
+## Service facilities
+
+Service sprites are in `tools/art/src/units/services.mjs`. Each subject has `empty` and `occupied` sprites for `day` and `night`, and one `burnt` sprite.
+
+| Subject | Size | Occupied shows |
+|---|---|---|
+| `security` | 128 x 32 | two guards at the desk, lit monitors |
+| `medical-center` | 208 x 32 | two patients in the beds, two nurses |
+| `recycling-center` | 200 x 64 | running sorter, loaded conveyor, two workers |
+| `parking-ramp` | 128 x 32 | a car on the ramp |
+| `parking-space` | 32 x 32 | a parked car |
+| `subway-station` | 240 x 96 | a train at the platform, two commuters |
+
+The recycling center and the subway station have 2 and 3 floors, so `roomShell` takes a floor count. The parking units have no windows, so their night sprite is the day drawing one step darker. The subway station has skylights on its top floor.
+
+The burnt sprite comes from `toBurnt` in `tools/art/src/burnt.mjs`. It works on any unit sprite: it keeps the ink frame and the slabs, turns the room into charcoal with soot that thickens toward the ceiling, covers each floor in rubble with a few embers and breaks the windows it is given. Pass the unit's window list so the broken panes land where the glass was.
+
+The service shaft has a maintenance hatch, `transport/service-shaft/hatch` (10 x 14), a gray door with lamp and ink hazard stripes.
+
+`pnpm art:build` also writes `docs/art/services-preview.png`, one row per service subject at 1x.
+
 ## Building the art
 
 `pnpm art:build` draws every sprite group in `tools/art/src/groups` and rewrites the generated files. Each group is one module with a `name` (one of the groups above) and a `draw()` function that returns `{ id, canvas }` pairs. A new group is added to `tools/art/src/groups/index.mjs`.

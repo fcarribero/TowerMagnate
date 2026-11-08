@@ -87,6 +87,11 @@ export class SpriteRegistry {
     return this.lookup(spriteVariantId(subject, variant));
   }
 
+  /** The id `variant` would look up, so callers can tell when a texture needs to change. */
+  idOf(subject: string, variant: SpriteVariant): string {
+    return spriteVariantId(subject, variant);
+  }
+
   private lookup(id: string): Texture {
     const texture = this.textures.get(id);
     if (texture !== undefined) {

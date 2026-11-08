@@ -1,7 +1,15 @@
 import type { Level } from '@tower-magnate/shared';
 import { Application, Container, TextureSource, type TilingSprite } from 'pixi.js';
 import { loadSprites } from './atlasLoader';
-import { centerCamera, createCamera, resizeCamera, visibleLevels, type Camera } from './camera';
+import {
+  centerCamera,
+  createCamera,
+  nextZoom,
+  resizeCamera,
+  visibleLevels,
+  zoomCamera,
+  type Camera,
+} from './camera';
 import { attachCameraInput, type CameraChange } from './cameraInput';
 import { canvasSizeFromCssPixels, canvasSizeFromObservedBox, type CanvasSize } from './canvasSize';
 import { CulledRows } from './culledRows';
@@ -12,6 +20,7 @@ import { createSkyRows } from './skyRows';
 import type { SpriteRegistry } from './spriteRegistry';
 import { StructureLayer } from './structureLayer';
 import type { StructureInput } from './structureRows';
+import { UnitLayer, type UnitsInput } from './unitLayer';
 
 const SKY_COLOR = '#6f9fd8';
 const DEFAULT_ZOOM: Zoom = 2;
@@ -35,6 +44,8 @@ export interface Stage {
   camera(): Camera;
   /** Puts a world point (zoom 1 pixels) at the centre of the view. */
   centerOn(worldX: number, worldY: number): void;
+  /** One zoom level in or out, keeping the centre of the view in place. */
+  zoomStep(direction: 1 | -1): void;
   onCameraChange(listener: CameraListener): () => void;
   /** Called with the level under the pointer, or null when the pointer leaves the tower. */
   onHoverLevel(listener: HoverLevelListener): () => void;
@@ -42,6 +53,8 @@ export interface Stage {
   cssPerDevicePixel(): number;
   /** Draws the tower structure; later calls redraw only the levels that changed. */
   showStructure(input: StructureInput): void;
+  /** Draws units and transports; later calls change only what differs. */
+  showUnits(input: UnitsInput): void;
   destroy(): void;
 }
 
@@ -71,6 +84,8 @@ export async function mountStage(host: HTMLElement, options: StageOptions = {}):
   }
   const structure = new StructureLayer(sprites);
   world.addChild(structure.view);
+  const units = new UnitLayer(sprites);
+  world.addChild(units.view);
   app.stage.addChild(world);
 
   const firstSize = measureHost(host);
@@ -100,6 +115,7 @@ export async function mountStage(host: HTMLElement, options: StageOptions = {}):
     const onScreen = visibleLevels(camera);
     sky.showOnly(onScreen);
     structure.rows.showOnly(onScreen);
+    units.showOnly(onScreen);
     for (const listener of cameraListeners) {
       listener(camera);
     }
@@ -149,6 +165,11 @@ export async function mountStage(host: HTMLElement, options: StageOptions = {}):
       camera = centerCamera(camera, worldX, worldY);
       showCamera();
     },
+    zoomStep(direction) {
+      const zoom = nextZoom(camera.zoom, direction);
+      camera = zoomCamera(camera, zoom, camera.viewWidth / 2, camera.viewHeight / 2);
+      showCamera();
+    },
     onCameraChange(listener) {
       cameraListeners.add(listener);
       return () => cameraListeners.delete(listener);
@@ -160,6 +181,9 @@ export async function mountStage(host: HTMLElement, options: StageOptions = {}):
     cssPerDevicePixel,
     showStructure(input) {
       structure.update(input);
+    },
+    showUnits(input) {
+      units.update(input);
     },
     destroy() {
       cameraListeners.clear();
