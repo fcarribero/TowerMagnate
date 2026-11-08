@@ -126,7 +126,9 @@ describe('sky group', () => {
       expect(top.width % 4, time).toBe(0);
       for (let x = 0; x < top.width; x++) {
         expect(top.get(x, bottom), `${time} at ${x}`).toBe(middle.get(0, 0));
-        expect(top.get(x, bottom - 3), `${time} at ${x}`).toBe(top.get((x + 4) % top.width, bottom - 3));
+        expect(top.get(x, bottom - 3), `${time} at ${x}`).toBe(
+          top.get((x + 4) % top.width, bottom - 3),
+        );
       }
     }
   });
