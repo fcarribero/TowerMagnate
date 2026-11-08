@@ -9,9 +9,9 @@ export interface TestUser {
 }
 
 export function uniqueUser(): TestUser {
-  const suffix = `${Date.now().toString(36)}${randomBytes(3).toString('hex')}`;
+  const suffix = randomBytes(8).toString('hex');
   return {
-    username: `e2e_${suffix}`.slice(0, 20),
+    username: `e2e_${suffix}`,
     password: `pw-${randomBytes(8).toString('hex')}`,
   };
 }

@@ -4,7 +4,7 @@ on:
   pull_request:
     branches: [develop, master]
   push:
-    branches: [develop, master]
+    branches: [develop, master, 'release/**']
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -80,6 +80,42 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: e2e-traces
+          path: |
+            e2e/test-results
+            playwright-report
+          retention-days: 7
+
+  e2e-prod:
+    name: End-to-end tests on the production build
+    if: startsWith(github.ref_name, 'release/') || (github.event_name == 'pull_request' && github.base_ref == 'master')
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      E2E_PROFILE: prod
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Install browser
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Run e2e against the production image
+        run: pnpm e2e
+
+      - name: Upload traces
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-prod-traces
           path: |
             e2e/test-results
             playwright-report
