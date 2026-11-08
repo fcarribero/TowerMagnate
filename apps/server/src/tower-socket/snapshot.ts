@@ -212,7 +212,11 @@ function facingOf(state: TowerState, slot: number, phase: TrekPhase): PersonView
   return heading < 0 ? 'left' : 'right';
 }
 
-function peopleViews(state: TowerState, people: EnginePerson[], viewport: Viewport): PersonView[] {
+export function peopleViews(
+  state: TowerState,
+  people: EnginePerson[],
+  viewport: Viewport,
+): PersonView[] {
   const rides = ridePlaces(state);
   const views: PersonView[] = [];
   people.forEach((person, slot) => {

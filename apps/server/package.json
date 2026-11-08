@@ -11,7 +11,8 @@
     "start": "tsx src/main.ts",
     "migrate": "tsx src/migrate.ts",
     "build": "node scripts/build.mjs",
-    "bench:snapshots": "tsx src/bench/save-snapshot.ts"
+    "bench:snapshots": "tsx src/bench/save-snapshot.ts",
+    "bench:person-view": "tsx src/bench/person-view.ts"
   },
   "dependencies": {
     "@fastify/cookie": "^11.1.5",
