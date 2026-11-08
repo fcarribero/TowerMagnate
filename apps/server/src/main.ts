@@ -13,6 +13,7 @@ const app = buildApp({
   logger: { level: config.logLevel },
   webDir: config.webDir,
   debugCommands: config.debugCommands,
+  authAttemptsPerMinute: config.authAttemptsPerMinute,
 });
 
 installShutdownHandlers(app);

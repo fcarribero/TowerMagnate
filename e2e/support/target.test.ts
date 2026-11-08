@@ -6,6 +6,7 @@ describe('resolveE2eTarget', () => {
     expect(resolveE2eTarget({ BASE_URL: 'http://localhost:4132/' })).toEqual({
       baseUrl: 'http://localhost:4132',
       startsStack: false,
+      debugCommands: true,
       composeEnv: {},
     });
   });
@@ -14,8 +15,10 @@ describe('resolveE2eTarget', () => {
     expect(resolveE2eTarget({})).toEqual({
       baseUrl: 'http://localhost:4302',
       startsStack: true,
+      debugCommands: true,
       composeEnv: {
         COMPOSE_PROFILES: 'dev',
+        AUTH_ATTEMPTS_PER_MINUTE: '1000',
         COMPOSE_PROJECT_NAME: 'tm-e2e',
         POSTGRES_PORT: '4300',
         SERVER_PORT: '4301',
@@ -35,5 +38,11 @@ describe('resolveE2eTarget', () => {
     const target = resolveE2eTarget({ E2E_PROFILE: 'prod' });
     expect(target.baseUrl).toBe('http://localhost:4301');
     expect(target.composeEnv.COMPOSE_PROFILES).toBe('prod');
+    expect(target.debugCommands).toBe(false);
+  });
+
+  it('leaves out debug specs for a running production stack', () => {
+    const target = resolveE2eTarget({ BASE_URL: 'http://localhost:4131', E2E_PROFILE: 'prod' });
+    expect(target.debugCommands).toBe(false);
   });
 });

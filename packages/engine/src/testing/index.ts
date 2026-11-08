@@ -44,7 +44,20 @@ export {
 } from './trek-crowd';
 export type { TrekCrowdTiming } from './trek-crowd';
 export { OFFICE_WEEK_BUDGET_MS, tenFloorOfficeTowerPlan } from './ten-floor-office-tower';
-export { MAX_CUSTOMER_STEP_MS, customerStepMillis, venueTower } from './customer-day';
+export {
+  MAX_CUSTOMER_STEP_MS,
+  MAX_SUBWAY_STEP_MS,
+  customerStepMillis,
+  subwayStepMillis,
+  venueTower,
+} from './customer-day';
+export type { SubwayStepTiming } from './customer-day';
+export {
+  EVALUATED_UNITS,
+  MAX_DAILY_GRADES_MS,
+  evaluationTower,
+  timeDailyGrades,
+} from './evaluation-scenario';
 export {
   createEconomyEngine,
   firstLedgerMismatch,

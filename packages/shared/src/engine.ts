@@ -78,6 +78,8 @@ export interface Unit {
   hotel: HotelRoom | null;
   /** The current owners' purchase of a condo; null while the condo is for sale. */
   sale: CondoSale | null;
+  /** The last grade of an office, shop, condo or hotel room; null shows "Sin evaluar". */
+  evaluation: TenantEvaluation | null;
   /** The day's visit counts of a food, entertainment or retail venue; null for every other unit. */
   venue: VenueDay | null;
 }
@@ -105,6 +107,10 @@ export interface HotelRoom {
   state: HotelRoomState;
   /** When the current stay ends (10:00 on its last day); null while nobody is staying. */
   stayEndStep: number | null;
+  /** Check-in step of the current or last stay; null before the first stay. */
+  checkInStep: number | null;
+  /** Price level the current or last stay paid at check-in; null before the first stay. */
+  paidLevel: PriceLevel | null;
 }
 
 /** A staircase or escalator. Its cells on `level` are the footprint; the level above has the landing. */
@@ -125,6 +131,15 @@ export interface FloorPurchase extends ColumnSpan {
   level: Level;
   /** Whole dollars charged for each cell. */
   paidPerCell: number;
+  placedAtStep: number;
+}
+
+/** Sky lobby columns bought on one lobby level, kept while they can still be refunded. */
+export interface LobbyPurchase extends ColumnSpan {
+  /** The sky lobby level the run stands on. */
+  level: Level;
+  /** Whole dollars charged for each column, all its rows together. */
+  paidPerColumn: number;
   placedAtStep: number;
 }
 
@@ -255,12 +270,19 @@ export interface TowerState {
   grid: GridState;
   /** Floor tool purchases still inside the refund window; older ones may linger until pruned. */
   floorPurchases: FloorPurchase[];
+  /** Sky lobby purchases still inside the refund window; older ones may linger until pruned. */
+  lobbyPurchases: LobbyPurchase[];
   people: PersonPool;
   /**
    * Trips each person ended in the last STRESS_WINDOW_STEPS, keyed by person number: pairs of
    * end step and trip stress, oldest first.
    */
   tripLedger: Record<string, number[]>;
+  /**
+   * Trips filed for each evaluated unit since its ledger was last cleared, keyed by unit id:
+   * pairs of end step and trip stress, oldest first.
+   */
+  unitLedger: Record<UnitId, number[]>;
   ledger: Ledger;
   /** At most one bomb threat or fire at a time. */
   activeEvents: ActiveEvent[];
@@ -316,6 +338,15 @@ export interface MedicalDay {
   noticed: string[];
 }
 
+/** The values a news text fills in, as the engine knows them (messages.md, params column). */
+export interface NoticeParams {
+  level?: Level;
+  amount?: number;
+  n?: number;
+  /** Id of the option a decision applied by default; the client shows its button text. */
+  option?: string;
+}
+
 /** A news line the player was shown; `key` names its text. */
 export interface Notice {
   /** `n<step>.<index>`, unique within the tower. */
@@ -323,6 +354,7 @@ export interface Notice {
   step: number;
   key: string;
   unitId: UnitId | null;
+  params: NoticeParams;
 }
 
 /** Id of a tower event, such as `e7`. */
@@ -456,9 +488,17 @@ export type EngineEvent =
       choice: string;
     }
   | { type: 'treasureFound'; step: number; commandId: string; level: Level; amount: number }
-  | { type: 'news'; step: number; commandId: string; key: 'news.treasure'; level: Level }
+  | {
+      type: 'news';
+      step: number;
+      commandId: string;
+      key: 'news.treasure';
+      level: Level;
+      amount: number;
+    }
   | { type: 'news'; step: number; commandId: string; key: 'news.bombPaid'; unitId: null }
   | { type: 'disaster'; step: number; kind: DecisionKind; cells: CellRange[] }
   | { type: 'news'; step: number; key: 'news.bombExploded'; level: Level }
+  | { type: 'news'; step: number; key: 'news.starsUp'; n: number }
   | { type: 'news'; step: number; key: 'news.decisionDefault'; eventId: EventId; choice: string }
   | { type: 'news'; step: number; key: string; unitId: UnitId | null };
