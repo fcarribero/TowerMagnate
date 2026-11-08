@@ -7,6 +7,7 @@ import { useGameConnection } from '../net/useGameConnection';
 import { placeholderTowerContent } from '../render/placeholderTower';
 import { bindPreview, previewToolOf } from '../render/placementSource';
 import type { Stage } from '../render/stage';
+import { bindShafts, carSourceOf } from '../render/elevatorSource';
 import { bindStructure, fullWidthTestTower, testTowerFromQuery } from '../render/structureSource';
 import { DEBUG_UNIT_FLOORS, bindUnits, debugUnits, testUnitsFromQuery } from '../render/unitSource';
 import { isMapToggleKey } from './keys';
@@ -90,9 +91,13 @@ export function App({ onLogout, onRestartTower, onSessionLost }: AppProps) {
     }
     const unbindUnits = bindUnits(connection.store, (input) => stage.showUnits(input));
     const unbindStructure = bindStructure(connection.store, (input) => stage.showStructure(input));
+    const unbindShafts = bindShafts(connection.store, (shafts) => stage.showShafts(shafts));
+    stage.feedCars(carSourceOf(connection.store));
     return () => {
       unbindUnits();
       unbindStructure();
+      unbindShafts();
+      stage.feedCars(null);
     };
   }, [stage, connection]);
 

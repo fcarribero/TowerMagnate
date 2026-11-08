@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
+import { t } from './strings';
 import { mountStage, type RenderStats, type Stage } from '../render/stage';
 
 interface StageHostProps {
@@ -46,10 +47,8 @@ export function StageHost({ onStage }: StageHostProps) {
   return (
     <>
       <div class="stage-host" ref={hostRef} />
-      {loadState === 'loading' && <div class="stage-message">Cargando gráficos…</div>}
-      {loadState === 'failed' && (
-        <div class="stage-message">No se pudieron cargar los gráficos. Recargá la página.</div>
-      )}
+      {loadState === 'loading' && <div class="stage-message">{t('ui.stage.loading')}</div>}
+      {loadState === 'failed' && <div class="stage-message">{t('ui.stage.loadError')}</div>}
       {stats && (
         <div class="render-stats">
           {stats.fps} FPS · Zoom {stats.zoom}x · Pisos dibujados: {stats.floorsDrawn}
