@@ -478,3 +478,13 @@ export const WEEKLY_UPKEEP: Readonly<Record<UnitType, UpkeepRule>> = {
   'subway-station': flatUpkeep('per-unit', 200_000),
   cathedral: flatUpkeep('per-unit', 0),
 };
+
+export const EVAL_PRICE_ADJUST: Readonly<Record<Exclude<PriceLevel, 'minimum'>, number>> = {
+  high: 30,
+  normal: 0,
+  low: -30,
+};
+export const EVAL_NOISE = 60;
+export const EVAL_GOOD_BELOW = 90;
+export const EVAL_FAIR_BELOW = 180;
+export const EVAL_FAIR_BELOW_FROM_FOUR_STARS = 240;
