@@ -1,8 +1,11 @@
 import { useEffect, useState } from 'preact/hooks';
+import type { GameState } from '../../model/gameState';
+import { useStoreSelect } from '../../model/useStoreSelect';
 import type { GameConnection } from '../../net/gameConnection';
 import { ELEVATOR_WINDOW_KIND, elevatorWindowId, entityOfWindow } from '../inspectTarget';
 import { useWindowManager } from '../kit';
 import { ElevatorWindow } from './ElevatorWindow';
+import { bandInForce, type BandInForce } from './scheduleDraft';
 
 const FIRST_WINDOW_POSITION = { x: 60, y: 60 };
 const CASCADE_STEP = 12;
@@ -10,6 +13,8 @@ const CASCADE_STEP = 12;
 interface ElevatorWindowsProps {
   connection: Pick<GameConnection, 'store' | 'inspect' | 'commands'>;
 }
+
+const selectBandNow = (state: GameState): BandInForce => bandInForce(state.step);
 
 function useShaftInspect(connection: ElevatorWindowsProps['connection'], shaftId: string) {
   const { inspect } = connection;
@@ -30,6 +35,7 @@ function OpenElevatorWindow({
 }) {
   const manager = useWindowManager();
   const data = useShaftInspect(connection, shaftId);
+  const bandNow = useStoreSelect(connection.store, selectBandNow);
   const windowId = elevatorWindowId(shaftId);
   const close = (): void => {
     connection.inspect.forgetShaft(shaftId);
@@ -49,6 +55,7 @@ function OpenElevatorWindow({
       shaft={data}
       send={(command) => connection.commands.send(command)}
       onClose={close}
+      bandNow={bandNow}
     />
   );
 }

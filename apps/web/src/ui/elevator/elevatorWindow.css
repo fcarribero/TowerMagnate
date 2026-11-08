@@ -1,0 +1,33 @@
+.elevator-schedule table {
+  border-collapse: collapse;
+  margin: calc(4 * var(--tm-px)) 0;
+}
+
+.elevator-schedule th {
+  font-weight: normal;
+  text-align: left;
+  padding-right: calc(6 * var(--tm-px));
+}
+
+.elevator-schedule td {
+  padding: calc(1 * var(--tm-px)) calc(6 * var(--tm-px)) calc(1 * var(--tm-px)) 0;
+  white-space: nowrap;
+}
+
+.elevator-schedule .tm-input {
+  width: calc(36 * var(--tm-px));
+}
+
+.elevator-schedule tr.is-now {
+  background: var(--tm-lamp);
+}
+
+.elevator-schedule__now {
+  margin-left: calc(4 * var(--tm-px));
+  text-shadow: calc(1 * var(--tm-px)) 0 0 currentColor;
+}
+
+.elevator-schedule__problem {
+  color: var(--tm-cloth-red);
+  margin: calc(2 * var(--tm-px)) 0;
+}
