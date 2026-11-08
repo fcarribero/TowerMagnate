@@ -8,6 +8,8 @@ const SLAB_STEP_DOWN = {
 };
 const SOOT_SEED = 7;
 const EMBER_CHANCE = 0.03;
+const CEILING_SOOT = 0.3;
+const WALL_SOOT = 0.08;
 const RUBBLE_ROWS = 3;
 
 function isInkFrame(canvas, x, y) {
@@ -27,6 +29,13 @@ function breakWindow(canvas, { left, top, width, height }) {
     canvas.set(x, top, 'slate');
     canvas.set(x + 1, top + 1, 'slate');
   }
+}
+
+// Smoke gathers under the ceiling, so soot is densest on the top rows of a floor.
+function sootChance(y) {
+  const rowInFloor = y % metrics.floorHeight;
+  const height = metrics.floorHeight - metrics.slabHeight;
+  return CEILING_SOOT - (CEILING_SOOT - WALL_SOOT) * Math.min(rowInFloor / height, 1);
 }
 
 function scatterRubble(canvas, y) {
@@ -55,7 +64,7 @@ export function toBurnt(daySprite, { windows = [] } = {}) {
         continue;
       }
       const soot = pixelNoise(x, y, SOOT_SEED);
-      burnt.set(x, y, soot < 0.12 ? 'ink' : 'charcoal');
+      burnt.set(x, y, soot < sootChance(y) ? 'ink' : 'charcoal');
     }
   }
 

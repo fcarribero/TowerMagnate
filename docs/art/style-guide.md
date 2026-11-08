@@ -43,6 +43,16 @@ The palette has 32 slots. Slot 0 is transparent. Every sprite uses only these co
 | 30 | stress-pink | #f07aa8 | stressed people only |
 | 31 | stress-red | #d81e2a | very stressed people only |
 
+The stress bands of the stress evaluation spec (3.2) use three of these colors:
+
+| Band | Stress steps | Token | Hex |
+|---|---|---|---|
+| normal | under 90 | `ink` | #141218 |
+| high | 90 to 179 | `stress-pink` | #f07aa8 |
+| very high | 180 or more | `stress-red` | #d81e2a |
+
+`pnpm art:build` writes `apps/web/src/render/stressPalette.ts` with `STRESS_INK`, `STRESS_PINK`, `STRESS_RED` and `STRESS_BANDS` (name, hex, first step and sprite suffix of each band). The file is not committed. A calm person's sprite has no suffix, so the client picks `people/<subject>/<pose>` plus the band's `spriteSuffix`.
+
 Materials use three-step ramps: dark, base and light. The ramps are gray (slate, gray, silver), concrete (concrete-dark, concrete, concrete-light), wood (wood-dark, wood, wood-light), day sky (sky-deep, sky, sky-light) and skin (skin-dark, skin-mid, skin-light). Stress-pink and stress-red are reserved for people, so the stress colors are never confused with furniture or signs.
 
 ## Sizes
@@ -130,6 +140,8 @@ Each type has 4 variants, `a` to `d`. Variants `a` and `c` are the tall build (1
 Each variant has `walk_01`, `walk_02` and `stand`, calm and with the `-pink` and `-red` tints, 9 sprites per variant. The tint recolors the top, the trousers or skirt and the clothing details. Skin, hair, shoes, badges, glasses and carried things keep their colors.
 
 `pnpm art:build` writes `docs/art/people-preview.png`, a 4x sheet with one row per type and every variant in each pose, and `docs/art/people-tint-preview.png` (3x) and `docs/art/people-tint-1x.png` (1x), which show every type calm, pink and red on a bare floor and in a lit hotel room, by day and by night.
+
+`pnpm art:build` also writes `docs/art/people-tint-variants.png` (4x) and `docs/art/people-tint-variants-1x.png` (1x). Each row is a person type and each group of three is a variant calm, pink and red, on the day sky on the left and the night sky on the right, so all 36 variants in 3 bands are on one sheet.
 
 ## Sprite ids
 
@@ -262,7 +274,7 @@ Service sprites are in `tools/art/src/units/services.mjs`. Each subject has `emp
 
 The recycling center and the subway station have 2 and 3 floors, so `roomShell` takes a floor count. The parking units have no windows, so their night sprite is the day drawing one step darker. The subway station has skylights on its top floor.
 
-The burnt sprite comes from `toBurnt` in `tools/art/src/burnt.mjs`. It works on any unit sprite: it keeps the ink frame and the slabs, turns the room into charcoal with soot, covers each floor in rubble with a few embers and breaks the windows it is given. Pass the unit's window list so the broken panes land where the glass was.
+The burnt sprite comes from `toBurnt` in `tools/art/src/burnt.mjs`. It works on any unit sprite: it keeps the ink frame and the slabs, turns the room into charcoal with soot that thickens toward the ceiling, covers each floor in rubble with a few embers and breaks the windows it is given. Pass the unit's window list so the broken panes land where the glass was.
 
 The service shaft has a maintenance hatch, `transport/service-shaft/hatch` (10 x 14), a gray door with lamp and ink hazard stripes.
 
