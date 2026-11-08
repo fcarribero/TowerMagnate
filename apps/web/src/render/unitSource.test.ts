@@ -2,7 +2,13 @@ import { describe, expect, it } from 'vitest';
 import { ClientStore } from '../model/clientStore';
 import { delta, office, snapshot } from '../testing/protocolFixtures';
 import type { UnitsInput } from './unitLayer';
-import { bindUnits, debugUnits, testUnitsFromQuery } from './unitSource';
+import {
+  DEBUG_VARIANT_LEVEL,
+  bindUnits,
+  debugStructure,
+  debugUnits,
+  testUnitsFromQuery,
+} from './unitSource';
 
 describe('bindUnits', () => {
   it('shows the snapshot units and again when a delta changes a variant', () => {
@@ -27,9 +33,19 @@ describe('bindUnits', () => {
 describe('debugUnits', () => {
   it('has every placed unit type empty and occupied', () => {
     const { units, transports } = debugUnits(12);
-    expect(units).toHaveLength(36);
+    expect(units.filter((unit) => unit.variant === 'empty')).toHaveLength(18);
     expect(units.filter((unit) => unit.occupied)).toHaveLength(18);
     expect(transports.map((transport) => transport.type)).toEqual(['stairs', 'escalator']);
+  });
+
+  it('has the stage 2 variants and ruins', () => {
+    const { units } = debugUnits(12);
+    const variants = units.map((unit) => `${unit.type}:${unit.variant}`);
+    expect(variants).toContain('single-room:dirty');
+    expect(variants).toContain('suite:infested');
+    expect(variants).toContain('parking-space:disconnected');
+    const ruins = debugStructure().structure.get(DEBUG_VARIANT_LEVEL);
+    expect(ruins).toContain('r');
   });
 
   it('follows the hour', () => {

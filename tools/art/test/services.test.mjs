@@ -20,6 +20,7 @@ const catalog = {
   'subway-station': [30, 3],
 };
 const variants = ['empty_day', 'empty_night', 'occupied_day', 'occupied_night', 'burnt'];
+const disconnected = ['disconnected_day', 'disconnected_night'];
 const countColor = (canvas, color) =>
   canvas.pixels.filter((index) => index === colorIndex(color)).length;
 
@@ -27,8 +28,16 @@ describe('service facility sprites', () => {
   it('draws empty and occupied by day and night, plus one burnt sprite', () => {
     for (const subject of Object.keys(catalog)) {
       const ids = Object.keys(byId).filter((id) => id.startsWith(`units/${subject}/`));
-      expect(ids.sort()).toEqual(variants.map((variant) => `units/${subject}/${variant}`).sort());
+      const expected = subject === 'parking-space' ? [...variants, ...disconnected] : variants;
+      expect(ids.sort()).toEqual(expected.map((variant) => `units/${subject}/${variant}`).sort());
     }
+  });
+
+  it('draws a disconnected parking space that differs from the empty one', () => {
+    const empty = byId['units/parking-space/empty_day'];
+    const cut = byId['units/parking-space/disconnected_day'];
+    expect(cut.pixels).not.toEqual(empty.pixels);
+    expect(countColor(cut, 'cloth-red')).toBeGreaterThan(countColor(empty, 'cloth-red'));
   });
 
   it('matches the catalog width and floor count', () => {

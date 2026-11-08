@@ -12,7 +12,7 @@ import type { Stage } from '../render/stage';
 import { bindUnitClicks } from '../render/unitClick';
 import { bindShafts, carSourceOf } from '../render/elevatorSource';
 import { bindStructure, fullWidthTestTower, testTowerFromQuery } from '../render/structureSource';
-import { DEBUG_UNIT_FLOORS, bindUnits, debugUnits, testUnitsFromQuery } from '../render/unitSource';
+import { bindUnits, debugStructure, debugUnits, testUnitsFromQuery } from '../render/unitSource';
 import type { OverlayId } from '../render/overlayColors';
 import { OverlayLegend } from './overlay/OverlayLegend';
 import { OverlaySelector } from './overlay/OverlaySelector';
@@ -117,7 +117,7 @@ export function App({ onLogout, onRestartTower, onSessionLost }: AppProps) {
     }
     const testUnitsHour = import.meta.env.DEV ? testUnitsFromQuery(location.search) : null;
     if (testUnitsHour !== null) {
-      stage.showStructure(fullWidthTestTower(DEBUG_UNIT_FLOORS));
+      stage.showStructure(debugStructure());
       stage.showUnits(debugUnits(testUnitsHour, overlay));
       return;
     }

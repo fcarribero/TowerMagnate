@@ -150,6 +150,11 @@ function structureString(row: LevelRow): string {
     const mark = span.kind === 'lobby' ? 'l' : 'f';
     cells.fill(mark, span.x0, span.x1 + 1);
   }
+  for (const span of row.occupants) {
+    if (span.occupant.kind === 'ruins') {
+      cells.fill('r', span.x0, span.x1 + 1);
+    }
+  }
   return cells.join('');
 }
 
