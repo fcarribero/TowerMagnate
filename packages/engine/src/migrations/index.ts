@@ -11,6 +11,7 @@ import {
   RESPONSE_DISTANCE_MAX,
   RESPONSE_DISTANCE_MIN,
   SHAFT_TYPES,
+  SHOP_EARLY_LEAVE_MIN_VISITS,
   UNIT_TYPES,
   type ElevatorCar,
   type CondoSale,
@@ -78,6 +79,7 @@ const MIGRATIONS: readonly Migration[] = [
   addWeddingAttempt,
   addLobbyPurchases,
   addUnitEvaluation,
+  addShopWeekVisits,
   addHotelBookings,
 ];
 
@@ -416,18 +418,38 @@ function withUnitEvaluation(unit: Record<string, unknown>): Record<string, unkno
 }
 
 /**
- * Version 27 keeps each hotel room's booking and whether it rolls for one at once. A room in an
- * older tower has no booking.
+ * Version 27 counts each lease's customer visits for the shop early-leave check. A lease saved
+ * before that starts at the minimum, so no shop leaves for a week it was never counted in.
  */
-function addHotelBookings(raw: Record<string, unknown>): Record<string, unknown> {
+function addShopWeekVisits(raw: Record<string, unknown>): Record<string, unknown> {
   if (!isRecord(raw.units)) {
     return { ...raw, schemaVersion: 27 };
   }
   const units: Record<string, unknown> = {};
   for (const [id, unit] of Object.entries(raw.units)) {
-    units[id] = isRecord(unit) && isRecord(unit.hotel) ? withHotelBooking(unit) : unit;
+    units[id] = isRecord(unit) ? withWeekVisits(unit) : unit;
   }
   return { ...raw, schemaVersion: 27, units };
+}
+
+function withWeekVisits(unit: Record<string, unknown>): Record<string, unknown> {
+  if (!isRecord(unit.lease)) return unit;
+  return { ...unit, lease: { weekVisits: SHOP_EARLY_LEAVE_MIN_VISITS, ...unit.lease } };
+}
+
+/**
+ * Version 28 keeps each hotel room's booking and whether it rolls for one at once. A room in an
+ * older tower has no booking.
+ */
+function addHotelBookings(raw: Record<string, unknown>): Record<string, unknown> {
+  if (!isRecord(raw.units)) {
+    return { ...raw, schemaVersion: 28 };
+  }
+  const units: Record<string, unknown> = {};
+  for (const [id, unit] of Object.entries(raw.units)) {
+    units[id] = isRecord(unit) && isRecord(unit.hotel) ? withHotelBooking(unit) : unit;
+  }
+  return { ...raw, schemaVersion: 28, units };
 }
 
 function withHotelBooking(unit: Record<string, unknown>): Record<string, unknown> {
@@ -552,7 +574,8 @@ function isLease(value: unknown): value is Lease {
     isRecord(value) &&
     isNonNegativeInteger(value.anchorStep) &&
     isNonNegativeInteger(value.nextDueStep) &&
-    value.nextDueStep > value.anchorStep
+    value.nextDueStep > value.anchorStep &&
+    isNonNegativeInteger(value.weekVisits)
   );
 }
 

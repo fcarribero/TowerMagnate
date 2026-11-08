@@ -92,7 +92,7 @@ describe('migrateState unit leases', () => {
       ...newUnit('u3', 'office', 0, 1),
       priceLevel: 'high',
       used: true,
-      lease: { anchorStep: 100, nextDueStep: 60580 },
+      lease: { anchorStep: 100, nextDueStep: 60580, weekVisits: 0 },
     };
     expect(migratedUnit(JSON.parse(JSON.stringify(rented)))).toEqual(rented);
   });
@@ -693,15 +693,32 @@ describe('migrateState sky lobby purchases', () => {
   });
 });
 
+describe('migrateState shop week visits', () => {
+  it('starts an older lease at the early-leave minimum so no shop leaves for an uncounted week', () => {
+    const old = JSON.parse(JSON.stringify(createTower(5))) as Record<string, unknown>;
+    old.schemaVersion = 26;
+    old.units = {
+      u3: {
+        ...newUnit('u3', 'retail-shop', 0, 2),
+        lease: { anchorStep: 100, nextDueStep: 60_580 },
+      },
+      u4: newUnit('u4', 'retail-shop', 20, 2),
+    };
+    const tower = migrateState(old);
+    expect(tower.units.u3?.lease).toEqual({ anchorStep: 100, nextDueStep: 60_580, weekVisits: 70 });
+    expect(tower.units.u4?.lease).toBeNull();
+  });
+});
+
 describe('migrateState hotel bookings', () => {
-  it('gives the rooms of a version 26 save no booking and no pending roll', () => {
+  it('gives the rooms of a version 27 save no booking and no pending roll', () => {
     const tower = createTower(5);
     tower.units.u3 = newUnit('u3', 'suite', 10, 2);
     const old = JSON.parse(JSON.stringify(tower)) as {
       schemaVersion: number;
       units: Record<string, { hotel: Record<string, unknown> }>;
     };
-    old.schemaVersion = 26;
+    old.schemaVersion = 27;
     delete old.units.u3?.hotel.arrivalStep;
     delete old.units.u3?.hotel.rollDue;
     expect(migrateState(old).units.u3?.hotel).toMatchObject({ arrivalStep: null, rollDue: false });

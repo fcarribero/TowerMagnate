@@ -1,5 +1,6 @@
 import {
   LEASE_CONTRACT_WEEKS,
+  SHOP_EARLY_LEAVE_MIN_VISITS,
   WEEKLY_RENT,
   type Lease,
   type TenantEvaluation,
@@ -27,6 +28,8 @@ const NEWS_ON_LEAVING: Readonly<Record<LeasedUnitType, string>> = {
   'retail-shop': 'news.shopLeftEvaluation',
 };
 
+const NEWS_ON_LEAVING_EARLY = 'news.shopLeftNoCustomers';
+
 export function isLeasable(unit: Unit): unit is LeasedUnit {
   return unit.type in WEEKLY_RENT;
 }
@@ -42,18 +45,31 @@ function termEndStep(lease: Lease): number {
 /** E-10 and the renewal half of E-12: a new term anchored now, week 1 paid at once. */
 function startTerm(context: StepContext, unit: LeasedUnit, event: 'leaseSigned' | 'leaseRenewed') {
   const step = context.state.step;
-  unit.lease = { anchorStep: step, nextDueStep: step + STEPS_PER_WEEK };
+  unit.lease = { anchorStep: step, nextDueStep: step + STEPS_PER_WEEK, weekVisits: 0 };
   unit.used = true;
   creditMoney(context.state, 'rent', weeklyRent(unit));
   context.events.push({ type: event, step, unitId: unit.id });
 }
 
-function endLease(context: StepContext, unit: LeasedUnit): void {
+function endLease(context: StepContext, unit: LeasedUnit, newsKey: string): void {
   const step = context.state.step;
   unit.lease = null;
   unit.evaluation = null;
   context.events.push({ type: 'leaseEnded', step, unitId: unit.id });
-  context.events.push({ type: 'news', step, key: NEWS_ON_LEAVING[unit.type], unitId: unit.id });
+  context.events.push({ type: 'news', step, key: newsKey, unitId: unit.id });
+}
+
+/**
+ * Counts a customer visit that starts now inside a shop, for the early-leave check (economy 4.3).
+ * A shop without a tenant and any other unit count nothing.
+ */
+export function recordShopVisit(unit: Unit): void {
+  if (unit.type === 'retail-shop' && unit.lease) unit.lease.weekVisits += 1;
+}
+
+/** E-15: at every due step after move-in, a shop with too few customers that week leaves. */
+function hasTooFewCustomers(unit: LeasedUnit, lease: Lease): boolean {
+  return unit.type === 'retail-shop' && lease.weekVisits < SHOP_EARLY_LEAVE_MIN_VISITS;
 }
 
 /** Starts a lease at the current step. Called by tenant demand when a tenant moves in. */
@@ -71,14 +87,19 @@ export function moveInTenant(context: StepContext, unitId: UnitId): void {
 
 function settleDueLease(context: StepContext, unit: LeasedUnit, evaluate: TenantEvaluator): void {
   const lease = unit.lease as Lease;
+  if (hasTooFewCustomers(unit, lease)) {
+    endLease(context, unit, NEWS_ON_LEAVING_EARLY);
+    return;
+  }
   if (lease.nextDueStep < termEndStep(lease)) {
     creditMoney(context.state, 'rent', weeklyRent(unit));
     lease.nextDueStep += STEPS_PER_WEEK;
+    lease.weekVisits = 0;
     return;
   }
   storeGrade(context.state, unit);
   if (evaluate(context.state, unit) === 'poor') {
-    endLease(context, unit);
+    endLease(context, unit, NEWS_ON_LEAVING[unit.type]);
   } else {
     startTerm(context, unit, 'leaseRenewed');
   }
