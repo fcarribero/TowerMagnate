@@ -115,6 +115,17 @@ export interface Transport {
   x: number;
   /** Lower level. */
   level: Level;
+  /** Whole dollars charged at placement. */
+  paid: number;
+  placedAtStep: number;
+}
+
+/** Floor bought with the floor tool on one level, kept while it can still be refunded. */
+export interface FloorPurchase extends ColumnSpan {
+  level: Level;
+  /** Whole dollars charged for each cell. */
+  paidPerCell: number;
+  placedAtStep: number;
 }
 
 /** Instance id of a placed elevator shaft, such as `s4`. */
@@ -242,6 +253,8 @@ export interface TowerState {
   transports: Record<EntityId, Transport>;
   shafts: Record<ShaftId, Shaft>;
   grid: GridState;
+  /** Floor tool purchases still inside the refund window; older ones may linger until pruned. */
+  floorPurchases: FloorPurchase[];
   people: PersonPool;
   /**
    * Trips each person ended in the last STRESS_WINDOW_STEPS, keyed by person number: pairs of

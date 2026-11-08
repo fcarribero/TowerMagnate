@@ -42,7 +42,14 @@ describe('buildTransport stairs', () => {
     const { state, result } = run(tower, transport('stairs', 10, 2));
     expect(result).toEqual({ id: 'c1', ok: true, step: 0, cost: 5_000, refund: 0 });
     expect(state.money).toBe(tower.money - 5_000);
-    expect(state.transports.t1).toEqual({ id: 't1', type: 'stairs', x: 10, level: 2 });
+    expect(state.transports.t1).toEqual({
+      id: 't1',
+      type: 'stairs',
+      x: 10,
+      level: 2,
+      paid: 5_000,
+      placedAtStep: 0,
+    });
   });
 
   it('puts the footprint on the lower level and reserves the landing above', () => {
