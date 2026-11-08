@@ -15,6 +15,7 @@ import {
   zoomCamera,
   type Camera,
 } from './camera';
+import { isSpaceHeld } from '../input/keyboard';
 import { attachCameraInput, type CameraChange } from './cameraInput';
 import { canvasSizeFromCssPixels, canvasSizeFromObservedBox, type CanvasSize } from './canvasSize';
 import { cellAtCanvasPoint, type Cell } from './cellAtPoint';
@@ -230,7 +231,7 @@ export async function mountStage(host: HTMLElement, options: StageOptions = {}):
     }
   };
   const onPointerDown = (event: PointerEvent): void => {
-    if (event.button === 0) {
+    if (event.button === 0 && !isSpaceHeld()) {
       emitCellInput('down', event);
     }
   };
