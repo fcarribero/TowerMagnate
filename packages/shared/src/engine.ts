@@ -1,6 +1,6 @@
 import type { Ledger } from './ledger';
 import type { Level } from './levels';
-import type { DecisionKind } from './protocol/primitives';
+import type { DecisionKind, TransportType } from './protocol/primitives';
 import type { PersonPool } from './people';
 import type { PriceLevel, UnitType } from './units';
 
@@ -76,6 +76,16 @@ export interface Unit {
   lease: Lease | null;
 }
 
+/** A staircase or escalator. Its cells on `level` are the footprint; the level above has the landing. */
+export interface Transport {
+  id: EntityId;
+  type: TransportType;
+  /** Leftmost column. */
+  x: number;
+  /** Lower level. */
+  level: Level;
+}
+
 export interface Lease {
   /** Move-in or last renewal step. Payments fall on whole weeks after it. */
   anchorStep: number;
@@ -93,6 +103,7 @@ export interface TowerState {
   /** Whole dollars, may be negative, never above MONEY_CAP. */
   money: number;
   units: Record<UnitId, Unit>;
+  transports: Record<EntityId, Transport>;
   grid: GridState;
   people: PersonPool;
   ledger: Ledger;

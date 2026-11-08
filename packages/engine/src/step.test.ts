@@ -106,8 +106,8 @@ describe('step', () => {
   });
 
   it('rejects a command that has no handler yet', () => {
-    const buildTransport = { type: 'buildTransport', transportType: 'stairs', x: 10, level: 2 };
-    const queued = { id: 'c1', command: buildTransport as unknown as Command };
+    const addCar = { type: 'addCar', shaftId: 's1', homeLevel: 2 };
+    const queued = { id: 'c1', command: addCar as unknown as Command };
     const { results, state } = step(createTower(1), [queued], 0);
     expect(results).toEqual([{ id: 'c1', ok: false, step: 0, error: 'INVALID_COMMAND' }]);
     expect(state).toEqual(createTower(1));

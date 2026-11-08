@@ -13,3 +13,7 @@ export const VERSION_3_SAVE =
   '"units":{"u1":{"id":"u1","type":"office","x":10,"level":2,"name":"Sur",' +
   '"priceLevel":"high","paid":44500,"placedAtStep":120,"used":true,' +
   '"lease":{"anchorStep":240,"nextDueStep":60720}}}}';
+
+export const VERSION_4_SAVE =
+  '{"schemaVersion":4,"step":8640,"rng":{"a":1,"b":2,"c":3,"d":4},"nextId":3,' +
+  '"units":{},"transports":{"t2":{"id":"t2","type":"escalator","x":20,"level":2}}}';
