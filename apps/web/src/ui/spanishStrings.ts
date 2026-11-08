@@ -338,6 +338,7 @@ export const SPANISH_STRINGS = {
   'error.PROTOCOL_MISMATCH': 'Hay una versión nueva del juego. Recargá la página.',
   'error.NOT_AUTHENTICATED': 'La sesión se cerró. Entrá de nuevo.',
   'error.RATE_LIMITED': 'Demasiadas órdenes seguidas. Esperá un momento.',
+  'error.NOT_ALLOWED': 'Esa acci�n no est� permitida.',
   'error.unknown': 'No se pudo hacer.',
 
   // 13.9 News and notices

@@ -2,6 +2,7 @@ import cookie from '@fastify/cookie';
 import Fastify, { type FastifyInstance, type FastifyServerOptions } from 'fastify';
 import { authRoutes } from './auth/routes';
 import { createPool, pingDatabase } from './database';
+import { createDebugFrames } from './debug';
 import { registerGateway, type IdentityResolver } from './gateway';
 import { checkHealth } from './health';
 import { towerRoutes } from './towers/routes';
@@ -33,6 +34,8 @@ export interface AppOptions {
   runnerTickIntervalMs?: number;
   deltaIntervalMs?: number;
   snapshotIntervalMs?: number;
+  /** Dev-only debug messages. Off unless asked for, and always off in production. */
+  debugCommands?: boolean;
 }
 
 declare module 'fastify' {
@@ -74,6 +77,7 @@ export function buildApp(options: AppOptions): FastifyInstance {
   const gateway = registerGateway(app, {
     resolveIdentity: options.resolveSocketIdentity ?? sessionIdentityResolver(pool),
     handlers: towerSocketHandlers({ runner, viewports, broadcaster }),
+    debugFrames: createDebugFrames({ runner, enabled: options.debugCommands ?? false }),
     heartbeatIntervalMs: options.heartbeatIntervalMs,
     helloTimeoutMs: options.helloTimeoutMs,
   });
