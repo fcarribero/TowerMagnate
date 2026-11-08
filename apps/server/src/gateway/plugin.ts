@@ -1,3 +1,4 @@
+import { TOWER_SOCKET_PATH } from '@tower-magnate/shared';
 import websocket, { type WebsocketPluginOptions } from '@fastify/websocket';
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import type { ConnectionRegistry } from './connection-registry';
@@ -6,8 +7,6 @@ import type { MessageHandlers } from './message-router';
 import { CLOSE_CODES, sendError, type GatewaySocket, type SocketIdentity } from './socket';
 
 export const MAX_CLIENT_MESSAGE_BYTES = 64 * 1024;
-
-export const TOWER_SOCKET_PATH = '/ws';
 
 /** The socket's user and tower, or a reason to refuse it. */
 export type IdentityResult = { identity: SocketIdentity } | { refused: string };

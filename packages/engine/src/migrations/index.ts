@@ -34,6 +34,7 @@ const MIGRATIONS: readonly Migration[] = [
   addShafts,
   addTransportRecord,
   addEventState,
+  addPersonPool,
   addHallQueues,
 ];
 
@@ -82,7 +83,26 @@ function addEventState(raw: Record<string, unknown>): Record<string, unknown> {
   };
 }
 
-/** Version 7 gives every shaft its floor queues; nobody was waiting in older saves. */
+const EMPTY_VERSION_7_PEOPLE = {
+  nextId: 1,
+  id: [],
+  kind: [],
+  homeUnit: [],
+  level: [],
+  column: [],
+  trip: [],
+  dueStep: [],
+  stress: [],
+  nameSeed: [],
+  followed: [],
+};
+
+/** Version 7 saves the person pool; older saves could only load without people. */
+function addPersonPool(raw: Record<string, unknown>): Record<string, unknown> {
+  return { people: EMPTY_VERSION_7_PEOPLE, ...raw, schemaVersion: 7 };
+}
+
+/** Version 8 gives every shaft its floor queues; nobody was waiting in older saves. */
 function addHallQueues(raw: Record<string, unknown>): Record<string, unknown> {
   const shafts: Record<string, unknown> = {};
   if (isRecord(raw.shafts)) {
@@ -90,7 +110,7 @@ function addHallQueues(raw: Record<string, unknown>): Record<string, unknown> {
       shafts[id] = isRecord(shaft) ? { queues: {}, ...shaft } : shaft;
     }
   }
-  return { ...raw, schemaVersion: 7, shafts };
+  return { ...raw, schemaVersion: 8, shafts };
 }
 
 function isUint32(value: unknown): value is number {
