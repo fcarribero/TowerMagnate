@@ -1,4 +1,4 @@
-import { act, cleanup, fireEvent, render, screen } from '@testing-library/preact';
+import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/preact';
 import type { ClientMessage, ServerMessage, UnitView } from '@tower-magnate/shared';
 import { afterEach, describe, expect, it } from 'vitest';
 import { ClientStore } from '../../model/clientStore';
@@ -93,7 +93,32 @@ describe('unit windows', () => {
     open('u1');
     show(inspectOf('u1'));
     expect(screen.getByRole('dialog', { name: 'Oficina · Piso 3' })).toBeTruthy();
-    expect(sent.at(-1)).toMatchObject({ t: 'inspect', p: { target: { kind: 'unit', id: 'u1' } } });
+    expect(sent.at(-1)).toMatchObject({
+      t: 'inspectAdd',
+      p: { target: { kind: 'unit', id: 'u1' } },
+    });
+  });
+
+  it('inspects every open unit window and stops only the closed one', () => {
+    const { open, show, sent } = setup([unitView('u1'), unitView('u2'), unitView('u3')]);
+    for (const id of ['u1', 'u2', 'u3']) {
+      open(id);
+      show(inspectOf(id, { name: `Unidad ${id}` }));
+    }
+    const adds = sent.filter((message) => message.t === 'inspectAdd');
+    expect(adds).toHaveLength(3);
+    fireEvent.click(
+      within(screen.getByRole('dialog', { name: 'Unidad u3' })).getByRole('button', {
+        name: /cerrar/i,
+      }),
+    );
+    expect(sent.at(-1)).toMatchObject({
+      t: 'inspectRemove',
+      p: { target: { kind: 'unit', id: 'u3' } },
+    });
+    expect(sent.filter((message) => message.t === 'inspectRemove')).toHaveLength(1);
+    show(inspectOf('u1', { name: 'Nuevo' }));
+    expect(screen.getByRole('dialog', { name: 'Nuevo' })).toBeTruthy();
   });
 
   it('renames on Enter and on blur, and an empty name clears it', () => {

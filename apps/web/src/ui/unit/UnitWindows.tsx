@@ -1,10 +1,13 @@
-import { useEffect } from 'preact/hooks';
+import { useEffect, useRef } from 'preact/hooks';
+import type { InspectTarget } from '@tower-magnate/shared';
 import type { GameConnection } from '../../net/gameConnection';
 import { useWindowManager } from '../kit';
 import {
   UNIT_WINDOW_KIND,
   entityOfWindow,
-  frontInspectTarget,
+  diffInspectTargets,
+  inspectTargetKey,
+  openInspectTargets,
   unitWindowId,
 } from '../inspectTarget';
 import { UnitWindow } from './UnitWindow';
@@ -18,14 +21,14 @@ interface UnitWindowsProps {
 
 /**
  * Opens a unit window whenever the Lupa asks for one, and keeps the server
- * inspecting the unit or shaft whose window is in front.
+ * inspecting every open unit and elevator window.
  */
 export function UnitWindows({ connection }: UnitWindowsProps) {
   const manager = useWindowManager();
   const unitWindows = manager.stack.windows.filter((window) => window.kind === UNIT_WINDOW_KIND);
-  const front = manager.stack.windows.at(-1);
-  const frontTarget = frontInspectTarget(front);
-  const frontWindowId = front?.id;
+  const targets = openInspectTargets(manager.stack.windows);
+  const targetKeys = targets.map(inspectTargetKey).join(',');
+  const sentTargets = useRef<InspectTarget[]>([]);
 
   useEffect(
     () =>
@@ -41,8 +44,11 @@ export function UnitWindows({ connection }: UnitWindowsProps) {
   );
 
   useEffect(() => {
-    connection.commands.inspect(frontTarget);
-  }, [connection, frontWindowId]);
+    const { added, removed } = diffInspectTargets(sentTargets.current, targets);
+    removed.forEach((target) => connection.commands.inspectRemove(target));
+    added.forEach((target) => connection.commands.inspectAdd(target));
+    sentTargets.current = targets;
+  }, [connection, targetKeys]);
 
   return (
     <>
