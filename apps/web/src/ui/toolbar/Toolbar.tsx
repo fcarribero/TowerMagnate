@@ -64,9 +64,19 @@ export function Toolbar({
         return;
       }
       const tool = fixedToolForKey(event.key);
-      if (tool !== null) {
-        onSelectTool(tool);
+      if (tool === null) {
+        return;
       }
+      if (event.key !== 'Escape') {
+        onSelectTool(tool);
+        return;
+      }
+      // Dragging and windows handle Esc first; they mark the event as handled.
+      setTimeout(() => {
+        if (!event.defaultPrevented) {
+          onSelectTool(tool);
+        }
+      });
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
