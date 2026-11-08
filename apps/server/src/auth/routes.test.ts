@@ -81,14 +81,14 @@ describe('auth routes', () => {
       const response = await register('beto', 'otra-clave-9');
 
       expect(response.statusCode).toBe(409);
-      expect(response.json()).toEqual({ error: 'Ese nombre de usuario ya está en uso.' });
+      expect(response.json()).toEqual({ error: 'Ese usuario ya existe. Probá con otro.' });
       expect(response.cookies).toEqual([]);
     });
 
     it('answers 400 in Spanish for invalid usernames and passwords', async () => {
       const tooShort = await register('ab');
       expect(tooShort.statusCode).toBe(400);
-      expect(tooShort.json().error).toMatch(/al menos 3 caracteres/);
+      expect(tooShort.json().error).toMatch(/de 3 a 20 caracteres/);
 
       const uppercase = await register('Carla');
       expect(uppercase.statusCode).toBe(400);
@@ -96,13 +96,13 @@ describe('auth routes', () => {
 
       const shortPassword = await register('carla', '1234567');
       expect(shortPassword.statusCode).toBe(400);
-      expect(shortPassword.json().error).toMatch(/al menos 8 caracteres/);
+      expect(shortPassword.json().error).toMatch(/lleva al menos 8 caracteres/);
     });
 
     it('answers 400 when the body is missing', async () => {
       const response = await post('/api/auth/register');
       expect(response.statusCode).toBe(400);
-      expect(response.json().error).toMatch(/Faltan/);
+      expect(response.json().error).toBe('Completá este campo.');
     });
   });
 
@@ -183,7 +183,7 @@ describe('auth routes', () => {
       expect(cleared.expires?.getTime()).toBeLessThanOrEqual(Date.now());
       const reused = await me(token);
       expect(reused.statusCode).toBe(401);
-      expect(reused.json()).toEqual({ error: 'No iniciaste sesión.' });
+      expect(reused.json()).toEqual({ error: 'La sesión se cerró. Entrá de nuevo.' });
     });
 
     it('keeps the other sessions of the same user', async () => {

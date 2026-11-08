@@ -17,6 +17,7 @@ import { SHAFT_UNIT_TYPES } from './units';
 
 export const STARTING_MONEY = 2_000_000;
 export const MONEY_CAP = 99_999_999;
+export const OFFICE_POPULATION = 6;
 
 export const TOWER_LAYOUT = {
   floorsAboveGround: 100,
