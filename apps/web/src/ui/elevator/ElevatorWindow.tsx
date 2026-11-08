@@ -21,7 +21,7 @@ import {
   toggleStop,
 } from './elevatorDraft';
 
-export type ShaftData = Extract<InspectData, { kind: 'shaft' }>;
+export type ShaftData = Extract<InspectData, { kind: 'shaft'; status: 'ok' }>;
 
 export interface ElevatorWindowProps {
   shaft: ShaftData;

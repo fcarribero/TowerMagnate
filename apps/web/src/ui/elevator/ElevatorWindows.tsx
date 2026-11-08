@@ -35,7 +35,13 @@ function OpenElevatorWindow({
     connection.inspect.forgetShaft(shaftId);
     manager.close(windowId);
   };
-  if (data === undefined) {
+  const gone = data?.status === 'gone';
+  useEffect(() => {
+    if (gone) {
+      close();
+    }
+  }, [gone]);
+  if (data === undefined || data.status === 'gone') {
     return null;
   }
   return (

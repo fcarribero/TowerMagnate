@@ -24,6 +24,7 @@ const schedule = {
 const shaftData: ShaftData = {
   kind: 'shaft',
   id: 's4',
+  status: 'ok',
   type: 'express',
   bottom: 1,
   top: 3,
@@ -68,6 +69,17 @@ describe('elevator windows', () => {
     act(() => inspect.requestShaftWindow('s4'));
     act(() => inspect.receive({ v: 1, t: 'inspect', p: shaftData }));
     fireEvent.click(screen.getByRole('button', { name: /cerrar/i }));
+    expect(sent.at(-1)).toMatchObject({ t: 'inspect', p: { target: null } });
+  });
+
+  it('closes the window when the shaft is gone', () => {
+    const { inspect, sent } = setup();
+    act(() => inspect.requestShaftWindow('s4'));
+    act(() => inspect.receive({ v: 1, t: 'inspect', p: shaftData }));
+    act(() =>
+      inspect.receive({ v: 1, t: 'inspect', p: { kind: 'shaft', id: 's4', status: 'gone' } }),
+    );
+    expect(screen.queryByRole('tab', { name: 'Cabinas' })).toBeNull();
     expect(sent.at(-1)).toMatchObject({ t: 'inspect', p: { target: null } });
   });
 });

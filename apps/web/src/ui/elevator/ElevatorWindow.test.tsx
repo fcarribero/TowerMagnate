@@ -20,6 +20,7 @@ const schedule = {
 const shaft = (patch: Partial<ShaftData> = {}): ShaftData => ({
   kind: 'shaft',
   id: 's4',
+  status: 'ok',
   type: 'standard',
   bottom: 1,
   top: 3,
@@ -41,7 +42,11 @@ function Open(props: Props) {
 
 function show(
   data: ShaftData,
-  send: Props['send'] = vi.fn(async (): Promise<CommandOutcome> => ({ ok: true, cost: 0 })),
+  send: Props['send'] = vi.fn(async (): Promise<CommandOutcome> => ({
+    ok: true,
+    cost: 0,
+    refund: 0,
+  })),
 ) {
   render(
     <WindowLayer>
