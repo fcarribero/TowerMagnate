@@ -13,7 +13,9 @@ import { eventsPhase } from './events';
 import { createLeaseSystem } from './leases';
 import { cloneState } from './state';
 import { ledgerWeekRollHook } from './money';
+import { createOfficeRoutine, straightLineRoutes } from './office-routine';
 import { createScheduler } from './scheduler';
+import { starCheckHook } from './stars';
 
 export interface StepResult {
   state: TowerState;
@@ -133,9 +135,17 @@ export function createEngine(rules: EngineRules): Engine {
   return { step, runDays };
 }
 
+const officeRoutine = createOfficeRoutine(straightLineRoutes);
+
 const towerEngine = createEngine({
   commandHandlers: towerCommandHandlers,
-  systems: [createScheduler([ledgerWeekRollHook]), createLeaseSystem(), eventsPhase],
+  systems: [
+    createScheduler([ledgerWeekRollHook, officeRoutine.planHook]),
+    createLeaseSystem(),
+    officeRoutine.system,
+    createScheduler([starCheckHook]),
+    eventsPhase,
+  ],
 });
 
 /**

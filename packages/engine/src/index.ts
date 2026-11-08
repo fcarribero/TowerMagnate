@@ -88,13 +88,21 @@ export {
   queueLength,
 } from './elevator-queues';
 export type { NewPerson, PersonHandler, PersonView } from './people';
+export {
+  createOfficeRoutine,
+  decodeRoutine,
+  routineAt,
+  straightLineRoutes,
+} from './office-routine';
+export type { OfficeRoutine, Place, RoutePlanner, RoutinePhase } from './office-routine';
 export { chance, createRng, nextFloat, nextInt, nextUint32 } from './rng';
 export { createScheduler } from './scheduler';
+export { runStarCheck, starCheckHook } from './stars';
 export type { HookOccurrence, HookSchedule, ScheduledHook, TimeOfDay } from './scheduler';
 export { deserializeState, serializeState } from './serialization';
 export { cloneState, createTower, SCHEMA_VERSION } from './state';
 export { createEngine, runDays, step } from './step';
-export { OFFICE_POPULATION, populationOf } from './population';
+export { populationOf } from './population';
 export type { PopulationBreakdown } from './population';
 export { newUnit } from './units';
 export type {

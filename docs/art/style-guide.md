@@ -112,6 +112,8 @@ Stair, escalator, lobby and elevator sprites have no states, only day and night.
 
 The cathedral has two states, `empty` and `wedding`. Its stained glass shows color by day. At night it is dark (night-deep) when empty and lit during a wedding.
 
+The cinema (31 x 2) has `empty` and `show`: the screen is dark when empty and shows a film with a projector beam and an audience during a show, by day and by night. The party hall (24 x 2) has `empty` and `party`: the party adds a lit dance floor, streamers, balloons, guests and confetti, and its windows glow at night only during a party. Both are one tall room, so there is no slab between their two floors.
+
 ## People
 
 - Each person type has at least two body variants (build and skin tone) and two clothing variants.
