@@ -58,6 +58,9 @@ jobs:
       - name: Office tower week benchmark
         run: pnpm bench:office-week
 
+      - name: Vertical slice week benchmark
+        run: pnpm bench:vertical-slice
+
       - name: Security events benchmark
         run: pnpm bench:events
 

@@ -5,6 +5,7 @@ export type { TowerSummary } from './summary';
 export { buildTower, plainTowerPlan } from './tower-builder';
 export type {
   BuiltTower,
+  PlannedFlight,
   PlannedFloors,
   PlannedShaft,
   PlannedSpan,
@@ -44,6 +45,16 @@ export {
 } from './trek-crowd';
 export type { TrekCrowdTiming } from './trek-crowd';
 export { OFFICE_WEEK_BUDGET_MS, tenFloorOfficeTowerPlan } from './ten-floor-office-tower';
+export {
+  VERTICAL_SLICE_DAYS,
+  VERTICAL_SLICE_SEED,
+  VERTICAL_SLICE_STEP_BUDGET_MS,
+  formatSliceDays,
+  runVerticalSlice,
+  verticalSliceTower,
+  verticalSliceTowerPlan,
+} from './vertical-slice';
+export type { SliceDay, SliceRun, WorkerDeparture } from './vertical-slice';
 export {
   MAX_CUSTOMER_STEP_MS,
   MAX_SUBWAY_STEP_MS,
