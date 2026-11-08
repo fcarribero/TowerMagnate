@@ -44,8 +44,8 @@ import { readActiveEvents, readClosedDecisions, readNotices, readTreasureLevels 
 import { readGrid } from './grid';
 import { readLedger, readMoney } from './money';
 import { readPeople, readTripLedger } from './people';
-import { readStars } from './stars';
-import { readFloorPurchases, readTransports } from './transports';
+import { readStars, readWedding } from './stars';
+import { readFloorPurchases, readLobbyPurchases, readTransports } from './transports';
 
 export { StateMigrationError } from './errors';
 
@@ -75,6 +75,8 @@ const MIGRATIONS: readonly Migration[] = [
   addBombCell,
   addVenueCustomers,
   addTransportPurchaseRecord,
+  addWeddingAttempt,
+  addLobbyPurchases,
   addUnitEvaluation,
 ];
 
@@ -380,19 +382,29 @@ function addTransportPurchaseRecord(raw: Record<string, unknown>): Record<string
   return { ...raw, transports, floorPurchases: [], schemaVersion: 23 };
 }
 
+/** Version 24 keeps the day's wedding attempt; an older tower has none under way. */
+function addWeddingAttempt(raw: Record<string, unknown>): Record<string, unknown> {
+  return { wedding: null, ...raw, schemaVersion: 24 };
+}
+
+/** Version 25 keeps sky lobby purchases; an older tower's lobbies are past the refund window. */
+function addLobbyPurchases(raw: Record<string, unknown>): Record<string, unknown> {
+  return { ...raw, lobbyPurchases: [], schemaVersion: 25 };
+}
+
 /**
- * Version 24 stores each unit's grade, each evaluated unit's trip ledger and what a hotel stay
+ * Version 26 stores each unit's grade, each evaluated unit's trip ledger and what a hotel stay
  * paid at check-in. Older saves have no grades and no filed trips.
  */
 function addUnitEvaluation(raw: Record<string, unknown>): Record<string, unknown> {
   if (!isRecord(raw.units)) {
-    return { unitLedger: {}, ...raw, schemaVersion: 24 };
+    return { unitLedger: {}, ...raw, schemaVersion: 26 };
   }
   const units: Record<string, unknown> = {};
   for (const [id, unit] of Object.entries(raw.units)) {
     units[id] = isRecord(unit) ? withUnitEvaluation(unit) : unit;
   }
-  return { unitLedger: {}, ...raw, schemaVersion: 24, units };
+  return { unitLedger: {}, ...raw, schemaVersion: 26, units };
 }
 
 function withUnitEvaluation(unit: Record<string, unknown>): Record<string, unknown> {
@@ -761,6 +773,7 @@ function assertCurrentShape(raw: Record<string, unknown>): TowerState {
     shafts: readShafts(raw.shafts),
     grid: readGrid(raw.grid),
     floorPurchases: readFloorPurchases(raw.floorPurchases),
+    lobbyPurchases: readLobbyPurchases(raw.lobbyPurchases),
     people: people,
     tripLedger: readTripLedger(raw.tripLedger, people.id),
     unitLedger: readUnitLedger(raw.unitLedger, units),
@@ -772,6 +785,7 @@ function assertCurrentShape(raw: Record<string, unknown>): TowerState {
     ...readStarState(raw),
     medicalDay: readMedicalDay(raw.medicalDay),
     parking: readParking(raw.parking),
+    wedding: readWedding(raw.wedding),
   };
 }
 

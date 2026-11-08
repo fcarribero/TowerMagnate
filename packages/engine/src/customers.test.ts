@@ -1,6 +1,8 @@
 import {
   CUSTOMER_ARRIVAL,
   PERSON_KINDS,
+  STRESS_NO_ROUTE,
+  UNIT_CATALOG,
   PRICE_LEVELS,
   type PriceLevel,
   type TowerState,
@@ -15,9 +17,9 @@ import { createCustomers, outsideCustomerCount } from './customers';
 import { addPerson, slotOfPerson } from './people';
 import { createScheduler } from './scheduler';
 import { createEngine, step } from './step';
-import { buildTower, plainTowerPlan } from './testing';
+import { buildTower, plainTowerPlan, type TowerPlan } from './testing';
 import { newUnit } from './units';
-import { encodeCustomerTrip } from './venue-visitors';
+import { customerTripAt, encodeCustomerTrip, type CustomerEntrance } from './venue-visitors';
 
 const TUESDAY = 1;
 const SATURDAY = 5;
@@ -301,7 +303,10 @@ describe('customers in the tower', () => {
         column: 35,
       });
       const slot = slotOfPerson(state.people, personId);
-      state.people.trip[slot] = encodeCustomerTrip({ phase: 'atVenue', onRight: false });
+      state.people.trip[slot] = encodeCustomerTrip({
+        phase: 'atVenue',
+        entrance: { kind: 'street', onRight: false },
+      });
       state.people.dueStep[slot] = at(TUESDAY, 18);
     }
     venueOf(state, id).customers = [at(TUESDAY, 12)];
@@ -351,5 +356,159 @@ describe('customers in the tower', () => {
     expect(customersIn(inside)).toBe(1);
     const gone = step(inside, [], 30 * STEPS_PER_MINUTE).state;
     expect(customersIn(gone)).toBe(0);
+  });
+});
+
+describe('customers by subway', () => {
+  const STATION_X = 10;
+  const STATION_LAST_COLUMN = STATION_X + UNIT_CATALOG['subway-station'].width - 1;
+  const LOBBY_RIGHT = 80;
+  const BURST = 200;
+
+  interface SubwayTowerOptions {
+    seed?: number;
+    station?: boolean;
+    reachable?: boolean;
+  }
+
+  /** A fast food on the lobby and, below, a station whose top row is level -7. */
+  function subwayTower({ seed = 1, station = true, reachable = true }: SubwayTowerOptions = {}) {
+    const plan: TowerPlan = {
+      seed,
+      ...plainTowerPlan(1, 0, LOBBY_RIGHT),
+      floors: [{ from: -9, to: -1, x0: 0, x1: LOBBY_RIGHT }],
+      units: [
+        { type: 'fast-food', x: 40, level: 1 },
+        ...(station ? [{ type: 'subway-station' as UnitType, x: STATION_X, level: -9 }] : []),
+      ],
+      shafts: reachable ? [{ type: 'standard', x: 60, bottom: -7, top: 1 }] : [],
+    };
+    const { state, unitIds } = buildTower(plan);
+    return { state, food: unitIds[0] as UnitId };
+  }
+
+  const appearOnly = createEngine({ commandHandlers: {}, systems: [createCustomers().system] });
+
+  interface Arrival {
+    entrance: CustomerEntrance;
+    level: number;
+    column: number;
+  }
+
+  /** Sends `BURST` customers at 12:00 and reports where each one appeared. */
+  function burstArrivals(options: SubwayTowerOptions): Arrival[] {
+    const { state, food } = subwayTower(options);
+    state.step = at(TUESDAY, 12) - 1;
+    venueOf(state, food).customers = Array.from({ length: BURST }, () => at(TUESDAY, 12));
+    const tower = appearOnly.step(state, [], 1).state;
+    const arrivals: Arrival[] = [];
+    for (let slot = 0; slot < tower.people.id.length; slot++) {
+      const trip = customerTripAt(tower.people, slot);
+      if (!trip) continue;
+      arrivals.push({
+        entrance: trip.entrance,
+        level: tower.people.level[slot] as number,
+        column: tower.people.column[slot] as number,
+      });
+    }
+    return arrivals;
+  }
+
+  it('brings a quarter of customers by subway, at level -7 inside the station', () => {
+    const arrivals = [1, 2, 3, 4, 5].flatMap((seed) => burstArrivals({ seed }));
+    expect(arrivals).toHaveLength(5 * BURST);
+    const bySubway = arrivals.filter((arrival) => arrival.entrance.kind === 'subway');
+    const share = (bySubway.length / arrivals.length) * 100;
+    expect(Math.abs(share - 25)).toBeLessThanOrEqual(3);
+    for (const arrival of bySubway) {
+      expect(arrival.level).toBe(-7);
+      expect(arrival.column).toBeGreaterThanOrEqual(STATION_X);
+      expect(arrival.column).toBeLessThanOrEqual(STATION_LAST_COLUMN);
+    }
+    for (const arrival of arrivals.filter((each) => each.entrance.kind === 'street')) {
+      expect(arrival.level).toBe(1);
+      expect([0, LOBBY_RIGHT]).toContain(arrival.column);
+    }
+  });
+
+  it('gives the same arrivals for the same seed', () => {
+    expect(burstArrivals({ seed: 3 })).toEqual(burstArrivals({ seed: 3 }));
+  });
+
+  it('never uses the subway in a tower without a station', () => {
+    const arrivals = burstArrivals({ station: false });
+    expect(arrivals).toHaveLength(BURST);
+    expect(arrivals.every((arrival) => arrival.entrance.kind === 'street')).toBe(true);
+  });
+
+  it('switches everyone to the street when the station has no route', () => {
+    const arrivals = burstArrivals({ reachable: false });
+    expect(arrivals).toHaveLength(BURST);
+    expect(arrivals.every((arrival) => arrival.level === 1)).toBe(true);
+  });
+
+  interface DayOfCustomers {
+    entrances: Map<number, CustomerEntrance[]>;
+    exits: Map<number, { level: number; column: number }>;
+    failedSearches: number;
+    food: UnitId;
+    tower: TowerState;
+  }
+
+  /** Runs a whole Tuesday minute by minute and follows every customer. */
+  function runDay(options: SubwayTowerOptions): DayOfCustomers {
+    const { state, food } = subwayTower(options);
+    state.step = at(TUESDAY, 0) - 1;
+    let tower = step(state, [], 1).state;
+    const entrances = new Map<number, CustomerEntrance[]>();
+    const exits = new Map<number, { level: number; column: number }>();
+    let failedSearches = 0;
+    while (tower.step < at(TUESDAY, 23, 59)) {
+      const result = step(tower, [], STEPS_PER_MINUTE);
+      tower = result.state;
+      failedSearches += result.events.filter((event) => event.type === 'routeSearchFailed').length;
+      const pool = tower.people;
+      for (let slot = 0; slot < pool.id.length; slot++) {
+        const trip = customerTripAt(pool, slot);
+        if (!trip) continue;
+        const id = pool.id[slot] as number;
+        entrances.set(id, [...(entrances.get(id) ?? []), trip.entrance]);
+        if (trip.phase === 'leaving') {
+          exits.set(id, {
+            level: pool.trekLevel[slot] as number,
+            column: pool.trekColumn[slot] as number,
+          });
+        }
+      }
+    }
+    return { entrances, exits, failedSearches, food, tower };
+  }
+
+  it('lets each customer leave by the entrance they came in by', () => {
+    const { entrances, exits } = runDay({});
+    const leftBySubway = [...exits.keys()].filter(
+      (id) => entrances.get(id)?.[0]?.kind === 'subway',
+    );
+    expect(leftBySubway.length).toBeGreaterThan(0);
+    for (const [id, seen] of entrances) {
+      const first = seen[0] as CustomerEntrance;
+      for (const entrance of seen) expect(entrance).toEqual(first);
+      const exit = exits.get(id);
+      if (!exit) continue;
+      if (first.kind === 'subway') expect(exit).toEqual({ level: -7, column: first.column });
+      else expect(exit).toEqual({ level: 1, column: first.onRight ? LOBBY_RIGHT : 0 });
+    }
+  });
+
+  it('sends everyone by the street with no extra stress when the station has no route', () => {
+    const { entrances, failedSearches, food, tower } = runDay({ reachable: false });
+    expect(entrances.size).toBe(24);
+    for (const seen of entrances.values()) {
+      expect(seen.every((entrance) => entrance.kind === 'street')).toBe(true);
+    }
+    expect(failedSearches).toBe(0);
+    const venue = venueOf(tower, food);
+    expect(venue.countToday).toBe(24);
+    expect(venue.stressSum).toBeLessThan(STRESS_NO_ROUTE);
   });
 });

@@ -41,6 +41,7 @@ import {
   type Viewport,
   type WeekTotals,
 } from '@tower-magnate/shared';
+import { noticeParamTexts } from './notice-params';
 
 const STEPS_PER_WEEK = STEPS_PER_DAY * DAYS_PER_WEEK;
 
@@ -115,7 +116,13 @@ function unitView(unit: TowerState['units'][string], occupied: boolean): UnitVie
 }
 
 function noticeView(notice: Notice): NoticeView {
-  return { id: notice.id, step: notice.step, key: notice.key, unitId: notice.unitId, params: {} };
+  return {
+    id: notice.id,
+    step: notice.step,
+    key: notice.key,
+    unitId: notice.unitId,
+    params: noticeParamTexts(notice.params),
+  };
 }
 
 function transportView(transport: Transport): TransportView {

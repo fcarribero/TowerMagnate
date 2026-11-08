@@ -4,6 +4,7 @@ import { levelToIndex, levelTop } from './levels';
 import { FLOOR_HEIGHT, TILE_WIDTH } from './metrics';
 import type { SpriteRegistry } from './spriteRegistry';
 import type { TimeOfDay } from './structurePlan';
+import { spriteState } from './unitPlan';
 
 export const GHOST_VALID_COLOR = 0x7ec850;
 export const GHOST_INVALID_COLOR = 0xb0353a;
@@ -82,7 +83,7 @@ export class GhostLayer {
     if (ghost !== null) {
       const area = areaOf(ghost);
       this.sprite.texture = this.sprites.variant(`units/${ghost.type}`, {
-        state: 'empty',
+        state: spriteState(ghost.type, false),
         time: ghost.time,
       });
       this.sprite.position.set(area.x, area.y);

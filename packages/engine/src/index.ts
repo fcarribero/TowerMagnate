@@ -131,6 +131,7 @@ export { chargeWeeklyUpkeep, weeklyUpkeepHook } from './upkeep';
 export { countVenueVisit, recordVenueVisit, rollVenueDay, venuePayoutHooks } from './venues';
 export { createCustomers, outsideCustomerCount } from './customers';
 export type { CustomerSystems, OutsideCustomerFactors } from './customers';
+export { startWeddingAttempt, weddingAttemptHook, weddingSystem } from './wedding';
 export { newUnit } from './units';
 export type {
   CommandContext,
@@ -173,4 +174,5 @@ export type {
   UserClass,
   WalkableRun,
 } from './routing';
+export { noticeParams } from './notices';
 export { isEvaluatedUnit } from './unit-evaluation';

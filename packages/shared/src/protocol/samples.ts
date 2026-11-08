@@ -194,7 +194,7 @@ export const sampleServerMessages: ServerMessage[] = [
         { type: 'starBlocked', step: 2, reason: 'security' },
         { type: 'disaster', step: 3, kind: 'bomb', cells: [{ level: -9, x0: 0, x1: 374 }] },
         { type: 'treasureFound', step: 3, amount: 1000000 },
-        { type: 'news', step: 4, key: 'news.shopLeftEvaluation', unitId: null },
+        { type: 'news', step: 4, key: 'news.shopLeftEvaluation', unitId: null, params: {} },
         { type: 'weddingCompleted', step: 4 },
         { type: 'sound', step: 5, sound: 'cashRegister', level: 2, x: 12 },
       ],

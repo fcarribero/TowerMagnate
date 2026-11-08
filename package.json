@@ -1,6 +1,6 @@
 {
   "name": "tower-magnate",
-  "version": "0.9.0",
+  "version": "0.10.0",
   "private": true,
   "type": "module",
   "packageManager": "pnpm@10.18.3",
@@ -29,6 +29,7 @@
     "bench:office-week": "tsx scripts/bench-office-week.ts",
     "bench:events": "tsx scripts/bench-security-events.ts",
     "bench:customers": "tsx scripts/bench-customers.ts",
+    "bench:subway": "tsx scripts/bench-subway-customers.ts",
     "bench:evaluation": "tsx scripts/bench-unit-evaluation.ts"
   },
   "devDependencies": {

@@ -134,6 +134,15 @@ export interface FloorPurchase extends ColumnSpan {
   placedAtStep: number;
 }
 
+/** Sky lobby columns bought on one lobby level, kept while they can still be refunded. */
+export interface LobbyPurchase extends ColumnSpan {
+  /** The sky lobby level the run stands on. */
+  level: Level;
+  /** Whole dollars charged for each column, all its rows together. */
+  paidPerColumn: number;
+  placedAtStep: number;
+}
+
 /** Instance id of a placed elevator shaft, such as `s4`. */
 export type ShaftId = string;
 
@@ -261,6 +270,8 @@ export interface TowerState {
   grid: GridState;
   /** Floor tool purchases still inside the refund window; older ones may linger until pruned. */
   floorPurchases: FloorPurchase[];
+  /** Sky lobby purchases still inside the refund window; older ones may linger until pruned. */
+  lobbyPurchases: LobbyPurchase[];
   people: PersonPool;
   /**
    * Trips each person ended in the last STRESS_WINDOW_STEPS, keyed by person number: pairs of
@@ -290,7 +301,24 @@ export interface TowerState {
   /** Medical center visits and notices of one game day; a new day starts them over. */
   medicalDay: MedicalDay;
   parking: ParkingState;
+  /** Today's wedding attempt, from 00:00 until its guests leave; null on other days. */
+  wedding: WeddingAttempt | null;
 }
+
+/** A weekend day's wedding attempt (stars spec 7, people spec 15). */
+export interface WeddingAttempt {
+  /** Day number of the attempt. */
+  day: number;
+  /** The cathedral the guests travel to. */
+  cathedral: UnitId;
+  /** Steps at which the guests still to come appear, earliest first. */
+  arrivals: number[];
+  /** Guests inside the cathedral. */
+  inside: number;
+  outcome: WeddingOutcome;
+}
+
+export type WeddingOutcome = 'pending' | 'completed' | 'failed';
 
 export interface ParkingState {
   /** Parking holders by person number; the value is the unit number of their space, or 0 for none. */
@@ -310,6 +338,15 @@ export interface MedicalDay {
   noticed: string[];
 }
 
+/** The values a news text fills in, as the engine knows them (messages.md, params column). */
+export interface NoticeParams {
+  level?: Level;
+  amount?: number;
+  n?: number;
+  /** Id of the option a decision applied by default; the client shows its button text. */
+  option?: string;
+}
+
 /** A news line the player was shown; `key` names its text. */
 export interface Notice {
   /** `n<step>.<index>`, unique within the tower. */
@@ -317,6 +354,7 @@ export interface Notice {
   step: number;
   key: string;
   unitId: UnitId | null;
+  params: NoticeParams;
 }
 
 /** Id of a tower event, such as `e7`. */
@@ -432,6 +470,7 @@ export type EngineEvent =
   | { type: 'hotelCheckOut'; step: number; unitId: UnitId }
   | { type: 'roomStateChanged'; step: number; unitId: UnitId; state: HotelRoomState }
   | { type: 'starsChanged'; step: number; stars: StarRating; unlocked: UnitType[] }
+  | { type: 'weddingCompleted'; step: number }
   | {
       type: 'decisionOpened';
       step: number;
@@ -449,9 +488,17 @@ export type EngineEvent =
       choice: string;
     }
   | { type: 'treasureFound'; step: number; commandId: string; level: Level; amount: number }
-  | { type: 'news'; step: number; commandId: string; key: 'news.treasure'; level: Level }
+  | {
+      type: 'news';
+      step: number;
+      commandId: string;
+      key: 'news.treasure';
+      level: Level;
+      amount: number;
+    }
   | { type: 'news'; step: number; commandId: string; key: 'news.bombPaid'; unitId: null }
   | { type: 'disaster'; step: number; kind: DecisionKind; cells: CellRange[] }
   | { type: 'news'; step: number; key: 'news.bombExploded'; level: Level }
+  | { type: 'news'; step: number; key: 'news.starsUp'; n: number }
   | { type: 'news'; step: number; key: 'news.decisionDefault'; eventId: EventId; choice: string }
   | { type: 'news'; step: number; key: string; unitId: UnitId | null };

@@ -10,12 +10,14 @@ import {
   openFire,
   rollLedgerWeek,
   setStructure,
+  step,
   STEPS_PER_DAY,
   TREK_PHASES,
   type TrekPhase,
 } from '@tower-magnate/engine';
 import { levelToIndex, SnapshotSchema, type TowerState, type Unit } from '@tower-magnate/shared';
 import { describe, expect, it } from 'vitest';
+import { toClientEvents } from './client-events';
 import { buildSnapshot } from './snapshot';
 
 const STEPS_PER_WEEK = 7 * STEPS_PER_DAY;
@@ -65,7 +67,7 @@ describe('snapshot from tower state', () => {
 
   it('sends the notices with their unit and time', () => {
     const state = createTower(7);
-    state.notices.push({ id: 'n5.0', step: 5, key: 'news.officeLeft', unitId: 'u1' });
+    state.notices.push({ id: 'n5.0', step: 5, key: 'news.officeLeft', unitId: 'u1', params: {} });
 
     const snapshot = buildSnapshot(state, null);
 
@@ -73,6 +75,59 @@ describe('snapshot from tower state', () => {
       { id: 'n5.0', step: 5, key: 'news.officeLeft', unitId: 'u1', params: {} },
     ]);
     expect(SnapshotSchema.safeParse(snapshot).success).toBe(true);
+  });
+
+  it('sends a notice level as its ruler label', () => {
+    const state = createTower(7);
+    state.notices.push({
+      id: 'n5.0',
+      step: 5,
+      key: 'news.bombExploded',
+      unitId: null,
+      params: { level: 7 },
+    });
+
+    expect(buildSnapshot(state, null).notices[0]?.params).toEqual({ level: '7' });
+  });
+
+  it('sends a treasure notice with its basement label and the amount as money text', () => {
+    const state = createTower(7);
+    const params = { level: -3, amount: 50_000 };
+    state.notices.push({ id: 'n5.0', step: 5, key: 'news.treasure', unitId: null, params });
+
+    const snapshot = buildSnapshot(state, null);
+
+    expect(snapshot.notices[0]?.params).toEqual({ level: 'S3', amount: '$50.000' });
+    expect(SnapshotSchema.safeParse(snapshot).success).toBe(true);
+  });
+
+  it('sends the star count of a promotion notice', () => {
+    const state = createTower(7);
+    state.notices.push({
+      id: 'n5.0',
+      step: 5,
+      key: 'news.starsUp',
+      unitId: null,
+      params: { n: 3 },
+    });
+
+    expect(buildSnapshot(state, null).notices[0]?.params).toEqual({ n: 3 });
+  });
+
+  it('sends a bomb blast notice after a reconnect as it was sent live', () => {
+    const tower = createTower(7);
+    openBombThreat({ state: tower, events: [] }, 300_000, { x: 0, level: 7 });
+
+    const result = step(tower, [], STEPS_PER_DAY);
+
+    const live = toClientEvents(result.events).find(
+      (event) => event.type === 'news' && event.key === 'news.bombExploded',
+    );
+    const kept = buildSnapshot(structuredClone(result.state), null).notices.find(
+      (notice) => notice.key === 'news.bombExploded',
+    );
+    expect(live).toMatchObject({ params: { level: '7' } });
+    expect(kept).toMatchObject({ step: live?.step, unitId: null, params: { level: '7' } });
   });
 
   it('sends open decisions with ransom and fire level, also after a reconnect', () => {

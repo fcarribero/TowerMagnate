@@ -30,6 +30,7 @@ import { createDailyGradeSystem } from './unit-evaluation';
 import { graphInputsKey, TransportGraph, type ShaftStops } from './routing';
 import { starCheckHook } from './stars';
 import { weeklyUpkeepHook } from './upkeep';
+import { weddingAttemptHook, weddingSystem } from './wedding';
 import { venuePayoutHooks } from './venues';
 
 export interface StepResult {
@@ -240,6 +241,7 @@ export const towerSystems: readonly SimulationSystem[] = [
     ...prospects.rollHooks,
     customers.planHook,
     customers.nightHook,
+    weddingAttemptHook,
   ]),
   createLeaseSystem(),
   createHotelSystem(),
@@ -250,6 +252,7 @@ export const towerSystems: readonly SimulationSystem[] = [
   officeRoutine.system,
   residentRoutine.system,
   customers.system,
+  weddingSystem,
   createElevatorSystem(),
   createScheduler([starCheckHook]),
   eventsPhase,

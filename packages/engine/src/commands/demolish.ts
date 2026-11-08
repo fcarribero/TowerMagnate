@@ -30,6 +30,7 @@ import {
   isInteger,
   refundConstruction,
   refundFloor,
+  refundLobby,
 } from './structure';
 import { clearUnitLedger } from '../unit-evaluation';
 
@@ -196,7 +197,7 @@ function planLobby(state: TowerState, level: Level, x0: number, x1: number): Pla
         for (const run of columnRuns(lobbyColumns))
           setStructure(grid, row, run.x0, run.x1, 'floor');
       }
-      return 0;
+      return refundLobby(state, sky.base, lobbyColumns);
     },
   };
 }
