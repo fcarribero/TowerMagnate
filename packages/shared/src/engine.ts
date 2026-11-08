@@ -78,6 +78,17 @@ export interface Unit {
   hotel: HotelRoom | null;
   /** The current owners' purchase of a condo; null while the condo is for sale. */
   sale: CondoSale | null;
+  /** The day's visit counts of a food or entertainment venue; null for every other unit. */
+  venue: VenueDay | null;
+}
+
+export interface VenueDay {
+  /** Visits started today inside the venue's hours. For a cinema: the 14:00 show. */
+  visits: number;
+  /** Visits to the cinema's 19:00 show today; always 0 for other venues. */
+  eveningShowVisits: number;
+  /** Count and payout of the last paid day; null until the first payout. */
+  yesterday: { visits: number; result: number | null } | null;
 }
 
 export interface HotelRoom {
