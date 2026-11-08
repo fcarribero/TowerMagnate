@@ -36,6 +36,16 @@ describe('transport graph in step', () => {
     expect(step(structuredClone(first.state), [], 1).graph).not.toBe(first.graph);
   });
 
+  it('builds a new graph for a returned state whose shafts were changed in place', () => {
+    const first = step(fullSiteTower(), [buildStandardShaft], 1);
+    for (const shaft of Object.values(first.state.shafts)) {
+      Reflect.deleteProperty(first.state.shafts, shaft.id);
+    }
+    const next = step(first.state, [], 1);
+    expect(next.graph).not.toBe(first.graph);
+    expect(next.graph.nodeAtCell(1, 42)).toBeNull();
+  });
+
   it('keeps the graph when the command is rejected', () => {
     const first = step(fullSiteTower(), [], 1);
     const result = step(first.state, [badShaft], 1, first.graph);
