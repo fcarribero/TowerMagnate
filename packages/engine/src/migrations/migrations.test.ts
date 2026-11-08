@@ -159,7 +159,18 @@ describe('migrateState fixtures', () => {
     const tower = migrateState(JSON.parse(VERSION_4_SAVE));
     expect(tower.shafts.s2).toMatchObject({ type: 'standard', x: 30, bottom: 1, top: 5 });
     expect(tower.shafts.s2?.cars).toEqual([
-      { homeLevel: 1, level: 3, riders: ['p7'], paid: 80_000, placedAtStep: 200 },
+      {
+        homeLevel: 1,
+        level: 3,
+        riders: ['p7'],
+        trips: [{ destination: 3, boardedStep: 8640, waitSteps: 0 }],
+        phase: 'idle',
+        direction: 'idle',
+        phaseStepsLeft: 0,
+        assigned: [],
+        paid: 80_000,
+        placedAtStep: 200,
+      },
     ]);
   });
 });
@@ -182,7 +193,18 @@ describe('migrateState hall queues', () => {
 
   it('refuses queues over 40 people or with a malformed entry', () => {
     const tower = createTower(5);
-    const car = { homeLevel: 1, level: 1, riders: [], paid: 80_000, placedAtStep: 0 };
+    const car = {
+      homeLevel: 1,
+      level: 1,
+      riders: [],
+      phase: 'idle',
+      direction: 'idle',
+      phaseStepsLeft: 0,
+      assigned: [],
+      trips: [],
+      paid: 80_000,
+      placedAtStep: 0,
+    };
     const shaft = (queues: unknown) => ({
       id: 's3',
       type: 'standard',
@@ -194,11 +216,11 @@ describe('migrateState hall queues', () => {
       paid: 200_000,
       placedAtStep: 0,
     });
-    const entry = { person: 'p1', joinedStep: 3 };
+    const entry = { person: 'p1', destination: 4, joinedStep: 3 };
     const full = Array.from({ length: 41 }, () => entry);
     const bad = [
       { '2': { up: full, down: [] } },
-      { '2': { up: [{ person: 7, joinedStep: 3 }], down: [] } },
+      { '2': { up: [{ person: 7, destination: 4, joinedStep: 3 }], down: [] } },
       { '2': { up: [] } },
     ];
     const good = { '2': { up: [entry], down: [] } };
@@ -214,7 +236,18 @@ describe('migrateState hall queues', () => {
 describe('migrateState shafts', () => {
   it('refuses a malformed shaft', () => {
     const tower = createTower(5);
-    const car = { homeLevel: 1, level: 1, riders: [], paid: 80_000, placedAtStep: 0 };
+    const car = {
+      homeLevel: 1,
+      level: 1,
+      riders: [],
+      phase: 'idle',
+      direction: 'idle',
+      phaseStepsLeft: 0,
+      assigned: [],
+      trips: [],
+      paid: 80_000,
+      placedAtStep: 0,
+    };
     const valid = {
       id: 's3',
       type: 'standard',
