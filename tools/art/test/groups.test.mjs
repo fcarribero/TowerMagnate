@@ -323,4 +323,37 @@ describe('ui group', () => {
     expect(sprites['ui/star-empty'].get(8, 8)).toBe(0);
     expect(sprites['ui/star-empty'].pixels.includes(colorIndex('slate'))).toBe(true);
   });
+
+  it('draws an icon for each of the 25 catalog units', () => {
+    const units = [
+      'floor',
+      'lobby',
+      'stairs',
+      'escalator',
+      'standard-elevator',
+      'office',
+      'condo',
+      'fast-food',
+      'single-room',
+      'double-room',
+      'suite',
+      'housekeeping',
+      'security',
+      'service-elevator',
+      'restaurant',
+      'retail-shop',
+      'cinema',
+      'party-hall',
+      'express-elevator',
+      'medical-center',
+      'parking-ramp',
+      'parking-space',
+      'recycling-center',
+      'subway-station',
+      'cathedral',
+    ];
+    for (const unit of units) {
+      expect(sprites[`ui/unit-${unit}`], unit).toBeDefined();
+    }
+  });
 });
