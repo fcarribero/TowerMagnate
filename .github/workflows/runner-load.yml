@@ -1,0 +1,50 @@
+name: Runner load
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 5 * * 1'
+  pull_request:
+    branches: [develop]
+    paths:
+      - 'apps/server/src/runner/**'
+      - 'apps/server/src/tower-socket/**'
+      - 'apps/server/src/bench/runner-load.ts'
+      - 'apps/server/src/bench/load-*.ts'
+      - '.github/workflows/runner-load.yml'
+
+concurrency:
+  group: runner-load-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  load:
+    name: ${{ matrix.towers }} towers, 10 minutes
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - towers: 30
+            gate: '--gate'
+          - towers: 40
+            gate: ''
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Build art
+        run: pnpm art:build
+
+      - name: Runner load benchmark
+        run: pnpm bench:runner-load --towers ${{ matrix.towers }} --floors 20 --minutes 10 ${{ matrix.gate }}

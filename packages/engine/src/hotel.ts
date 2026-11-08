@@ -1,4 +1,5 @@
 import {
+  HOTEL_BOOKING_CHANCE,
   HOTEL_CHECK_IN_HOURS,
   HOTEL_CHECK_OUT_HOUR,
   HOTEL_NIGHTLY_PRICE,
@@ -36,6 +37,16 @@ export function drawStayNights(rng: RngState): number {
     roll -= weight;
   }
   return HOTEL_STAY_NIGHT_WEIGHTS.length;
+}
+
+/** Percent chance of a booking at the room's daily roll (people.md 8.1). */
+export function bookingChance(room: Unit): number {
+  return HOTEL_BOOKING_CHANCE[room.evaluation ?? 'ungraded'];
+}
+
+/** One booking roll for a room by its stored grade; true books it. */
+export function rollBooking(rng: RngState, room: Unit): boolean {
+  return nextInt(rng, 0, 99) < bookingChance(room);
 }
 
 function isCheckInTime(step: number): boolean {

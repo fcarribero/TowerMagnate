@@ -47,7 +47,7 @@ export {
 export { hashState } from './hash';
 export { migrateState, StateMigrationError } from './migrations';
 export { createCondoSystem, sellCondo } from './condos';
-export { checkIn, createHotelSystem, drawStayNights } from './hotel';
+export { bookingChance, checkIn, createHotelSystem, drawStayNights, rollBooking } from './hotel';
 export type { CheckInResult } from './hotel';
 export {
   createLeaseSystem,
@@ -181,4 +181,4 @@ export type {
   WalkableRun,
 } from './routing';
 export { noticeParams } from './notices';
-export { isEvaluatedUnit } from './unit-evaluation';
+export { isEvaluatedUnit, storedGrade } from './unit-evaluation';
