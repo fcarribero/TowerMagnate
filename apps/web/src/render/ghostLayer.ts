@@ -24,6 +24,11 @@ export interface GhostInput extends Footprint {
   time: TimeOfDay;
 }
 
+/** A run of plain tiles, such as the floor being dragged out. */
+export interface RunInput extends Footprint {
+  valid: boolean;
+}
+
 interface Area {
   x: number;
   y: number;
@@ -51,6 +56,8 @@ export class GhostLayer {
   private readonly sprite = new Sprite();
   private readonly ghostFrame = new Graphics();
   private readonly hoverFrame = new Graphics();
+  private readonly runShape = new Graphics();
+  private run: RunInput | null = null;
   private zoom = 1;
   private ghost: GhostInput | null = null;
   private highlight: Footprint | null = null;
@@ -58,7 +65,7 @@ export class GhostLayer {
   constructor(private readonly sprites: SpriteRegistry) {
     this.sprite.alpha = GHOST_ALPHA;
     this.sprite.visible = false;
-    this.view.addChild(this.sprite, this.ghostFrame, this.hoverFrame);
+    this.view.addChild(this.runShape, this.sprite, this.ghostFrame, this.hoverFrame);
   }
 
   setZoom(zoom: number): void {
@@ -85,6 +92,11 @@ export class GhostLayer {
     this.drawFrames();
   }
 
+  showRun(run: RunInput | null): void {
+    this.run = run;
+    this.drawFrames();
+  }
+
   showHighlight(highlight: Footprint | null): void {
     this.highlight = highlight;
     this.drawFrames();
@@ -93,6 +105,15 @@ export class GhostLayer {
   private drawFrames(): void {
     this.ghostFrame.clear();
     this.hoverFrame.clear();
+    this.runShape.clear();
+    if (this.run !== null) {
+      const color = this.run.valid ? GHOST_VALID_COLOR : GHOST_INVALID_COLOR;
+      const area = areaOf(this.run);
+      this.runShape
+        .rect(area.x, area.y, area.width, area.height)
+        .fill({ color, alpha: GHOST_ALPHA });
+      outline(this.runShape, area, color, this.zoom);
+    }
     if (this.ghost !== null) {
       const color = this.ghost.valid ? GHOST_VALID_COLOR : GHOST_INVALID_COLOR;
       outline(this.ghostFrame, areaOf(this.ghost), color, this.zoom);

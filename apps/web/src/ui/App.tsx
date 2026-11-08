@@ -1,5 +1,6 @@
 import type { StarRating } from '@tower-magnate/shared';
 import { useEffect, useMemo, useState } from 'preact/hooks';
+import { createCommandApi } from '../api/commandApi';
 import { useSfx } from '../audio/useSfx';
 import { pageTitle } from '../index';
 import { TowerContentStore } from '../model/towerContent';
@@ -11,6 +12,10 @@ import { bindStructure, fullWidthTestTower, testTowerFromQuery } from '../render
 import { DEBUG_UNIT_FLOORS, bindUnits, debugUnits, testUnitsFromQuery } from '../render/unitSource';
 import { isMapToggleKey } from './keys';
 import { ConnectionOverlay } from './ConnectionOverlay';
+import { BuildFeedback } from './build/BuildFeedback';
+import { bindBuildInput } from './build/bindBuildInput';
+import { buildMode } from './build/buildPlan';
+import { useBuildFeedback } from './build/useBuildFeedback';
 import { LevelRuler } from './LevelRuler';
 import { StageHost } from './StageHost';
 import { WindowLayer } from './kit';
@@ -53,7 +58,21 @@ export function App({ onLogout, onRestartTower, onSessionLost }: AppProps) {
       setMapOpen((open) => !open);
     }
   };
-  const { playTrigger } = useSfx();
+  const { playTrigger, director } = useSfx();
+  const commandApi = useMemo(() => {
+    const api = createCommandApi({
+      channel: connection.socket,
+      onSent: (queued) => director.commandSent(queued),
+    });
+    connection.onMessage((message) => {
+      api.receive(message);
+      if (message.t === 'commandResult') {
+        director.serverMessage(message);
+      }
+    });
+    return api;
+  }, [connection, director]);
+  const { toasts, floats, report } = useBuildFeedback();
   const onUiClick = (event: MouseEvent): void => {
     if (event.target instanceof Element && event.target.closest('button') !== null) {
       playTrigger('ui.click');
@@ -104,6 +123,24 @@ export function App({ onLogout, onRestartTower, onSessionLost }: AppProps) {
   }, [stage, connection, tool]);
 
   useEffect(() => {
+    if (stage === null) {
+      return;
+    }
+    stage.setPrimaryDragPans(buildMode(tool) === 'none');
+    const unbind = bindBuildInput({
+      stage,
+      api: commandApi,
+      tool,
+      lobbyHeight,
+      onOutcome: (outcome, _command, at) => report(outcome, at),
+    });
+    return () => {
+      unbind();
+      stage.setPrimaryDragPans(true);
+    };
+  }, [stage, commandApi, tool, lobbyHeight, report]);
+
+  useEffect(() => {
     const onKeyDown = (event: KeyboardEvent): void => {
       if (isMapToggleKey(event)) {
         setMapOpen((open) => !open);
@@ -136,6 +173,7 @@ export function App({ onLogout, onRestartTower, onSessionLost }: AppProps) {
           onLobbyHeightChange={setLobbyHeight}
           disabled={!connected}
         />
+        <BuildFeedback toasts={toasts} floats={floats} />
         <ConnectionOverlay
           status={connectionStatus}
           protocolMismatch={protocolMismatch}
