@@ -4,7 +4,7 @@ import { createLedger } from './money';
 import { clonePersonPool, createPersonPool } from './people';
 import { createRng } from './rng';
 
-export const SCHEMA_VERSION = 10;
+export const SCHEMA_VERSION = 12;
 
 export function createTower(seed: number): TowerState {
   if (!Number.isInteger(seed)) {
@@ -26,6 +26,9 @@ export function createTower(seed: number): TowerState {
     activeEvents: [],
     closedDecisions: [],
     treasureLevels: [],
+    vipApproved: false,
+    lastMedicalFailureStep: null,
+    lastParkingFailureStep: null,
   };
 }
 

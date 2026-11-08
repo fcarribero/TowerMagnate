@@ -1,11 +1,13 @@
 import {
   ELEVATOR_QUEUE_CAPACITY,
+  HotelRoomStateSchema,
   isLevel,
   PRICE_LEVELS,
   SHAFT_TYPES,
   UNIT_TYPES,
   type ElevatorCar,
   type CondoSale,
+  type HotelRoom,
   type Lease,
   type QueueEntry,
   type RngState,
@@ -17,6 +19,7 @@ import {
   type UnitId,
 } from '@tower-magnate/shared';
 import { SCHEMA_VERSION } from '../state';
+import { isHotelRoomType, newHotelRoom } from '../units';
 import { isRecord, StateMigrationError } from './errors';
 import { readActiveEvents, readClosedDecisions, readTreasureLevels } from './events';
 import { readGrid } from './grid';
@@ -39,6 +42,8 @@ const MIGRATIONS: readonly Migration[] = [
   addPersonPool,
   addStarRating,
   addHallQueues,
+  addStarState,
+  addHotelRooms,
   addCondoSaleRecord,
 ];
 
@@ -122,16 +127,45 @@ function addHallQueues(raw: Record<string, unknown>): Record<string, unknown> {
   return { ...raw, schemaVersion: 9, shafts };
 }
 
-/** Version 10 records each condo's sale; every condo in an older save is still for sale. */
+/** Version 10 keeps the star check state. Earlier towers have no VIP approval and no failures. */
+function addStarState(raw: Record<string, unknown>): Record<string, unknown> {
+  return {
+    vipApproved: false,
+    lastMedicalFailureStep: null,
+    lastParkingFailureStep: null,
+    ...raw,
+    schemaVersion: 10,
+  };
+}
+
+/** Version 11 gives each hotel room a state; every room in an older tower is clean and empty. */
+function addHotelRooms(raw: Record<string, unknown>): Record<string, unknown> {
+  if (!isRecord(raw.units)) {
+    return { ...raw, schemaVersion: 11 };
+  }
+  const units: Record<string, unknown> = {};
+  for (const [id, unit] of Object.entries(raw.units)) {
+    units[id] = isRecord(unit) ? { hotel: hotelRoomFor(unit.type), ...unit } : unit;
+  }
+  return { ...raw, schemaVersion: 11, units };
+}
+
+function hotelRoomFor(type: unknown): HotelRoom | null {
+  const isRoom =
+    (UNIT_TYPES as readonly unknown[]).includes(type) && isHotelRoomType(type as never);
+  return isRoom ? newHotelRoom() : null;
+}
+
+/** Version 12 records each condo's sale; every condo in an older save is still for sale. */
 function addCondoSaleRecord(raw: Record<string, unknown>): Record<string, unknown> {
   if (!isRecord(raw.units)) {
-    return { ...raw, schemaVersion: 10 };
+    return { ...raw, schemaVersion: 12 };
   }
   const units: Record<string, unknown> = {};
   for (const [id, unit] of Object.entries(raw.units)) {
     units[id] = isRecord(unit) ? { sale: null, ...unit } : unit;
   }
-  return { ...raw, schemaVersion: 10, units };
+  return { ...raw, schemaVersion: 12, units };
 }
 
 function isUint32(value: unknown): value is number {
@@ -165,7 +199,17 @@ function isUnit(value: unknown): value is Unit {
     isNonNegativeInteger(value.placedAtStep) &&
     typeof value.used === 'boolean' &&
     (value.lease === null || isLease(value.lease)) &&
+    (value.hotel === null || isHotelRoom(value.hotel)) &&
     (value.sale === null || isCondoSale(value.sale))
+  );
+}
+
+function isHotelRoom(value: unknown): value is HotelRoom {
+  return (
+    isRecord(value) &&
+    (HotelRoomStateSchema.options as readonly unknown[]).includes(value.state) &&
+    (value.stayEndStep === null || isNonNegativeInteger(value.stayEndStep)) &&
+    (value.state === 'occupied') === (value.stayEndStep !== null)
   );
 }
 
@@ -213,6 +257,7 @@ function readUnits(raw: unknown): Record<UnitId, Unit> {
       used: unit.used,
       lease: unit.lease === null ? null : { ...unit.lease },
       sale: unit.sale === null ? null : { ...unit.sale },
+      hotel: unit.hotel === null ? null : { ...unit.hotel },
     };
   }
   return units;
@@ -332,6 +377,29 @@ function assertCurrentShape(raw: Record<string, unknown>): TowerState {
     activeEvents: readActiveEvents(raw.activeEvents),
     closedDecisions: readClosedDecisions(raw.closedDecisions),
     treasureLevels: readTreasureLevels(raw.treasureLevels),
+    ...readStarState(raw),
+  };
+}
+
+type StarState = Pick<
+  TowerState,
+  'vipApproved' | 'lastMedicalFailureStep' | 'lastParkingFailureStep'
+>;
+
+function readStarState(raw: Record<string, unknown>): StarState {
+  const { vipApproved, lastMedicalFailureStep, lastParkingFailureStep } = raw;
+  if (typeof vipApproved !== 'boolean') {
+    throw new StateMigrationError('State vipApproved must be true or false');
+  }
+  for (const failure of [lastMedicalFailureStep, lastParkingFailureStep]) {
+    if (failure !== null && !isNonNegativeInteger(failure)) {
+      throw new StateMigrationError('State failure steps must be null or non-negative integers');
+    }
+  }
+  return {
+    vipApproved,
+    lastMedicalFailureStep: lastMedicalFailureStep as number | null,
+    lastParkingFailureStep: lastParkingFailureStep as number | null,
   };
 }
 

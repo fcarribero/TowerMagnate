@@ -46,8 +46,21 @@ export const VERSION_8_SAVE =
   '"nameSeed":[77,91],"followed":[3]}}';
 
 export const VERSION_9_SAVE =
-  '{"schemaVersion":9,"step":8640,"rng":{"a":1,"b":2,"c":3,"d":4},"nextId":2,"stars":2,' +
+  '{"schemaVersion":9,"step":8640,"rng":{"a":1,"b":2,"c":3,"d":4},"nextId":4,"stars":1,' +
+  '"units":{"u1":{"id":"u1","type":"office","x":10,"level":2,"name":null,' +
+  '"priceLevel":"normal","paid":44500,"placedAtStep":120,"used":false,"lease":null},' +
+  '"u3":{"id":"u3","type":"suite","x":20,"level":3,"name":null,' +
+  '"priceLevel":"high","paid":60000,"placedAtStep":300,"used":true,"lease":null}},' +
+  '"shafts":{},"transports":{},"activeEvents":[],"closedDecisions":[],"treasureLevels":[],' +
+  '"people":{"nextId":1,"id":[],"kind":[],"homeUnit":[],"level":[],"column":[],"trip":[],' +
+  '"dueStep":[],"stress":[],"nameSeed":[],"followed":[]}}';
+
+export const VERSION_11_SAVE =
+  '{"schemaVersion":11,"step":8640,"rng":{"a":1,"b":2,"c":3,"d":4},"nextId":2,"stars":2,' +
+  '"vipApproved":false,"lastMedicalFailureStep":null,"lastParkingFailureStep":null,' +
   '"units":{"u1":{"id":"u1","type":"condo","x":10,"level":2,"name":null,' +
-  '"priceLevel":"normal","paid":50000,"placedAtStep":120,"used":false,"lease":null}},' +
-  '"shafts":{},"people":{"nextId":1,"id":[],"kind":[],"homeUnit":[],"level":[],"column":[],' +
-  '"trip":[],"dueStep":[],"stress":[],"nameSeed":[],"followed":[]}}';
+  '"priceLevel":"normal","paid":50000,"placedAtStep":120,"used":false,"lease":null,' +
+  '"hotel":null}},' +
+  '"shafts":{},"transports":{},"activeEvents":[],"closedDecisions":[],"treasureLevels":[],' +
+  '"people":{"nextId":1,"id":[],"kind":[],"homeUnit":[],"level":[],"column":[],"trip":[],' +
+  '"dueStep":[],"stress":[],"nameSeed":[],"followed":[]}}';

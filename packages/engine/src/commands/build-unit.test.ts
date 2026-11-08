@@ -147,6 +147,7 @@ describe('buildUnit', () => {
       used: false,
       lease: null,
       sale: null,
+      hotel: null,
     });
     expect(state.nextId).toBe(2);
   });

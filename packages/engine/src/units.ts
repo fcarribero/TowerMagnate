@@ -1,10 +1,21 @@
 import {
   DEFAULT_PRICE_LEVEL,
   type EntityId,
+  type HotelRoom,
   type Level,
   type Unit,
   type UnitType,
 } from '@tower-magnate/shared';
+
+const HOTEL_ROOM_TYPES: readonly UnitType[] = ['single-room', 'double-room', 'suite'];
+
+export function isHotelRoomType(type: UnitType): boolean {
+  return HOTEL_ROOM_TYPES.includes(type);
+}
+
+export function newHotelRoom(): HotelRoom {
+  return { state: 'clean', stayEndStep: null };
+}
 
 export function newUnit(id: EntityId, type: UnitType, x: number, level: Level): Unit {
   return {
@@ -19,6 +30,7 @@ export function newUnit(id: EntityId, type: UnitType, x: number, level: Level): 
     used: false,
     lease: null,
     sale: null,
+    hotel: isHotelRoomType(type) ? newHotelRoom() : null,
   };
 }
 

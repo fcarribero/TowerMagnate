@@ -11,10 +11,14 @@ import { STEPS_PER_DAY } from './clock';
 import { towerCommandHandlers } from './commands';
 import { eventsPhase } from './events';
 import { createCondoSystem } from './condos';
+import { createHotelSystem } from './hotel';
 import { createLeaseSystem } from './leases';
 import { cloneState } from './state';
 import { ledgerWeekRollHook } from './money';
+import { createOfficeRoutine, straightLineRoutes } from './office-routine';
 import { createScheduler } from './scheduler';
+import { starCheckHook } from './stars';
+import { weeklyUpkeepHook } from './upkeep';
 
 export interface StepResult {
   state: TowerState;
@@ -134,12 +138,17 @@ export function createEngine(rules: EngineRules): Engine {
   return { step, runDays };
 }
 
+const officeRoutine = createOfficeRoutine(straightLineRoutes);
+
 const towerEngine = createEngine({
   commandHandlers: towerCommandHandlers,
   systems: [
-    createScheduler([ledgerWeekRollHook]),
+    createScheduler([ledgerWeekRollHook, weeklyUpkeepHook, officeRoutine.planHook]),
     createLeaseSystem(),
+    createHotelSystem(),
     createCondoSystem(),
+    officeRoutine.system,
+    createScheduler([starCheckHook]),
     eventsPhase,
   ],
 });
