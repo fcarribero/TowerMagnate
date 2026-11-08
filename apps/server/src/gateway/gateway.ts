@@ -1,6 +1,12 @@
 import { ConnectionRegistry } from './connection-registry';
 import { Heartbeat } from './heartbeat';
-import { readClientMessage, routeMessage, type MessageHandlers } from './message-router';
+import {
+  readClientMessage,
+  routeMessage,
+  type DebugFrames,
+  type MessageContext,
+  type MessageHandlers,
+} from './message-router';
 import { MAX_MESSAGES_PER_SECOND, MessageRateLimiter } from './rate-limiter';
 import { CLOSE_CODES, sendError, type GatewaySocket, type SocketIdentity } from './socket';
 
@@ -14,6 +20,7 @@ export interface GatewayRuntimeOptions {
   helloTimeoutMs?: number;
   now?: () => number;
   logger?: GatewayLogger;
+  debugFrames?: DebugFrames;
 }
 
 /**
@@ -26,6 +33,7 @@ export class Gateway {
   private readonly helloTimeoutMs: number;
   private readonly now: () => number;
   private readonly logger: GatewayLogger | undefined;
+  private readonly debugFrames: DebugFrames | undefined;
 
   constructor(
     private readonly handlers: MessageHandlers = {},
@@ -34,6 +42,7 @@ export class Gateway {
     this.helloTimeoutMs = options.helloTimeoutMs ?? HELLO_TIMEOUT_MS;
     this.now = options.now ?? Date.now;
     this.logger = options.logger;
+    this.debugFrames = options.debugFrames;
   }
 
   attach(socket: GatewaySocket, identity: SocketIdentity): void {
@@ -67,6 +76,13 @@ export class Gateway {
     identity: SocketIdentity,
     data: unknown,
   ): Promise<void> {
+    const join = () => this.registry.add(socket, identity);
+    if (this.debugFrames?.typeOf(data)) {
+      if (this.registry.hasSocket(socket)) {
+        await this.handleDebugFrame(this.debugFrames, data, { socket, identity, join });
+      }
+      return;
+    }
     const message = readClientMessage(data, socket);
     if (!message) {
       return;
@@ -74,8 +90,19 @@ export class Gateway {
     if (message.t !== 'hello' && !this.registry.hasSocket(socket)) {
       return;
     }
-    const join = () => this.registry.add(socket, identity);
     await routeMessage(this.handlers, message, { socket, identity, join });
+  }
+
+  private async handleDebugFrame(
+    debugFrames: DebugFrames,
+    data: unknown,
+    context: MessageContext,
+  ): Promise<void> {
+    try {
+      await debugFrames.handle(data, context);
+    } catch {
+      sendError(context.socket, 'INVALID_COMMAND', 'Could not handle the debug message');
+    }
   }
 
   private closeWithoutHello(socket: GatewaySocket): void {

@@ -12,7 +12,11 @@ import type { Stage } from '../render/stage';
 import { bindShafts, carSourceOf } from '../render/elevatorSource';
 import { bindStructure, fullWidthTestTower, testTowerFromQuery } from '../render/structureSource';
 import { DEBUG_UNIT_FLOORS, bindUnits, debugUnits, testUnitsFromQuery } from '../render/unitSource';
-import { isMapToggleKey } from './keys';
+import type { OverlayId } from '../render/overlayColors';
+import { OverlayLegend } from './overlay/OverlayLegend';
+import { OverlaySelector } from './overlay/OverlaySelector';
+import { overlayForKey } from './overlay/overlayModel';
+import { isMapToggleKey, isPlainShortcut } from './keys';
 import { ConnectionOverlay } from './ConnectionOverlay';
 import { BuildFeedback } from './placement/BuildFeedback';
 import { bindBuildInput, type DragLabel } from './placement/bindBuildInput';
@@ -51,6 +55,7 @@ export function App({ onLogout, onRestartTower, onSessionLost }: AppProps) {
   const [stage, setStage] = useState<Stage | null>(null);
   const [mapOpen, setMapOpen] = useState(false);
   const [restartStep, setRestartStep] = useState<RestartStep | null>(null);
+  const [overlay, setOverlay] = useState<OverlayId>('normal');
   const [tool, setTool] = useState<ToolId>(DEFAULT_TOOL);
   const [lobbyHeight, setLobbyHeight] = useState(DEFAULT_LOBBY_HEIGHT);
   // Replaced by the tower's rating once the game state reaches the client.
@@ -110,10 +115,10 @@ export function App({ onLogout, onRestartTower, onSessionLost }: AppProps) {
     const testUnitsHour = import.meta.env.DEV ? testUnitsFromQuery(location.search) : null;
     if (testUnitsHour !== null) {
       stage.showStructure(fullWidthTestTower(DEBUG_UNIT_FLOORS));
-      stage.showUnits(debugUnits(testUnitsHour));
+      stage.showUnits(debugUnits(testUnitsHour, overlay));
       return;
     }
-    const unbindUnits = bindUnits(connection.store, (input) => stage.showUnits(input));
+    const unbindUnits = bindUnits(connection.store, overlay, (input) => stage.showUnits(input));
     const unbindStructure = bindStructure(connection.store, (input) => stage.showStructure(input));
     const unbindShafts = bindShafts(connection.store, (shafts) => stage.showShafts(shafts));
     stage.feedCars(carSourceOf(connection.store));
@@ -123,7 +128,7 @@ export function App({ onLogout, onRestartTower, onSessionLost }: AppProps) {
       unbindShafts();
       stage.feedCars(null);
     };
-  }, [stage, connection]);
+  }, [stage, connection, overlay]);
 
   useEffect(() => {
     if (stage === null) {
@@ -179,6 +184,11 @@ export function App({ onLogout, onRestartTower, onSessionLost }: AppProps) {
     const onKeyDown = (event: KeyboardEvent): void => {
       if (isMapToggleKey(event)) {
         setMapOpen((open) => !open);
+        return;
+      }
+      const picked = isPlainShortcut(event) ? overlayForKey(event.key) : null;
+      if (picked !== null) {
+        setOverlay(picked);
       }
     };
     window.addEventListener('keydown', onKeyDown);
@@ -194,12 +204,14 @@ export function App({ onLogout, onRestartTower, onSessionLost }: AppProps) {
           store={connection.store}
           offline={connectionStatus !== 'live'}
           onOpenWindow={onOpenWindow}
+          overlaySlot={<OverlaySelector overlay={overlay} onSelect={setOverlay} />}
           onZoom={(direction) => stage?.zoomStep(direction)}
           onLogout={onLogout}
           extraMenuItems={[
             { id: 'newTower', label: t('ui.newTower'), onSelect: () => setRestartStep('first') },
           ]}
         />
+        <OverlayLegend overlay={overlay} />
         <Toolbar
           stars={stars}
           currentTool={tool}

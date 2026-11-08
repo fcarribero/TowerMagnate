@@ -3,7 +3,7 @@ import websocket, { type WebsocketPluginOptions } from '@fastify/websocket';
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import type { ConnectionRegistry } from './connection-registry';
 import { Gateway } from './gateway';
-import type { MessageHandlers } from './message-router';
+import type { DebugFrames, MessageHandlers } from './message-router';
 import { CLOSE_CODES, sendError, type GatewaySocket, type SocketIdentity } from './socket';
 
 export const MAX_CLIENT_MESSAGE_BYTES = 64 * 1024;
@@ -16,6 +16,7 @@ export type IdentityResolver = (request: FastifyRequest) => Promise<IdentityResu
 export interface GatewayOptions {
   resolveIdentity: IdentityResolver;
   handlers?: MessageHandlers;
+  debugFrames?: DebugFrames;
   heartbeatIntervalMs?: number;
   helloTimeoutMs?: number;
 }
@@ -33,6 +34,7 @@ export function registerGateway(app: FastifyInstance, options: GatewayOptions): 
   const gateway = new Gateway(options.handlers, {
     helloTimeoutMs: options.helloTimeoutMs,
     logger: app.log,
+    debugFrames: options.debugFrames,
   });
   app.decorate('towerConnections', gateway.registry);
 

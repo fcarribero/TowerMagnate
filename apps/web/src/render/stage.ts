@@ -5,6 +5,9 @@ import 'pixi.js/unsafe-eval';
 import { loadSprites } from './atlasLoader';
 import {
   centerCamera,
+  centerCameraOnRect,
+  screenRectOf,
+  type ScreenRect,
   createCamera,
   nextZoom,
   resizeCamera,
@@ -60,6 +63,10 @@ export interface Stage {
   camera(): Camera;
   /** Puts a world point (zoom 1 pixels) at the centre of the view. */
   centerOn(worldX: number, worldY: number): void;
+  /** Moves the view to a drawn unit at the current zoom; false when the unit is not drawn. */
+  centerOnUnit(unitId: string): boolean;
+  /** The unit's rectangle in canvas device pixels, or null when it is off screen or not drawn. */
+  unitScreenRect(unitId: string): ScreenRect | null;
   /** One zoom level in or out, keeping the centre of the view in place. */
   zoomStep(direction: 1 | -1): void;
   onCameraChange(listener: CameraListener): () => void;
@@ -268,6 +275,19 @@ export async function mountStage(host: HTMLElement, options: StageOptions = {}):
     centerOn(worldX, worldY) {
       camera = centerCamera(camera, worldX, worldY);
       showCamera();
+    },
+    centerOnUnit(unitId) {
+      const rect = units.rectOf(unitId);
+      if (rect === undefined) {
+        return false;
+      }
+      camera = centerCameraOnRect(camera, rect);
+      showCamera();
+      return true;
+    },
+    unitScreenRect(unitId) {
+      const rect = units.rectOf(unitId);
+      return rect === undefined ? null : screenRectOf(camera, rect);
     },
     zoomStep(direction) {
       const zoom = nextZoom(camera.zoom, direction);
