@@ -1,4 +1,4 @@
-import { addPerson, createTower, setStructure } from '@tower-magnate/engine';
+import { addPerson, createTower, defaultSchedule, setStructure } from '@tower-magnate/engine';
 import {
   DeltaSchema,
   packPerson,
@@ -113,13 +113,26 @@ describe('delta between snapshots', () => {
   it('carries a new shaft and its cars, then drops a removed car', () => {
     const state = tower();
     const before = snapshotOf(state);
-    const car = { homeLevel: 1, level: 1, riders: [], paid: 0, placedAtStep: 0 };
+    const car = {
+      homeLevel: 1,
+      level: 1,
+      riders: [],
+      trips: [],
+      phase: 'idle' as const,
+      direction: 'idle' as const,
+      phaseStepsLeft: 0,
+      assigned: [],
+      paid: 0,
+      placedAtStep: 0,
+    };
     state.shafts.s1 = {
       id: 's1',
       type: 'standard',
       x: 40,
       bottom: 1,
       top: 3,
+      stops: [1, 2, 3],
+      schedule: defaultSchedule(),
       cars: [car, { ...car }],
       queues: {},
       paid: 0,

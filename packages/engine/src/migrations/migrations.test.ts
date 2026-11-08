@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { defaultSchedule } from '../commands/shafts';
 import { createTower, SCHEMA_VERSION } from '../state';
 import { newUnit } from '../units';
 import {
@@ -163,7 +164,18 @@ describe('migrateState fixtures', () => {
     const tower = migrateState(JSON.parse(VERSION_4_SAVE));
     expect(tower.shafts.s2).toMatchObject({ type: 'standard', x: 30, bottom: 1, top: 5 });
     expect(tower.shafts.s2?.cars).toEqual([
-      { homeLevel: 1, level: 3, riders: ['p7'], paid: 80_000, placedAtStep: 200 },
+      {
+        homeLevel: 1,
+        level: 3,
+        riders: ['p7'],
+        trips: [{ destination: 3, boardedStep: 8640, waitSteps: 0 }],
+        phase: 'idle',
+        direction: 'idle',
+        phaseStepsLeft: 0,
+        assigned: [],
+        paid: 80_000,
+        placedAtStep: 200,
+      },
     ]);
   });
 });
@@ -186,7 +198,18 @@ describe('migrateState hall queues', () => {
 
   it('refuses queues over 40 people or with a malformed entry', () => {
     const tower = createTower(5);
-    const car = { homeLevel: 1, level: 1, riders: [], paid: 80_000, placedAtStep: 0 };
+    const car = {
+      homeLevel: 1,
+      level: 1,
+      riders: [],
+      phase: 'idle',
+      direction: 'idle',
+      phaseStepsLeft: 0,
+      assigned: [],
+      trips: [],
+      paid: 80_000,
+      placedAtStep: 0,
+    };
     const shaft = (queues: unknown) => ({
       id: 's3',
       type: 'standard',
@@ -194,15 +217,17 @@ describe('migrateState hall queues', () => {
       bottom: 1,
       top: 4,
       cars: [car],
+      stops: [1, 2, 3, 4],
+      schedule: defaultSchedule(),
       queues,
       paid: 200_000,
       placedAtStep: 0,
     });
-    const entry = { person: 'p1', joinedStep: 3 };
+    const entry = { person: 'p1', destination: 4, joinedStep: 3 };
     const full = Array.from({ length: 41 }, () => entry);
     const bad = [
       { '2': { up: full, down: [] } },
-      { '2': { up: [{ person: 7, joinedStep: 3 }], down: [] } },
+      { '2': { up: [{ person: 7, destination: 4, joinedStep: 3 }], down: [] } },
       { '2': { up: [] } },
     ];
     const good = { '2': { up: [entry], down: [] } };
@@ -218,7 +243,18 @@ describe('migrateState hall queues', () => {
 describe('migrateState shafts', () => {
   it('refuses a malformed shaft', () => {
     const tower = createTower(5);
-    const car = { homeLevel: 1, level: 1, riders: [], paid: 80_000, placedAtStep: 0 };
+    const car = {
+      homeLevel: 1,
+      level: 1,
+      riders: [],
+      phase: 'idle',
+      direction: 'idle',
+      phaseStepsLeft: 0,
+      assigned: [],
+      trips: [],
+      paid: 80_000,
+      placedAtStep: 0,
+    };
     const valid = {
       id: 's3',
       type: 'standard',
@@ -226,6 +262,8 @@ describe('migrateState shafts', () => {
       bottom: 1,
       top: 4,
       cars: [car],
+      stops: [1, 2, 3, 4],
+      schedule: defaultSchedule(),
       queues: {},
       paid: 200_000,
       placedAtStep: 0,
@@ -360,5 +398,58 @@ describe('migrateState hotel rooms', () => {
       saved.units = { u1: { ...newUnit('u1', 'suite', 0, 2), hotel } };
       expect(() => migrateState(saved)).toThrow(StateMigrationError);
     }
+  });
+});
+
+describe('migrateState car motion', () => {
+  it('leaves old cars idle and sends their riders to the next stop', () => {
+    const tower = migrateState(JSON.parse(VERSION_4_SAVE));
+    const [car] = Object.values(tower.shafts)[0]?.cars ?? [];
+    expect(tower.schemaVersion).toBe(SCHEMA_VERSION);
+    expect(car).toMatchObject({
+      level: 3,
+      phase: 'idle',
+      direction: 'idle',
+      phaseStepsLeft: 0,
+      assigned: [],
+      trips: [{ destination: 3, boardedStep: 8640, waitSteps: 0 }],
+    });
+  });
+
+  it('gives old shafts every level as a stop and the default schedule', () => {
+    const tower = migrateState(JSON.parse(VERSION_4_SAVE));
+    const shaft = Object.values(tower.shafts)[0];
+    expect(shaft?.stops).toEqual(
+      Array.from(
+        { length: (shaft?.top ?? 0) - (shaft?.bottom ?? 0) + 1 },
+        (_, i) => (shaft?.bottom ?? 0) + i,
+      ),
+    );
+    expect(shaft?.schedule.weekday).toHaveLength(6);
+    expect(shaft?.schedule.weekend[5]).toEqual({
+      mode: 'normal',
+      dwellSeconds: 30,
+      responseDistance: 5,
+    });
+  });
+
+  it('gives queued people the far end of the shaft as destination', () => {
+    const saved = JSON.parse(JSON.stringify(createTower(5)));
+    saved.schemaVersion = 11;
+    saved.shafts = {
+      s2: {
+        id: 's2',
+        type: 'standard',
+        x: 30,
+        bottom: 1,
+        top: 5,
+        cars: [{ homeLevel: 1, level: 1, riders: [], paid: 0, placedAtStep: 0 }],
+        queues: { '2': { up: [{ person: 'p1', joinedStep: 4 }], down: [] } },
+        paid: 0,
+        placedAtStep: 0,
+      },
+    };
+    const queue = migrateState(saved).shafts.s2?.queues['2'];
+    expect(queue?.up).toEqual([{ person: 'p1', destination: 5, joinedStep: 4 }]);
   });
 });

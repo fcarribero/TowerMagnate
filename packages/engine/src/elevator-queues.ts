@@ -51,12 +51,13 @@ export function joinQueue(
   level: Level,
   direction: HallDirection,
   person: EntityId,
+  destination: Level,
   step: number,
 ): boolean {
   if (isQueueFull(shaft, level, direction)) {
     return false;
   }
-  writableQueue(shaft, level, direction).push({ person, joinedStep: step });
+  writableQueue(shaft, level, direction).push({ person, destination, joinedStep: step });
   return true;
 }
 
@@ -95,6 +96,7 @@ export function boardFromQueue(
   carIndex: number,
   level: Level,
   direction: HallDirection,
+  step: number,
 ): EntityId[] {
   const car = shaft.cars[carIndex];
   if (!car) {
@@ -102,11 +104,18 @@ export function boardFromQueue(
   }
   const room = Math.max(0, carCapacity(shaft.type) - car.riders.length);
   const queue = queueAt(shaft, level, direction);
-  const boarding = queue.slice(0, room).map((entry) => entry.person);
+  const boarding = queue.slice(0, room);
   if (boarding.length > 0) {
     writableQueue(shaft, level, direction).splice(0, boarding.length);
-    car.riders.push(...boarding);
+    car.riders.push(...boarding.map((entry) => entry.person));
+    car.trips.push(
+      ...boarding.map((entry) => ({
+        destination: entry.destination,
+        boardedStep: step,
+        waitSteps: step - entry.joinedStep,
+      })),
+    );
     dropEmptyStops(shaft);
   }
-  return boarding;
+  return boarding.map((entry) => entry.person);
 }

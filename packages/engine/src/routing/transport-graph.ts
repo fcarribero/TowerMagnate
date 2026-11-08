@@ -65,12 +65,15 @@ export class TransportGraph {
   private runs: WalkableRun[] = [];
   private nodeByCell = new Map<string, NodeId>();
   private runsByLevel = new Map<Level, WalkableRun[]>();
+  /** Grows on every rebuild so caches built on the graph know when to drop. */
+  revision = 0;
 
   constructor(state: TowerState, stops: ShaftStops = new Map()) {
     this.rebuild(state, stops);
   }
 
   rebuild(state: TowerState, stops: ShaftStops = new Map()): void {
+    this.revision += 1;
     this.nodes = [];
     this.links = [];
     this.runs = [];
@@ -212,7 +215,7 @@ function cellKey(level: Level, x: number): string {
 }
 
 /** Position counted in floors, with no level 0. */
-function floorIndex(level: Level): number {
+export function floorIndex(level: Level): number {
   return isBasement(level) ? level : level - 1;
 }
 

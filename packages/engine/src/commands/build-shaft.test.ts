@@ -26,7 +26,18 @@ describe('buildShaft', () => {
       paid: 200_000,
     });
     expect(placed[0]?.cars).toEqual([
-      { homeLevel: -9, level: -9, riders: [], paid: 80_000, placedAtStep: 0 },
+      {
+        homeLevel: -9,
+        level: -9,
+        riders: [],
+        phase: 'idle',
+        direction: 'idle',
+        phaseStepsLeft: 0,
+        assigned: [],
+        trips: [],
+        paid: 80_000,
+        placedAtStep: 0,
+      },
     ]);
     const occupant = { kind: 'shaft', id: placed[0]?.id };
     expect(occupantAt(state.grid, -9, 40)).toEqual(occupant);

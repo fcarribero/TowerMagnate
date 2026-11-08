@@ -389,3 +389,69 @@ export function drawWalkwayPreview(sprites) {
   }
   return sheet;
 }
+
+const EVENT_GAP = 4;
+
+// Every wedding bell and petal burst frame side by side on the day sky, bells first.
+export function drawEventSheet(sprites) {
+  const rows = ['events/wedding-bell/swing', 'events/wedding-petals/burst'].map((prefix) =>
+    Object.keys(sprites)
+      .filter((id) => id.startsWith(prefix + '_'))
+      .sort()
+      .map((id) => sprites[id]),
+  );
+  const rowWidth = (frames) =>
+    frames.reduce((sum, frame) => sum + frame.width + EVENT_GAP, EVENT_GAP);
+  const rowHeight = (frames) => Math.max(...frames.map((frame) => frame.height)) + EVENT_GAP;
+  const sheet = new PixelCanvas(
+    Math.max(...rows.map(rowWidth)),
+    rows.reduce((sum, frames) => sum + rowHeight(frames), EVENT_GAP),
+  );
+  sheet.fillRect(0, 0, sheet.width, sheet.height, 'sky');
+  let top = EVENT_GAP;
+  for (const frames of rows) {
+    let left = EVENT_GAP;
+    for (const frame of frames) {
+      sheet.stamp(frame, left, top);
+      left += frame.width + EVENT_GAP;
+    }
+    top += rowHeight(frames);
+  }
+  return sheet;
+}
+
+const EFFECT_GAP = 4;
+const EFFECT_FRAME = /_\d{2}$/;
+
+// One row per effect: its frames left to right on the day sky, tallest frame sets the row height.
+export function drawEffectsSheet(sprites) {
+  const rows = new Map();
+  for (const id of Object.keys(sprites).filter((name) => name.startsWith('effects/'))) {
+    const effect = id.replace(EFFECT_FRAME, '');
+    rows.set(effect, [...(rows.get(effect) ?? []), sprites[id]]);
+  }
+  const sized = [...rows.values()].map((frames) => ({
+    frames,
+    height: Math.max(...frames.map((frame) => frame.height)),
+    width: frames.reduce((total, frame) => total + frame.width + EFFECT_GAP, EFFECT_GAP),
+  }));
+  const width = Math.max(...sized.map((row) => row.width));
+  const height = sized.reduce((total, row) => total + row.height + EFFECT_GAP, EFFECT_GAP);
+  const sheet = new PixelCanvas(width, height);
+  const sky = sprites['sky/day/middle'];
+  for (let y = 0; y < height; y += sky.height) {
+    for (let x = 0; x < width; x += sky.width) {
+      sheet.stamp(sky, x, y);
+    }
+  }
+  let top = EFFECT_GAP;
+  for (const row of sized) {
+    let left = EFFECT_GAP;
+    for (const frame of row.frames) {
+      sheet.stamp(frame, left, top + row.height - frame.height);
+      left += frame.width + EFFECT_GAP;
+    }
+    top += row.height + EFFECT_GAP;
+  }
+  return sheet;
+}
