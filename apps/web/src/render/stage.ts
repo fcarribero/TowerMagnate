@@ -1,14 +1,17 @@
+import type { Level } from '@tower-magnate/shared';
 import { Application, Container, TextureSource, type TilingSprite } from 'pixi.js';
 import { loadSprites } from './atlasLoader';
 import { centerCamera, createCamera, resizeCamera, visibleLevels, type Camera } from './camera';
 import { attachCameraInput, type CameraChange } from './cameraInput';
 import { canvasSizeFromCssPixels, canvasSizeFromObservedBox, type CanvasSize } from './canvasSize';
 import { CulledRows } from './culledRows';
+import { levelAtCanvasY } from './levelRuler';
 import { levelTop } from './levels';
 import type { Zoom } from './metrics';
-import { createPlaceholderTower } from './placeholderTower';
 import { createSkyRows } from './skyRows';
 import type { SpriteRegistry } from './spriteRegistry';
+import { StructureLayer } from './structureLayer';
+import type { StructureInput } from './structureRows';
 
 const SKY_COLOR = '#6f9fd8';
 const DEFAULT_ZOOM: Zoom = 2;
@@ -25,6 +28,7 @@ export interface StageOptions {
 }
 
 export type CameraListener = (camera: Camera) => void;
+export type HoverLevelListener = (level: Level | null) => void;
 
 export interface Stage {
   sprites: SpriteRegistry;
@@ -32,6 +36,12 @@ export interface Stage {
   /** Puts a world point (zoom 1 pixels) at the centre of the view. */
   centerOn(worldX: number, worldY: number): void;
   onCameraChange(listener: CameraListener): () => void;
+  /** Called with the level under the pointer, or null when the pointer leaves the tower. */
+  onHoverLevel(listener: HoverLevelListener): () => void;
+  /** CSS pixels per canvas device pixel, to place DOM overlays over the canvas. */
+  cssPerDevicePixel(): number;
+  /** Draws the tower structure; later calls redraw only the levels that changed. */
+  showStructure(input: StructureInput): void;
   destroy(): void;
 }
 
@@ -59,27 +69,41 @@ export async function mountStage(host: HTMLElement, options: StageOptions = {}):
     sky.set(index, row);
     world.addChild(row);
   }
-  const floors = new CulledRows<Container>();
-  for (const [index, floor] of createPlaceholderTower()) {
-    floor.y = levelTop(index);
-    floors.set(index, floor);
-    world.addChild(floor);
-  }
+  const structure = new StructureLayer(sprites);
+  world.addChild(structure.view);
   app.stage.addChild(world);
 
   const firstSize = measureHost(host);
   let camera = createCamera(firstSize.deviceWidth, firstSize.deviceHeight, DEFAULT_ZOOM);
   const cameraListeners = new Set<CameraListener>();
+  const hoverListeners = new Set<HoverLevelListener>();
+  let hoveredLevel: Level | null = null;
+  let pointerCanvasY: number | null = null;
+
+  const cssPerDevicePixel = (): number =>
+    app.renderer.height === 0 ? 1 : app.canvas.clientHeight / app.renderer.height;
+
+  const updateHoveredLevel = (): void => {
+    const level = pointerCanvasY === null ? null : levelAtCanvasY(camera, pointerCanvasY);
+    if (level === hoveredLevel) {
+      return;
+    }
+    hoveredLevel = level;
+    for (const listener of hoverListeners) {
+      listener(level);
+    }
+  };
 
   const showCamera = (): void => {
     world.scale.set(camera.zoom);
     world.position.set(-camera.left, -camera.top);
     const onScreen = visibleLevels(camera);
     sky.showOnly(onScreen);
-    floors.showOnly(onScreen);
+    structure.rows.showOnly(onScreen);
     for (const listener of cameraListeners) {
       listener(camera);
     }
+    updateHoveredLevel();
   };
 
   const applySize = (size: CanvasSize): void => {
@@ -100,11 +124,21 @@ export async function mountStage(host: HTMLElement, options: StageOptions = {}):
       showCamera();
     },
   );
+  const onPointerMove = (event: PointerEvent): void => {
+    pointerCanvasY = event.offsetY / cssPerDevicePixel();
+    updateHoveredLevel();
+  };
+  const onPointerLeave = (): void => {
+    pointerCanvasY = null;
+    updateHoveredLevel();
+  };
+  app.canvas.addEventListener('pointermove', onPointerMove);
+  app.canvas.addEventListener('pointerleave', onPointerLeave);
   const statsTimer = window.setInterval(() => {
     options.onStats?.({
       fps: Math.round(app.ticker.FPS),
       zoom: camera.zoom,
-      floorsDrawn: floors.drawnCount,
+      floorsDrawn: structure.rows.drawnCount,
     });
   }, STATS_INTERVAL_MS);
 
@@ -119,8 +153,19 @@ export async function mountStage(host: HTMLElement, options: StageOptions = {}):
       cameraListeners.add(listener);
       return () => cameraListeners.delete(listener);
     },
+    onHoverLevel(listener) {
+      hoverListeners.add(listener);
+      return () => hoverListeners.delete(listener);
+    },
+    cssPerDevicePixel,
+    showStructure(input) {
+      structure.update(input);
+    },
     destroy() {
       cameraListeners.clear();
+      hoverListeners.clear();
+      app.canvas.removeEventListener('pointermove', onPointerMove);
+      app.canvas.removeEventListener('pointerleave', onPointerLeave);
       window.clearInterval(statsTimer);
       detachInput();
       observer.disconnect();

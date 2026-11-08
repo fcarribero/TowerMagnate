@@ -270,6 +270,39 @@ export function drawTintSheet(sprites, types) {
   return sheet;
 }
 
+const BAND_GAP = 1;
+
+// Every variant of every type calm, stressed and very stressed, standing on the day sky and
+// the night sky. One row per type, variants left to right, three bands per variant.
+export function drawTintVariantSheet(sprites, types, variants) {
+  const { frameWidth, frameHeight } = metrics.person;
+  const variantWidth = TINT_STATES.length * (frameWidth + BAND_GAP) + metrics.tileWidth;
+  const halfWidth = variants.length * variantWidth + metrics.tileWidth;
+  const rowHeight = frameHeight + 2 * BAND_GAP * 2;
+  const sheet = new PixelCanvas(2 * halfWidth, types.length * rowHeight);
+  ['day', 'night'].forEach((time, half) => {
+    const sky = sprites[`sky/${time}/middle`];
+    for (let y = 0; y < sheet.height; y += sky.height) {
+      for (let x = 0; x < halfWidth; x += sky.width) {
+        sheet.stamp(sky, half * halfWidth + x, y);
+      }
+    }
+    types.forEach((type, row) => {
+      variants.forEach((variant, column) => {
+        TINT_STATES.forEach((state, step) => {
+          const left =
+            half * halfWidth +
+            metrics.tileWidth +
+            column * variantWidth +
+            step * (frameWidth + BAND_GAP);
+          sheet.stamp(sprites[`people/${type}-${variant}/${state}_01`], left, row * rowHeight + 2);
+        });
+      });
+    });
+  });
+  return sheet;
+}
+
 const WALKWAY_LEVELS = 3;
 const WALKWAY_SPRITES = [
   'stairs/TIME',
