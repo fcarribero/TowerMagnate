@@ -242,6 +242,29 @@ describe('tower socket against postgres', () => {
     await waitFor(() => !app.towerRunner.isRunning(player.towerId));
   });
 
+  it('stops the tower when the last socket closes with an inspect target set', async () => {
+    const client = await connect(player.cookie);
+    client.hello();
+    await client.next('snapshot');
+    const state = app.towerRunner.stateOf(player.towerId);
+    if (!state) {
+      throw new Error('Tower is not running');
+    }
+    state.units.u902 = newUnit('u902', 'office', 10, 2);
+    client.sendRaw(
+      JSON.stringify(clientMessage('inspect', { target: { kind: 'unit', id: 'u902' } })),
+    );
+    await client.next('inspect');
+
+    await client.close();
+    await waitFor(() => !app.towerRunner.isRunning(player.towerId));
+    const stepAtStop = app.towerRunner.stateOf(player.towerId)?.step;
+    await new Promise((resolve) => setTimeout(resolve, 1300));
+
+    expect(app.towerRunner.isRunning(player.towerId)).toBe(false);
+    expect(app.towerRunner.stateOf(player.towerId)?.step).toBe(stepAtStop);
+  });
+
   it('does not run the tower for a socket that never said hello', async () => {
     await connect(player.cookie);
     await new Promise((resolve) => setTimeout(resolve, 100));
