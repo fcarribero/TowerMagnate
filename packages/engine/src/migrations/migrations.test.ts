@@ -510,3 +510,24 @@ describe('migrateState medical day', () => {
     expect(() => migrateState({ ...saved, medicalDay: null })).toThrow(StateMigrationError);
   });
 });
+
+describe('migrateState wedding', () => {
+  it('gives a version 21 save no wedding under way', () => {
+    const old = JSON.parse(JSON.stringify(createTower(5))) as Record<string, unknown>;
+    delete old.wedding;
+    old.schemaVersion = 21;
+    expect(migrateState(old).wedding).toBeNull();
+  });
+
+  it('keeps an attempt and refuses a malformed one', () => {
+    const saved = JSON.parse(JSON.stringify(createTower(5))) as Record<string, unknown>;
+    const wedding = { day: 5, cathedral: 'u3', arrivals: [46_000], inside: 12, outcome: 'pending' };
+    expect(migrateState({ ...saved, wedding }).wedding).toEqual(wedding);
+    expect(() => migrateState({ ...saved, wedding: { ...wedding, outcome: 'won' } })).toThrow(
+      StateMigrationError,
+    );
+    expect(() => migrateState({ ...saved, wedding: { ...wedding, inside: -1 } })).toThrow(
+      StateMigrationError,
+    );
+  });
+});

@@ -43,7 +43,7 @@ import { readActiveEvents, readClosedDecisions, readNotices, readTreasureLevels 
 import { readGrid } from './grid';
 import { readLedger, readMoney } from './money';
 import { readPeople, readTripLedger } from './people';
-import { readStars } from './stars';
+import { readStars, readWedding } from './stars';
 import { readTransports } from './transports';
 
 export { StateMigrationError } from './errors';
@@ -72,6 +72,7 @@ const MIGRATIONS: readonly Migration[] = [
   addGuardEventState,
   addVenueDayCounts,
   addBombCell,
+  addWeddingAttempt,
 ];
 
 /** Version 2 records each unit's price level, what was paid for it and when it was placed. */
@@ -333,6 +334,11 @@ function addBombCell(raw: Record<string, unknown>): Record<string, unknown> {
       })
     : raw.activeEvents;
   return { ...raw, activeEvents, schemaVersion: 21 };
+}
+
+/** Version 22 keeps the day's wedding attempt; an older tower has none under way. */
+function addWeddingAttempt(raw: Record<string, unknown>): Record<string, unknown> {
+  return { wedding: null, ...raw, schemaVersion: 22 };
 }
 
 /** Version 11 gives each hotel room a state; every room in an older tower is clean and empty. */
@@ -665,6 +671,7 @@ function assertCurrentShape(raw: Record<string, unknown>): TowerState {
     ...readStarState(raw),
     medicalDay: readMedicalDay(raw.medicalDay),
     parking: readParking(raw.parking),
+    wedding: readWedding(raw.wedding),
   };
 }
 
