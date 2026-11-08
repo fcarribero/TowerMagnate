@@ -132,6 +132,13 @@ export const buildTransport: CommandHandler<'buildTransport'> = (context, comman
   for (const run of freeLandingRuns(grid, landingLevel, x, x1)) {
     addOccupant(grid, landingLevel, run.x0, run.x1, { kind: 'transport', id, part: 'landing' });
   }
-  state.transports[id] = { id, type: parsedType.data, x, level };
+  state.transports[id] = {
+    id,
+    type: parsedType.data,
+    x,
+    level,
+    paid: cost,
+    placedAtStep: state.step,
+  };
   return { ok: true, cost, refund: 0, events: [] };
 };
