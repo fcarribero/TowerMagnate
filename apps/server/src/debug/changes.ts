@@ -7,7 +7,7 @@ import {
   weekdayOfDay,
   type StepContext,
 } from '@tower-magnate/engine';
-import type { ErrorCode, StarRating } from '@tower-magnate/shared';
+import type { ErrorCode, StarRating, TowerState } from '@tower-magnate/shared';
 import type { TowerChange } from '../runner';
 import type { DebugEventKind } from './messages';
 
@@ -31,6 +31,11 @@ export function ransomForStars(stars: StarRating): number {
   return RANSOM_BY_STARS[stars] ?? RANSOM_FROM_4_STARS;
 }
 
+function highestBuiltLevel(state: TowerState): number {
+  const built = Object.keys(state.grid.levels).map(Number);
+  return Math.max(1, ...built);
+}
+
 export function forceEvent(kind: DebugEventKind): TowerChange {
   return (state) => {
     const context: StepContext = { state: structuredClone(state), events: [] };
@@ -38,7 +43,7 @@ export function forceEvent(kind: DebugEventKind): TowerChange {
       kind === 'bomb'
         ? openBombThreat(context, ransomForStars(context.state.stars))
         : kind === 'fire'
-          ? openFire(context)
+          ? openFire(context, highestBuiltLevel(context.state))
           : undefined;
     if (opened === undefined) {
       throw new DebugRefusal('INVALID_COMMAND');

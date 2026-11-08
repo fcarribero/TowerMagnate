@@ -8,7 +8,7 @@ import { buildEventViews } from './view';
 const context = (state: ReturnType<typeof createTower>) => ({ state, events: [] });
 
 describe('buildEventViews', () => {
-  it('shows an open bomb decision without a cell or ransom position', () => {
+  it('shows an open bomb decision with its ransom and without a cell', () => {
     const tower = createTower(1);
     openBombThreat(context(tower), 250_000);
     const [view] = buildEventViews(tower);
@@ -18,14 +18,24 @@ describe('buildEventViews', () => {
       decision: 'bomb',
       deadlineStep: tower.activeEvents[0]?.decision.deadlineStep,
       options: ['pay', 'refuse'],
+      ransom: 250_000,
     });
     expect(EventViewSchema.safeParse(view).success).toBe(true);
     expect(JSON.stringify(view)).not.toMatch(/cell|bomb":/);
   });
 
+  it('shows an open fire decision with its level', () => {
+    const tower = createTower(1);
+    openFire(context(tower), 12);
+    const [view] = buildEventViews(tower);
+    expect(view).toMatchObject({ kind: 'decision', decision: 'fire', level: 12 });
+    expect(view).not.toHaveProperty('ransom');
+    expect(EventViewSchema.safeParse(view).success).toBe(true);
+  });
+
   it('shows a fire as a disaster once its decision is closed', () => {
     const tower = createTower(1);
-    const fire = openFire(context(tower));
+    const fire = openFire(context(tower), 5);
     answerDecision(tower, fire?.id ?? '', 'burn');
     expect(buildEventViews(tower)).toEqual([
       { kind: 'disaster', id: 'e1', disaster: 'fire', cells: [] },
@@ -59,7 +69,7 @@ describe('event state in saved snapshots', () => {
 
   it('keeps a restored decision expiring on time', () => {
     const tower = createTower(1);
-    openFire(context(tower));
+    openFire(context(tower), 5);
     const restored = deserializeState(serializeState(tower));
     const deadline = restored.activeEvents[0]?.decision.deadlineStep ?? 0;
     restored.step = deadline;

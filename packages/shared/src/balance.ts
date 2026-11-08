@@ -458,6 +458,7 @@ export const PARKING_HOLDER_CHANCE = { office: 0.15, condo: 0.25, suite: 0.5 } a
 /** Events spec section 15. One game hour. */
 export const DECISION_DEADLINE_STEPS = 360;
 export const CLOSED_DECISIONS_KEPT = 20;
+export const NOTICES_KEPT = 50;
 export const HELICOPTER_COST = 500_000;
 
 function flatUpkeep(basis: UpkeepRule['basis'], amount: number): UpkeepRule {

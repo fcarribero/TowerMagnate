@@ -1,4 +1,5 @@
 import {
+  buildEventViews,
   findPerson,
   isExpressStop,
   listPeople,
@@ -23,6 +24,8 @@ import {
   type LedgerCategory,
   type LevelRow,
   type MoneyReason,
+  type Notice,
+  type NoticeView,
   type PersonView,
   type Shaft,
   type ShaftView,
@@ -73,8 +76,8 @@ export function buildSnapshot(state: TowerState, viewport: Viewport | null): Sna
     cars: Object.values(state.shafts).flatMap(carViews),
     people: viewport ? people.filter((person) => isInside(person, viewport)).map(personView) : [],
     followed: followedPeople(state),
-    activeEvents: [],
-    notices: [],
+    activeEvents: buildEventViews(state),
+    notices: state.notices.map(noticeView),
     overlays: {
       evaluation: {},
       price: Object.fromEntries(units.map((unit) => [unit.id, unit.price])),
@@ -95,6 +98,10 @@ function unitView(unit: TowerState['units'][string], occupied: boolean): UnitVie
     occupied,
     variant: occupied ? 'occupied' : 'empty',
   };
+}
+
+function noticeView(notice: Notice): NoticeView {
+  return { id: notice.id, step: notice.step, key: notice.key, unitId: notice.unitId, params: {} };
 }
 
 function transportView(transport: Transport): TransportView {

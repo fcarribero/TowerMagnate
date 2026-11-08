@@ -3,8 +3,10 @@ import type { InspectData, ServerMessage } from '@tower-magnate/shared';
 export type UnitInspectData = Extract<InspectData, { kind: 'unit' }>;
 export type UnitInspect = Extract<UnitInspectData, { status: 'ok' }>;
 
+export type ShaftInspect = Extract<InspectData, { kind: 'shaft' }>;
+
 type Listener = () => void;
-type OpenRequestListener = (unitId: string) => void;
+type OpenRequestListener = (id: string) => void;
 
 /**
  * The latest `inspect` data per unit. The server only inspects one target at
@@ -13,13 +15,21 @@ type OpenRequestListener = (unitId: string) => void;
 export class InspectStore {
   private readonly units = new Map<string, UnitInspectData>();
   private readonly listeners = new Set<Listener>();
+  private readonly shafts = new Map<string, ShaftInspect>();
   private readonly openRequests = new Set<OpenRequestListener>();
+  private readonly shaftOpenRequests = new Set<OpenRequestListener>();
 
   receive(message: ServerMessage): void {
-    if (message.t !== 'inspect' || message.p.kind !== 'unit') {
+    if (message.t !== 'inspect') {
       return;
     }
-    this.units.set(message.p.id, message.p);
+    if (message.p.kind === 'unit') {
+      this.units.set(message.p.id, message.p);
+    } else if (message.p.kind === 'shaft') {
+      this.shafts.set(message.p.id, message.p);
+    } else {
+      return;
+    }
     for (const listener of this.listeners) {
       listener();
     }
@@ -27,6 +37,14 @@ export class InspectStore {
 
   unit(unitId: string): UnitInspectData | undefined {
     return this.units.get(unitId);
+  }
+
+  shaft(shaftId: string): ShaftInspect | undefined {
+    return this.shafts.get(shaftId);
+  }
+
+  forgetShaft(shaftId: string): void {
+    this.shafts.delete(shaftId);
   }
 
   forget(unitId: string): void {
@@ -51,6 +69,20 @@ export class InspectStore {
     this.openRequests.add(listener);
     return () => {
       this.openRequests.delete(listener);
+    };
+  }
+
+  /** The Lupa asks for an elevator window; the window host answers. */
+  requestShaftWindow(shaftId: string): void {
+    for (const listener of this.shaftOpenRequests) {
+      listener(shaftId);
+    }
+  }
+
+  onShaftWindowRequest(listener: OpenRequestListener): () => void {
+    this.shaftOpenRequests.add(listener);
+    return () => {
+      this.shaftOpenRequests.delete(listener);
     };
   }
 }

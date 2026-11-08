@@ -1,7 +1,13 @@
 import { useEffect } from 'preact/hooks';
 import type { GameConnection } from '../../net/gameConnection';
 import { useWindowManager } from '../kit';
-import { UNIT_WINDOW_KIND, UnitWindow, unitWindowId } from './UnitWindow';
+import {
+  UNIT_WINDOW_KIND,
+  entityOfWindow,
+  frontInspectTarget,
+  unitWindowId,
+} from '../inspectTarget';
+import { UnitWindow } from './UnitWindow';
 
 const FIRST_WINDOW_POSITION = { x: 40, y: 40 };
 const CASCADE_STEP = 12;
@@ -12,14 +18,14 @@ interface UnitWindowsProps {
 
 /**
  * Opens a unit window whenever the Lupa asks for one, and keeps the server
- * inspecting the unit whose window is in front.
+ * inspecting the unit or shaft whose window is in front.
  */
 export function UnitWindows({ connection }: UnitWindowsProps) {
   const manager = useWindowManager();
   const unitWindows = manager.stack.windows.filter((window) => window.kind === UNIT_WINDOW_KIND);
   const front = manager.stack.windows.at(-1);
-  const frontUnitId =
-    front?.kind === UNIT_WINDOW_KIND ? front.id.slice(UNIT_WINDOW_KIND.length + 1) : null;
+  const frontTarget = frontInspectTarget(front);
+  const frontWindowId = front?.id;
 
   useEffect(
     () =>
@@ -35,17 +41,13 @@ export function UnitWindows({ connection }: UnitWindowsProps) {
   );
 
   useEffect(() => {
-    connection.commands.inspect(frontUnitId === null ? null : { kind: 'unit', id: frontUnitId });
-  }, [connection, frontUnitId]);
+    connection.commands.inspect(frontTarget);
+  }, [connection, frontWindowId]);
 
   return (
     <>
       {unitWindows.map((window) => (
-        <UnitWindow
-          key={window.id}
-          unitId={window.id.slice(UNIT_WINDOW_KIND.length + 1)}
-          connection={connection}
-        />
+        <UnitWindow key={window.id} unitId={entityOfWindow(window.id)} connection={connection} />
       ))}
     </>
   );
