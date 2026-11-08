@@ -104,6 +104,7 @@ export { cloneState, createTower, SCHEMA_VERSION } from './state';
 export { createEngine, runDays, step } from './step';
 export { populationOf } from './population';
 export type { PopulationBreakdown } from './population';
+export { chargeWeeklyUpkeep, weeklyUpkeepHook } from './upkeep';
 export { newUnit } from './units';
 export type {
   CommandContext,
