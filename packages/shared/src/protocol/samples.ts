@@ -1,5 +1,6 @@
 import type { Command, ElevatorSchedule } from './commands';
 import type { ClientMessage, ServerMessage } from './messages';
+import { packCar, packPerson } from './packed';
 import type { CarView, FinanceSummary, PersonView, UnitView } from './views';
 
 const v = 1;
@@ -148,8 +149,8 @@ export const sampleServerMessages: ServerMessage[] = [
       transportsRemoved: ['t3'],
       shaftsUpserted: [],
       shaftsRemoved: ['s5'],
-      cars: [car],
-      people: [person],
+      cars: [packCar(car)],
+      people: [packPerson(person)],
       peopleGone: ['p9'],
       followed: [],
       activeEvents: [],

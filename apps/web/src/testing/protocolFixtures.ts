@@ -1,10 +1,12 @@
-import type {
-  CarView,
-  Delta,
-  PersonView,
-  ShaftView,
-  Snapshot,
-  UnitView,
+import {
+  packCar,
+  packPerson,
+  type CarView,
+  type Delta,
+  type PersonView,
+  type ShaftView,
+  type Snapshot,
+  type UnitView,
 } from '@tower-magnate/shared';
 
 export const office: UnitView = {
@@ -65,6 +67,12 @@ export const snapshot: Snapshot = {
   finances: { thisWeek: { weekStartStep: 0, income: {}, expenses: {} }, lastWeek: null },
 };
 
-export function delta(fields: Partial<Delta> = {}): Delta {
-  return { step: 101, cars: [car], people: [walker], ...fields };
+type DeltaFields = Omit<Partial<Delta>, 'cars' | 'people'> & {
+  cars?: CarView[];
+  people?: PersonView[];
+};
+
+/** A delta built from readable views; the cars and people are packed like the server does. */
+export function delta({ cars = [car], people = [walker], ...fields }: DeltaFields = {}): Delta {
+  return { step: 101, cars: cars.map(packCar), people: people.map(packPerson), ...fields };
 }

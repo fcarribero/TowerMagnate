@@ -1,7 +1,16 @@
 import { z } from 'zod';
 import { TOWER_LAYOUT } from '../balance';
+import { CAR_DIRECTIONS } from '../engine';
 import { MAX_NAME_LENGTH } from '../names';
 import { ElevatorScheduleSchema, MAX_CARS_PER_SHAFT } from './commands';
+import {
+  CAR_DOORS,
+  FACINGS,
+  PackedCarSchema,
+  PackedPersonSchema,
+  PERSON_MODES,
+  STRESS_LEVELS,
+} from './packed';
 import {
   CellRangeSchema,
   ColumnSchema,
@@ -77,20 +86,20 @@ export const CarViewSchema = z.object({
   shaftId: ShaftEntityIdSchema,
   index: CarIndexSchema,
   position: DenseLevelPositionSchema,
-  direction: z.enum(['up', 'down', 'idle']),
-  doors: z.enum(['open', 'closed']),
+  direction: z.enum(CAR_DIRECTIONS),
+  doors: z.enum(CAR_DOORS),
   load: CarLoadSchema,
 });
 
-export const StressLevelSchema = z.enum(['normal', 'stressed', 'veryStressed']);
+export const StressLevelSchema = z.enum(STRESS_LEVELS);
 
 export const PersonViewSchema = z.object({
   id: PersonEntityIdSchema,
   kind: PersonKindSchema,
   x: ColumnPositionSchema,
   level: LevelSchema,
-  facing: z.enum(['left', 'right']),
-  mode: z.enum(['walk', 'wait', 'ride', 'stairs', 'inside']),
+  facing: z.enum(FACINGS),
+  mode: z.enum(PERSON_MODES),
   carRef: CarRefSchema.nullable(),
   stress: StressLevelSchema,
 });
@@ -186,8 +195,9 @@ export const DeltaSchema = z.object({
   transportsRemoved: z.array(TransportEntityIdSchema).optional(),
   shaftsUpserted: z.array(ShaftViewSchema).optional(),
   shaftsRemoved: z.array(ShaftEntityIdSchema).optional(),
-  cars: z.array(CarViewSchema),
-  people: z.array(PersonViewSchema),
+  /** Complete for the viewport, as packed tuples (see packed.ts). */
+  cars: z.array(PackedCarSchema),
+  people: z.array(PackedPersonSchema),
   peopleGone: z.array(PersonEntityIdSchema).optional(),
   followed: z.array(FollowedViewSchema).max(MAX_FOLLOWED_PEOPLE).optional(),
   activeEvents: z.array(EventViewSchema).optional(),
