@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { ConnectionRegistry } from '../gateway';
 import type { TowerRunner } from '../runner';
 import { FakeSocket } from '../testing/fake-socket';
-import { INSPECT_INTERVAL_MS, Inspections } from './inspections';
+import { INSPECT_INTERVAL_MS, Inspections, MAX_INSPECT_TARGETS } from './inspections';
 
 const identity = { userId: 'user', towerId: 'tower' };
 const unitTarget = (id: string) => ({ kind: 'unit', id }) as const;
@@ -168,5 +168,137 @@ describe('inspect targets', () => {
     h.inspections.tick(h.registry);
 
     expect(h.socket.sent).toEqual([]);
+  });
+
+  describe('several targets', () => {
+    function addUnits(count: number): void {
+      for (let number = 3; number < 3 + count; number += 1) {
+        h.state.units[`u${number}`] = newUnit(`u${number}`, 'office', 4 + number * 10, 2);
+      }
+    }
+
+    function idsAnswered(): string[] {
+      return inspectsOf(h.socket).map((message) => message.p.id);
+    }
+
+    it('answers each target once per second', () => {
+      h.inspections.add(h.socket, 'tower', unitTarget('u1'));
+      h.inspections.add(h.socket, 'tower', unitTarget('u2'));
+      h.socket.sent.length = 0;
+
+      h.clock.now += INSPECT_INTERVAL_MS;
+      h.inspections.tick(h.registry);
+
+      expect(idsAnswered()).toEqual(['u1', 'u2']);
+    });
+
+    it('answers a new target at once without repeating the others', () => {
+      h.inspections.add(h.socket, 'tower', unitTarget('u1'));
+      h.socket.sent.length = 0;
+
+      h.inspections.add(h.socket, 'tower', unitTarget('u2'));
+
+      expect(idsAnswered()).toEqual(['u2']);
+    });
+
+    it('stops answering a removed target and keeps the others', () => {
+      h.inspections.add(h.socket, 'tower', unitTarget('u1'));
+      h.inspections.add(h.socket, 'tower', unitTarget('u2'));
+      h.inspections.remove(h.socket, unitTarget('u1'));
+      h.socket.sent.length = 0;
+
+      h.clock.now += INSPECT_INTERVAL_MS;
+      h.inspections.tick(h.registry);
+
+      expect(idsAnswered()).toEqual(['u2']);
+    });
+
+    it('refuses a sixth target and keeps the five', () => {
+      addUnits(MAX_INSPECT_TARGETS);
+      const ids = ['u1', 'u2', 'u3', 'u4', 'u5'];
+      for (const id of ids) {
+        expect(h.inspections.add(h.socket, 'tower', unitTarget(id))).toBe('added');
+      }
+      h.socket.sent.length = 0;
+
+      expect(h.inspections.add(h.socket, 'tower', unitTarget('u6'))).toBe('limit');
+      h.clock.now += INSPECT_INTERVAL_MS;
+      h.inspections.tick(h.registry);
+
+      expect(idsAnswered()).toEqual(ids);
+    });
+
+    it('accepts a new target after one was removed', () => {
+      addUnits(MAX_INSPECT_TARGETS);
+      for (const id of ['u1', 'u2', 'u3', 'u4', 'u5']) {
+        h.inspections.add(h.socket, 'tower', unitTarget(id));
+      }
+      h.inspections.remove(h.socket, unitTarget('u5'));
+
+      expect(h.inspections.add(h.socket, 'tower', unitTarget('u6'))).toBe('added');
+    });
+
+    it('does not count a target that is added twice', () => {
+      addUnits(MAX_INSPECT_TARGETS);
+      for (const id of ['u1', 'u2', 'u3', 'u4', 'u5']) {
+        h.inspections.add(h.socket, 'tower', unitTarget(id));
+      }
+
+      expect(h.inspections.add(h.socket, 'tower', unitTarget('u5'))).toBe('added');
+    });
+
+    it('sends one gone result for a demolished target and keeps the others', () => {
+      h.inspections.add(h.socket, 'tower', unitTarget('u1'));
+      h.inspections.add(h.socket, 'tower', unitTarget('u2'));
+      delete h.state.units.u1;
+      h.socket.sent.length = 0;
+
+      for (let second = 0; second < 3; second += 1) {
+        h.clock.now += INSPECT_INTERVAL_MS;
+        h.inspections.tick(h.registry);
+      }
+
+      const results = inspectsOf(h.socket).map((message) => `${message.p.id}:${message.p.status}`);
+      expect(results.filter((result) => result.startsWith('u1'))).toEqual(['u1:gone']);
+      expect(results.filter((result) => result === 'u2:ok')).toHaveLength(3);
+    });
+
+    it('pushes only the changed target', () => {
+      h.inspections.add(h.socket, 'tower', unitTarget('u1'));
+      h.inspections.add(h.socket, 'tower', unitTarget('u2'));
+      h.socket.sent.length = 0;
+
+      h.inspections.pushChange(h.socket, 'u2');
+
+      expect(idsAnswered()).toEqual(['u2']);
+    });
+
+    it('drops every target when the socket closes', () => {
+      h.inspections.add(h.socket, 'tower', unitTarget('u1'));
+      h.inspections.add(h.socket, 'tower', unitTarget('u2'));
+      h.registry.remove(h.socket);
+      h.inspections.clear(h.socket);
+      h.socket.sent.length = 0;
+
+      h.clock.now += INSPECT_INTERVAL_MS;
+      h.inspections.tick(h.registry);
+
+      expect(h.socket.sent).toEqual([]);
+    });
+
+    it('answers five targets in under a millisecond', () => {
+      addUnits(3);
+      for (const id of ['u1', 'u2', 'u3', 'u4', 'u5']) {
+        h.inspections.add(h.socket, 'tower', unitTarget(id));
+      }
+      const started = performance.now();
+      for (let run = 0; run < 100; run += 1) {
+        h.clock.now += INSPECT_INTERVAL_MS;
+        h.inspections.tick(h.registry);
+        h.socket.sent.length = 0;
+      }
+
+      expect((performance.now() - started) / 100).toBeLessThan(1);
+    });
   });
 });
