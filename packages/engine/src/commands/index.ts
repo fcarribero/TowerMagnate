@@ -8,6 +8,7 @@ import { buildUnit } from './build-unit';
 import { addCar, removeCar } from './elevator-cars';
 import { followPersonCommand, unfollowPersonCommand } from './follow-person';
 import { renameUnit } from './rename-unit';
+import { setPrice } from './set-price';
 
 export const towerCommandHandlers: CommandHandlers = {
   answerEvent,
@@ -20,6 +21,7 @@ export const towerCommandHandlers: CommandHandlers = {
   addCar,
   removeCar,
   renameUnit,
+  setPrice,
   followPerson: followPersonCommand,
   unfollowPerson: unfollowPersonCommand,
 };
