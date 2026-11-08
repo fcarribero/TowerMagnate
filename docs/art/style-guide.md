@@ -112,6 +112,8 @@ Stair, escalator, lobby and elevator sprites have no states, only day and night.
 
 The cathedral has two states, `empty` and `wedding`. Its stained glass shows color by day. At night it is dark (night-deep) when empty and lit during a wedding.
 
+The cinema (31 x 2) has `empty` and `show`: the screen is dark when empty and shows a film with a projector beam and an audience during a show, by day and by night. The party hall (24 x 2) has `empty` and `party`: the party adds a lit dance floor, streamers, balloons, guests and confetti, and its windows glow at night only during a party. Both are one tall room, so there is no slab between their two floors.
+
 ## People
 
 - Each person type has at least two body variants (build and skin tone) and two clothing variants.
@@ -161,6 +163,8 @@ Groups: `units`, `transport`, `people`, `structure`, `sky`, `ui`.
 | `structure/floor/day` | bare floor tile |
 | `sky/day/top` | day sky tile, upper band |
 | `ui/tool-bulldozer` | bulldozer tool icon |
+| `ui/unit-office` | toolbar icon of a catalog unit |
+| `ui/cat-hotel` | toolbar category icon |
 
 Frame numbers have two digits and start at `01`. Ids in the atlas JSON are exactly these strings, with no `.png` suffix.
 
@@ -285,3 +289,7 @@ The service shaft has a maintenance hatch, `transport/service-shaft/hatch` (10 x
 `pnpm art:build` draws every sprite group in `tools/art/src/groups` and rewrites the generated files. Each group is one module with a `name` (one of the groups above) and a `draw()` function that returns `{ id, canvas }` pairs. A new group is added to `tools/art/src/groups/index.mjs`.
 
 The build writes one PNG per sprite to `assets/sprites/<id>.png` and one atlas per group to `assets/atlases/<group>.png` and `assets/atlases/<group>.json`. The JSON uses the PixiJS 8 spritesheet hash format, and ids ending in `_01`, `_02` and so on are listed as animations. The output depends only on the drawing code, so two builds give byte-identical files. The generated files, the client manifest `apps/web/src/render/atlasManifest.ts` and the previews in `docs/art` are not committed. `pnpm dev`, `pnpm build`, `pnpm typecheck`, `pnpm test`, CI and the Vite dev server in the compose stack build them first, so after a fresh clone `pnpm install` and `pnpm dev` are enough. Run `pnpm art:build` to see a change to the drawing code without restarting anything.
+
+## UI icons
+
+Icons are in `tools/art/src/icons`, drawn from 16 x 16 character maps. Ids are `ui/tool-{inspect,bulldozer,car}`, `ui/unit-{unitId}`, `ui/cat-{categoryId}`, `ui/star-full`, `ui/star-empty`, `ui/money` and `ui/population`. The empty star is a slate outline with no ink, as the HUD spec asks. `pnpm art:build` writes `docs/art/ui-icons-preview.png` (4x) with every icon.

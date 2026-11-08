@@ -3,6 +3,7 @@ import type {
   LimitGroupId,
   PriceLevel,
   PriceTable,
+  ShaftType,
   StarRating,
   UnitCost,
   UnitDefinition,
@@ -10,11 +11,13 @@ import type {
   UnitType,
   UpkeepRule,
 } from './units';
+import { SHAFT_UNIT_TYPES } from './units';
 
 // Every tunable balance number of the game lives in this module.
 
 export const STARTING_MONEY = 2_000_000;
 export const MONEY_CAP = 99_999_999;
+export const OFFICE_POPULATION = 6;
 
 export const TOWER_LAYOUT = {
   floorsAboveGround: 100,
@@ -33,6 +36,12 @@ export const STAR_POPULATION_THRESHOLDS: Readonly<Record<Exclude<StarRating, 6>,
   4: 10_000,
   5: 15_000,
 };
+
+/** Suites (not infested) a tower needs to reach 4 stars. */
+export const SUITES_FOR_FOUR_STARS = 2;
+
+/** People one recycling center covers. */
+export const RECYCLING_PEOPLE_PER_CENTER = 2_500;
 
 function fixedHeight(floors: number): UnitHeight {
   return { kind: 'fixed', floors };
@@ -488,3 +497,15 @@ export const EVAL_NOISE = 60;
 export const EVAL_GOOD_BELOW = 90;
 export const EVAL_FAIR_BELOW = 180;
 export const EVAL_FAIR_BELOW_FROM_FOUR_STARS = 240;
+
+/** People per direction at one stop of an elevator shaft. */
+export const ELEVATOR_QUEUE_CAPACITY = 40;
+/** Steps a person waits beside a full queue before checking it again (1 game minute). */
+export const FULL_QUEUE_RECHECK_STEPS = 6;
+/** Added to the route cost of a ride whose queue is full. */
+export const FULL_QUEUE_ROUTE_COST = 1_000;
+
+/** Riders a car holds, by shaft type, read from the catalog. */
+export function carCapacity(type: ShaftType): number {
+  return UNIT_CATALOG[SHAFT_UNIT_TYPES[type]].capacity?.people ?? 0;
+}

@@ -53,7 +53,7 @@ export function buildSnapshot(state: TowerState, viewport: Viewport | null): Sna
   return {
     step: state.step,
     money: state.money,
-    stars: 1,
+    stars: state.stars,
     population: populationOf(state).total,
     grid: {
       levels: structureRows(state),

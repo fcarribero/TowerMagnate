@@ -1,6 +1,4 @@
-import type { TowerState } from '@tower-magnate/shared';
-
-export const OFFICE_POPULATION = 6;
+import { OFFICE_POPULATION, type TowerState } from '@tower-magnate/shared';
 
 export interface PopulationBreakdown {
   offices: number;

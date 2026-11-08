@@ -76,6 +76,11 @@ export const SPANISH_STRINGS = {
   'ui.towerRank': 'TORRE',
   'ui.zoomIn': 'Acercar',
   'ui.zoomOut': 'Alejar',
+  'ui.windowMap': 'Mapa',
+  'ui.windowFinance': 'Finanzas',
+  'ui.windowFollowed': 'Seguidos',
+  'ui.windowNotices': 'Avisos',
+  'ui.statusBar': 'Barra de estado',
   'ui.soundOn': 'Sonido: sí',
   'ui.soundOff': 'Sonido: no',
   'ui.volume': 'Volumen',
@@ -346,9 +351,9 @@ export const SPANISH_STRINGS = {
   'news.starsUp': 'La torre llegó a {n} estrellas.',
   'news.towerRank': '¡Hubo boda en la catedral! La torre alcanzó el rango Torre.',
   'news.starBlockedParking':
-    'Alguien no consiguió cochera. Hoy la torre no puede subir de estrellas.',
+    'La torre no subió de estrellas: alguien no consiguió cochera desde la última revisión.',
   'news.starBlockedMedical':
-    'Alguien no pudo ir al centro médico. Hoy la torre no puede subir de estrellas.',
+    'La torre no subió de estrellas: alguien no pudo ir al centro médico desde la última revisión.',
   'news.bombThreat': 'Amenaza de bomba en la torre.',
   'news.bombPaid': 'Se pagó el rescate. La amenaza terminó.',
   'news.bombFound': 'Seguridad encontró la bomba y la desactivó.',
@@ -364,13 +369,33 @@ export const SPANISH_STRINGS = {
     'Hay cucarachas en una habitación del piso {level}. Solo se eliminan demoliendo.',
   'news.santa': '¡Feliz Navidad! Papá Noel pasó por la torre.',
   'news.decisionDefault': 'Se terminó el plazo. Se aplicó: {option}.',
+  'news.balanceNegative': 'La caja quedó en rojo. No se puede construir hasta recuperar.',
+  'news.bombSearch': 'Seguridad empezó a buscar la bomba.',
+  'news.cinemaLowAudience': 'El cine no cobró nada: menos de 40 espectadores por función.',
+  'news.fastFoodLoss': 'Una comida rápida tuvo pérdidas: vinieron menos de 25 clientes.',
+  'news.medicalDemanded': 'Los oficinistas necesitan un centro médico.',
+  'news.medicalFull': 'Los centros médicos están llenos. Hace falta otro.',
+  'news.parkingCondo': 'Los residentes piden cochera.',
+  'news.parkingOffice': 'Los oficinistas piden cochera.',
+  'news.parkingSuite': 'Los huéspedes de las suites piden cochera.',
+  'news.partyHallEmpty': 'El salón de fiestas no cobró nada: vinieron menos de 25 invitados.',
+  'news.restaurantLoss': 'Un restaurante tuvo pérdidas: vinieron menos de 25 clientes.',
+  'news.starBlockedRecycling':
+    'La torre no subió de estrellas: hace falta un centro de reciclaje cada 2.500 personas.',
+  'news.starBlockedSecurity': 'La torre no subió de estrellas: falta una oficina de seguridad.',
+  'news.starBlockedSubway': 'La torre no subió de estrellas: falta la estación de subte.',
+  'news.starBlockedSuites': 'La torre no subió de estrellas: hacen falta 2 suites.',
+  'news.starBlockedVip': 'La torre no subió de estrellas: falta la aprobación del VIP.',
+  'news.vipNoSuite': 'El VIP no encontró una suite libre y no vino.',
+  'news.weddingFailed': 'No llegaron todos los invitados a la boda antes de las 12:30.',
 
   // 13.10 Star requirements (Estrellas window)
   'stars.req.2': 'Población de 300.',
   'stars.req.3': 'Población de 1.000 y al menos una oficina de seguridad.',
   'stars.req.4':
-    'Población de 5.000, visita del VIP aprobada, suites de hotel, y reciclaje y centro médico suficientes.',
-  'stars.req.5': 'Población de 10.000, estación de subte, y centro médico y reciclaje suficientes.',
+    'Población de 5.000, visita del VIP aprobada, 2 suites, un centro de reciclaje cada 2.500 personas, y nadie sin centro médico ni cochera desde la última revisión.',
+  'stars.req.5':
+    'Población de 10.000, estación de subte, un centro de reciclaje cada 2.500 personas, y nadie sin centro médico ni cochera desde la última revisión.',
   'stars.req.tower':
     'Población de 15.000, catedral construida y una boda completa un sábado o domingo antes de las 12:30.',
 
@@ -412,6 +437,11 @@ export const SPANISH_STRINGS = {
   'dialog.demolish': 'Demoler',
   'dialog.changeFilm.confirm': 'Cambiar',
   'dialog.newTower.confirm': 'Demoler y empezar',
+  'dialog.newTowerSure.title': '¿Estás seguro?',
+  'dialog.newTowerSure.body': 'Es la última advertencia: la torre actual se pierde para siempre.',
+  'dialog.newTowerSure.confirm': 'Sí, demoler todo',
+  'dialog.newTowerFailed.title': 'Torre nueva',
+  'dialog.newTowerFailed.body': 'No se pudo empezar una torre nueva. Tu torre sigue como estaba.',
   'dialog.protocolMismatch.reload': 'Recargar',
 
   // 13.12 Login and register
@@ -435,5 +465,9 @@ export const SPANISH_STRINGS = {
   'auth.usernameTaken': 'Ese usuario ya existe. Probá con otro.',
   'auth.wrongCredentials': 'Usuario o contraseña incorrectos.',
   'auth.sessionClosed': 'La sesión se cerró. Entrá de nuevo.',
+  'auth.rateLimited': 'Hiciste demasiados intentos. Esperá un minuto y probá de nuevo.',
   'auth.networkError': 'No se pudo conectar. Probá de nuevo.',
+  'auth.passwordLong': 'La contraseña lleva como máximo 128 caracteres.',
+  'ui.stage.loading': 'Cargando gráficos…',
+  'ui.stage.loadError': 'No se pudieron cargar los gráficos. Recargá la página.',
 } as const;

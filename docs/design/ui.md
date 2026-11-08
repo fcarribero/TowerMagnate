@@ -942,7 +942,7 @@ A spec that adds an error code adds its row here in the same PR.
 
 ### 13.9 News and notices
 
-Line format `{weekday abbr} {HH:MM}  {text}`. "Alert" marks the red kind of 8.1. The full catalog, with triggers, placeholders and rate limits, is `docs/design/messages.md`; this table keeps the first keys and new keys go there.
+Line format `{weekday abbr} {HH:MM}  {text}`. "Alert" marks the red kind of 8.1. The full catalog, with triggers, placeholders and rate limits, is `docs/design/messages.md`; this table lists every news key and `messages.md` is the source if they differ.
 
 | Key | Text | Alert |
 |---|---|---|
@@ -976,6 +976,24 @@ Line format `{weekday abbr} {HH:MM}  {text}`. "Alert" marks the red kind of 8.1.
 | `news.cockroaches` | Hay cucarachas en una habitación del piso {level}. Solo se eliminan demoliendo. | yes |
 | `news.santa` | ¡Feliz Navidad! Papá Noel pasó por la torre. | |
 | `news.decisionDefault` | Se terminó el plazo. Se aplicó: {option}. | |
+| `news.balanceNegative` | La caja quedó en rojo. No se puede construir hasta recuperar. | yes |
+| `news.bombSearch` | Seguridad empezó a buscar la bomba. |  |
+| `news.cinemaLowAudience` | El cine no cobró nada: menos de 40 espectadores por función. |  |
+| `news.fastFoodLoss` | Una comida rápida tuvo pérdidas: vinieron menos de 25 clientes. |  |
+| `news.medicalDemanded` | Los oficinistas necesitan un centro médico. |  |
+| `news.medicalFull` | Los centros médicos están llenos. Hace falta otro. |  |
+| `news.parkingCondo` | Los residentes piden cochera. |  |
+| `news.parkingOffice` | Los oficinistas piden cochera. |  |
+| `news.parkingSuite` | Los huéspedes de las suites piden cochera. |  |
+| `news.partyHallEmpty` | El salón de fiestas no cobró nada: vinieron menos de 25 invitados. |  |
+| `news.restaurantLoss` | Un restaurante tuvo pérdidas: vinieron menos de 25 clientes. |  |
+| `news.starBlockedRecycling` | La torre no subió de estrellas: hace falta un centro de reciclaje cada 2.500 personas. | yes |
+| `news.starBlockedSecurity` | La torre no subió de estrellas: falta una oficina de seguridad. | yes |
+| `news.starBlockedSubway` | La torre no subió de estrellas: falta la estación de subte. | yes |
+| `news.starBlockedSuites` | La torre no subió de estrellas: hacen falta 2 suites. | yes |
+| `news.starBlockedVip` | La torre no subió de estrellas: falta la aprobación del VIP. | yes |
+| `news.vipNoSuite` | El VIP no encontró una suite libre y no vino. |  |
+| `news.weddingFailed` | No llegaron todos los invitados a la boda antes de las 12:30. |  |
 
 ### 13.10 Star requirements (Estrellas window)
 
@@ -1037,8 +1055,21 @@ All texts of section 9 are keyed `dialog.{id}.title`, `dialog.{id}.body` and `di
 | `auth.wrongCredentials` | Usuario o contraseña incorrectos. |
 | `auth.sessionClosed` | La sesión se cerró. Entrá de nuevo. |
 | `auth.networkError` | No se pudo conectar. Probá de nuevo. |
+| `auth.rateLimited` | Hiciste demasiados intentos. Esperá un minuto y probá de nuevo. |
+| `auth.passwordLong` | La contraseña lleva como máximo 128 caracteres. |
 
-The username and password limits come from TM-52. The server's 409 maps to `auth.usernameTaken` and its 401 to `auth.wrongCredentials`.
+The username and password limits come from TM-52. The server's 409 maps to `auth.usernameTaken`, its 401 on login to `auth.wrongCredentials`, its 401 elsewhere to `auth.sessionClosed` and its 429 to `auth.rateLimited`. The 400 messages of `packages/shared/src/auth.ts` use the same texts: a missing value or field is `auth.required`, a bad username `auth.usernameInvalid`, a short password `auth.passwordShort` and a long one `auth.passwordLong`.
+
+### 13.13 Graphics loading
+
+`StageHost` shows one centered message over the empty stage.
+
+| Key | Text |
+|---|---|
+| `ui.stage.loading` | Cargando gráficos… |
+| `ui.stage.loadError` | No se pudieron cargar los gráficos. Recargá la página. |
+
+`ui.stage.loading` shows while the renderer starts and `ui.stage.loadError` replaces it if it fails to start.
 
 ## 14. Rules
 

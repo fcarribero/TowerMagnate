@@ -4,7 +4,7 @@ import { MessageRateLimiter } from '../gateway/rate-limiter';
 export const MAX_AUTH_ATTEMPTS_PER_MINUTE = 10;
 const WINDOW_MS = 60_000;
 const LIMITED_PATHS = new Set(['/api/auth/login', '/api/auth/register']);
-const MESSAGE = 'Demasiados intentos. Espera un minuto e inténtalo de nuevo.';
+const MESSAGE = 'Hiciste demasiados intentos. Esperá un minuto y probá de nuevo.';
 
 export interface AuthRateLimitOptions {
   limitPerMinute?: number;

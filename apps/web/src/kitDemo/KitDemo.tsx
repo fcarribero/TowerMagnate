@@ -19,6 +19,7 @@ import {
 } from '../ui/kit';
 import { t } from '../ui/strings';
 import { useUiScale } from '../ui/uiScale';
+import { DemoStatusPanel } from './DemoStatusPanel';
 
 const DEMO_WINDOWS: readonly (OpenRequest & { label: string })[] = [
   { id: 'buttons', label: 'Botones', position: { x: 16, y: 16 } },
@@ -251,6 +252,7 @@ export function KitDemo() {
         <DemoWindows />
         <DemoDialogs onAnswer={setLastAnswer} />
       </WindowLayer>
+      <DemoStatusPanel />
     </div>
   );
 }
