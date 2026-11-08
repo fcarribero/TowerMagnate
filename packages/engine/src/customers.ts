@@ -3,7 +3,9 @@ import {
   CUSTOMER_STAY_MINUTES,
   OUTSIDE_CUSTOMER_BASE,
   RETAIL_PRICE_CUSTOMER_FACTOR,
+  SUBWAY_ENTRANCE_CHANCE,
   SUBWAY_VISITOR_FACTOR,
+  UNIT_CATALOG,
   VENUE_CAPACITY,
   VENUE_HOURS,
   type PriceLevel,
@@ -14,11 +16,12 @@ import {
 } from '@tower-magnate/shared';
 import { isWeekendDay, STEPS_PER_MINUTE } from './calendar';
 import { STEPS_PER_DAY } from './clock';
-import { entrancePlace, unitPlace } from './office-routine';
+import { entrancePlace, unitPlace, type Place } from './office-routine';
 import { addPerson, createPeopleSystem, NOTHING_DUE, removePerson, slotOfPerson } from './people';
 import { venueStressFactor } from './person-stress';
 import { visitorsAt } from './resident-routine';
-import { chance } from './rng';
+import { chance, nextInt } from './rng';
+import { walkableLevelOfUnit } from './routing';
 import type { HookOccurrence, ScheduledHook } from './scheduler';
 import type { SimulationSystem, StepContext } from './step';
 import { drawMinuteFromWindow } from './time-windows';
@@ -31,6 +34,7 @@ import {
   customerTripAt,
   encodeCustomerTrip,
   forgetCustomersInside,
+  type CustomerEntrance,
   type CustomerPhase,
 } from './venue-visitors';
 import { countVenueVisit, rollVenueDay } from './venues';
@@ -70,8 +74,17 @@ export function outsideCustomerCount(factors: OutsideCustomerFactors): number {
   return Math.floor(product / 1_000_000);
 }
 
+function subwayStation(state: TowerState): Unit | null {
+  let station: Unit | null = null;
+  for (const unit of Object.values(state.units)) {
+    if (unit.type !== 'subway-station') continue;
+    if (!station || unitNumber(unit.id) < unitNumber(station.id)) station = unit;
+  }
+  return station;
+}
+
 function hasSubwayStation(state: TowerState): boolean {
-  return Object.values(state.units).some((unit) => unit.type === 'subway-station');
+  return subwayStation(state) !== null;
 }
 
 function venuesById(state: TowerState): Unit[] {
@@ -124,25 +137,68 @@ function planCustomers(context: StepContext, occurrence: HookOccurrence): void {
   }
 }
 
-function setPhase(state: TowerState, slot: number, phase: CustomerPhase, onRight: boolean): void {
-  state.people.trip[slot] = encodeCustomerTrip({ phase, onRight });
+function setPhase(
+  state: TowerState,
+  slot: number,
+  phase: CustomerPhase,
+  entrance: CustomerEntrance,
+): void {
+  state.people.trip[slot] = encodeCustomerTrip({ phase, entrance });
 }
 
-/** A customer appears at a street entrance and walks to the venue; with no route they never come. */
-function sendCustomer(context: StepContext, unit: Unit): void {
+function streetEntrance(state: TowerState): CustomerEntrance {
+  return { kind: 'street', onRight: chance(state.rng, 0.5) };
+}
+
+/** People spec 3: with a station, a quarter of customers come by subway, at a random station column. */
+function drawEntrance(state: TowerState, station: Unit | null): CustomerEntrance {
+  if (!station || !chance(state.rng, SUBWAY_ENTRANCE_CHANCE)) return streetEntrance(state);
+  const lastColumn = station.x + UNIT_CATALOG[station.type].width - 1;
+  return { kind: 'subway', column: nextInt(state.rng, station.x, lastColumn) };
+}
+
+function entranceDoor(state: TowerState, entrance: CustomerEntrance): Place | null {
+  if (entrance.kind === 'street') return entrancePlace(state, entrance.onRight);
+  const station = subwayStation(state);
+  if (!station) return null;
+  return { level: walkableLevelOfUnit(station), column: entrance.column };
+}
+
+/** Puts the customer at the entrance's door and starts the walk to the venue, if it has a route. */
+function enterBy(
+  context: StepContext,
+  slot: number,
+  unit: Unit,
+  entrance: CustomerEntrance,
+): boolean {
   const { state } = context;
-  const onRight = chance(state.rng, 0.5);
-  const entrance = entrancePlace(state, onRight);
-  if (!entrance) return;
+  const door = entranceDoor(state, entrance);
+  if (!door) return false;
+  state.people.level[slot] = door.level;
+  state.people.column[slot] = door.column;
+  setPhase(state, slot, 'toVenue', entrance);
+  return startTrek(context, slot, unitPlace(unit));
+}
+
+/**
+ * A customer appears at an entrance and walks to the venue. A subway customer with no route
+ * switches to the street at once; with no route from the street either, they never come.
+ */
+function sendCustomer(context: StepContext, unit: Unit, station: Unit | null): void {
+  const { state } = context;
+  const entrance = drawEntrance(state, station);
+  const door = entranceDoor(state, entrance);
+  if (!door) return;
   const personId = addPerson(state, {
     kind: 'customer',
     homeUnit: unitNumber(unit.id),
-    level: entrance.level,
-    column: entrance.column,
+    level: door.level,
+    column: door.column,
   });
   const slot = slotOfPerson(state.people, personId);
-  setPhase(state, slot, 'toVenue', onRight);
-  if (!startTrek(context, slot, unitPlace(unit))) removePerson(state, personId);
+  if (enterBy(context, slot, unit, entrance)) return;
+  if (entrance.kind === 'subway' && enterBy(context, slot, unit, streetEntrance(state))) return;
+  removePerson(state, personId);
 }
 
 function sendDueCustomers(context: StepContext): void {
@@ -151,11 +207,13 @@ function sendDueCustomers(context: StepContext): void {
   const due = Object.values(state.units)
     .filter((unit) => (unit.venue?.customers[0] ?? Infinity) <= state.step)
     .sort((a, b) => unitNumber(a.id) - unitNumber(b.id));
+  if (due.length === 0) return;
+  const station = subwayStation(state);
   for (const unit of due) {
     const customers = (unit.venue as VenueDay).customers;
     while ((customers[0] ?? Infinity) <= state.step) {
       customers.shift();
-      sendCustomer(context, unit);
+      sendCustomer(context, unit, station);
     }
   }
 }
@@ -181,18 +239,28 @@ function customerVenueOf(state: TowerState, slot: number): CustomerVenue | null 
   return unit && unit.venue && isCustomerVenueType(unit.type) ? (unit as CustomerVenue) : null;
 }
 
-/** Walks the customer out by the entrance they came in by; with no way out they leave at once. */
-function leaveTower(context: StepContext, slot: number, onRight: boolean): void {
+function exitBy(context: StepContext, slot: number, entrance: CustomerEntrance): boolean {
+  const { state } = context;
+  setPhase(state, slot, 'leaving', entrance);
+  const door = entranceDoor(state, entrance);
+  return door !== null && startTrek(context, slot, door);
+}
+
+/**
+ * Walks the customer out by the entrance they came in by. With no route to the subway they switch
+ * to the street at once; with no way out at all they leave at once.
+ */
+function leaveTower(context: StepContext, slot: number, entrance: CustomerEntrance): void {
   const { state } = context;
   const personId = state.people.id[slot] as number;
-  const exit = entrancePlace(state, onRight);
-  setPhase(state, slot, 'leaving', onRight);
   state.people.dueStep[slot] = NOTHING_DUE;
-  if (!exit || !startTrek(context, slot, exit)) removePerson(state, personId);
+  if (exitBy(context, slot, entrance)) return;
+  if (entrance.kind === 'subway' && exitBy(context, slot, streetEntrance(state))) return;
+  removePerson(state, personId);
 }
 
 /** In if the venue is open and not full; the visit counts and lasts until its time or closing. */
-function arriveAtVenue(context: StepContext, slot: number, onRight: boolean): void {
+function arriveAtVenue(context: StepContext, slot: number, entrance: CustomerEntrance): void {
   const { state } = context;
   const unit = customerVenueOf(state, slot);
   const canEnter =
@@ -200,12 +268,12 @@ function arriveAtVenue(context: StepContext, slot: number, onRight: boolean): vo
     isOpen(unit, minuteOfDay(state)) &&
     visitorsAt(state, unit.type, unitNumber(unit.id)) < VENUE_CAPACITY[unit.type];
   if (!unit || !canEnter) {
-    leaveTower(context, slot, onRight);
+    leaveTower(context, slot, entrance);
     return;
   }
   countVenueVisit(state, unit, stressOfTripEndedNow(state, slot));
   changeCustomersInside(state, unitNumber(unit.id), 1);
-  setPhase(state, slot, 'atVenue', onRight);
+  setPhase(state, slot, 'atVenue', entrance);
   const stayEnds = state.step + CUSTOMER_STAY_MINUTES[unit.type] * STEPS_PER_MINUTE;
   state.people.dueStep[slot] = Math.min(stayEnds, closingStep(state, unit));
 }
@@ -216,11 +284,11 @@ function advanceCustomer(context: StepContext, slot: number): void {
   if (!trip) return;
   switch (trip.phase) {
     case 'toVenue':
-      arriveAtVenue(context, slot, trip.onRight);
+      arriveAtVenue(context, slot, trip.entrance);
       break;
     case 'atVenue':
       changeCustomersInside(state, state.people.homeUnit[slot] as number, -1);
-      leaveTower(context, slot, trip.onRight);
+      leaveTower(context, slot, trip.entrance);
       break;
     case 'leaving':
       removePerson(state, state.people.id[slot] as number);
