@@ -8,3 +8,28 @@ export async function openGame(page: Page): Promise<TestUser> {
   await expect(page.locator('#app canvas')).toBeVisible();
   return user;
 }
+
+/** Sends one build command over a second socket of the page's session and resolves with the server's answer. */
+export async function sendCommand(page: Page, command: Record<string, unknown>): Promise<unknown> {
+  return page.evaluate(
+    (payload) =>
+      new Promise((resolve, reject) => {
+        const scheme = location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const socket = new WebSocket(`${scheme}//${location.host}/ws`);
+        const id = 'e2e-command';
+        const timer = setTimeout(() => reject(new Error('no command result')), 10_000);
+        socket.onopen = () => socket.send(JSON.stringify({ v: 1, t: 'hello', p: { protocol: 1 } }));
+        socket.onmessage = (event) => {
+          const message = JSON.parse(String(event.data));
+          if (message.t === 'welcome' || message.t === 'snapshot') {
+            socket.send(JSON.stringify({ v: 1, t: 'command', p: { id, command: payload } }));
+          } else if (message.t === 'commandResult' && message.p.id === id) {
+            clearTimeout(timer);
+            socket.close();
+            resolve(message.p);
+          }
+        };
+      }),
+    command,
+  );
+}

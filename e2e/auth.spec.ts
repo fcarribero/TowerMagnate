@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { openGame } from './support/game';
+import { openGame, sendCommand } from './support/game';
 import { registerUser, uniqueUser } from './support/users';
 
 const canvas = (page: Page) => page.locator('#app canvas');
@@ -95,6 +95,10 @@ test('Empezar una torre nueva asks twice and starts again on the first day with 
   const bar = page.getByRole('toolbar');
   await expect(bar).toContainText('Lunes 1 de enero, año 1');
   await expect(bar).toContainText('$2.000.000');
+
+  const built = await sendCommand(page, { type: 'buildLobby', level: 1, x0: 0, x1: 9, height: 1 });
+  expect(built).toMatchObject({ ok: true });
+  await expect(bar).not.toContainText('$2.000.000');
 
   await page.getByRole('button', { name: 'Menú' }).click();
   await page.getByRole('menuitem', { name: 'Empezar una torre nueva' }).click();
