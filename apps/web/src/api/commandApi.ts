@@ -1,7 +1,8 @@
 import { clientMessage, type Command, type ServerMessage } from '@tower-magnate/shared';
 
-/** What came of a command: the server took it and charged `cost`, or refused with an error code. */
-export type CommandOutcome = { ok: true; cost: number } | { ok: false; error: string };
+/** What came of a command: the server took it, charged `cost` and paid back `refund`, or refused with an error code. */
+export type CommandOutcome =
+  { ok: true; cost: number; refund: number } | { ok: false; error: string };
 
 export const NOT_SENT_ERROR = 'unknown';
 
@@ -48,7 +49,11 @@ export function createCommandApi({ channel, onSent, newId }: CommandApiOptions):
       const result = message.p;
       const resolve = pending.get(result.id);
       pending.delete(result.id);
-      resolve?.(result.ok ? { ok: true, cost: result.cost } : { ok: false, error: result.error });
+      resolve?.(
+        result.ok
+          ? { ok: true, cost: result.cost, refund: result.refund }
+          : { ok: false, error: result.error },
+      );
     },
   };
 }
