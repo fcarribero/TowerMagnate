@@ -260,8 +260,8 @@ describe('skip rules', () => {
 
   const longWalkToOffice =
     (steps: number): RoutePlanner =>
-    (state, from, to) =>
-      from.level === 1 && to.level > 2 ? steps : straightLineRoutes(state, from, to);
+    (state, from, to, context) =>
+      from.level === 1 && to.level > 2 ? steps : straightLineRoutes(state, from, to, context);
 
   it('skips lunch when the worker is not at the office yet', () => {
     const { sightings, state } = oneOfficeDay(longWalkToOffice(6 * 360));
@@ -295,8 +295,8 @@ describe('skip rules', () => {
   });
 
   it('keeps the worker at the office when no fast food is reachable', () => {
-    const planner: RoutePlanner = (state, from, to) =>
-      to.level === 2 ? null : straightLineRoutes(state, from, to);
+    const planner: RoutePlanner = (state, from, to, context) =>
+      to.level === 2 ? null : straightLineRoutes(state, from, to, context);
     const { sightings, workers } = oneOfficeDay(planner);
     expect(only(sightings, 'toLunch')).toHaveLength(0);
     expect(only(sightings, 'leaving')).toHaveLength(workers);
@@ -307,10 +307,10 @@ describe('skip rules', () => {
     populate(tower);
     const [unreachable, reachable] = tower.fastFoodIds;
     const unreachableColumn = tower.state.units[unreachable ?? '']?.x ?? -1;
-    const planner: RoutePlanner = (state, from, to) =>
+    const planner: RoutePlanner = (state, from, to, context) =>
       to.level === 2 && to.column <= unreachableColumn + 8
         ? null
-        : straightLineRoutes(state, from, to);
+        : straightLineRoutes(state, from, to, context);
     const { sightings } = runSteps(tower.state, 2 * STEPS_PER_DAY - 1, planner);
     const lunches = only(sightings, 'toLunch');
     expect(lunches.length).toBeGreaterThan(0);
@@ -318,8 +318,8 @@ describe('skip rules', () => {
   });
 
   it('brings a worker back from lunch and leaves at once when the leave time has passed', () => {
-    const slowToFastFood: RoutePlanner = (state, from, to) =>
-      from.level > 2 && to.level === 2 ? 7 * 360 : straightLineRoutes(state, from, to);
+    const slowToFastFood: RoutePlanner = (state, from, to, context) =>
+      from.level > 2 && to.level === 2 ? 7 * 360 : straightLineRoutes(state, from, to, context);
     const { sightings } = oneOfficeDay(slowToFastFood);
     const returns = only(sightings, 'backFromLunch');
     const exits = only(sightings, 'leaving');
@@ -336,8 +336,8 @@ describe('skip rules', () => {
 describe('fast food capacity', () => {
   const walkToFastFood =
     (steps: number): RoutePlanner =>
-    (state, from, to) =>
-      from.level > 2 && to.level === 2 ? steps : straightLineRoutes(state, from, to);
+    (state, from, to, context) =>
+      from.level > 2 && to.level === 2 ? steps : straightLineRoutes(state, from, to, context);
 
   function crowdedDay(planner: RoutePlanner) {
     const tower = officeTower({ seed: 21, offices: 100 });
@@ -385,8 +385,8 @@ describe('fast food capacity', () => {
 });
 
 describe('a fast food removed during lunch', () => {
-  const walkToFastFood: RoutePlanner = (state, from, to) =>
-    from.level > 2 && to.level === 2 ? 3 * 360 : straightLineRoutes(state, from, to);
+  const walkToFastFood: RoutePlanner = (state, from, to, context) =>
+    from.level > 2 && to.level === 2 ? 3 * 360 : straightLineRoutes(state, from, to, context);
 
   function anyoneIn(state: TowerState, phase: OfficeRoutine['phase']): boolean {
     return state.people.trip.some((trip) => decodeRoutine(trip)?.phase === phase);
