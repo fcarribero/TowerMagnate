@@ -18,6 +18,9 @@ import { SHAFT_UNIT_TYPES } from './units';
 export const STARTING_MONEY = 2_000_000;
 export const MONEY_CAP = 99_999_999;
 export const OFFICE_POPULATION = 6;
+export const CONDO_POPULATION = 3;
+/** Party size of a hotel stay by room type (stars spec 3.1). */
+export const HOTEL_PARTY_SIZE = { 'single-room': 1, 'double-room': 2, suite: 2 } as const;
 
 export const TOWER_LAYOUT = {
   floorsAboveGround: 100,

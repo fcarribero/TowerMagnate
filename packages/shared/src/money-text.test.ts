@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { formatMoney } from './money';
+import { formatMoney } from './money-text';
 
 describe('formatMoney', () => {
   it('groups thousands with dots', () => {

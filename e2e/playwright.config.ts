@@ -1,11 +1,12 @@
 import { defineConfig, devices } from '@playwright/test';
-import { resolveE2eTarget } from './support/target';
+import { DEBUG_TAG, resolveE2eTarget } from './support/target';
 
 const target = resolveE2eTarget(process.env);
 
 export default defineConfig({
   testDir: '.',
   testMatch: '**/*.spec.ts',
+  grepInvert: target.debugCommands ? undefined : new RegExp(DEBUG_TAG),
   outputDir: 'test-results',
   globalSetup: './global-setup.ts',
   forbidOnly: Boolean(process.env.CI),

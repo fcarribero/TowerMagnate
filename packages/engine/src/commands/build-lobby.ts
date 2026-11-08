@@ -17,6 +17,7 @@ import {
   negativeBalanceError,
   payForConstruction,
   pricePerCell,
+  recordLobbyPurchase,
 } from './structure';
 
 const LOBBY_HEIGHTS: readonly unknown[] = [1, 2, 3];
@@ -136,5 +137,8 @@ export const buildLobby: CommandHandler<'buildLobby'> = (context, command) => {
     }
   }
   recordHeight(grid, level, height);
+  if (!isMainLobbyLevel(level)) {
+    recordLobbyPurchase(context.state, level, runs, rows.length * pricePerCell('lobby'));
+  }
   return { ok: true, cost, refund: 0, events: [] };
 };
