@@ -2,6 +2,7 @@ import {
   ELEVATOR_QUEUE_CAPACITY,
   ESCALATOR_FLIGHT_STEPS,
   FULL_QUEUE_RECHECK_STEPS,
+  ROUTE_RETRY_STEPS,
   STAIR_FLIGHT_STEPS,
   type Level,
   type PersonKind,
@@ -126,6 +127,26 @@ describe('stairs and escalators', () => {
       phase: 'idle',
       dueStep: arrivalStep,
     });
+  });
+
+  it('keeps the last horizontal facing on the stairs and after arriving', () => {
+    const state = buildTestTower({
+      floors: 4,
+      flights: [{ type: 'stairs', from: 1, to: 3 }],
+    });
+    const id = addWalker(state, 1, 90);
+    const facing = (tower: TowerState) => tower.people.facing[slotOfPerson(tower.people, id)];
+    expect(facing(state)).toBe(0);
+    sendTo(state, id, { level: 3, column: FLIGHT_COLUMN });
+
+    const walking = runSteps(state, 5);
+    expect(facing(walking)).toBe(1);
+    const onStairs = runSteps(state, 90 - FLIGHT_COLUMN + 2);
+    expect(view(onStairs, id).phase).toBe('onStairs');
+    expect(facing(onStairs)).toBe(1);
+    const arrived = runSteps(state, 90 - FLIGHT_COLUMN + 2 * STAIR_FLIGHT_STEPS + 5);
+    expect(view(arrived, id).phase).toBe('idle');
+    expect(facing(arrived)).toBe(1);
   });
 
   it('rides an escalator flight in six steps', () => {
@@ -310,5 +331,104 @@ describe('performance', () => {
     console.info(`3000 walkers: average ${average.toFixed(3)} ms, p99 ${p99.toFixed(3)} ms`);
     expect(average).toBeLessThan(AVERAGE_BUDGET_MS);
     expect(p99).toBeLessThan(P99_BUDGET_MS);
+  });
+});
+
+describe('broken legs', () => {
+  const shaft: PlannedShaft = { type: 'standard', x: 60, bottom: 1, top: 3 };
+  const shaftColumn = 62;
+
+  function stairsAt(state: TowerState, level: Level): string {
+    const found = Object.values(state.transports).find(
+      (flight) => flight.level === level && flight.type === 'stairs',
+    );
+    if (!found) throw new Error(`No stairs at level ${level}`);
+    return found.id;
+  }
+
+  function eventsOf(state: TowerState, steps: number, type: string) {
+    const run = engine.step(state, [], steps);
+    return run.events.filter((event) => event.type === type);
+  }
+
+  it('re-plans when the stairs being walked to are demolished and takes the other stairs', () => {
+    const state = buildTestTower({ floors: 2, flights: [{ type: 'stairs', from: 1, to: 2 }] });
+    addFlight(state, 'stairs', 60, 1);
+    const id = addWalker(state, 1, 10);
+    sendTo(state, id, { level: 2, column: 30 });
+    const walking = runSteps(state, 3);
+    expect(view(walking, id).phase).toBe('walkingToStairs');
+
+    Reflect.deleteProperty(walking.transports, stairsAt(walking, 1));
+    const rerouted = runSteps(walking, 1);
+    expect(view(rerouted, id).phase).toBe('walkingToStairs');
+    const arrived = runSteps(rerouted, 200);
+    expect(view(arrived, id)).toMatchObject({ level: 2, column: 30, phase: 'idle' });
+  });
+
+  it('puts a person on a demolished flight on its other level and re-plans there', () => {
+    const state = buildTestTower({ floors: 3, flights: [{ type: 'stairs', from: 1, to: 3 }] });
+    const id = addWalker(state, 1, FLIGHT_COLUMN);
+    sendTo(state, id, { level: 3, column: 30 });
+    expect(view(state, id).phase).toBe('onStairs');
+
+    Reflect.deleteProperty(state.transports, stairsAt(state, 1));
+    const after = runSteps(state, 1);
+    expect(view(after, id)).toMatchObject({ level: 2, phase: 'onStairs' });
+    const arrived = runSteps(after, 100);
+    expect(view(arrived, id)).toMatchObject({ level: 3, column: 30, phase: 'idle' });
+  });
+
+  it('waits and searches again after the retry delay when no route is left', () => {
+    const state = buildTestTower({ floors: 2, flights: [{ type: 'stairs', from: 1, to: 2 }] });
+    const id = addWalker(state, 1, 10);
+    sendTo(state, id, { level: 2, column: 30 });
+    Reflect.deleteProperty(state.transports, stairsAt(state, 1));
+
+    const failed = eventsOf(state, 1, 'routeSearchFailed');
+    expect(failed).toHaveLength(1);
+    const waiting = runSteps(state, 1);
+    expect(view(waiting, id).phase).toBe('noRoute');
+
+    const retried = eventsOf(waiting, ROUTE_RETRY_STEPS, 'routeSearchFailed');
+    expect(retried).toHaveLength(1);
+
+    addFlight(waiting, 'stairs', FLIGHT_X, 1);
+    const found = runSteps(waiting, ROUTE_RETRY_STEPS + 100);
+    expect(view(found, id)).toMatchObject({ level: 2, column: 30, phase: 'idle' });
+  });
+
+  it('takes people out of the queue when the shaft is demolished', () => {
+    const state = buildTestTower({
+      floors: 3,
+      flights: [{ type: 'stairs', from: 1, to: 3 }],
+      shafts: [shaft],
+    });
+    const id = addWalker(state, 1, shaftColumn);
+    sendTo(state, id, { level: 3, column: shaftColumn });
+    expect(view(state, id).phase).toBe('queued');
+
+    const built = Object.values(state.shafts)[0] as Shaft;
+    Reflect.deleteProperty(state.shafts, built.id);
+    const after = runSteps(state, 1);
+    expect(view(after, id).phase).not.toBe('queued');
+    const arrived = runSteps(after, 400);
+    expect(view(arrived, id)).toMatchObject({ level: 3, column: shaftColumn, phase: 'idle' });
+  });
+
+  it('re-plans when the stop being queued at is disabled', () => {
+    const state = buildTestTower({
+      floors: 3,
+      flights: [{ type: 'stairs', from: 1, to: 3 }],
+      shafts: [shaft],
+    });
+    const id = addWalker(state, 1, shaftColumn);
+    sendTo(state, id, { level: 3, column: shaftColumn });
+    const built = Object.values(state.shafts)[0] as Shaft;
+    built.stops = built.stops.filter((level) => level !== 1);
+
+    const after = runSteps(state, 1);
+    expect(view(after, id).phase).not.toBe('queued');
+    expect(Object.values(after.shafts)[0]?.queues['1']?.up ?? []).toHaveLength(0);
   });
 });

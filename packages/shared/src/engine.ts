@@ -300,6 +300,8 @@ export type EngineEvent =
       waitSteps: number;
       rideSteps: number;
     }
+  | { type: 'tripFinished'; step: number; person: EntityId; arrived: boolean }
+  | { type: 'routeSearchFailed'; step: number; person: EntityId }
   | { type: 'hotelCheckIn'; step: number; unitId: UnitId; nights: number; paid: number }
   | { type: 'hotelCheckOut'; step: number; unitId: UnitId }
   | { type: 'roomStateChanged'; step: number; unitId: UnitId; state: HotelRoomState }
