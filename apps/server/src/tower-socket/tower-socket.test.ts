@@ -123,6 +123,17 @@ describe('tower socket against postgres', () => {
     expect(second.p.step).toBeGreaterThan(first.p.step);
   });
 
+  it('keeps sending deltas after the snapshot', async () => {
+    const client = await connect(player.cookie);
+    client.hello();
+    const snapshot = await client.next('snapshot');
+
+    const delta = await client.next('delta');
+
+    expect(delta.p.step).toBeGreaterThan(snapshot.p.step);
+    expect(delta.p.cars).toEqual([]);
+  });
+
   it('answers ping with pong and the server step', async () => {
     const client = await connect(player.cookie);
     client.hello();
