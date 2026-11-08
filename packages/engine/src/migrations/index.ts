@@ -18,6 +18,7 @@ import { readActiveEvents, readClosedDecisions, readTreasureLevels } from './eve
 import { readGrid } from './grid';
 import { readLedger, readMoney } from './money';
 import { readPeople } from './people';
+import { readStars } from './stars';
 import { readTransports } from './transports';
 
 export { StateMigrationError } from './errors';
@@ -31,6 +32,8 @@ const MIGRATIONS: readonly Migration[] = [
   addShafts,
   addTransportRecord,
   addEventState,
+  addPersonPool,
+  addStarRating,
 ];
 
 /** Version 2 records each unit's price level, what was paid for it and when it was placed. */
@@ -76,6 +79,30 @@ function addEventState(raw: Record<string, unknown>): Record<string, unknown> {
     closedDecisions: raw.closedDecisions ?? [],
     treasureLevels: raw.treasureLevels ?? [],
   };
+}
+
+const EMPTY_VERSION_7_PEOPLE = {
+  nextId: 1,
+  id: [],
+  kind: [],
+  homeUnit: [],
+  level: [],
+  column: [],
+  trip: [],
+  dueStep: [],
+  stress: [],
+  nameSeed: [],
+  followed: [],
+};
+
+/** Version 7 saves the person pool; older saves could only load without people. */
+function addPersonPool(raw: Record<string, unknown>): Record<string, unknown> {
+  return { people: EMPTY_VERSION_7_PEOPLE, ...raw, schemaVersion: 7 };
+}
+
+/** Version 8 records the star rating; older towers start at one star. */
+function addStarRating(raw: Record<string, unknown>): Record<string, unknown> {
+  return { stars: 1, ...raw, schemaVersion: 8 };
 }
 
 function isUint32(value: unknown): value is number {
@@ -224,6 +251,7 @@ function assertCurrentShape(raw: Record<string, unknown>): TowerState {
     rng: { a: raw.rng.a, b: raw.rng.b, c: raw.rng.c, d: raw.rng.d },
     nextId: raw.nextId,
     money: readMoney(raw.money),
+    stars: readStars(raw.stars),
     units: readUnits(raw.units),
     transports: readTransports(raw.transports),
     shafts: readShafts(raw.shafts),

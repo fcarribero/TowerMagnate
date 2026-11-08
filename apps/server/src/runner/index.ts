@@ -6,6 +6,7 @@ export {
   TowerRunner,
   UnknownTowerError,
   type AdvanceTower,
+  type TowerAdvance,
   type TowerRunnerOptions,
 } from './tower-runner';
 export { createTowerStore, type TowerStore } from './tower-store';

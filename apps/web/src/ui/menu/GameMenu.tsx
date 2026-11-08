@@ -3,8 +3,24 @@ import { useSoundSettings } from '../../audio/useSfx';
 import { t } from '../strings';
 import './menu.css';
 
-export function GameMenu() {
+export interface MenuItem {
+  id: string;
+  label: string;
+  onSelect: () => void;
+}
+
+export interface GameMenuProps {
+  /** Status bar buttons that did not fit on the bar. */
+  items?: readonly MenuItem[];
+  onLogout?: () => void;
+}
+
+export function GameMenu({ items = [], onLogout }: GameMenuProps) {
   const [open, setOpen] = useState(false);
+  const choose = (action: () => void): void => {
+    setOpen(false);
+    action();
+  };
 
   useEffect(() => {
     if (!open) {
@@ -29,7 +45,26 @@ export function GameMenu() {
       >
         {t('ui.menu')}
       </button>
-      {open && <SoundItems />}
+      {open && (
+        <div class="game-menu-list" role="menu">
+          <SoundItems />
+          {items.map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              role="menuitem"
+              onClick={() => choose(item.onSelect)}
+            >
+              {item.label}
+            </button>
+          ))}
+          {onLogout && (
+            <button type="button" role="menuitem" onClick={() => choose(onLogout)}>
+              {t('ui.logout')}
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -41,7 +76,7 @@ function SoundItems() {
   };
 
   return (
-    <div class="game-menu-list" role="menu">
+    <>
       <button type="button" role="menuitem" onClick={() => setMuted(!settings.muted)}>
         {settings.muted ? t('ui.soundOff') : t('ui.soundOn')}
       </button>
@@ -58,6 +93,6 @@ function SoundItems() {
         />
         <span>{settings.volume}</span>
       </label>
-    </div>
+    </>
   );
 }

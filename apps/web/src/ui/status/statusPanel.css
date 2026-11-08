@@ -1,0 +1,113 @@
+.status-panel {
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  height: calc(24 * var(--tm-px));
+  padding: 0 calc(4 * var(--tm-px));
+  font-family: var(--tm-font);
+  font-size: var(--tm-font-size);
+  line-height: var(--tm-line-height);
+  color: var(--tm-ink);
+  background: var(--tm-cloud);
+  border: 2px solid;
+  border-color: var(--tm-white) var(--tm-slate) var(--tm-slate) var(--tm-white);
+}
+
+.status-button {
+  min-width: calc(40 * var(--tm-px));
+}
+
+.status-panel__row {
+  display: flex;
+  align-items: center;
+  gap: calc(6 * var(--tm-px));
+  width: max-content;
+  height: 100%;
+  white-space: nowrap;
+}
+
+.status-panel__date.is-weekend {
+  color: var(--tm-dusk);
+}
+
+.status-panel__time {
+  min-width: calc(32 * var(--tm-px));
+}
+
+.status-panel__money {
+  min-width: calc(72 * var(--tm-px));
+}
+
+.status-panel__money.is-negative,
+.status-panel__offline {
+  color: var(--tm-cloth-red);
+}
+
+.status-panel__group {
+  display: flex;
+  align-items: center;
+}
+
+.status-panel button {
+  box-sizing: border-box;
+  height: calc(18 * var(--tm-px));
+  padding: 0 calc(2 * var(--tm-px));
+  font: inherit;
+  color: var(--tm-ink);
+  background: var(--tm-cloud);
+  border: calc(1 * var(--tm-px)) solid var(--tm-ink);
+  box-shadow:
+    inset calc(1 * var(--tm-px)) calc(1 * var(--tm-px)) 0 var(--tm-white),
+    inset calc(-1 * var(--tm-px)) calc(-1 * var(--tm-px)) 0 var(--tm-slate);
+  cursor: pointer;
+}
+
+.status-panel button:active {
+  box-shadow: inset calc(1 * var(--tm-px)) calc(1 * var(--tm-px)) 0 var(--tm-slate);
+}
+
+.status-panel .status-panel__zoom {
+  width: calc(16 * var(--tm-px));
+  padding: 0;
+}
+
+.status-panel .status-panel__window {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: calc(24 * var(--tm-px));
+  padding: 0;
+}
+
+.status-panel__icon {
+  width: calc(8 * var(--tm-px));
+  height: calc(8 * var(--tm-px));
+  fill: var(--tm-ink);
+}
+
+.status-panel .status-panel__stars {
+  display: flex;
+  align-items: center;
+  gap: calc(2 * var(--tm-px));
+  background: transparent;
+  border: none;
+  box-shadow: none;
+}
+
+.status-panel__star {
+  width: calc(14 * var(--tm-px));
+  height: calc(14 * var(--tm-px));
+  fill: var(--tm-slate);
+}
+
+.status-panel__star.is-filled {
+  fill: var(--tm-lamp);
+}
+
+.status-panel__tower {
+  margin-left: calc(2 * var(--tm-px));
+}

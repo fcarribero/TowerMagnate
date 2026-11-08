@@ -1,4 +1,9 @@
-import { clientMessage, ServerMessageSchema, SnapshotSchema } from '@tower-magnate/shared';
+import {
+  clientMessage,
+  ServerMessageSchema,
+  SnapshotSchema,
+  TOWER_SOCKET_PATH,
+} from '@tower-magnate/shared';
 import type { FastifyInstance } from 'fastify';
 import pg from 'pg';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
@@ -39,7 +44,7 @@ describe('tower socket against postgres', () => {
     pool = new pg.Pool({ connectionString: database.url });
     app = buildApp({ version: 'test', databaseUrl: database.url, runnerTickIntervalMs: 20 });
     const address = await app.listen({ host: '127.0.0.1', port: 0 });
-    socketUrl = `${address.replace('http', 'ws')}/ws`;
+    socketUrl = `${address.replace('http', 'ws')}${TOWER_SOCKET_PATH}`;
   });
 
   afterAll(async () => {
@@ -128,6 +133,17 @@ describe('tower socket against postgres', () => {
     const second = await client.next('snapshot');
 
     expect(second.p.step).toBeGreaterThan(first.p.step);
+  });
+
+  it('keeps sending deltas after the snapshot', async () => {
+    const client = await connect(player.cookie);
+    client.hello();
+    const snapshot = await client.next('snapshot');
+
+    const delta = await client.next('delta');
+
+    expect(delta.p.step).toBeGreaterThan(snapshot.p.step);
+    expect(delta.p.cars).toEqual([]);
   });
 
   it('answers ping with pong and the server step', async () => {
