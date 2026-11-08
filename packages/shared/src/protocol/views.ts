@@ -320,6 +320,13 @@ const InspectedUnitFoundSchema = z.object({
   details: InspectedUnitDetailsSchema.nullable(),
 });
 
+/** A shaft that was removed or never existed: sent once, then the server drops the target. */
+const InspectedShaftGoneSchema = z.object({
+  kind: z.literal('shaft'),
+  id: ShaftEntityIdSchema,
+  status: z.literal('gone'),
+});
+
 export const InspectDataSchema = z.union([
   InspectedUnitFoundSchema,
   InspectedUnitGoneSchema,
@@ -334,9 +341,11 @@ export const InspectDataSchema = z.union([
     stress: StressLevelSchema,
     homeUnitId: UnitEntityIdSchema.nullable(),
   }),
+  InspectedShaftGoneSchema,
   z.object({
     kind: z.literal('shaft'),
     id: ShaftEntityIdSchema,
+    status: z.literal('ok'),
     type: ShaftTypeSchema,
     bottom: LevelSchema,
     top: LevelSchema,

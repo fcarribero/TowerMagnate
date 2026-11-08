@@ -169,4 +169,29 @@ describe('inspect targets', () => {
 
     expect(h.socket.sent).toEqual([]);
   });
+
+  it('answers a shaft target and then gone once it is removed', () => {
+    h.state.shafts.s1 = {
+      id: 's1',
+      type: 'standard',
+      x: 30,
+      bottom: 1,
+      top: 3,
+      stops: [1, 2, 3],
+      schedule: { weekday: [], weekend: [] },
+      cars: [],
+      queues: {},
+      paid: 0,
+      placedAtStep: 0,
+    };
+    h.inspections.set(h.socket, 'tower', { kind: 'shaft', id: 's1' });
+    delete h.state.shafts.s1;
+
+    h.clock.now += INSPECT_INTERVAL_MS;
+    h.inspections.tick(h.registry);
+    h.clock.now += INSPECT_INTERVAL_MS;
+    h.inspections.tick(h.registry);
+
+    expect(inspectsOf(h.socket).map((message) => message.p.status)).toEqual(['ok', 'gone']);
+  });
 });
