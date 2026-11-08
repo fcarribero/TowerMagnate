@@ -32,7 +32,10 @@ function setup(units: DemolishWorld['units'] = []) {
       },
     },
     world: () => ({
-      structure: new Map([[2, 'f'.repeat(40)]]),
+      structure: new Map([
+        [2, 'f'.repeat(40)],
+        [3, '..rrr.rr..'],
+      ]),
       units,
       transports: [],
       shafts: [],
@@ -84,6 +87,29 @@ describe('bindDemolishInput', () => {
     t.input('up', { x: 3, level: 2 });
     expect(t.sent).toEqual([
       { type: 'demolish', target: { kind: 'floor', level: 2, x0: 3, x1: 8 } },
+    ]);
+  });
+
+  it('clears one ruined cell on a click', () => {
+    const t = setup();
+    t.hover({ x: 3, level: 3 });
+    expect(t.frames.at(-1)).toMatchObject({ x: 3, level: 3, width: 1 });
+    t.input('down', { x: 3, level: 3 });
+    t.input('up', { x: 3, level: 3 });
+    expect(t.sent).toEqual([{ type: 'demolish', target: { kind: 'ruins', level: 3, x: 3 } }]);
+  });
+
+  it('clears every ruined cell under a drag and skips the gaps', () => {
+    const t = setup();
+    t.input('down', { x: 7, level: 3 });
+    t.hover({ x: 2, level: 3 });
+    t.input('up', { x: 2, level: 3 });
+    expect(t.sent.map((command) => command.type === 'demolish' && command.target)).toEqual([
+      { kind: 'ruins', level: 3, x: 2 },
+      { kind: 'ruins', level: 3, x: 3 },
+      { kind: 'ruins', level: 3, x: 4 },
+      { kind: 'ruins', level: 3, x: 6 },
+      { kind: 'ruins', level: 3, x: 7 },
     ]);
   });
 
