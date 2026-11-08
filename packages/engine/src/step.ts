@@ -14,6 +14,7 @@ import { createLeaseSystem } from './leases';
 import { cloneState } from './state';
 import { ledgerWeekRollHook } from './money';
 import { createScheduler } from './scheduler';
+import { weeklyUpkeepHook } from './upkeep';
 
 export interface StepResult {
   state: TowerState;
@@ -135,7 +136,11 @@ export function createEngine(rules: EngineRules): Engine {
 
 const towerEngine = createEngine({
   commandHandlers: towerCommandHandlers,
-  systems: [createScheduler([ledgerWeekRollHook]), createLeaseSystem(), eventsPhase],
+  systems: [
+    createScheduler([ledgerWeekRollHook, weeklyUpkeepHook]),
+    createLeaseSystem(),
+    eventsPhase,
+  ],
 });
 
 /**
