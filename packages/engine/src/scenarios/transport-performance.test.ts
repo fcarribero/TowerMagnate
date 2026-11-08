@@ -97,9 +97,11 @@ function runWeekday(): WeekdayRun {
     mostMoving = Math.max(mostMoving, peopleOnTheMove(at));
   };
   // The first plans are drawn at the 00:00 after the start, so day 1 (Tuesday) is the first with commuters.
-  let current = engine.step(state, [], STEPS_PER_DAY).state;
+  const first = engine.step(state, [], STEPS_PER_DAY);
+  let current = first.state;
+  const { graph } = first;
   for (let chunk = 0; chunk < STEPS_PER_DAY / SAMPLE_EVERY; chunk++) {
-    current = engine.step(current, [], SAMPLE_EVERY).state;
+    current = engine.step(current, [], SAMPLE_EVERY, graph).state;
     sample(current);
   }
   const sorted = Array.from(stepMs).sort((a, b) => a - b);
