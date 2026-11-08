@@ -134,19 +134,22 @@ describe('fire roll at 15:00', () => {
     expect(state.activeEvents).toHaveLength(before);
   });
 
-  it('makes no draw while a wedding attempt is kept in the state', () => {
+  it('makes no draw on the day of a wedding attempt, even after its guests left', () => {
     const state = towerWith([{ type: 'office', level: 12, x: 120 }]);
     state.rng = createRng(HIT_SEED);
-    state.wedding = {
-      day: WEDNESDAY,
-      cathedral: 'u900',
-      arrivals: [],
-      inside: 0,
-      outcome: 'pending',
-    };
-    eventsPhase(atThreePm(state));
+    state.wedding = null;
+    state.lastWeddingDay = SATURDAY;
+    eventsPhase(atThreePm(state, SATURDAY));
     expect(state.rng).toEqual(createRng(HIT_SEED));
     expect(fireOf(state)).toBeUndefined();
+  });
+
+  it('rolls the day after a wedding attempt', () => {
+    const state = towerWith([{ type: 'office', level: 12, x: 120 }]);
+    state.rng = createRng(HIT_SEED);
+    state.lastWeddingDay = SATURDAY - 1;
+    eventsPhase(atThreePm(state, SATURDAY));
+    expect(fireOf(state)).toBeDefined();
   });
 
   it('still rolls on a weekend at 5 stars with a cathedral when no attempt was made', () => {
@@ -154,7 +157,6 @@ describe('fire roll at 15:00', () => {
     const office = Object.values(state.units)[0] as Unit;
     state.units.u900 = { ...office, id: 'u900', type: 'cathedral', level: 101 };
     state.stars = 5;
-    state.wedding = null;
     state.rng = createRng(HIT_SEED);
     eventsPhase(atThreePm(state, SATURDAY));
     expect(fireOf(state)).toBeDefined();

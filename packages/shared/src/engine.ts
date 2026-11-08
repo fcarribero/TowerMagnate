@@ -305,6 +305,8 @@ export interface TowerState {
   parking: ParkingState;
   /** Today's wedding attempt, from 00:00 until its guests leave; null on other days. */
   wedding: WeddingAttempt | null;
+  /** Day number of the last wedding attempt, kept after its guests leave; null if none yet. */
+  lastWeddingDay: number | null;
 }
 
 /** A weekend day's wedding attempt (stars spec 7, people spec 15). */

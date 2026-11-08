@@ -103,6 +103,11 @@ export function openRandomFire(context: StepContext): Fire | null {
   return fire;
 }
 
+/** The attempt's guests leave at 15:00 before this roll, so the recorded day is what counts. */
+function weddingAttemptedToday(state: TowerState): boolean {
+  return state.lastWeddingDay === Math.floor(state.step / STEPS_PER_DAY);
+}
+
 /** Events phase item 5: the 15:00 roll, made only when every condition holds. */
 export function runFireRoll(context: StepContext): void {
   const { state } = context;
@@ -110,7 +115,7 @@ export function runFireRoll(context: StepContext): void {
   const canRoll =
     state.stars >= FIRE_MIN_STARS &&
     !hasActiveDisaster(state) &&
-    state.wedding === null &&
+    !weddingAttemptedToday(state) &&
     fireCandidates(state).length > 0;
   if (!canRoll) return;
   if (nextInt(state.rng, 0, FIRE_DAILY_ODDS - 1) !== 0) return;
