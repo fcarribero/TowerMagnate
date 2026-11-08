@@ -49,6 +49,7 @@ import { DEFAULT_LOBBY_HEIGHT, DEFAULT_TOOL, type ToolId } from './toolbar/toolb
 import { TowerMapWindow } from './TowerMapWindow';
 import { AvisosWindow } from './notices/AvisosWindow';
 import { DecisionDialogs } from './notices/DecisionDialogs';
+import { InfoDialogs } from './notices/InfoDialogs';
 import { NewsLine } from './notices/NewsLine';
 import { useNotices } from './notices/useNotices';
 import { Toasts } from './toast/Toasts';
@@ -358,6 +359,7 @@ export function App({ onLogout, onRestartTower, onSessionLost }: AppProps) {
             <StarsWindow store={connection.store} onClose={() => setStarsOpen(false)} />
           )}
           <UnitWindows connection={connection} />
+          <InfoDialogs subscribe={connection.onMessage} />
           <DecisionDialogs
             store={connection.store}
             onAnswer={notices.answerEvent}
