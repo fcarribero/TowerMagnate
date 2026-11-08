@@ -45,6 +45,8 @@ export const ClientMessageSchema = z.discriminatedUnion('t', [
   envelope('command', QueuedCommandSchema),
   envelope('viewport', ViewportSchema),
   envelope('inspect', z.object({ target: InspectTargetSchema.nullable() })),
+  envelope('inspectAdd', z.object({ target: InspectTargetSchema })),
+  envelope('inspectRemove', z.object({ target: InspectTargetSchema })),
   envelope('ping', z.object({ clientTime: ClientTimeSchema })),
 ]);
 
