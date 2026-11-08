@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isFinanceToggleKey, isMapToggleKey, type KeyPress } from './keys';
+import { isFinanceToggleKey, isMapToggleKey, isPlainShortcut, type KeyPress } from './keys';
 
 function press(key: string, extra: Partial<KeyPress> = {}): KeyPress {
   return { key, ctrlKey: false, altKey: false, metaKey: false, target: null, ...extra };
@@ -32,5 +32,18 @@ describe('isFinanceToggleKey', () => {
     const input = { tagName: 'INPUT' } as unknown as EventTarget;
     expect(isFinanceToggleKey(press('f', { ctrlKey: true }))).toBe(false);
     expect(isFinanceToggleKey(press('f', { target: input }))).toBe(false);
+  });
+});
+
+describe('isPlainShortcut', () => {
+  it('accepts a digit on the page', () => {
+    expect(isPlainShortcut(press('1'))).toBe(true);
+  });
+
+  it('ignores digits typed in text, number and select fields', () => {
+    for (const tagName of ['INPUT', 'TEXTAREA', 'SELECT']) {
+      const target = { tagName } as unknown as EventTarget;
+      expect(isPlainShortcut(press('1', { target }))).toBe(false);
+    }
   });
 });

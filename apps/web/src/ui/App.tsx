@@ -40,6 +40,7 @@ import { LevelRuler } from './LevelRuler';
 import { StageHost } from './StageHost';
 import { WindowLayer } from './kit';
 import { RestartTowerDialogs, type RestartStep } from './menu/RestartTowerDialogs';
+import { StarsWindow } from './stars/StarsWindow';
 import { StatusPanel, type StatusWindowId } from './status/StatusPanel';
 import { debugStarsFromQuery } from './toolbar/debugStars';
 import { t } from './strings';
@@ -72,6 +73,7 @@ export function App({ onLogout, onRestartTower, onSessionLost }: AppProps) {
   const [stage, setStage] = useState<Stage | null>(null);
   const [mapOpen, setMapOpen] = useState(false);
   const [financeOpen, setFinanceOpen] = useState(false);
+  const [starsOpen, setStarsOpen] = useState(false);
   const [restartStep, setRestartStep] = useState<RestartStep | null>(null);
   const [overlay, setOverlay] = useState<OverlayId>('normal');
   const [tool, setTool] = useState<ToolId>(DEFAULT_TOOL);
@@ -84,6 +86,9 @@ export function App({ onLogout, onRestartTower, onSessionLost }: AppProps) {
     }
     if (id === 'finance') {
       setFinanceOpen((open) => !open);
+    }
+    if (id === 'stars') {
+      setStarsOpen((open) => !open);
     }
   };
   const { playTrigger, director } = useSfx();
@@ -325,6 +330,9 @@ export function App({ onLogout, onRestartTower, onSessionLost }: AppProps) {
           />
           {financeOpen && (
             <FinanceWindow store={connection.store} onClose={() => setFinanceOpen(false)} />
+          )}
+          {starsOpen && (
+            <StarsWindow store={connection.store} onClose={() => setStarsOpen(false)} />
           )}
           <UnitWindows connection={connection} />
           <ElevatorWindows connection={connection} />
