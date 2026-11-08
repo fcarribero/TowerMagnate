@@ -1,13 +1,16 @@
 import { describe, expect, it } from 'vitest';
 import {
   cameraViewport,
+  centerCameraOnRect,
   createCamera,
   nextZoom,
   panCamera,
   resizeCamera,
+  screenRectOf,
   visibleLevels,
   zoomCamera,
   type Camera,
+  type WorldRect,
 } from './camera';
 import { LEVEL_COUNT, WORLD_HEIGHT, WORLD_WIDTH, levelToIndex } from './levels';
 import { ZOOM_LEVELS } from './metrics';
@@ -133,5 +136,52 @@ describe('cameraViewport', () => {
     };
     expect(visibleLevels(camera)).toEqual({ lowest: levelToIndex(1), highest: levelToIndex(2) });
     expect(cameraViewport(camera, 1)).toEqual({ levelFrom: -1, levelTo: 3, xFrom: 10, xTo: 29 });
+  });
+});
+
+describe('centerCameraOnRect', () => {
+  const unit: WorldRect = { x: 1400, y: 2000, width: 64, height: 36 };
+
+  it.each(ZOOM_LEVELS)('puts the rectangle centre at the canvas centre at zoom %i', (zoom) => {
+    const camera = centerCameraOnRect(createCamera(1000, 600, zoom), unit);
+    const screen = screenRectOf(camera, unit);
+    expect(screen).not.toBeNull();
+    expect(Math.abs((screen?.x ?? 0) + (screen?.width ?? 0) / 2 - 500)).toBeLessThanOrEqual(0.5);
+    expect(Math.abs((screen?.y ?? 0) + (screen?.height ?? 0) / 2 - 300)).toBeLessThanOrEqual(0.5);
+    expectWholePixels(camera);
+  });
+
+  it('stops at the tower edges', () => {
+    const corner: WorldRect = { x: 0, y: 0, width: 16, height: 36 };
+    const camera = centerCameraOnRect(createCamera(1000, 600, 2), corner);
+    expect(camera).toMatchObject({ left: 0, top: 0 });
+    const screen = screenRectOf(camera, corner);
+    expect(screen).toEqual({ x: 0, y: 0, width: 32, height: 72 });
+  });
+});
+
+describe('screenRectOf', () => {
+  const camera = { ...createCamera(1000, 600, 3), left: 300, top: 900 };
+
+  it.each(ZOOM_LEVELS)('scales and offsets the rectangle at zoom %i', (zoom) => {
+    const zoomed = { ...camera, zoom, left: 10, top: 10 };
+    const screen = screenRectOf(zoomed, { x: 20, y: 20, width: 64, height: 36 });
+    expect(screen).toEqual({
+      x: 20 * zoom - 10,
+      y: 20 * zoom - 10,
+      width: 64 * zoom,
+      height: 36 * zoom,
+    });
+  });
+
+  it('is null when the rectangle is fully outside the view', () => {
+    expect(screenRectOf(camera, { x: 0, y: 0, width: 64, height: 36 })).toBeNull();
+    expect(screenRectOf(camera, { x: 5000, y: 1000, width: 64, height: 36 })).toBeNull();
+    expect(screenRectOf(camera, { x: 200, y: 5000, width: 64, height: 36 })).toBeNull();
+  });
+
+  it('keeps a rectangle that is partly in view', () => {
+    const partly = screenRectOf(camera, { x: 90, y: 300, width: 64, height: 36 });
+    expect(partly).toMatchObject({ x: -30, width: 192 });
   });
 });

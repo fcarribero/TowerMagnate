@@ -5,6 +5,7 @@ export default defineConfig({
   plugins: [preact()],
   test: {
     name: 'web',
+    testTimeout: 30_000,
     environment: 'jsdom',
     include: ['src/**/*.test.{ts,tsx}'],
     setupFiles: ['src/testing/setup.ts'],

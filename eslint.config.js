@@ -75,7 +75,7 @@ export default tseslint.config(
     },
   },
   {
-    files: ['packages/engine/**/*.test.ts'],
+    files: ['packages/engine/**/*.test.ts', 'packages/engine/src/testing/**'],
     rules: {
       'no-restricted-properties': [
         'error',

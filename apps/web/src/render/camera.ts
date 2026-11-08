@@ -138,3 +138,35 @@ export function centerCamera(camera: Camera, worldX: number, worldY: number): Ca
     top: worldY * camera.zoom - camera.viewHeight / 2,
   });
 }
+
+/** A rectangle in zoom 1 world pixels, measured from the top-left corner of the world. */
+export interface WorldRect {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+/** A rectangle in canvas device pixels. */
+export type ScreenRect = WorldRect;
+
+/** Moves the view so the centre of a world rectangle sits at the canvas centre, as far as the edges allow. */
+export function centerCameraOnRect(camera: Camera, rect: WorldRect): Camera {
+  return centerCamera(camera, rect.x + rect.width / 2, rect.y + rect.height / 2);
+}
+
+/** Where a world rectangle is drawn on the canvas, or null when none of it is in view. */
+export function screenRectOf(camera: Camera, rect: WorldRect): ScreenRect | null {
+  const screen = {
+    x: rect.x * camera.zoom - camera.left,
+    y: rect.y * camera.zoom - camera.top,
+    width: rect.width * camera.zoom,
+    height: rect.height * camera.zoom,
+  };
+  const outside =
+    screen.x + screen.width <= 0 ||
+    screen.y + screen.height <= 0 ||
+    screen.x >= camera.viewWidth ||
+    screen.y >= camera.viewHeight;
+  return outside ? null : screen;
+}

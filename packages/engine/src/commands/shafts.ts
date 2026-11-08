@@ -1,5 +1,9 @@
 import {
   CATHEDRAL_BOTTOM_LEVEL,
+  DEFAULT_DWELL_SECONDS,
+  DEFAULT_ELEVATOR_MODE,
+  DEFAULT_RESPONSE_DISTANCE,
+  ELEVATOR_BAND_STARTS,
   isBasement,
   isColumn,
   isLevel,
@@ -13,7 +17,9 @@ import {
   type GridState,
   type Level,
   type Shaft,
+  type ShaftBand,
   type ShaftId,
+  type ShaftSchedule,
   type ShaftType,
   type TowerState,
 } from '@tower-magnate/shared';
@@ -85,7 +91,18 @@ export function shaftLevels(range: ShaftRange): Level[] {
 }
 
 export function idleCar(homeLevel: Level, paid: number, placedAtStep: number): ElevatorCar {
-  return { homeLevel, level: homeLevel, riders: [], paid, placedAtStep };
+  return {
+    homeLevel,
+    level: homeLevel,
+    riders: [],
+    trips: [],
+    phase: 'idle',
+    direction: 'idle',
+    phaseStepsLeft: 0,
+    assigned: [],
+    paid,
+    placedAtStep,
+  };
 }
 
 /** C-35: free, or already taken by the shaft being resized. */
@@ -158,4 +175,24 @@ export function shaftRangeError(
       columnGap(range, width, other) < MIN_SHAFT_GAP,
   );
   return tooClose ? 'SHAFT_TOO_CLOSE' : null;
+}
+
+/** Elevators 5: every level of the range is a stop; an express shaft stops only at express levels. */
+export function defaultStops(type: ShaftType, range: ShaftRange): Level[] {
+  const levels = shaftLevels(range);
+  return type === 'express' ? levels.filter(isExpressStop) : levels;
+}
+
+function defaultBand(): ShaftBand {
+  return {
+    mode: DEFAULT_ELEVATOR_MODE,
+    dwellSeconds: DEFAULT_DWELL_SECONDS,
+    responseDistance: DEFAULT_RESPONSE_DISTANCE,
+  };
+}
+
+/** Elevators 7.2: every band of both day types runs normal, 30 s dwell, response distance 5. */
+export function defaultSchedule(): ShaftSchedule {
+  const bands = () => ELEVATOR_BAND_STARTS.map(defaultBand);
+  return { weekday: bands(), weekend: bands() };
 }

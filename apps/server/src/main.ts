@@ -12,6 +12,7 @@ const app = buildApp({
   allowedOrigins: config.allowedOrigins,
   logger: { level: config.logLevel },
   webDir: config.webDir,
+  debugCommands: config.debugCommands,
 });
 
 installShutdownHandlers(app);

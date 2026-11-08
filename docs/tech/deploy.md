@@ -58,7 +58,7 @@ pnpm test        # runs art:build, then Vitest across every package
 pnpm e2e         # Playwright, starts its own compose stack
 ```
 
-Server tests start a postgres container through testcontainers. To use a running postgres instead, set `TEST_DATABASE_URL`. Install the e2e browser once with `pnpm exec playwright install chromium`.
+Server tests start one postgres container through testcontainers and give each test file its own database. To use a running postgres instead, set `TEST_DATABASE_URL`. Install the e2e browser once with `pnpm exec playwright install chromium`.
 
 ## Port blocks
 
@@ -102,6 +102,8 @@ The session cookie gets the `Secure` flag in production, so a browser only keeps
 | `SECURE_COOKIES`   | `false`; `true` when `NODE_ENV=production` | `true` or `false`. Adds the `Secure` flag to the session cookie.                                                          |
 | `NODE_ENV`         | unset                                      | `production` changes the defaults of `MIGRATE_ON_START` and `SECURE_COOKIES`. The production image sets it.              |
 
+When `NODE_ENV` is not `production`, the tower socket also accepts the dev-only messages `debug.forceEvent {kind}`, `debug.fastForward {steps}` (1 to 8,640), `debug.setClock {day, time}` (day 0 is Monday, time is `HH:MM`, jumps forward to the next match) and `debug.setMoney {amount}`. Each takes an optional `id` that comes back in the `commandResult`. In production every one of them is answered with an `error` frame with code `NOT_ALLOWED`. `forceEvent` supports `bomb` and `fire`; the other kinds answer `INVALID_COMMAND` until their events exist in the engine.
+
 The production image sets `NODE_ENV=production`, `HOST=0.0.0.0`, `PORT=3000` and `WEB_DIR=/app/web`. Compose sets `DATABASE_URL` for both server services and `MIGRATE_ON_START=true` for `app`.
 
 ### Read by compose, `pnpm stack` and the tools
@@ -122,14 +124,16 @@ Set these in `.env` or in the shell.
 | `TM_WEB_PORT`                              | `5173`                  | Port of the Vite dev server.                                                                                     |
 | `TEST_DATABASE_URL`                        | unset                   | Postgres for the server tests. Without it the tests start a container.                                           |
 | `BASE_URL`                                 | unset                   | Web address of a running stack for `pnpm e2e`. Without it the run starts its own stack.                          |
+| `E2E_PROFILE`                              | `dev`                   | `prod` makes `pnpm e2e` start the production profile and test the game on the server port.                       |
 | `CI`                                       | unset                   | When set, Playwright retries once and writes an HTML report.                                                     |
 
 ## Continuous integration
 
-`.github/workflows/ci.yml` runs on every pull request to `develop` or `master` and on every push to those branches. A newer run on the same ref cancels the older one.
+`.github/workflows/ci.yml` runs on every pull request to `develop` or `master` and on every push to `develop`, `master` or a `release/**` branch. A newer run on the same ref cancels the older one.
 
 - `check` runs on Ubuntu with the Node version from `.nvmrc`: `pnpm install --frozen-lockfile`, `pnpm art:build`, `pnpm lint`, `pnpm typecheck`, `pnpm test` and `pnpm bench:snapshots`. It times out after 10 minutes.
-- `e2e` runs only for pull requests into `develop`. It installs Chromium and runs `pnpm e2e` against the compose stack. When it fails it uploads `e2e/test-results` and `e2e/playwright-report` as the `e2e-traces` artifact, kept for 7 days. It times out after 20 minutes.
+- `e2e` runs only for pull requests into `develop`. It installs Chromium and runs `pnpm e2e` against the compose stack. When it fails it uploads `e2e/test-results` and `playwright-report` as the `e2e-traces` artifact, kept for 7 days. It times out after 20 minutes.
+- `e2e-prod` runs on pushes to `release/**` and on pull requests into `master`. It runs `pnpm e2e` with `E2E_PROFILE=prod`: the suite starts the `prod` compose profile, which builds `docker/prod/Dockerfile`, and tests the game served by the app on the server port. Any failing test fails the check. It uploads `e2e/test-results` and `playwright-report` as the `e2e-prod-traces` artifact, kept for 7 days, and times out after 15 minutes.
 
 Open a trace with `pnpm exec playwright show-trace <path>/trace.zip`.
 

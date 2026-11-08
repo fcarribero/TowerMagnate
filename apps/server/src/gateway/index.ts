@@ -9,6 +9,7 @@ export { MAX_MESSAGES_PER_SECOND, MessageRateLimiter } from './rate-limiter';
 export { HEARTBEAT_INTERVAL_MS, MAX_MISSED_PINGS } from './heartbeat';
 export {
   MAX_MESSAGE_BYTES,
+  type DebugFrames,
   type MessageContext,
   type MessageHandler,
   type MessageHandlers,

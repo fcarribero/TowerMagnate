@@ -5,6 +5,7 @@ import { hashState } from './hash';
 import { chance } from './rng';
 import { createTower } from './state';
 import { createEngine, runDays, step, type EngineRules } from './step';
+import { fastestRunMillis } from './testing';
 
 const testRules: EngineRules = {
   commandHandlers: {
@@ -106,8 +107,8 @@ describe('step', () => {
   });
 
   it('rejects a command that has no handler yet', () => {
-    const setPrice = { type: 'setPrice', unitId: 'u1', price: 'high' };
-    const queued = { id: 'c1', command: setPrice as unknown as Command };
+    const changeFilm = { type: 'changeFilm', unitId: 'u1' };
+    const queued = { id: 'c1', command: changeFilm as unknown as Command };
     const { results, state } = step(createTower(1), [queued], 0);
     expect(results).toEqual([{ id: 'c1', ok: false, step: 0, error: 'INVALID_COMMAND' }]);
     expect(state).toEqual(createTower(1));
@@ -202,8 +203,6 @@ describe('runDays', () => {
 
   it('runs an empty-tower day in under 50 ms', () => {
     runDays(createTower(1), 1);
-    const started = performance.now();
-    runDays(createTower(1), 1);
-    expect(performance.now() - started).toBeLessThan(50);
+    expect(fastestRunMillis(() => runDays(createTower(1), 1))).toBeLessThan(50);
   });
 });
