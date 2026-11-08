@@ -61,6 +61,7 @@ export class GhostLayer {
   private zoom = 1;
   private ghost: GhostInput | null = null;
   private highlight: Footprint | null = null;
+  private highlightColor = HOVER_COLOR;
 
   constructor(private readonly sprites: SpriteRegistry) {
     this.sprite.alpha = GHOST_ALPHA;
@@ -97,8 +98,9 @@ export class GhostLayer {
     this.drawFrames();
   }
 
-  showHighlight(highlight: Footprint | null): void {
+  showHighlight(highlight: Footprint | null, color: number = HOVER_COLOR): void {
     this.highlight = highlight;
+    this.highlightColor = color;
     this.drawFrames();
   }
 
@@ -119,7 +121,7 @@ export class GhostLayer {
       outline(this.ghostFrame, areaOf(this.ghost), color, this.zoom);
     }
     if (this.highlight !== null) {
-      outline(this.hoverFrame, areaOf(this.highlight), HOVER_COLOR, this.zoom);
+      outline(this.hoverFrame, areaOf(this.highlight), this.highlightColor, this.zoom);
     }
   }
 }

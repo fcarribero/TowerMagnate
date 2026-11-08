@@ -83,7 +83,7 @@ export interface Stage {
   /** Draws the placement ghost, snapped to tiles; null removes it. */
   showGhost(ghost: GhostInput | null): void;
   /** Frames a footprint, such as the unit under the pointer; null removes the frame. */
-  showHighlight(highlight: Footprint | null): void;
+  showHighlight(highlight: Footprint | null, color?: number): void;
   /** CSS pixels per canvas device pixel, to place DOM overlays over the canvas. */
   cssPerDevicePixel(): number;
   /** Draws the tower structure; later calls redraw only the levels that changed. */
@@ -319,8 +319,8 @@ export async function mountStage(host: HTMLElement, options: StageOptions = {}):
     showGhost(input) {
       ghost.showGhost(input);
     },
-    showHighlight(input) {
-      ghost.showHighlight(input);
+    showHighlight(input, color) {
+      ghost.showHighlight(input, color);
     },
     cssPerDevicePixel,
     showStructure(input) {

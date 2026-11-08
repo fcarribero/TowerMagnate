@@ -35,7 +35,7 @@ function setup(
     api: {
       send: (command) => {
         sent.push(command);
-        return Promise.resolve({ ok: true, cost: 10 });
+        return Promise.resolve({ ok: true, cost: 10, refund: 0 });
       },
     },
     tool,
@@ -109,7 +109,7 @@ describe('bindBuildInput', () => {
     t.input('down', { x: 7, level: 4 });
     expect(t.sent).toEqual([{ type: 'buildUnit', unitType: 'office', x: 7, level: 4 }]);
     await Promise.resolve();
-    expect(t.outcomes).toEqual([{ ok: true, cost: 10 }]);
+    expect(t.outcomes).toEqual([{ ok: true, cost: 10, refund: 0 }]);
   });
 
   it('does nothing with the inspect tool', () => {

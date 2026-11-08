@@ -31,7 +31,7 @@ export function BuildFeedback({ toasts, floats, dragLabel = null }: BuildFeedbac
       {floats.map((item) => (
         <div
           key={item.id}
-          class="tm-float-cost"
+          class={item.kind === 'refund' ? 'tm-float-cost tm-float-refund' : 'tm-float-cost'}
           style={{ left: `${item.at.x}px`, top: `${item.at.y}px` }}
         >
           {item.text}
