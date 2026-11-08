@@ -374,6 +374,25 @@ export const SPANISH_STRINGS = {
     'Hay cucarachas en una habitación del piso {level}. Solo se eliminan demoliendo.',
   'news.santa': '¡Feliz Navidad! Papá Noel pasó por la torre.',
   'news.decisionDefault': 'Se terminó el plazo. Se aplicó: {option}.',
+  'news.balanceNegative': 'La caja quedó en rojo. No se puede construir hasta recuperar.',
+  'news.bombSearch': 'Seguridad empezó a buscar la bomba.',
+  'news.cinemaLowAudience': 'El cine no cobró nada: menos de 40 espectadores por función.',
+  'news.fastFoodLoss': 'Una comida rápida tuvo pérdidas: vinieron menos de 25 clientes.',
+  'news.medicalDemanded': 'Los oficinistas necesitan un centro médico.',
+  'news.medicalFull': 'Los centros médicos están llenos. Hace falta otro.',
+  'news.parkingCondo': 'Los residentes piden cochera.',
+  'news.parkingOffice': 'Los oficinistas piden cochera.',
+  'news.parkingSuite': 'Los huéspedes de las suites piden cochera.',
+  'news.partyHallEmpty': 'El salón de fiestas no cobró nada: vinieron menos de 25 invitados.',
+  'news.restaurantLoss': 'Un restaurante tuvo pérdidas: vinieron menos de 25 clientes.',
+  'news.starBlockedRecycling':
+    'La torre no subió de estrellas: hace falta un centro de reciclaje cada 2.500 personas.',
+  'news.starBlockedSecurity': 'La torre no subió de estrellas: falta una oficina de seguridad.',
+  'news.starBlockedSubway': 'La torre no subió de estrellas: falta la estación de subte.',
+  'news.starBlockedSuites': 'La torre no subió de estrellas: hacen falta 2 suites.',
+  'news.starBlockedVip': 'La torre no subió de estrellas: falta la aprobación del VIP.',
+  'news.vipNoSuite': 'El VIP no encontró una suite libre y no vino.',
+  'news.weddingFailed': 'No llegaron todos los invitados a la boda antes de las 12:30.',
 
   // 13.10 Star requirements (Estrellas window)
   'stars.req.2': 'Población de 300.',
@@ -453,4 +472,7 @@ export const SPANISH_STRINGS = {
   'auth.sessionClosed': 'La sesión se cerró. Entrá de nuevo.',
   'auth.rateLimited': 'Hiciste demasiados intentos. Esperá un minuto y probá de nuevo.',
   'auth.networkError': 'No se pudo conectar. Probá de nuevo.',
+  'auth.passwordLong': 'La contraseña lleva como máximo 128 caracteres.',
+  'ui.stage.loading': 'Cargando gráficos…',
+  'ui.stage.loadError': 'No se pudieron cargar los gráficos. Recargá la página.',
 } as const;

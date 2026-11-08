@@ -115,7 +115,7 @@ export function applyDelta(state: GameState, delta: Delta): GameState {
     money: delta.money ?? state.money,
     stars: delta.stars ?? state.stars,
     population: delta.population ?? state.population,
-    mainLobbyHeight: state.mainLobbyHeight,
+    mainLobbyHeight: delta.mainLobbyHeight ?? state.mainLobbyHeight,
     structure: withRows(state.structure, delta.structure),
     units: upsertAndRemove(state.units, delta.unitsUpserted, delta.unitsRemoved),
     transports: upsertAndRemove(
