@@ -514,6 +514,25 @@ function replanBrokenLegs(context: StepContext): void {
   }
 }
 
+/**
+ * The stress so far grows every step in a queue or a car. Anyone else, including a person beside
+ * a full queue who looks again once a game minute, is refreshed only when their trip moved on.
+ */
+function stressMayHaveMoved(
+  pool: PersonPool,
+  slot: number,
+  before: { phase: number; sum: number; legStep: number },
+): boolean {
+  const phase = pool.trek[slot];
+  return (
+    phase === QUEUED ||
+    phase === RIDING ||
+    phase !== before.phase ||
+    pool.tripSum[slot] !== before.sum ||
+    pool.legStep[slot] !== before.legStep
+  );
+}
+
 /** Graphs are rebuilt when the tower changes, so each new graph gets one sweep for broken legs. */
 const sweptGraphs = new WeakSet<TransportGraph>();
 
@@ -543,11 +562,18 @@ export function createTrekSystem(): SimulationSystem {
       replanBrokenLegs(context);
     }
     for (let slot = 0; slot < pool.id.length; slot++) {
-      const sumBefore = pool.tripSum[slot];
+      const phase = pool.trek[slot] as number;
+      if (phase === IDLE) continue;
+      const before = {
+        phase,
+        sum: pool.tripSum[slot] as number,
+        legStep: pool.legStep[slot] as number,
+      };
       stepPerson(context, slot);
-      const part = partUnderWay(pool.trek[slot] as number);
-      const changed = part !== null || pool.tripSum[slot] !== sumBefore;
-      if (changed && isOnTrek(pool, slot)) refreshPersonStress(context.state, slot, true, part);
+      if (isOnTrek(pool, slot) && stressMayHaveMoved(pool, slot, before)) {
+        const part = partUnderWay(pool.trek[slot] as number);
+        refreshPersonStress(context.state, slot, true, part);
+      }
     }
   };
 }
