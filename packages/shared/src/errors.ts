@@ -56,6 +56,7 @@ export const SOCKET_ERROR_CODES = [
   'PROTOCOL_MISMATCH',
   'NOT_AUTHENTICATED',
   'RATE_LIMITED',
+  'NOT_ALLOWED',
 ] as const;
 
 export type SocketErrorCode = (typeof SOCKET_ERROR_CODES)[number];
