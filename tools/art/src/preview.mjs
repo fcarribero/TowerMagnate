@@ -155,6 +155,32 @@ export function drawUnitSheet(sprites, subjects) {
   return sheet;
 }
 
+// One row per service subject, with every variant left to right and tall units
+// (recycling center, subway station) at their full height.
+export function drawServiceSheet(sprites, subjects) {
+  const rows = subjects.map((subject) =>
+    Object.entries(sprites)
+      .filter(([id]) => id.startsWith(`units/${subject}/`))
+      .map(([, canvas]) => canvas),
+  );
+  const rowWidth = (row) => GAP + row.reduce((total, canvas) => total + canvas.width + GAP, 0);
+  const rowHeight = (row) => Math.max(...row.map((canvas) => canvas.height)) + GAP;
+  const width = Math.max(...rows.map(rowWidth));
+  const height = GAP + rows.reduce((total, row) => total + rowHeight(row), 0);
+  const sheet = new PixelCanvas(width, height);
+  sheet.fillRect(0, 0, width, height, 'ink');
+  let top = GAP;
+  for (const row of rows) {
+    let left = GAP;
+    for (const canvas of row) {
+      sheet.stamp(canvas, left, top);
+      left += canvas.width + GAP;
+    }
+    top += rowHeight(row);
+  }
+  return sheet;
+}
+
 const SHAFT_LEVELS = 3;
 const CAR_INSET_X = 4;
 const CAR_TOP_IN_FLOOR =

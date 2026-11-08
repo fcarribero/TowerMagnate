@@ -6,7 +6,18 @@ import { colorIndex } from '../src/palette.mjs';
 
 const [{ sprites }] = drawGroups([unitsGroup]);
 const byId = Object.fromEntries(sprites.map((sprite) => [sprite.id, sprite.canvas]));
-const rentableIds = Object.keys(byId).filter((id) => !id.startsWith('units/cathedral/'));
+const nonRentable = [
+  'cathedral',
+  'security',
+  'medical-center',
+  'parking-ramp',
+  'parking-space',
+  'recycling-center',
+  'subway-station',
+];
+const rentableIds = Object.keys(byId).filter(
+  (id) => !nonRentable.some((subject) => id.startsWith(`units/${subject}/`)),
+);
 const cathedralVariants = ['empty_day', 'empty_night', 'wedding_day', 'wedding_night'];
 const catalogWidthTiles = {
   office: 9,
