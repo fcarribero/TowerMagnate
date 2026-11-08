@@ -56,6 +56,20 @@ describe('snapshot from tower state', () => {
     }
   });
 
+  it('sends the placed stairs and escalators', () => {
+    const state = createTower(7);
+    state.transports.t3 = { id: 't3', type: 'stairs', x: 4, level: 1 };
+    state.transports.t4 = { id: 't4', type: 'escalator', x: 8, level: 2 };
+
+    const snapshot = buildSnapshot(state, null);
+
+    expect(snapshot.transports).toEqual([
+      { id: 't3', type: 'stairs', x: 4, level: 1 },
+      { id: 't4', type: 'escalator', x: 8, level: 2 },
+    ]);
+    expect(SnapshotSchema.safeParse(snapshot).success).toBe(true);
+  });
+
   it('sends each shaft with its cars', () => {
     const state = createTower(7);
     state.shafts.s1 = {
