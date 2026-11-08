@@ -11,6 +11,12 @@ export function starLockError(state: TowerState, definition: UnitDefinition): Er
   return state.stars < definition.unlockStars ? 'STAR_LOCKED' : null;
 }
 
+/** C-57: no security office while a bomb threat is active. */
+export function bombLockError(state: TowerState, definition: UnitDefinition): ErrorCode | null {
+  const threatActive = state.activeEvents.some((event) => event.kind === 'bomb');
+  return definition.type === 'security' && threatActive ? 'BOMB_EVENT_ACTIVE' : null;
+}
+
 /** C-52 and C-53: units of a limit group, counted from the units standing now. */
 export function limitError(state: TowerState, definition: UnitDefinition): ErrorCode | null {
   const group = definition.limitGroup;

@@ -8,6 +8,9 @@ import {
   summarizeTower,
 } from '../testing';
 import { hashState } from '../hash';
+import { towerCommandHandlers } from '../commands';
+import { eventsPhase } from '../events';
+import { createEngine, towerSystems } from '../step';
 
 const OFFICE_WIDTH = 9;
 const OFFICES_PER_FLOOR = 10;
@@ -27,10 +30,16 @@ function officeTowerPlan(): TowerPlan {
   };
 }
 
+/** The tower engine without events, so no bomb threat can destroy part of the tower. */
+const engineWithoutEvents = createEngine({
+  commandHandlers: towerCommandHandlers,
+  systems: towerSystems.filter((system) => system !== eventsPhase),
+});
+
 describe('scenario: 10-floor office tower', () => {
   it('runs a game week and keeps the tower it started with', () => {
     const { state: tower } = buildTower(officeTowerPlan());
-    const run = runScenario({ tower, days: 7 });
+    const run = runScenario({ tower, days: 7, engine: engineWithoutEvents });
 
     const summary = summarizeTower(run.state);
     expect(summary.day).toBe(7);

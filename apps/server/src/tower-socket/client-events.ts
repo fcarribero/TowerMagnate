@@ -24,6 +24,9 @@ export function toClientEvents(events: readonly EngineEvent[]): ClientEvent[] {
           timedOut: !('commandId' in event),
         });
         break;
+      case 'disaster':
+        result.push({ type: 'disaster', step: event.step, kind: event.kind, cells: event.cells });
+        break;
       case 'news':
         result.push({
           type: 'news',

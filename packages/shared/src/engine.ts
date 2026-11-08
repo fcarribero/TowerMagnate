@@ -1,6 +1,6 @@
 import type { Ledger } from './ledger';
 import type { Level } from './levels';
-import type { DecisionKind, HotelRoomState, TransportType } from './protocol/primitives';
+import type { CellRange, DecisionKind, HotelRoomState, TransportType } from './protocol/primitives';
 import type { PersonPool } from './people';
 import type { PriceLevel, ShaftType, StarRating, UnitType } from './units';
 
@@ -304,11 +304,19 @@ export interface BombSearch {
   unreachable: Record<number, Level[]>;
 }
 
+/** The cell of a bomb: a column on the bottom level of the unit it was drawn in. */
+export interface BombCell {
+  x: number;
+  level: Level;
+}
+
 export interface BombThreat {
   kind: 'bomb';
   id: EventId;
   decision: Decision;
   ransom: number;
+  /** Fixed when the threat opens; never sent to the client. */
+  bomb: BombCell;
   /** Null until the search starts. */
   search: BombSearch | null;
 }
@@ -397,5 +405,8 @@ export type EngineEvent =
     }
   | { type: 'treasureFound'; step: number; commandId: string; level: Level; amount: number }
   | { type: 'news'; step: number; commandId: string; key: 'news.treasure'; level: Level }
+  | { type: 'news'; step: number; commandId: string; key: 'news.bombPaid'; unitId: null }
+  | { type: 'disaster'; step: number; kind: DecisionKind; cells: CellRange[] }
+  | { type: 'news'; step: number; key: 'news.bombExploded'; level: Level }
   | { type: 'news'; step: number; key: 'news.decisionDefault'; eventId: EventId; choice: string }
   | { type: 'news'; step: number; key: string; unitId: UnitId | null };
