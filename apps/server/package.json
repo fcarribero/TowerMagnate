@@ -11,6 +11,7 @@
     "start": "tsx src/main.ts",
     "migrate": "tsx src/migrate.ts",
     "build": "node scripts/build.mjs",
+    "build:bench": "node scripts/build.mjs --bench",
     "bench:snapshots": "tsx src/bench/save-snapshot.ts",
     "bench:person-view": "tsx src/bench/person-view.ts",
     "bench:runner-load": "tsx src/bench/runner-load.ts"
