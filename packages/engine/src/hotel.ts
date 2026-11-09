@@ -105,6 +105,17 @@ export function checkIn(context: StepContext, roomId: UnitId, nights?: number): 
   return { checkedIn: true, nights: stayNights, paid };
 }
 
+/** A maid finished cleaning the room: it is clean, counts no dirty checks and may roll for a booking. */
+export function finishCleaning(context: StepContext, roomId: UnitId): void {
+  const room = context.state.units[roomId];
+  if (!room || !isRoom(room) || room.hotel.state !== 'dirty') {
+    throw new Error(`Unit ${roomId} is not a dirty hotel room`);
+  }
+  room.hotel.dirtyChecks = 0;
+  room.hotel.rollDue = true;
+  setRoomState(context, room, 'clean');
+}
+
 function checkOut(context: StepContext, room: RoomUnit): void {
   storeGrade(context.state, room);
   room.hotel.stayEndStep = null;

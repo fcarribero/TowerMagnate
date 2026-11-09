@@ -52,6 +52,8 @@ export { migrateState, StateMigrationError } from './migrations';
 export { createCondoSystem, sellCondo } from './condos';
 export { bookingChance, checkIn, createHotelSystem, drawStayNights, rollBooking } from './hotel';
 export type { CheckInResult } from './hotel';
+export { housekeepingSummary, maidTaskAt } from './housekeeping';
+export type { HousekeepingSummary, MaidPhase, MaidTask } from './housekeeping';
 export {
   createLeaseSystem,
   isLeasable,
@@ -189,3 +191,5 @@ export { recordNotices } from './notices';
 export { emitNews } from './news';
 export type { NewsEvent } from './news';
 export { isEvaluatedUnit, storedGrade } from './unit-evaluation';
+export { disconnectedUnits } from './unit-connections';
+export { isLayoutCommand, isLayoutEvent } from './layout-changes';
