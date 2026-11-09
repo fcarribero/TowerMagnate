@@ -5,6 +5,7 @@ import {
   type StarRating,
   type TowerState,
   type UnitId,
+  type UnitType,
 } from '@tower-magnate/shared';
 import { describe, expect, it } from 'vitest';
 import { STEPS_PER_MINUTE } from '../calendar';
@@ -316,5 +317,56 @@ describe('VIP stay', () => {
       }
       expect(seen).toBe(true);
     }
+  });
+
+  it('stays on the street while other hotel guests in the same tower use the subway', () => {
+    const rooms = Array.from({ length: 8 }, (_, index) => ({
+      type: (index % 2 === 0 ? 'single-room' : 'double-room') as UnitType,
+      x: 40 + index * 10,
+      level: 2 as Level,
+    }));
+    let guestsBySubway = 0;
+    let visitsSeen = 0;
+    for (let seed = 1; seed <= 12; seed++) {
+      const { state } = buildTower({
+        seed,
+        lobby: { x0: 0, x1: 200 },
+        floors: [
+          { from: 2, to: 2 as Level, x0: 0, x1: 200 },
+          { from: -9 as Level, to: -1 as Level, x0: 0, x1: 200 },
+        ],
+        units: [
+          { type: 'suite', x: 20, level: 2 as Level },
+          ...rooms,
+          { type: 'restaurant', x: 150, level: 2 },
+          { type: 'subway-station', x: 10, level: -9 as Level },
+        ],
+        shafts: [{ type: 'standard', x: 124, bottom: -7, top: 2 }],
+      });
+      state.stars = 3;
+      openVipVisit(state, TUESDAY);
+      state.step = at(TUESDAY, 12) - 1;
+      let current = state;
+      let vipSeen = false;
+      const subwayGuests = new Set<number>();
+      while (current.step < at(TUESDAY + 1, 11)) {
+        current = step(current, [], STEPS_PER_MINUTE).state;
+        const vip = vipSlot(current);
+        const pool = current.people;
+        for (let slot = 0; slot < pool.id.length; slot++) {
+          if (guestRoutineAt(pool, slot) === null) continue;
+          if (slot === vip) {
+            vipSeen = true;
+            expect(pool.level[slot]).toBeGreaterThanOrEqual(1);
+          } else if ((pool.level[slot] as number) < 0) {
+            subwayGuests.add(pool.id[slot] as number);
+          }
+        }
+      }
+      if (vipSeen) visitsSeen += 1;
+      guestsBySubway += subwayGuests.size;
+    }
+    expect(visitsSeen).toBeGreaterThanOrEqual(10);
+    expect(guestsBySubway).toBeGreaterThan(0);
   });
 });
