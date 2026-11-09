@@ -84,7 +84,7 @@ describe('debug changes on a running tower', () => {
     expect(state().activeEvents).toEqual([expect.objectContaining({ kind: 'fire', level: 2 })]);
     expect(runner.takeEvents('1')).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ type: 'news', key: 'news.fire', level: 2 }),
+        expect.objectContaining({ type: 'news', key: 'news.fire', params: { level: 2 } }),
       ]),
     );
   });
@@ -126,7 +126,7 @@ describe('debug changes on a running tower', () => {
     await runner.change('1', forceEvent('santa'));
 
     expect(runner.takeEvents('1')).toEqual([
-      { type: 'news', step: state().step, key: 'news.santa', unitId: null },
+      { type: 'news', step: state().step, key: 'news.santa', unitId: null, params: {} },
     ]);
     expect(state().notices).toEqual([
       ...before.notices,
@@ -140,7 +140,9 @@ describe('debug changes on a running tower', () => {
 
     await runner.change('1', forceEvent('santa'));
 
-    expect(hashState({ ...state(), notices: before.notices })).toBe(hashState(before));
+    expect(hashState({ ...state(), notices: before.notices, newsSent: before.newsSent })).toBe(
+      hashState(before),
+    );
   });
 
   it('fast forwards a day to the same state as running the steps', async () => {

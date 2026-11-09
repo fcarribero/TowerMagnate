@@ -1,4 +1,3 @@
-import { noticeParams } from '@tower-magnate/engine';
 import type { ClientEvent, EngineEvent } from '@tower-magnate/shared';
 import { noticeParamTexts } from './notice-params';
 
@@ -34,8 +33,8 @@ export function toClientEvents(events: readonly EngineEvent[]): ClientEvent[] {
           type: 'news',
           step: event.step,
           key: event.key,
-          unitId: 'unitId' in event ? event.unitId : null,
-          params: noticeParamTexts(noticeParams(event)),
+          unitId: event.unitId,
+          params: noticeParamTexts(event.params),
         });
         break;
       case 'weddingCompleted':

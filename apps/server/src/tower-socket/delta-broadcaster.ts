@@ -106,11 +106,12 @@ export class DeltaBroadcaster {
     if (quiet && !hasEvents && now - baseline.sentAt < HEARTBEAT_INTERVAL_MS) {
       return;
     }
-    if (JSON.stringify(delta).length > JSON.stringify(snapshot).length) {
+    const deltaText = JSON.stringify(serverMessage('delta', delta));
+    if (deltaText.length > JSON.stringify(serverMessage('snapshot', snapshot)).length) {
       this.recordSnapshot(socket, snapshot, null);
       return;
     }
-    sendMessage(socket, serverMessage('delta', delta));
+    socket.send(deltaText);
     this.sent.set(socket, { snapshot, sentAt: now, shownEventsUpTo: null });
   }
 }

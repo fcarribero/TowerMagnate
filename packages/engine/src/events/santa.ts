@@ -2,6 +2,7 @@ import { SANTA_TIME } from '@tower-magnate/shared';
 import { dateOfStep, STEPS_PER_HOUR, STEPS_PER_MINUTE } from '../calendar';
 import { STEPS_PER_DAY } from '../clock';
 import type { StepContext } from '../step';
+import { emitNews } from '../news';
 
 const SANTA_STEP_OF_DAY = SANTA_TIME.hour * STEPS_PER_HOUR + SANTA_TIME.minute * STEPS_PER_MINUTE;
 
@@ -18,5 +19,5 @@ export function runSanta(context: StepContext): void {
 }
 
 export function announceSanta(context: StepContext): void {
-  context.events.push({ type: 'news', step: context.state.step, key: 'news.santa', unitId: null });
+  context.events.push(...emitNews(context.state, 'news.santa'));
 }
