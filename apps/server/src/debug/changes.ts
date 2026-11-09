@@ -1,6 +1,7 @@
 import {
   announceSanta,
   DAYS_PER_WEEK,
+  NOTHING_DUE,
   openRandomBombThreat,
   openRandomFire,
   openVipVisitNow,
@@ -83,6 +84,7 @@ export function setClock(day: number, time: string): TowerChange {
       target += DAYS_PER_WEEK * STEPS_PER_DAY;
     }
     const jumped = { ...structuredClone(state), step: target };
+    wakeOverduePeople(jumped);
     const mondaysCrossed =
       Math.floor(target / STEPS_PER_WEEK) - Math.floor(state.step / STEPS_PER_WEEK);
     for (let monday = 0; monday < mondaysCrossed; monday++) {
@@ -90,6 +92,18 @@ export function setClock(day: number, time: string): TowerChange {
     }
     return { state: jumped, events: [] };
   };
+}
+
+/**
+ * The people system only wakes a person on the exact step they are due, so anyone due inside
+ * the jump would stand still for good. They act on the first step after it instead.
+ */
+function wakeOverduePeople(state: TowerState): void {
+  const { dueStep } = state.people;
+  for (let slot = 0; slot < dueStep.length; slot++) {
+    const due = dueStep[slot] as number;
+    if (due !== NOTHING_DUE && due <= state.step) dueStep[slot] = state.step + 1;
+  }
 }
 
 export function setMoney(amount: number): TowerChange {

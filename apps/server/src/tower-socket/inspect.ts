@@ -1,4 +1,4 @@
-import { countPeopleOfUnit, STEPS_PER_WEEK } from '@tower-magnate/engine';
+import { countPeopleOfUnit, housekeepingSummary, STEPS_PER_WEEK } from '@tower-magnate/engine';
 import {
   LEASE_CONTRACT_WEEKS,
   UNIT_CATALOG,
@@ -67,6 +67,8 @@ function unitDetails(state: TowerState, unit: Unit): UnitDetails {
       return hotelDetails(state, unit);
     case 'cinema':
       return { group: 'cinema', filmWeek: null, filmAgeDays: null, price: unit.priceLevel };
+    case 'housekeeping':
+      return housekeepingDetails(state, unit);
     default:
       return null;
   }
@@ -114,5 +116,15 @@ function hotelDetails(state: TowerState, unit: Unit): UnitDetails {
     evaluation: unit.evaluation,
     price: unit.priceLevel,
     checkoutStep: occupied ? (room?.stayEndStep ?? null) : null,
+  };
+}
+
+function housekeepingDetails(state: TowerState, unit: Unit): UnitDetails {
+  const summary = housekeepingSummary(state, unit.id);
+  return {
+    group: 'housekeeping',
+    maidsWorking: summary.working,
+    maids: summary.maids,
+    dirtyRooms: summary.dirtyRooms,
   };
 }

@@ -35,7 +35,7 @@ function touches(a: Unit, b: Unit): boolean {
 }
 
 /** Spaces that touch a ramp on their level, directly or through a chain of spaces (C-47, C-48). */
-function connectedSpaces(state: TowerState): Unit[] {
+export function connectedSpaces(state: TowerState): Unit[] {
   const units = Object.values(state.units);
   const spaces = units.filter((unit) => unit.type === 'parking-space');
   const reached = new Set<Unit>();
@@ -94,6 +94,13 @@ export function assignParking(context: StepContext): void {
     if (today.noticed.includes(key)) continue;
     today.noticed.push(key);
     context.events.push(...emitNews(state, key));
+  }
+}
+
+/** Holders of a space that no longer exists are left with none until the next assignment. */
+export function releaseParkingSpace(state: TowerState, space: number): void {
+  for (const [holder, held] of Object.entries(state.parking.spaces)) {
+    if (held === space) state.parking.spaces[Number(holder)] = 0;
   }
 }
 

@@ -68,6 +68,7 @@ describe('hotel check-in', () => {
       paidLevel: 'normal',
       arrivalStep: null,
       rollDue: false,
+      dirtyChecks: 0,
     });
     expect(weekdayOfDay(WEDNESDAY + 3)).toBe(WEEKDAYS.saturday);
     expect(events.map((event) => event.type)).toEqual(['hotelCheckIn', 'roomStateChanged']);
@@ -135,6 +136,7 @@ describe('hotel check-in', () => {
       paidLevel: null,
       arrivalStep: null,
       rollDue: false,
+      dirtyChecks: 0,
     });
     const attempt = tryCheckIn(tower, roomId, at(WEDNESDAY, 15));
     expect(attempt.result).toEqual({ checkedIn: false, reason: 'roomNotClean' });
@@ -151,6 +153,7 @@ describe('hotel check-in', () => {
       paidLevel: null,
       arrivalStep: null,
       rollDue: false,
+      dirtyChecks: 0,
     });
     expect(tryCheckIn(tower, roomId, at(WEDNESDAY, 15)).result.checkedIn).toBe(false);
     setHotel(tower, roomId, {
@@ -160,6 +163,7 @@ describe('hotel check-in', () => {
       paidLevel: null,
       arrivalStep: null,
       rollDue: false,
+      dirtyChecks: 0,
     });
     expect(tryCheckIn(tower, roomId, at(WEDNESDAY, 15)).result.checkedIn).toBe(true);
   });
@@ -210,6 +214,7 @@ describe('hotel check-out order', () => {
         paidLevel: null,
         arrivalStep: null,
         rollDue: false,
+        dirtyChecks: 0,
       });
     }
     tower.step = end - 1;
@@ -257,5 +262,6 @@ function cleanRoom(): HotelRoom {
     paidLevel: null,
     arrivalStep: null,
     rollDue: false,
+    dirtyChecks: 0,
   };
 }

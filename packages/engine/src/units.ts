@@ -23,6 +23,7 @@ export function newHotelRoom(): HotelRoom {
     paidLevel: null,
     arrivalStep: null,
     rollDue: true,
+    dirtyChecks: 0,
   };
 }
 
