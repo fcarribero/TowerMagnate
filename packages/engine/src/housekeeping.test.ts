@@ -225,6 +225,19 @@ describe('hotel spec 9.1, morning shift on two floors', () => {
       JSON.parse(serializeState(straight.state)),
     );
   });
+
+  it('gives the same result after a save and restore at 12:00 with maids mid-cleaning', () => {
+    const { state, rooms } = hotelTower({ rooms: EXAMPLE_ROOMS });
+    const before = runUntil(state, at(0, 11, 29));
+    for (const id of Object.values(rooms)) setRoom(before.state, id, 'dirty');
+    const straight = runUntil(deserializeState(serializeState(before.state)), at(0, 16, 30));
+    const noon = runUntil(before.state, at(0, 12));
+    expect(maidTasks(noon.state).some((task) => task.phase === 'cleaning')).toBe(true);
+    const resumed = runUntil(deserializeState(serializeState(noon.state)), at(0, 16, 30));
+    expect(JSON.parse(serializeState(resumed.state))).toEqual(
+      JSON.parse(serializeState(straight.state)),
+    );
+  });
 });
 
 describe('room choice', () => {
@@ -305,19 +318,31 @@ describe('hotel spec 9.4, the 16:00 cut and the cap', () => {
   it('does not start a room reached at 16:00 or later and leaves its dirty checks alone', () => {
     const rooms: RoomPlan[] = [{ name: 'far', type: 'single-room', level: 11, x: 280 }];
     const { state, rooms: ids } = hotelTower({ rooms });
-    const run = runUntil(state, at(0, 15, 50));
+    const far = roomNumber(ids.far as UnitId);
+    let run = runUntil(state, at(0, 15, 29));
     const room = run.state.units[ids.far as UnitId]?.hotel;
     if (!room) throw new Error('room missing');
     room.state = 'dirty';
     room.dirtyChecks = 2;
     room.rollDue = false;
-    const late = runUntil(run.state, at(0, 16, 30));
-    expect(late.state.units[ids.far as UnitId]?.hotel).toMatchObject({
+    room.arrivalStep = null;
+    let claimedAt: number | null = null;
+    let releasedAt: number | null = null;
+    while (run.state.step < at(0, 16, 30)) {
+      run = step(run.state, [], 1);
+      const holder = maidTasks(run.state).find((task) => task.room === far);
+      expect(holder?.phase).not.toBe('cleaning');
+      if (holder && claimedAt === null) claimedAt = run.state.step;
+      if (!holder && claimedAt !== null && releasedAt === null) releasedAt = run.state.step;
+    }
+    expect(claimedAt).toBe(at(0, 15, 30));
+    expect(releasedAt).toBeGreaterThanOrEqual(at(0, 16));
+    expect(run.state.units[ids.far as UnitId]?.hotel).toMatchObject({
       state: 'dirty',
       dirtyChecks: 2,
     });
-    expect(maidTasks(late.state).every((task) => task.phase === 'waiting')).toBe(true);
-    expect(maidTasks(late.state).every((task) => task.cleanings === 0)).toBe(true);
+    expect(maidTasks(run.state).every((task) => task.cleanings === 0)).toBe(true);
+    expect(maidTasks(run.state).every((task) => task.phase === 'waiting')).toBe(true);
   });
 
   it('cleans at most 48 rooms a unit a day, and no maid starts a ninth cleaning', () => {
