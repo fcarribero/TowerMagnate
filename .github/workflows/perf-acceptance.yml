@@ -68,12 +68,11 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Full tower step benchmark
-        # Non-blocking until TM-249 meets the 5 ms budget. TM-249 must remove the next line.
-        continue-on-error: true
+        # Interim limits until TM-252 brings the step to the section 9 budget.
         run: |
           set -o pipefail
           status=0
-          pnpm bench:full-tower 2>&1 | tee bench.txt || status=$?
+          pnpm bench:full-tower --gate --avg-ms 6 --p95-ms 15 --p99-ms 25 2>&1 | tee bench.txt || status=$?
           { echo '### Step budget, 15,000 people'; echo '```'; cat bench.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
           exit $status
 
