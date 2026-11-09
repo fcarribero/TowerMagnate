@@ -52,8 +52,6 @@ jobs:
 
   full-tower-step:
     name: Step budget, 15,000 people
-    # Non-blocking until TM-249 meets the 5 ms budget. TM-249 must remove this line.
-    continue-on-error: true
     runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:
@@ -70,6 +68,8 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Full tower step benchmark
+        # Non-blocking until TM-249 meets the 5 ms budget. TM-249 must remove the next line.
+        continue-on-error: true
         run: |
           set -o pipefail
           status=0
