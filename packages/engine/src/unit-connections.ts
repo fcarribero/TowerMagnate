@@ -1,11 +1,7 @@
 import { UNIT_CATALOG, type TowerState, type Unit, type UnitId } from '@tower-magnate/shared';
 import { entrancePlace, unitPlace } from './office-routine';
 import { connectedSpaces } from './parking';
-import { graphInputsKey, TransportGraph, TripPlanner } from './routing';
-
-const KEPT_RESULTS = 8;
-
-const resultsByLayout = new Map<string, ReadonlySet<UnitId>>();
+import { TransportGraph, TripPlanner } from './routing';
 
 /** Maids appear at their unit's door, so a housekeeping unit needs no route from the street. */
 function isVisitedFromOutside(unit: Unit): boolean {
@@ -47,25 +43,11 @@ function spacesWithoutRamp(state: TowerState): Set<UnitId> {
   return new Set(spaces.filter((space) => !connected.has(space.id)).map((space) => space.id));
 }
 
-function connectionsKey(state: TowerState): string {
-  const places = Object.values(state.units).map((unit) => `${unit.id}@${unit.level}:${unit.x}`);
-  return `${graphInputsKey(state)}|${places.join(',')}`;
-}
-
 /**
  * Units drawn as disconnected: a unit people visit with no route between its door and the street,
- * and a parking space that reaches no ramp. Kept per layout, since only building changes it.
+ * and a parking space that reaches no ramp. It builds a transport graph, so callers keep the
+ * result until the layout changes.
  */
 export function disconnectedUnits(state: TowerState): ReadonlySet<UnitId> {
-  const key = connectionsKey(state);
-  const known = resultsByLayout.get(key);
-  if (known) return known;
-
-  const result = new Set([...unitsWithoutRoute(state), ...spacesWithoutRamp(state)]);
-  resultsByLayout.set(key, result);
-  if (resultsByLayout.size > KEPT_RESULTS) {
-    const oldest = resultsByLayout.keys().next().value as string;
-    resultsByLayout.delete(oldest);
-  }
-  return result;
+  return new Set([...unitsWithoutRoute(state), ...spacesWithoutRamp(state)]);
 }

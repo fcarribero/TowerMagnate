@@ -16,6 +16,7 @@ import { createCondoSystem } from './condos';
 import { createCustomers } from './customers';
 import { createHotelSystem } from './hotel';
 import { createHotelGuests } from './hotel-guests';
+import { isLayoutCommand } from './layout-changes';
 import { createLeaseSystem } from './leases';
 import { parkingAssignmentHook } from './parking';
 import { recordNotices } from './notices';
@@ -77,18 +78,6 @@ export type CommandHandlers = { [K in CommandType]?: CommandHandler<K> };
 
 /** Runs once per simulation step, after the step counter has advanced. */
 export type SimulationSystem = (context: StepContext) => void;
-
-/** Commands that change what the transport graph is built from. */
-const GRAPH_COMMANDS: ReadonlySet<string> = new Set([
-  'buildFloor',
-  'buildLobby',
-  'buildTransport',
-  'buildUnit',
-  'buildShaft',
-  'resizeShaft',
-  'demolish',
-  'configureShaft',
-]);
 
 function shaftStops(state: TowerState): ShaftStops {
   return new Map(Object.values(state.shafts).map((shaft) => [shaft.id, shaft.stops]));
@@ -186,7 +175,7 @@ export function createEngine(rules: EngineRules): Engine {
     const context: StepContext = { state: cloneState(state), events: [] };
     const results = commands.map((queued) => applyCommand(context, queued));
     const changesGraph = results.some(
-      (result, index) => result.ok && GRAPH_COMMANDS.has(commandTypeOf(commands[index])),
+      (result, index) => result.ok && isLayoutCommand(commandTypeOf(commands[index])),
     );
     const known = graph ?? graphKeptFor(state);
     const currentGraph =

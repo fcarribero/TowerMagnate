@@ -1,4 +1,4 @@
-import { step } from '@tower-magnate/engine';
+import { isLayoutCommand, isLayoutEvent, step } from '@tower-magnate/engine';
 import type { CommandResult, EngineEvent, QueuedCommand, TowerState } from '@tower-magnate/shared';
 import type { TowerId } from '../snapshots';
 import { stepsForElapsed } from './real-time';
@@ -39,6 +39,8 @@ interface RunningTower {
   pending: PendingCommand[];
   /** Events of steps that have not been handed to the broadcaster yet. */
   events: EngineEvent[];
+  /** Changes whenever the layout or the transport may have changed. Unique across towers and loads. */
+  layoutVersion: number;
 }
 
 export class UnknownTowerError extends Error {
@@ -66,6 +68,7 @@ export class TowerRunner {
   private readonly onTickError: (towerId: TowerId, error: unknown) => void;
   private readonly onSaveError: (towerId: TowerId, error: unknown) => void;
   private stopped = false;
+  private lastLayoutVersion = 0;
 
   constructor(options: TowerRunnerOptions) {
     this.store = options.store;
@@ -122,6 +125,14 @@ export class TowerRunner {
   }
 
   /**
+   * A number that stays the same while the tower's floors, units and transport stay the same, so
+   * anything derived from the layout can be kept until it changes.
+   */
+  layoutVersionOf(towerId: TowerId): number | undefined {
+    return this.running.get(towerId)?.layoutVersion;
+  }
+
+  /**
    * Queues a command for a running tower. The result arrives on the next tick, once the engine
    * has applied it. Rejects when the tower is not running.
    */
@@ -149,6 +160,7 @@ export class TowerRunner {
       const changed = change(tower.state, this.advance);
       tower.state = changed.state;
       tower.events.push(...changed.events);
+      tower.layoutVersion = this.nextLayoutVersion();
       tower.startedAt = this.now();
       tower.startStep = tower.state.step;
       await this.store.save(towerId, tower.state);
@@ -205,6 +217,7 @@ export class TowerRunner {
       startStep: state.step,
       pending: [],
       events: [],
+      layoutVersion: this.nextLayoutVersion(),
     });
   }
 
@@ -241,6 +254,12 @@ export class TowerRunner {
     );
     tower.state = state;
     tower.events.push(...events);
+    const changedLayout = results.some(
+      (result, index) => result.ok && isLayoutCommand(pending[index]?.queued.command.type ?? ''),
+    );
+    if (changedLayout || events.some(isLayoutEvent)) {
+      tower.layoutVersion = this.nextLayoutVersion();
+    }
     pending.forEach((entry, index) => entry.resolve(results[index] as CommandResult));
     return results.some((result) => result.ok);
   }
@@ -252,7 +271,15 @@ export class TowerRunner {
       const advanced = this.advance(tower.state, due);
       tower.state = advanced.state;
       tower.events.push(...advanced.events);
+      if (advanced.events.some(isLayoutEvent)) {
+        tower.layoutVersion = this.nextLayoutVersion();
+      }
     }
+  }
+
+  private nextLayoutVersion(): number {
+    this.lastLayoutVersion += 1;
+    return this.lastLayoutVersion;
   }
 
   private inOrder(towerId: TowerId, operation: () => Promise<void>): Promise<void> {

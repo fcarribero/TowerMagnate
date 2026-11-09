@@ -1,8 +1,10 @@
-import { serverMessage, type ClientEvent, type Snapshot } from '@tower-magnate/shared';
+import { serverMessage, type ClientEvent, type Snapshot, type TowerState } from '@tower-magnate/shared';
 import { sendMessage, type ConnectionRegistry, type GatewaySocket } from '../gateway';
 import type { TowerRunner } from '../runner';
+import type { TowerId } from '../snapshots';
 import { toClientEvents } from './client-events';
 import { diffSnapshots, needsFreshSnapshot } from './delta';
+import { DisconnectedUnitsCache } from './disconnected-units';
 import { buildSnapshot } from './snapshot';
 import type { Viewports } from './viewports';
 
@@ -13,6 +15,7 @@ export interface DeltaBroadcasterOptions {
   runner: TowerRunner;
   viewports: Viewports;
   now?: () => number;
+  disconnectedUnits?: DisconnectedUnitsCache;
 }
 
 interface SentState {
@@ -29,9 +32,18 @@ interface SentState {
 export class DeltaBroadcaster {
   private readonly sent = new WeakMap<GatewaySocket, SentState>();
   private readonly now: () => number;
+  private readonly disconnectedUnits: DisconnectedUnitsCache;
 
   constructor(private readonly options: DeltaBroadcasterOptions) {
     this.now = options.now ?? Date.now;
+    this.disconnectedUnits =
+      options.disconnectedUnits ?? new DisconnectedUnitsCache(options.runner);
+  }
+
+  /** The snapshot of a tower as one socket sees it, through that socket's viewport. */
+  snapshotFor(socket: GatewaySocket, towerId: TowerId, state: TowerState): Snapshot {
+    const disconnected = this.disconnectedUnits.of(towerId, state);
+    return buildSnapshot(state, this.options.viewports.get(socket), disconnected);
   }
 
   /** Records the snapshot a socket was just sent and sends it. */
@@ -50,7 +62,9 @@ export class DeltaBroadcaster {
 
   /** Sends one delta, heartbeat or replacement snapshot to every socket that has a baseline. */
   tick(registry: ConnectionRegistry): void {
-    for (const towerId of this.options.runner.runningTowers()) {
+    const runningTowers = this.options.runner.runningTowers();
+    this.disconnectedUnits.keepOnly(runningTowers);
+    for (const towerId of runningTowers) {
       const state = this.options.runner.stateOf(towerId);
       if (!state) {
         continue;
@@ -59,7 +73,7 @@ export class DeltaBroadcaster {
       for (const socket of registry.socketsForTower(towerId)) {
         const baseline = this.sent.get(socket);
         if (baseline) {
-          const snapshot = buildSnapshot(state, this.options.viewports.get(socket));
+          const snapshot = this.snapshotFor(socket, towerId, state);
           this.update(socket, baseline, snapshot, events);
         }
       }

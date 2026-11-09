@@ -39,6 +39,7 @@ import {
   type Transport,
   type TransportView,
   type TowerState,
+  type UnitId,
   type UnitView,
   type Viewport,
   type WeekTotals,
@@ -64,10 +65,14 @@ const REASON_OF_CATEGORY: Record<LedgerCategory, { income: MoneyReason; expense:
  * What a client needs to draw the tower. People are limited to the viewport, and there is no
  * RNG, person queue or routing data. Without a viewport no people are sent.
  */
-export function buildSnapshot(state: TowerState, viewport: Viewport | null): Snapshot {
+/** Pass the tower's kept disconnected units; working them out builds a transport graph. */
+export function buildSnapshot(
+  state: TowerState,
+  viewport: Viewport | null,
+  disconnected: ReadonlySet<UnitId> = disconnectedUnits(state),
+): Snapshot {
   const people = listPeople(state.people);
   const homes = occupiedUnits(people);
-  const disconnected = disconnectedUnits(state);
   const units = Object.values(state.units).map((unit) =>
     unitView(unit, homes.has(unit.id), disconnected.has(unit.id)),
   );
