@@ -604,6 +604,12 @@ describe('migrateState unit evaluation', () => {
     expect(migrateState(JSON.parse(JSON.stringify(tower)))).toEqual(tower);
   });
 
+  it('loads a subway station saved above level -9', () => {
+    const tower = createTower(5);
+    tower.units.u3 = newUnit('u3', 'subway-station', 0, -5);
+    expect(migrateState(JSON.parse(JSON.stringify(tower)))).toEqual(tower);
+  });
+
   it('refuses a ledger of a unit that does not exist or a malformed one', () => {
     const tower = createTower(5);
     tower.units.u3 = newUnit('u3', 'office', 10, 2);
