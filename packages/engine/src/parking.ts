@@ -35,7 +35,7 @@ function touches(a: Unit, b: Unit): boolean {
 }
 
 /** Spaces that touch a ramp on their level, directly or through a chain of spaces (C-47, C-48). */
-function connectedSpaces(state: TowerState): Unit[] {
+export function connectedSpaces(state: TowerState): Unit[] {
   const units = Object.values(state.units);
   const spaces = units.filter((unit) => unit.type === 'parking-space');
   const reached = new Set<Unit>();
