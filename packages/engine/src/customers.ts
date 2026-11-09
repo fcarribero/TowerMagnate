@@ -3,9 +3,7 @@ import {
   CUSTOMER_STAY_MINUTES,
   OUTSIDE_CUSTOMER_BASE,
   RETAIL_PRICE_CUSTOMER_FACTOR,
-  SUBWAY_ENTRANCE_CHANCE,
   SUBWAY_VISITOR_FACTOR,
-  UNIT_CATALOG,
   VENUE_CAPACITY,
   VENUE_HOURS,
   type PriceLevel,
@@ -16,12 +14,11 @@ import {
 } from '@tower-magnate/shared';
 import { isWeekendDay, STEPS_PER_MINUTE } from './calendar';
 import { STEPS_PER_DAY } from './clock';
-import { entrancePlace, unitPlace, type Place } from './office-routine';
+import { unitPlace } from './office-routine';
+import { drawEntrance, entranceDoor, streetEntrance, subwayStation } from './outside-entrances';
 import { addPerson, createPeopleSystem, NOTHING_DUE, removePerson, slotOfPerson } from './people';
 import { venueStressFactor } from './person-stress';
 import { visitorsAt } from './resident-routine';
-import { chance, nextInt } from './rng';
-import { walkableLevelOfUnit } from './routing';
 import type { HookOccurrence, ScheduledHook } from './scheduler';
 import type { SimulationSystem, StepContext } from './step';
 import { drawMinuteFromWindow } from './time-windows';
@@ -73,15 +70,6 @@ export function outsideCustomerCount(factors: OutsideCustomerFactors): number {
   const subway = factors.subway ? SUBWAY_VISITOR_FACTOR : 1;
   const product = base * percent(price) * percent(stress) * percent(subway);
   return Math.floor(product / 1_000_000);
-}
-
-function subwayStation(state: TowerState): Unit | null {
-  let station: Unit | null = null;
-  for (const unit of Object.values(state.units)) {
-    if (unit.type !== 'subway-station') continue;
-    if (!station || unitNumber(unit.id) < unitNumber(station.id)) station = unit;
-  }
-  return station;
 }
 
 function hasSubwayStation(state: TowerState): boolean {
@@ -145,24 +133,6 @@ function setPhase(
   entrance: CustomerEntrance,
 ): void {
   state.people.trip[slot] = encodeCustomerTrip({ phase, entrance });
-}
-
-function streetEntrance(state: TowerState): CustomerEntrance {
-  return { kind: 'street', onRight: chance(state.rng, 0.5) };
-}
-
-/** People spec 3: with a station, a quarter of customers come by subway, at a random station column. */
-function drawEntrance(state: TowerState, station: Unit | null): CustomerEntrance {
-  if (!station || !chance(state.rng, SUBWAY_ENTRANCE_CHANCE)) return streetEntrance(state);
-  const lastColumn = station.x + UNIT_CATALOG[station.type].width - 1;
-  return { kind: 'subway', column: nextInt(state.rng, station.x, lastColumn) };
-}
-
-function entranceDoor(state: TowerState, entrance: CustomerEntrance): Place | null {
-  if (entrance.kind === 'street') return entrancePlace(state, entrance.onRight);
-  const station = subwayStation(state);
-  if (!station) return null;
-  return { level: walkableLevelOfUnit(station), column: entrance.column };
 }
 
 /** Puts the customer at the entrance's door and starts the walk to the venue, if it has a route. */

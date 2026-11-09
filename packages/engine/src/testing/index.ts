@@ -86,6 +86,16 @@ export type {
   TimedEconomyAction,
 } from './economy-scenario';
 export {
+  LONG_RUN_DAYS,
+  LONG_RUN_SEED,
+  LONG_RUN_SNAPSHOT_DAY,
+  longRunScript,
+  longRunTower,
+  playLongRun,
+  resumeLongRun,
+} from './long-run';
+export type { LongRun, LongRunCommand } from './long-run';
+export {
   FULL_TOWER_PEOPLE,
   FULL_TOWER_STEP_BUDGET_MS,
   fullTower,

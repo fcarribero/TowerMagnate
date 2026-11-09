@@ -42,7 +42,8 @@ import {
   type GuestRoutine,
   type GuestSlots,
 } from './hotel-guest-trip';
-import { entrancePlace, unitPlace, type Place, type RoutePlanner } from './office-routine';
+import { unitPlace, type Place, type RoutePlanner } from './office-routine';
+import { drawEntrance, entranceDoor, streetEntrance, subwayStation } from './outside-entrances';
 import {
   addPerson,
   createPeopleSystem,
@@ -53,6 +54,7 @@ import {
   rollParkingHolder,
   slotOfPerson,
 } from './people';
+import { assignParking } from './parking';
 import { chooseVenue, hasVenueCandidate, isVenueOpen, venueHasRoom } from './resident-routine';
 import { chance, nextInt } from './rng';
 import type { ScheduledHook } from './scheduler';
@@ -62,6 +64,7 @@ import { cancelTrek, isOnTrek, plannedTripSteps, startTrek } from './trek';
 import { stressOfTripEndedNow } from './trip-ledger';
 import { fileShopVisit, fileUnitTrip } from './unit-evaluation';
 import { unitNumber } from './units';
+import type { CustomerEntrance } from './venue-visitors';
 import { countVenueVisit } from './venues';
 
 type RoomType = keyof typeof HOTEL_PARTY_SIZE;
@@ -171,18 +174,25 @@ function standAt(state: TowerState, slot: number, place: Place): void {
   state.people.column[slot] = place.column;
 }
 
+/** People spec 3: a guest with a parking space never takes the subway. */
+function drawGuestEntrance(state: TowerState, personId: number): CustomerEntrance {
+  const hasSpace = (state.parking.spaces[personId] ?? 0) > 0;
+  return drawEntrance(state, hasSpace ? null : subwayStation(state));
+}
+
 /** The whole party appears at one entrance and walks to the room (people spec 8.1). */
 function sendParty(context: StepContext, room: RoomUnit): void {
   const { state } = context;
-  const entrance = entrancePlace(state, chance(state.rng, 0.5));
-  if (!entrance) return;
+  const entrance = drawEntrance(state, subwayStation(state));
+  const door = entranceDoor(state, entrance);
+  if (!door) return;
   const roomNumber = unitNumber(room.id);
   for (let index = 0; index < HOTEL_PARTY_SIZE[room.type]; index++) {
     const personId = addPerson(state, {
       kind: 'hotelGuest',
       homeUnit: roomNumber,
-      level: entrance.level,
-      column: entrance.column,
+      level: door.level,
+      column: door.column,
     });
     if (index === 0 && room.type === 'suite') rollParkingHolder(state, personId, 'suite');
     const slot = slotOfPerson(state.people, personId);
@@ -192,7 +202,8 @@ function sendParty(context: StepContext, room: RoomUnit): void {
       slots: [NO_SLOT, NO_SLOT, NO_SLOT],
     };
     save(state, slot, routine, NOTHING_DUE);
-    if (!startTrek(context, slot, unitPlace(room))) {
+    const guest: Guest = { context, state, slot, room, routine };
+    if (!walkIn(guest, 'arriving', entrance)) {
       save(state, slot, { ...routine, phase: 'arrivalRetry' }, state.step + ROUTE_RETRY_STEPS);
     }
   }
@@ -287,6 +298,17 @@ function drawCheckInOutings(state: TowerState, room: RoomUnit): void {
   }
 }
 
+function partyHoldsParking(state: TowerState, room: RoomUnit): boolean {
+  return guestsOfRoom(state.people, unitNumber(room.id)).some((personId) =>
+    Object.hasOwn(state.parking.spaces, personId),
+  );
+}
+
+/** People spec 17.2: a suite holder gets a space at check-in, not only at the 06:00 pass. */
+function assignSuiteParking(context: StepContext, room: RoomUnit): void {
+  if (room.type === 'suite' && partyHoldsParking(context.state, room)) assignParking(context);
+}
+
 /** Check-in happens when the first guest of the party reaches the room (economy 5.2). */
 function arriveAtRoom(context: StepContext, slot: number, room: RoomUnit): void {
   const { state } = context;
@@ -298,6 +320,7 @@ function arriveAtRoom(context: StepContext, slot: number, room: RoomUnit): void 
     }
     fileArrivalTrips(state, room);
     drawCheckInOutings(state, room);
+    assignSuiteParking(context, room);
   }
   if (room.hotel.stayEndStep === null) {
     removePerson(state, personId);
@@ -323,6 +346,35 @@ function travel(guest: Guest, phase: GuestPhase, from: Place, to: Place): boolea
   return false;
 }
 
+function travelFrom(guest: Guest, phase: GuestPhase, entrance: CustomerEntrance): boolean {
+  const door = entranceDoor(guest.state, entrance);
+  return door !== null && travel(guest, phase, door, unitPlace(guest.room));
+}
+
+/** Walks in from the entrance to the room; with no route from the subway, from the street at once. */
+function walkIn(guest: Guest, phase: GuestPhase, entrance: CustomerEntrance): boolean {
+  if (travelFrom(guest, phase, entrance)) return true;
+  return entrance.kind === 'subway' && travelFrom(guest, phase, streetEntrance(guest.state));
+}
+
+function travelTo(
+  guest: Guest,
+  phase: GuestPhase,
+  from: Place,
+  entrance: CustomerEntrance,
+): boolean {
+  const door = entranceDoor(guest.state, entrance);
+  return door !== null && travel(guest, phase, from, door);
+}
+
+/** Walks out to a drawn entrance; with no route to the subway, to the street at once. */
+function walkOut(guest: Guest, phase: GuestPhase, from: Place): boolean {
+  const { state } = guest;
+  const entrance = drawGuestEntrance(state, state.people.id[guest.slot] as number);
+  if (travelTo(guest, phase, from, entrance)) return true;
+  return entrance.kind === 'subway' && travelTo(guest, phase, from, streetEntrance(state));
+}
+
 function settle(guest: Guest): void {
   settleInRoom(guest.state, guest.slot, guest.room, guest.routine);
 }
@@ -338,9 +390,7 @@ function isCheckOutDay(guest: Guest): boolean {
 
 /** Leaving the hotel at the end of the stay is required, so with no route it is tried again. */
 function startDeparture(guest: Guest): void {
-  const { state } = guest;
-  const exit = entrancePlace(state, chance(state.rng, 0.5));
-  if (exit && travel(guest, 'leaving', currentPlace(guest), exit)) return;
+  if (walkOut(guest, 'leaving', currentPlace(guest))) return;
   retryLater(guest, 'leaveRetry');
 }
 
@@ -354,18 +404,15 @@ function currentPlace(guest: Guest): Place {
 
 /** A guest who cannot get out for the day stays in and skips the return as well. */
 function startDayOut(guest: Guest): void {
-  const { state } = guest;
-  const exit = entrancePlace(state, chance(state.rng, 0.5));
-  if (exit && travel(guest, 'toExit', unitPlace(guest.room), exit)) return;
+  if (walkOut(guest, 'toExit', unitPlace(guest.room))) return;
   guest.routine.slots = withSlot(guest.routine.slots, RETURN_SLOT, NO_SLOT);
   settle(guest);
 }
 
 /** The way back to the room is required, so with no route it is tried again later. */
 function startReturn(guest: Guest): void {
-  const { state } = guest;
-  const entrance = entrancePlace(state, chance(state.rng, 0.5));
-  if (entrance && travel(guest, 'toRoom', entrance, unitPlace(guest.room))) return;
+  const entrance = drawGuestEntrance(guest.state, guest.state.people.id[guest.slot] as number);
+  if (walkIn(guest, 'toRoom', entrance)) return;
   retryLater(guest, 'outside');
 }
 
