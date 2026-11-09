@@ -42,7 +42,10 @@ export function useGameConnection({ onNotAuthenticated }: GameConnectionOptions 
 
   useEffect(() => {
     connection.socket.connect();
-    return () => connection.socket.stop();
+    return () => {
+      connection.viewport.stop();
+      connection.socket.stop();
+    };
   }, [connection]);
 
   return { connection, status, protocolMismatch };

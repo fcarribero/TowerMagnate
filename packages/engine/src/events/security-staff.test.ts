@@ -1,11 +1,12 @@
 import { type Fire, type Level, type TowerState } from '@tower-magnate/shared';
 import { describe, expect, it } from 'vitest';
-import { setStructure } from '../grid';
+import { occupantAt, setStructure } from '../grid';
 import { addPeopleForUnit, listPeople } from '../people';
 import { step, type StepContext } from '../step';
 import { buildTower, plainTowerPlan } from '../testing';
 import { searchSteps, startBombSearch } from './bomb-search';
 import { endDisaster, openBombThreat, openFire } from './decisions';
+import { burnCell, noDamage } from './fire-cells';
 import { pickFireTargets } from './fire-guards';
 
 const OFFICE_LEVEL = 2;
@@ -193,17 +194,21 @@ describe('fire guards', () => {
     const beforeLastTick = run(afterArrival, 17);
     const burning = (beforeLastTick.activeEvents[0] as Fire).levels[5];
     expect(burning?.left).toMatchObject({ progress: 9, out: false, x: 27 });
+    expect(burning?.right).toMatchObject({ progress: 9, out: false, x: 33 });
     const outAt = run(beforeLastTick, 6);
-    const level = (outAt.activeEvents[0] as Fire).levels[5];
-    expect(level?.left).toMatchObject({ progress: 12, out: true, x: 27 });
-    expect(level?.right).toMatchObject({ progress: 12, out: true, x: 33 });
+    expect(outAt.activeEvents).toEqual([]);
+    expect(occupantAt(outAt.grid, 5, 27)?.kind).toBe('ruins');
+    expect(occupantAt(outAt.grid, 5, 33)?.kind).toBe('ruins');
+    expect(occupantAt(outAt.grid, 5, 34)).toBeNull();
   });
 
   it('sends guards to another burning level when theirs goes out', () => {
     const { state, fire } = burningTower(5);
     ignite(fire, 5, 0, 30);
     ignite(fire, 7, 0, 30);
-    placeGuardsAt(state, 5, 30);
+    burnCell(state, 5, 30, noDamage());
+    burnCell(state, 7, 30, noDamage());
+    placeGuardsAt(state, 5, 29);
     for (const person of listPeople(state.people)) {
       fire.guards[Number(person.id.slice(1))] = { level: 5, side: null, arrivedStep: null };
     }

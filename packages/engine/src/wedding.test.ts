@@ -9,8 +9,9 @@ import { STEPS_PER_MINUTE } from './calendar';
 import { STEPS_PER_DAY } from './clock';
 import { addPerson, countPeopleByKind, listPeople } from './people';
 import { populationOf } from './population';
+import { createRng } from './rng';
 import { step } from './step';
-import { buildTower, type PlannedShaft } from './testing';
+import { buildTower, type PlannedShaft, type PlannedUnit } from './testing';
 import { GUEST_ON_THE_WAY } from './wedding';
 
 const population = vi.hoisted(() => ({ total: null as number | null }));
@@ -36,7 +37,11 @@ function at(day: number, hour: number, minute = 0): number {
 }
 
 /** Route test tower C: an express to 90 and, when reachable, a standard shaft from 90 to 101. */
-function cathedralTower(options: { reachable: boolean; stars?: StarRating }): TowerState {
+function cathedralTower(options: {
+  reachable: boolean;
+  stars?: StarRating;
+  units?: PlannedUnit[];
+}): TowerState {
   const shafts: PlannedShaft[] = [{ type: 'express', x: 60, bottom: 1, top: 90 }];
   if (options.reachable) shafts.push({ type: 'standard', x: 150, bottom: 90, top: 101 });
   const { state } = buildTower({
@@ -45,7 +50,7 @@ function cathedralTower(options: { reachable: boolean; stars?: StarRating }): To
       { from: 2, to: 100, x0: 40, x1: 339 },
       { from: 101, to: 104, x0: 140, x1: 200 },
     ],
-    units: [{ type: 'cathedral', level: 101, x: CATHEDRAL_X }],
+    units: [{ type: 'cathedral', level: 101, x: CATHEDRAL_X }, ...(options.units ?? [])],
     shafts,
   });
   state.stars = options.stars ?? 5;
@@ -175,6 +180,29 @@ describe('wedding with a broken route', () => {
     expect(guestCount(afternoon.state)).toBe(0);
     expect(newsKeys(afternoon.events)).toEqual([]);
     expect(runMidnight(afternoon.state, SUNDAY).state.wedding?.day).toBe(SUNDAY);
+  });
+});
+
+describe('fire roll on a wedding day (events EV-20)', () => {
+  /** On this seed the 15:00 fire draw hits when the tower reaches it. */
+  const FIRE_SEED = 95;
+
+  it('makes no draw at 15:00, after the guests have left', () => {
+    const tower = cathedralTower({
+      reachable: true,
+      units: [{ type: 'office', level: 12, x: 120 }],
+    });
+    const saturday = runMidnight(tower, SATURDAY).state;
+    const beforeRoll = runUntil(saturday, at(SATURDAY, 15) - 1).state;
+    beforeRoll.rng = createRng(FIRE_SEED);
+
+    const weddingDay = runUntil(beforeRoll, at(SATURDAY, 15));
+    expect(weddingDay.state.wedding).toBeNull();
+    expect(weddingDay.state.activeEvents).toEqual([]);
+    expect(newsKeys(weddingDay.events)).not.toContain('news.fire');
+
+    const unrecorded = runUntil({ ...beforeRoll, lastWeddingDay: null }, at(SATURDAY, 15));
+    expect(unrecorded.state.activeEvents).toMatchObject([{ kind: 'fire' }]);
   });
 });
 
