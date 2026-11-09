@@ -178,10 +178,11 @@ function standAt(state: TowerState, slot: number, place: Place): void {
   state.people.column[slot] = place.column;
 }
 
-/** People spec 3: a guest with a parking space never takes the subway. */
+/** People spec 3: a guest with a parking space never takes the subway. Neither does the VIP (spec 9). */
 function drawGuestEntrance(state: TowerState, personId: number): CustomerEntrance {
   const hasSpace = (state.parking.spaces[personId] ?? 0) > 0;
-  return drawEntrance(state, hasSpace ? null : subwayStation(state));
+  const vip = isVip(state.people, slotOfPerson(state.people, personId));
+  return drawEntrance(state, hasSpace || vip ? null : subwayStation(state));
 }
 
 /** The whole party appears at one entrance and walks to the room (people spec 8.1). */

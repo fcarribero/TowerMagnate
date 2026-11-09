@@ -284,4 +284,37 @@ describe('VIP stay', () => {
     const after = step(state, [], at(TUESDAY + 1, 11) - state.step).state;
     expect(after.vipApproved).toBe(true);
   });
+
+  it('never uses the subway, arriving or leaving, with a station in the tower', () => {
+    for (let seed = 1; seed <= 12; seed++) {
+      const { state, unitIds } = buildTower({
+        seed,
+        lobby: { x0: 0, x1: 200 },
+        floors: [
+          { from: 2, to: 2 as Level, x0: 0, x1: 200 },
+          { from: -9 as Level, to: -1 as Level, x0: 0, x1: 200 },
+        ],
+        units: [
+          { type: 'suite', x: 20, level: 2 as Level },
+          { type: 'restaurant', x: 150, level: 2 },
+          { type: 'subway-station', x: 10, level: -9 as Level },
+        ],
+        shafts: [{ type: 'standard', x: 124, bottom: -7, top: 2 }],
+      });
+      expect(unitIds).toHaveLength(3);
+      state.stars = 3;
+      openVipVisit(state, TUESDAY);
+      state.step = at(TUESDAY, 12) - 1;
+      let current = state;
+      let seen = false;
+      while (current.step < at(TUESDAY + 1, 11)) {
+        current = step(current, [], STEPS_PER_MINUTE).state;
+        const slot = vipSlot(current);
+        if (slot < 0) continue;
+        seen = true;
+        expect(current.people.level[slot]).toBeGreaterThanOrEqual(1);
+      }
+      expect(seen).toBe(true);
+    }
+  });
 });
