@@ -54,14 +54,7 @@ export interface Slot {
 }
 
 type FloorUse =
-  | 'offices'
-  | 'condos'
-  | 'fastFood'
-  | 'shops'
-  | 'hotelA'
-  | 'hotelB'
-  | 'services'
-  | 'skyLobby';
+  'offices' | 'condos' | 'fastFood' | 'shops' | 'hotelA' | 'hotelB' | 'services' | 'skyLobby';
 
 const ZONE_ZERO_USES: Readonly<Record<number, FloorUse>> = {
   2: 'offices',

@@ -14,14 +14,15 @@ Zone 0 is levels 2 to 14, served from the main lobby. Each later zone starts at 
 
 | Level in zone 0 | Use |
 |---|---|
-| 2, 5, 6, 12, 14 | offices |
-| 3, 13 | condos |
+| 2, 6, 11, 14 | offices |
+| 3, 5, 10, 12, 13 | condos |
 | 4 | security and 2 medical centers next to the core, fast food beyond |
 | 7, 8 | hotel: housekeeping, stairs, 2 suites, doubles, singles |
 | 9 | restaurants and retail shops |
-| 10 and 11 | party halls |
 
-Above each sky lobby the 14 levels are: offices, offices, fast food, offices, condos, offices, offices, restaurants and shops, offices, offices, party halls (two levels), offices, offices. The sky lobby level itself holds security and 3 medical centers next to the core and fast food beyond.
+Above each sky lobby the 14 levels are: offices, condos, fast food, offices, condos, offices, condos, restaurants and shops, offices, condos, offices, condos, offices, condos. The sky lobby level itself holds security and 3 medical centers next to the core and fast food beyond.
+
+The mix follows economy.md 3.4, which plans about 1,200 offices and 800 condos for a 15,000 tower: condos are 16 columns wide against 9 for an office, so the two need about the same number of levels. The first draft had 2 condo levels in zone 0 and 1 in each later zone, and the bot ran out of money it could have made from condo sales. Party halls get no guests before TM-37, which is not in 1.0, so their levels hold condos.
 
 Every 10 game minutes the bot does at most one thing, in this order:
 
@@ -29,9 +30,9 @@ Every 10 game minutes the bot does at most one thing, in this order:
 2. Clears ruins.
 3. Transport: one standard shaft per zone at first, one more for every 6 cars wanted, up to 4; a car for every 110 people and daily visits the zone's units bring; express shafts at columns 170 and 184 with a car for every 450 above zone 0; a sky lobby before a zone opens.
 4. Star requirements, once population is near the next threshold: the security office, medical centers (one per 70 expected visits), parking spaces 8 above the holders, recycling for 10% over population, the subway at 4 stars and the cathedral at 5.
-5. Growth: the next free slot of the layout, with party halls and condos first when they need little lobby or floor underneath. Fast food waits for 10 leased offices each; hotel rooms wait for housekeeping, 24 rooms per unit.
+5. Growth: the next free slot of the layout, with condos and fast food first when they need little lobby or floor underneath. Fast food waits for 10 leased offices each; hotel rooms wait for housekeeping, 24 rooms per unit.
 
-Growth keeps back $100,000, a week of upkeep and the current bomb ransom. Prices stay at normal.
+Growth keeps back $100,000 and a week of upkeep. The first draft also kept back the bomb ransom, which held about $300,000 idle at 2 stars for an event that comes once in 60 days; a bomb that finds the bot short of the ransom now goes off. Prices stay at normal.
 
 ## 2. Results before tuning
 
