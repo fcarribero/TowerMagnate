@@ -10,8 +10,12 @@
  * serializes the state but skips the database, which `pnpm bench:snapshots` measures.
  *
  * A result is the median of the runs. When p95 lag or CPU differ by more than 15% between runs
- * the result is void and the runs are repeated, up to MAX_ATTEMPTS times. With --gate the process
- * exits with 1 when the p95 lag is over budget or the result stays void.
+ * the result is void and the runs are repeated, up to MAX_ATTEMPTS times.
+ *
+ * CI runners come with different CPUs, and the same code shows twice the lag on the slowest of
+ * them. A fixed CPU workload is timed before and after the runs, and the budget applies to the
+ * p95 lag scaled to the reference runner by that time. With --gate the process exits with 1 when
+ * the scaled p95 lag is over budget or the result stays void.
  */
 import { cpus, totalmem } from 'node:os';
 import { performance } from 'node:perf_hooks';
@@ -23,6 +27,7 @@ import type { TowerState } from '@tower-magnate/shared';
 import { ConnectionRegistry, type GatewaySocket } from '../gateway';
 import { TICK_INTERVAL_MS, TowerRunner, type TowerStore } from '../runner';
 import { DeltaBroadcaster, Viewports, buildSnapshot } from '../tower-socket';
+import { calibrateCpu, normalizeLag, REFERENCE_CALIBRATION_MS, slowdownFactor } from './cpu-speed';
 import { combineRuns, summarizeTicks, type LoadResult, type LoadRun } from './load-stats';
 import { livedInTower, wholeTowerViewport } from './load-towers';
 
@@ -161,7 +166,23 @@ function machine(): string {
   return `${cpus().length} x ${cpu}, ${memoryGb} GB, Node ${process.version}`;
 }
 
-function report(options: LoadOptions, result: LoadResult, people: number): string {
+interface MachineSpeed {
+  calibrationMs: number;
+  slowdown: number;
+}
+
+/** The faster of two calibrations, so a burst of other work on the runner does not count. */
+function machineSpeed(before: number, after: number): MachineSpeed {
+  const calibrationMs = Math.min(before, after);
+  return { calibrationMs, slowdown: slowdownFactor(calibrationMs) };
+}
+
+function report(
+  options: LoadOptions,
+  result: LoadResult,
+  people: number,
+  speed: MachineSpeed,
+): string {
   const status = result.runsAgree ? '' : ' (void: runs differ by more than 15%)';
   const runs = result.runs
     .map((run) => `${run.p95LagMs.toFixed(1)} ms / ${run.cpuPercent.toFixed(1)}%`)
@@ -171,10 +192,13 @@ function report(options: LoadOptions, result: LoadResult, people: number): strin
     '',
     `- Machine: ${machine()}`,
     `- People per tower at start: ${people}`,
+    `- CPU calibration: ${speed.calibrationMs.toFixed(1)} ms, reference ${REFERENCE_CALIBRATION_MS} ms, ` +
+      `slowdown ${speed.slowdown.toFixed(2)}`,
     `- Tick lag p50: ${result.p50LagMs.toFixed(1)} ms, p95: ${result.p95LagMs.toFixed(1)} ms${status}`,
+    `- Tick lag p95 on the reference runner: ${normalizeLag(result.p95LagMs, speed.slowdown).toFixed(1)} ms`,
     `- CPU: ${result.cpuPercent.toFixed(1)}% of one core`,
     `- Runs (p95 lag / CPU): ${runs}`,
-    `- Budget: p95 lag at most ${options.budgetMs} ms`,
+    `- Budget: p95 lag on the reference runner at most ${options.budgetMs} ms`,
     '',
   ].join('\n');
 }
@@ -188,8 +212,10 @@ async function main(): Promise<void> {
     `${options.towers} towers, ${people} people each, ${options.runs} runs of ${options.minutes} min`,
   );
 
+  const calibrationBefore = calibrateCpu();
   const result = await measure(options, template);
-  const text = report(options, result, people);
+  const speed = machineSpeed(calibrationBefore, calibrateCpu());
+  const text = report(options, result, people, speed);
   console.log(text);
   if (process.env.GITHUB_STEP_SUMMARY) appendFileSync(process.env.GITHUB_STEP_SUMMARY, `${text}\n`);
 
@@ -197,8 +223,10 @@ async function main(): Promise<void> {
   if (!result.runsAgree) {
     console.error('The result is void: runs kept differing by more than 15%.');
     process.exitCode = 1;
-  } else if (result.p95LagMs > options.budgetMs) {
-    console.error(`Tick lag p95 is over the ${options.budgetMs} ms budget.`);
+  } else if (normalizeLag(result.p95LagMs, speed.slowdown) > options.budgetMs) {
+    console.error(
+      `Tick lag p95 on the reference runner is over the ${options.budgetMs} ms budget.`,
+    );
     process.exitCode = 1;
   }
 }
