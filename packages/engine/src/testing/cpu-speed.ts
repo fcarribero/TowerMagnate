@@ -1,5 +1,3 @@
-import { performance } from 'node:perf_hooks';
-
 /**
  * Calibration time of the reference runner: the GitHub `ubuntu-latest` runner with an AMD EPYC
  * 7763, the slowest CPU type the pool gave us, with Node 22. See docs/tech/performance.md.
@@ -68,6 +66,17 @@ export function slowdownFactor(
   referenceMs = REFERENCE_CALIBRATION_MS,
 ): number {
   return calibrationMs / referenceMs;
+}
+
+export interface MachineSpeed {
+  calibrationMs: number;
+  slowdown: number;
+}
+
+/** The faster of two calibrations, so a burst of other work on the runner does not count. */
+export function machineSpeed(before: number, after: number): MachineSpeed {
+  const calibrationMs = Math.min(before, after);
+  return { calibrationMs, slowdown: slowdownFactor(calibrationMs) };
 }
 
 /** A lag measured on this machine expressed as it would be on the reference runner. */

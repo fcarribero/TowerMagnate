@@ -68,7 +68,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Full tower step benchmark
-        # Interim limits until TM-252 brings the step to the section 9 budget.
+        # Interim limits until TM-252 brings the step to the section 9 budget, scaled to the reference runner.
         run: |
           set -o pipefail
           status=0

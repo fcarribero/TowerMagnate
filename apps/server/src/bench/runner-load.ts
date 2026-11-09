@@ -23,11 +23,17 @@ import { setTimeout as sleep } from 'node:timers/promises';
 import { parseArgs } from 'node:util';
 import { appendFileSync } from 'node:fs';
 import { serializeState } from '@tower-magnate/engine';
+import {
+  calibrateCpu,
+  machineSpeed,
+  normalizeLag,
+  REFERENCE_CALIBRATION_MS,
+  type MachineSpeed,
+} from '@tower-magnate/engine/testing';
 import type { TowerState } from '@tower-magnate/shared';
 import { ConnectionRegistry, type GatewaySocket } from '../gateway';
 import { TICK_INTERVAL_MS, TowerRunner, type TowerStore } from '../runner';
 import { DeltaBroadcaster, Viewports, buildSnapshot } from '../tower-socket';
-import { calibrateCpu, normalizeLag, REFERENCE_CALIBRATION_MS, slowdownFactor } from './cpu-speed';
 import { combineRuns, summarizeTicks, type LoadResult, type LoadRun } from './load-stats';
 import { livedInTower, wholeTowerViewport } from './load-towers';
 
@@ -164,17 +170,6 @@ function machine(): string {
   const cpu = cpus()[0]?.model ?? 'unknown CPU';
   const memoryGb = (totalmem() / 1024 ** 3).toFixed(0);
   return `${cpus().length} x ${cpu}, ${memoryGb} GB, Node ${process.version}`;
-}
-
-interface MachineSpeed {
-  calibrationMs: number;
-  slowdown: number;
-}
-
-/** The faster of two calibrations, so a burst of other work on the runner does not count. */
-function machineSpeed(before: number, after: number): MachineSpeed {
-  const calibrationMs = Math.min(before, after);
-  return { calibrationMs, slowdown: slowdownFactor(calibrationMs) };
 }
 
 function report(
