@@ -18,6 +18,7 @@ import {
   type SettingsStore,
   type SoundSettings,
 } from './soundSettings';
+import { SfxCues } from './sfxCues';
 import { SfxDirector, type SfxTrigger } from './sfxTriggers';
 
 export interface Sfx {
@@ -27,16 +28,15 @@ export interface Sfx {
 }
 
 export function createSfx(player: SfxPlayer): Sfx {
-  const playTrigger = (trigger: SfxTrigger): void => {
-    const id = player.idForTrigger(trigger);
-    if (id !== undefined) {
-      player.playSfx(id);
-    }
-  };
+  const cues = new SfxCues(player);
   return {
     playSfx: (id) => player.playSfx(id),
-    playTrigger,
-    director: new SfxDirector(playTrigger),
+    playTrigger: (trigger) => cues.play(trigger),
+    director: new SfxDirector({
+      play: (trigger) => cues.play(trigger),
+      startLoop: (trigger) => cues.startLoop(trigger),
+      stopLoop: (trigger) => cues.stopLoop(trigger),
+    }),
   };
 }
 

@@ -4,6 +4,8 @@ import {
   type ClientEvent,
   type CommandType,
   type DecisionKind,
+  type EventId,
+  type EventView,
   type QueuedCommand,
   type ServerMessage,
 } from '@tower-magnate/shared';
@@ -55,13 +57,35 @@ const ALARM_TRIGGERS: Record<DecisionKind, SfxTrigger> = {
   fire: 'event.fire',
 };
 
+const ALARM_KINDS: readonly DecisionKind[] = ['bomb', 'fire'];
+
 /** Alert notices that play their alarm in place of the notice sound. */
 const ALARM_NOTICE_TRIGGERS: Partial<Record<string, SfxTrigger>> = {
   'news.bombThreat': 'event.bomb',
   'news.fire': 'event.fire',
 };
 
-export const INCOME_SOUND_GAP_MS = 1000;
+const ALARM_START_NOTICES: Partial<Record<string, DecisionKind>> = {
+  'news.bombThreat': 'bomb',
+  'news.fire': 'fire',
+};
+
+/** Notices that end the threat or the fire, and with it the alarm (sound.md section 3). */
+const ALARM_END_NOTICES: Partial<Record<string, DecisionKind>> = {
+  'news.bombPaid': 'bomb',
+  'news.bombFound': 'bomb',
+  'news.bombExploded': 'bomb',
+  'news.fireOut': 'fire',
+  'news.fireHelicopter': 'fire',
+};
+
+function isAlarmTrigger(trigger: SfxTrigger): boolean {
+  return trigger === 'event.bomb' || trigger === 'event.fire';
+}
+
+function eventViewKind(view: EventView): DecisionKind {
+  return view.kind === 'decision' ? view.decision : view.disaster;
+}
 
 export function triggerForCommand(type: CommandType): SfxTrigger | null {
   return COMMAND_TRIGGERS[type];
@@ -101,6 +125,17 @@ function carKey(car: CarView): string {
   return `${car.shaftId}:${car.index}`;
 }
 
+export interface SfxSink {
+  play(trigger: SfxTrigger): void;
+  startLoop(trigger: SfxTrigger): void;
+  stopLoop(trigger: SfxTrigger): void;
+}
+
+/** A playing alarm. The event id is null while only the alert notice has arrived. */
+interface Alarm {
+  eventId: EventId | null;
+}
+
 /**
  * Turns the client's server traffic into sound triggers. The client API calls
  * `commandSent` for each queued command and `serverMessage` for each message.
@@ -108,12 +143,9 @@ function carKey(car: CarView): string {
 export class SfxDirector {
   private readonly pendingCommands = new Map<string, CommandType>();
   private readonly carDoors = new Map<string, CarView['doors']>();
-  private lastIncomeAt = Number.NEGATIVE_INFINITY;
+  private readonly alarms = new Map<DecisionKind, Alarm>();
 
-  constructor(
-    private readonly play: (trigger: SfxTrigger) => void,
-    private readonly now: () => number = () => performance.now(),
-  ) {}
+  constructor(private readonly sink: SfxSink) {}
 
   commandSent(queued: QueuedCommand): void {
     this.pendingCommands.set(queued.id, queued.command.type);
@@ -124,10 +156,15 @@ export class SfxDirector {
       case 'snapshot':
         this.carDoors.clear();
         this.trackCars(message.p.cars);
+        this.stopAlarmsMissingFrom(message.p.activeEvents);
+        this.startAlarmsForOpenDecisions(message.p.activeEvents);
         return;
       case 'delta':
         if (this.trackCars(message.p.cars.map(unpackCar))) {
-          this.play('elevator.arrive');
+          this.sink.play('elevator.arrive');
+        }
+        if (message.p.activeEvents !== undefined) {
+          this.stopAlarmsMissingFrom(message.p.activeEvents);
         }
         return;
       case 'commandResult':
@@ -146,26 +183,91 @@ export class SfxDirector {
     this.pendingCommands.delete(id);
     const trigger = ok && type !== undefined ? triggerForCommand(type) : null;
     if (trigger !== null) {
-      this.play(trigger);
+      this.sink.play(trigger);
     }
   }
 
   private events(events: ClientEvent[]): void {
+    for (const event of events) {
+      this.alarmEvent(event);
+    }
     for (const trigger of triggersForEvents(events)) {
-      if (trigger === 'money.income' && !this.incomeSoundAllowed()) {
-        continue;
+      if (!isAlarmTrigger(trigger)) {
+        this.sink.play(trigger);
       }
-      this.play(trigger);
     }
   }
 
-  private incomeSoundAllowed(): boolean {
-    const now = this.now();
-    if (now - this.lastIncomeAt < INCOME_SOUND_GAP_MS) {
-      return false;
+  private alarmEvent(event: ClientEvent): void {
+    switch (event.type) {
+      case 'decisionOpened':
+        this.startAlarm(event.kind, event.eventId);
+        return;
+      case 'decisionClosed':
+        this.stopAlarmOfEvent(event.eventId);
+        return;
+      case 'news':
+        this.alarmNotice(event.key);
+        return;
+      default:
+        return;
     }
-    this.lastIncomeAt = now;
-    return true;
+  }
+
+  private alarmNotice(key: string): void {
+    const started = ALARM_START_NOTICES[key];
+    if (started !== undefined) {
+      this.startAlarm(started, null);
+    }
+    const ended = ALARM_END_NOTICES[key];
+    if (ended !== undefined) {
+      this.stopAlarm(ended);
+    }
+  }
+
+  private startAlarm(kind: DecisionKind, eventId: EventId | null): void {
+    const playing = this.alarms.get(kind);
+    if (playing !== undefined) {
+      playing.eventId ??= eventId;
+      return;
+    }
+    this.alarms.set(kind, { eventId });
+    this.sink.startLoop(ALARM_TRIGGERS[kind]);
+  }
+
+  private stopAlarm(kind: DecisionKind): void {
+    if (this.alarms.delete(kind)) {
+      this.sink.stopLoop(ALARM_TRIGGERS[kind]);
+    }
+  }
+
+  private stopAlarmOfEvent(eventId: EventId): void {
+    for (const [kind, alarm] of this.alarms) {
+      if (alarm.eventId === eventId) {
+        this.stopAlarm(kind);
+      }
+    }
+  }
+
+  private stopAlarmsMissingFrom(views: EventView[]): void {
+    for (const [kind, alarm] of this.alarms) {
+      const stillActive = views.some((view) =>
+        alarm.eventId === null ? eventViewKind(view) === kind : view.id === alarm.eventId,
+      );
+      if (!stillActive) {
+        this.stopAlarm(kind);
+      }
+    }
+  }
+
+  /** After a reload only an open decision brings the alarm back, not a search or a fire alone. */
+  private startAlarmsForOpenDecisions(views: EventView[]): void {
+    for (const kind of ALARM_KINDS) {
+      const decision = views.find((view) => view.kind === 'decision' && view.decision === kind);
+      if (decision !== undefined) {
+        this.startAlarm(kind, decision.id);
+      }
+    }
   }
 
   /** Returns true when a known car went from closed to open doors. */
