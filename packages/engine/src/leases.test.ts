@@ -150,7 +150,7 @@ describe('office and shop leases', () => {
     expect(after.state.units[unitId]?.lease).toBeNull();
     expect(after.events).toEqual([
       { type: 'leaseEnded', step: 10 + TERM, unitId },
-      { type: 'news', step: 10 + TERM, key: 'news.officeLeft', unitId },
+      { type: 'news', step: 10 + TERM, key: 'news.officeLeft', unitId, params: {} },
     ]);
     const later = engine.step(after.state, [], 2 * STEPS_PER_WEEK);
     expect(later.state.money).toBe(after.state.money);
@@ -170,6 +170,7 @@ describe('office and shop leases', () => {
       step: 10 + TERM,
       key: 'news.shopLeftEvaluation',
       unitId,
+      params: {},
     });
   });
 
@@ -226,7 +227,13 @@ describe('shop early leave (economy 4.3)', () => {
     expect(run.state.units[unitId]?.lease).toBeNull();
     expect(run.events).toEqual([
       { type: 'leaseEnded', step: MOVE_IN + STEPS_PER_WEEK, unitId },
-      { type: 'news', step: MOVE_IN + STEPS_PER_WEEK, key: 'news.shopLeftNoCustomers', unitId },
+      {
+        type: 'news',
+        step: MOVE_IN + STEPS_PER_WEEK,
+        key: 'news.shopLeftNoCustomers',
+        unitId,
+        params: {},
+      },
     ]);
   });
 

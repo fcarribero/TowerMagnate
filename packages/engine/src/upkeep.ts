@@ -10,6 +10,7 @@ import {
 import { WEEKDAYS } from './calendar';
 import { chargeMoney } from './money';
 import type { ScheduledHook } from './scheduler';
+import { emitNews } from './news';
 
 const LOBBY_LEVELS = [TOWER_LAYOUT.mainLobbyFloor, ...TOWER_LAYOUT.skyLobbyFloors];
 
@@ -76,12 +77,7 @@ export const weeklyUpkeepHook: ScheduledHook = {
     const balanceBefore = context.state.money;
     chargeWeeklyUpkeep(context.state);
     if (balanceBefore >= 0 && context.state.money < 0) {
-      context.events.push({
-        type: 'news',
-        step: context.state.step,
-        key: 'news.upkeepNegative',
-        unitId: null,
-      });
+      context.events.push(...emitNews(context.state, 'news.upkeepNegative'));
     }
   },
 };

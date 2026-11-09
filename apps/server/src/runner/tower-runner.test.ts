@@ -66,7 +66,9 @@ describe('tower runner', () => {
       now: () => clock,
       advance: (state, steps) => ({
         state: { ...state, step: state.step + steps },
-        events: [{ type: 'news', step: state.step + steps, key: 'news.test', unitId: null }],
+        events: [
+          { type: 'news', step: state.step + steps, key: 'news.test', unitId: null, params: {} },
+        ],
       }),
     });
     await runner.resume('1');

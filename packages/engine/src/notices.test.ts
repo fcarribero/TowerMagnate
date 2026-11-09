@@ -10,6 +10,7 @@ const news = (step: number, key: string, unitId: string | null = null): EngineEv
   step,
   key,
   unitId,
+  params: {},
 });
 
 describe('recordNotices', () => {
@@ -25,9 +26,16 @@ describe('recordNotices', () => {
   it('keeps the level, amount and star count a news text fills in', () => {
     const tower = createTower(1);
     recordNotices(tower, [
-      { type: 'news', step: 7, key: 'news.bombExploded', level: 7 },
-      { type: 'news', step: 7, commandId: 'c1', key: 'news.treasure', level: -3, amount: 50_000 },
-      { type: 'news', step: 7, key: 'news.starsUp', n: 3 },
+      { type: 'news', step: 7, key: 'news.bombExploded', unitId: null, params: { level: 7 } },
+      {
+        type: 'news',
+        step: 7,
+        commandId: 'c1',
+        key: 'news.treasure',
+        unitId: null,
+        params: { level: -3, amount: 50_000 },
+      },
+      { type: 'news', step: 7, key: 'news.starsUp', unitId: null, params: { n: 3 } },
     ]);
     expect(tower.notices.map((notice) => notice.params)).toEqual([
       { level: 7 },
@@ -39,7 +47,13 @@ describe('recordNotices', () => {
   it('gives the default-decision news no unit and ignores other events', () => {
     const tower = createTower(1);
     recordNotices(tower, [
-      { type: 'news', step: 9, key: 'news.decisionDefault', eventId: 'e1', choice: 'burn' },
+      {
+        type: 'news',
+        step: 9,
+        key: 'news.decisionDefault',
+        unitId: null,
+        params: { option: 'burn' },
+      },
       { type: 'leaseSigned', step: 9, unitId: 'u1' },
     ]);
     expect(tower.notices).toEqual([

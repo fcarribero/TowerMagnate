@@ -7,6 +7,7 @@ import {
   type TowerState,
   type Unit,
   type UnitId,
+  type NewsId,
 } from '@tower-magnate/shared';
 import { DAYS_PER_WEEK } from './calendar';
 import { STEPS_PER_DAY } from './clock';
@@ -14,6 +15,7 @@ import { creditMoney } from './money';
 import type { SimulationSystem, StepContext } from './step';
 import { unitNumber } from './units';
 import { clearUnitLedger, storeGrade } from './unit-evaluation';
+import { emitNews } from './news';
 
 export const STEPS_PER_WEEK = STEPS_PER_DAY * DAYS_PER_WEEK;
 
@@ -23,7 +25,7 @@ type LeasedUnit = Unit & { type: LeasedUnitType };
 /** Decides at the end of a term whether the tenant stays. Null means no evaluation yet: renew. */
 export type TenantEvaluator = (state: TowerState, unit: Unit) => TenantEvaluation | null;
 
-const NEWS_ON_LEAVING: Readonly<Record<LeasedUnitType, string>> = {
+const NEWS_ON_LEAVING: Readonly<Record<LeasedUnitType, NewsId>> = {
   office: 'news.officeLeft',
   'retail-shop': 'news.shopLeftEvaluation',
 };
@@ -51,12 +53,12 @@ function startTerm(context: StepContext, unit: LeasedUnit, event: 'leaseSigned' 
   context.events.push({ type: event, step, unitId: unit.id });
 }
 
-function endLease(context: StepContext, unit: LeasedUnit, newsKey: string): void {
+function endLease(context: StepContext, unit: LeasedUnit, newsKey: NewsId): void {
   const step = context.state.step;
   unit.lease = null;
   unit.evaluation = null;
   context.events.push({ type: 'leaseEnded', step, unitId: unit.id });
-  context.events.push({ type: 'news', step, key: newsKey, unitId: unit.id });
+  context.events.push(...emitNews(context.state, newsKey, { unitId: unit.id }));
 }
 
 /**

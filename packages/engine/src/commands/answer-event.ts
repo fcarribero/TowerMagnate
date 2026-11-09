@@ -1,6 +1,7 @@
 import { endPaidBombThreat } from '../events/bomb';
 import { answerDecision } from '../events/decisions';
 import type { CommandEvent, CommandHandler } from '../step';
+import { emitNews } from '../news';
 
 export const answerEvent: CommandHandler<'answerEvent'> = (context, command) => {
   if (typeof command.eventId !== 'string' || typeof command.choice !== 'string') {
@@ -17,7 +18,7 @@ export const answerEvent: CommandHandler<'answerEvent'> = (context, command) => 
   ];
   if (kind === 'bomb' && command.choice === 'pay') {
     endPaidBombThreat(state, command.eventId);
-    events.push({ type: 'news', key: 'news.bombPaid', unitId: null });
+    events.push(...emitNews(state, 'news.bombPaid', { eventId: command.eventId }));
   }
   return { ok: true, cost: answer.cost, refund: 0, events };
 };

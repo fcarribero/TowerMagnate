@@ -10,6 +10,7 @@ import { hasStructure } from '../commands/structure';
 import { creditMoney } from '../money';
 import { chance } from '../rng';
 import type { CommandEvent } from '../step';
+import { emitNews } from '../news';
 
 const TREASURE_CHANCE = 1 / 40;
 
@@ -54,6 +55,6 @@ export function rollBasementTreasure(state: TowerState, gridBefore: GridState): 
   state.treasureLevels.push(level);
   return [
     { type: 'treasureFound', level, amount },
-    { type: 'news', key: 'news.treasure', level, amount },
+    ...emitNews(state, 'news.treasure', { params: { level, amount } }),
   ];
 }
