@@ -14,6 +14,7 @@ const WEEK_STEPS = 60_480;
 const MONDAY_FIVE_PM = 6_120;
 const OFFICE_RENT = 10_000;
 const RUN_TIMEOUT_MS = 60_000;
+const PART_A_DAYS = 7;
 
 function offices(state: TowerState): Unit[] {
   return Object.values(state.units).filter((unit) => unit.type === 'office');
@@ -49,7 +50,7 @@ describe('scenario: vertical slice part A, tenants, commute and rent over 7 days
   let run: SliceRun;
 
   beforeAll(() => {
-    run = runVerticalSlice();
+    run = runVerticalSlice(PART_A_DAYS);
   }, RUN_TIMEOUT_MS);
 
   it('starts from the stars 8.6 tower with stairs and no tenants', () => {
@@ -151,7 +152,7 @@ describe('scenario: vertical slice part A, tenants, commute and rent over 7 days
   it(
     'gives the same summaries and state hash at step 60,480 for the same seed',
     () => {
-      const again = runVerticalSlice();
+      const again = runVerticalSlice(PART_A_DAYS);
       expect(again.state.step).toBe(WEEK_STEPS);
       expect(again.days).toEqual(run.days);
       expect(again.hash).toBe(run.hash);
@@ -161,7 +162,9 @@ describe('scenario: vertical slice part A, tenants, commute and rent over 7 days
 
   it('prints one summary line per day', () => {
     const lines = formatSliceDays(run.days).split('\n');
-    expect(lines[0]).toBe('Day  Leased  Population  Stair trips  Elevator trips  Rent income');
+    expect(lines[0]).toBe(
+      'Day  Leased  Population  Stair trips  Elevator trips  Rent income  Stars',
+    );
     expect(lines).toHaveLength(8);
     const monday = run.days[0];
     expect(lines[1]).toContain(`$${monday?.rentIncome.toLocaleString('en-US')}`);
