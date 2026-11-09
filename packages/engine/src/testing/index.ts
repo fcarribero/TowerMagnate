@@ -105,7 +105,9 @@ export {
   FULL_TOWER_STEP_BUDGET_MS,
   fullTower,
   fullTowerGateFailures,
+  fullTowerGateWarnings,
+  PEAK_SYSTEMS,
   timeFullTowerDay,
   timeFullTowerRuns,
 } from './full-tower';
-export type { FullTowerLimits, FullTowerResult, FullTowerRun } from './full-tower';
+export type { FullTowerLimits, FullTowerResult, FullTowerRun, SystemTiming } from './full-tower';

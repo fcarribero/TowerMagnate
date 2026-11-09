@@ -72,7 +72,7 @@ jobs:
         run: |
           set -o pipefail
           status=0
-          pnpm bench:full-tower --gate --avg-ms 7 --p95-ms 17.5 --p99-ms 27.5 2>&1 | tee bench.txt || status=$?
+          pnpm bench:full-tower --gate --avg-ms 5 --p95-ms 8 --p99-ms 15 --system-p95-ms 3 --system-p95-report-ms 2.5 2>&1 | tee bench.txt || status=$?
           { echo '### Step budget, 15,000 people'; echo '```'; cat bench.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
           exit $status
 
