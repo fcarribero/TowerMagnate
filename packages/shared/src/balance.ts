@@ -426,10 +426,10 @@ export const HOTEL_CHECK_IN_HOURS = { from: 12, until: 23 } as const;
 export const HOTEL_CHECK_OUT_HOUR = 10;
 
 export const CONDO_SALE_PRICE: PriceTable = {
-  high: 200_000,
-  normal: 150_000,
-  low: 100_000,
-  minimum: 40_000,
+  high: 230_000,
+  normal: 175_000,
+  low: 115_000,
+  minimum: 45_000,
 };
 
 /** Sorted by minCustomers; the last bracket the count reaches applies. */
@@ -542,26 +542,26 @@ export const WEEKLY_UPKEEP: Readonly<Record<UnitType, UpkeepRule>> = {
   },
   stairs: flatUpkeep('per-unit', 0),
   escalator: flatUpkeep('per-unit', 10_000),
-  'standard-elevator': flatUpkeep('per-car', 20_000),
+  'standard-elevator': flatUpkeep('per-car', 10_000),
   office: flatUpkeep('per-unit', 0),
   condo: flatUpkeep('per-unit', 0),
   'fast-food': flatUpkeep('per-unit', 0),
   'single-room': flatUpkeep('per-unit', 2_000),
   'double-room': flatUpkeep('per-unit', 3_000),
   suite: flatUpkeep('per-unit', 6_000),
-  housekeeping: flatUpkeep('per-unit', 20_000),
-  security: flatUpkeep('per-unit', 40_000),
-  'service-elevator': flatUpkeep('per-car', 20_000),
+  housekeeping: flatUpkeep('per-unit', 10_000),
+  security: flatUpkeep('per-unit', 20_000),
+  'service-elevator': flatUpkeep('per-car', 10_000),
   restaurant: flatUpkeep('per-unit', 0),
   'retail-shop': flatUpkeep('per-unit', 0),
   cinema: flatUpkeep('per-unit', 0),
   'party-hall': flatUpkeep('per-unit', 20_000),
-  'express-elevator': flatUpkeep('per-car', 40_000),
+  'express-elevator': flatUpkeep('per-car', 20_000),
   'medical-center': flatUpkeep('per-unit', 0),
   'parking-ramp': flatUpkeep('per-unit', 20_000),
   'parking-space': flatUpkeep('per-unit', 0),
-  'recycling-center': flatUpkeep('per-unit', 100_000),
-  'subway-station': flatUpkeep('per-unit', 200_000),
+  'recycling-center': flatUpkeep('per-unit', 50_000),
+  'subway-station': flatUpkeep('per-unit', 100_000),
   cathedral: flatUpkeep('per-unit', 0),
 };
 

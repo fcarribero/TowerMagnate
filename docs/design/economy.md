@@ -106,7 +106,7 @@ Design call on the stay weights: the GDD gives 1 to 4 nights without weights. Sh
 
 | Alto | Normal | Bajo | Mínimo |
 |---|---|---|---|
-| $200,000 | $150,000 | $100,000 | $40,000 |
+| $230,000 | $175,000 | $115,000 | $45,000 |
 
 ### 6.2 Sale and buyback
 
@@ -196,17 +196,17 @@ Design call: per-unit upkeep doubles (a round factor between 1 and 7/3), lobby u
 
 | Item | GDD per week | This spec per week |
 |---|---|---|
-| Standard or service elevator car | $10,000 | $20,000 per car |
-| Express elevator car | $20,000 | $40,000 per car |
+| Standard or service elevator car | $10,000 | $10,000 per car |
+| Express elevator car | $20,000 | $20,000 per car |
 | Escalator | $5,000 | $10,000 |
 | Stairs | not listed | $0 |
-| Housekeeping | $10,000 | $20,000 |
-| Security | $20,000 | $40,000 |
+| Housekeeping | $10,000 | $10,000 |
+| Security | $20,000 | $20,000 |
 | Medical center | not listed | $0 |
 | Parking ramp | $10,000 | $20,000 per ramp |
 | Parking space | not listed | $0 |
-| Recycling center | $50,000 | $100,000 |
-| Subway station | $100,000 | $200,000 |
+| Recycling center | $50,000 | $50,000 |
+| Subway station | $100,000 | $100,000 |
 | Lobby, below 3 stars | $0 per cell | $0 per column |
 | Lobby, at 3 stars | $300 per cell | $500 per column |
 | Lobby, at 4 stars or more | $1,000 per cell | $1,500 per column |
@@ -291,7 +291,7 @@ Each event reads the balance left by the previous one. The order matters only fo
 | Single $3,000 / $2,000 / $1,500 / $500 | 5.1 | Kept |
 | Double $4,500 / $3,000 / $2,000 / $800 | 5.1 | Kept |
 | Suite $9,000 / $6,000 / $4,000 / $1,500 | 5.1 | Kept |
-| Condo $200,000 / $150,000 / $100,000 / $40,000, sold once | 6 | Kept |
+| Condo $200,000 / $150,000 / $100,000 / $40,000, sold once | 6 | Changed: $230,000 / $175,000 / $115,000 / $45,000 (TM-136) |
 | Condo price changes only while unsold | 3, 6.2 | Kept |
 | Condo evaluated every 4 weeks, refund on poor | 6.2 | Kept |
 | Fast food -$3,000 / $2,000 / $3,000 / $5,000 at 25, 35, 50 | 7.1 | Kept, payout at 20:00 |
@@ -301,7 +301,7 @@ Each event reads the balance left by the previous one. The order matters only fo
 | Film change $300,000 | 7.3 | Kept |
 | Party hall $20,000 a day if anyone came | 7.2 | Changed: $0 / $5,000 / $10,000 at 25 and 40 guests |
 | Upkeep every Monday 00:00 | 8.3 | Kept |
-| Upkeep table | 8.2 | Changed: doubled, lobby ×1.5 per column, hotel rooms and party hall added |
+| Upkeep table | 8.2 | Changed: GDD values for cars, housekeeping, security, recycling and subway (TM-136 undid the doubling); lobby ×1.5 per column, escalator and parking ramp doubled, hotel rooms and party hall added |
 
 ## 12. Balance check
 
@@ -318,11 +318,13 @@ These are planning numbers for the playtest balance pass, not engine rules. Each
 | Restaurant | $212,000 | 35 to 49 a day | $42,000 | 5.0 |
 | Party hall | $112,000 | 40 or more a day | $50,000 | 2.2 |
 | Cinema | $515,500 | full, film changed every 6 weeks | $43,000 | 12 |
-| Condo | $88,000 | sold, kept | $150,000 once | at sale |
+| Condo | $88,000 | sold, kept | $175,000 once | at sale |
 
-Elevator cars, housekeeping, security and the rest are shared costs on top of these lines. A standard shaft with 4 cars costs $520,000 to build and $80,000 a week to run, the rent of 8 offices.
+Elevator cars, housekeeping, security and the rest are shared costs on top of these lines. A standard shaft with 4 cars costs $520,000 to build and $40,000 a week to run, the rent of 4 offices.
 
-Pacing estimate: with weekly returns of 15% to 25% on most units after shared costs, a careful player compounds from $2,000,000 to the roughly $100,000,000 of total construction a 15,000-person tower needs in 18 to 24 game weeks, about 32 to 42 hours of connected play. Expected milestones: 2 stars in week 1, 3 stars in weeks 2 to 3, 4 stars around week 9, 5 stars around week 15, Tower after week 18. This matches the GDD goal of several game weeks spread over real days. The balance simulation (later task) checks these numbers and GD retunes the constants in `packages/shared` from its results.
+Pacing estimate: with weekly returns of 15% to 25% on most units after shared costs, a careful player compounds from $2,000,000 to the roughly $100,000,000 of total construction a 15,000-person tower needs in 18 to 24 game weeks, about 32 to 42 hours of connected play. Expected milestones: 2 stars in week 1, 3 stars in weeks 2 to 3, 4 stars around week 9, 5 stars around week 15, Tower after week 18. This matches the GDD goal of several game weeks spread over real days. The balance simulation (TM-136) checks these numbers and GD retunes the constants in `packages/shared` from its results.
+
+Measured by the TM-136 progression bot (docs/design/balance.md), 5 seeds, game days, constants as in this spec: 2 stars on day 2 on every seed; 3 stars on days 17 to 18 (median 18); 4 stars on days 59 to 64 (median 61). The targets are 3 stars on days 14 to 21 and 4 stars on days 54 to 72. The 5 stars and Torre days are not measured yet; balance.md section 4 has their status.
 
 ## 13. Error codes and UI messages
 
@@ -451,7 +453,7 @@ E-41. On the first day a film is 56 days old, and every 7 days after while it is
 
 E-42. Upkeep is charged at every step that is a positive multiple of 60,480 (Monday 00:00). Step 0 charges nothing. Error: none.
 
-E-43. Weekly upkeep: $20,000 per standard or service car, $40,000 per express car, $10,000 per escalator, $20,000 per housekeeping, $40,000 per security, $20,000 per parking ramp, $100,000 per recycling center, $200,000 per subway station, $2,000 per single room, $3,000 per double room, $6,000 per suite, $20,000 per party hall. Everything else is $0. Error: none.
+E-43. Weekly upkeep: $10,000 per standard or service car, $20,000 per express car, $10,000 per escalator, $10,000 per housekeeping, $20,000 per security, $20,000 per parking ramp, $50,000 per recycling center, $100,000 per subway station, $2,000 per single room, $3,000 per double room, $6,000 per suite, $20,000 per party hall. Everything else is $0. Error: none.
 
 E-44. Lobby upkeep is charged per lobby column (main and sky): $0 below 3 stars, $500 at 3 stars, $1,500 at 4 stars or more, using the star level at the step of the charge. Lobby height does not change it. Error: none.
 

@@ -436,10 +436,10 @@ describe('price tables', () => {
 
   it('matches the condo sale prices for all four levels', () => {
     expect(CONDO_SALE_PRICE).toEqual({
-      high: 200_000,
-      normal: 150_000,
-      low: 100_000,
-      minimum: 40_000,
+      high: 230_000,
+      normal: 175_000,
+      low: 115_000,
+      minimum: 45_000,
     });
   });
 });
@@ -515,26 +515,26 @@ describe('weekly upkeep', () => {
       },
       stairs: flat('per-unit', 0),
       escalator: flat('per-unit', 10_000),
-      'standard-elevator': flat('per-car', 20_000),
+      'standard-elevator': flat('per-car', 10_000),
       office: flat('per-unit', 0),
       condo: flat('per-unit', 0),
       'fast-food': flat('per-unit', 0),
       'single-room': flat('per-unit', 2_000),
       'double-room': flat('per-unit', 3_000),
       suite: flat('per-unit', 6_000),
-      housekeeping: flat('per-unit', 20_000),
-      security: flat('per-unit', 40_000),
-      'service-elevator': flat('per-car', 20_000),
+      housekeeping: flat('per-unit', 10_000),
+      security: flat('per-unit', 20_000),
+      'service-elevator': flat('per-car', 10_000),
       restaurant: flat('per-unit', 0),
       'retail-shop': flat('per-unit', 0),
       cinema: flat('per-unit', 0),
       'party-hall': flat('per-unit', 20_000),
-      'express-elevator': flat('per-car', 40_000),
+      'express-elevator': flat('per-car', 20_000),
       'medical-center': flat('per-unit', 0),
       'parking-ramp': flat('per-unit', 20_000),
       'parking-space': flat('per-unit', 0),
-      'recycling-center': flat('per-unit', 100_000),
-      'subway-station': flat('per-unit', 200_000),
+      'recycling-center': flat('per-unit', 50_000),
+      'subway-station': flat('per-unit', 100_000),
       cathedral: flat('per-unit', 0),
     });
   });

@@ -143,7 +143,7 @@ describe('shop lease end by grade (E-12)', () => {
 });
 
 describe('condo evaluation by grade (E-25)', () => {
-  const SALE_PRICE = 150_000;
+  const SALE_PRICE = 175_000;
 
   function condoDueNext(stress: number) {
     const { state, units } = towerWith({ type: 'condo', x: OFFICE_X });

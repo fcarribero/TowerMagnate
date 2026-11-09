@@ -1,6 +1,6 @@
 # Balance pass 1: simulated progression
 
-Version 0.1 (draft), 3 February 2027. Owner: Game Designer. Task TM-136.
+Version 0.2 (draft), 5 February 2027. Owner: Game Designer. Task TM-136.
 
 This report measures how many game days a careful player needs to reach each rating, from an empty tower with the starting money and no debug money. The player is a scripted bot in `packages/engine/src/testing/progression-bot.ts` that sends real commands to the engine and plays every step with the real rules. Targets come from economy.md section 12: 2 stars by day 7, 3 stars on days 14 to 21, 4 stars on days 54 to 72, 5 stars on days 89 to 121 and the Torre rank on days 126 to 168, as medians over 5 seeds. No seed may reach 5 stars before day 84.
 
@@ -62,8 +62,26 @@ The same 5 seeds with every doubled upkeep line in economy.md 8.2 put back to th
 
 ## 3. Constants changed
 
-None yet. Upkeep alone does not bring 3 or 4 stars into range. The next step is a combined change: GDD upkeep plus a cheaper path through 2 stars (see the TM-136 notes in the tracker for the options).
+Two changes in `packages/shared/src/balance.ts`, with the matching tests and economy.md 6.1, 8.2 and 12.
+
+Condo sale price, which pays for most early growth: $230,000 / $175,000 / $115,000 / $45,000 for high, normal, low and minimum, from $200,000 / $150,000 / $100,000 / $40,000.
+
+Weekly upkeep: cars, housekeeping, security, recycling center and subway station go back to the GDD values (standard and service car $10,000, express car $20,000, housekeeping $10,000, security $20,000, recycling $50,000, subway $100,000). Lobby, escalator, parking ramp, hotel rooms and party hall keep their economy.md values.
+
+Upkeep alone moved 4 stars from day 98 to day 84 (section 2.4). A condo price of $200,000 normal brought 4 stars to about day 49 and 5 stars to about day 63 on some seeds, which is too fast for the 5 stars range, so the price was set at $175,000.
 
 ## 4. Results after tuning
 
-To be filled in.
+Seeds 1 to 5, constants of section 3, run to day 75 (`pnpm balance:progression --days 75`). Game day each rating came.
+
+| Rating | Seed 1 | Seed 2 | Seed 3 | Seed 4 | Seed 5 | Median | Target |
+|---|---|---|---|---|---|---|---|
+| 2 stars | 2 | 2 | 2 | 2 | 2 | 2 | by 7 |
+| 3 stars | 18 | 17 | 18 | 18 | 17 | 18 | 14 to 21 |
+| 4 stars | 61 | 60 | 64 | 59 | 61 | 61 | 54 to 72 |
+| 5 stars | not by 75 | not by 75 | not by 75 | not by 75 | not by 75 | not measured | 89 to 121 |
+| Torre | not measured | not measured | not measured | not measured | not measured | not measured | 126 to 168 |
+
+Before and after at the same bot: 3 stars by day 35 on every seed and 4 stars on days 98, 98, none by 112, 119 and 98 (section 2.3), against the table above.
+
+2 stars, 3 stars and 4 stars are inside their ranges. 5 stars and Torre are not measured: a 5-seed run past day 75 takes several hours, and a 200-day run was started at the end of sprint 13. With a condo price of $200,000 two seeds had 5 stars at day 63, so 5 stars is the open risk. If the 200-day run shows 5 stars before day 84 on any seed, the next change is on the 4 to 5 star step (population 10,000), not on the condo price.
