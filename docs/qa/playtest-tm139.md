@@ -227,6 +227,55 @@ Run once TM-35 (hotel guests) and TM-110 (VIP visit) are in `develop`. Start fro
 10. Save and restore with SIGKILL once at 5 stars: same step, money, units and hotel stays.
 11. File a bug per defect with steps and priority, and update the Result section above.
 
+## QA run on the release build, from 1 February
+
+QA1 plays the checklist on the production image, the build a player gets, in real time. This section grows each QA day until the run reaches Torre.
+
+### Setup
+
+- Build: this branch at 116792e, which is `develop` at e5d16af merged in. `pnpm stack --profile prod up -d --build` with `PORT_BASE=4190` and `COMPOSE_PROJECT_NAME=tm-qa1`. The game and the API are both on port 4191.
+- The account and tower were made in the browser (headless Chromium, 1600 x 900): "Creá una", username and both password fields, "Crear cuenta". The game opened with the Bienvenida dialog.
+- Commands went over a second socket of the same session, from a small script that also logged every star change, notice and event with the game clock and the real clock. Screenshots are in the office folder under `qa1-shots/tm139-*.png`.
+- Debug commands are off in production: `debug.fastForward` and `debug.setMoney` got the error frame `NOT_ALLOWED` "Debug commands are not available here". So this run has no fast-forward and no free money. It starts with $2.000.000 and grows on condo sales and rent, and every milestone below is real time.
+
+### Milestones
+
+Real time is measured from the first command at 00:07 on day 0. The clock ran at 96 game minutes per real minute (day 0 00:07 to day 1 18:00 took 26 min 10 s), which is the 15 minutes per day of the GDD.
+
+| Milestone | Game date | Step | Population | Real time |
+|---|---|---|---|---|
+| Start, 1 star | Mon 1 Jan 00:07 | 42 | 0 | 0 h 00 |
+| Check fails, below 300 | Mon 1 Jan 17:00 | 6,120 | 105 | 0 h 10 |
+| Check fails, below 300 | Tue 2 Jan 17:00 | 14,760 | 240 | 0 h 26 |
+| 2 stars | Wed 3 Jan 17:00 | 23,400 | 434 | 0 h 41 |
+
+Build order: a 64-column main lobby (columns 150 to 213), floors 2 to 5, one standard shaft at column 180, then one floor at a time with 2 condos and 2 offices each, paid by the condo sales. Each condo costs $80.000 and sold for $150.000 within hours, so condos fund the tower in the first days. By the 2-star check there were 20 floors, 40 offices and 36 condos.
+
+### Checklist on the release build
+
+| Feature | Status | Notes |
+|---|---|---|
+| Register, create tower, welcome dialog | works | Bienvenida text names the $2.000.000 |
+| Game renders in production | works | Tower, people, lit windows at night. The console shows one CSP line from `uiScale` ("script-src was not explicitly set"); it is the renderer probing for `eval`, and nothing breaks |
+| Debug commands refused | works | `NOT_ALLOWED` |
+| Clock speed | works | 15 real minutes per game day |
+| Main lobby | works | Second run of a different height: `LOBBY_HEIGHT_MISMATCH`. A run not touching the lobby: `LOBBY_NOT_CONTIGUOUS`. Extension at columns 86 to 149 for $320.000 |
+| Floors, standard shaft, add car, resize | works | Shaft with 1 car $280.000, each extra car $80.000, resize free |
+| Stairs | works | $5.000 from the lobby to level 2. A landing on an occupied cell: `TRANSPORT_LANDING`. Outside the lobby: `NO_FLOOR` |
+| Escalator | works | Lobby to an office floor: `ESCALATOR_FLOOR_TYPE` |
+| Star lock at 1 star | works | Suite and security: `STAR_LOCKED`. Restaurant at 2 stars: `STAR_LOCKED` |
+| Offices, rent | works | Rent charged at move-in, first offices leased at 08:00 on day 0 |
+| Condo sale, price lock | works | Sold at $150.000; `setPrice` on a sold condo: `PRICE_LOCKED`. On a leased office it is accepted |
+| Rename unit | works | |
+| Demolish within 1 game hour | works | Office built at 21:48 and demolished at 22:31 refunded $40.000 |
+| Fast food | works | Under 25 customers on level 5 it lost $3.000 a day, as the table says |
+| Star check 1 to 2 | works | Failed silently below 300 on Monday and Tuesday, passed Wednesday 17:00 with `news.starsUp` `{"n":2}` |
+| 2-star unlocks | works | Security, housekeeping, 3 suites, 2 double and 2 single rooms, service shaft at column 209 on levels 21 and 22. Service shaft at column 205: `CELL_OCCUPIED` (a double room was there) |
+| Hotel check-in | works | First suite and double room taken on day 3 after 12:00 |
+| Finances window | works | Rows and totals match the money; `Semana anterior` shows $0 in week 1 |
+| Avisos window | works | "Todavía no hay avisos." before the first notice |
+| Save and restore after SIGKILL | works | `docker kill` at day 1 18:28; after restart the tower came back at 18:18 with the same units. The 10 lost game minutes are within the 30-second autosave. The open socket reconnected by itself |
+
 ## Balance and design notes
 
 Medical sufficiency failed on both weekdays checked with 918 offices and 9 centers, while people.md 16 expects 6 centers to be enough for 800 offices. The centers had 30, 58, 92, 100, 86, 21, 71, 62 and 4 visits that day: 524 visits for 900 places. Workers pick the cheapest route among 3 drawn centers, so one center fills, and the next worker who already chose it fails as "full on arrival" at about 19:14. One failure blocks the star check. The note is on TM-144.
@@ -244,3 +293,4 @@ Clearing ruins one cell per command is slow even once TM-237 lets the Topadora d
 - TM-239, P4, server: Debug setClock across Monday leaves last week's finances empty.
 - TM-247, P3, engine: Subway station accepted above level -9.
 - TM-250, P1, engine: Saved tower fails to load after a bomb or fire destroys a unit.
+- TM-254, P4, web: Star window says "Rango actual: 1 estrellas".
