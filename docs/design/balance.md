@@ -85,3 +85,11 @@ Seeds 1 to 5, constants of section 3, run to day 75 (`pnpm balance:progression -
 Before and after at the same bot: 3 stars by day 35 on every seed and 4 stars on days 98, 98, none by 112, 119 and 98 (section 2.3), against the table above.
 
 2 stars, 3 stars and 4 stars are inside their ranges. 5 stars and Torre are not measured: a 5-seed run past day 75 takes several hours, and a 200-day run was started at the end of sprint 13. With a condo price of $200,000 two seeds had 5 stars at day 63, so 5 stars is the open risk. If the 200-day run shows 5 stars before day 84 on any seed, the next change is on the 4 to 5 star step (population 10,000), not on the condo price.
+
+## 5. 200-day run, constants of section 3 (in progress, 8 February 2027)
+
+A parallel 200-day run of seeds 1 to 5 was read from the weekly progress lines, so each day is the end of the game week in which the rating came. 4 stars came by day 63 on seeds 1, 2, 4 and 5 and by day 70 on seed 3. 5 stars came by day 84 on seeds 1, 2, 4 and 5 and by day 91 on seed 3 (day 91 for seed 3 means days 85 to 91). The median is by day 84, below the 89 to 121 range, and at least four seeds are inside the days before 84 that no seed may reach. 5 stars is too early. The 4 to 5 star step took about 20 days against 35 to 45 planned.
+
+Torre is not measured. The run reached day 91 after about 35 minutes and slows as population grows.
+
+Next step: lower the condo sale price from $175,000 to about $155,000 normal, which should move 4 stars to about day 70 and 5 stars to about day 93, and rerun to exact days. The price is a guess from the 200,000 and 175,000 runs and is not measured.
