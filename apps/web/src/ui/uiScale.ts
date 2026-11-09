@@ -48,3 +48,14 @@ export function useUiScale(): UiScale {
 
   return current;
 }
+
+/** The current scale without publishing it; for code that needs it in pixels. */
+export function useViewportUiScale(): number {
+  const [scale, setScale] = useState(() => readViewport().scale);
+  useEffect(() => {
+    const update = () => setScale(readViewport().scale);
+    window.addEventListener('resize', update);
+    return () => window.removeEventListener('resize', update);
+  }, []);
+  return scale;
+}

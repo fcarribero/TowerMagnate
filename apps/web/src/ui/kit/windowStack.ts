@@ -15,9 +15,13 @@ export interface OpenWindow {
   openedAt: number;
   /** Dialogs stay above every ordinary window. */
   onTop: boolean;
-  /** Waiting to be centered once its size is known. */
-  pendingCenter: boolean;
+  /** Waiting to be placed once its size is known. */
+  pendingPlacement: Placement | null;
 }
+
+export type Corner = 'topLeft' | 'topRight';
+
+export type Placement = { kind: 'center' } | { kind: 'corner'; corner: Corner; belowId?: string };
 
 /** Windows in back-to-front order: the last one is the front window. */
 export interface WindowStack {
@@ -30,8 +34,11 @@ export interface OpenRequest {
   id: string;
   /** Windows of the same kind share a limit; defaults to the id. */
   kind?: string;
-  /** Where the window opens; without one it opens centered. */
+  /** Where the window opens; without one it opens centered or in `corner`. */
   position?: Point;
+  /** Opens in a corner of the view, below the window `belowId` when that one is open. */
+  corner?: Corner;
+  belowId?: string;
   onTop?: boolean;
 }
 
@@ -56,6 +63,27 @@ export function clampPosition(position: Point, windowSize: Size, view: Size, uiS
     x: Math.round(clamp(position.x, minX, maxX)),
     y: Math.round(clamp(position.y, 0, maxY)),
   };
+}
+
+function placementOf(request: OpenRequest): Placement {
+  if (request.corner === undefined) {
+    return { kind: 'center' };
+  }
+  return { kind: 'corner', corner: request.corner, belowId: request.belowId };
+}
+
+/** Distance in UI pixels from the view edge to a window placed in a corner. */
+export const CORNER_INSET = 8;
+
+export function cornerPosition(
+  corner: Corner,
+  windowSize: Size,
+  view: Size,
+  inset: number,
+  top = inset,
+): Point {
+  const x = corner === 'topLeft' ? inset : view.width - windowSize.width - inset;
+  return { x: Math.max(x, 0), y: top };
 }
 
 export function centeredPosition(windowSize: Size, view: Size): Point {
@@ -86,15 +114,16 @@ export function openWindow(stack: WindowStack, request: OpenRequest): WindowStac
   if (findWindow(stack, request.id) !== undefined) {
     return focusWindow(stack, request.id);
   }
-  const requested = request.position;
+  const remembered = request.onTop ? undefined : stack.lastPositions[request.id];
+  const requested = remembered ?? request.position;
+  const needsPlacement = requested === undefined;
   const opened: OpenWindow = {
     id: request.id,
     kind: request.kind ?? request.id,
-    position:
-      requested === undefined ? { x: 0, y: 0 } : (stack.lastPositions[request.id] ?? requested),
+    position: requested ?? { x: 0, y: 0 },
     openedAt: stack.openCount,
     onTop: request.onTop ?? false,
-    pendingCenter: requested === undefined,
+    pendingPlacement: needsPlacement ? placementOf(request) : null,
   };
   const windows = keepDialogsOnTop([...stack.windows, opened]);
   const sameKind = windows
@@ -125,7 +154,7 @@ export function moveWindow(stack: WindowStack, id: string, position: Point): Win
   return {
     ...stack,
     windows: stack.windows.map((window) =>
-      window.id === id ? { ...window, position, pendingCenter: false } : window,
+      window.id === id ? { ...window, position, pendingPlacement: null } : window,
     ),
   };
 }

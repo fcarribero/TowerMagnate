@@ -4,12 +4,16 @@ import { t } from '../strings';
 import { useWindowManager } from './WindowLayer';
 import { focusableElements, trapTabKey } from './focus';
 import {
+  CORNER_INSET,
   centeredPosition,
   clampPosition,
+  cornerPosition,
   findWindow,
   frontWindow,
+  type Placement,
   type Point,
   type Size,
+  type WindowStack,
 } from './windowStack';
 
 const BASE_Z_INDEX = 10;
@@ -71,9 +75,10 @@ export function Window({
     };
   }, [isMounted]);
 
-  const pendingCenter = openWindow?.pendingCenter ?? false;
-  // A window waiting to be centered is hidden, and hidden elements cannot take focus.
-  const isPlaced = isMounted && !pendingCenter;
+  const pendingPlacement = openWindow?.pendingPlacement ?? null;
+  const isWaitingForPlace = pendingPlacement !== null;
+  // A window waiting to be placed is hidden, and hidden elements cannot take focus.
+  const isPlaced = isMounted && !isWaitingForPlace;
   useEffect(() => {
     if (isPlaced) {
       focusInitialElement(frameRef.current);
@@ -92,11 +97,11 @@ export function Window({
 
   useEffect(() => {
     const frame = frameRef.current;
-    if (!pendingCenter || frame === null || manager.viewSize.width === 0) {
+    if (pendingPlacement === null || frame === null || manager.viewSize.width === 0) {
       return;
     }
-    manager.move(id, centeredPosition(frameSize(frame), manager.viewSize));
-  }, [pendingCenter, manager.viewSize.width, manager.viewSize.height]);
+    manager.move(id, placedPosition(pendingPlacement, frame, manager));
+  }, [isWaitingForPlace, manager.viewSize.width, manager.viewSize.height]);
 
   useEffect(() => {
     const frame = frameRef.current;
@@ -158,7 +163,7 @@ export function Window({
     }
   };
 
-  const classes = ['tm-window', isFront && 'is-active', pendingCenter && 'is-placing']
+  const classes = ['tm-window', isFront && 'is-active', isWaitingForPlace && 'is-placing']
     .filter(Boolean)
     .join(' ');
   const widthStyle = width === undefined ? undefined : `calc(${width} * var(--tm-px))`;
@@ -180,6 +185,7 @@ export function Window({
         aria-labelledby={titleId}
         tabIndex={-1}
         style={{ left: `${position.x}px`, top: `${position.y}px`, zIndex, width: widthStyle }}
+        data-window-id={id}
         onPointerDown={() => manager.focus(id)}
         onFocusCapture={() => manager.focus(id)}
       >
@@ -250,6 +256,36 @@ function focusInitialElement(frame: HTMLElement | null): void {
   }
   const marked = focusableElements(frame).find((element) => element.hasAttribute('data-autofocus'));
   (marked ?? frame).focus({ preventScroll: true });
+}
+
+function placedPosition(
+  placement: Placement,
+  frame: HTMLElement,
+  manager: { stack: WindowStack; viewSize: Size; uiScale: number },
+): Point {
+  const size = frameSize(frame);
+  if (placement.kind === 'center') {
+    return centeredPosition(size, manager.viewSize);
+  }
+  const inset = CORNER_INSET * manager.uiScale;
+  const top = bottomOf(placement.belowId, frame, manager.stack);
+  return cornerPosition(
+    placement.corner,
+    size,
+    manager.viewSize,
+    inset,
+    top === null ? inset : top + inset,
+  );
+}
+
+/** Bottom edge of an open window inside the same layer, or null when it is not open. */
+function bottomOf(id: string | undefined, frame: HTMLElement, stack: WindowStack): number | null {
+  const open = id === undefined ? undefined : findWindow(stack, id);
+  const element = frame.parentElement?.querySelector<HTMLElement>(`[data-window-id="${id}"]`);
+  if (open === undefined || !element) {
+    return null;
+  }
+  return open.position.y + element.offsetHeight;
 }
 
 function frameSize(frame: HTMLElement): Size {

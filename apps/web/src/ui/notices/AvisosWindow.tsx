@@ -19,7 +19,7 @@ export interface AvisosWindowProps {
 export function AvisosWindow({ notices, onSeeUnit, onClose }: AvisosWindowProps) {
   const manager = useWindowManager();
   useEffect(() => {
-    manager.open({ id: AVISOS_WINDOW_ID });
+    manager.open({ id: AVISOS_WINDOW_ID, corner: 'topLeft' });
     return () => manager.close(AVISOS_WINDOW_ID);
   }, []);
   return (

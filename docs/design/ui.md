@@ -408,7 +408,7 @@ People are not drawn. The map redraws at most once per real second. Pressing or 
 
 Design call: the GDD lists the stars in the status panel but no way to see what the next star needs. A small window opened by clicking the stars shows it, with no new data beyond population and stars.
 
-Title "Estrellas". Rows: "Rango actual: {n} estrellas" (or "Torre"), then "Para {n+1} estrellas:" (or "Para el rango Torre:") and the requirements of the next step as plain text from 13.10, with a progress bar for population `{population} de {target}`. At the top rank the body says "La torre llegó al rango máximo."
+Title "Estrellas". Rows: "Rango actual: {n} estrellas" ("Rango actual: 1 estrella" at 1 star, or "Torre"), then "Para {n+1} estrellas:" (or "Para el rango Torre:") and the requirements of the next step as plain text from 13.10, with a progress bar for population `{population} de {target}`. At the top rank the body says "La torre llegó al rango máximo."
 
 ### 6.9 Avisos window
 
@@ -813,6 +813,7 @@ Short button labels, used only on toolbar buttons:
 | `window.finance.totalExpenses` | Total gastos |
 | `window.finance.result` | Resultado |
 | `window.stars.current` | Rango actual: {n} estrellas |
+| `window.stars.currentOne` | Rango actual: 1 estrella |
 | `window.stars.currentTower` | Rango actual: Torre |
 | `window.stars.next` | Para {n} estrellas: |
 | `window.stars.nextTower` | Para el rango Torre: |
