@@ -10,8 +10,10 @@ import {
   mapPointToWorld,
   paintTowerMap,
 } from '../render/towerMap';
+import { Window, useWindowManager } from './kit';
 import { t } from './strings';
 import { throttle } from './throttle';
+import { MAP_WINDOW_ID } from './windowIds';
 
 const REDRAW_INTERVAL_MS = 1000;
 const FRAME_COLOR = `#${MAP_COLORS.frame.toString(16).padStart(6, '0')}`;
@@ -23,6 +25,21 @@ interface TowerMapWindowProps {
 }
 
 export function TowerMapWindow({ content, stage, onClose }: TowerMapWindowProps) {
+  const manager = useWindowManager();
+  useEffect(() => {
+    manager.open({ id: MAP_WINDOW_ID, corner: 'topRight' });
+    return () => manager.close(MAP_WINDOW_ID);
+  }, []);
+  return (
+    <Window id={MAP_WINDOW_ID} title={t('window.map.title')} onClose={onClose}>
+      <TowerMap content={content} stage={stage} />
+    </Window>
+  );
+}
+
+type TowerMapProps = Pick<TowerMapWindowProps, 'content' | 'stage'>;
+
+function TowerMap({ content, stage }: TowerMapProps) {
   const pictureRef = useRef<HTMLCanvasElement>(null);
   const frameRef = useRef<HTMLCanvasElement>(null);
 
@@ -83,17 +100,9 @@ export function TowerMapWindow({ content, stage, onClose }: TowerMapWindowProps)
   };
 
   return (
-    <section class="window tower-map-window" aria-label={t('window.map.title')}>
-      <header class="window-title">
-        <span>{t('window.map.title')}</span>
-        <button type="button" class="window-close" aria-label={t('ui.close')} onClick={onClose}>
-          x
-        </button>
-      </header>
-      <div class="tower-map" onPointerDown={onPointerDown} onPointerMove={onPointerMove}>
-        <canvas ref={pictureRef} width={MAP_WIDTH} height={MAP_HEIGHT} />
-        <canvas ref={frameRef} width={MAP_WIDTH} height={MAP_HEIGHT} />
-      </div>
-    </section>
+    <div class="tower-map" onPointerDown={onPointerDown} onPointerMove={onPointerMove}>
+      <canvas ref={pictureRef} width={MAP_WIDTH} height={MAP_HEIGHT} />
+      <canvas ref={frameRef} width={MAP_WIDTH} height={MAP_HEIGHT} />
+    </div>
   );
 }

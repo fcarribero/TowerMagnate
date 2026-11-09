@@ -7,6 +7,7 @@ import { useStoreSelect } from '../../model/useStoreSelect';
 import { Tooltip } from '../kit';
 import { GameMenu, type MenuItem } from '../menu/GameMenu';
 import { formatMoney } from '../money';
+import { currentRankLabel } from '../stars/starsModel';
 import { t, type StringKey } from '../strings';
 import {
   FINANCE_ICON,
@@ -196,7 +197,7 @@ function StatusValuesView({
 function StarsButton({ stars, onClick }: { stars: StarRating; onClick: () => void }) {
   const filled = filledStars(stars);
   const tower = isTowerRank(stars);
-  const label = tower ? t('window.stars.currentTower') : t('window.stars.current', { n: stars });
+  const label = t(currentRankLabel(stars), { n: stars });
   return (
     <button
       type="button"

@@ -180,3 +180,39 @@ describe('Window', () => {
     expect(frameOf('a').classList.contains('is-placing')).toBe(false);
   });
 });
+
+describe('corner placement', () => {
+  function OpenOnClick({ id, corner }: { id: string; corner: 'topLeft' | 'topRight' }) {
+    const manager = useWindowManager();
+    return <button onClick={() => manager.open({ id, corner })}>{`abrir ${id}`}</button>;
+  }
+
+  function renderCorner(ids: string[], corner: 'topLeft' | 'topRight') {
+    render(
+      <WindowLayer>
+        {ids.map((id) => (
+          <OpenOnClick key={id} id={id} corner={corner} />
+        ))}
+        {ids.map((id) => (
+          <Window key={id} id={id} title={`Ventana ${id}`} />
+        ))}
+      </WindowLayer>,
+    );
+  }
+
+  it('puts a second window opened in the same corner below the first', () => {
+    renderCorner(['a', 'b'], 'topLeft');
+    fireEvent.click(screen.getByText('abrir a'));
+    fireEvent.click(screen.getByText('abrir b'));
+    expect(frameOf('a').style.top).toBe('8px');
+    expect(frameOf('b').style.left).toBe('8px');
+    expect(frameOf('b').style.top).toBe('116px');
+  });
+
+  it('puts a window opened later in the top right below one already there', () => {
+    renderCorner(['finance', 'map'], 'topRight');
+    fireEvent.click(screen.getByText('abrir finance'));
+    fireEvent.click(screen.getByText('abrir map'));
+    expect(frameOf('map').style.top).toBe('116px');
+  });
+});
