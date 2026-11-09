@@ -4,6 +4,7 @@ import {
   FULL_TOWER_PEOPLE,
   fullTower,
   fullTowerGateFailures,
+  fullTowerGateWarnings,
   type FullTowerRun,
   type SystemTiming,
 } from './full-tower';
@@ -64,6 +65,15 @@ describe('fullTowerGateFailures', () => {
     const withSystems = { ...limits, systemP95Ms: 2.5 };
     expect(fullTowerGateFailures({ runs, runsAgree: true }, withSystems)).toEqual([
       'trek p95 median 2.60 ms is over the 2.5 ms limit.',
+    ]);
+  });
+
+  it('reports a peak system between the report and failing limits without failing', () => {
+    const runs = [run(1, 2, 3, 2.6), run(1, 2, 3, 2.8), run(1, 2, 3, 2.7)];
+    const withSystems = { ...limits, systemP95Ms: 3, systemP95ReportMs: 2.5 };
+    expect(fullTowerGateFailures({ runs, runsAgree: true }, withSystems)).toEqual([]);
+    expect(fullTowerGateWarnings({ runs, runsAgree: true }, withSystems)).toEqual([
+      'trek p95 median 2.70 ms is over 2.5 ms.',
     ]);
   });
 

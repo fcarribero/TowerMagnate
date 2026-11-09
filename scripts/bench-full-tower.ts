@@ -5,7 +5,8 @@
  *
  * With `--gate --avg-ms <ms> --p95-ms <ms> --p99-ms <ms>` it exits with 1 when a median is over
  * its limit or the result is void. `--system-p95-ms <ms>` adds a limit on the median p95 of the
- * trek and the office routine. Without `--gate` it only reports.
+ * trek and the office routine; `--system-p95-report-ms <ms>` reports those medians above it
+ * without failing. Without `--gate` it only reports.
  */
 import os from 'node:os';
 import { parseArgs } from 'node:util';
@@ -13,6 +14,7 @@ import {
   FULL_TOWER_STEP_BUDGET_MS,
   PEAK_SYSTEMS,
   fullTowerGateFailures,
+  fullTowerGateWarnings,
   medianOf,
   timeFullTowerRuns,
   type FullTowerLimits,
@@ -27,10 +29,13 @@ const { values: options } = parseArgs({
     'p95-ms': { type: 'string' },
     'p99-ms': { type: 'string' },
     'system-p95-ms': { type: 'string' },
+    'system-p95-report-ms': { type: 'string' },
   },
 });
 
-function limitFrom(name: 'avg-ms' | 'p95-ms' | 'p99-ms' | 'system-p95-ms'): number {
+function limitFrom(
+  name: 'avg-ms' | 'p95-ms' | 'p99-ms' | 'system-p95-ms' | 'system-p95-report-ms',
+): number {
   const value = Number(options[name]);
   if (options[name] === undefined || !Number.isFinite(value) || value <= 0) {
     throw new Error(`--gate needs --${name} with a positive number of milliseconds`);
@@ -44,6 +49,10 @@ const limits: FullTowerLimits | null = options.gate
       p95Ms: limitFrom('p95-ms'),
       p99Ms: limitFrom('p99-ms'),
       systemP95Ms: options['system-p95-ms'] === undefined ? undefined : limitFrom('system-p95-ms'),
+      systemP95ReportMs:
+        options['system-p95-report-ms'] === undefined
+          ? undefined
+          : limitFrom('system-p95-report-ms'),
     }
   : null;
 
@@ -88,6 +97,7 @@ console.log(
 
 if (limits) {
   const failures = fullTowerGateFailures(result, limits);
+  for (const warning of fullTowerGateWarnings(result, limits)) console.log(`Report: ${warning}`);
   for (const failure of failures) console.error(failure);
   console.log(failures.length === 0 ? 'Gate: passed' : 'Gate: failed');
   process.exitCode = failures.length === 0 ? 0 : 1;

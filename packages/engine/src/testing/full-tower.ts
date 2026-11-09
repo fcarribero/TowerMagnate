@@ -178,6 +178,8 @@ export interface FullTowerLimits {
   p99Ms: number;
   /** Limit on the median p95 of each of `PEAK_SYSTEMS`; no limit when left out. */
   systemP95Ms?: number;
+  /** Median p95 of a peak system above this is reported but does not fail the gate. */
+  systemP95ReportMs?: number;
 }
 
 function systemP95(run: FullTowerRun, name: string): number {
@@ -212,4 +214,18 @@ export function fullTowerGateFailures(result: FullTowerResult, limits: FullTower
     }
   }
   return failures;
+}
+
+/** The peak systems whose median p95 is over the report limit but not over the failing one. */
+export function fullTowerGateWarnings(result: FullTowerResult, limits: FullTowerLimits): string[] {
+  const reportLimit = limits.systemP95ReportMs;
+  if (reportLimit === undefined) return [];
+  const warnings: string[] = [];
+  for (const name of PEAK_SYSTEMS) {
+    const median = medianOf(result.runs.map((run) => systemP95(run, name)));
+    if (median > reportLimit && median <= (limits.systemP95Ms ?? Infinity)) {
+      warnings.push(`${name} p95 median ${median.toFixed(2)} ms is over ${reportLimit} ms.`);
+    }
+  }
+  return warnings;
 }
