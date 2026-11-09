@@ -12,7 +12,9 @@ First full playtest of the GDD feature list on a dev stack, run on 20 January 20
 
 ## Result
 
-The tower reached the Torre rank on 29 January, in a full run from 1 star on `develop` at f8ec4aa (see "Run to Torre on 29 January"). The wedding finished on day 19, a Saturday, at 11:44, with 17,200 population. Two things in `develop` still stop a normal player on the way: rooms are never cleaned (TM-142), so the VIP finds no clean suite after the first days, and a bomb or fire that destroys a unit leaves a save that cannot be loaded (TM-250).
+The tower reached the Torre rank on 29 January, in a full run from 1 star on `develop` at f8ec4aa (see "Run to Torre on 29 January"). The wedding finished on day 19, a Saturday, at 11:44, with 17,200 population. On that date two things in `develop` still stopped a normal player on the way: rooms were never cleaned (TM-142) and a bomb or fire that destroyed a unit left a save that could not be loaded (TM-250). Both are merged now. TM-142 is confirmed on the release build below; TM-250 was not reached there because no unit was destroyed.
+
+The QA run on the release build (from 1 February, below) is real time with no debug tools. After 9 h 48 real time over 4 QA days it stood at 3 stars and 1,546 population on game day 39, so 4 stars, 5 stars and Torre were not reached in it. The features it reached work, and no new bug was found on 4 February. The steps it could not reach are listed as not tested in "Verdict on the release build", with the 29 January engine run as the reference for them.
 
 The first run on 20 January stopped at 3 stars and 5,896 population, because hotel guests (TM-35) and the VIP visit (TM-110) were not built yet.
 
@@ -233,7 +235,7 @@ QA1 plays the checklist on the production image, the build a player gets, in rea
 
 ### Setup
 
-- Build: this branch at 116792e, which is `develop` at e5d16af merged in. `pnpm stack --profile prod up -d --build` with `PORT_BASE=4190` and `COMPOSE_PROJECT_NAME=tm-qa1`. The game and the API are both on port 4191.
+- Build: this branch at 116792e, which is `develop` at e5d16af merged in, for QA days 1 to 3. On day 4 (4 February) the image was rebuilt from this branch at 4b4f2f9, which is `develop` at c171627 merged in (TM-142, TM-247, TM-250, TM-253, TM-255 and TM-256 merged), and the saved tower was loaded into it. The save moved from schema 31 to 33 on load with no error. `pnpm stack --profile prod up -d --build` with `PORT_BASE=4190` and `COMPOSE_PROJECT_NAME=tm-qa1`. The game and the API are both on port 4191.
 - The account and tower were made in the browser (headless Chromium, 1600 x 900): "Creá una", username and both password fields, "Crear cuenta". The game opened with the Bienvenida dialog.
 - Commands went over a second socket of the same session, from a small script that also logged every star change, notice and event with the game clock and the real clock. Screenshots are in the office folder under `qa1-shots/tm139-*.png`.
 - Debug commands are off in production: `debug.fastForward` and `debug.setMoney` got the error frame `NOT_ALLOWED` "Debug commands are not available here". So this run has no fast-forward and no free money. It starts with $2.000.000 and grows on condo sales and rent, and every milestone below is real time.
@@ -265,6 +267,18 @@ Real time is measured from the first command at 00:07 on day 0. The clock ran at
 | First parking pass, failures | Wed 17 Jan 06:00 | 140,400 | 1,078 | 4 h 03 |
 | 3 to 4 check fails (VIP, recycling, medical, parking) | Wed 17 Jan 17:00 | 144,360 | 1,135 | 4 h 10 |
 | Day 3 of QA stops | Thu 18 Jan 01:01 | 147,249 | 1,207 | 4 h 15 |
+| Day 4 resumes on the new image | Thu 18 Jan 01:21 | 147,366 | 1,207 | 4 h 15 |
+| Medical center on S1, recycling center on S2 | Thu 18 Jan 02:44 | 147,875 | 1,207 | 4 h 16 |
+| Hotel rooms Limpia and taken again | Thu 18 Jan by 19:00 | 153,720 | 1,217 | 4 h 26 |
+| Parking ramp and 12 spaces on S1 | Thu 18 Jan 19:36 | 153,940 | 1,217 | 4 h 28 |
+| Party hall | Fri 19 Jan 20:13 | 162,802 | 1,262 | 4 h 42 |
+| Third weekly upkeep, $664.000 | Mon 22 Jan 00:00 | 181,440 | 1,471 | 5 h 14 |
+| Cinema | Thu 25 Jan 14:55 | 212,733 | 1,258 | 6 h 08 |
+| Third wing opened (columns 269 to 332) | Thu 1 Feb 11:04 | 271,829 | 1,282 | 7 h 51 |
+| Bomb threat, not answered | Wed 7 Feb 09:00 | 319,680 | 1,371 | 9 h 20 |
+| Bomb found by the guards | Wed 7 Feb 11:40 | 323,880 | 1,402 | 9 h 21 |
+| Condo buyback | Thu 8 Feb 12:27 | 332,802 | 1,503 | 9 h 43 |
+| Day 4 of QA stops, run ends | Fri 9 Feb 06:00 | 339,121 | 1,546 | 9 h 48 |
 
 End of day 1 of QA (1 February): the tower is paused at Monday 8 Jan 01:00, step 60,840, 2 stars, 466 population and -$232.000. It has 25 floors on the right wing (columns 150 to 213) with one standard shaft of 7 cars, a second lobby run at columns 86 to 149 with level 2, a standard shaft at column 116 (1 car, levels 1 and 2) and stairs at column 142, 43 condos, 47 offices, 1 fast food, security, housekeeping, 3 suites, 2 double and 2 single rooms. The save stays in the `tm-qa1` database volume and the run goes on from there.
 
@@ -273,6 +287,14 @@ Day 2 of QA (2 February): the same image and database were started again with `d
 Day 3 of QA (3 February): the same image and database were started again with `docker start`. The tower came back at Friday 12 Jan 01:38, 37 game minutes after the stop, with the same units and money, so a clean stop loses only the time since the last autosave. The run went on for 1 h 30 real, from Friday 01:38 to Thursday 18 Jan 01:01. The left wing (columns 86 to 149) grew from 4 to 29 floors, 2 condos and 2 offices each, and its shaft reached 8 cars (`CAR_LIMIT` on the ninth). The second Monday upkeep put the money at -$192.000 again, and rent brought it back above 0 by Monday noon. Offices fill on weekdays only: 21 stood empty on Monday 08:00 and 4 by 17:00, so population rose from 759 to 945 that day and passed 1,000 on Tuesday. The Tuesday 17:00 check gave 3 stars with 1,055 population, `news.starsUp` `{"n":3}`, 3 h 55 real time after the start.
 
 At 3 stars the Estrellas requirements switched to VIP, suites, recycling, medical and parking. With no parking built, parking showed met until the first 06:00 pass on Wednesday, which sent `news.parkingCondo` and `news.parkingOffice` and turned the requirement to not met, as stars.md 5.6 says (no pass below 3 stars). `news.medicalDemanded` came at 17:00 on Wednesday. Suites count as met with 3 suites that never had a guest. A retail shop and a restaurant were accepted at 3 stars with no `STAR_LOCKED`, on a new lobby run at columns 214 to 237 ($120.000) with floors on levels 2 and 3 ($12.000 each). A floor at level 1 answered `LOBBY_LEVEL_ONLY`, and the shop on a full office floor answered `CELL_OCCUPIED`. The daily payout for the week went from $5.000 on Tuesday to $21.000 by Thursday 00:00, and the 00:00 recount on Thursday raised population from 1,135 to 1,207. No bomb or other random event came in the 7 game days of day 3. At the stop the tower had 3 stars, 1,207 population, $1.183.000, 107 condos, 111 offices, 1 fast food, 1 retail shop and 1 restaurant. The stack was stopped with `docker stop` and the save is in the `tm-qa1` volume. Next: recycling, medical centers and parking for the 3 to 4 step, 5,000 population, and the VIP, which still depends on TM-142 once suites have had a guest.
+
+Day 4 of QA (4 February), the last planned day: the production image was rebuilt from `develop` at c171627 (branch commit 4b4f2f9) and started on the same `tm-qa1` volume. The tower came back at Thursday 18 Jan 01:21 with the same units, money and notices. The 7 hotel rooms, which had stayed Sucia since week 1, now drew as Sucia, and `overlays.hotel` listed them, so TM-256 holds on the release build. By 19:00 the same day the maids had cleaned them and 5 of 7 rooms had guests again (TM-142). From then on rooms went back to Limpia every day, and the hotel earned $150.000 in the week from Monday 22 Jan.
+
+The run went on for 5 h 33 real, to Friday 9 Feb 06:00 (game day 39). Built that day: a basement floor on S1 (columns 86 to 213), the left shaft taken down to S1, a medical center on S1 ($500.000), a recycling center on S2 and S1 ($512.500 with its floor; placed at S1 it answered `SPANS_GROUND`), a parking ramp on S1 and S2 with 17 spaces, a party hall, a cinema on a new lobby run (columns 238 to 268) and a third wing (lobby at columns 269 to 332, standard shaft s259 at column 299) grown to 19 floors. Recycling and medical turned to met as soon as they were built, and medical stayed met for the rest of the run with no `news.medicalFull`. Parking stayed not met: 7 spaces west of the recycling center showed `disconnected` (the recycling center cuts the floor between them and the ramp), and the 10 connected spaces were too few for about 45 holders, so `news.parkingCondo`, `news.parkingOffice` and `news.parkingSuite` came every day. That follows people.md 17 and is not a bug.
+
+The only random event in the 4 QA days came on Wednesday 7 Feb: a bomb threat at 09:00 with a $300.000 ransom. It was left unanswered, the default `refuse` was applied at 10:00 with `news.decisionDefault`, and the guards searched from 10:00 and found the bomb at 11:40 with `news.bombFound`. Nothing was destroyed, so the save after a bomb (TM-250) could not be checked here. No VIP came in 24 days at 3 stars (days 16 to 39). The save showed `vipVisit` null, so the daily roll runs; 24 misses in a row at 1 in 9 has a chance of about 6%. No fire came.
+
+The run did not reach 4 stars. Population moved between 1,260 on weekdays and 1,550 on Sundays, against 5,000 needed. The weekly upkeep grew from $368.000 to $664.000 at 3 stars (lobby columns, the recycling center at $100.000, ramps, party hall), which matches `WEEKLY_UPKEEP` exactly, against about $1.370.000 a week of rent, hotel and venue income. Each Monday put the money below 0 until Tuesday, and the rest of the week paid for about one floor a day. At that pace the 5,000 for 4 stars is several real days away. The stack was stopped with `docker stop` at the end, and the save is in the `tm-qa1` volume.
 
 The hotel rooms took no guests on any day of week 2: all 7 rooms stayed empty from Monday to Friday although housekeeping is built. This is TM-142 (rooms are never cleaned), so it is not filed again, but it means the hotel adds nothing to population or income at 2 stars on the release build. No bomb or other random event came in the 4 days at 2 stars.
 
@@ -315,6 +337,24 @@ Build order: a 64-column main lobby (columns 150 to 213), floors 2 to 5, one sta
 | 3-star unlocks | works | Retail shop ($100.000) and restaurant ($200.000) accepted |
 | Lobby extension to the right | works | Columns 214 to 237 for $120.000; `buildFloor` on level 1: `LOBBY_LEVEL_ONLY` |
 | Restore after a clean stop, day 3 | works | Came back 37 game minutes after the stop with the same units and money |
+| Load a save into a newer image | works | Schema 31 save loaded into the 4 February image with the same units and money |
+| Hotel room states in the client (TM-256 fix) | works | Rooms draw as Sucia and `overlays.hotel` lists clean, dirty and occupied rooms |
+| Housekeeping (TM-142 fix) | works | Rooms Sucia since week 1 were cleaned on the first day; every room is Limpia again each day after check-out |
+| Office price level in views (TM-255 fix) | works | The office set to high in week 1 shows high in its view and red in the Precios overlay |
+| Medical center | works | $500.000 on S1; medical requirement met from the first check; no `news.medicalFull` with 147 offices |
+| Recycling center | works | Height 2, so it goes on S2 and S1; `SPANS_GROUND` at S1. Requirement met with 1 center below 2,500 |
+| Parking ramp and spaces | works | Spaces cut off from the ramp show `disconnected`; too few spaces give the daily parking notices |
+| Escalator | works | Needs levels with only commercial units at both ends: `ESCALATOR_FLOOR_TYPE` on a level with offices |
+| Party hall, cinema | built only | Accepted at 3 stars; no guests or shows yet, which are backlog items TM-37 and TM-94 |
+| Bomb threat with security | works | $300.000 ransom at 3 stars, default `refuse` at 10:00, guards found it at 11:40 |
+| Condo evaluation | works | `news.condoBuyback` on day 38 |
+| Weekly upkeep | works | $664.000 for this tower matches `WEEKLY_UPKEEP` line by line |
+
+### Verdict on the release build
+
+QA passed for the features reached in real time, with no new bugs on 4 February. The release run reached 3 stars, which covers construction, stairs and standard and service shafts, offices, condos, the hotel and housekeeping, venues, medical, recycling, parking, security and the bomb search, the 1 to 3 star checks, notices, finances, and save and restore.
+
+Not tested on the release build, because the run did not get there in 32 hours of real play: the VIP visit (no VIP day rolled), the 3 to 4, 4 to 5 and Torre star checks, the subway station and the TM-247 fix, express shafts and sky lobbies, the cathedral and the wedding, fire and the helicopter, a bomb explosion with ruins and the save after it (TM-250 fix), TM-237 ruin clearing, treasure, Santa, lease renewals over many weeks, and price levels other than high on offices. The reference for all of these is GD's engine-driven run on 29 January ("Run to Torre on 29 January"), which reached Torre on day 19 with the same engine rules.
 
 ## Balance and design notes
 
@@ -329,6 +369,8 @@ Release build, week 1 (QA1): with no debug money the first week ends at about 50
 Release build, week 3 (QA1): 3 stars came on day 15 at 3 h 55 real time with no debug money. Offices lease only on weekdays, so floors built over the weekend add nothing to population until Monday 08:00, and the Monday check sees a tower that is still filling. Lobby upkeep starts at 3 stars at $500 per column (`WEEKLY_UPKEEP`), which for this tower's 152 lobby columns is $76.000 a week more from the next Monday. A note for TM-136.
 
 Clearing ruins one cell per command is slow even once TM-237 lets the Topadora do it. A drag should clear a whole run.
+
+Release build, weeks 4 to 6 (QA1): at 3 stars the tower stalls. Upkeep reached $664.000 a week against about $1.370.000 of income, and population sat between 1,260 and 1,550, so a player without debug money needs many more real hours to reach 5,000 than the GDD's "several game weeks" to 5 stars suggests. The 3 to 4 step also needs a VIP, which did not come in 24 game days (6 real hours). Both notes go to TM-136 and TM-144.
 
 ## Bugs filed
 
