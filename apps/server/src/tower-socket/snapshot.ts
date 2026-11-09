@@ -1,5 +1,6 @@
 import {
   buildEventViews,
+  disconnectedUnits,
   findPerson,
   isEvaluatedUnit,
   isExpressStop,
@@ -25,6 +26,7 @@ import {
   type FinanceWeek,
   type CarView,
   type FollowedView,
+  type HotelRoomState,
   type LedgerCategory,
   type LevelRow,
   type MoneyReason,
@@ -65,7 +67,10 @@ const REASON_OF_CATEGORY: Record<LedgerCategory, { income: MoneyReason; expense:
 export function buildSnapshot(state: TowerState, viewport: Viewport | null): Snapshot {
   const people = listPeople(state.people);
   const homes = occupiedUnits(people);
-  const units = Object.values(state.units).map((unit) => unitView(unit, homes.has(unit.id)));
+  const disconnected = disconnectedUnits(state);
+  const units = Object.values(state.units).map((unit) =>
+    unitView(unit, homes.has(unit.id), disconnected.has(unit.id)),
+  );
   return {
     step: state.step,
     money: state.money,
@@ -87,7 +92,7 @@ export function buildSnapshot(state: TowerState, viewport: Viewport | null): Sna
     overlays: {
       evaluation: evaluationOverlay(state),
       price: Object.fromEntries(units.map((unit) => [unit.id, unit.price])),
-      hotel: {},
+      hotel: hotelOverlay(state),
     },
     finances: financeSummary(state),
   };
@@ -102,7 +107,29 @@ function evaluationOverlay(state: TowerState): Snapshot['overlays']['evaluation'
   return grades;
 }
 
-function unitView(unit: TowerState['units'][string], occupied: boolean): UnitView {
+/** The state of every hotel room: Limpia, Ocupada, Sucia or Con plaga. */
+function hotelOverlay(state: TowerState): Snapshot['overlays']['hotel'] {
+  const rooms: Record<string, HotelRoomState> = {};
+  for (const unit of Object.values(state.units)) {
+    if (unit.hotel) rooms[unit.id] = unit.hotel.state;
+  }
+  return rooms;
+}
+
+type TowerUnit = TowerState['units'][string];
+
+function unitVariant(
+  unit: TowerUnit,
+  occupied: boolean,
+  disconnected: boolean,
+): UnitView['variant'] {
+  const roomState = unit.hotel?.state;
+  if (roomState === 'dirty' || roomState === 'infested') return roomState;
+  if (disconnected) return 'disconnected';
+  return occupied ? 'occupied' : 'empty';
+}
+
+function unitView(unit: TowerUnit, occupied: boolean, disconnected: boolean): UnitView {
   return {
     id: unit.id,
     type: unit.type,
@@ -111,7 +138,7 @@ function unitView(unit: TowerState['units'][string], occupied: boolean): UnitVie
     name: unit.name,
     price: DEFAULT_PRICE_LEVEL,
     occupied,
-    variant: occupied ? 'occupied' : 'empty',
+    variant: unitVariant(unit, occupied, disconnected),
   };
 }
 
