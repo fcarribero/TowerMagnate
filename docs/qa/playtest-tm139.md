@@ -251,8 +251,18 @@ Real time is measured from the first command at 00:07 on day 0. The clock ran at
 | 2 to 3 check fails, below 1,000 | Thu 4 Jan 17:00 | 32,040 | 490 | 0 h 56 |
 | 2 to 3 check fails, below 1,000 | Fri 5 Jan 17:00 | 40,680 | 519 | 1 h 11 |
 | First weekly upkeep, money below 0 | Mon 8 Jan 00:00 | 60,480 | 466 | 1 h 45 |
+| Money back above 0 from rent | Mon 8 Jan 18:00 | 66,960 | 484 | 1 h 56 |
+| 2 to 3 check fails, below 1,000 | Tue 9 Jan 17:00 | 75,240 | 561 | 2 h 10 |
+| 2 to 3 check fails, below 1,000 | Wed 10 Jan 17:00 | 83,880 | 583 | 2 h 25 |
+| Right wing at 30 floors, shaft at 8 cars | Wed 10 Jan 17:10 | 83,943 | 583 | 2 h 25 |
+| 2 to 3 check fails, below 1,000 | Thu 11 Jan 17:00 | 92,520 | 642 | 2 h 40 |
+| Day 2 of QA stops | Fri 12 Jan 01:01 | 95,406 | 660 | 2 h 45 |
 
 End of day 1 of QA (1 February): the tower is paused at Monday 8 Jan 01:00, step 60,840, 2 stars, 466 population and -$232.000. It has 25 floors on the right wing (columns 150 to 213) with one standard shaft of 7 cars, a second lobby run at columns 86 to 149 with level 2, a standard shaft at column 116 (1 car, levels 1 and 2) and stairs at column 142, 43 condos, 47 offices, 1 fast food, security, housekeeping, 3 suites, 2 double and 2 single rooms. The save stays in the `tm-qa1` database volume and the run goes on from there.
+
+Day 2 of QA (2 February): the same image and database were started again with `docker start`, and the tower came back at Monday 8 Jan 02:29 with the same units and money, and the two old notices (2 stars, negative upkeep) still in Avisos. The run then went on in real time for 59 minutes, from Monday 02:29 to Friday 12 Jan 01:01. The right wing grew from 25 to 30 floors, the top the standard shaft can serve, and shaft s1 reached 8 cars. The left wing (columns 86 to 149) grew to level 4 with its shaft at column 116. Rent brought the money back above 0 by Monday 18:00. Population went from 466 to 660, about 50 a day, so 1,000 for 3 stars is about a week of game time away at this pace, before the next upkeep. The run was stopped early on Friday 01:01 because the machine ran short of memory; `docker stop` shut the server down cleanly and the save is in the volume. At that point the tower had 2 stars, 660 population, $269.000, 57 condos and 61 offices.
+
+The hotel rooms took no guests on any day of week 2: all 7 rooms stayed empty from Monday to Friday although housekeeping is built. This is TM-142 (rooms are never cleaned), so it is not filed again, but it means the hotel adds nothing to population or income at 2 stars on the release build. No bomb or other random event came in the 4 days at 2 stars.
 
 Build order: a 64-column main lobby (columns 150 to 213), floors 2 to 5, one standard shaft at column 180, then one floor at a time with 2 condos and 2 offices each, paid by the condo sales. Each condo costs $80.000 and sold for $150.000 within hours, so condos fund the tower in the first days. By the 2-star check there were 20 floors, 40 offices and 36 condos.
 
@@ -282,6 +292,10 @@ Build order: a 64-column main lobby (columns 150 to 213), floors 2 to 5, one sta
 | Finances window | works | Rows and totals match the money; `Semana anterior` shows $0 in week 1 |
 | Avisos window | works | "Todavía no hay avisos." before the first notice |
 | Save and restore after SIGKILL | works | `docker kill` at day 1 18:28; after restart the tower came back at 18:18 with the same units. The 10 lost game minutes are within the 30-second autosave. The open socket reconnected by itself |
+| Restore after a clean stop | works | Stopped overnight at Monday 01:00 and started again: same units, money and notices |
+| Building with money below 0 | works | `buildUnit` at -$232.000: `NEGATIVE_BALANCE` |
+| Car limit | works | Ninth car on shaft s1: `CAR_LIMIT` |
+| Standard shaft height | works | Grown floor by floor from 25 to 30 floors served |
 
 ## Balance and design notes
 
