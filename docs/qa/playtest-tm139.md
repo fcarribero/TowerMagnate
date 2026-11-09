@@ -248,6 +248,11 @@ Real time is measured from the first command at 00:07 on day 0. The clock ran at
 | Check fails, below 300 | Mon 1 Jan 17:00 | 6,120 | 105 | 0 h 10 |
 | Check fails, below 300 | Tue 2 Jan 17:00 | 14,760 | 240 | 0 h 26 |
 | 2 stars | Wed 3 Jan 17:00 | 23,400 | 434 | 0 h 41 |
+| 2 to 3 check fails, below 1,000 | Thu 4 Jan 17:00 | 32,040 | 490 | 0 h 56 |
+| 2 to 3 check fails, below 1,000 | Fri 5 Jan 17:00 | 40,680 | 519 | 1 h 11 |
+| First weekly upkeep, money below 0 | Mon 8 Jan 00:00 | 60,480 | 466 | 1 h 45 |
+
+End of day 1 of QA (1 February): the tower is paused at Monday 8 Jan 01:00, step 60,840, 2 stars, 466 population and -$232.000. It has 25 floors on the right wing (columns 150 to 213) with one standard shaft of 7 cars, a second lobby run at columns 86 to 149 with level 2, a standard shaft at column 116 (1 car, levels 1 and 2) and stairs at column 142, 43 condos, 47 offices, 1 fast food, security, housekeeping, 3 suites, 2 double and 2 single rooms. The save stays in the `tm-qa1` database volume and the run goes on from there.
 
 Build order: a 64-column main lobby (columns 150 to 213), floors 2 to 5, one standard shaft at column 180, then one floor at a time with 2 condos and 2 offices each, paid by the condo sales. Each condo costs $80.000 and sold for $150.000 within hours, so condos fund the tower in the first days. By the 2-star check there were 20 floors, 40 offices and 36 condos.
 
@@ -265,13 +270,15 @@ Build order: a 64-column main lobby (columns 150 to 213), floors 2 to 5, one sta
 | Escalator | works | Lobby to an office floor: `ESCALATOR_FLOOR_TYPE` |
 | Star lock at 1 star | works | Suite and security: `STAR_LOCKED`. Restaurant at 2 stars: `STAR_LOCKED` |
 | Offices, rent | works | Rent charged at move-in, first offices leased at 08:00 on day 0 |
-| Condo sale, price lock | works | Sold at $150.000; `setPrice` on a sold condo: `PRICE_LOCKED`. On a leased office it is accepted |
+| Condo sale, price lock | works | Sold at $150.000; `setPrice` on a sold condo: `PRICE_LOCKED` |
+| Office price level | bug | `setPrice` high is accepted and stored (`priceLevel` high in the saved state), but every unit view and the Precios overlay still say normal: TM-255 |
 | Rename unit | works | |
 | Demolish within 1 game hour | works | Office built at 21:48 and demolished at 22:31 refunded $40.000 |
 | Fast food | works | Under 25 customers on level 5 it lost $3.000 a day, as the table says |
 | Star check 1 to 2 | works | Failed silently below 300 on Monday and Tuesday, passed Wednesday 17:00 with `news.starsUp` `{"n":2}` |
 | 2-star unlocks | works | Security, housekeeping, 3 suites, 2 double and 2 single rooms, service shaft at column 209 on levels 21 and 22. Service shaft at column 205: `CELL_OCCUPIED` (a double room was there) |
 | Hotel check-in | works | First suite and double room taken on day 3 after 12:00 |
+| Hotel room state in the client | bug | By Saturday of week 1, 5 of 7 rooms were Sucia in the saved state, but their views said empty and `overlays.hotel` was `{}`; no unit is ever sent as dirty, infested or disconnected: TM-256. The rooms stay Sucia because nothing cleans them (TM-142) |
 | Finances window | works | Rows and totals match the money; `Semana anterior` shows $0 in week 1 |
 | Avisos window | works | "Todavía no hay avisos." before the first notice |
 | Save and restore after SIGKILL | works | `docker kill` at day 1 18:28; after restart the tower came back at 18:18 with the same units. The 10 lost game minutes are within the 30-second autosave. The open socket reconnected by itself |
@@ -284,6 +291,8 @@ The VIP is the only step on the way to Torre that the player cannot speed up. Th
 
 29 January run: venues made 8,482 of the 17,200 population at the wedding (49%), from 134 venues at about 63 visits each. Section 3.4 plans for about a third. With unlimited money the whole run took 19 game days, against the 18 weeks of economy 12; the star gates themselves are not the slow part once money is free. Both go to TM-144 and TM-136.
 
+Release build, week 1 (QA1): with no debug money the first week ends at about 500 population. Condos fund the start, since each one costs $80.000 and sells for $150.000 the same day, but once every condo is sold the cash comes from rent only, which is paid on the weekday the tenant moved in, so nothing comes in on the weekend. The first Monday upkeep was $268.000 (8 standard cars over 2 shafts and 1 service car at $20.000, security $40.000, housekeeping $20.000, rooms $28.000), which put the tower at -$232.000 with rent of $440.000 a week. The amounts follow `WEEKLY_UPKEEP` in `packages/shared/src/balance.ts`, which is double the GDD table for cars, security and housekeeping; the GDD says the Game Designer tunes them, so this is a note for TM-136, not a bug. At this pace 3 stars needs several more game weeks, about 2 real hours each, which fits the GDD goal of weeks to 5 stars.
+
 Clearing ruins one cell per command is slow even once TM-237 lets the Topadora do it. A drag should clear a whole run.
 
 ## Bugs filed
@@ -294,3 +303,5 @@ Clearing ruins one cell per command is slow even once TM-237 lets the Topadora d
 - TM-247, P3, engine: Subway station accepted above level -9.
 - TM-250, P1, engine: Saved tower fails to load after a bomb or fire destroys a unit.
 - TM-254, P4, web: Star window says "Rango actual: 1 estrellas".
+- TM-255, P2, server: Unit views always send price Normal after setPrice.
+- TM-256, P2, server: Hotel overlay is empty and rooms never draw as Sucia.
