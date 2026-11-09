@@ -265,3 +265,25 @@ export const HOTEL_OUTING_VENUES: readonly { type: VisitedVenueType; weight: num
   { type: 'fast-food', weight: 25 },
   { type: 'retail-shop', weight: 25 },
 ];
+
+/** Maids and housekeeping (people spec 10, hotel spec 3 to 6). */
+/** The maids of every housekeeping unit appear at its door at this minute of the day. */
+export const MAID_APPEAR_MINUTE = minutes(9, 30);
+
+/** Every maid leaves the simulation at this minute, wherever she is. */
+export const MAID_LEAVE_MINUTE = minutes(17);
+
+/** A maid may ask for a room from this minute of the day. */
+export const CLEANING_START_FROM_MINUTE = minutes(10);
+
+/** A cleaning starts only before this minute; it is also the end of the asking window. */
+export const CLEANING_START_BEFORE_MINUTE = minutes(16);
+
+/** One cleaning, for single rooms, double rooms and suites alike. */
+export const CLEANING_MINUTES = 30;
+
+/** Cleanings one maid may start in a day. */
+export const MAID_DAILY_CLEANINGS = 8;
+
+/** An idle maid asks again at every multiple of this many minutes. */
+export const MAID_RETRY_MINUTES = 30;

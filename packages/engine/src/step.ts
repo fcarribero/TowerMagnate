@@ -17,6 +17,7 @@ import { createCustomers } from './customers';
 import { createHotelSystem } from './hotel';
 import { createHotelGuests } from './hotel-guests';
 import { isLayoutCommand } from './layout-changes';
+import { createMaidSystem, maidArrivalHook, maidLeaveHook } from './housekeeping';
 import { createLeaseSystem } from './leases';
 import { parkingAssignmentHook } from './parking';
 import { recordNotices } from './notices';
@@ -239,6 +240,8 @@ export const towerSystems: readonly SimulationSystem[] = [
     customers.planHook,
     customers.nightHook,
     weddingAttemptHook,
+    maidArrivalHook,
+    maidLeaveHook,
   ]),
   createLeaseSystem(storedGrade),
   createHotelSystem(),
@@ -249,6 +252,7 @@ export const towerSystems: readonly SimulationSystem[] = [
   officeRoutine.system,
   residentRoutine.system,
   hotelGuests.system,
+  createMaidSystem(),
   customers.system,
   weddingSystem,
   createElevatorSystem(),
