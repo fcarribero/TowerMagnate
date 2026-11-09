@@ -22,6 +22,7 @@
     "bench:people-layer": "tsx apps/web/src/render/peopleLayer.bench.ts",
     "perf:stress": "tsx scripts/perf-stress.ts",
     "bench:routes": "tsx scripts/bench-route-planner.ts",
+    "balance:progression": "tsx scripts/balance-progression.ts",
     "art:build": "pnpm --filter @tower-magnate/art build",
     "stack": "tsx scripts/stack.ts",
     "e2e": "playwright test -c e2e",

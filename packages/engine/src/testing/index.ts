@@ -108,3 +108,6 @@ export {
   timeFullTowerRuns,
 } from './full-tower';
 export type { FullTowerResult, FullTowerRun } from './full-tower';
+export { ProgressionBot, runProgression } from './progression-bot';
+export type { DaySample, ProgressionOptions, ProgressionRun, StarDay } from './progression-bot';
+export { formatProgressionReport } from './progression-report';
