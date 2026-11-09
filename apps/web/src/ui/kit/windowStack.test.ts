@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   EMPTY_STACK,
   centeredPosition,
+  belowCovering,
   clampPosition,
   closeWindow,
   cornerPosition,
@@ -168,5 +169,31 @@ describe('corner windows', () => {
       x: 8,
       y: 120,
     });
+  });
+});
+
+describe('belowCovering', () => {
+  const candidate = { x: 8, y: 8, width: 200, height: 100 };
+
+  it('keeps the position when nothing is in the way', () => {
+    expect(belowCovering(candidate, [{ x: 400, y: 8, width: 200, height: 100 }], 8)).toEqual({
+      x: 8,
+      y: 8,
+    });
+  });
+
+  it('moves below a window it would cover', () => {
+    expect(belowCovering(candidate, [{ x: 8, y: 8, width: 360, height: 150 }], 8)).toEqual({
+      x: 8,
+      y: 166,
+    });
+  });
+
+  it('moves below a whole column of windows', () => {
+    const column = [
+      { x: 8, y: 8, width: 360, height: 150 },
+      { x: 8, y: 166, width: 220, height: 80 },
+    ];
+    expect(belowCovering(candidate, column, 8).y).toBe(254);
   });
 });

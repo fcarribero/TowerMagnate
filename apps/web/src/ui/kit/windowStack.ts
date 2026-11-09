@@ -188,3 +188,21 @@ function keepDialogsOnTop(windows: readonly OpenWindow[]): OpenWindow[] {
     ...windows.filter((window) => window.onTop),
   ];
 }
+
+export interface Rect extends Point, Size {}
+
+function overlaps(a: Rect, b: Rect): boolean {
+  return a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height;
+}
+
+/** Moves a window down until it no longer covers any of the other windows. */
+export function belowCovering(candidate: Rect, others: readonly Rect[], gap: number): Point {
+  let y = candidate.y;
+  const byTop = [...others].sort((a, b) => a.y - b.y);
+  for (const other of byTop) {
+    if (overlaps({ ...candidate, y }, other)) {
+      y = other.y + other.height + gap;
+    }
+  }
+  return { x: candidate.x, y };
+}

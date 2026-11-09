@@ -5,12 +5,14 @@ import { useWindowManager } from './WindowLayer';
 import { focusableElements, trapTabKey } from './focus';
 import {
   CORNER_INSET,
+  belowCovering,
   centeredPosition,
   clampPosition,
   cornerPosition,
   findWindow,
   frontWindow,
   type Placement,
+  type Rect,
   type Point,
   type Size,
   type WindowStack,
@@ -269,13 +271,29 @@ function placedPosition(
   }
   const inset = CORNER_INSET * manager.uiScale;
   const top = bottomOf(placement.belowId, frame, manager.stack);
-  return cornerPosition(
+  const corner = cornerPosition(
     placement.corner,
     size,
     manager.viewSize,
     inset,
     top === null ? inset : top + inset,
   );
+  return belowCovering({ ...corner, ...size }, placedRects(frame, manager.stack), inset);
+}
+
+/** Frames of the other windows that are already in place. */
+function placedRects(frame: HTMLElement, stack: WindowStack): Rect[] {
+  return stack.windows
+    .filter((open) => open.pendingPlacement === null)
+    .flatMap((open) => {
+      const element = frame.parentElement?.querySelector<HTMLElement>(
+        `[data-window-id="${open.id}"]`,
+      );
+      if (!element || element === frame) {
+        return [];
+      }
+      return [{ ...open.position, ...frameSize(element) }];
+    });
 }
 
 /** Bottom edge of an open window inside the same layer, or null when it is not open. */
