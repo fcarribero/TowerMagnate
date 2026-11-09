@@ -1,6 +1,7 @@
 import type { TowerState } from '@tower-magnate/shared';
 import { STEPS_PER_HOUR } from '../calendar';
 import { STEPS_PER_DAY } from '../clock';
+import { moveInTenant } from '../leases';
 import { addPeopleForUnit, peopleCount } from '../people';
 import { step } from '../step';
 import { medianOf } from './fastest-run';
@@ -28,7 +29,7 @@ const TIMED_FROM = STEPS_PER_DAY + 6 * STEPS_PER_HOUR;
 const TIMED_STEPS = 8 * STEPS_PER_HOUR;
 
 /**
- * 2,500 offices of 6 workers on 100 floors. Four zones of 25 floors each have a bank of six
+ * 2,500 leased offices of 6 workers on 100 floors. Four zones of 25 floors each have a bank of six
  * standard elevators, and stairs join each zone to the next.
  */
 export function fullTower(): TowerState {
@@ -53,7 +54,11 @@ export function fullTower(): TowerState {
     shafts,
   });
   for (let zone = 1; zone < zones; zone++) addFlight(state, 'stairs', STAIRS_X, zone * ZONE_FLOORS);
-  for (const id of unitIds) addPeopleForUnit(state, id);
+  const context = { state, events: [] };
+  for (const id of unitIds) {
+    moveInTenant(context, id);
+    addPeopleForUnit(state, id);
+  }
   return state;
 }
 
