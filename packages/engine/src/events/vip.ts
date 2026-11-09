@@ -18,6 +18,7 @@ import type { ScheduledHook } from '../scheduler';
 import type { StepContext } from '../step';
 import { drawMinuteFromWindow } from '../time-windows';
 import { tripsOf } from '../trip-ledger';
+import { writableUnit } from '../step-copy';
 import { unitNumber } from '../units';
 
 function dayOf(step: number): number {
@@ -90,12 +91,14 @@ function bookSuite(context: StepContext): void {
   const { state } = context;
   const visit = state.vipVisit;
   if (!visit || visit.unitId !== null || visit.day !== dayOf(state.step)) return;
-  const suite = lowestFreeSuite(state);
-  if (!suite?.hotel) {
+  const free = lowestFreeSuite(state);
+  if (!free?.hotel) {
     state.vipVisit = null;
     context.events.push(...emitNews(state, 'news.vipNoSuite', { eventId: visit.id }));
     return;
   }
+  const suite = writableUnit(state, free);
+  if (!suite.hotel) return;
   visit.unitId = suite.id;
   suite.hotel.rollDue = false;
   const dayStart = visit.day * STEPS_PER_DAY;

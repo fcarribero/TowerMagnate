@@ -21,6 +21,7 @@ import { venueStressFactor } from './person-stress';
 import { visitorsAt } from './resident-routine';
 import type { HookOccurrence, ScheduledHook } from './scheduler';
 import type { SimulationSystem, StepContext } from './step';
+import { writableUnit } from './step-copy';
 import { drawMinuteFromWindow } from './time-windows';
 import { startTrek } from './trek';
 import { stressOfTripEndedNow } from './trip-ledger';
@@ -110,7 +111,8 @@ function planCustomers(context: StepContext, occurrence: HookOccurrence): void {
   const { state } = context;
   const weekend = isWeekendDay(occurrence.weekday);
   const subway = hasSubwayStation(state);
-  for (const unit of venuesById(state)) {
+  for (const shared of venuesById(state)) {
+    const unit = writableUnit(state, shared);
     const venue = unit.venue as VenueDay;
     const averageStress = rollVenueDay(venue);
     venue.customers = [];
@@ -180,7 +182,8 @@ function sendDueCustomers(context: StepContext): void {
     .sort((a, b) => unitNumber(a.id) - unitNumber(b.id));
   if (due.length === 0) return;
   const station = subwayStation(state);
-  for (const unit of due) {
+  for (const shared of due) {
+    const unit = writableUnit(state, shared);
     const customers = (unit.venue as VenueDay).customers;
     while ((customers[0] ?? Infinity) <= state.step) {
       customers.shift();

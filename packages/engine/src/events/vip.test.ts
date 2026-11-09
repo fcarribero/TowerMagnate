@@ -151,6 +151,16 @@ describe('VIP booking at 12:00', () => {
     expect(newsKeys(events)).toEqual(['news.vipNoSuite']);
   });
 
+  it('leaves the suite of the state it was given unchanged', () => {
+    const { state, suites } = vipTower();
+    openVipVisit(state, TUESDAY);
+    state.step = at(TUESDAY, 12) - 1;
+    const before = structuredClone(state.units[suites[0] as UnitId]);
+    const after = bookingOnly.step(state, [], 1).state;
+    expect(after.units[suites[0] as UnitId]?.hotel?.arrivalStep).not.toBeNull();
+    expect(state.units[suites[0] as UnitId]).toEqual(before);
+  });
+
   it('books before the hotel rolls of the same step', () => {
     const { state, suites } = vipTower();
     openVipVisit(state, TUESDAY);

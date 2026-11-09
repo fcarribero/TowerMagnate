@@ -11,6 +11,7 @@ import { STEPS_PER_DAY } from './clock';
 import { evaluateUnit } from './evaluation';
 import { isNoisy, noisyUnitIds } from './noise';
 import type { SimulationSystem } from './step';
+import { writableUnit, writableUnitLedger } from './step-copy';
 import { unitNumber } from './units';
 
 const EVALUATED_TYPES: readonly UnitType[] = [
@@ -98,7 +99,7 @@ export function storeGrade(
   noisy = isNoisy(state, unit),
 ): TenantEvaluation {
   const grade = gradeUnit(state, unit, noisy);
-  unit.evaluation = grade;
+  writableUnit(state, unit).evaluation = grade;
   return grade;
 }
 
@@ -121,7 +122,7 @@ function hasOccupants(unit: Unit): boolean {
 export function storeDailyGrade(state: TowerState, unit: Unit, noisy = isNoisy(state, unit)): void {
   if (!isEvaluatedUnit(unit) || isHotelRoom(unit)) return;
   if (!hasOccupants(unit)) {
-    unit.evaluation = null;
+    if (unit.evaluation !== null) writableUnit(state, unit).evaluation = null;
     return;
   }
   if (tripsInWindow(state, unit, state.step).count === 0) return;
@@ -142,7 +143,7 @@ export function fileUnitTrip(state: TowerState, unit: Unit, endStep: number, str
     if (isHotelRoom(unit) || tripEnd >= oldest) kept.push(tripEnd, flat[at + 1] as number);
   }
   kept.push(endStep, stress);
-  state.unitLedger[unit.id] = kept;
+  writableUnitLedger(state)[unit.id] = kept;
 }
 
 /**
@@ -160,7 +161,9 @@ export function fileShopVisit(state: TowerState, shop: Unit, personId: number): 
 
 /** A new office or shop tenant, a condo sale or a new hotel stay starts the ledger over (SE-13). */
 export function clearUnitLedger(state: TowerState, unitId: UnitId): void {
-  Reflect.deleteProperty(state.unitLedger, unitId);
+  if (Object.hasOwn(state.unitLedger, unitId)) {
+    Reflect.deleteProperty(writableUnitLedger(state), unitId);
+  }
 }
 
 /**
