@@ -607,6 +607,12 @@ describe('migrateState unit evaluation', () => {
     expect(migrateState(JSON.parse(JSON.stringify(tower)))).toEqual(tower);
   });
 
+  it('loads a subway station saved above level -9', () => {
+    const tower = createTower(5);
+    tower.units.u3 = newUnit('u3', 'subway-station', 0, -5);
+    expect(migrateState(JSON.parse(JSON.stringify(tower)))).toEqual(tower);
+  });
+
   it('drops the 28 ledger entries a bomb left in a version 32 save and keeps the others', () => {
     const tower = createTower(5);
     tower.units.u3 = newUnit('u3', 'office', 10, 2);

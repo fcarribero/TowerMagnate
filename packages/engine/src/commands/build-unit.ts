@@ -3,6 +3,7 @@ import {
   isBasement,
   isColumn,
   levelAbove,
+  LOWEST_BUILDABLE_LEVEL,
   PlaceableUnitTypeSchema,
   TOP_FLOOR_LEVEL,
   TOWER_LAYOUT,
@@ -73,9 +74,12 @@ function footprintFor(definition: UnitDefinition, x: number, bottom: Level): Foo
   return { x0: x, x1, bottom, top, levels };
 }
 
-/** C-06, C-07, C-08 and C-24 to C-26, in that order. */
+/** C-50 first, then C-06, C-07, C-08 and C-24 to C-26, in that order. */
 function zoneError(zone: PlacementZone, footprint: Footprint): ErrorCode | null {
   const { bottom, top, levels } = footprint;
+  if (zone === 'lowest-basement') {
+    return bottom === LOWEST_BUILDABLE_LEVEL ? null : 'SUBWAY_POSITION';
+  }
   if (isBasement(bottom) && !isBasement(top)) return 'SPANS_GROUND';
   if (levels.includes(TOWER_LAYOUT.mainLobbyFloor)) return 'LOBBY_LEVEL_ONLY';
 
@@ -84,7 +88,6 @@ function zoneError(zone: PlacementZone, footprint: Footprint): ErrorCode | null 
       if (isBasement(bottom) || top > TOP_FLOOR_LEVEL) return 'ABOVE_GROUND_ONLY';
       break;
     case 'basement':
-    case 'lowest-basement':
       if (!isBasement(bottom)) return 'BASEMENT_ONLY';
       break;
     case 'above-top-floor':
