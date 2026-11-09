@@ -4,12 +4,14 @@
  * of 3 runs, void if their p95 differs by over 15%.
  *
  * With `--gate --avg-ms <ms> --p95-ms <ms> --p99-ms <ms>` it exits with 1 when a median is over
- * its limit or the result is void. Without `--gate` it only reports.
+ * its limit or the result is void. `--system-p95-ms <ms>` adds a limit on the median p95 of the
+ * trek and the office routine. Without `--gate` it only reports.
  */
 import os from 'node:os';
 import { parseArgs } from 'node:util';
 import {
   FULL_TOWER_STEP_BUDGET_MS,
+  PEAK_SYSTEMS,
   fullTowerGateFailures,
   medianOf,
   timeFullTowerRuns,
@@ -24,10 +26,11 @@ const { values: options } = parseArgs({
     'avg-ms': { type: 'string' },
     'p95-ms': { type: 'string' },
     'p99-ms': { type: 'string' },
+    'system-p95-ms': { type: 'string' },
   },
 });
 
-function limitFrom(name: 'avg-ms' | 'p95-ms' | 'p99-ms'): number {
+function limitFrom(name: 'avg-ms' | 'p95-ms' | 'p99-ms' | 'system-p95-ms'): number {
   const value = Number(options[name]);
   if (options[name] === undefined || !Number.isFinite(value) || value <= 0) {
     throw new Error(`--gate needs --${name} with a positive number of milliseconds`);
@@ -36,7 +39,12 @@ function limitFrom(name: 'avg-ms' | 'p95-ms' | 'p99-ms'): number {
 }
 
 const limits: FullTowerLimits | null = options.gate
-  ? { averageMs: limitFrom('avg-ms'), p95Ms: limitFrom('p95-ms'), p99Ms: limitFrom('p99-ms') }
+  ? {
+      averageMs: limitFrom('avg-ms'),
+      p95Ms: limitFrom('p95-ms'),
+      p99Ms: limitFrom('p99-ms'),
+      systemP95Ms: options['system-p95-ms'] === undefined ? undefined : limitFrom('system-p95-ms'),
+    }
   : null;
 
 const result = timeFullTowerRuns();
@@ -73,7 +81,7 @@ console.log(
     `p99 step ms per run: ${list((run) => run.p99Ms)} (median ${median((run) => run.p99Ms)}${limitText(limits?.p99Ms)})`,
     `Max step ms per run: ${list((run) => run.maxMs)}`,
     `Step ms when the same hours run in one call: ${list((run) => run.batchedMs)}`,
-    'Median ms per step by system (average, p95, p99, max):',
+    `Median ms per step by system (average, p95, p99, max)${limitText(limits?.systemP95Ms)} on the p95 of ${PEAK_SYSTEMS.join(' and ')}:`,
     ...systemLines(),
   ].join('\n'),
 );

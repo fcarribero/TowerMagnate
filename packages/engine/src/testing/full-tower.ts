@@ -169,17 +169,28 @@ export function timeFullTowerRuns(): FullTowerResult {
   return { runs: second, runsAgree: agree(second) };
 }
 
+/** The systems that carry the morning peak, each held to its own p95 limit by the gate. */
+export const PEAK_SYSTEMS: readonly string[] = ['trek', 'office routine'];
+
 export interface FullTowerLimits {
   averageMs: number;
   p95Ms: number;
   p99Ms: number;
+  /** Limit on the median p95 of each of `PEAK_SYSTEMS`; no limit when left out. */
+  systemP95Ms?: number;
+}
+
+function systemP95(run: FullTowerRun, name: string): number {
+  const timing = run.systems.find((system) => system.name === name);
+  if (!timing) throw new Error(`The bench timed no system named ${name}`);
+  return timing.p95Ms;
 }
 
 /** The reasons a result fails the limits: a median over its limit, or runs that disagree. */
 export function fullTowerGateFailures(result: FullTowerResult, limits: FullTowerLimits): string[] {
   const failures: string[] = [];
   if (!result.runsAgree) failures.push('Runs differ by over 15%, result void.');
-  const checks: [label: string, key: keyof FullTowerLimits][] = [
+  const checks: [label: string, key: 'averageMs' | 'p95Ms' | 'p99Ms'][] = [
     ['Average', 'averageMs'],
     ['p95', 'p95Ms'],
     ['p99', 'p99Ms'],
@@ -188,6 +199,16 @@ export function fullTowerGateFailures(result: FullTowerResult, limits: FullTower
     const median = medianOf(result.runs.map((run) => run[key]));
     if (median > limits[key]) {
       failures.push(`${label} median ${median.toFixed(2)} ms is over the ${limits[key]} ms limit.`);
+    }
+  }
+  const systemLimit = limits.systemP95Ms;
+  if (systemLimit === undefined) return failures;
+  for (const name of PEAK_SYSTEMS) {
+    const median = medianOf(result.runs.map((run) => systemP95(run, name)));
+    if (median > systemLimit) {
+      failures.push(
+        `${name} p95 median ${median.toFixed(2)} ms is over the ${systemLimit} ms limit.`,
+      );
     }
   }
   return failures;

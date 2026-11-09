@@ -105,6 +105,7 @@ export {
   FULL_TOWER_STEP_BUDGET_MS,
   fullTower,
   fullTowerGateFailures,
+  PEAK_SYSTEMS,
   timeFullTowerDay,
   timeFullTowerRuns,
 } from './full-tower';
