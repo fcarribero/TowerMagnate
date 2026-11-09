@@ -18,6 +18,9 @@ const manifest: SfxManifest = {
       volume: 0.8,
       loop: false,
       trigger: 'build.place',
+      stopTrigger: null,
+      minIntervalMs: 0,
+      duckOthers: null,
     },
   ],
 };

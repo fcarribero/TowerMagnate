@@ -1,5 +1,6 @@
 import {
   buildEventViews,
+  disconnectedUnits,
   findPerson,
   isEvaluatedUnit,
   isExpressStop,
@@ -10,12 +11,12 @@ import {
   shaftLevels,
   STEPS_PER_DAY,
   DAYS_PER_WEEK,
+  isOutsideTower,
   trekPhaseAt,
   type TrekPhase,
 } from '@tower-magnate/engine';
 import type { PersonView as EnginePerson } from '@tower-magnate/engine';
 import {
-  DEFAULT_PRICE_LEVEL,
   levelToIndex,
   LEDGER_CATEGORIES,
   STRESS_ALTO_FROM,
@@ -25,6 +26,7 @@ import {
   type FinanceWeek,
   type CarView,
   type FollowedView,
+  type HotelRoomState,
   type LedgerCategory,
   type LevelRow,
   type MoneyReason,
@@ -37,6 +39,7 @@ import {
   type Transport,
   type TransportView,
   type TowerState,
+  type UnitId,
   type UnitView,
   type Viewport,
   type WeekTotals,
@@ -62,10 +65,17 @@ const REASON_OF_CATEGORY: Record<LedgerCategory, { income: MoneyReason; expense:
  * What a client needs to draw the tower. People are limited to the viewport, and there is no
  * RNG, person queue or routing data. Without a viewport no people are sent.
  */
-export function buildSnapshot(state: TowerState, viewport: Viewport | null): Snapshot {
+/** Pass the tower's kept disconnected units; working them out builds a transport graph. */
+export function buildSnapshot(
+  state: TowerState,
+  viewport: Viewport | null,
+  disconnected: ReadonlySet<UnitId> = disconnectedUnits(state),
+): Snapshot {
   const people = listPeople(state.people);
   const homes = occupiedUnits(people);
-  const units = Object.values(state.units).map((unit) => unitView(unit, homes.has(unit.id)));
+  const units = Object.values(state.units).map((unit) =>
+    unitView(unit, homes.has(unit.id), disconnected.has(unit.id)),
+  );
   return {
     step: state.step,
     money: state.money,
@@ -87,7 +97,7 @@ export function buildSnapshot(state: TowerState, viewport: Viewport | null): Sna
     overlays: {
       evaluation: evaluationOverlay(state),
       price: Object.fromEntries(units.map((unit) => [unit.id, unit.price])),
-      hotel: {},
+      hotel: hotelOverlay(state),
     },
     finances: financeSummary(state),
   };
@@ -102,16 +112,38 @@ function evaluationOverlay(state: TowerState): Snapshot['overlays']['evaluation'
   return grades;
 }
 
-function unitView(unit: TowerState['units'][string], occupied: boolean): UnitView {
+/** The state of every hotel room: Limpia, Ocupada, Sucia or Con plaga. */
+function hotelOverlay(state: TowerState): Snapshot['overlays']['hotel'] {
+  const rooms: Record<string, HotelRoomState> = {};
+  for (const unit of Object.values(state.units)) {
+    if (unit.hotel) rooms[unit.id] = unit.hotel.state;
+  }
+  return rooms;
+}
+
+type TowerUnit = TowerState['units'][string];
+
+function unitVariant(
+  unit: TowerUnit,
+  occupied: boolean,
+  disconnected: boolean,
+): UnitView['variant'] {
+  const roomState = unit.hotel?.state;
+  if (roomState === 'dirty' || roomState === 'infested') return roomState;
+  if (disconnected) return 'disconnected';
+  return occupied ? 'occupied' : 'empty';
+}
+
+function unitView(unit: TowerUnit, occupied: boolean, disconnected: boolean): UnitView {
   return {
     id: unit.id,
     type: unit.type,
     x: unit.x,
     level: unit.level,
     name: unit.name,
-    price: DEFAULT_PRICE_LEVEL,
+    price: unit.priceLevel,
     occupied,
-    variant: occupied ? 'occupied' : 'empty',
+    variant: unitVariant(unit, occupied, disconnected),
   };
 }
 
@@ -242,6 +274,7 @@ export function peopleViews(
   const rides = ridePlaces(state);
   const views: PersonView[] = [];
   people.forEach((person, slot) => {
+    if (isOutsideTower(state.people, slot)) return;
     const phase = trekPhaseAt(state.people, slot);
     const ride = phase === 'riding' ? rides.get(person.id) : undefined;
     const place = {

@@ -354,6 +354,7 @@ Design call: 10:30 is the last appearance time so that a guest who needs a 2-hou
 From 3 stars, each office worker has a 10% chance per weekday, drawn in the daily plan, of a medical visit. At the leave time the worker goes from the office to a medical center chosen as in section 5, stays 60 minutes and then leaves the tower.
 
 - A medical center accepts up to 100 visits a day, counted from 00:00. A center with 100 visits that day is full and is not a candidate.
+- A center counts a visit as reserved when a worker chooses it and sets off. The reservations of a center are the workers on their way to it, so they are saved with the workers' routines. A center whose visits plus reservations reach 100 is not a candidate, so the 3 candidates are drawn only from centers with free places. A reservation turns into a visit on arrival, and it is released when the trip fails or the worker is removed.
 - The visit fails when the tower has no medical center, when no drawn candidate has a route, or when every center is full. A failed medical visit is recorded as a medical failure (TM-14 blocks the next star check, stars.md 6), shows the notice `news.medicalDemanded` at most once a day, and sends the worker home.
 - A visit that fails because the center is full or closed on arrival counts as failed in the same way.
 
