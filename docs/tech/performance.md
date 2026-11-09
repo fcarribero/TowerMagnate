@@ -38,6 +38,8 @@ Calibration times on CI were 32.9 to 33.5 ms on three EPYC 7763 jobs and 25.7 ms
 
 The reference is the 7763 because it is the slowest type seen so far. If GitHub changes the pool, rerun the bench on the new slowest type and update `REFERENCE_CALIBRATION_MS`.
 
+This gate covers the server only. The client has no CI gate, because the runners have no GPU. Its pass criteria and the machine they are judged on are in [Render reference machine](#render-reference-machine).
+
 ### Results
 
 Run of 2027-01-20, workflow run 42519972766, Node v22.23.4. The two jobs ran on different runner CPUs.
@@ -136,7 +138,7 @@ Desktop, the same release build, headed Chromium on a Ryzen 7 5800X with a GPU a
 
 The median p95 frame cost is 3.1 ms, well inside the 16.7 ms a 60 fps frame allows. The first run disagrees with the other two by more than 15% because the desktop was busy with other work. The capped check shows the display limit: a 59 Hz display holds any page at about 56 fps, as QA found in TM-124. The TM-124 dev build measured 6.2 ms p95 uncapped on the same kind of machine, so the release build costs about half as much per frame.
 
-The 60 fps line is not judged here. No reference machine with a GPU is defined yet, and the CI runner cannot draw at game speed without one. TM-248 will name the render reference machine and make frame cost the primary figure. Until then, this table records frame cost next to fps, and the result to compare against is the 3.1 ms p95 frame cost on the desktop.
+The 60 fps line is judged on the render reference machine with the method in [Render reference machine](#render-reference-machine), not on CI. The CI runner has no GPU and cannot draw at game speed. The desktop table above predates that method: its runs were not on an idle machine and the first run is more than 15% off the other two, so it is not the reference result.
 
 ### Summary
 
@@ -146,4 +148,58 @@ The 60 fps line is not judged here. No reference machine with a GPU is defined y
 | One step of a 15,000-person tower under 5 ms | 34.4 ms p95, 21.9 ms average | Missed, TM-249 |
 | 100 floors, 3,000 people, draw calls under 200 | 69 | Met |
 | Heap growth under 5% over 30 minutes | 3.3% median, 4.5% highest | Met |
-| 60 fps at 1x zoom | p95 frame cost 3.1 ms on a desktop GPU; not measurable on CI | Not judged until TM-248 |
+| 60 fps at 1x zoom | Reference run pending, see [Render reference machine](#render-reference-machine) | Not judged yet |
+
+## Render reference machine
+
+Frame rate depends on the display and the GPU of the machine that runs the test. QA found that a 59 Hz display holds even a blank page at 55.9 fps (213 fps and 6.2 ms p95 uncapped), and CI runners have no GPU, so their client timings are void (TM-137). The 60 fps target is therefore judged by frame cost on one named machine, and fps is a secondary check.
+
+### The machine
+
+| Part | Value |
+| --- | --- |
+| CPU | AMD Ryzen 7 5800X, 8 cores |
+| GPU | NVIDIA GeForce RTX 3060 Ti, driver 32.0.16.1692 (NVIDIA 516.92); chrome://gpu reports `ANGLE (NVIDIA, NVIDIA GeForce RTX 3060 Ti Direct3D11 vs_5_0 ps_5_0, D3D11-32.0.16.1692)`, WebGL and canvas hardware accelerated |
+| RAM | 32 GB |
+| OS | Windows 10 Home 22H2, build 19045 |
+| Display | 59 Hz |
+| Browser | Chromium 158.0.8127.18, the build that ships with `@playwright/test` 1.65.0 pinned in the repo |
+| Page | `perf.html` defaults: 100 floors, 3,000 people, 1x zoom, at 1920 x 1080 |
+
+This is the desktop already used in the client results above. When the GPU driver, the display or the Playwright version changes, update this table and run the reference again.
+
+### Running the reference
+
+Close other programs first; the machine must be otherwise idle. Then:
+
+```bash
+pnpm --filter @tower-magnate/web build:perf
+pnpm --filter @tower-magnate/web exec vite preview --outDir dist-perf --port 4173
+pnpm perf:stress --minutes 3 --url http://localhost:4173/perf.html --headed --uncapped   # 3 times
+pnpm perf:stress --minutes 1 --url http://localhost:4173/perf.html --headed              # once, capped
+```
+
+Each run warms up for 15 seconds before it measures. `--uncapped` turns off vsync and the frame rate limit, so a frame takes what it costs and not the display interval. The report prints `fps` and `p95FrameMs` over the last 600 frames of the run, and `maxDrawCalls`. Average frame cost is `1000 / fps` of an uncapped run.
+
+### Pass criteria for the 60 fps target
+
+A 60 fps frame has 16.7 ms. The criteria keep half of that for the game's own work outside drawing.
+
+- From the 3 uncapped runs, take the median of each figure. The p95 frame cost is at most 8.3 ms and the average frame cost is at most 5 ms.
+- The 3 runs agree within 15% on p95 frame cost. If they do not, the result is void: close what else is running and make 3 new runs.
+- Draw calls stay under 200 in every run.
+- The capped run reads at least 55 fps on the 59 Hz display.
+
+### Comparing another machine
+
+On any other machine, run the same uncapped command and report the p95 and average frame cost next to the reference figures. Frame cost is the number to compare. A capped fps figure from a different display says how fast that display refreshes, so it is never a pass or fail figure. CI client timings stay void for the same reason, since the runners draw in software.
+
+### QA notes for render tasks
+
+Render tasks that touch frame time copy this into their QA notes:
+
+> Build the perf page and run the uncapped command from [Render reference machine](#render-reference-machine) 3 times on your machine, then one capped run. Report the median p95 and average frame cost and the highest draw call count next to the reference figures. Judge the change by frame cost, not by fps. Only a run on the reference machine passes or fails the 60 fps target.
+
+### Reference result
+
+Not measured yet. A first attempt on 2027-02-01 was stopped before its first run finished, because the machine ran low on memory while other work was running on it. The summary row "60 fps at 1x zoom" stays "Not judged yet" until 3 uncapped runs and one capped run are made on the idle machine.
