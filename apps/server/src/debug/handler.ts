@@ -1,7 +1,7 @@
 import { serverMessage, type CommandResult } from '@tower-magnate/shared';
 import { sendError, sendMessage, type DebugFrames } from '../gateway';
 import type { TowerRunner, TowerChange } from '../runner';
-import { fastForward, forceEvent, setClock, setMoney, DebugRefusal } from './changes';
+import { fastForward, forceEvent, loadScenario, setClock, setMoney, DebugRefusal } from './changes';
 import { debugTypeOf, DebugMessageSchema, type DebugMessage } from './messages';
 
 export interface DebugFramesOptions {
@@ -20,6 +20,8 @@ function changeOf(message: DebugMessage): TowerChange {
       return setClock(message.p.day, message.p.time);
     case 'debug.setMoney':
       return setMoney(message.p.amount);
+    case 'debug.loadScenario':
+      return loadScenario(message.p.name);
   }
 }
 
