@@ -442,8 +442,53 @@ function medicalDay(state: TowerState): MedicalDay {
   return state.medicalDay;
 }
 
+interface MedicalTravellers {
+  step: number;
+  byCenter: Map<number, number>;
+}
+
+const medicalTravellerCounts = new WeakMap<PersonPool, MedicalTravellers>();
+
+function countMedicalTravellers(pool: PersonPool): Map<number, number> {
+  const byCenter = new Map<number, number>();
+  for (let slot = 0; slot < pool.id.length; slot++) {
+    if (!isOfficeWorker(pool, slot)) continue;
+    const routine = routineAt(pool, slot);
+    if (routine?.phase === 'toMedical')
+      byCenter.set(routine.venue, (byCenter.get(routine.venue) ?? 0) + 1);
+  }
+  return byCenter;
+}
+
+/**
+ * Visits reserved at each medical center: the workers on their way there. Built from the saved
+ * routines once per step and kept up to date as workers choose a center and arrive.
+ */
+function medicalReservations(state: TowerState): Map<number, number> {
+  const cached = medicalTravellerCounts.get(state.people);
+  if (cached && cached.step === state.step) return cached.byCenter;
+  const byCenter = countMedicalTravellers(state.people);
+  medicalTravellerCounts.set(state.people, { step: state.step, byCenter });
+  return byCenter;
+}
+
+function changeReservations(state: TowerState, center: number, change: number): void {
+  const byCenter = medicalReservations(state);
+  byCenter.set(center, Math.max(0, (byCenter.get(center) ?? 0) + change));
+}
+
+function medicalReservationsAt(state: TowerState, center: number): number {
+  return medicalReservations(state).get(center) ?? 0;
+}
+
+function visitsToday(state: TowerState, center: number): number {
+  return medicalDay(state).visits[center] ?? 0;
+}
+
+/** People spec 16: visits plus reservations below the daily limit. */
 function hasRoomToday(state: TowerState, center: number): boolean {
-  return (medicalDay(state).visits[center] ?? 0) < MEDICAL_CENTER_DAILY_VISITS;
+  const booked = visitsToday(state, center) + medicalReservationsAt(state, center);
+  return booked < MEDICAL_CENTER_DAILY_VISITS;
 }
 
 function centersWithRoom(state: TowerState): Unit[] {
@@ -472,6 +517,7 @@ function startMedicalVisit(worker: Worker, routes: RoutePlanner): boolean {
     const previousVenue = routine.venue;
     routine.venue = unitNumber(choice.unit.id);
     if (beginTravel(worker, 'toMedical', worker.desk, unitPlace(choice.unit), choice.steps)) {
+      changeReservations(state, routine.venue, 1);
       return true;
     }
     routine.venue = previousVenue;
@@ -484,7 +530,9 @@ function startMedicalVisit(worker: Worker, routes: RoutePlanner): boolean {
 function arriveAtMedicalCenter(worker: Worker, routes: RoutePlanner): void {
   const { routine, state } = worker;
   const center = venueUnit(state, routine.venue);
-  if (center?.type === 'medical-center' && hasRoomToday(state, routine.venue)) {
+  changeReservations(state, routine.venue, -1);
+  const full = visitsToday(state, routine.venue) >= MEDICAL_CENTER_DAILY_VISITS;
+  if (center?.type === 'medical-center' && !full) {
     routine.phase = 'atMedical';
     const today = medicalDay(state);
     today.visits[routine.venue] = (today.visits[routine.venue] ?? 0) + 1;
