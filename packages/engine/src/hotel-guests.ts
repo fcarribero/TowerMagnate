@@ -46,7 +46,7 @@ import {
   type GuestRoutine,
   type GuestSlots,
 } from './hotel-guest-trip';
-import { unitPlace, type Place, type RoutePlanner } from './office-routine';
+import { entrancePlace, unitPlace, type Place, type RoutePlanner } from './office-routine';
 import { drawEntrance, entranceDoor, streetEntrance, subwayStation } from './outside-entrances';
 import {
   addPerson,
