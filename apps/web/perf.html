@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" href="data:," />
+    <title>Tower Magnate - render stress</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+        background: #000;
+      }
+      #stage {
+        position: fixed;
+        inset: 0;
+      }
+      #report {
+        position: fixed;
+        top: 8px;
+        left: 8px;
+        padding: 6px 8px;
+        background: rgb(0 0 0 / 70%);
+        color: #fff;
+        font: 12px/1.4 monospace;
+        white-space: pre;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="stage"></div>
+    <div id="report">Cargando...</div>
+    <script type="module" src="/src/perfHarness/main.ts"></script>
+  </body>
+</html>

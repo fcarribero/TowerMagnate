@@ -20,6 +20,7 @@
     "bench:runner-load": "pnpm --filter @tower-magnate/server bench:runner-load",
     "bench:graph": "tsx scripts/bench-transport-graph.ts",
     "bench:people-layer": "tsx apps/web/src/render/peopleLayer.bench.ts",
+    "perf:stress": "tsx scripts/perf-stress.ts",
     "bench:routes": "tsx scripts/bench-route-planner.ts",
     "art:build": "pnpm --filter @tower-magnate/art build",
     "stack": "tsx scripts/stack.ts",

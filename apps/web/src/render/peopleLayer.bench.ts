@@ -11,7 +11,7 @@ const PEOPLE = 3000;
 const FLOORS = 100;
 const FRAME_BUDGET_MS = 8;
 const FRAMES_PER_RUN = 60;
-const WARM_UP_FRAMES = 120;
+const WARM_UP_PASSES = 2;
 const LEAVING_EVERY = 100;
 const RUN_AGREEMENT = 0.15;
 const MAX_ATTEMPTS = 10;
@@ -56,15 +56,11 @@ function frameMsOf(range: LevelRange): number | null {
   };
   layer.show(nextFrame());
   const frames = Array.from({ length: FRAMES_PER_RUN }, nextFrame);
-  let next = 0;
-  for (let count = 0; count < WARM_UP_FRAMES; count++) {
-    layer.show(frames[next++ % frames.length]!);
-  }
-  const medianMs = timeUntilRunsAgree(() => {
-    for (let count = 0; count < FRAMES_PER_RUN; count++) {
-      layer.show(frames[next++ % frames.length]!);
-    }
-  });
+  const showAllFrames = () => {
+    for (const drawn of frames) layer.show(drawn);
+  };
+  for (let pass = 0; pass < WARM_UP_PASSES; pass++) showAllFrames();
+  const medianMs = timeUntilRunsAgree(showAllFrames);
   return medianMs === null ? null : medianMs / FRAMES_PER_RUN;
 }
 
