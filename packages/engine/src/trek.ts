@@ -161,8 +161,6 @@ interface TrekPass {
   planner: TripPlanner;
   /** Lobby height by `placeKey`; the grid does not change during a trek pass. */
   lobbyHeights: Map<number, number | null>;
-  /** Destination group by `placeKey` of the destination and user class. */
-  groups: Map<number, number | null>;
   plans: Map<number, Map<number, RecheckPlan>>;
 }
 
@@ -181,16 +179,8 @@ function recheckStart(pool: PersonPool, slot: number): number {
 }
 
 function destinationGroupOf(pass: TrekPass, pool: PersonPool, slot: number): number | null {
-  const isMaid = pool.kind[slot] === MAID_KIND;
-  const level = pool.trekLevel[slot] as Level;
-  const column = pool.trekColumn[slot] as number;
-  const key = placeKey(level, column) * 2 + (isMaid ? 1 : 0);
-  let group = pass.groups.get(key);
-  if (group === undefined) {
-    group = pass.planner.destinationGroup({ level, x: column }, isMaid ? 'maid' : 'other');
-    pass.groups.set(key, group);
-  }
-  return group;
+  const to = { level: pool.trekLevel[slot] as Level, x: pool.trekColumn[slot] as number };
+  return pass.planner.destinationGroup(to, pool.kind[slot] === MAID_KIND ? 'maid' : 'other');
 }
 
 function rideOf(context: StepContext, plan: RoutePlan | null): Ride | null {
@@ -207,11 +197,10 @@ function rideOf(context: StepContext, plan: RoutePlan | null): Ride | null {
   };
 }
 
-function recheckPlanFor(context: StepContext, slot: number): RecheckPlan {
-  const pass = trekPasses.get(context);
+function recheckPlanFor(context: StepContext, slot: number, pass: TrekPass): RecheckPlan {
   const pool = context.state.people;
-  const group = pass ? destinationGroupOf(pass, pool, slot) : null;
-  if (!pass || group === null) {
+  const group = destinationGroupOf(pass, pool, slot);
+  if (group === null) {
     const plan = planFrom(context, slot);
     return { plan, ride: rideOf(context, plan) };
   }
@@ -310,23 +299,41 @@ function transportKey(via: number): string {
   return key;
 }
 
-function startLeg(context: StepContext, slot: number, leg: FirstLeg): void {
+interface LegStart {
+  phase: number;
+  via: number;
+  level: Level;
+  column: number;
+}
+
+/** Plans are shared by everyone who rechecks the same way, so each leg is read once. */
+const legStarts = new WeakMap<FirstLeg, LegStart>();
+
+function legStartOf(context: StepContext, leg: FirstLeg): LegStart {
+  let start = legStarts.get(leg);
+  if (start) return start;
   const graph = graphOf(context);
   const first = leg.steps[0];
   if (!first) throw new Error('A transport leg has at least one step');
-  const from = graph.node(first.from);
-  const to = graph.node(first.to);
   const phase =
     leg.kind === 'stairs'
       ? WALKING_TO_STAIRS
       : leg.kind === 'escalator'
         ? WALKING_TO_ESCALATOR
         : WALKING_TO_SHAFT;
-  setLeg(context.state.people, slot, phase, {
+  start = {
+    phase,
     via: entityNumber(first.via),
-    level: to.level,
-    column: from.x,
-  });
+    level: graph.node(first.to).level,
+    column: graph.node(first.from).x,
+  };
+  legStarts.set(leg, start);
+  return start;
+}
+
+function startLeg(context: StepContext, slot: number, leg: FirstLeg): void {
+  const start = legStartOf(context, leg);
+  setLeg(context.state.people, slot, start.phase, start);
 }
 
 /**
@@ -573,8 +580,8 @@ function joinFromBesideQueue(context: StepContext, slot: number): void {
  * A person beside a full queue looks again (routing 8.3). While the same ride wins they stay on
  * the same wait and join once there is room. Otherwise the wait so far counts and they move on.
  */
-function recheckFullQueue(context: StepContext, slot: number): void {
-  const { plan, ride } = recheckPlanFor(context, slot);
+function recheckFullQueue(context: StepContext, slot: number, pass: TrekPass): void {
+  const { plan, ride } = recheckPlanFor(context, slot, pass);
   if (isSameRideFromHere(context.state.people, slot, ride)) {
     joinFromBesideQueue(context, slot);
     return;
@@ -779,14 +786,14 @@ function refreshTravellerStress(
   const phase = pool.trek[slot] as number;
   const part = partUnderWay(phase);
   const steady = phase === QUEUED || phase === RIDING;
-  const personId = pool.id[slot] as number;
-  const checkpoint = checkpoints.get(personId);
-  if (steady && checkpoint && stressStillHolds(context, slot, checkpoint)) return;
-  const holdsUntil = refreshPersonStress(context.state, slot, true, part);
   if (!steady) {
-    checkpoints.delete(personId);
+    refreshPersonStress(context.state, slot, true, part);
     return;
   }
+  const personId = pool.id[slot] as number;
+  const checkpoint = checkpoints.get(personId);
+  if (checkpoint && stressStillHolds(context, slot, checkpoint)) return;
+  const holdsUntil = refreshPersonStress(context.state, slot, true, part);
   checkpoints.set(personId, {
     phase,
     stress: pool.stress[slot] as number,
@@ -798,14 +805,19 @@ function refreshTravellerStress(
   });
 }
 
-function stepPerson(context: StepContext, slot: number): void {
+/** Phases in which nothing happens until the leg step: flights, a full queue, no route. */
+function waitsForLegStep(phase: number): boolean {
+  return phase > WALKING_TO_SHAFT && phase !== QUEUED && phase !== RIDING;
+}
+
+function stepPerson(context: StepContext, slot: number, pass: TrekPass): void {
   const pool = context.state.people;
   const phase = pool.trek[slot] as number;
   if (phase === IDLE || phase === QUEUED || phase === RIDING) return;
   if (phase <= WALKING_TO_SHAFT) {
     if (walk(pool, slot)) reachLegStart(context, slot);
   } else if (pool.legStep[slot] === context.state.step) {
-    if (phase === WAITING_BESIDE_QUEUE) recheckFullQueue(context, slot);
+    if (phase === WAITING_BESIDE_QUEUE) recheckFullQueue(context, slot, pass);
     else if (phase === NO_ROUTE) replan(context, slot);
     else finishFlight(context, slot);
   }
@@ -823,19 +835,21 @@ export function createTrekSystem(): SimulationSystem {
       sweptGraphs.add(graph);
       replanBrokenLegs(context);
     }
-    trekPasses.set(context, {
+    const pass: TrekPass = {
       planner: plannerFor(graph),
-      groups: new Map(),
       lobbyHeights: new Map(),
       plans: new Map(),
-    });
+    };
+    trekPasses.set(context, pass);
     const checkpoints = checkpointsOf(pool);
+    const now = context.state.step;
     for (let slot = 0; slot < pool.id.length; slot++) {
       const phase = pool.trek[slot] as number;
       if (phase === IDLE) continue;
-      const sum = pool.tripSum[slot] as number;
       const legStep = pool.legStep[slot] as number;
-      stepPerson(context, slot);
+      if (legStep !== now && waitsForLegStep(phase)) continue;
+      const sum = pool.tripSum[slot] as number;
+      stepPerson(context, slot, pass);
       if (isOnTrek(pool, slot) && stressMayHaveMoved(pool, slot, phase, sum, legStep)) {
         refreshTravellerStress(context, slot, checkpoints);
       }

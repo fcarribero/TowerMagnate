@@ -63,7 +63,8 @@ interface LedgerWindow {
 }
 
 function ledgerWindow(state: TowerState, slot: number): LedgerWindow {
-  const flat = state.tripLedger[String(field(state.people.id, slot))] ?? [];
+  // A number key finds the same entry as its string without building the string.
+  const flat = state.tripLedger[field(state.people.id, slot)] ?? [];
   const oldest = state.step - STRESS_WINDOW_STEPS;
   let sum = 0;
   let count = 0;

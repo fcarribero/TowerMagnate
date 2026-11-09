@@ -9,6 +9,8 @@ import {
   ROUTE_RIDE_COST,
   ROUTE_STAIR_LEG_COST,
   ROUTE_TRANSFER_COST,
+  LAST_COLUMN,
+  LOWEST_LEVEL,
   type EntityId,
   type HallDirection,
   type Level,
@@ -300,6 +302,7 @@ export class TripPlanner {
   private runOptions = new Map<number, RunOption[]>();
   private runsByX = new Map<number, RunByX>();
   private runEnds = new Map<number, { first: number; last: number }>();
+  private groups = new Map<number, number | null>();
 
   constructor(private readonly graph: TransportGraph) {}
 
@@ -374,6 +377,7 @@ export class TripPlanner {
     this.runOptions.clear();
     this.runsByX.clear();
     this.runEnds.clear();
+    this.groups.clear();
   }
 
   /**
@@ -383,10 +387,16 @@ export class TripPlanner {
    */
   destinationGroup(to: RoutePoint, userClass: UserClass): number | null {
     this.dropStaleCaches();
-    const run = this.graph.runAtCell(to.level, to.x);
-    if (!run) return null;
-    const shared = run.nodes.length > 0 ? this.sharedColumn(run.id, to.x) : 0;
-    return (run.id * COLUMN_RANGE + shared) * 2 + (userClass === 'maid' ? 1 : 0);
+    const isMaid = userClass === 'maid' ? 1 : 0;
+    const key = ((to.level - LOWEST_LEVEL) * (LAST_COLUMN + 1) + to.x) * 2 + isMaid;
+    let group = this.groups.get(key);
+    if (group === undefined) {
+      const run = this.graph.runAtCell(to.level, to.x);
+      const shared = run && run.nodes.length > 0 ? this.sharedColumn(run.id, to.x) : 0;
+      group = run ? (run.id * COLUMN_RANGE + shared) * 2 + isMaid : null;
+      this.groups.set(key, group);
+    }
+    return group;
   }
 
   /** The column whose table a destination at `x` on `run` uses. */
