@@ -64,12 +64,29 @@ describe('debug changes on a running tower', () => {
     ]);
   });
 
-  it('opens a fire', async () => {
-    await start();
+  it('opens a fire in an office and lights its level', async () => {
+    const tower = buildTower({
+      ...plainTowerPlan(2, 0, 40),
+      units: [{ type: 'office', level: 2, x: 0 }],
+    }).state;
+    await start(3, tower);
 
     await runner.change('1', forceEvent('fire'));
 
-    expect(state().activeEvents).toEqual([expect.objectContaining({ kind: 'fire' })]);
+    expect(state().activeEvents).toEqual([expect.objectContaining({ kind: 'fire', level: 2 })]);
+    expect(runner.takeEvents('1')).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ type: 'news', key: 'news.fire', level: 2 }),
+      ]),
+    );
+  });
+
+  it('refuses a fire when no unit can burn', async () => {
+    await start(3);
+
+    await expect(runner.change('1', forceEvent('fire'))).rejects.toEqual(
+      new DebugRefusal('UNKNOWN_ENTITY'),
+    );
   });
 
   it('refuses a bomb threat when no unit can hide the bomb', async () => {

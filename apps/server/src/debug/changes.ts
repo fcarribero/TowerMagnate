@@ -1,8 +1,8 @@
 import {
   announceSanta,
   DAYS_PER_WEEK,
-  openFire,
   openRandomBombThreat,
+  openRandomFire,
   STEPS_PER_DAY,
   STEPS_PER_MINUTE,
   weekdayOfDay,
@@ -21,11 +21,6 @@ export class DebugRefusal extends Error {
   }
 }
 
-function highestBuiltLevel(state: TowerState): number {
-  const built = Object.keys(state.grid.levels).map(Number);
-  return Math.max(1, ...built);
-}
-
 export function forceEvent(kind: DebugEventKind): TowerChange {
   if (kind === 'santa') return forceSanta;
   return (state) => {
@@ -34,7 +29,7 @@ export function forceEvent(kind: DebugEventKind): TowerChange {
       kind === 'bomb'
         ? openRandomBombThreat(context)
         : kind === 'fire'
-          ? openFire(context, highestBuiltLevel(context.state))
+          ? openRandomFire(context)
           : undefined;
     if (opened === undefined) {
       throw new DebugRefusal('INVALID_COMMAND');

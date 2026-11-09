@@ -59,9 +59,10 @@ describe('debug messages over the tower socket', () => {
     client.sendRaw(debugFrame('debug.setClock', { id: 'c', day: 3, time: '12:00' }));
 
     await waitFor(() => results(client).length === 4);
+    // A new tower has no unit a fire can start in, so the engine refuses the event.
     expect(results(client).map((result) => [result.id, result.ok])).toEqual([
       ['m', true],
-      ['e', true],
+      ['e', false],
       ['f', true],
       ['c', true],
     ]);
@@ -107,7 +108,7 @@ describe('debug messages over the tower socket', () => {
     client.sendRaw(debugFrame('debug.forceEvent', { id: 'b', kind: 'bomb' }));
 
     await waitFor(() => results(client).length === 2);
-    expect(results(client).map((result) => result.ok)).toEqual([true, false]);
+    expect(results(client).map((result) => result.ok)).toEqual([false, false]);
   });
 
   function results(client: TestSocketClient) {
