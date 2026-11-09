@@ -119,7 +119,7 @@ Status is one of: works, bug (with the task filed), not built yet (feature missi
 | Bomb, forced, no answer | works | Default `refuse` at the 1-hour deadline, search, explosion on 6 floors, 18 units lost |
 | Bomb, natural roll | works | Day 10 at 09:00, found by guards at 12:54 |
 | Ruins after a bomb | bug | The Topadora cannot pick ruins: TM-237. Still open on the re-run; `demolishPlan.ts` maps only `l` and `f` |
-| Fire, forced, helicopter | in QA (TM-109) | 500,000 charged; the fire stayed in `activeEvents` with no cells for the rest of the run. Noted on TM-109. Re-run with `burn`: same result, and no `news.fire` notice. TM-109 is not in `develop` yet |
+| Fire, forced | works | TM-109 merged; see "Check on 26 January". Helicopter path not played again |
 | Treasure | not seen | 9 basement levels built, no treasure. The chance is 1 in 40 per level |
 | Santa | works | `news.santa` at 22:00 on 24 December |
 
@@ -148,6 +148,19 @@ Fixes merged on 21 January were checked on `develop` at 51a9c03 (merged into thi
 - TM-103 lease and condo evaluations: `evaluation`, `unit-evaluation` and `evaluation-effects` tests pass.
 - TM-236 closed sprite for venues at night: not merged, still in QA (PR 229). Not checked.
 - Still open: TM-238 and TM-239. TM-109 (fire) is not in `develop`.
+
+## Check on 26 January
+
+Short visual check on `develop` at 7393ebf, which has TM-242 (people drawn in the browser) and TM-109 (fire). Same stack and port block (4170, `tm-gd`), a fresh database, headless Chromium at 1600 x 900. The tower had a 61-column lobby, floors 2 to 8, two standard shafts and 28 offices, so it stayed at 1 star. Screenshots were looked at one by one.
+
+- People drawn and moving: works. Workers came in at the lobby, rode the cars (cars stopped at levels and the figure showed inside the shaft), walked into offices and sat at the desks. By 08:25 every office had a seated worker. A figure was visible in the elevator shaft on level 4 on the way up. Population read 162 to 168.
+- Two figures stand at the far ends of the lobby (columns near the lobby edges) in every screenshot and never move. They look like idle visitors; not filed, since the cause is unknown.
+- One session showed people frozen: after two `fastForward` days and a `setClock` on a page that was already open, the same ten workers stood in the same places from 08:01 to 08:29 while the clock and money kept running. Two later sessions (including one with the same `fastForward` and `setClock` calls) did not repeat it, so no task was filed. If it shows up again, the first thing to try is a reload.
+- Forced fire (`debug.forceEvent` with `fire`): works, and it runs at 1 star because the debug command skips the 3-star rule. The Incendio dialog read "Hay un incendio en el piso 7. Un helicóptero lo puede apagar por $500.000. Si no lo llamás, seguridad va a tratar de contenerlo. Respondé antes de las 09:31", with the buttons "Llamar al helicóptero ($500.000)" and "No llamar". The burning office drew as a black burned block at once and the population dropped (162 to 156).
+- Fire end: with "No llamar" and no security office, the fire went up one level about every 30 minutes (level 2 and 3 burning at 09:20, whole tower burned by about 12:40) and the ticker showed "El incendio se apagó." at 11:59, which fits events.md 5.6 and 5.8. Population went to 0 because every office was ruins. The ruins stay until demolished.
+- Notices: the end notice reads well, but it sits in a thin strip at the very bottom of the window in small type. The "Avisos" window was not opened in this run (the toolbar button was not found by role name).
+
+No new bugs. TM-237, TM-238 and TM-239 are not rechecked here. 4 stars to Torre is still blocked on TM-35 and TM-110.
 
 ## Test plan for 4 stars to Torre
 
