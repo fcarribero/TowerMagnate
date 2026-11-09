@@ -36,13 +36,33 @@ Growth keeps back $100,000 and a week of upkeep. The first draft also kept back 
 
 ## 2. Results before tuning
 
-First run, seed 1 only, develop at 624bda5, 130 days: 2 stars on day 12, 3 stars on day 61, 4,453 people and no 4 stars by day 130. The other 4 seeds are still to run. Money is the gate: from day 14 on the bot spends every week's income and keeps the tower about $300,000 above its reserve.
+### 2.1 First draft of the bot
 
-Party halls and cinemas get no guests on develop (TM-37 is in the backlog), so they only cost upkeep. The bot leaves their levels empty until TM-37 lands. Party halls at 50 guests would pay back in about two weeks, so these numbers will move when it does.
+Seed 1, develop at 624bda5, 130 days: 2 stars on day 12, 3 stars on day 61, 4,453 people and no 4 stars by day 130. The bot sat at about 300 people from day 10 to day 30 with its money held at the reserve, and most of each week's income went to hotel rooms near the core.
+
+### 2.2 What blocked 4 stars
+
+Nothing in the engine. With $5,000,000 added on day 1, seed 1 reached 4 stars on day 82, at the first weekday check where population was 5,003. With $60,000,000 added it reached 4 stars on day 9. In both runs the security office, 4 suites, the VIP flag and recycling (3 centers at 5,000) were in place before population got there. VIP visits came about 1 day in 9 at 3 stars, and the flag was set within 2 to 4 weeks of 3 stars on every run. Medical failures and parking failures showed up in some windows, and each cost a day at most, because the bot adds a medical center and parking spaces as population grows. The draft never reached 4 stars because it never reached 5,000 people.
+
+### 2.3 Current bot, 5 seeds
+
+The bot of section 1, develop at 624bda5 plus this branch, constants unchanged. These numbers come from the weekly progress lines, so each is the end of the game week in which the rating came; the 200-day report was stopped at day 112 to 133 because a 5-seed run at 5,000 people and more takes over 2 hours.
+
+| Rating | Seed 1 | Seed 2 | Seed 3 | Seed 4 | Seed 5 | Target |
+|---|---|---|---|---|---|---|
+| 2 stars | by 7 | by 7 | by 7 | by 7 | by 7 | by 7 |
+| 3 stars | by 35 | by 35 | by 35 | by 35 | by 35 | 14 to 21 |
+| 4 stars | by 98 | by 98 | not by 112 | by 119 | by 98 | 54 to 72 |
+
+Condo sales pay for growth: in seed 1, condo sales brought $6,000,000 in the first week and $2,100,000 to $2,700,000 in the weeks the bot opens condo levels. From 2 stars to 3 stars the tower can only grow in zone 0, because the express elevator and sky lobbies need 3 stars, and zone 0 holds about 1,300 people when every column is used. The last 300 of the 1,000 people for 3 stars need main lobby out to the edge of the tower at $5,000 a column.
+
+### 2.4 Trial: upkeep at the GDD values
+
+The same 5 seeds with every doubled upkeep line in economy.md 8.2 put back to the GDD value (cars $10,000 and $20,000, housekeeping $10,000, security $20,000, recycling $50,000, subway $100,000; lobby and hotel rooms unchanged): 2 stars by day 7 and 3 stars by day 35 on every seed, as before; 4 stars by day 84 on seeds 1, 2, 4 and 5 and by day 91 on seed 3. That is about two weeks earlier at 4 stars, still about two weeks outside the range, and it does not move 3 stars.
 
 ## 3. Constants changed
 
-To be filled in.
+None yet. Upkeep alone does not bring 3 or 4 stars into range. The next step is a combined change: GDD upkeep plus a cheaper path through 2 stars (see the TM-136 notes in the tracker for the options).
 
 ## 4. Results after tuning
 
