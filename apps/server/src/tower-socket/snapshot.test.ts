@@ -4,6 +4,7 @@ import {
   createTower,
   creditMoney,
   defaultSchedule,
+  encodeRoutine,
   followPerson,
   newUnit,
   openBombThreat,
@@ -13,6 +14,7 @@ import {
   step,
   STEPS_PER_DAY,
   TREK_PHASES,
+  type RoutinePhase,
   type TrekPhase,
 } from '@tower-magnate/engine';
 import {
@@ -253,6 +255,20 @@ describe('snapshot from tower state', () => {
     expect(snapshot.overlays.price).toEqual({ u5: 'normal', u6: 'normal' });
   });
 
+  it('sends the stored price level of each unit in its view and the price overlay', () => {
+    const state = towerWithPeople();
+    (state.units.u5 as Unit).priceLevel = 'high';
+    (state.units.u6 as Unit).priceLevel = 'low';
+
+    const snapshot = buildSnapshot(state, null);
+
+    expect(snapshot.units).toEqual([
+      expect.objectContaining({ id: 'u5', price: 'high' }),
+      expect.objectContaining({ id: 'u6', price: 'low' }),
+    ]);
+    expect(snapshot.overlays.price).toEqual({ u5: 'high', u6: 'low' });
+  });
+
   it('sends the stored grade of each evaluated unit in the evaluation overlay', () => {
     const state = towerWithPeople();
     (state.units.u5 as Unit).evaluation = 'fair';
@@ -293,6 +309,33 @@ describe('snapshot from tower state', () => {
       const snapshot = buildSnapshot(state, wide);
       expect(snapshot.people[0]?.mode, phase).toBe(expected[phase]);
     }
+  });
+
+  it('leaves out office workers who are still outside the tower or gave up coming in', () => {
+    const routine = (phase: RoutinePhase) =>
+      encodeRoutine({
+        phase,
+        lunchHandled: false,
+        entranceOnRight: false,
+        venue: 0,
+        medical: false,
+        lunchMinute: 720,
+        leaveMinute: 1020,
+      });
+    const state = towerWithPeople();
+    state.people.level[0] = 1;
+    state.people.column[0] = 0;
+    for (const phase of ['waitingToArrive', 'givingUpArrival'] as const) {
+      state.people.trip[0] = routine(phase);
+      expect(buildSnapshot(state, LOBBY_VIEW).people, phase).toEqual([]);
+    }
+
+    state.people.trek[0] = TREK_PHASES.indexOf('walkingToDestination');
+    expect(buildSnapshot(state, LOBBY_VIEW).people.map((person) => person.id)).toEqual(['p1']);
+
+    state.people.trek[0] = TREK_PHASES.indexOf('idle');
+    state.people.trip[0] = routine('atOffice');
+    expect(buildSnapshot(state, LOBBY_VIEW).people.map((person) => person.id)).toEqual(['p1']);
   });
 
   it('keeps the last horizontal facing while the person is not walking', () => {
