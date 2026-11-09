@@ -74,6 +74,7 @@ export function startWeddingAttempt(context: StepContext, occurrence: HookOccurr
     inside: 0,
     outcome: 'pending',
   };
+  state.lastWeddingDay = occurrence.dayNumber;
 }
 
 export const weddingAttemptHook: ScheduledHook = {
