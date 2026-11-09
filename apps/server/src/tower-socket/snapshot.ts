@@ -15,7 +15,6 @@ import {
 } from '@tower-magnate/engine';
 import type { PersonView as EnginePerson } from '@tower-magnate/engine';
 import {
-  DEFAULT_PRICE_LEVEL,
   levelToIndex,
   LEDGER_CATEGORIES,
   STRESS_ALTO_FROM,
@@ -109,7 +108,7 @@ function unitView(unit: TowerState['units'][string], occupied: boolean): UnitVie
     x: unit.x,
     level: unit.level,
     name: unit.name,
-    price: DEFAULT_PRICE_LEVEL,
+    price: unit.priceLevel,
     occupied,
     variant: occupied ? 'occupied' : 'empty',
   };
