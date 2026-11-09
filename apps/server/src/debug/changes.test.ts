@@ -113,10 +113,21 @@ describe('debug changes on a running tower', () => {
     await expect(runner.change('1', forceEvent('fire'))).rejects.toEqual(
       new DebugRefusal('BOMB_EVENT_ACTIVE'),
     );
-    await expect(runner.change('1', forceEvent('vip'))).rejects.toEqual(
+    await expect(runner.change('1', forceEvent('wedding'))).rejects.toEqual(
       new DebugRefusal('INVALID_COMMAND'),
     );
     expect(state().activeEvents).toHaveLength(1);
+  });
+
+  it('opens a VIP visit that books at the next 12:00, one at a time', async () => {
+    await start(3);
+
+    await runner.change('1', forceEvent('vip'));
+
+    expect(state().vipVisit).toMatchObject({ day: 0, unitId: null, outcome: 'pending' });
+    await expect(runner.change('1', forceEvent('vip'))).rejects.toEqual(
+      new DebugRefusal('LIMIT_REACHED'),
+    );
   });
 
   it('announces santa at the current step and keeps it with the notices', async () => {

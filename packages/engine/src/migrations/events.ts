@@ -13,6 +13,8 @@ import {
   type Level,
   type Notice,
   type NoticeParams,
+  type VipVisit,
+  StarRatingSchema,
 } from '@tower-magnate/shared';
 import { isRecord, StateMigrationError } from './errors';
 
@@ -206,6 +208,39 @@ export function readTreasureLevels(raw: unknown): Level[] {
     throw new StateMigrationError('State treasureLevels must be a list of basement levels');
   }
   return [...(raw as Level[])];
+}
+
+const VIP_OUTCOMES: readonly unknown[] = ['pending', 'approved', 'rejected'];
+
+function isNullOr<T>(value: unknown, check: (value: unknown) => value is T): boolean {
+  return value === null || check(value);
+}
+
+function isUnitId(value: unknown): value is string {
+  return typeof value === 'string' && /^u[1-9][0-9]*$/.test(value);
+}
+
+export function readVipVisit(raw: unknown): VipVisit | null {
+  if (raw === null) return null;
+  const valid =
+    isRecord(raw) &&
+    typeof raw.id === 'string' &&
+    isStep(raw.day) &&
+    StarRatingSchema.safeParse(raw.startedAtStars).success &&
+    isNullOr(raw.unitId, isUnitId) &&
+    isNullOr(raw.personId, isStep) &&
+    VIP_OUTCOMES.includes(raw.outcome);
+  if (!valid) {
+    throw new StateMigrationError('State vipVisit must be null or a VIP visit');
+  }
+  return {
+    id: raw.id as string,
+    day: raw.day as number,
+    startedAtStars: raw.startedAtStars as VipVisit['startedAtStars'],
+    unitId: raw.unitId as VipVisit['unitId'],
+    personId: raw.personId as number | null,
+    outcome: raw.outcome as VipVisit['outcome'],
+  };
 }
 
 function readNoticeParams(raw: unknown): NoticeParams {

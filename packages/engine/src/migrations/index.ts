@@ -47,6 +47,7 @@ import {
   readNewsSent,
   readNotices,
   readTreasureLevels,
+  readVipVisit,
 } from './events';
 import { readGrid } from './grid';
 import { readLedger, readMoney } from './money';
@@ -89,6 +90,7 @@ const MIGRATIONS: readonly Migration[] = [
   addLastWeddingDay,
   addNewsSent,
   addHotelBookings,
+  addVipVisit,
 ];
 
 /** Version 2 records each unit's price level, what was paid for it and when it was placed. */
@@ -471,6 +473,11 @@ function addHotelBookings(raw: Record<string, unknown>): Record<string, unknown>
   return { ...raw, schemaVersion: 30, units };
 }
 
+/** Version 31 keeps the VIP visit under way; an older tower has none. */
+function addVipVisit(raw: Record<string, unknown>): Record<string, unknown> {
+  return { vipVisit: null, ...raw, schemaVersion: 31 };
+}
+
 function withHotelBooking(unit: Record<string, unknown>): Record<string, unknown> {
   return { ...unit, hotel: { arrivalStep: null, rollDue: false, ...(unit.hotel as object) } };
 }
@@ -848,6 +855,7 @@ function assertCurrentShape(raw: Record<string, unknown>): TowerState {
     newsSent: readNewsSent(raw.newsSent),
     treasureLevels: readTreasureLevels(raw.treasureLevels),
     ...readStarState(raw),
+    vipVisit: readVipVisit(raw.vipVisit),
     medicalDay: readMedicalDay(raw.medicalDay),
     parking: readParking(raw.parking),
     wedding: readWedding(raw.wedding),
