@@ -512,3 +512,70 @@ describe('hotel guests by subway', () => {
     expect(state.people.id).toHaveLength(0);
   });
 });
+
+/** One suite on level 2 and a basement with a ramp and `spaces` parking spaces, at 3 stars. */
+function suiteParkingTower(spaces: number) {
+  const { state, unitIds } = buildTower({
+    seed: 4,
+    lobby: { x0: 0, x1: 79 },
+    floors: [
+      { from: 2, to: 2 as Level, x0: 0, x1: 79 },
+      { from: -1 as Level, to: -1 as Level, x0: 0, x1: 79 },
+    ],
+    units: [
+      { type: 'suite', level: 2 as Level, x: 20 },
+      { type: 'parking-ramp', level: -1 as Level, x: 0 },
+      ...Array.from({ length: spaces }, (_, index) => ({
+        type: 'parking-space' as const,
+        level: -1 as Level,
+        x: 16 + index * 4,
+      })),
+    ],
+  });
+  addFlight(state, 'stairs', 4, 1);
+  state.stars = 3;
+  return { state, suite: unitIds[0] as UnitId, spaces: unitIds.slice(2) };
+}
+
+/** Runs to the suite party's arrival, makes guest 1 a parking holder, then runs to check-in. */
+function checkInHolder(tower: TowerState, suite: UnitId) {
+  let state = tower;
+  for (let day = 0; day < 10 && hotelOf(state, suite).arrivalStep === null; day++) {
+    state = step(state, [], at(day, 12) + 1 - state.step).state;
+  }
+  const arrival = hotelOf(state, suite).arrivalStep;
+  if (arrival === null) throw new Error('The suite was never booked');
+  state = step(state, [], arrival + 1 - state.step).state;
+  const holder = state.people.id[0] as number;
+  state.parking.spaces[holder] = 0;
+  const lastMinute = at(Math.floor(arrival / STEPS_PER_DAY), 23);
+  while (hotelOf(state, suite).stayEndStep === null && state.step < lastMinute) {
+    state = step(state, [], 1).state;
+  }
+  expect(hotelOf(state, suite).stayEndStep).not.toBeNull();
+  return { state, holder };
+}
+
+describe('suite parking at check-in', () => {
+  it('gives the holder a free space at check-in and frees it at check-out', () => {
+    const { state: tower, suite, spaces } = suiteParkingTower(2);
+    const { state: checkedIn, holder } = checkInHolder(tower, suite);
+    const firstSpace = Number((spaces[0] as string).slice(1));
+    expect(checkedIn.parking.spaces[holder]).toBe(firstSpace);
+    expect(checkedIn.lastParkingFailureStep).toBeNull();
+
+    const stayEnd = hotelOf(checkedIn, suite).stayEndStep as number;
+    const after = step(checkedIn, [], stayEnd + 1 - checkedIn.step).state;
+    expect(hotelOf(after, suite).stayEndStep).toBeNull();
+    expect(Object.hasOwn(after.parking.spaces, holder)).toBe(false);
+    expect(Object.values(after.parking.spaces)).not.toContain(firstSpace);
+  });
+
+  it('checks the party in without a space when the lot is full', () => {
+    const { state: tower, suite } = suiteParkingTower(0);
+    const { state, holder } = checkInHolder(tower, suite);
+    expect(hotelOf(state, suite).state).toBe('occupied');
+    expect(state.parking.spaces[holder]).toBe(0);
+    expect(state.lastParkingFailureStep).toBe(hotelOf(state, suite).checkInStep);
+  });
+});

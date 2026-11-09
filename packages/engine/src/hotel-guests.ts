@@ -54,6 +54,7 @@ import {
   rollParkingHolder,
   slotOfPerson,
 } from './people';
+import { assignParking } from './parking';
 import { chooseVenue, hasVenueCandidate, isVenueOpen, venueHasRoom } from './resident-routine';
 import { chance, nextInt } from './rng';
 import type { ScheduledHook } from './scheduler';
@@ -297,6 +298,17 @@ function drawCheckInOutings(state: TowerState, room: RoomUnit): void {
   }
 }
 
+function partyHoldsParking(state: TowerState, room: RoomUnit): boolean {
+  return guestsOfRoom(state.people, unitNumber(room.id)).some((personId) =>
+    Object.hasOwn(state.parking.spaces, personId),
+  );
+}
+
+/** People spec 17.2: a suite holder gets a space at check-in, not only at the 06:00 pass. */
+function assignSuiteParking(context: StepContext, room: RoomUnit): void {
+  if (room.type === 'suite' && partyHoldsParking(context.state, room)) assignParking(context);
+}
+
 /** Check-in happens when the first guest of the party reaches the room (economy 5.2). */
 function arriveAtRoom(context: StepContext, slot: number, room: RoomUnit): void {
   const { state } = context;
@@ -308,6 +320,7 @@ function arriveAtRoom(context: StepContext, slot: number, room: RoomUnit): void 
     }
     fileArrivalTrips(state, room);
     drawCheckInOutings(state, room);
+    assignSuiteParking(context, room);
   }
   if (room.hotel.stayEndStep === null) {
     removePerson(state, personId);

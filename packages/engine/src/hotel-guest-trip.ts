@@ -102,8 +102,9 @@ export function guestsOfRoom(pool: PersonPool, roomNumber: number): number[] {
 }
 
 /**
- * At the stay's end the guests stop belonging to the room (people spec 8.2). A guest on the way
- * out keeps walking and leaves at the exit; anyone else is removed at once.
+ * At the stay's end the guests stop belonging to the room and give back any parking space (people
+ * spec 8.2, 17.2). A guest on the way out keeps walking and leaves at the exit; anyone else is
+ * removed at once.
  */
 export function releaseStayGuests(context: StepContext, roomNumber: number): void {
   const { state } = context;
@@ -113,6 +114,7 @@ export function releaseStayGuests(context: StepContext, roomNumber: number): voi
     if (!isHotelGuest(pool, slot) || pool.homeUnit[slot] !== roomNumber) continue;
     if (isOnTrek(pool, slot)) {
       pool.homeUnit[slot] = NO_HOME_UNIT;
+      Reflect.deleteProperty(state.parking.spaces, pool.id[slot] as number);
       const routine = decodeGuestRoutine(pool.trip[slot] ?? NO_TRIP);
       if (routine) pool.trip[slot] = encodeGuestRoutine({ ...routine, phase: 'leaving' });
       pool.dueStep[slot] = NOTHING_DUE;
