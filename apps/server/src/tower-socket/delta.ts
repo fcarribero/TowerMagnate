@@ -1,16 +1,12 @@
 import { packCar, packPerson, type Delta, type Snapshot } from '@tower-magnate/shared';
-
-/** Same JSON means same view, because views are plain data built in a fixed key order. */
-function same(a: unknown, b: unknown): boolean {
-  return JSON.stringify(a) === JSON.stringify(b);
-}
+import { sameData } from './same-data';
 
 function changedById<T extends { id: string }>(
   before: readonly T[],
   after: readonly T[],
 ): { upserted: T[]; removed: string[] } {
   const previous = new Map(before.map((item) => [item.id, item]));
-  const upserted = after.filter((item) => !same(previous.get(item.id), item));
+  const upserted = after.filter((item) => !sameData(previous.get(item.id), item));
   const kept = new Set(after.map((item) => item.id));
   const removed = before.filter((item) => !kept.has(item.id)).map((item) => item.id);
   return { upserted, removed };
@@ -28,13 +24,13 @@ function changedStructure(before: Snapshot, after: Snapshot): Delta['structure']
 
 function changedOverlays(before: Snapshot, after: Snapshot): Delta['overlays'] {
   const overlays: NonNullable<Delta['overlays']> = {};
-  if (!same(before.overlays.evaluation, after.overlays.evaluation)) {
+  if (!sameData(before.overlays.evaluation, after.overlays.evaluation)) {
     overlays.evaluation = after.overlays.evaluation;
   }
-  if (!same(before.overlays.price, after.overlays.price)) {
+  if (!sameData(before.overlays.price, after.overlays.price)) {
     overlays.price = after.overlays.price;
   }
-  if (!same(before.overlays.hotel, after.overlays.hotel)) {
+  if (!sameData(before.overlays.hotel, after.overlays.hotel)) {
     overlays.hotel = after.overlays.hotel;
   }
   return overlays;
@@ -62,7 +58,7 @@ export function diffSnapshots(before: Snapshot, after: Snapshot): DeltaResult {
     cars: after.cars.map(packCar),
     people: after.people.map(packPerson),
   };
-  let quiet = same(before.cars, after.cars) && same(before.people, after.people);
+  let quiet = sameData(before.cars, after.cars) && sameData(before.people, after.people);
 
   const set = <K extends keyof Delta>(key: K, value: Delta[K]) => {
     delta[key] = value;
@@ -72,7 +68,7 @@ export function diffSnapshots(before: Snapshot, after: Snapshot): DeltaResult {
   if (before.money !== after.money) set('money', after.money);
   if (before.stars !== after.stars) set('stars', after.stars);
   if (before.population !== after.population) set('population', after.population);
-  if (!same(before.starRequirements, after.starRequirements)) {
+  if (!sameData(before.starRequirements, after.starRequirements)) {
     set('starRequirements', after.starRequirements);
   }
 
@@ -98,15 +94,15 @@ export function diffSnapshots(before: Snapshot, after: Snapshot): DeltaResult {
   const people = changedById(before.people, after.people);
   if (people.removed.length) set('peopleGone', people.removed);
 
-  if (!same(before.followed, after.followed)) set('followed', after.followed);
-  if (!same(before.activeEvents, after.activeEvents)) set('activeEvents', after.activeEvents);
+  if (!sameData(before.followed, after.followed)) set('followed', after.followed);
+  if (!sameData(before.activeEvents, after.activeEvents)) set('activeEvents', after.activeEvents);
 
-  if (!same(before.notices, after.notices)) set('notices', after.notices);
+  if (!sameData(before.notices, after.notices)) set('notices', after.notices);
 
   const overlays = changedOverlays(before, after);
   if (overlays && Object.keys(overlays).length) set('overlays', overlays);
 
-  if (!same(before.finances, after.finances)) set('finances', after.finances);
+  if (!sameData(before.finances, after.finances)) set('finances', after.finances);
 
   return { delta, quiet };
 }
