@@ -1,0 +1,115 @@
+name: Performance acceptance
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [develop]
+    paths:
+      - '.github/workflows/perf-acceptance.yml'
+
+concurrency:
+  group: perf-acceptance-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  runner-load:
+    name: Runner load on the release image, 30 towers
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Build art
+        run: pnpm art:build
+
+      - name: Build the release image
+        run: docker build -f docker/prod/Dockerfile -t tower-magnate:release .
+
+      - name: Bundle the bench like the server
+        run: pnpm --filter @tower-magnate/server build:bench
+
+      - name: Runner load benchmark in the release image
+        run: |
+          set -o pipefail
+          status=0
+          docker run --rm \
+            -v "$PWD/apps/server/bench-build:/app/server/bench-build:ro" \
+            tower-magnate:release \
+            node bench-build/runner-load.js --towers 30 --floors 20 --minutes 10 --gate \
+            2>&1 | tee bench.txt || status=$?
+          { echo '### Runner load on the release image'; echo '```'; cat bench.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          exit $status
+
+  full-tower-step:
+    name: Step budget, 15,000 people
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Full tower step benchmark
+        run: |
+          set -o pipefail
+          status=0
+          pnpm bench:full-tower 2>&1 | tee bench.txt || status=$?
+          { echo '### Step budget, 15,000 people'; echo '```'; cat bench.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          exit $status
+
+  render-stress:
+    name: Render stress run ${{ matrix.run }}, ${{ matrix.frames }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        run: [1, 2, 3]
+        frames: [capped, uncapped]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Install browser
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Release build with the stress page
+        run: pnpm --filter @tower-magnate/web build:perf
+
+      - name: Render stress, 30 minutes
+        run: |
+          set -o pipefail
+          status=0
+          pnpm --filter @tower-magnate/web exec vite preview --mode perf --outDir dist-perf --port 4173 --strictPort &
+          npx --yes wait-on@8.0.3 http://localhost:4173/perf.html
+          flag=${{ matrix.frames == 'uncapped' && '--uncapped' || '' }}
+          pnpm perf:stress --minutes 30 --url http://localhost:4173/perf.html $flag 2>&1 | tee stress.txt || status=$?
+          { echo '### Render stress run ${{ matrix.run }}, ${{ matrix.frames }}'; echo "CPU: $(grep -m1 'model name' /proc/cpuinfo | cut -d: -f2), $(nproc) cores"; echo '```'; cat stress.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          exit $status

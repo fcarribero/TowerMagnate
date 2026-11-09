@@ -85,3 +85,11 @@ export type {
   ExpectedDay,
   TimedEconomyAction,
 } from './economy-scenario';
+export {
+  FULL_TOWER_PEOPLE,
+  FULL_TOWER_STEP_BUDGET_MS,
+  fullTower,
+  timeFullTowerDay,
+  timeFullTowerRuns,
+} from './full-tower';
+export type { FullTowerResult, FullTowerRun } from './full-tower';

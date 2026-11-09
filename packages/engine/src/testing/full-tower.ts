@@ -1,0 +1,116 @@
+import type { TowerState } from '@tower-magnate/shared';
+import { STEPS_PER_HOUR } from '../calendar';
+import { STEPS_PER_DAY } from '../clock';
+import { addPeopleForUnit, peopleCount } from '../people';
+import { step } from '../step';
+import { medianOf } from './fastest-run';
+import { addFlight } from './hundred-floor-tower';
+import { buildTower, plainTowerPlan, type PlannedShaft, type PlannedUnit } from './tower-builder';
+
+const FLOORS = 100;
+const TOWER_X1 = 374;
+const ZONE_FLOORS = 25;
+const SHAFTS_PER_ZONE = 6;
+const SHAFT_SPACING = 4;
+const ZONE_SPACING = 30;
+const STAIRS_X = 124;
+const FIRST_OFFICE_X = 130;
+const OFFICE_WIDTH = 9;
+const OFFICES = 2_500;
+
+/** The section 9 budget: one `step` call of one step on a 15,000-person tower. */
+export const FULL_TOWER_STEP_BUDGET_MS = 5;
+export const FULL_TOWER_PEOPLE = 15_000;
+
+const RUNS = 3;
+const MAX_SPREAD = 0.15;
+const TIMED_FROM = STEPS_PER_DAY + 6 * STEPS_PER_HOUR;
+const TIMED_STEPS = 8 * STEPS_PER_HOUR;
+
+/**
+ * 2,500 offices of 6 workers on 100 floors. Four zones of 25 floors each have a bank of six
+ * standard elevators, and stairs join each zone to the next.
+ */
+export function fullTower(): TowerState {
+  const shafts: PlannedShaft[] = [];
+  const zones = FLOORS / ZONE_FLOORS;
+  for (let zone = 0; zone < zones; zone++) {
+    const bottom = zone * ZONE_FLOORS + 1;
+    for (let index = 0; index < SHAFTS_PER_ZONE; index++) {
+      const x = SHAFT_SPACING + zone * ZONE_SPACING + index * SHAFT_SPACING;
+      shafts.push({ type: 'standard', x, bottom, top: bottom + ZONE_FLOORS - 1 });
+    }
+  }
+  const units: PlannedUnit[] = [];
+  for (let level = 2; units.length < OFFICES; level++) {
+    for (let x = FIRST_OFFICE_X; x + OFFICE_WIDTH - 1 <= TOWER_X1; x += OFFICE_WIDTH) {
+      if (units.length < OFFICES) units.push({ type: 'office', level, x });
+    }
+  }
+  const { state, unitIds } = buildTower({
+    ...plainTowerPlan(FLOORS, 0, TOWER_X1),
+    units,
+    shafts,
+  });
+  for (let zone = 1; zone < zones; zone++) addFlight(state, 'stairs', STAIRS_X, zone * ZONE_FLOORS);
+  for (const id of unitIds) addPeopleForUnit(state, id);
+  return state;
+}
+
+export interface FullTowerRun {
+  people: number;
+  averageMs: number;
+  p95Ms: number;
+  p99Ms: number;
+  maxMs: number;
+  /** Average cost of a step when the same hours run in one `step` call, which copies the state once. */
+  batchedMs: number;
+}
+
+/**
+ * Times every one-step `step` call from 06:00 to 14:00 of the first weekday with commuters.
+ * Each call includes the state copy the engine makes on entry, as the server pays it.
+ */
+export function timeFullTowerDay(): FullTowerRun {
+  const atSix = step(fullTower(), [], TIMED_FROM).state;
+  const batchStarted = performance.now();
+  step(atSix, [], TIMED_STEPS);
+  const batchedMs = (performance.now() - batchStarted) / TIMED_STEPS;
+
+  let state = atSix;
+  const times = new Float64Array(TIMED_STEPS);
+  for (let index = 0; index < TIMED_STEPS; index++) {
+    const started = performance.now();
+    state = step(state, [], 1).state;
+    times[index] = performance.now() - started;
+  }
+  const sorted = Array.from(times).sort((a, b) => a - b);
+  const at = (share: number) => sorted[Math.floor(sorted.length * share)] as number;
+  return {
+    people: peopleCount(state.people),
+    averageMs: sorted.reduce((sum, ms) => sum + ms, 0) / sorted.length,
+    p95Ms: at(0.95),
+    p99Ms: at(0.99),
+    maxMs: sorted[sorted.length - 1] as number,
+    batchedMs,
+  };
+}
+
+function spread(values: number[]): number {
+  return (Math.max(...values) - Math.min(...values)) / medianOf(values);
+}
+
+export interface FullTowerResult {
+  runs: FullTowerRun[];
+  runsAgree: boolean;
+}
+
+/** Three runs; when their p95 differs by over 15% the result is void and three new runs are made. */
+export function timeFullTowerRuns(): FullTowerResult {
+  const threeRuns = () => Array.from({ length: RUNS }, timeFullTowerDay);
+  const agree = (runs: FullTowerRun[]) => spread(runs.map((run) => run.p95Ms)) <= MAX_SPREAD;
+  const first = threeRuns();
+  if (agree(first)) return { runs: first, runsAgree: true };
+  const second = threeRuns();
+  return { runs: second, runsAgree: agree(second) };
+}

@@ -2,9 +2,11 @@ node_modules
 pnpm-lock.yaml
 docs
 build
+bench-build
 
 # Build output
 dist
+dist-perf
 *.tsbuildinfo
 .vite
 
