@@ -148,7 +148,7 @@ The 60 fps line is judged on the render reference machine with the method in [Re
 | One step of a 15,000-person tower under 5 ms | 34.4 ms p95, 21.9 ms average | Missed, TM-249 |
 | 100 floors, 3,000 people, draw calls under 200 | 69 | Met |
 | Heap growth under 5% over 30 minutes | 3.3% median, 4.5% highest | Met |
-| 60 fps at 1x zoom | Reference run pending, see [Render reference machine](#render-reference-machine) | Not judged yet |
+| 60 fps at 1x zoom | Reference machine, median of 3 uncapped runs: p95 frame cost 0.8 ms, average 0.69 ms, 69 draw calls; capped 60.0 fps. See [Render reference machine](#render-reference-machine) | Met |
 
 ## Render reference machine
 
@@ -202,16 +202,33 @@ Render tasks that touch frame time copy this into their QA notes:
 
 ### Reference result
 
-Not judged yet. Two sets of runs on 2027-02-04 were void under the 15% rule, because the machine was not idle. Before the runs, with nothing of this test running, CPU load sampled every 3 seconds for 30 seconds was 41% to 71% (average 59%) with 12.3 of 31.9 GB free; the load came from Docker (13 test database containers and a dev stack) and other Node processes. During the runs the load stayed at 77% to 100%.
+Met. Set 4 on 2027-02-05 is the reference result. Two earlier sets on 2027-02-04 and one on the same day as set 4 were void under the 15% rule.
+
+Before set 4, with nothing of this test running, CPU load sampled 6 times over 50 seconds was 3% to 8% with 14.4 to 14.9 GB free. Docker held only the dev stack (web, server and database); the 13 test database containers were gone. Set 4 ran with no load sampler.
 
 | Run | Frames | fps | Average frame | p95 frame | Max draw calls |
 | --- | --- | --- | --- | --- | --- |
-| Set 1, run 1, uncapped | 74,942 | 277 | 3.6 ms | 5.6 ms | 69 |
-| Set 1, run 2, uncapped | 131,582 | 728 | 1.4 ms | 2.9 ms | 69 |
-| Set 1, run 3, uncapped | 145,198 | 853 | 1.2 ms | 2.7 ms | 69 |
-| Set 2, run 1, uncapped | not printed | 301 | 3.3 ms | 5.3 ms | 69 |
-| Set 2, run 2, uncapped | not printed | 580 | 1.7 ms | 3.0 ms | 69 |
-| Set 2, run 3, uncapped | not printed | 540 | 1.9 ms | 3.6 ms | 69 |
-| Capped, 1 minute | 3,694 | 56.8 | 17.6 ms | 18.1 ms | 69 |
+| Set 4, run 1, uncapped | 267,448 | 1,425 | 0.70 ms | 0.8 ms | 69 |
+| Set 4, run 2, uncapped | 273,101 | 1,468 | 0.68 ms | 0.8 ms | 69 |
+| Set 4, run 3, uncapped | 275,858 | 1,451 | 0.69 ms | 0.8 ms | 69 |
+| Median of 3 | | 1,451 | 0.69 ms | 0.8 ms | 69 |
+| Capped, 1 minute | 3,903 | 60.0 | 16.7 ms | 16.8 ms | 69 |
 
-In both sets the first run is about twice as slow as the other two, so the p95 frame costs differ by far more than 15% and both results are void. The medians would pass (p95 2.9 ms and 3.6 ms against 8.3 ms, average 1.4 ms and 1.9 ms against 5 ms), and the capped run reads 56.8 fps, but a void set is not a result. The summary row "60 fps at 1x zoom" stays "Not judged yet" until 3 uncapped runs agree within 15% on the idle machine.
+The 3 runs have the same p95 frame cost, so they agree within 15%. The median p95 of 0.8 ms is under 8.3 ms, the median average of 0.69 ms is under 5 ms, draw calls are 69 (under 200), and the capped run reads 60.0 fps (at least 55). The 60 fps target is met on the reference machine. The p95 value is a multiple of the 0.1 ms timer step.
+
+Void sets, kept for the record:
+
+| Run | fps | Average frame | p95 frame | Max draw calls | Why void |
+| --- | --- | --- | --- | --- | --- |
+| Set 1, run 1, uncapped | 277 | 3.6 ms | 5.6 ms | 69 | 59% background CPU, 13 test containers |
+| Set 1, run 2, uncapped | 728 | 1.4 ms | 2.9 ms | 69 | same |
+| Set 1, run 3, uncapped | 853 | 1.2 ms | 2.7 ms | 69 | same |
+| Set 2, run 1, uncapped | 301 | 3.3 ms | 5.3 ms | 69 | same |
+| Set 2, run 2, uncapped | 580 | 1.7 ms | 3.0 ms | 69 | same |
+| Set 2, run 3, uncapped | 540 | 1.9 ms | 3.6 ms | 69 | same |
+| Set 2 capped | 56.8 | 17.6 ms | 18.1 ms | 69 | same |
+| Set 3, run 1, uncapped | 1,465 | 0.68 ms | 0.8 ms | 69 | load sampler running |
+| Set 3, run 2, uncapped | 1,448 | 0.69 ms | 0.8 ms | 69 | load sampler running |
+| Set 3, run 3, uncapped | 879 | 1.14 ms | 2.2 ms | 77 | load sampler running; p95 off by more than 15% |
+
+Set 3 ran a PowerShell CPU sampler every 20 seconds, which pushed CPU to 90% or more in short bursts. Run 3 of that set shows the effect. Do not sample load during a reference run; sample before it.
