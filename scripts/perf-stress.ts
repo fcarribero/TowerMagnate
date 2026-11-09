@@ -6,6 +6,8 @@
  * `pnpm perf:stress -- --minutes 30 --url http://localhost:5173/perf.html --headed`.
  * Exits with 1 when draw calls reach 200 or the heap grew 5% or more. Frame rate
  * depends on the machine and is printed, not checked; headless Chromium draws in software.
+ * `--uncapped` turns off vsync and the frame rate limit, so the frame time is the cost of a
+ * frame instead of the display interval.
  */
 import { chromium } from '@playwright/test';
 
@@ -32,10 +34,16 @@ function option(name: string, fallback: string): string {
 const minutes = Number(option('minutes', '1'));
 const url = option('url', 'http://localhost:5173/perf.html');
 const headed = process.argv.includes('--headed');
+const uncapped = process.argv.includes('--uncapped');
+const uncappedArgs = ['--disable-gpu-vsync', '--disable-frame-rate-limit'];
 
 const browser = await chromium.launch({
   headless: !headed,
-  args: ['--enable-precise-memory-info', '--disable-renderer-backgrounding'],
+  args: [
+    '--enable-precise-memory-info',
+    '--disable-renderer-backgrounding',
+    ...(uncapped ? uncappedArgs : []),
+  ],
 });
 const page = await browser.newPage({ viewport: { width: 1920, height: 1080 } });
 page.on('pageerror', (error) => console.error('Page error:', error.message));

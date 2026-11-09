@@ -5,8 +5,10 @@ node_modules/
 
 # Build output
 dist/
+dist-perf/
 *.tsbuildinfo
 build/
+bench-build/
 .vite/
 
 # Test output
