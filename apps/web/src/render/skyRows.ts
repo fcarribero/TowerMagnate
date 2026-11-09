@@ -1,6 +1,7 @@
 import { TilingSprite } from 'pixi.js';
 import type { SpriteId } from './atlasManifest';
-import { HIGHEST_LEVEL, WORLD_WIDTH, indexToLevel, levelToIndex } from './levels';
+import type { LevelRange } from './camera';
+import { HIGHEST_LEVEL, WORLD_WIDTH, levelToIndex, levelTop } from './levels';
 import { FLOOR_HEIGHT } from './metrics';
 import type { SkyTime } from './timeOfDay';
 import type { SpriteRegistry } from './spriteRegistry';
@@ -32,33 +33,65 @@ export const SKY_BACKGROUND: Record<SkyTime, string> = {
   night: '#23305e',
 };
 
-/** One full-width row of day sky per above-ground level, keyed by dense level index. */
-export function createSkyRows(
-  sprites: SpriteRegistry,
-  time: SkyTime = 'day',
-): Map<number, TilingSprite> {
-  const rows = new Map<number, TilingSprite>();
-  for (let level = 1; level <= HIGHEST_LEVEL; level += 1) {
-    const row = new TilingSprite({
-      texture: sprites.texture(skySpriteId(level, time)),
-      width: WORLD_WIDTH,
-      height: FLOOR_HEIGHT,
-    });
-    rows.set(levelToIndex(level), row);
-  }
-  return rows;
+export interface SkySpan {
+  band: SkyBand;
+  lowestLevel: number;
+  highestLevel: number;
 }
 
-/** Swaps every row to the sky of `time`; rows already showing it are left alone. */
-export function setSkyTime(
-  rows: Map<number, TilingSprite>,
-  sprites: SpriteRegistry,
-  time: SkyTime,
-): void {
-  for (const [index, row] of rows) {
-    const texture = sprites.texture(skySpriteId(indexToLevel(index), time));
-    if (row.texture !== texture) {
-      row.texture = texture;
+/** Runs of consecutive above-ground levels that share a sky band, from the ground up. */
+export function skySpans(): SkySpan[] {
+  const spans: SkySpan[] = [];
+  for (let level = 1; level <= HIGHEST_LEVEL; level += 1) {
+    const band = skyBandForLevel(level);
+    const current = spans[spans.length - 1];
+    if (current !== undefined && current.band === band) {
+      current.highestLevel = level;
+    } else {
+      spans.push({ band, lowestLevel: level, highestLevel: level });
+    }
+  }
+  return spans;
+}
+
+export interface SkyRow {
+  span: SkySpan;
+  sprite: TilingSprite;
+}
+
+/**
+ * One tall tiling sprite per sky band. The sky texture is one floor high, so
+ * it repeats level by level, and a band costs one draw call however many of
+ * its levels are on screen.
+ */
+export function createSkyRows(sprites: SpriteRegistry, time: SkyTime = 'day'): SkyRow[] {
+  return skySpans().map((span) => {
+    const levels = span.highestLevel - span.lowestLevel + 1;
+    const sprite = new TilingSprite({
+      texture: sprites.texture(skySpriteId(span.lowestLevel, time)),
+      width: WORLD_WIDTH,
+      height: levels * FLOOR_HEIGHT,
+    });
+    sprite.y = levelTop(levelToIndex(span.highestLevel));
+    return { span, sprite };
+  });
+}
+
+/** Shows only the bands that have at least one level in the dense index range. */
+export function showSkyRows(rows: SkyRow[], range: LevelRange): void {
+  for (const { span, sprite } of rows) {
+    const lowestIndex = levelToIndex(span.lowestLevel);
+    const highestIndex = levelToIndex(span.highestLevel);
+    sprite.visible = highestIndex >= range.lowest && lowestIndex <= range.highest;
+  }
+}
+
+/** Swaps every band to the sky of `time`; bands already showing it are left alone. */
+export function setSkyTime(rows: SkyRow[], sprites: SpriteRegistry, time: SkyTime): void {
+  for (const { span, sprite } of rows) {
+    const texture = sprites.texture(skySpriteId(span.lowestLevel, time));
+    if (sprite.texture !== texture) {
+      sprite.texture = texture;
     }
   }
 }
