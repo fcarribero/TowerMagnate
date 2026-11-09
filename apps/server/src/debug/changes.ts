@@ -7,9 +7,10 @@ import {
   weekdayOfDay,
   type StepContext,
 } from '@tower-magnate/engine';
-import type { ErrorCode } from '@tower-magnate/shared';
+import { verticalSliceTower } from '@tower-magnate/engine/testing';
+import type { ErrorCode, TowerState } from '@tower-magnate/shared';
 import type { TowerChange } from '../runner';
-import type { DebugEventKind } from './messages';
+import type { DebugEventKind, DebugScenario } from './messages';
 
 /** Why a debug change was refused: an engine error code, or an event the engine does not have yet. */
 export class DebugRefusal extends Error {
@@ -62,4 +63,13 @@ export function setClock(day: number, time: string): TowerChange {
 
 export function setMoney(amount: number): TowerChange {
   return (state) => ({ state: { ...structuredClone(state), money: amount }, events: [] });
+}
+
+const SCENARIO_TOWERS: Readonly<Record<DebugScenario, () => TowerState>> = {
+  verticalSlice: verticalSliceTower,
+};
+
+/** Replaces the tower with a fresh copy of a test scenario's starting tower. */
+export function loadScenario(name: DebugScenario): TowerChange {
+  return () => ({ state: SCENARIO_TOWERS[name](), events: [] });
 }

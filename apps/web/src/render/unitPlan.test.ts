@@ -4,6 +4,8 @@ import { SPRITE_IDS } from './atlasManifest';
 import { FLOOR_HEIGHT, TILE_WIDTH } from './metrics';
 import { spriteVariantId } from './spriteRegistry';
 import { isPlacedUnit, planTransport, planUnit, spriteState } from './unitPlan';
+import { stepAtHour } from './timeOfDay';
+import { ALL_VENUES_OPEN, openVenuesAt } from './venueHours';
 
 const base = {
   id: 'u1',
@@ -53,6 +55,27 @@ describe('planUnit', () => {
     expect(restaurant?.variant).toEqual({ state: 'busy', time: 'night' });
   });
 
+  it('draws venues closed outside their opening hours', () => {
+    const midnight = openVenuesAt(0);
+    const evening = openVenuesAt(stepAtHour(21));
+    for (const type of ['fast-food', 'restaurant', 'retail-shop'] as const) {
+      const busy = { ...base, type, occupied: true, variant: 'occupied' } as const;
+      expect(planUnit(busy, 'night', null, midnight)?.variant).toEqual({
+        state: 'closed',
+        time: 'night',
+      });
+    }
+    const restaurant = planUnit({ ...base, type: 'restaurant' }, 'night', null, evening);
+    const fastFood = planUnit({ ...base, type: 'fast-food' }, 'night', null, evening);
+    expect(restaurant?.variant.state).toBe('open');
+    expect(fastFood?.variant.state).toBe('closed');
+  });
+
+  it('keeps other units on their usual sprite at night', () => {
+    const office = planUnit({ ...base, type: 'office' }, 'night', null, openVenuesAt(0));
+    expect(office?.variant.state).toBe('empty');
+  });
+
   it('draws a show, a party and a wedding for an occupied cinema, party hall and cathedral', () => {
     expect(spriteState('cinema', true)).toBe('show');
     expect(spriteState('party-hall', true)).toBe('party');
@@ -60,19 +83,23 @@ describe('planUnit', () => {
     expect(spriteState('cinema', false)).toBe('empty');
   });
 
-  it('has an atlas sprite for every unit drawn empty or occupied, by day and by night', () => {
+  it('has an atlas sprite for every unit drawn empty or occupied, open or closed, by day and by night', () => {
     const atlas = new Set<string>(SPRITE_IDS);
     const missing: string[] = [];
     for (const type of UNIT_TYPES.filter(isPlacedUnit)) {
       for (const occupied of [false, true]) {
         for (const time of ['day', 'night'] as const) {
-          const drawing = planUnit(
-            { ...base, type, occupied, variant: occupied ? 'occupied' : 'empty' },
-            time,
-          );
-          const id = drawing && spriteVariantId(drawing.subject, drawing.variant);
-          if (id !== null && !atlas.has(id)) {
-            missing.push(id);
+          for (const openVenues of [ALL_VENUES_OPEN, openVenuesAt(0)]) {
+            const drawing = planUnit(
+              { ...base, type, occupied, variant: occupied ? 'occupied' : 'empty' },
+              time,
+              null,
+              openVenues,
+            );
+            const id = drawing && spriteVariantId(drawing.subject, drawing.variant);
+            if (id !== null && !atlas.has(id)) {
+              missing.push(id);
+            }
           }
         }
       }

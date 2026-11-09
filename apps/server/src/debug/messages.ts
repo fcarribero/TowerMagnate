@@ -7,6 +7,9 @@ export const MAX_FAST_FORWARD_STEPS = 8_640;
 export const DEBUG_EVENT_KINDS = ['bomb', 'fire', 'vip', 'santa', 'wedding'] as const;
 export type DebugEventKind = (typeof DEBUG_EVENT_KINDS)[number];
 
+export const DEBUG_SCENARIOS = ['verticalSlice'] as const;
+export type DebugScenario = (typeof DEBUG_SCENARIOS)[number];
+
 const DEFAULT_REPLY_ID = 'debug';
 
 function debugMessage<T extends string, P extends z.ZodRawShape>(type: T, payload: P) {
@@ -29,6 +32,7 @@ export const DebugMessageSchema = z.discriminatedUnion('t', [
     time: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/),
   }),
   debugMessage('setMoney', { amount: z.int().min(-MONEY_CAP).max(MONEY_CAP) }),
+  debugMessage('loadScenario', { name: z.enum(DEBUG_SCENARIOS) }),
 ]);
 
 export type DebugMessage = z.infer<typeof DebugMessageSchema>;
