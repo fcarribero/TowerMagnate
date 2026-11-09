@@ -1,9 +1,10 @@
 import { performance } from 'node:perf_hooks';
+
 /**
- * Calibration time of the reference runner, the CPU the 100 ms budget was set on (GitHub
- * `ubuntu-latest`, AMD EPYC 9V74, Node 22). See docs/tech/performance.md.
+ * Calibration time of the reference runner: the GitHub `ubuntu-latest` runner with an AMD EPYC
+ * 7763, the slowest CPU type the pool gave us, with Node 22. See docs/tech/performance.md.
  */
-export const REFERENCE_CALIBRATION_MS = 100;
+export const REFERENCE_CALIBRATION_MS = 33;
 
 const RECORDS = 400;
 const ROUNDS = 15;

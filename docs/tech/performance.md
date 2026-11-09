@@ -16,7 +16,7 @@ Tick lag is how long after its due time a runner tick finishes. Ticks are due ev
 pnpm bench:runner-load --towers 30 --floors 20 --minutes 10
 ```
 
-Other options are `--runs` (default 3), `--budget-ms` (default 100) and `--gate`, which makes the exit code 1 when the p95 lag is over budget or the result is void. A result is the median of 3 runs. When p95 lag or CPU differ by more than 15% between runs, the result is void and 3 new runs are made, once.
+Other options are `--runs` (default 3), `--budget-ms` (default 100) and `--gate`, which makes the exit code 1 when the p95 lag scaled to the reference runner is over budget or the result is void. A result is the median of 3 runs. When p95 lag or CPU differ by more than 15% between runs, the result is void and 3 new runs are made, once.
 
 A full measurement takes 30 minutes or more, so run it in CI. For a quick look on a shared machine, use `--minutes 0.5 --runs 1`. Numbers from a desktop are not comparable with the reference runner: a 30-second run with 30 towers on a Windows desktop (Ryzen 7 5800X, Node 22.14.0) gave a p95 lag of 232 ms, about three times the reference result.
 
@@ -26,7 +26,17 @@ The `Runner load` workflow (`.github/workflows/runner-load.yml`) runs the bench 
 
 ### Budget
 
-30 towers of 20 floors at 1x for 10 minutes: tick lag p95 at most 100 ms. The reference machine is the GitHub Actions `ubuntu-latest` runner (4 vCPU, 16 GB) with Node 22.
+30 towers of 20 floors at 1x for 10 minutes: tick lag p95 at most 100 ms on the reference runner. The reference runner is a GitHub Actions `ubuntu-latest` runner (4 vCPU, 16 GB) with an AMD EPYC 7763 and Node 22.
+
+### Gate method (TM-245)
+
+`ubuntu-latest` is a pool of machines with different CPUs, and the same code gives very different lag on them. Before TM-245, over the same commit range, the 30-tower p95 was 53 ms on an AMD EPYC 9V45, 68 to 79 ms on an EPYC 9V74 or a Xeon Platinum 8573C, and 91 to 106 ms on an EPYC 7763. A gate on the raw p95 passed or failed by which machine the job landed on.
+
+The bench now times a fixed CPU workload in the same job, once before the runs and once after, and keeps the faster of the two. The workload (`apps/server/src/bench/cpu-speed.ts`) copies and serializes a block of plain data, which is what the runner and the broadcaster spend most of their time on. It uses no game code, so a change to the engine or the server does not move it. The slowdown is the calibration time over the reference calibration time, 33 ms on the EPYC 7763. The gate divides the median p95 lag by the slowdown and compares the result with the budget. The job summary shows the CPU model, the calibration time, the slowdown, the raw p95 and the scaled p95.
+
+Calibration times on CI were 32.9 to 33.5 ms on three EPYC 7763 jobs and 25.7 ms on a Xeon Platinum 8573C. The calibration overstates the gap between CPU types a little: the 7763 calibrates 30% slower than the 8573C, while its tick lag was 17% to 21% higher. A faster runner therefore gets a slightly stricter gate, which is the safe side. When a new CPU type shows up in the pool, compare its scaled p95 with a 7763 run of the same commit before trusting it.
+
+The reference is the 7763 because it is the slowest type seen so far. If GitHub changes the pool, rerun the bench on the new slowest type and update `REFERENCE_CALIBRATION_MS`.
 
 ### Results
 
@@ -47,3 +57,15 @@ A 10-second probe on the desktop above, 30 towers:
 - A broadcaster tick took 160 ms on average, or 5 ms per tower. Building the snapshot is 0.45 ms of that. The rest is spent in `needsFreshSnapshot`, `diffSnapshots` and the two `JSON.stringify` calls that compare the delta size with the snapshot size. The probe did not split these.
 
 Both costs grow with the number of towers, so these two places are where more towers per process would come from.
+
+### Over budget on develop (TM-245)
+
+In January 2027 the gate failed on pull requests that only synced develop: TM-220 measured 105.8, 104.8 and 101.3 ms, and TM-35 100.7 ms. Both jobs ran on an EPYC 7763. The main cause was the runner CPU type: the same develop code passed at 76 to 79 ms on 9V74 runners the same day.
+
+The code also got slower. On the desktop above, between the TM-114 head (`d469931`) and develop (`728e7c0`), a one-step `step` call went from 2.4 to 2.8 ms, and a two-step call plus snapshot and diff from 6.2 to 7.9 ms. The state without people grew from 46.6 to 50.4 KB because every unit now stores its evaluation grade (TM-103), and the daily grade system runs every step. On 7763 runners the process CPU for 30 towers went from 76.5% at TM-114 to 86.5%. TM-242 changed only the web client. TM-109 adds a fire roll once a day at 15:00, which costs nothing measurable while no fire burns.
+
+A 20-second CPU profile with 30 towers on develop showed where the time went: 33% in `cloneState` (the `structuredClone` at the start of every `step` call), 20% in `diffSnapshots`, nearly all of it comparing views through `JSON.stringify`, and 7% in `sendUpdate`, which serialized each delta twice and the snapshot once to compare sizes. The engine systems themselves were 6%.
+
+TM-245 replaced the JSON comparison with a structural comparison of plain data (`same-data.ts`) and serializes each delta once, sending the text it measured. Process CPU in the profile run fell from 95% to 79% of a core. On CI the 30-tower result on an EPYC 7763 went from 104.8 ms p95 and 86.5% CPU to 86.5 ms and 80.1% (runs 88.8, 86.5 and 84.6 ms). On a Xeon Platinum 8573C it was 71.8 ms (runs 69.5, 71.8 and 75.8 ms).
+
+The next saving is the state clone. The runner owns its states, so it could step them in place and skip `structuredClone`, but a snapshot or a save that holds a reference to the state would then see it change. That needs its own task with tests for those references.
