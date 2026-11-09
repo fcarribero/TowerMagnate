@@ -1,4 +1,9 @@
-import { serverMessage, type ClientEvent, type Snapshot, type TowerState } from '@tower-magnate/shared';
+import {
+  serverMessage,
+  type ClientEvent,
+  type Snapshot,
+  type TowerState,
+} from '@tower-magnate/shared';
 import { sendMessage, type ConnectionRegistry, type GatewaySocket } from '../gateway';
 import type { TowerRunner } from '../runner';
 import type { TowerId } from '../snapshots';
