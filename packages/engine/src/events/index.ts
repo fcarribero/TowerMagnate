@@ -10,6 +10,7 @@ export { answerDecision, endDisaster, openBombThreat, openFire } from './decisio
 export { startBombSearch } from './bomb-search';
 export { blastColumns, blastLevels, openRandomBombThreat, ruinBlastBox } from './bomb';
 export { pickFireTargets } from './fire-guards';
+export { announceSanta } from './santa';
 export { fireCandidates, igniteLevel, openRandomFire } from './fire';
 
 /** Event work of one step, in the order of events spec section 10. */

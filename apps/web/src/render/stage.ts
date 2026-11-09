@@ -1,5 +1,5 @@
 import type { Level, ShaftView } from '@tower-magnate/shared';
-import { Application, Container, TextureSource, type TilingSprite } from 'pixi.js';
+import { Application, Container, TextureSource } from 'pixi.js';
 import type { DrawnFrame } from '../model/interpolation';
 import 'pixi.js/unsafe-eval';
 import { loadSprites } from './atlasLoader';
@@ -19,14 +19,12 @@ import { isSpaceHeld } from '../input/keyboard';
 import { attachCameraInput, type CameraChange } from './cameraInput';
 import { canvasSizeFromCssPixels, canvasSizeFromObservedBox, type CanvasSize } from './canvasSize';
 import { cellAtCanvasPoint, type Cell } from './cellAtPoint';
-import { CulledRows } from './culledRows';
 import { GhostLayer, type Footprint, type GhostInput, type RunInput } from './ghostLayer';
 import { levelAtCanvasY } from './levelRuler';
-import { levelTop } from './levels';
 import type { Zoom } from './metrics';
 import { ElevatorLayer } from './elevatorLayer';
 import { PeopleLayer } from './peopleLayer';
-import { SKY_BACKGROUND, createSkyRows, setSkyTime } from './skyRows';
+import { SKY_BACKGROUND, createSkyRows, setSkyTime, showSkyRows } from './skyRows';
 import type { SkyTime } from './timeOfDay';
 import type { SpriteRegistry } from './spriteRegistry';
 import { StructureLayer } from './structureLayer';
@@ -123,11 +121,8 @@ export async function mountStage(host: HTMLElement, options: StageOptions = {}):
 
   const world = new Container();
   const skyRows = createSkyRows(sprites);
-  const sky = new CulledRows<TilingSprite>();
-  for (const [index, row] of skyRows) {
-    row.y = levelTop(index);
-    sky.set(index, row);
-    world.addChild(row);
+  for (const row of skyRows) {
+    world.addChild(row.sprite);
   }
   const structure = new StructureLayer(sprites);
   world.addChild(structure.view);
@@ -187,7 +182,7 @@ export async function mountStage(host: HTMLElement, options: StageOptions = {}):
     ghost.setZoom(camera.zoom);
     world.position.set(-camera.left, -camera.top);
     const onScreen = visibleLevels(camera);
-    sky.showOnly(onScreen);
+    showSkyRows(skyRows, onScreen);
     structure.rows.showOnly(onScreen);
     units.showOnly(onScreen);
     elevators.showOnly(onScreen);

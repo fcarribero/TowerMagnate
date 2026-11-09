@@ -75,9 +75,10 @@ describe('debug messages over the tower socket', () => {
     client.sendRaw(debugFrame('debug.forceEvent', { kind: 'bomb' }));
     client.sendRaw(debugFrame('debug.fastForward', { steps: 10 }));
     client.sendRaw(debugFrame('debug.setClock', { day: 1, time: '10:00' }));
+    client.sendRaw(debugFrame('debug.forceEvent', { kind: 'santa' }));
 
-    await waitFor(() => errors(client).length === 4);
-    expect(errors(client).map((error) => error.p.code)).toEqual(Array(4).fill('NOT_ALLOWED'));
+    await waitFor(() => errors(client).length === 5);
+    expect(errors(client).map((error) => error.p.code)).toEqual(Array(5).fill('NOT_ALLOWED'));
     expect(results(client)).toEqual([]);
   });
 
@@ -88,6 +89,21 @@ describe('debug messages over the tower socket', () => {
 
     await waitFor(() => errors(client).length === 1);
     expect(errors(client)[0]?.p.code).toBe('INVALID_COMMAND');
+  });
+
+  it('sends the santa notice to the player and keeps it in the notices', async () => {
+    const client = await connectTo(true);
+    await client.next('delta');
+
+    client.sendRaw(debugFrame('debug.forceEvent', { id: 's', kind: 'santa' }));
+
+    await waitFor(
+      () =>
+        results(client).length === 1 &&
+        santaEvents(client).length === 1 &&
+        storedSantaNotices(client).length === 1,
+    );
+    expect(results(client)[0]).toEqual(expect.objectContaining({ id: 's', ok: true }));
   });
 
   it('reports a refused event as a failed result', async () => {
@@ -102,6 +118,19 @@ describe('debug messages over the tower socket', () => {
 
   function results(client: TestSocketClient) {
     return client.received.flatMap((message) => (message.t === 'commandResult' ? [message.p] : []));
+  }
+
+  function santaEvents(client: TestSocketClient) {
+    return client.received.filter(
+      (message) => message.t !== 'delta' && JSON.stringify(message).includes('news.santa'),
+    );
+  }
+
+  function storedSantaNotices(client: TestSocketClient) {
+    return client.received.filter(
+      (message) =>
+        message.t === 'delta' && JSON.stringify(message.p.notices ?? []).includes('news.santa'),
+    );
   }
 
   function errors(client: TestSocketClient) {
