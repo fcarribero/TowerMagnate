@@ -4,7 +4,6 @@ import {
   RECYCLING_PEOPLE_PER_CENTER,
   UNIT_CATALOG,
   WEEKLY_UPKEEP,
-  bombRansom,
   levelAbove,
   levelBelow,
   type Command,
@@ -55,8 +54,11 @@ const TICK_STEPS = 10 * STEPS_PER_MINUTE;
 const GROWTH_RESERVE = 100_000;
 /** Leased offices that keep one more fast food busy at lunch. */
 const OFFICES_PER_FAST_FOOD = 10;
-/** Condos sell within days for nearly twice their price, so a careful player builds them first. */
-const PREFERRED_TYPES: ReadonlySet<UnitType> = new Set(['condo']);
+/**
+ * Condos sell within days for nearly twice their price, and a fast food next to busy offices counts
+ * its 35 to 50 customers a day in population, so a careful player builds both first.
+ */
+const PREFERRED_TYPES: ReadonlySet<UnitType> = new Set(['condo', 'fast-food']);
 /** Hotel rooms one housekeeping unit is planned for. */
 const ROOMS_PER_HOUSEKEEPING = 24;
 /** Money the bot keeps back from star requirements and transport. */
@@ -74,7 +76,6 @@ const MAX_MEDICAL_CENTERS = 10;
 /** Parking spaces kept free above the number of holders. */
 const PARKING_MARGIN = 8;
 const VENUE_LOAD = 35;
-const PARTY_HALL_LOAD = 40;
 
 export interface ProgressionOptions {
   seed: number;
@@ -274,8 +275,6 @@ function loadOf(unit: Unit): number {
     case 'restaurant':
     case 'retail-shop':
       return VENUE_LOAD;
-    case 'party-hall':
-      return PARTY_HALL_LOAD;
     default:
       return 0;
   }
@@ -399,10 +398,12 @@ export class ProgressionBot {
     return commands;
   }
 
-  /** A careful player keeps a week of upkeep and the ransom of a bomb threat in the bank. */
+  /**
+   * A careful player keeps a week of upkeep in the bank. Holding a bomb ransom as well stalled
+   * growth for weeks at 2 stars, for an event that comes about once in 60 days.
+   */
   private growthReserve(): number {
-    const ransom = this.state.stars >= 2 ? bombRansom(this.state.stars) : 0;
-    return GROWTH_RESERVE + ransom + weeklyUpkeep(this.state);
+    return GROWTH_RESERVE + weeklyUpkeep(this.state);
   }
 
   /** Ruins block walking, so they are cleared before anything else is built. */

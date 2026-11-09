@@ -58,8 +58,6 @@ type FloorUse =
   | 'condos'
   | 'fastFood'
   | 'shops'
-  | 'entertainment'
-  | 'entertainmentTop'
   | 'hotelA'
   | 'hotelB'
   | 'services'
@@ -69,14 +67,14 @@ const ZONE_ZERO_USES: Readonly<Record<number, FloorUse>> = {
   2: 'offices',
   3: 'condos',
   4: 'services',
-  5: 'offices',
+  5: 'condos',
   6: 'offices',
   7: 'hotelA',
   8: 'hotelB',
   9: 'shops',
-  10: 'entertainment',
-  11: 'entertainmentTop',
-  12: 'offices',
+  10: 'condos',
+  11: 'offices',
+  12: 'condos',
   13: 'condos',
   14: 'offices',
 };
@@ -84,19 +82,19 @@ const ZONE_ZERO_USES: Readonly<Record<number, FloorUse>> = {
 /** Uses of the 14 levels above a sky lobby. */
 const UPPER_ZONE_USES: readonly FloorUse[] = [
   'offices',
-  'offices',
+  'condos',
   'fastFood',
   'offices',
   'condos',
   'offices',
-  'offices',
+  'condos',
   'shops',
   'offices',
+  'condos',
   'offices',
-  'entertainment',
-  'entertainmentTop',
+  'condos',
   'offices',
-  'offices',
+  'condos',
 ];
 
 export function floorUse(level: Level): FloorUse | null {
@@ -148,12 +146,6 @@ function bothSides(level: Level, types: readonly UnitType[], repeatLast = true):
   return slots;
 }
 
-/**
- * Party halls and cinemas get no guests until TM-37 lands, so a careful player leaves their levels
- * empty; turn this on when it does.
- */
-const ENTERTAINMENT_HAS_VISITORS = false;
-
 /** Hotel rooms: suites nearest the core, then doubles, then singles. */
 const HOTEL_ROOMS: readonly UnitType[] = [
   'suite',
@@ -196,8 +188,6 @@ export function levelSlots(level: Level): Slot[] {
       return bothSides(level, ['fast-food']);
     case 'shops':
       return bothSides(level, ['restaurant', 'retail-shop']);
-    case 'entertainment':
-      return bothSides(level, ['party-hall']).filter(() => ENTERTAINMENT_HAS_VISITORS);
     case 'hotelA':
       return hotelLevel(level, true);
     case 'hotelB':
@@ -206,7 +196,6 @@ export function levelSlots(level: Level): Slot[] {
       return servicesLevel(level, 2);
     case 'skyLobby':
       return servicesLevel(level, 3);
-    case 'entertainmentTop':
     case null:
       return [];
   }
