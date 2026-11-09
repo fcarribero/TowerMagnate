@@ -5,6 +5,7 @@ import {
   VENUE_HOURS,
   VENUE_PAYOUT_HOURS,
   type IncomeBracket,
+  type TowerState,
   type Unit,
   type UnitId,
   type UnitType,
@@ -16,6 +17,7 @@ import { recordShopVisit } from './leases';
 import { chargeMoney, creditMoney } from './money';
 import type { ScheduledHook } from './scheduler';
 import type { StepContext } from './step';
+import { writableUnit } from './step-copy';
 import { isVenueType } from './units';
 
 type VenueType = keyof typeof VENUE_PAYOUT_HOURS;
@@ -58,17 +60,14 @@ function countsVisitsNow(unit: Unit, stepOfDay: number): boolean {
   return steps !== null && stepOfDay >= steps.from && stepOfDay < steps.to;
 }
 
-/** Adds a visit to the payout counts; a cinema entry between its shows does not count. */
-function addPayoutVisit(unit: VenueUnit, stepOfDay: number): boolean {
-  if (unit.type !== 'cinema') {
-    unit.venue.visits += 1;
-    return true;
-  }
-  const show = cinemaShowAt(stepOfDay);
-  if (show === null) return false;
-  if (show === 0) unit.venue.visits += 1;
-  else unit.venue.eveningShowVisits += 1;
-  return true;
+function isBetweenCinemaShows(unit: Unit, stepOfDay: number): boolean {
+  return unit.type === 'cinema' && cinemaShowAt(stepOfDay) === null;
+}
+
+/** Adds a visit to the payout counts: a cinema counts the show it falls in. */
+function addPayoutVisit(unit: VenueUnit, stepOfDay: number): void {
+  if (unit.type === 'cinema' && cinemaShowAt(stepOfDay) === 1) unit.venue.eveningShowVisits += 1;
+  else unit.venue.visits += 1;
 }
 
 /**
@@ -78,17 +77,19 @@ function addPayoutVisit(unit: VenueUnit, stepOfDay: number): boolean {
  * outside customers. Returns whether the visit was counted.
  */
 export function countVenueVisit(
-  state: { step: number },
-  unit: Unit,
+  state: TowerState,
+  counted: Unit,
   tripStress: number | null = null,
 ): boolean {
-  const venue = unit.venue;
   const stepOfDay = state.step % STEPS_PER_DAY;
-  if (!venue || !countsVisitsNow(unit, stepOfDay)) return false;
-  if (isVenue(unit) && !addPayoutVisit(unit, stepOfDay)) return false;
+  if (!counted.venue || !countsVisitsNow(counted, stepOfDay)) return false;
+  if (isBetweenCinemaShows(counted, stepOfDay)) return false;
+  const unit = writableUnit(state, counted);
+  const venue = unit.venue as VenueDay;
+  if (isVenue(unit)) addPayoutVisit(unit, stepOfDay);
   unit.used = true;
   venue.countToday += 1;
-  recordShopVisit(unit);
+  recordShopVisit(state, unit);
   if (tripStress !== null) {
     venue.stressSum += tripStress;
     venue.stressTrips += 1;
@@ -98,7 +99,7 @@ export function countVenueVisit(
 
 /** Counts a visit to the unit with this id; throws if it keeps no visit counts. */
 export function recordVenueVisit(
-  state: { units: Record<UnitId, Unit>; step: number },
+  state: TowerState,
   id: UnitId,
   tripStress: number | null = null,
 ): boolean {
@@ -166,7 +167,7 @@ function payoutHook(type: VenueType): ScheduledHook {
     schedule: { every: 'day', hour: VENUE_PAYOUT_HOURS[type].pays, minute: 0 },
     run(context) {
       for (const unit of Object.values(context.state.units)) {
-        if (unit.type === type && isVenue(unit)) payOut(context, unit);
+        if (unit.type === type && isVenue(unit)) payOut(context, writableUnit(context.state, unit));
       }
     },
   };

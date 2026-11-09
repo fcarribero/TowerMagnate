@@ -104,10 +104,11 @@ export {
   FULL_TOWER_PEOPLE,
   FULL_TOWER_STEP_BUDGET_MS,
   fullTower,
+  fullTowerGateFailures,
   timeFullTowerDay,
   timeFullTowerRuns,
 } from './full-tower';
-export type { FullTowerResult, FullTowerRun } from './full-tower';
+export type { FullTowerLimits, FullTowerResult, FullTowerRun } from './full-tower';
 export { ProgressionBot, runProgression } from './progression-bot';
 export type { DaySample, ProgressionOptions, ProgressionRun, StarDay } from './progression-bot';
 export { formatProgressionReport } from './progression-report';

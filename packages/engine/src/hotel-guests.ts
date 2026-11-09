@@ -63,6 +63,7 @@ import { chooseVenue, hasVenueCandidate, isVenueOpen, venueHasRoom } from './res
 import { chance, nextInt } from './rng';
 import type { ScheduledHook } from './scheduler';
 import type { SimulationSystem, StepContext } from './step';
+import { writableUnit } from './step-copy';
 import { drawMinuteFromWindow } from './time-windows';
 import { cancelTrek, isOnTrek, plannedTripSteps, startTrek } from './trek';
 import { stressOfTripEndedNow } from './trip-ledger';
@@ -141,7 +142,12 @@ function drawArrivalStep(state: TowerState, atNoon: boolean): number | null {
   return dayStart + nextInt(state.rng, first, HOTEL_LAST_ARRIVAL_MINUTE - 1) * STEPS_PER_MINUTE;
 }
 
-function rollForBooking(state: TowerState, room: RoomUnit, atNoon: boolean): void {
+function clearRollDue(state: TowerState, room: RoomUnit): void {
+  if (room.hotel.rollDue) writableUnit(state, room).hotel.rollDue = false;
+}
+
+function rollForBooking(state: TowerState, shared: RoomUnit, atNoon: boolean): void {
+  const room = writableUnit(state, shared);
   room.hotel.rollDue = false;
   if (!rollBooking(state.rng, room)) return;
   room.hotel.arrivalStep = drawArrivalStep(state, atNoon);
@@ -151,7 +157,7 @@ function rollForBooking(state: TowerState, room: RoomUnit, atNoon: boolean): voi
 function rollNoonBookings(context: StepContext): void {
   for (const room of roomsById(context.state)) {
     if (canTakeBooking(room)) rollForBooking(context.state, room, true);
-    else room.hotel.rollDue = false;
+    else clearRollDue(context.state, room);
   }
 }
 
@@ -164,7 +170,7 @@ function rollFreshlyCleanRooms(state: TowerState): void {
   if (minute < HOTEL_BOOKING_ROLL_MINUTE || minute >= HOTEL_LATE_ROLL_BEFORE_MINUTE) return;
   for (const room of roomsById(state, (room) => room.hotel.rollDue)) {
     if (canTakeBooking(room)) rollForBooking(state, room, false);
-    else room.hotel.rollDue = false;
+    else clearRollDue(state, room);
   }
 }
 
@@ -249,7 +255,7 @@ function canTakeArrival(room: RoomUnit): boolean {
 }
 
 function removeParty(state: TowerState, room: RoomUnit): void {
-  room.hotel.arrivalStep = null;
+  writableUnit(state, room).hotel.arrivalStep = null;
   for (const personId of guestsOfRoom(state.people, unitNumber(room.id))) {
     removePerson(state, personId);
   }
@@ -340,19 +346,20 @@ function assignSuiteParking(context: StepContext, room: RoomUnit): void {
 }
 
 /** Check-in happens when the first guest of the party reaches the room (economy 5.2). */
-function arriveAtRoom(context: StepContext, slot: number, room: RoomUnit): void {
+function arriveAtRoom(context: StepContext, slot: number, arrivedAt: RoomUnit): void {
   const { state } = context;
   const personId = state.people.id[slot] as number;
-  if (room.hotel.arrivalStep !== null && room.hotel.state === 'clean') {
+  if (arrivedAt.hotel.arrivalStep !== null && arrivedAt.hotel.state === 'clean') {
     const nights = isVip(state.people, slot) ? VIP_NIGHTS : undefined;
-    if (!checkIn(context, room.id, nights).checkedIn) {
-      removeParty(state, room);
+    if (!checkIn(context, arrivedAt.id, nights).checkedIn) {
+      removeParty(state, arrivedAt);
       return;
     }
-    fileArrivalTrips(state, room);
-    drawCheckInOutings(state, room);
-    assignSuiteParking(context, room);
+    fileArrivalTrips(state, arrivedAt);
+    drawCheckInOutings(state, arrivedAt);
+    assignSuiteParking(context, arrivedAt);
   }
+  const room = state.units[arrivedAt.id] as RoomUnit;
   if (room.hotel.stayEndStep === null) {
     removePerson(state, personId);
     return;

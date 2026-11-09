@@ -237,33 +237,51 @@ function enabledStops(shaft: Shaft, chosen: readonly Level[] | undefined): Level
   return [...new Set(levels.filter(allowed))].sort((a, b) => floorIndex(a) - floorIndex(b));
 }
 
+/** Everything the graph is built from, as a flat list of strings and numbers. */
+export type GraphInputs = readonly (string | number)[];
+
+type InputVisitor = (value: string | number) => boolean;
+
 /**
- * Everything the graph is built from, as one string: the rows of every level, the subway
- * stations, the flights and the shafts with their stops. Two states with the same key give
- * the same graph.
+ * Walks everything the graph is built from: the rows of every level, the flights and the shafts
+ * with their stops. The rows hold every unit, subway stations included, and a unit never changes
+ * type, so the units themselves need no walk. Stops early when `visit` returns false.
  */
-export function graphInputsKey(state: TowerState): string {
-  const parts: string[] = [];
-  for (const [level, row] of Object.entries(state.grid.levels)) {
+function visitGraphInputs(state: TowerState, visit: InputVisitor): boolean {
+  for (const level in state.grid.levels) {
+    const row = state.grid.levels[level];
     if (!row) continue;
-    parts.push(`L${level}`);
-    for (const span of row.structure) parts.push(`${span.kind}${span.x0}-${span.x1}`);
-    for (const span of row.occupants) {
-      const { occupant } = span;
+    if (!visit(level)) return false;
+    for (const span of row.structure) {
+      if (!visit(span.kind) || !visit(span.x0) || !visit(span.x1)) return false;
+    }
+    for (const { occupant, x0, x1 } of row.occupants) {
       const id = occupant.kind === 'ruins' ? '' : occupant.id;
-      parts.push(`${occupant.kind}${id}@${span.x0}-${span.x1}`);
+      if (!visit(occupant.kind) || !visit(id) || !visit(x0) || !visit(x1)) return false;
     }
   }
-  for (const unit of Object.values(state.units)) {
-    if (unit.type === 'subway-station') parts.push(`S${unit.id}@${unit.level}:${unit.x}`);
-  }
   for (const flight of Object.values(state.transports)) {
-    parts.push(`F${flight.id}:${flight.type}@${flight.level}:${flight.x}`);
+    if (!visit('F') || !visit(flight.id) || !visit(flight.type)) return false;
+    if (!visit(flight.level) || !visit(flight.x)) return false;
   }
   for (const shaft of Object.values(state.shafts)) {
-    parts.push(
-      `E${shaft.id}:${shaft.type}@${shaft.x}:${shaft.bottom}-${shaft.top}:${shaft.stops.join(',')}`,
-    );
+    if (!visit('E') || !visit(shaft.id) || !visit(shaft.type) || !visit(shaft.x)) return false;
+    if (!visit(shaft.bottom) || !visit(shaft.top) || !visit(shaft.stops.length)) return false;
+    for (const stop of shaft.stops) if (!visit(stop)) return false;
   }
-  return parts.join('|');
+  return true;
+}
+
+/** The inputs of the graph of `state`. Two states with equal inputs give the same graph. */
+export function graphInputsOf(state: TowerState): GraphInputs {
+  const inputs: (string | number)[] = [];
+  visitGraphInputs(state, (value) => inputs.push(value) > 0);
+  return inputs;
+}
+
+/** True when `state` still has the graph inputs `inputs`, without building a new list. */
+export function graphInputsMatch(state: TowerState, inputs: GraphInputs): boolean {
+  let index = 0;
+  const same = visitGraphInputs(state, (value) => inputs[index++] === value);
+  return same && index === inputs.length;
 }
