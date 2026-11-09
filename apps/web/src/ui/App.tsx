@@ -181,6 +181,14 @@ export function App({ onLogout, onRestartTower, onSessionLost }: AppProps) {
     if (stage === null) {
       return;
     }
+    connection.viewport.cameraChanged(stage.camera());
+    return stage.onCameraChange((camera) => connection.viewport.cameraChanged(camera));
+  }, [stage, connection]);
+
+  useEffect(() => {
+    if (stage === null) {
+      return;
+    }
     if (tool === 'bulldozer') {
       return;
     }
