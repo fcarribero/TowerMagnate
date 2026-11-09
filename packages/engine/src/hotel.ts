@@ -15,6 +15,7 @@ import { releaseStayGuests } from './hotel-guest-trip';
 import { creditMoney } from './money';
 import { nextInt } from './rng';
 import type { SimulationSystem, StepContext } from './step';
+import { writableUnit } from './step-copy';
 import { unitNumber } from './units';
 import { clearUnitLedger, storeGrade } from './unit-evaluation';
 
@@ -75,17 +76,18 @@ function setRoomState(context: StepContext, room: RoomUnit, state: HotelRoomStat
  * guest routine and by tests. A refused check-in changes nothing.
  */
 export function checkIn(context: StepContext, roomId: UnitId): CheckInResult {
-  const room = context.state.units[roomId];
-  if (!room || !isRoom(room)) {
+  const found = context.state.units[roomId];
+  if (!found || !isRoom(found)) {
     throw new Error(`Unit ${roomId} is not a hotel room`);
   }
   const step = context.state.step;
   if (!isCheckInTime(step)) {
     return { checkedIn: false, reason: 'outsideCheckInHours' };
   }
-  if (room.hotel.state !== 'clean') {
+  if (found.hotel.state !== 'clean') {
     return { checkedIn: false, reason: 'roomNotClean' };
   }
+  const room = writableUnit(context.state, found);
   const nights = drawStayNights(context.state.rng);
   const paid = creditMoney(
     context.state,
@@ -129,7 +131,7 @@ function stayersEndingAt(step: number, units: Record<UnitId, Unit>): readonly Ro
 export function createHotelSystem(): SimulationSystem {
   return (context) => {
     for (const room of stayersEndingAt(context.state.step, context.state.units)) {
-      checkOut(context, room);
+      checkOut(context, writableUnit(context.state, room));
     }
   };
 }

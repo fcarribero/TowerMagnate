@@ -51,7 +51,7 @@ function customersSystem(
     if (!unit || !lease || context.state.step !== lease.nextDueStep - STEPS_PER_WEEK + 1) return;
     const week = Math.round((lease.nextDueStep - lease.anchorStep) / STEPS_PER_WEEK) - 1;
     const visits = typeof weeklyVisits === 'number' ? weeklyVisits : (weeklyVisits[week] ?? 0);
-    for (let visit = 0; visit < visits; visit++) recordShopVisit(unit);
+    for (let visit = 0; visit < visits; visit++) recordShopVisit(context.state, unit);
   };
 }
 
@@ -289,10 +289,10 @@ describe('shop early leave (economy 4.3)', () => {
   it('counts visits only for a shop with a tenant', () => {
     const { tower, unitId } = towerWithOneUnit('retail-shop');
     const shop = unitOf(tower, unitId);
-    recordShopVisit(shop);
+    recordShopVisit(tower, shop);
     expect(shop.lease).toBeNull();
     moveInTenant({ state: tower, events: [] }, unitId);
-    recordShopVisit(shop);
+    recordShopVisit(tower, shop);
     expect(tower.units[unitId]?.lease?.weekVisits).toBe(1);
   });
 });

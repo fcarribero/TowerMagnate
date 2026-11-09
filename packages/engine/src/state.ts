@@ -3,6 +3,7 @@ import { createGrid } from './grid';
 import { createLedger } from './money';
 import { clonePersonPool, createPersonPool } from './people';
 import { createRng } from './rng';
+import { copyPlainData } from './step-copy';
 
 export const SCHEMA_VERSION = 30;
 
@@ -45,5 +46,5 @@ export function createTower(seed: number): TowerState {
 /** A deep copy of the tower that a step or command can change freely. */
 export function cloneState(state: TowerState): TowerState {
   const { people, ...rest } = state;
-  return { ...structuredClone(rest), people: clonePersonPool(people) };
+  return { ...copyPlainData(rest), people: clonePersonPool(people) };
 }

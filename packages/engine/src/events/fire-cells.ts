@@ -1,6 +1,7 @@
 import type { CellRange, Level, TowerState } from '@tower-magnate/shared';
 import { addOccupant, occupantAt, structureAt } from '../grid';
 import { walkableRuns } from '../routing/walkable-runs';
+import { writableGrid } from '../step-copy';
 import { isOnTrek } from '../trek';
 import { destroyUnit } from './bomb';
 
@@ -52,7 +53,7 @@ export function burnCell(state: TowerState, level: Level, x: number, damage: Fir
   let ruined: CellRange[] = [];
   if (occupant === null) {
     if (structureAt(state.grid, level, x) === null) return;
-    addOccupant(state.grid, level, x, x, { kind: 'ruins' });
+    addOccupant(writableGrid(state), level, x, x, { kind: 'ruins' });
     ruined = [{ level, x0: x, x1: x }];
   } else if (occupant.kind === 'unit') {
     const unit = state.units[occupant.id];
