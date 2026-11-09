@@ -66,6 +66,8 @@ describe('hotel check-in', () => {
       stayEndStep: at(WEDNESDAY + 3, 10),
       checkInStep: at(WEDNESDAY, 15),
       paidLevel: 'normal',
+      arrivalStep: null,
+      rollDue: false,
     });
     expect(weekdayOfDay(WEDNESDAY + 3)).toBe(WEEKDAYS.saturday);
     expect(events.map((event) => event.type)).toEqual(['hotelCheckIn', 'roomStateChanged']);
@@ -131,6 +133,8 @@ describe('hotel check-in', () => {
       stayEndStep: state === 'occupied' ? 99_999 : null,
       checkInStep: null,
       paidLevel: null,
+      arrivalStep: null,
+      rollDue: false,
     });
     const attempt = tryCheckIn(tower, roomId, at(WEDNESDAY, 15));
     expect(attempt.result).toEqual({ checkedIn: false, reason: 'roomNotClean' });
@@ -145,6 +149,8 @@ describe('hotel check-in', () => {
       stayEndStep: null,
       checkInStep: null,
       paidLevel: null,
+      arrivalStep: null,
+      rollDue: false,
     });
     expect(tryCheckIn(tower, roomId, at(WEDNESDAY, 15)).result.checkedIn).toBe(false);
     setHotel(tower, roomId, {
@@ -152,6 +158,8 @@ describe('hotel check-in', () => {
       stayEndStep: null,
       checkInStep: null,
       paidLevel: null,
+      arrivalStep: null,
+      rollDue: false,
     });
     expect(tryCheckIn(tower, roomId, at(WEDNESDAY, 15)).result.checkedIn).toBe(true);
   });
@@ -200,6 +208,8 @@ describe('hotel check-out order', () => {
         stayEndStep: end,
         checkInStep: null,
         paidLevel: null,
+        arrivalStep: null,
+        rollDue: false,
       });
     }
     tower.step = end - 1;
@@ -240,5 +250,12 @@ describe('hotel week scenario', () => {
 });
 
 function cleanRoom(): HotelRoom {
-  return { state: 'clean', stayEndStep: null, checkInStep: null, paidLevel: null };
+  return {
+    state: 'clean',
+    stayEndStep: null,
+    checkInStep: null,
+    paidLevel: null,
+    arrivalStep: null,
+    rollDue: false,
+  };
 }

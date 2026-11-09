@@ -46,15 +46,20 @@ export {
 export type { TrekCrowdTiming } from './trek-crowd';
 export { OFFICE_WEEK_BUDGET_MS, tenFloorOfficeTowerPlan } from './ten-floor-office-tower';
 export {
+  FORCED_BOMB_DAY,
   VERTICAL_SLICE_DAYS,
+  VERTICAL_SLICE_P99_BUDGET_MS,
   VERTICAL_SLICE_SEED,
   VERTICAL_SLICE_STEP_BUDGET_MS,
+  createVerticalSliceEngine,
   formatSliceDays,
+  formatSliceEvents,
   runVerticalSlice,
+  timeVerticalSlice,
   verticalSliceTower,
   verticalSliceTowerPlan,
 } from './vertical-slice';
-export type { SliceDay, SliceRun, WorkerDeparture } from './vertical-slice';
+export type { SliceDay, SliceRun, SliceTiming, WorkerDeparture } from './vertical-slice';
 export {
   MAX_CUSTOMER_STEP_MS,
   MAX_SUBWAY_STEP_MS,
@@ -85,3 +90,21 @@ export type {
   ExpectedDay,
   TimedEconomyAction,
 } from './economy-scenario';
+export {
+  LONG_RUN_DAYS,
+  LONG_RUN_SEED,
+  LONG_RUN_SNAPSHOT_DAY,
+  longRunScript,
+  longRunTower,
+  playLongRun,
+  resumeLongRun,
+} from './long-run';
+export type { LongRun, LongRunCommand } from './long-run';
+export {
+  FULL_TOWER_PEOPLE,
+  FULL_TOWER_STEP_BUDGET_MS,
+  fullTower,
+  timeFullTowerDay,
+  timeFullTowerRuns,
+} from './full-tower';
+export type { FullTowerResult, FullTowerRun } from './full-tower';

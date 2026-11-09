@@ -13,6 +13,8 @@ import {
   type Level,
   type Notice,
   type NoticeParams,
+  type VipVisit,
+  StarRatingSchema,
 } from '@tower-magnate/shared';
 import { isRecord, StateMigrationError } from './errors';
 
@@ -208,6 +210,39 @@ export function readTreasureLevels(raw: unknown): Level[] {
   return [...(raw as Level[])];
 }
 
+const VIP_OUTCOMES: readonly unknown[] = ['pending', 'approved', 'rejected'];
+
+function isNullOr<T>(value: unknown, check: (value: unknown) => value is T): boolean {
+  return value === null || check(value);
+}
+
+function isUnitId(value: unknown): value is string {
+  return typeof value === 'string' && /^u[1-9][0-9]*$/.test(value);
+}
+
+export function readVipVisit(raw: unknown): VipVisit | null {
+  if (raw === null) return null;
+  const valid =
+    isRecord(raw) &&
+    typeof raw.id === 'string' &&
+    isStep(raw.day) &&
+    StarRatingSchema.safeParse(raw.startedAtStars).success &&
+    isNullOr(raw.unitId, isUnitId) &&
+    isNullOr(raw.personId, isStep) &&
+    VIP_OUTCOMES.includes(raw.outcome);
+  if (!valid) {
+    throw new StateMigrationError('State vipVisit must be null or a VIP visit');
+  }
+  return {
+    id: raw.id as string,
+    day: raw.day as number,
+    startedAtStars: raw.startedAtStars as VipVisit['startedAtStars'],
+    unitId: raw.unitId as VipVisit['unitId'],
+    personId: raw.personId as number | null,
+    outcome: raw.outcome as VipVisit['outcome'],
+  };
+}
+
 function readNoticeParams(raw: unknown): NoticeParams {
   if (raw === undefined) {
     return {};
@@ -256,4 +291,18 @@ export function readNotices(raw: unknown): Notice[] {
     throw new StateMigrationError('State notices must be a list');
   }
   return raw.map(readNotice);
+}
+
+export function readNewsSent(raw: unknown): Record<string, number> {
+  if (!isRecord(raw)) {
+    throw new StateMigrationError('State newsSent must map news slots to steps');
+  }
+  const sent: Record<string, number> = {};
+  for (const [slot, step] of Object.entries(raw)) {
+    if (!Number.isInteger(step) || (step as number) < 0) {
+      throw new StateMigrationError('State newsSent steps must be non-negative integers');
+    }
+    sent[slot] = step as number;
+  }
+  return sent;
 }

@@ -1,11 +1,12 @@
 {
   "name": "@tower-magnate/web",
-  "version": "0.11.0",
+  "version": "0.12.0",
   "private": true,
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "build:perf": "vite build --mode perf --outDir dist-perf",
     "preview": "vite preview",
     "test:e2e": "playwright test"
   },

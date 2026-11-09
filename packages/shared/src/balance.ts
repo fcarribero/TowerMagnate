@@ -490,6 +490,17 @@ export const SEARCH_COLUMNS_PER_MINUTE = 4;
 export const SEARCH_STEPS_PER_MINUTE = 6;
 export const FIRE_SPREAD_STEPS = 6;
 export const FIRE_FRONT_CONTAINMENT = 10;
+export const FIRE_DAILY_ODDS = 84;
+export const FIRE_MIN_STARS = 3;
+export const FIRE_ROLL_HOUR = 15;
+/** A fire can start on a unit whose bottom level has at least this many structure columns. */
+export const FIRE_MIN_FLOOR_COLUMNS = 32;
+/** The lowest level a fire can start on; it never burns the main lobby floor. */
+export const FIRE_LOWEST_LEVEL = 2;
+/** A level still burning this many steps after it ignited lights the level above. */
+export const FIRE_CLIMB_STEPS = 180;
+/** A fire burns out by itself this many steps after it started (19:00). */
+export const FIRE_MAX_STEPS = 1_440;
 /** Papá Noel crosses the sky once a year at this date and time. */
 export const SANTA_TIME = { month: 12, day: 24, hour: 22, minute: 0 } as const;
 export const BOMB_DAILY_ODDS = 60;
@@ -500,6 +511,12 @@ export const BOMB_BLAST_COLUMNS_LEFT = 20;
 export const BOMB_BLAST_COLUMNS_RIGHT = 19;
 export const BOMB_BLAST_LEVELS_BELOW = 2;
 export const BOMB_BLAST_LEVELS_ABOVE = 3;
+/** A VIP visit is rolled at 00:00 only at exactly this rating. */
+export const VIP_STARS = 3;
+export const VIP_DAILY_ODDS = 9;
+export const VIP_NIGHTS = 1;
+/** The visit is approved when the VIP's average trip stress is under this many steps (15 minutes). */
+export const VIP_MAX_STRESS_STEPS = 90;
 
 /** The ransom asked when a bomb threat opens, by star rating. */
 export function bombRansom(stars: StarRating): number {

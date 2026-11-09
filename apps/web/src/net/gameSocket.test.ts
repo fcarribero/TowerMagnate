@@ -5,6 +5,7 @@ import {
   type ClientMessage,
 } from '@tower-magnate/shared';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { cameraViewport, createCamera, panCamera } from '../render/camera';
 import { delta, snapshot, walker } from '../testing/protocolFixtures';
 import { createGameConnection } from './gameConnection';
 import {
@@ -261,6 +262,41 @@ describe('createGameConnection', () => {
     expect(store.current?.latest.step).toBe(150);
     expect(store.current?.latest.people.size).toBe(0);
     expect(store.current?.latest.units.size).toBe(0);
+  });
+
+  it('sends the camera viewport after the first snapshot, a forced snapshot and a reconnect', () => {
+    const { createSocket, last } = fakeSockets();
+    const connection = createGameConnection({ url: 'ws://test/ws', createSocket });
+    const camera = createCamera(1200, 800, 2);
+    const expected = { t: 'viewport', p: cameraViewport(camera, 2) };
+    connection.viewport.cameraChanged(camera);
+    connection.socket.connect();
+    last().serverOpens();
+    expect(last().sentTypes()).toEqual(['hello']);
+
+    last().serverSends(serverMessage('snapshot', snapshot));
+    expect(last().sent.at(-1)).toMatchObject(expected);
+
+    vi.advanceTimersByTime(1_000);
+    last().serverSends(serverMessage('snapshot', { ...snapshot, step: 120 }));
+    expect(last().sentTypes()).toEqual(['hello', 'viewport', 'viewport']);
+
+    last().serverCloses();
+    vi.advanceTimersByTime(RETRY_DELAY_MS);
+    last().serverOpens();
+    last().serverSends(serverMessage('snapshot', { ...snapshot, step: 130 }));
+    expect(last().sentTypes()).toEqual(['hello', 'viewport']);
+    expect(last().sent.at(-1)).toMatchObject(expected);
+  });
+
+  it('sends a new viewport when the camera moves on a live socket', () => {
+    const { viewport, last } = connected();
+    const camera = createCamera(1200, 800, 2);
+    viewport.cameraChanged(camera);
+    vi.advanceTimersByTime(1_000);
+    const moved = panCamera(camera, 0, 600);
+    viewport.cameraChanged(moved);
+    expect(last().sent.at(-1)).toMatchObject({ t: 'viewport', p: cameraViewport(moved, 2) });
   });
 });
 

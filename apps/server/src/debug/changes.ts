@@ -1,9 +1,14 @@
 import {
+  announceSanta,
   DAYS_PER_WEEK,
-  openFire,
   openRandomBombThreat,
+  openRandomFire,
+  openVipVisitNow,
+  recordNotices,
+  rollLedgerWeek,
   STEPS_PER_DAY,
   STEPS_PER_MINUTE,
+  STEPS_PER_WEEK,
   weekdayOfDay,
   type StepContext,
 } from '@tower-magnate/engine';
@@ -20,19 +25,16 @@ export class DebugRefusal extends Error {
   }
 }
 
-function highestBuiltLevel(state: TowerState): number {
-  const built = Object.keys(state.grid.levels).map(Number);
-  return Math.max(1, ...built);
-}
-
 export function forceEvent(kind: DebugEventKind): TowerChange {
+  if (kind === 'vip') return forceVipVisit;
+  if (kind === 'santa') return forceSanta;
   return (state) => {
     const context: StepContext = { state: structuredClone(state), events: [] };
     const opened =
       kind === 'bomb'
         ? openRandomBombThreat(context)
         : kind === 'fire'
-          ? openFire(context, highestBuiltLevel(context.state))
+          ? openRandomFire(context)
           : undefined;
     if (opened === undefined) {
       throw new DebugRefusal('INVALID_COMMAND');
@@ -45,6 +47,24 @@ export function forceEvent(kind: DebugEventKind): TowerChange {
     return { state: context.state, events: context.events };
   };
 }
+
+/**
+ * Starts a VIP visit without the daily roll or the star check. The VIP books a suite at the next
+ * 12:00. Only one visit runs at a time.
+ */
+const forceVipVisit: TowerChange = (state) => {
+  const forced = structuredClone(state);
+  if (openVipVisitNow(forced) === null) throw new DebugRefusal('LIMIT_REACHED');
+  return { state: forced, events: [] };
+};
+
+/** Santa is only a notice: it is kept with the other notices and nothing else changes. */
+const forceSanta: TowerChange = (state) => {
+  const context: StepContext = { state: structuredClone(state), events: [] };
+  announceSanta(context);
+  recordNotices(context.state, context.events);
+  return { state: context.state, events: context.events };
+};
 
 /** Runs the steps through the same advance the real clock uses, so the result matches. */
 export function fastForward(steps: number): TowerChange {
@@ -62,7 +82,13 @@ export function setClock(day: number, time: string): TowerChange {
     if (target <= state.step) {
       target += DAYS_PER_WEEK * STEPS_PER_DAY;
     }
-    return { state: { ...structuredClone(state), step: target }, events: [] };
+    const jumped = { ...structuredClone(state), step: target };
+    const mondaysCrossed =
+      Math.floor(target / STEPS_PER_WEEK) - Math.floor(state.step / STEPS_PER_WEEK);
+    for (let monday = 0; monday < mondaysCrossed; monday++) {
+      rollLedgerWeek(jumped);
+    }
+    return { state: jumped, events: [] };
   };
 }
 

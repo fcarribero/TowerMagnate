@@ -112,7 +112,7 @@ describe('bomb threat roll', () => {
 
   it.each([
     ['below 2 stars', (state: TowerState) => void (state.stars = 1)],
-    ['with a fire active', (state: TowerState) => void openFire(atStep(state, 0), 5)],
+    ['with a fire active', (state: TowerState) => void openFire(atStep(state, NINE_AM), 5)],
     ['with only lobbies', (state: TowerState) => void (state.units = {})],
   ])('makes no draw %s', (_name, prepare) => {
     const state = officeTower();
@@ -282,7 +282,7 @@ describe('bomb search outcome', () => {
     const disaster = atOne.events.find((event) => event.type === 'disaster');
     expect(disaster).toMatchObject({ type: 'disaster', step: atOne.state.step, kind: 'bomb' });
     expect(atOne.events).toContainEqual(
-      expect.objectContaining({ type: 'news', key: 'news.bombExploded', level: 5 }),
+      expect.objectContaining({ type: 'news', key: 'news.bombExploded', params: { level: 5 } }),
     );
     expect(atOne.state.units[officeId]).toBeUndefined();
     expect(peopleCount(atOne.state.people)).toBe(before);

@@ -11,9 +11,14 @@ const installedDependencies = Object.entries(manifest.dependencies ?? {})
   .filter(([, version]) => !isWorkspacePackage(version))
   .map(([name]) => name);
 
+// `--bench` bundles the runner load bench the same way, so it can run inside the release image.
+const target = process.argv.includes('--bench')
+  ? { entry: 'src/bench/runner-load.ts', outfile: 'bench-build/runner-load.js' }
+  : { entry: 'src/main.ts', outfile: 'build/main.js' };
+
 await build({
-  entryPoints: ['src/main.ts'],
-  outfile: 'build/main.js',
+  entryPoints: [target.entry],
+  outfile: target.outfile,
   bundle: true,
   platform: 'node',
   format: 'esm',

@@ -144,6 +144,8 @@ describe('inspecting a unit', () => {
       stayEndStep: 5000,
       checkInStep: null,
       paidLevel: null,
+      arrivalStep: null,
+      rollDue: false,
     };
     expect(inspectUnit(state, id)).toMatchObject({
       details: { state: 'occupied', checkoutStep: 5000 },
@@ -152,7 +154,14 @@ describe('inspecting a unit', () => {
 
   it('hides the checkout of a room that is not occupied', () => {
     const { state, id } = towerWith('suite');
-    unitOf(state).hotel = { state: 'dirty', stayEndStep: 5000, checkInStep: null, paidLevel: null };
+    unitOf(state).hotel = {
+      state: 'dirty',
+      stayEndStep: 5000,
+      checkInStep: null,
+      paidLevel: null,
+      arrivalStep: null,
+      rollDue: false,
+    };
 
     expect(inspectUnit(state, id)).toMatchObject({
       details: { state: 'dirty', checkoutStep: null },
