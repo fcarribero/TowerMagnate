@@ -2,8 +2,10 @@ import {
   DAYS_PER_WEEK,
   openRandomBombThreat,
   openRandomFire,
+  rollLedgerWeek,
   STEPS_PER_DAY,
   STEPS_PER_MINUTE,
+  STEPS_PER_WEEK,
   weekdayOfDay,
   type StepContext,
 } from '@tower-magnate/engine';
@@ -57,7 +59,13 @@ export function setClock(day: number, time: string): TowerChange {
     if (target <= state.step) {
       target += DAYS_PER_WEEK * STEPS_PER_DAY;
     }
-    return { state: { ...structuredClone(state), step: target }, events: [] };
+    const jumped = { ...structuredClone(state), step: target };
+    const mondaysCrossed =
+      Math.floor(target / STEPS_PER_WEEK) - Math.floor(state.step / STEPS_PER_WEEK);
+    for (let monday = 0; monday < mondaysCrossed; monday++) {
+      rollLedgerWeek(jumped);
+    }
+    return { state: jumped, events: [] };
   };
 }
 
