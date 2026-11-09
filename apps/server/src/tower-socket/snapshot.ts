@@ -10,6 +10,7 @@ import {
   shaftLevels,
   STEPS_PER_DAY,
   DAYS_PER_WEEK,
+  isOutsideTower,
   trekPhaseAt,
   type TrekPhase,
 } from '@tower-magnate/engine';
@@ -242,6 +243,7 @@ export function peopleViews(
   const rides = ridePlaces(state);
   const views: PersonView[] = [];
   people.forEach((person, slot) => {
+    if (isOutsideTower(state.people, slot)) return;
     const phase = trekPhaseAt(state.people, slot);
     const ride = phase === 'riding' ? rides.get(person.id) : undefined;
     const place = {
