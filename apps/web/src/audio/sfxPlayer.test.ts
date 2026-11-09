@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { FakeAudioContext } from '../testing/fakeAudio';
-import type { SfxManifest } from './sfxManifest';
-import { SfxPlayer, unlockOnFirstGesture } from './sfxPlayer';
+import type { SfxEffect, SfxManifest } from './sfxManifest';
+import { DUCK_DOWN_MS, DUCK_UP_MS, SfxPlayer, unlockOnFirstGesture } from './sfxPlayer';
 
 const manifest: SfxManifest = {
   version: 1,
@@ -12,6 +12,9 @@ const manifest: SfxManifest = {
       volume: 0.8,
       loop: false,
       trigger: 'build.place',
+      stopTrigger: null,
+      minIntervalMs: 0,
+      duckOthers: null,
     },
     {
       id: 'lobby-ambience',
@@ -19,6 +22,9 @@ const manifest: SfxManifest = {
       volume: 0.5,
       loop: true,
       trigger: 'ambience.lobby',
+      stopTrigger: 'ambience.lobby.end',
+      minIntervalMs: 0,
+      duckOthers: null,
     },
   ],
 };
@@ -153,6 +159,74 @@ describe('SfxPlayer', () => {
     await player.setManifest(manifest);
     expect(player.idForTrigger('build.place')).toBe('construction');
     expect(player.idForTrigger('nothing')).toBeUndefined();
+  });
+});
+
+function alarm(id: string, duckOthers: number): SfxEffect {
+  return {
+    id,
+    files: { ogg: `${id}.ogg`, mp3: `${id}.mp3` },
+    volume: 0.8,
+    loop: true,
+    trigger: `event.${id}`,
+    stopTrigger: `event.${id}.end`,
+    minIntervalMs: 0,
+    duckOthers,
+  };
+}
+
+async function duckingSetup() {
+  const { player, context } = setup();
+  await player.setManifest({
+    version: 1,
+    effects: [...manifest.effects, alarm('bomb', 0.5), alarm('fire', 0.5)],
+  });
+  await player.unlock();
+  return { player, context };
+}
+
+describe('SfxPlayer ducking', () => {
+  it('ducks a loop already playing and leaves the alarm itself at full volume', async () => {
+    const { player, context } = await duckingSetup();
+    player.playSfx('lobby-ambience');
+    player.playSfx('bomb');
+    expect(context.played[0]?.heard).toBeCloseTo(0.5 * 0.5);
+    expect(context.played[1]?.heard).toBeCloseTo(0.8);
+  });
+
+  it('ramps down over 100 ms and back up over 300 ms after the alarm stops', async () => {
+    const { player, context } = await duckingSetup();
+    const handle = player.playSfx('bomb');
+    handle.stop();
+    expect(context.ramps).toEqual([
+      { to: 0.5, durationMs: DUCK_DOWN_MS },
+      { to: 1, durationMs: DUCK_UP_MS },
+    ]);
+    expect([DUCK_DOWN_MS, DUCK_UP_MS]).toEqual([100, 300]);
+  });
+
+  it('does not stack two ducking effects', async () => {
+    const { player, context } = await duckingSetup();
+    const bomb = player.playSfx('bomb');
+    const fire = player.playSfx('fire');
+    player.playSfx('construction');
+    expect(context.played[2]?.heard).toBeCloseTo(0.8 * 0.5);
+    bomb.stop();
+    expect(context.played[2]?.heard).toBeCloseTo(0.8 * 0.5);
+    fire.stop();
+    expect(context.played[2]?.heard).toBeCloseTo(0.8);
+    expect(context.ramps).toHaveLength(2);
+  });
+
+  it('applies the master gain on top of the duck', async () => {
+    const { player, context } = await duckingSetup();
+    player.playSfx('lobby-ambience');
+    player.playSfx('bomb');
+    player.setMasterGain(0.5);
+    expect(context.played[0]?.heard).toBeCloseTo(0.5 * 0.5 * 0.5);
+    expect(context.played[1]?.heard).toBeCloseTo(0.8 * 0.5);
+    player.setMasterGain(0);
+    expect(context.played.map((sound) => sound.heard)).toEqual([0, 0]);
   });
 });
 
