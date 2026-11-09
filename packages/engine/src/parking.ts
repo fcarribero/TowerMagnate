@@ -4,16 +4,18 @@ import {
   type ParkingState,
   type TowerState,
   type Unit,
+  type NewsId,
 } from '@tower-magnate/shared';
 import { STEPS_PER_DAY } from './clock';
 import { slotOfPerson } from './people';
 import type { ScheduledHook } from './scheduler';
 import type { StepContext } from './step';
 import { unitNumber } from './units';
+import { emitNews } from './news';
 
 type Holder = 'office' | 'condo' | 'suite';
 
-const NEWS_KEY: Record<Holder, string> = {
+const NEWS_KEY: Record<Holder, NewsId> = {
   office: 'news.parkingOffice',
   condo: 'news.parkingCondo',
   suite: 'news.parkingSuite',
@@ -91,7 +93,7 @@ export function assignParking(context: StepContext): void {
     const key = NEWS_KEY[holder];
     if (today.noticed.includes(key)) continue;
     today.noticed.push(key);
-    context.events.push({ type: 'news', step: state.step, key, unitId: null });
+    context.events.push(...emitNews(state, key));
   }
 }
 

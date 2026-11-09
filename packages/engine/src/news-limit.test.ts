@@ -6,9 +6,7 @@ import { isNewsAllowed, rememberNews, type NewsMemory, type NewsTarget } from '.
 const GAP = 360;
 
 function emittedAt(step: number, key: NewsId, target: NewsTarget): NewsMemory {
-  const memory: NewsMemory = {};
-  rememberNews(memory, key, target, step);
-  return memory;
+  return rememberNews({}, key, target, step);
 }
 
 describe('news rate limit (messages.md 4)', () => {
@@ -24,9 +22,9 @@ describe('news rate limit (messages.md 4)', () => {
   });
 
   it('scopes level keys by level', () => {
-    const memory = emittedAt(1_000, 'news.cockroaches', { level: 12 });
-    expect(isNewsAllowed(memory, 'news.cockroaches', { level: 12 }, 1_010)).toBe(false);
-    expect(isNewsAllowed(memory, 'news.cockroaches', { level: 13 }, 1_010)).toBe(true);
+    const memory = emittedAt(1_000, 'news.cockroaches', { params: { level: 12 } });
+    expect(isNewsAllowed(memory, 'news.cockroaches', { params: { level: 12 } }, 1_010)).toBe(false);
+    expect(isNewsAllowed(memory, 'news.cockroaches', { params: { level: 13 } }, 1_010)).toBe(true);
   });
 
   it('allows a daily key once per game day from 00:00', () => {

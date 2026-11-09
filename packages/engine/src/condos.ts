@@ -11,6 +11,7 @@ import type { SimulationSystem, StepContext } from './step';
 import type { TenantEvaluator } from './leases';
 import { unitNumber } from './units';
 import { clearUnitLedger, storeGrade } from './unit-evaluation';
+import { emitNews } from './news';
 
 const EVALUATION_INTERVAL_STEPS = CONDO_EVALUATION_WEEKS * STEPS_PER_WEEK;
 
@@ -50,7 +51,7 @@ function buyBackCondo(context: StepContext, unit: Condo, sale: CondoSale): void 
   unit.sale = null;
   unit.evaluation = null;
   context.events.push({ type: 'condoVacated', step, unitId: unit.id });
-  context.events.push({ type: 'news', step, key: 'news.condoBuyback', unitId: unit.id });
+  context.events.push(...emitNews(context.state, 'news.condoBuyback', { unitId: unit.id }));
 }
 
 function evaluateOwners(context: StepContext, unit: Condo, evaluate: TenantEvaluator): void {

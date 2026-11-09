@@ -99,7 +99,13 @@ describe('weekly upkeep', () => {
     expect(result.state.money).toBe(100_000 - 270_000);
     const news = result.events.filter((event) => event.type === 'news');
     expect(news).toEqual([
-      { type: 'news', step: FIRST_MONDAY, key: 'news.upkeepNegative', unitId: null },
+      {
+        type: 'news',
+        step: FIRST_MONDAY,
+        key: 'news.upkeepNegative',
+        unitId: null,
+        params: {},
+      },
     ]);
   });
 

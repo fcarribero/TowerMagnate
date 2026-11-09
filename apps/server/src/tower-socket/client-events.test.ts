@@ -7,7 +7,7 @@ describe('toClientEvents', () => {
     const events: EngineEvent[] = [
       { type: 'leaseSigned', step: 3, unitId: 'u1' },
       { type: 'unitRenamed', step: 3, commandId: 'c1', unitId: 'u1', name: 'Mine' },
-      { type: 'news', step: 4, key: 'news.officeLeft', unitId: 'u1' },
+      { type: 'news', step: 4, key: 'news.officeLeft', unitId: 'u1', params: {} },
       { type: 'decisionClosed', step: 5, commandId: 'c2', eventId: 'e1', choice: 'pay' },
     ];
 
@@ -42,7 +42,13 @@ describe('toClientEvents', () => {
 
   it('gives the default decision news no unit', () => {
     const events: EngineEvent[] = [
-      { type: 'news', step: 9, key: 'news.decisionDefault', eventId: 'e1', choice: 'pay' },
+      {
+        type: 'news',
+        step: 9,
+        key: 'news.decisionDefault',
+        unitId: null,
+        params: { option: 'pay' },
+      },
     ];
 
     expect(toClientEvents(events)).toEqual([
@@ -57,7 +63,9 @@ describe('toClientEvents', () => {
   });
 
   it('sends the level of a bomb blast as its ruler label', () => {
-    const events: EngineEvent[] = [{ type: 'news', step: 9, key: 'news.bombExploded', level: 7 }];
+    const events: EngineEvent[] = [
+      { type: 'news', step: 9, key: 'news.bombExploded', unitId: null, params: { level: 7 } },
+    ];
 
     expect(toClientEvents(events)).toEqual([
       { type: 'news', step: 9, key: 'news.bombExploded', unitId: null, params: { level: '7' } },
@@ -66,7 +74,14 @@ describe('toClientEvents', () => {
 
   it('sends a treasure with its basement label and the amount as money text', () => {
     const events: EngineEvent[] = [
-      { type: 'news', step: 9, commandId: 'c1', key: 'news.treasure', level: -3, amount: 50_000 },
+      {
+        type: 'news',
+        step: 9,
+        commandId: 'c1',
+        key: 'news.treasure',
+        unitId: null,
+        params: { level: -3, amount: 50_000 },
+      },
     ];
 
     expect(toClientEvents(events)).toEqual([
@@ -81,7 +96,9 @@ describe('toClientEvents', () => {
   });
 
   it('sends the star count of a promotion', () => {
-    const events: EngineEvent[] = [{ type: 'news', step: 9, key: 'news.starsUp', n: 3 }];
+    const events: EngineEvent[] = [
+      { type: 'news', step: 9, key: 'news.starsUp', unitId: null, params: { n: 3 } },
+    ];
 
     expect(toClientEvents(events)).toEqual([
       { type: 'news', step: 9, key: 'news.starsUp', unitId: null, params: { n: 3 } },

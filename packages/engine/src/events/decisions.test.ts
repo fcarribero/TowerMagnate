@@ -208,8 +208,8 @@ describe('decision deadline', () => {
         type: 'news',
         step: FIRE_DEADLINE_STEP,
         key: 'news.decisionDefault',
-        eventId: id,
-        choice: 'burn',
+        unitId: null,
+        params: { option: 'burn' },
       },
     ]);
     expect(state.activeEvents[0]?.decision.choice).toBe('burn');

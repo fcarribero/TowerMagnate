@@ -1,4 +1,4 @@
-import { NEWS_RULES, type NewsId } from '@tower-magnate/shared';
+import { NEWS_RULES, type EventId, type NewsId, type NoticeParams } from '@tower-magnate/shared';
 import { STEPS_PER_MINUTE } from './calendar';
 import { STEPS_PER_DAY } from './clock';
 
@@ -8,8 +8,8 @@ export type NewsMemory = Record<string, number>;
 /** What a notice is about, for the scope of its key (messages.md 4). */
 export interface NewsTarget {
   unitId?: string | null;
-  level?: number;
-  eventId?: string;
+  params?: NoticeParams;
+  eventId?: EventId;
 }
 
 /** The scope value of a notice: one string per tower, unit, level or event. */
@@ -20,7 +20,7 @@ export function newsScopeValue(key: NewsId, target: NewsTarget): string {
     case 'unit':
       return `unit:${target.unitId ?? ''}`;
     case 'level':
-      return `level:${target.level ?? ''}`;
+      return `level:${target.params?.level ?? ''}`;
     case 'event':
       return `event:${target.eventId ?? ''}`;
   }
@@ -48,11 +48,17 @@ export function isNewsAllowed(
   return !rule.oncePerDay || dayOf(last) !== dayOf(step);
 }
 
+/** The memory with this notice recorded, minus slots older than a day, which hold nothing back. */
 export function rememberNews(
   memory: NewsMemory,
   key: NewsId,
   target: NewsTarget,
   step: number,
-): void {
-  memory[newsSlot(key, target)] = step;
+): NewsMemory {
+  const kept: NewsMemory = {};
+  for (const [slot, sentAt] of Object.entries(memory)) {
+    if (step - sentAt < STEPS_PER_DAY) kept[slot] = sentAt;
+  }
+  kept[newsSlot(key, target)] = step;
+  return kept;
 }

@@ -76,7 +76,7 @@ describe('debug changes on a running tower', () => {
     expect(state().activeEvents).toEqual([expect.objectContaining({ kind: 'fire', level: 2 })]);
     expect(runner.takeEvents('1')).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ type: 'news', key: 'news.fire', level: 2 }),
+        expect.objectContaining({ type: 'news', key: 'news.fire', params: { level: 2 } }),
       ]),
     );
   });

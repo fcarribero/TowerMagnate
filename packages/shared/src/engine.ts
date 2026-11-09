@@ -292,6 +292,8 @@ export interface TowerState {
   closedDecisions: EventId[];
   /** The last NOTICES_KEPT notices, newest last. */
   notices: Notice[];
+  /** Step each news key last went out at, by key and scope value, for the rate limit. */
+  newsSent: Record<string, number>;
   /** Basement levels that have already given treasure. */
   treasureLevels: Level[];
   /** Set when a VIP visit that started at 3 stars ends approved. */
@@ -349,6 +351,13 @@ export interface NoticeParams {
   n?: number;
   /** Id of the option a decision applied by default; the client shows its button text. */
   option?: string;
+}
+
+/** What a news event says: its text key, the unit it is about and its placeholder values. */
+export interface NewsFields {
+  key: string;
+  unitId: UnitId | null;
+  params: NoticeParams;
 }
 
 /** A news line the player was shown; `key` names its text. */
@@ -492,17 +501,6 @@ export type EngineEvent =
       choice: string;
     }
   | { type: 'treasureFound'; step: number; commandId: string; level: Level; amount: number }
-  | {
-      type: 'news';
-      step: number;
-      commandId: string;
-      key: 'news.treasure';
-      level: Level;
-      amount: number;
-    }
-  | { type: 'news'; step: number; commandId: string; key: 'news.bombPaid'; unitId: null }
+  | ({ type: 'news'; step: number; commandId: string } & NewsFields)
   | { type: 'disaster'; step: number; kind: DecisionKind; cells: CellRange[] }
-  | { type: 'news'; step: number; key: 'news.bombExploded' | 'news.fire'; level: Level }
-  | { type: 'news'; step: number; key: 'news.starsUp'; n: number }
-  | { type: 'news'; step: number; key: 'news.decisionDefault'; eventId: EventId; choice: string }
-  | { type: 'news'; step: number; key: string; unitId: UnitId | null };
+  | ({ type: 'news'; step: number } & NewsFields);
