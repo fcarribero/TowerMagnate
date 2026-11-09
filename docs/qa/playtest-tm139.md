@@ -162,6 +162,18 @@ Short visual check on `develop` at 7393ebf, which has TM-242 (people drawn in th
 
 No new bugs. TM-237, TM-238 and TM-239 are not rechecked here. 4 stars to Torre is still blocked on TM-35 and TM-110.
 
+## Run sheet re-check on 27 January
+
+The 3 stars to Torre run sheet (`docs/design/stars.md` 8.7, S-25 to S-28) was checked against `develop` at 728e7c0 (merged into this branch as da5cbeb). This was a code and test check, with no browser run. The engine suites for stars, wedding, parking, office routine, population and events passed (13 files, 200 tests).
+
+- Star check (`stars.ts`): the requirement lists per step, the notice order, the window from the previous weekday 17:00 and the `ceil(population / 2,500)` recycling rule match S-05 to S-18. Suites count when they are not infested, as in 5.3. The run sheet said "clean suites"; it now says "not infested" and keeps 3 clean ones as advice for the VIP.
+- Constants: thresholds 300, 1,000, 5,000, 10,000 and 15,000; 2 suites; 2,500 per recycling center; 100 medical visits per center a day; parking holders 0.15, 0.25 and 0.5; limits of 10 medical centers and 512 parking spaces; subway 30 x 3 for $1,000,000; cathedral 28 x 4 for $3,000,000 on level 101. All match the run sheet.
+- Wedding (`wedding.ts`): due at weekend 00:00 at 5 stars with a cathedral and 15,000 population; the 40th guest before 12:30 gives rating 6. The fire roll skips a wedding day. Both match S-27 and S-28.
+- VIP: `state.vipApproved` exists and the star check reads it, but nothing in `develop` sets it yet, and there is no debug command for it. The 3 to 4 step cannot pass on `develop` until TM-110 merges, as expected.
+- Subway position: a scratch test placed the subway station with its bottom row on level -5 at 4 stars and the command was accepted for $1,000,000. Construction rule C-50 asks for level -9 and `SUBWAY_POSITION`. Filed as TM-247. The run sheet now says to place it on -9 by hand until then.
+- TM-239 is merged, so the Santa copy of the save keeps its weekly finances. The run sheet note is updated.
+- The run sheet gave 93% for at least one VIP day in 21 days. The right figure is 92% (`1 - (8/9)^21`). Fixed.
+
 ## Test plan for 4 stars to Torre
 
 The exact populations, units, VIP conditions, events and wedding timing are in `docs/design/stars.md` section 8.7 (run sheet, rules S-25 to S-28). The steps below follow it.
@@ -184,6 +196,8 @@ Run once TM-35 (hotel guests) and TM-110 (VIP visit) are in `develop`. Start fro
 
 Medical sufficiency failed on both weekdays checked with 918 offices and 9 centers, while people.md 16 expects 6 centers to be enough for 800 offices. The centers had 30, 58, 92, 100, 86, 21, 71, 62 and 4 visits that day: 524 visits for 900 places. Workers pick the cheapest route among 3 drawn centers, so one center fills, and the next worker who already chose it fails as "full on arrival" at about 19:14. One failure blocks the star check. The note is on TM-144.
 
+The VIP is the only step on the way to Torre that the player cannot speed up. The wait for a VIP day is 9 days on average, and in 8% of towers it is longer than 21 days, which is over 5 hours of real time at 15 minutes a day with the tower otherwise ready. A day with no free suite, or a rejected visit, starts the wait again. This fits "several game weeks" for 5 stars only on average. Noted on TM-144, with one option: raise the chance after each day without a VIP so the wait has a cap.
+
 Clearing ruins one cell per command is slow even once TM-237 lets the Topadora do it. A drag should clear a whole run.
 
 ## Bugs filed
@@ -191,3 +205,4 @@ Clearing ruins one cell per command is slow even once TM-237 lets the Topadora d
 - TM-237, P2, web: Bulldozer cannot clear bomb ruins.
 - TM-238, P3, server: Command with invalid payload gets an error frame instead of a commandResult.
 - TM-239, P4, server: Debug setClock across Monday leaves last week's finances empty.
+- TM-247, P3, engine: Subway station accepted above level -9.

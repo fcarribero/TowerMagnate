@@ -232,8 +232,8 @@ Start state: 3 stars, 5 suites, 3 doubles, 2 singles, a housekeeping unit, a sec
 
 | Step | Population target | Units that must exist | Check |
 |---|---|---|---|
-| 3 to 4 | 5,300 or more (threshold 5,000) | 2 or more clean suites; recycling `ceil(pop / 2,500)`: 3 centers for 5,001 to 7,500; medical: 4 centers for 520 leased offices; parking spaces for the demand below | VIP approved, no medical or parking failure since the previous weekday 17:00 |
-| 4 to 5 | 10,500 or more (threshold 10,000) | subway station on level -9 (30 x 3, covers -9 to -7, $1,000,000); recycling 5 centers (covers 12,500); medical: 6 centers for 800 leased offices, 10 as the safe choice | no medical or parking failure in the window |
+| 3 to 4 | 5,300 or more (threshold 5,000) | 2 or more suites that are not infested (keep 3 or more clean for the VIP); recycling `ceil(pop / 2,500)`: 3 centers for 5,001 to 7,500; medical: 4 centers for 520 leased offices; parking spaces for the demand below | VIP approved, no medical or parking failure since the previous weekday 17:00 |
+| 4 to 5 | 10,500 or more (threshold 10,000) | subway station on level -9 (30 x 3, covers -9 to -7, $1,000,000; C-50, place it on -9 by hand until TM-247 is fixed); recycling 5 centers (covers 12,500); medical: 6 centers for 800 leased offices, 10 as the safe choice | no medical or parking failure in the window |
 | 5 to Torre | 16,000 or more at Saturday 00:00 (threshold 15,000) | cathedral on level 101 (28 x 4, $3,000,000) with structure on all 28 cells of level 100 below it; a route for 40 guests | 40 guests inside before 12:30 |
 
 Reference mixes that reach the targets (economy 12 and section 3.4):
@@ -250,7 +250,7 @@ Medical demand is `0.6 x leased offices` visits a weekday against 100 per center
 
 VIP visit, in order (events 6, people 9):
 
-1. The roll is at 00:00 every day, 1 in 9, only at exactly 3 stars and with no visit in progress. Budget up to 3 game weeks at 3 stars: the chance of at least one VIP in 21 days is 93%.
+1. The roll is at 00:00 every day, 1 in 9, only at exactly 3 stars and with no visit in progress. Budget up to 3 game weeks at 3 stars: the chance of at least one VIP day in 21 days is 92% (1 - (8/9)^21), and 96% in 28 days. A day with no free suite or a rejected visit uses up a VIP day.
 2. At 12:00 on the VIP day, before the booking rolls, the VIP books the clean suite with no stay and no booking that has the lowest unit id. A suite that is Ocupada, Sucia or Con plaga is not a candidate. Keep 3 or more suites in service so that a guest from the previous night does not leave none free. With no suite, `news.vipNoSuite` shows, the flag does not change, and the next roll is the next 00:00.
 3. The VIP arrives at the street entrance between 17:00 and 21:00, goes to a restaurant for 60 minutes if one has a route, and leaves the next day between 08:00 and 10:00. `news.vipArrives` shows at the arrival.
 4. The visit is approved when the average stress of all the VIP's trips, including the trip out, is under 15 game minutes. 15 exactly is rejected. A demolished, bombed or burned suite during the stay, or a VIP who gives up before check-in at 23:00, is a rejection. `news.vipApproved` or `news.vipRejected` shows when the visit ends.
@@ -264,7 +264,7 @@ Events during the run (events 2):
 | 3 | yes | yes | yes | $300,000 |
 | 4, 5, Torre | yes | yes | no | $1,000,000 |
 
-A fire needs a unit on levels 2 to 100 with 32 or more structure columns, and no fire rolls on a wedding attempt day. Treasure is 1 in 40 per construction command, once per basement level; the parking, recycling and subway work gives up to 9 levels of chances. Santa shows at 22:00 on 24 December, which is step 3,092,400 (day 357, a Monday). Reach it on a copy of the save with `setClock`; TM-239 can leave the finances of that week empty, so do not use that copy for the weekly checks.
+A fire needs a unit on levels 2 to 100 with 32 or more structure columns, and no fire rolls on a wedding attempt day. Treasure is 1 in 40 per construction command, once per basement level; the parking, recycling and subway work gives up to 9 levels of chances. Santa shows at 22:00 on 24 December, which is step 3,092,400 (day 357, a Monday). Reach it on a copy of the save with `setClock`. TM-239 is fixed in `develop`, so the week's finances survive the jump, but keep the copy apart from the main run so its star and wedding days stay real.
 
 The wedding (sections 7, people 15): an attempt is due at Saturday and Sunday 00:00 when the rating is 5, the cathedral exists and population is 15,000 or more at that step. Saturday 00:00 counts Friday's venue visits, which are the highest of the week. Sunday counts Saturday's, which are lower because offices send no workers on weekends. So Saturday is the attempt to plan for, and Sunday is the retry. The 40 guests appear at 08:00 to 09:00 (40%), 09:00 to 10:00 (40%) and 10:00 to 10:30 (20%). Express shafts do not stop at level 101, so the route is an express to a sky lobby and a standard shaft for the last stretch. A guest with no route retries 2 hours later, which already misses 12:30 for the last appearances. Medical, parking and recycling do not apply to the wedding.
 
