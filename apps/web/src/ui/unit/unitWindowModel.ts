@@ -244,6 +244,21 @@ function cinemaRows(cinema: Details<'cinema'>): UnitRow[] {
   return [{ id: 'film', label: t('window.unit.film'), value }];
 }
 
+function housekeepingRows(housekeeping: Details<'housekeeping'>): UnitRow[] {
+  return [
+    {
+      id: 'maidsWorking',
+      label: t('window.unit.maidsWorking'),
+      value: countOf(housekeeping.maidsWorking, housekeeping.maids),
+    },
+    {
+      id: 'dirtyRooms',
+      label: t('window.unit.dirtyRooms'),
+      value: String(housekeeping.dirtyRooms),
+    },
+  ];
+}
+
 function inServiceRows(): UnitRow[] {
   return [{ id: 'status', label: t('window.unit.status'), value: t('value.service.active') }];
 }
@@ -258,6 +273,8 @@ function detailRows(details: InspectedUnitDetails): UnitRow[] {
       return hotelRows(details);
     case 'cinema':
       return cinemaRows(details);
+    case 'housekeeping':
+      return housekeepingRows(details);
   }
 }
 
