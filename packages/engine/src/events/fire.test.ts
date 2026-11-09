@@ -94,7 +94,9 @@ describe('fire roll at 15:00', () => {
     expect(origin?.ignitionColumn).toBeLessThan(120 + width);
     expect(Object.keys(state.units)).toEqual([]);
     expect(newsKeys(context.events)).toEqual(['news.fire']);
-    expect(context.events).toContainEqual(expect.objectContaining({ key: 'news.fire', level: 12 }));
+    expect(context.events).toContainEqual(
+      expect.objectContaining({ key: 'news.fire', params: { level: 12 } }),
+    );
     expect(context.events).toContainEqual(
       expect.objectContaining({
         type: 'disaster',

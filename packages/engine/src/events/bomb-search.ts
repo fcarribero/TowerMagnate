@@ -22,6 +22,7 @@ import {
   sendGuardHome,
   structureOfLevel,
 } from './guards';
+import { emitNews } from '../news';
 
 function holdsUnitOtherThanLobby(state: TowerState, level: Level): boolean {
   const occupants = state.grid.levels[level]?.occupants ?? [];
@@ -146,12 +147,7 @@ export function runBombSearch(context: StepContext, bomb: BombThreat): void {
     search.levels[guard.level] = 'searched';
     forget(search.guards, person);
     if (guard.level === search.bombLevel) {
-      context.events.push({
-        type: 'news',
-        step: context.state.step,
-        key: 'news.bombFound',
-        unitId: null,
-      });
+      context.events.push(...emitNews(context.state, 'news.bombFound', { eventId: bomb.id }));
       endDisaster(context, bomb.id);
       return;
     }

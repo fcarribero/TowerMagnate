@@ -27,6 +27,7 @@ import type { SimulationSystem, StepContext } from './step';
 import { drawMinuteFromWindow } from './time-windows';
 import { startTrek } from './trek';
 import { addFailedSearch } from './trip-ledger';
+import { emitNews } from './news';
 
 const GUEST_KIND = PERSON_KINDS.indexOf('weddingGuest');
 
@@ -85,12 +86,7 @@ export const weddingAttemptHook: ScheduledHook = {
 
 function fail(context: StepContext, wedding: WeddingAttempt): void {
   wedding.outcome = 'failed';
-  context.events.push({
-    type: 'news',
-    step: context.state.step,
-    key: 'news.weddingFailed',
-    unitId: null,
-  });
+  context.events.push(...emitNews(context.state, 'news.weddingFailed'));
 }
 
 /** Stars spec 7.2: the 40th guest inside before 12:30 gives the Torre rank. */
@@ -100,7 +96,7 @@ function complete(context: StepContext, wedding: WeddingAttempt): void {
   state.stars = 6;
   context.events.push({ type: 'starsChanged', step: state.step, stars: 6, unlocked: [] });
   context.events.push({ type: 'weddingCompleted', step: state.step });
-  context.events.push({ type: 'news', step: state.step, key: 'news.towerRank', unitId: null });
+  context.events.push(...emitNews(state, 'news.towerRank'));
 }
 
 /** Every guest leaves the tower and the attempt is over. */

@@ -673,6 +673,24 @@ describe('migrateState wedding', () => {
   });
 });
 
+describe('migrateState news rate limit', () => {
+  it('gives a version 28 save no sent news', () => {
+    const old = JSON.parse(JSON.stringify(createTower(5))) as Record<string, unknown>;
+    delete old.newsSent;
+    old.schemaVersion = 28;
+    expect(migrateState(old).newsSent).toEqual({});
+  });
+
+  it('keeps sent steps and refuses anything else', () => {
+    const saved = JSON.parse(JSON.stringify(createTower(5))) as Record<string, unknown>;
+    const newsSent = { 'news.officeLeft|unit:u4': 1_000 };
+    expect(migrateState({ ...saved, newsSent }).newsSent).toEqual(newsSent);
+    expect(() => migrateState({ ...saved, newsSent: [] })).toThrow(StateMigrationError);
+    expect(() => migrateState({ ...saved, newsSent: { slot: -1 } })).toThrow(StateMigrationError);
+    expect(() => migrateState({ ...saved, newsSent: { slot: '5' } })).toThrow(StateMigrationError);
+  });
+});
+
 describe('migrateState last wedding day', () => {
   it('takes the day from an attempt under way in a version 27 save, or none', () => {
     const old = JSON.parse(JSON.stringify(createTower(5))) as Record<string, unknown>;
