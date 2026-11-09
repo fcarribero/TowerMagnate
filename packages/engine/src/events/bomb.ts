@@ -36,12 +36,14 @@ import {
   setStructure,
   structureAt,
 } from '../grid';
+import { releaseParkingSpace } from '../parking';
 import { parseUnitNumber, removePeopleOfUnit } from '../people';
 import { nextInt } from '../rng';
 import type { StepContext } from '../step';
 import { startBombSearch } from './bomb-search';
 import { endDisaster, hasActiveDisaster, openBombThreat } from './decisions';
 import { emitNews } from '../news';
+import { clearUnitLedger } from '../unit-evaluation';
 
 const ROLL_STEP_OF_DAY = BOMB_ROLL_HOUR * STEPS_PER_HOUR;
 const EXPLODE_STEP_OF_DAY = BOMB_EXPLODE_HOUR * STEPS_PER_HOUR;
@@ -163,6 +165,8 @@ export function destroyUnit(state: TowerState, unit: Unit): CellRange[] {
     ruined.push({ level, x0: unit.x, x1 });
   }
   Reflect.deleteProperty(state.units, unit.id);
+  clearUnitLedger(state, unit.id);
+  releaseParkingSpace(state, unitNumber(unit));
   return ruined;
 }
 

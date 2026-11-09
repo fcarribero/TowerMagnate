@@ -97,6 +97,13 @@ export function assignParking(context: StepContext): void {
   }
 }
 
+/** Holders of a space that no longer exists are left with none until the next assignment. */
+export function releaseParkingSpace(state: TowerState, space: number): void {
+  for (const [holder, held] of Object.entries(state.parking.spaces)) {
+    if (held === space) state.parking.spaces[Number(holder)] = 0;
+  }
+}
+
 export const parkingAssignmentHook: ScheduledHook = {
   name: 'parking-assignment',
   schedule: { every: 'day', hour: 6, minute: 0 },
