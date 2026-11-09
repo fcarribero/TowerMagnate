@@ -9,6 +9,12 @@ export interface SfxEffect {
   volume: number;
   loop: boolean;
   trigger: string;
+  /** Stops a looping effect; null for one-shots. */
+  stopTrigger: string | null;
+  /** Real milliseconds before the effect can start again; 0 means no limit. */
+  minIntervalMs: number;
+  /** Gain for every other effect while this one plays; null means no ducking. */
+  duckOthers: number | null;
 }
 
 export interface SfxManifest {
@@ -41,7 +47,7 @@ function parseEffect(value: unknown, index: number): SfxEffect {
   if (!isRecord(value)) {
     throw problem('not an object');
   }
-  const { id, files, volume, loop, trigger } = value;
+  const { id, files, volume, loop, trigger, stopTrigger, minIntervalMs, duckOthers } = value;
   if (typeof id !== 'string' || id === '') {
     throw problem('missing id');
   }
@@ -57,7 +63,25 @@ function parseEffect(value: unknown, index: number): SfxEffect {
   if (!isRecord(files) || typeof files.ogg !== 'string' || typeof files.mp3 !== 'string') {
     throw problem('files needs ogg and mp3');
   }
-  return { id, files: { ogg: files.ogg, mp3: files.mp3 }, volume, loop, trigger };
+  if (stopTrigger !== null && (typeof stopTrigger !== 'string' || stopTrigger === '')) {
+    throw problem('stopTrigger must be a name or null');
+  }
+  if (typeof minIntervalMs !== 'number' || minIntervalMs < 0) {
+    throw problem('minIntervalMs must be 0 or more');
+  }
+  if (duckOthers !== null && (typeof duckOthers !== 'number' || duckOthers < 0 || duckOthers > 1)) {
+    throw problem('duckOthers must be from 0 to 1 or null');
+  }
+  return {
+    id,
+    files: { ogg: files.ogg, mp3: files.mp3 },
+    volume,
+    loop,
+    trigger,
+    stopTrigger,
+    minIntervalMs,
+    duckOthers,
+  };
 }
 
 export function parseSfxManifest(value: unknown): SfxManifest {

@@ -6,6 +6,10 @@ export interface SfxHandle {
 
 const SILENT: SfxHandle = { stop: () => {} };
 
+/** sound.md section 4: duck quickly, come back slowly so the change does not click. */
+export const DUCK_DOWN_MS = 100;
+export const DUCK_UP_MS = 300;
+
 export type FileFetcher = (url: string) => Promise<ArrayBuffer>;
 
 export interface SfxPlayerOptions {
@@ -43,6 +47,12 @@ export class SfxPlayer {
   private master = 1;
   /** Gain nodes of looping effects still playing, with the effect's own volume. */
   private readonly loopGains = new Map<GainNode, number>();
+  /** Every effect that does not duck goes through this node, so a duck reaches loops too. */
+  private duckedBus: GainNode | null = null;
+  /** Sources of ducking effects still playing, with the gain they put on the others. */
+  private readonly duckers = new Map<AudioBufferSourceNode, number>();
+  private duckGain = 1;
+  private readonly playableListeners = new Set<() => void>();
 
   constructor(options: SfxPlayerOptions) {
     this.baseUrl = options.baseUrl;
@@ -69,12 +79,27 @@ export class SfxPlayer {
   }
 
   idForTrigger(trigger: string): string | undefined {
+    return this.effectForTrigger(trigger)?.id;
+  }
+
+  effectForTrigger(trigger: string): SfxEffect | undefined {
     for (const effect of this.effects?.values() ?? []) {
       if (effect.trigger === trigger) {
-        return effect.id;
+        return effect;
       }
     }
     return undefined;
+  }
+
+  /** True once the effect's file is decoded and the audio context is unlocked. */
+  canPlay(id: string): boolean {
+    return this.context !== null && this.buffers.has(id);
+  }
+
+  /** Calls `listener` each time more effects may have become playable. */
+  onPlayable(listener: () => void): () => void {
+    this.playableListeners.add(listener);
+    return () => this.playableListeners.delete(listener);
   }
 
   /** Starts downloading every file; resolves when all downloads have settled. */
@@ -86,6 +111,7 @@ export class SfxPlayer {
     await Promise.all(this.downloads.values());
     if (this.context !== null) {
       await this.decodeAll(this.context);
+      this.notifyPlayable();
     }
   }
 
@@ -95,10 +121,13 @@ export class SfxPlayer {
     }
     const context = this.createAudioContext();
     this.context = context;
+    this.duckedBus = context.createGain();
+    this.duckedBus.connect(context.destination);
     if (context.state === 'suspended') {
       await context.resume();
     }
     await this.decodeAll(context);
+    this.notifyPlayable();
   }
 
   playSfx(id: string): SfxHandle {
@@ -127,7 +156,14 @@ export class SfxPlayer {
     const gain = context.createGain();
     gain.gain.value = effect.volume * this.master;
     source.connect(gain);
-    gain.connect(context.destination);
+    if (effect.duckOthers === null) {
+      gain.connect(this.duckedBus ?? context.destination);
+    } else {
+      gain.connect(context.destination);
+      this.duckers.set(source, effect.duckOthers);
+      source.onended = () => this.endDuck(source);
+      this.updateDuck();
+    }
     source.start();
     if (effect.loop) {
       this.loopGains.set(gain, effect.volume);
@@ -135,10 +171,38 @@ export class SfxPlayer {
     return {
       stop: () => {
         this.loopGains.delete(gain);
+        this.endDuck(source);
         source.stop();
         source.disconnect();
       },
     };
+  }
+
+  private endDuck(source: AudioBufferSourceNode): void {
+    if (this.duckers.delete(source)) {
+      this.updateDuck();
+    }
+  }
+
+  /** Ducking does not stack: the lowest gain of the ducking effects playing wins. */
+  private updateDuck(): void {
+    const target = Math.min(1, ...this.duckers.values());
+    const bus = this.duckedBus;
+    if (target === this.duckGain || bus === null || this.context === null) {
+      return;
+    }
+    const rampMs = target < this.duckGain ? DUCK_DOWN_MS : DUCK_UP_MS;
+    this.duckGain = target;
+    const now = this.context.currentTime;
+    bus.gain.cancelScheduledValues(now);
+    bus.gain.setValueAtTime(bus.gain.value, now);
+    bus.gain.linearRampToValueAtTime(target, now + rampMs / 1000);
+  }
+
+  private notifyPlayable(): void {
+    for (const listener of this.playableListeners) {
+      listener();
+    }
   }
 
   private warnUnknown(id: string): void {

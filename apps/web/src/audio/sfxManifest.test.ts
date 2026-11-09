@@ -8,6 +8,9 @@ const effect = {
   volume: 0.5,
   loop: false,
   trigger: 'ui.click',
+  stopTrigger: null,
+  minIntervalMs: 0,
+  duckOthers: null,
 };
 
 describe('parseSfxManifest', () => {
@@ -24,6 +27,31 @@ describe('parseSfxManifest', () => {
   it('rejects a volume outside 0 to 1', () => {
     expect(() => parseSfxManifest({ version: 1, effects: [{ ...effect, volume: 2 }] })).toThrow(
       /volume/,
+    );
+  });
+
+  it('keeps the playback rules of each effect', () => {
+    const alarm = {
+      ...effect,
+      loop: true,
+      stopTrigger: 'event.bomb.end',
+      minIntervalMs: 1000,
+      duckOthers: 0.5,
+    };
+    expect(parseSfxManifest({ version: 1, effects: [alarm] }).effects[0]).toEqual(alarm);
+  });
+
+  it('rejects a duck gain outside 0 to 1', () => {
+    expect(() =>
+      parseSfxManifest({ version: 1, effects: [{ ...effect, duckOthers: 1.5 }] }),
+    ).toThrow(/duckOthers/);
+  });
+
+  it('rejects an effect without a rate limit', () => {
+    const withoutLimit: Partial<typeof effect> = { ...effect };
+    delete withoutLimit.minIntervalMs;
+    expect(() => parseSfxManifest({ version: 1, effects: [withoutLimit] })).toThrow(
+      /minIntervalMs/,
     );
   });
 
