@@ -23,6 +23,9 @@ const SHARED_KEYS: ReadonlySet<string> = new Set<SharedKey>([
 
 const sharedPartsOf = new WeakMap<TowerState, SharedParts>();
 
+/** States that a step call returned. */
+const steppedStates = new WeakSet<TowerState>();
+
 /**
  * A deep copy of plain data: objects, arrays and primitives, which is all a tower holds. Several
  * times faster than structuredClone on the many small objects of a tower.
@@ -35,6 +38,18 @@ export function copyPlainData<T>(value: T): T {
   return copy as T;
 }
 
+/**
+ * Units copied with structuredClone all get the same object layouts, which keeps the scans over
+ * every unit fast; units built in code or copied key by key do not.
+ */
+export function copyUnits(units: Record<UnitId, Unit>): Record<UnitId, Unit> {
+  return structuredClone(units);
+}
+
+function copyUnit<U extends Unit>(unit: U): U {
+  return structuredClone(unit);
+}
+
 function copyOf(key: string, value: unknown): unknown {
   if (SHARED_KEYS.has(key)) return value;
   if (key === 'people') return clonePersonPool(value as TowerState['people']);
@@ -44,12 +59,13 @@ function copyOf(key: string, value: unknown): unknown {
 /**
  * A working copy for one `step` call. Units, the grid and the trip ledgers stay shared with
  * `state` until a system asks for its own copy through the `writable*` functions below; every
- * other part is copied now.
+ * other part is copied now. The units of a state no step call returned are copied now too.
  */
 export function stepCopy(state: TowerState): TowerState {
   const copy: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(state)) copy[key] = copyOf(key, value);
   const working = copy as unknown as TowerState;
+  if (!steppedStates.has(state)) working.units = copyUnits(state.units);
   sharedPartsOf.set(working, {
     units: state.units,
     grid: state.grid,
@@ -62,6 +78,7 @@ export function stepCopy(state: TowerState): TowerState {
 /** Ends sharing for a working copy: from now on whoever holds it owns everything it reaches. */
 export function endStepCopy(state: TowerState): void {
   sharedPartsOf.delete(state);
+  steppedStates.add(state);
 }
 
 function copyRecord<T>(record: Record<string, T>): Record<string, T> {
@@ -88,7 +105,7 @@ export function writableUnit<U extends Unit>(state: TowerState, unit: U): U {
   const current = units[unit.id] as U | undefined;
   if (!current) throw new Error(`Unit ${unit.id} is not in the tower`);
   if (current !== shared.units[unit.id]) return current;
-  const copy = copyPlainData(current);
+  const copy = copyUnit(current);
   units[unit.id] = copy;
   return copy;
 }

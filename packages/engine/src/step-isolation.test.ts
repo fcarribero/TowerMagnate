@@ -96,6 +96,16 @@ describe('step leaves the state it was given unchanged', () => {
     expect(changedUnits.size).toBeGreaterThan(0);
   });
 
+  it('shares unchanged units only with a state a step call returned', () => {
+    const built = mixedTower();
+    const first = step(built, [], 1).state;
+    const officeId = Object.keys(built.units)[0] as keyof typeof built.units;
+    expect(first.units[officeId]).not.toBe(built.units[officeId]);
+    expect(first.units[officeId]).toEqual(built.units[officeId]);
+    const second = step(first, [], 1).state;
+    expect(second.units[officeId]).toBe(first.units[officeId]);
+  });
+
   it('when a bomb explodes and destroys a unit', () => {
     const { state, unitIds } = buildTower({
       ...plainTowerPlan(20, 100, 199),
