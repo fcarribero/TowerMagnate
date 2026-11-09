@@ -31,7 +31,7 @@ export function StarsWindow({ store, onClose }: StarsWindowProps) {
   const manager = useWindowManager();
   const values = useStoreSelect(store, selectStars);
   useEffect(() => {
-    manager.open({ id: STARS_WINDOW_ID });
+    manager.open({ id: STARS_WINDOW_ID, corner: 'topLeft' });
     return () => manager.close(STARS_WINDOW_ID);
   }, []);
   if (values === null) {

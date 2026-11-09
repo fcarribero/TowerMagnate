@@ -3,6 +3,8 @@ import {
   createTower,
   creditMoney,
   hashState,
+  isOnTrek,
+  NOTHING_DUE,
   step,
   STEPS_PER_DAY,
   STEPS_PER_WEEK,
@@ -206,6 +208,22 @@ describe('debug changes on a running tower', () => {
 
     await runner.change('1', setClock(2, '08:00'));
     expect(state().step).toBe(9 * STEPS_PER_DAY + 8 * 360);
+  });
+
+  it('wakes the people who were due inside the jump, so nobody stands still after it', async () => {
+    await start();
+    await runner.change('1', loadScenario('verticalSlice'));
+    await runner.change('1', fastForward(STEPS_PER_DAY + 60));
+
+    await runner.change('1', setClock(2, '10:00'));
+
+    const { dueStep } = state().people;
+    const overdue = dueStep.filter((due) => due !== NOTHING_DUE && due <= state().step);
+    expect(overdue).toEqual([]);
+    await runner.change('1', fastForward(60));
+    const { people } = state();
+    const onTrek = people.id.filter((_, slot) => isOnTrek(people, slot));
+    expect(onTrek.length).toBeGreaterThan(0);
   });
 
   it('closes the week the clock jump leaves when it crosses Monday', async () => {

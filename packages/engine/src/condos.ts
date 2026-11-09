@@ -8,6 +8,7 @@ import {
 import { chargeMoney, creditMoney } from './money';
 import { STEPS_PER_WEEK } from './leases';
 import type { SimulationSystem, StepContext } from './step';
+import { writableUnit } from './step-copy';
 import type { TenantEvaluator } from './leases';
 import { unitNumber } from './units';
 import { clearUnitLedger, storeGrade } from './unit-evaluation';
@@ -23,13 +24,14 @@ function isCondo(unit: Unit): unit is Condo {
 
 /** E-24: the buyer pays the price at the level in force now; the sale price is locked in. */
 export function sellCondo(context: StepContext, unitId: UnitId): void {
-  const unit = context.state.units[unitId];
-  if (!unit || !isCondo(unit)) {
+  const shared = context.state.units[unitId];
+  if (!shared || !isCondo(shared)) {
     throw new Error(`Unit ${unitId} is not a condo`);
   }
-  if (unit.sale) {
+  if (shared.sale) {
     throw new Error(`Condo ${unitId} already has owners`);
   }
+  const unit = writableUnit(context.state, shared);
   const step = context.state.step;
   const price = CONDO_SALE_PRICE[unit.priceLevel];
   clearUnitLedger(context.state, unitId);
@@ -78,7 +80,7 @@ function condosDueAt(context: StepContext): Condo[] {
 export function createCondoSystem(evaluate: TenantEvaluator = () => null): SimulationSystem {
   return (context) => {
     for (const unit of condosDueAt(context)) {
-      evaluateOwners(context, unit, evaluate);
+      evaluateOwners(context, writableUnit(context.state, unit), evaluate);
     }
   };
 }

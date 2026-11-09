@@ -16,10 +16,13 @@ import { createCondoSystem } from './condos';
 import { createCustomers } from './customers';
 import { createHotelSystem } from './hotel';
 import { createHotelGuests } from './hotel-guests';
+import { isLayoutCommand } from './layout-changes';
+import { createMaidSystem, maidArrivalHook, maidLeaveHook } from './housekeeping';
 import { createLeaseSystem } from './leases';
 import { parkingAssignmentHook } from './parking';
 import { recordNotices } from './notices';
 import { cloneState } from './state';
+import { endStepCopy, stepCopy } from './step-copy';
 import { ledgerWeekRollHook } from './money';
 import { createOfficeRoutine } from './office-routine';
 import { createResidentRoutine } from './resident-routine';
@@ -28,7 +31,13 @@ import { createScheduler } from './scheduler';
 import { cancelTrek, createTrekSystem, isOnTrek, plannedTripSteps } from './trek';
 import { createNightReset } from './trip-ledger';
 import { createDailyGradeSystem, storedGrade } from './unit-evaluation';
-import { graphInputsKey, TransportGraph, type ShaftStops } from './routing';
+import {
+  graphInputsMatch,
+  graphInputsOf,
+  TransportGraph,
+  type GraphInputs,
+  type ShaftStops,
+} from './routing';
 import { starCheckHook } from './stars';
 import { weeklyUpkeepHook } from './upkeep';
 import { weddingAttemptHook, weddingSystem } from './wedding';
@@ -78,18 +87,6 @@ export type CommandHandlers = { [K in CommandType]?: CommandHandler<K> };
 /** Runs once per simulation step, after the step counter has advanced. */
 export type SimulationSystem = (context: StepContext) => void;
 
-/** Commands that change what the transport graph is built from. */
-const GRAPH_COMMANDS: ReadonlySet<string> = new Set([
-  'buildFloor',
-  'buildLobby',
-  'buildTransport',
-  'buildUnit',
-  'buildShaft',
-  'resizeShaft',
-  'demolish',
-  'configureShaft',
-]);
-
 function shaftStops(state: TowerState): ShaftStops {
   return new Map(Object.values(state.shafts).map((shaft) => [shaft.id, shaft.stops]));
 }
@@ -128,14 +125,29 @@ function commandTypeOf(queued: QueuedCommand | undefined): string {
 export function createEngine(rules: EngineRules): Engine {
   /**
    * The graph of each state this engine returned, so stepping on from it keeps the planner's
-   * caches. The key catches a state changed in place after it was returned.
+   * caches. The inputs catch a state changed in place after it was returned.
    */
-  const graphsByState = new WeakMap<TowerState, { graph: TransportGraph; key: string }>();
+  const graphsByState = new WeakMap<TowerState, { graph: TransportGraph; inputs: GraphInputs }>();
 
-  function graphKeptFor(state: TowerState): TransportGraph | undefined {
+  /** The graph kept for `state` if its inputs did not change, and those inputs. */
+  function graphKeptFor(state: TowerState): { graph?: TransportGraph; inputs: GraphInputs | null } {
     const kept = graphsByState.get(state);
-    if (!kept || kept.key !== graphInputsKey(state)) return undefined;
-    return kept.graph;
+    if (!kept || !graphInputsMatch(state, kept.inputs)) return { inputs: null };
+    return { graph: kept.graph, inputs: kept.inputs };
+  }
+
+  /**
+   * Systems never change what the graph is built from, only commands and ruins do, so a step
+   * call without either keeps the inputs it started with.
+   */
+  function graphInputsAfter(
+    before: TowerState,
+    after: TowerState,
+    inputsBefore: GraphInputs | null,
+    results: readonly CommandResult[],
+  ): GraphInputs {
+    const unchanged = after.grid === before.grid && results.every((result) => !result.ok);
+    return unchanged && inputsBefore !== null ? inputsBefore : graphInputsOf(after);
   }
 
   function handlerFor(command: unknown): AnyCommandHandler | undefined {
@@ -183,12 +195,13 @@ export function createEngine(rules: EngineRules): Engine {
     graph?: TransportGraph,
   ): StepResult {
     assertNonNegativeInteger(steps, 'Step count');
-    const context: StepContext = { state: cloneState(state), events: [] };
+    const context: StepContext = { state: stepCopy(state), events: [] };
     const results = commands.map((queued) => applyCommand(context, queued));
     const changesGraph = results.some(
-      (result, index) => result.ok && GRAPH_COMMANDS.has(commandTypeOf(commands[index])),
+      (result, index) => result.ok && isLayoutCommand(commandTypeOf(commands[index])),
     );
-    const known = graph ?? graphKeptFor(state);
+    const kept = graph ? { graph, inputs: null } : graphKeptFor(state);
+    const known = kept.graph;
     const currentGraph =
       known && !changesGraph ? known : new TransportGraph(context.state, shaftStops(context.state));
     context.graph = currentGraph;
@@ -197,9 +210,10 @@ export function createEngine(rules: EngineRules): Engine {
     }
     graphsByState.set(context.state, {
       graph: currentGraph,
-      key: graphInputsKey(context.state),
+      inputs: graphInputsAfter(state, context.state, kept.inputs, results),
     });
     recordNotices(context.state, context.events);
+    endStepCopy(context.state);
     return { state: context.state, results, events: context.events, graph: currentGraph };
   }
 
@@ -250,6 +264,8 @@ export const towerSystems: readonly SimulationSystem[] = [
     customers.planHook,
     customers.nightHook,
     weddingAttemptHook,
+    maidArrivalHook,
+    maidLeaveHook,
   ]),
   createLeaseSystem(storedGrade),
   createHotelSystem(),
@@ -260,6 +276,7 @@ export const towerSystems: readonly SimulationSystem[] = [
   officeRoutine.system,
   residentRoutine.system,
   hotelGuests.system,
+  createMaidSystem(),
   customers.system,
   weddingSystem,
   createElevatorSystem(),
@@ -271,7 +288,8 @@ const towerEngine = createEngine({ commandHandlers: towerCommandHandlers, system
 
 /**
  * Applies the queued commands in order, then runs `steps` simulation steps.
- * The input state is never mutated.
+ * The input state is never mutated. The result shares the parts no step changed with it, so a
+ * caller that changes either one in place changes both.
  */
 export const step = towerEngine.step;
 

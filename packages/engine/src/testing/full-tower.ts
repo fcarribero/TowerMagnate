@@ -119,3 +119,27 @@ export function timeFullTowerRuns(): FullTowerResult {
   const second = threeRuns();
   return { runs: second, runsAgree: agree(second) };
 }
+
+export interface FullTowerLimits {
+  averageMs: number;
+  p95Ms: number;
+  p99Ms: number;
+}
+
+/** The reasons a result fails the limits: a median over its limit, or runs that disagree. */
+export function fullTowerGateFailures(result: FullTowerResult, limits: FullTowerLimits): string[] {
+  const failures: string[] = [];
+  if (!result.runsAgree) failures.push('Runs differ by over 15%, result void.');
+  const checks: [label: string, key: keyof FullTowerLimits][] = [
+    ['Average', 'averageMs'],
+    ['p95', 'p95Ms'],
+    ['p99', 'p99Ms'],
+  ];
+  for (const [label, key] of checks) {
+    const median = medianOf(result.runs.map((run) => run[key]));
+    if (median > limits[key]) {
+      failures.push(`${label} median ${median.toFixed(2)} ms is over the ${limits[key]} ms limit.`);
+    }
+  }
+  return failures;
+}

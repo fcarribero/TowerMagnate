@@ -26,7 +26,7 @@ import { serializeState } from '@tower-magnate/engine';
 import type { TowerState } from '@tower-magnate/shared';
 import { ConnectionRegistry, type GatewaySocket } from '../gateway';
 import { TICK_INTERVAL_MS, TowerRunner, type TowerStore } from '../runner';
-import { DeltaBroadcaster, Viewports, buildSnapshot } from '../tower-socket';
+import { DeltaBroadcaster, Viewports } from '../tower-socket';
 import { calibrateCpu, normalizeLag, REFERENCE_CALIBRATION_MS, slowdownFactor } from './cpu-speed';
 import { combineRuns, summarizeTicks, type LoadResult, type LoadRun } from './load-stats';
 import { livedInTower, wholeTowerViewport } from './load-towers';
@@ -119,10 +119,8 @@ async function loadRun(options: LoadOptions, template: TowerState): Promise<Load
     await runner.resume(towerId);
     registry.add(socket, { userId: `user-${index}`, towerId });
     viewports.update(socket, viewport);
-    broadcaster.sendSnapshot(
-      socket,
-      buildSnapshot(runner.stateOf(towerId) as TowerState, viewport),
-    );
+    const state = runner.stateOf(towerId) as TowerState;
+    broadcaster.sendSnapshot(socket, broadcaster.snapshotFor(socket, towerId, state));
   }
 
   const stopDeltas = broadcaster.start(registry);

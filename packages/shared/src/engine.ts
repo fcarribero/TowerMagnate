@@ -115,6 +115,8 @@ export interface HotelRoom {
   arrivalStep: number | null;
   /** The room just became clean and rolls for a booking at once if the clock allows it. */
   rollDue: boolean;
+  /** Daily checks that found the room dirty since it last became dirty; 0 in every other state. */
+  dirtyChecks: number;
 }
 
 /** A staircase or escalator. Its cells on `level` are the footprint; the level above has the landing. */

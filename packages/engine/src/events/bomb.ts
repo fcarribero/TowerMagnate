@@ -36,12 +36,15 @@ import {
   setStructure,
   structureAt,
 } from '../grid';
+import { releaseParkingSpace } from '../parking';
 import { parseUnitNumber, removePeopleOfUnit } from '../people';
 import { nextInt } from '../rng';
 import type { StepContext } from '../step';
+import { writableGrid, writableUnits } from '../step-copy';
 import { startBombSearch } from './bomb-search';
 import { endDisaster, hasActiveDisaster, openBombThreat } from './decisions';
 import { emitNews } from '../news';
+import { clearUnitLedger } from '../unit-evaluation';
 
 const ROLL_STEP_OF_DAY = BOMB_ROLL_HOUR * STEPS_PER_HOUR;
 const EXPLODE_STEP_OF_DAY = BOMB_EXPLODE_HOUR * STEPS_PER_HOUR;
@@ -156,13 +159,16 @@ export function destroyUnit(state: TowerState, unit: Unit): CellRange[] {
   const x1 = unit.x + UNIT_CATALOG[unit.type].width - 1;
   const ruined: CellRange[] = [];
   removePeopleOfUnit(state, unit.id);
+  const grid = writableGrid(state);
   for (const level of unitLevels(unit)) {
-    removeOccupant(state.grid, level, { kind: 'unit', id: unit.id });
-    setStructure(state.grid, level, unit.x, x1, 'floor');
-    addOccupant(state.grid, level, unit.x, x1, { kind: 'ruins' });
+    removeOccupant(grid, level, { kind: 'unit', id: unit.id });
+    setStructure(grid, level, unit.x, x1, 'floor');
+    addOccupant(grid, level, unit.x, x1, { kind: 'ruins' });
     ruined.push({ level, x0: unit.x, x1 });
   }
-  Reflect.deleteProperty(state.units, unit.id);
+  Reflect.deleteProperty(writableUnits(state), unit.id);
+  clearUnitLedger(state, unit.id);
+  releaseParkingSpace(state, unitNumber(unit));
   return ruined;
 }
 
@@ -172,7 +178,7 @@ function ruinEmptyCells(state: TowerState, level: Level, x0: number, x1: number)
     (x) => structureAt(state.grid, level, x) !== null && occupantAt(state.grid, level, x) === null,
   );
   return columnRuns(empty).map((run) => {
-    addOccupant(state.grid, level, run.x0, run.x1, { kind: 'ruins' });
+    addOccupant(writableGrid(state), level, run.x0, run.x1, { kind: 'ruins' });
     return { level, x0: run.x0, x1: run.x1 };
   });
 }

@@ -13,6 +13,7 @@ import { DAYS_PER_WEEK } from './calendar';
 import { STEPS_PER_DAY } from './clock';
 import { creditMoney } from './money';
 import type { SimulationSystem, StepContext } from './step';
+import { writableUnit } from './step-copy';
 import { unitNumber } from './units';
 import { clearUnitLedger, storeGrade } from './unit-evaluation';
 import { emitNews } from './news';
@@ -65,8 +66,10 @@ function endLease(context: StepContext, unit: LeasedUnit, newsKey: NewsId): void
  * Counts a customer visit that starts now inside a shop, for the early-leave check (economy 4.3).
  * A shop without a tenant and any other unit count nothing.
  */
-export function recordShopVisit(unit: Unit): void {
-  if (unit.type === 'retail-shop' && unit.lease) unit.lease.weekVisits += 1;
+export function recordShopVisit(state: TowerState, unit: Unit): void {
+  if (unit.type !== 'retail-shop' || !unit.lease) return;
+  const lease = writableUnit(state, unit).lease as Lease;
+  lease.weekVisits += 1;
 }
 
 /** E-15: at every due step after move-in, a shop with too few customers that week leaves. */
@@ -84,7 +87,7 @@ export function moveInTenant(context: StepContext, unitId: UnitId): void {
     throw new Error(`Unit ${unitId} already has a tenant`);
   }
   clearUnitLedger(context.state, unitId);
-  startTerm(context, unit, 'leaseSigned');
+  startTerm(context, writableUnit(context.state, unit), 'leaseSigned');
 }
 
 function settleDueLease(context: StepContext, unit: LeasedUnit, evaluate: TenantEvaluator): void {
@@ -121,7 +124,7 @@ function leasesDueAt(state: TowerState, step: number): LeasedUnit[] {
 export function createLeaseSystem(evaluate: TenantEvaluator = () => null): SimulationSystem {
   return (context) => {
     for (const unit of leasesDueAt(context.state, context.state.step)) {
-      settleDueLease(context, unit, evaluate);
+      settleDueLease(context, writableUnit(context.state, unit), evaluate);
     }
   };
 }

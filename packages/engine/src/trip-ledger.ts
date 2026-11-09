@@ -19,6 +19,7 @@ import { averageStress, type RecordedTrip } from './person-stress';
 import { floorIndex } from './routing/transport-graph';
 import type { ScheduledHook } from './scheduler';
 import type { StepContext } from './step';
+import { writableTripLedger } from './step-copy';
 import { cappedStress, finishedTripStress, tallLobbyCut } from './trip-stress';
 import { fileUnitTrip } from './unit-evaluation';
 
@@ -163,7 +164,7 @@ export function recordTrip(
   const sum = field(pool.tripSum, slot) + failedAttempt;
   const stress = finishedTripStress(sum, field(pool.tripSlowFloors, slot));
   const key = String(field(pool.id, slot));
-  state.tripLedger[key] = [
+  writableTripLedger(state)[key] = [
     ...stillInWindow(state, state.tripLedger[key] ?? []),
     state.step,
     stress,

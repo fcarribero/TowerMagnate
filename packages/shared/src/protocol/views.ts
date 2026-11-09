@@ -320,6 +320,13 @@ const InspectedUnitDetailsSchema = z.discriminatedUnion('group', [
     filmAgeDays: z.int().nonnegative().nullable(),
     price: PriceLevelSchema,
   }),
+  z.object({
+    group: z.literal('housekeeping'),
+    maidsWorking: z.int().nonnegative(),
+    maids: z.int().nonnegative(),
+    /** Sucia rooms in the whole tower. */
+    dirtyRooms: z.int().nonnegative(),
+  }),
 ]);
 
 /** A unit that is gone or never existed: sent once, then the server drops the target. */

@@ -52,6 +52,8 @@ export { migrateState, StateMigrationError } from './migrations';
 export { createCondoSystem, sellCondo } from './condos';
 export { bookingChance, checkIn, createHotelSystem, drawStayNights, rollBooking } from './hotel';
 export type { CheckInResult } from './hotel';
+export { housekeepingSummary, maidTaskAt } from './housekeeping';
+export type { HousekeepingSummary, MaidPhase, MaidTask } from './housekeeping';
 export {
   createLeaseSystem,
   isLeasable,
@@ -120,10 +122,12 @@ export type { TrekPhase, TrekPlace } from './trek';
 export {
   createOfficeRoutine,
   decodeRoutine,
+  encodeRoutine,
   routineAt,
   straightLineRoutes,
 } from './office-routine';
 export type { OfficeRoutine, Place, RoutePlanner, RoutinePhase } from './office-routine';
+export { isOutsideTower } from './outside-tower';
 export { createProspectDemand } from './prospects';
 export type { ProspectDemand } from './prospects';
 export { chance, createRng, nextFloat, nextInt, nextUint32 } from './rng';
@@ -187,3 +191,5 @@ export { recordNotices } from './notices';
 export { emitNews } from './news';
 export type { NewsEvent } from './news';
 export { isEvaluatedUnit, storedGrade } from './unit-evaluation';
+export { disconnectedUnits } from './unit-connections';
+export { isLayoutCommand, isLayoutEvent } from './layout-changes';

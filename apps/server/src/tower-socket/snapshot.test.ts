@@ -4,6 +4,7 @@ import {
   createTower,
   creditMoney,
   defaultSchedule,
+  encodeRoutine,
   followPerson,
   newUnit,
   openBombThreat,
@@ -13,11 +14,20 @@ import {
   step,
   STEPS_PER_DAY,
   TREK_PHASES,
+  type RoutinePhase,
   type TrekPhase,
 } from '@tower-magnate/engine';
-import { levelToIndex, SnapshotSchema, type TowerState, type Unit } from '@tower-magnate/shared';
+import {
+  levelToIndex,
+  SnapshotSchema,
+  UNIT_CATALOG,
+  type HotelRoomState,
+  type TowerState,
+  type Unit,
+} from '@tower-magnate/shared';
 import { describe, expect, it } from 'vitest';
 import { toClientEvents } from './client-events';
+import { diffSnapshots } from './delta';
 import { buildSnapshot } from './snapshot';
 
 const STEPS_PER_WEEK = 7 * STEPS_PER_DAY;
@@ -48,6 +58,7 @@ function towerWithPeople(): TowerState {
   setStructure(state.grid, 2, 0, 19, 'floor');
   state.units.u5 = office('u5', 0, 'Oficina');
   state.units.u6 = office('u6', 9, null);
+  state.transports.t1 = { id: 't1', type: 'stairs', x: 4, level: 1, paid: 0, placedAtStep: 0 };
   addPerson(state, { kind: 'officeWorker', homeUnit: 5, level: 2, column: 3 });
   addPerson(state, { kind: 'officeWorker', homeUnit: 5, level: 2, column: 80 });
   addPerson(state, { kind: 'maid', homeUnit: 0, level: 30, column: 4 });
@@ -244,6 +255,20 @@ describe('snapshot from tower state', () => {
     expect(snapshot.overlays.price).toEqual({ u5: 'normal', u6: 'normal' });
   });
 
+  it('sends the stored price level of each unit in its view and the price overlay', () => {
+    const state = towerWithPeople();
+    (state.units.u5 as Unit).priceLevel = 'high';
+    (state.units.u6 as Unit).priceLevel = 'low';
+
+    const snapshot = buildSnapshot(state, null);
+
+    expect(snapshot.units).toEqual([
+      expect.objectContaining({ id: 'u5', price: 'high' }),
+      expect.objectContaining({ id: 'u6', price: 'low' }),
+    ]);
+    expect(snapshot.overlays.price).toEqual({ u5: 'high', u6: 'low' });
+  });
+
   it('sends the stored grade of each evaluated unit in the evaluation overlay', () => {
     const state = towerWithPeople();
     (state.units.u5 as Unit).evaluation = 'fair';
@@ -284,6 +309,33 @@ describe('snapshot from tower state', () => {
       const snapshot = buildSnapshot(state, wide);
       expect(snapshot.people[0]?.mode, phase).toBe(expected[phase]);
     }
+  });
+
+  it('leaves out office workers who are still outside the tower or gave up coming in', () => {
+    const routine = (phase: RoutinePhase) =>
+      encodeRoutine({
+        phase,
+        lunchHandled: false,
+        entranceOnRight: false,
+        venue: 0,
+        medical: false,
+        lunchMinute: 720,
+        leaveMinute: 1020,
+      });
+    const state = towerWithPeople();
+    state.people.level[0] = 1;
+    state.people.column[0] = 0;
+    for (const phase of ['waitingToArrive', 'givingUpArrival'] as const) {
+      state.people.trip[0] = routine(phase);
+      expect(buildSnapshot(state, LOBBY_VIEW).people, phase).toEqual([]);
+    }
+
+    state.people.trek[0] = TREK_PHASES.indexOf('walkingToDestination');
+    expect(buildSnapshot(state, LOBBY_VIEW).people.map((person) => person.id)).toEqual(['p1']);
+
+    state.people.trek[0] = TREK_PHASES.indexOf('idle');
+    state.people.trip[0] = routine('atOffice');
+    expect(buildSnapshot(state, LOBBY_VIEW).people.map((person) => person.id)).toEqual(['p1']);
   });
 
   it('keeps the last horizontal facing while the person is not walking', () => {
@@ -414,5 +466,119 @@ describe('snapshot from tower state', () => {
 
   it('has no last week during the first week', () => {
     expect(buildSnapshot(createTower(7), null).finances.lastWeek).toBeNull();
+  });
+});
+
+describe('room states and disconnected units', () => {
+  function hotelTower(): TowerState {
+    const state = createTower(7);
+    setStructure(state.grid, 1, 0, 39, 'lobby');
+    state.units.u1 = newUnit('u1', 'single-room', 0, 1);
+    state.units.u2 = newUnit('u2', 'double-room', 6, 1);
+    state.units.u3 = newUnit('u3', 'suite', 14, 1);
+    state.units.u4 = newUnit('u4', 'single-room', 26, 1);
+    return state;
+  }
+
+  function roomState(state: TowerState, id: string, roomState: HotelRoomState): void {
+    const room = state.units[id] as Unit;
+    if (room.hotel) room.hotel.state = roomState;
+  }
+
+  function variantOf(state: TowerState, id: string): string | undefined {
+    return buildSnapshot(state, null).units.find((unit) => unit.id === id)?.variant;
+  }
+
+  it('sends the state of every hotel room in the hotel overlay', () => {
+    const state = hotelTower();
+    state.units.u5 = newUnit('u5', 'office', 32, 1);
+    roomState(state, 'u2', 'occupied');
+    roomState(state, 'u3', 'dirty');
+    roomState(state, 'u4', 'infested');
+
+    const snapshot = buildSnapshot(state, null);
+
+    expect(snapshot.overlays.hotel).toEqual({
+      u1: 'clean',
+      u2: 'occupied',
+      u3: 'dirty',
+      u4: 'infested',
+    });
+    expect(SnapshotSchema.safeParse(snapshot).success).toBe(true);
+  });
+
+  it('draws a Sucia room as dirty and a room with a plague as infested', () => {
+    const state = hotelTower();
+    roomState(state, 'u3', 'dirty');
+    roomState(state, 'u4', 'infested');
+
+    expect(variantOf(state, 'u1')).toBe('empty');
+    expect(variantOf(state, 'u3')).toBe('dirty');
+    expect(variantOf(state, 'u4')).toBe('infested');
+  });
+
+  it('sends a room that turns Sucia in the next delta, overlay and view', () => {
+    const state = hotelTower();
+    const before = buildSnapshot(state, null);
+    roomState(state, 'u2', 'dirty');
+
+    const { delta } = diffSnapshots(before, buildSnapshot(state, null));
+
+    expect(delta.overlays?.hotel).toEqual({
+      u1: 'clean',
+      u2: 'dirty',
+      u3: 'clean',
+      u4: 'clean',
+    });
+    expect(delta.unitsUpserted).toEqual([expect.objectContaining({ id: 'u2', variant: 'dirty' })]);
+  });
+
+  it('draws an office with no route to the street as disconnected', () => {
+    const state = createTower(7);
+    setStructure(state.grid, 1, 0, 9, 'lobby');
+    setStructure(state.grid, 2, 0, 19, 'floor');
+    state.units.u5 = office('u5', 0, null);
+    state.units.u6 = office('u6', 9, null);
+
+    expect(variantOf(state, 'u5')).toBe('disconnected');
+
+    state.transports.t1 = { id: 't1', type: 'stairs', x: 4, level: 1, paid: 0, placedAtStep: 0 };
+
+    expect(variantOf(state, 'u5')).toBe('empty');
+    expect(variantOf(state, 'u6')).toBe('empty');
+  });
+
+  it('draws every visited unit as disconnected when there is no lobby', () => {
+    const state = createTower(7);
+    setStructure(state.grid, 2, 0, 19, 'floor');
+    state.units.u5 = office('u5', 0, null);
+
+    expect(variantOf(state, 'u5')).toBe('disconnected');
+  });
+
+  it('keeps a dirty room drawn as dirty when it also has no route', () => {
+    const state = createTower(7);
+    setStructure(state.grid, 1, 0, 9, 'lobby');
+    setStructure(state.grid, 2, 0, 19, 'floor');
+    state.units.u7 = newUnit('u7', 'single-room', 0, 2);
+    state.units.u8 = newUnit('u8', 'single-room', 6, 2);
+    roomState(state, 'u7', 'dirty');
+
+    expect(variantOf(state, 'u7')).toBe('dirty');
+    expect(variantOf(state, 'u8')).toBe('disconnected');
+  });
+
+  it('draws a parking space that reaches no ramp as disconnected', () => {
+    const state = createTower(7);
+    setStructure(state.grid, 1, 0, 9, 'lobby');
+    setStructure(state.grid, -1, 0, 39, 'floor');
+    state.units.u1 = newUnit('u1', 'parking-ramp', 0, -1);
+    const rampWidth = UNIT_CATALOG['parking-ramp'].width;
+    const spaceWidth = UNIT_CATALOG['parking-space'].width;
+    state.units.u2 = newUnit('u2', 'parking-space', rampWidth, -1);
+    state.units.u3 = newUnit('u3', 'parking-space', rampWidth + spaceWidth + 1, -1);
+
+    expect(variantOf(state, 'u2')).toBe('empty');
+    expect(variantOf(state, 'u3')).toBe('disconnected');
   });
 });

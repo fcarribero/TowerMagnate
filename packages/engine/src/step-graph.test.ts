@@ -46,6 +46,25 @@ describe('transport graph in step', () => {
     expect(next.graph.nodeAtCell(1, 42)).toBeNull();
   });
 
+  it('builds a new graph for a returned state whose rows were changed in place', () => {
+    const first = step(fullSiteTower(), [buildStandardShaft], 1);
+    const row = first.state.grid.levels[1];
+    if (row) row.occupants = [];
+    expect(step(first.state, [], 1).graph).not.toBe(first.graph);
+  });
+
+  it('keeps the graph of a returned state whose shaft stops are listed the same way', () => {
+    const first = step(fullSiteTower(), [buildStandardShaft], 1);
+    for (const shaft of Object.values(first.state.shafts)) shaft.stops = [...shaft.stops];
+    expect(step(first.state, [], 1).graph).toBe(first.graph);
+  });
+
+  it('builds a new graph for a returned state whose shaft lost a stop', () => {
+    const first = step(fullSiteTower(), [buildStandardShaft], 1);
+    for (const shaft of Object.values(first.state.shafts)) shaft.stops = shaft.stops.slice(1);
+    expect(step(first.state, [], 1).graph).not.toBe(first.graph);
+  });
+
   it('keeps the graph when the command is rejected', () => {
     const first = step(fullSiteTower(), [], 1);
     const result = step(first.state, [badShaft], 1, first.graph);

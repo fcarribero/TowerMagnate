@@ -27,11 +27,16 @@ describe('StarsWindow', () => {
   it('shows the 2 star step at 1 star with population 120', () => {
     renderWindow(1, 120);
     expect(screen.getByText('Estrellas')).toBeTruthy();
-    expect(screen.getByText('Rango actual: 1 estrellas')).toBeTruthy();
+    expect(screen.getByText('Rango actual: 1 estrella')).toBeTruthy();
     expect(screen.getByText('Para 2 estrellas:')).toBeTruthy();
     expect(screen.getByText('Población de 300.')).toBeTruthy();
     expect(screen.getByText('Población 120 de 300')).toBeTruthy();
     expect(screen.getByRole('progressbar').getAttribute('aria-valuenow')).toBe('120');
+  });
+
+  it('keeps the plural from 2 stars on', () => {
+    renderWindow(2, 500);
+    expect(screen.getByText('Rango actual: 2 estrellas')).toBeTruthy();
   });
 
   it('shows the 4 star step and target at 3 stars', () => {

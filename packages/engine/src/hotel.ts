@@ -15,6 +15,7 @@ import { releaseStayGuests } from './hotel-guest-trip';
 import { creditMoney } from './money';
 import { nextInt } from './rng';
 import type { SimulationSystem, StepContext } from './step';
+import { writableUnit } from './step-copy';
 import { unitNumber } from './units';
 import { clearUnitLedger, storeGrade } from './unit-evaluation';
 
@@ -76,17 +77,18 @@ function setRoomState(context: StepContext, room: RoomUnit, state: HotelRoomStat
  * draws no stay length (economy E-23).
  */
 export function checkIn(context: StepContext, roomId: UnitId, nights?: number): CheckInResult {
-  const room = context.state.units[roomId];
-  if (!room || !isRoom(room)) {
+  const found = context.state.units[roomId];
+  if (!found || !isRoom(found)) {
     throw new Error(`Unit ${roomId} is not a hotel room`);
   }
   const step = context.state.step;
   if (!isCheckInTime(step)) {
     return { checkedIn: false, reason: 'outsideCheckInHours' };
   }
-  if (room.hotel.state !== 'clean') {
+  if (found.hotel.state !== 'clean') {
     return { checkedIn: false, reason: 'roomNotClean' };
   }
+  const room = writableUnit(context.state, found);
   const stayNights = nights ?? drawStayNights(context.state.rng);
   const paid = creditMoney(
     context.state,
@@ -103,6 +105,18 @@ export function checkIn(context: StepContext, roomId: UnitId, nights?: number): 
   context.events.push({ type: 'hotelCheckIn', step, unitId: room.id, nights: stayNights, paid });
   setRoomState(context, room, 'occupied');
   return { checkedIn: true, nights: stayNights, paid };
+}
+
+/** A maid finished cleaning the room: it is clean, counts no dirty checks and may roll for a booking. */
+export function finishCleaning(context: StepContext, roomId: UnitId): void {
+  const found = context.state.units[roomId];
+  if (!found || !isRoom(found) || found.hotel.state !== 'dirty') {
+    throw new Error(`Unit ${roomId} is not a dirty hotel room`);
+  }
+  const room = writableUnit(context.state, found);
+  room.hotel.dirtyChecks = 0;
+  room.hotel.rollDue = true;
+  setRoomState(context, room, 'clean');
 }
 
 function checkOut(context: StepContext, room: RoomUnit): void {
@@ -130,7 +144,7 @@ function stayersEndingAt(step: number, units: Record<UnitId, Unit>): readonly Ro
 export function createHotelSystem(): SimulationSystem {
   return (context) => {
     for (const room of stayersEndingAt(context.state.step, context.state.units)) {
-      checkOut(context, room);
+      checkOut(context, writableUnit(context.state, room));
     }
   };
 }
