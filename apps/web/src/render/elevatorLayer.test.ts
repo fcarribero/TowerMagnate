@@ -109,6 +109,29 @@ describe('ElevatorLayer cars', () => {
     expect(view?.children.length).toBe(1);
   });
 
+  it('reuses the rider sprite when the doors close and open again', () => {
+    const { layer } = layerWithArt();
+    layer.showCars(frameOf(5, 'open', [rider]), shafts);
+    const view = layer.carView.children[0];
+    const sprite = view?.children[1];
+    layer.showCars(frameOf(5, 'closed', [rider]), shafts);
+    layer.showCars(frameOf(5, 'open', [{ ...rider, id: 'p6' }]), shafts);
+    expect(view?.children[1]).toBe(sprite);
+    expect(sprite?.destroyed).toBe(false);
+  });
+
+  it('leaves the riders of a car out of view as they are until it is back', () => {
+    const { layer } = layerWithArt();
+    layer.showOnly({ lowest: 0, highest: 10 });
+    layer.showCars(frameOf(50, 'open', [rider]), shafts);
+    const view = layer.carView.children[0];
+    expect(view?.visible).toBe(false);
+    expect(view?.children.length).toBe(1);
+    layer.showOnly({ lowest: 45, highest: 55 });
+    layer.showCars(frameOf(50, 'open', [rider]), shafts);
+    expect(view?.children.length).toBe(2);
+  });
+
   it('tints a stressed rider', () => {
     const { layer, textures } = layerWithArt();
     layer.showCars(frameOf(5, 'open', [{ ...rider, stress: 'stressed' }]), shafts);
