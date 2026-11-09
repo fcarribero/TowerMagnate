@@ -257,10 +257,22 @@ Real time is measured from the first command at 00:07 on day 0. The clock ran at
 | Right wing at 30 floors, shaft at 8 cars | Wed 10 Jan 17:10 | 83,943 | 583 | 2 h 25 |
 | 2 to 3 check fails, below 1,000 | Thu 11 Jan 17:00 | 92,520 | 642 | 2 h 40 |
 | Day 2 of QA stops | Fri 12 Jan 01:01 | 95,406 | 660 | 2 h 45 |
+| Day 3 of QA resumes | Fri 12 Jan 01:38 | 95,628 | 660 | 2 h 45 |
+| 2 to 3 check fails, below 1,000 | Fri 12 Jan 17:00 | 101,160 | 684 | 2 h 55 |
+| Second weekly upkeep, money below 0 | Mon 15 Jan 00:00 | 120,960 | 759 | 3 h 29 |
+| 2 to 3 check fails, below 1,000 | Mon 15 Jan 17:00 | 127,080 | 945 | 3 h 40 |
+| 3 stars | Tue 16 Jan 17:00 | 135,720 | 1,055 | 3 h 55 |
+| First parking pass, failures | Wed 17 Jan 06:00 | 140,400 | 1,078 | 4 h 03 |
+| 3 to 4 check fails (VIP, recycling, medical, parking) | Wed 17 Jan 17:00 | 144,360 | 1,135 | 4 h 10 |
+| Day 3 of QA stops | Thu 18 Jan 01:01 | 147,249 | 1,207 | 4 h 15 |
 
 End of day 1 of QA (1 February): the tower is paused at Monday 8 Jan 01:00, step 60,840, 2 stars, 466 population and -$232.000. It has 25 floors on the right wing (columns 150 to 213) with one standard shaft of 7 cars, a second lobby run at columns 86 to 149 with level 2, a standard shaft at column 116 (1 car, levels 1 and 2) and stairs at column 142, 43 condos, 47 offices, 1 fast food, security, housekeeping, 3 suites, 2 double and 2 single rooms. The save stays in the `tm-qa1` database volume and the run goes on from there.
 
 Day 2 of QA (2 February): the same image and database were started again with `docker start`, and the tower came back at Monday 8 Jan 02:29 with the same units and money, and the two old notices (2 stars, negative upkeep) still in Avisos. The run then went on in real time for 59 minutes, from Monday 02:29 to Friday 12 Jan 01:01. The right wing grew from 25 to 30 floors, the top the standard shaft can serve, and shaft s1 reached 8 cars. The left wing (columns 86 to 149) grew to level 4 with its shaft at column 116. Rent brought the money back above 0 by Monday 18:00. Population went from 466 to 660, about 50 a day, so 1,000 for 3 stars is about a week of game time away at this pace, before the next upkeep. The run was stopped early on Friday 01:01 because the machine ran short of memory; `docker stop` shut the server down cleanly and the save is in the volume. At that point the tower had 2 stars, 660 population, $269.000, 57 condos and 61 offices.
+
+Day 3 of QA (3 February): the same image and database were started again with `docker start`. The tower came back at Friday 12 Jan 01:38, 37 game minutes after the stop, with the same units and money, so a clean stop loses only the time since the last autosave. The run went on for 1 h 30 real, from Friday 01:38 to Thursday 18 Jan 01:01. The left wing (columns 86 to 149) grew from 4 to 29 floors, 2 condos and 2 offices each, and its shaft reached 8 cars (`CAR_LIMIT` on the ninth). The second Monday upkeep put the money at -$192.000 again, and rent brought it back above 0 by Monday noon. Offices fill on weekdays only: 21 stood empty on Monday 08:00 and 4 by 17:00, so population rose from 759 to 945 that day and passed 1,000 on Tuesday. The Tuesday 17:00 check gave 3 stars with 1,055 population, `news.starsUp` `{"n":3}`, 3 h 55 real time after the start.
+
+At 3 stars the Estrellas requirements switched to VIP, suites, recycling, medical and parking. With no parking built, parking showed met until the first 06:00 pass on Wednesday, which sent `news.parkingCondo` and `news.parkingOffice` and turned the requirement to not met, as stars.md 5.6 says (no pass below 3 stars). `news.medicalDemanded` came at 17:00 on Wednesday. Suites count as met with 3 suites that never had a guest. A retail shop and a restaurant were accepted at 3 stars with no `STAR_LOCKED`, on a new lobby run at columns 214 to 237 ($120.000) with floors on levels 2 and 3 ($12.000 each). A floor at level 1 answered `LOBBY_LEVEL_ONLY`, and the shop on a full office floor answered `CELL_OCCUPIED`. The daily payout for the week went from $5.000 on Tuesday to $21.000 by Thursday 00:00, and the 00:00 recount on Thursday raised population from 1,135 to 1,207. No bomb or other random event came in the 7 game days of day 3. At the stop the tower had 3 stars, 1,207 population, $1.183.000, 107 condos, 111 offices, 1 fast food, 1 retail shop and 1 restaurant. The stack was stopped with `docker stop` and the save is in the `tm-qa1` volume. Next: recycling, medical centers and parking for the 3 to 4 step, 5,000 population, and the VIP, which still depends on TM-142 once suites have had a guest.
 
 The hotel rooms took no guests on any day of week 2: all 7 rooms stayed empty from Monday to Friday although housekeeping is built. This is TM-142 (rooms are never cleaned), so it is not filed again, but it means the hotel adds nothing to population or income at 2 stars on the release build. No bomb or other random event came in the 4 days at 2 stars.
 
@@ -296,6 +308,13 @@ Build order: a 64-column main lobby (columns 150 to 213), floors 2 to 5, one sta
 | Building with money below 0 | works | `buildUnit` at -$232.000: `NEGATIVE_BALANCE` |
 | Car limit | works | Ninth car on shaft s1: `CAR_LIMIT` |
 | Standard shaft height | works | Grown floor by floor from 25 to 30 floors served |
+| Star check 2 to 3 | works | Failed below 1,000 on each weekday from Thursday 4 Jan to Monday 15 Jan, passed Tuesday 16 Jan 17:00 with 1,055 |
+| 3-star requirements | works | Estrellas lists VIP, suites, recycling, medical and parking |
+| Parking pass at 3 stars | works | First pass Wednesday 06:00 with no spaces: `news.parkingCondo` and `news.parkingOffice`, requirement not met |
+| Medical demand notice | works | `news.medicalDemanded` at 17:00 on the first weekday at 3 stars |
+| 3-star unlocks | works | Retail shop ($100.000) and restaurant ($200.000) accepted |
+| Lobby extension to the right | works | Columns 214 to 237 for $120.000; `buildFloor` on level 1: `LOBBY_LEVEL_ONLY` |
+| Restore after a clean stop, day 3 | works | Came back 37 game minutes after the stop with the same units and money |
 
 ## Balance and design notes
 
@@ -306,6 +325,8 @@ The VIP is the only step on the way to Torre that the player cannot speed up. Th
 29 January run: venues made 8,482 of the 17,200 population at the wedding (49%), from 134 venues at about 63 visits each. Section 3.4 plans for about a third. With unlimited money the whole run took 19 game days, against the 18 weeks of economy 12; the star gates themselves are not the slow part once money is free. Both go to TM-144 and TM-136.
 
 Release build, week 1 (QA1): with no debug money the first week ends at about 500 population. Condos fund the start, since each one costs $80.000 and sells for $150.000 the same day, but once every condo is sold the cash comes from rent only, which is paid on the weekday the tenant moved in, so nothing comes in on the weekend. The first Monday upkeep was $268.000 (8 standard cars over 2 shafts and 1 service car at $20.000, security $40.000, housekeeping $20.000, rooms $28.000), which put the tower at -$232.000 with rent of $440.000 a week. The amounts follow `WEEKLY_UPKEEP` in `packages/shared/src/balance.ts`, which is double the GDD table for cars, security and housekeeping; the GDD says the Game Designer tunes them, so this is a note for TM-136, not a bug. At this pace 3 stars needs several more game weeks, about 2 real hours each, which fits the GDD goal of weeks to 5 stars.
+
+Release build, week 3 (QA1): 3 stars came on day 15 at 3 h 55 real time with no debug money. Offices lease only on weekdays, so floors built over the weekend add nothing to population until Monday 08:00, and the Monday check sees a tower that is still filling. Lobby upkeep starts at 3 stars at $500 per column (`WEEKLY_UPKEEP`), which for this tower's 152 lobby columns is $76.000 a week more from the next Monday. A note for TM-136.
 
 Clearing ruins one cell per command is slow even once TM-237 lets the Topadora do it. A drag should clear a whole run.
 
