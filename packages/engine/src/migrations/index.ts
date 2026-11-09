@@ -91,6 +91,7 @@ const MIGRATIONS: readonly Migration[] = [
   addNewsSent,
   addHotelBookings,
   addVipVisit,
+  dropOrphanLedgerEntries,
 ];
 
 /** Version 2 records each unit's price level, what was paid for it and when it was placed. */
@@ -476,6 +477,16 @@ function addHotelBookings(raw: Record<string, unknown>): Record<string, unknown>
 /** Version 31 keeps the VIP visit under way; an older tower has none. */
 function addVipVisit(raw: Record<string, unknown>): Record<string, unknown> {
   return { vipVisit: null, ...raw, schemaVersion: 31 };
+}
+
+/** Version 32 drops the filed trips of units a bomb or a fire destroyed. */
+function dropOrphanLedgerEntries(raw: Record<string, unknown>): Record<string, unknown> {
+  const { units, unitLedger } = raw;
+  if (!isRecord(units) || !isRecord(unitLedger)) {
+    return { ...raw, schemaVersion: 32 };
+  }
+  const kept = Object.entries(unitLedger).filter(([unitId]) => Object.hasOwn(units, unitId));
+  return { ...raw, schemaVersion: 32, unitLedger: Object.fromEntries(kept) };
 }
 
 function withHotelBooking(unit: Record<string, unknown>): Record<string, unknown> {

@@ -604,6 +604,18 @@ describe('migrateState unit evaluation', () => {
     expect(migrateState(JSON.parse(JSON.stringify(tower)))).toEqual(tower);
   });
 
+  it('drops the 28 ledger entries a bomb left in a version 31 save and keeps the others', () => {
+    const tower = createTower(5);
+    tower.units.u3 = newUnit('u3', 'office', 10, 2);
+    tower.unitLedger = { u3: [100, 40, 200, 60] };
+    const raw = JSON.parse(JSON.stringify(tower)) as Record<string, unknown>;
+    const ledger = { ...tower.unitLedger } as Record<string, number[]>;
+    for (let unit = 346; unit < 346 + 28; unit++) ledger[`u${unit}`] = [300, 15];
+    const migrated = migrateState({ ...raw, unitLedger: ledger, schemaVersion: 31 });
+    expect(migrated.unitLedger).toEqual({ u3: [100, 40, 200, 60] });
+    expect(migrated).toEqual(tower);
+  });
+
   it('refuses a ledger of a unit that does not exist or a malformed one', () => {
     const tower = createTower(5);
     tower.units.u3 = newUnit('u3', 'office', 10, 2);
