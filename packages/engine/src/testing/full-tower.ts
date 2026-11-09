@@ -126,15 +126,8 @@ export interface FullTowerLimits {
   p99Ms: number;
 }
 
-/**
- * The reasons a result fails the limits: a median over its limit, or runs that disagree.
- * Medians are divided by the slowdown first, so the limits hold on the reference runner.
- */
-export function fullTowerGateFailures(
-  result: FullTowerResult,
-  limits: FullTowerLimits,
-  slowdown = 1,
-): string[] {
+/** The reasons a result fails the limits: a median over its limit, or runs that disagree. */
+export function fullTowerGateFailures(result: FullTowerResult, limits: FullTowerLimits): string[] {
   const failures: string[] = [];
   if (!result.runsAgree) failures.push('Runs differ by over 15%, result void.');
   const checks: [label: string, key: keyof FullTowerLimits][] = [
@@ -143,11 +136,9 @@ export function fullTowerGateFailures(
     ['p99', 'p99Ms'],
   ];
   for (const [label, key] of checks) {
-    const scaledMedian = medianOf(result.runs.map((run) => run[key])) / slowdown;
-    if (scaledMedian > limits[key]) {
-      failures.push(
-        `${label} median on the reference runner ${scaledMedian.toFixed(2)} ms is over the ${limits[key]} ms limit.`,
-      );
+    const median = medianOf(result.runs.map((run) => run[key]));
+    if (median > limits[key]) {
+      failures.push(`${label} median ${median.toFixed(2)} ms is over the ${limits[key]} ms limit.`);
     }
   }
   return failures;

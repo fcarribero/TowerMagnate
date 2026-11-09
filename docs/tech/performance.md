@@ -32,7 +32,7 @@ The `Runner load` workflow (`.github/workflows/runner-load.yml`) runs the bench 
 
 `ubuntu-latest` is a pool of machines with different CPUs, and the same code gives very different lag on them. Before TM-245, over the same commit range, the 30-tower p95 was 53 ms on an AMD EPYC 9V45, 68 to 79 ms on an EPYC 9V74 or a Xeon Platinum 8573C, and 91 to 106 ms on an EPYC 7763. A gate on the raw p95 passed or failed by which machine the job landed on.
 
-The bench now times a fixed CPU workload in the same job, once before the runs and once after, and keeps the faster of the two. The workload (`packages/engine/src/testing/cpu-speed.ts`) copies and serializes a block of plain data, which is what the runner and the broadcaster spend most of their time on. It uses no game code, so a change to the engine or the server does not move it. The slowdown is the calibration time over the reference calibration time, 33 ms on the EPYC 7763. The gate divides the median p95 lag by the slowdown and compares the result with the budget. The job summary shows the CPU model, the calibration time, the slowdown, the raw p95 and the scaled p95.
+The bench now times a fixed CPU workload in the same job, once before the runs and once after, and keeps the faster of the two. The workload (`apps/server/src/bench/cpu-speed.ts`) copies and serializes a block of plain data, which is what the runner and the broadcaster spend most of their time on. It uses no game code, so a change to the engine or the server does not move it. The slowdown is the calibration time over the reference calibration time, 33 ms on the EPYC 7763. The gate divides the median p95 lag by the slowdown and compares the result with the budget. The job summary shows the CPU model, the calibration time, the slowdown, the raw p95 and the scaled p95.
 
 Calibration times on CI were 32.9 to 33.5 ms on three EPYC 7763 jobs and 25.7 ms on a Xeon Platinum 8573C. The calibration overstates the gap between CPU types a little: the 7763 calibrates 30% slower than the 8573C, while its tick lag was 17% to 21% higher. A faster runner therefore gets a slightly stricter gate, which is the safe side. When a new CPU type shows up in the pool, compare its scaled p95 with a 7763 run of the same commit before trusting it.
 
@@ -115,7 +115,9 @@ TM-249 removed the clone. A `step` call now copies the small parts of the state 
 | 3 | 4.55 ms | 13.40 ms | 18.95 ms | 36.33 ms | 3.13 ms |
 | Median | 4.35 ms | 13.07 ms | 18.95 ms | | 3.13 ms |
 
-The runs agree within 6%. The average is under the 5 ms budget, but the p95 is not. What is left is the cost of the systems on the busiest steps, mostly trek and the office routine at the morning peak, and TM-252 owns it. Until then the step budget job is blocking with interim limits: `pnpm bench:full-tower --gate --avg-ms 6 --p95-ms 15 --p99-ms 25` fails when a median is over its limit or the p95 of the runs differs by over 15%. The CPU type matters here. An EPYC 7763 job on an earlier commit of the same branch, before the graph check and the unit layout fix, gave 6.04 ms average, 16.44 ms p95 and 25.68 ms p99.
+The runs agree within 6%. The average is under the 5 ms budget, but the p95 is not. What is left is the cost of the systems on the busiest steps, mostly trek and the office routine at the morning peak, and TM-252 owns it. Until then the step budget job is blocking with interim limits: `pnpm bench:full-tower --gate --avg-ms 6 --p95-ms 16 --p99-ms 25` fails when a median is over its limit or the p95 of the runs differs by over 15%. The limits apply to the raw numbers. The job log shows the CPU model and the raw medians.
+
+The CPU type matters here, and the TM-245 calibration does not predict it. On the same code, the p95 was 9.27 ms on an AMD EPYC 9V45, 13.07 ms on an EPYC 9V74, 13.89 ms on an EPYC 7763 and 15.18 ms on a Xeon Platinum 8573C. The calibration ranks the same CPUs 9V45, 8573C, 7763, 9V74 from fastest to slowest (16.5, 25.7, 33.5 and 34.1 ms). Dividing by its slowdown gave the 9V45 a p95 of 18.57 ms, so the step gate does not scale. The 16 ms p95 limit leaves about 5% over the slowest type seen, the 8573C. TM-252 targets 5 ms average, 8 ms p95 and 15 ms p99 on every runner type seen so far, which leaves enough margin without scaling.
 
 ### Client results
 
@@ -154,7 +156,7 @@ The 60 fps line is not judged here. No reference machine with a GPU is defined y
 | Target | Result | Status |
 | --- | --- | --- |
 | 30 towers, p95 tick lag at most 100 ms, release image | 84.3 ms raw, 81.6 ms scaled | Met |
-| One step of a 15,000-person tower under 5 ms | 13.1 ms p95, 4.4 ms average (was 34.4 and 21.9 ms) | Missed, TM-252; CI gate at 6 ms average, 15 ms p95, 25 ms p99 |
+| One step of a 15,000-person tower under 5 ms | 13.1 ms p95, 4.4 ms average (was 34.4 and 21.9 ms) | Missed, TM-252; CI gate at 6 ms average, 16 ms p95, 25 ms p99 |
 | 100 floors, 3,000 people, draw calls under 200 | 69 | Met |
 | Heap growth under 5% over 30 minutes | 3.3% median, 4.5% highest | Met |
 | 60 fps at 1x zoom | p95 frame cost 3.1 ms on a desktop GPU; not measurable on CI | Not judged until TM-248 |

@@ -101,14 +101,6 @@ export {
 } from './long-run';
 export type { LongRun, LongRunCommand } from './long-run';
 export {
-  calibrateCpu,
-  machineSpeed,
-  normalizeLag,
-  REFERENCE_CALIBRATION_MS,
-  slowdownFactor,
-} from './cpu-speed';
-export type { MachineSpeed } from './cpu-speed';
-export {
   FULL_TOWER_PEOPLE,
   FULL_TOWER_STEP_BUDGET_MS,
   fullTower,

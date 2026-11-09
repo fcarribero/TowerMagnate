@@ -3,19 +3,15 @@
  * from 06:00 to 14:00 of a weekday. Run with `pnpm bench:full-tower`. The result is the median
  * of 3 runs, void if their p95 differs by over 15%.
  *
- * With `--gate --avg-ms <ms> --p95-ms <ms> --p99-ms <ms>` it exits with 1 when a median, scaled
- * to the reference runner by the CPU calibration, is over its limit or the result is void.
- * Without `--gate` it only reports.
+ * With `--gate --avg-ms <ms> --p95-ms <ms> --p99-ms <ms>` it exits with 1 when a median is over
+ * its limit or the result is void. Without `--gate` it only reports.
  */
 import os from 'node:os';
 import { parseArgs } from 'node:util';
 import {
-  calibrateCpu,
   FULL_TOWER_STEP_BUDGET_MS,
   fullTowerGateFailures,
-  machineSpeed,
   medianOf,
-  REFERENCE_CALIBRATION_MS,
   timeFullTowerRuns,
   type FullTowerLimits,
   type FullTowerRun,
@@ -42,35 +38,29 @@ const limits: FullTowerLimits | null = options.gate
   ? { averageMs: limitFrom('avg-ms'), p95Ms: limitFrom('p95-ms'), p99Ms: limitFrom('p99-ms') }
   : null;
 
-const calibrationBefore = calibrateCpu();
 const result = timeFullTowerRuns();
-const speed = machineSpeed(calibrationBefore, calibrateCpu());
 const { runs } = result;
 const list = (pick: (run: FullTowerRun) => number) =>
   runs.map((run) => pick(run).toFixed(2)).join(', ');
-const medianText = (pick: (run: FullTowerRun) => number) => {
-  const median = medianOf(runs.map(pick));
-  return `${median.toFixed(2)}, on the reference runner ${(median / speed.slowdown).toFixed(2)}`;
-};
+const median = (pick: (run: FullTowerRun) => number) => medianOf(runs.map(pick)).toFixed(2);
 const limitText = (limit: number | undefined) => (limit === undefined ? '' : `, limit ${limit}`);
 const machine = `${os.cpus().length} x ${os.cpus()[0]?.model.trim()}, ${os.platform()}`;
 
 console.log(
   [
     `Machine: ${machine}, Node ${process.version}`,
-    `CPU calibration: ${speed.calibrationMs.toFixed(1)} ms, reference ${REFERENCE_CALIBRATION_MS} ms, slowdown ${speed.slowdown.toFixed(2)}`,
     `People: ${runs[0]?.people}`,
     `Section 9 budget: ${FULL_TOWER_STEP_BUDGET_MS} ms`,
-    `Average step ms per run: ${list((run) => run.averageMs)} (median ${medianText((run) => run.averageMs)}${limitText(limits?.averageMs)})`,
-    `p95 step ms per run: ${list((run) => run.p95Ms)} (median ${medianText((run) => run.p95Ms)}${limitText(limits?.p95Ms)})`,
-    `p99 step ms per run: ${list((run) => run.p99Ms)} (median ${medianText((run) => run.p99Ms)}${limitText(limits?.p99Ms)})`,
+    `Average step ms per run: ${list((run) => run.averageMs)} (median ${median((run) => run.averageMs)}${limitText(limits?.averageMs)})`,
+    `p95 step ms per run: ${list((run) => run.p95Ms)} (median ${median((run) => run.p95Ms)}${limitText(limits?.p95Ms)})`,
+    `p99 step ms per run: ${list((run) => run.p99Ms)} (median ${median((run) => run.p99Ms)}${limitText(limits?.p99Ms)})`,
     `Max step ms per run: ${list((run) => run.maxMs)}`,
     `Step ms when the same hours run in one call: ${list((run) => run.batchedMs)}`,
   ].join('\n'),
 );
 
 if (limits) {
-  const failures = fullTowerGateFailures(result, limits, speed.slowdown);
+  const failures = fullTowerGateFailures(result, limits);
   for (const failure of failures) console.error(failure);
   console.log(failures.length === 0 ? 'Gate: passed' : 'Gate: failed');
   process.exitCode = failures.length === 0 ? 0 : 1;

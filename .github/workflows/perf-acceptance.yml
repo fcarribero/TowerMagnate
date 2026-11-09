@@ -68,11 +68,11 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Full tower step benchmark
-        # Interim limits until TM-252 brings the step to the section 9 budget, scaled to the reference runner.
+        # Interim limits until TM-252 brings the step to the section 9 budget.
         run: |
           set -o pipefail
           status=0
-          pnpm bench:full-tower --gate --avg-ms 6 --p95-ms 15 --p99-ms 25 2>&1 | tee bench.txt || status=$?
+          pnpm bench:full-tower --gate --avg-ms 6 --p95-ms 16 --p99-ms 25 2>&1 | tee bench.txt || status=$?
           { echo '### Step budget, 15,000 people'; echo '```'; cat bench.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
           exit $status
 

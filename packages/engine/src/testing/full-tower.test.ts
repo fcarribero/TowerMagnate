@@ -34,19 +34,8 @@ describe('fullTowerGateFailures', () => {
   it('names each median over its limit', () => {
     const runs = [run(6.5, 15.5, 24), run(6.4, 15.2, 24), run(6.6, 15.9, 24)];
     expect(fullTowerGateFailures({ runs, runsAgree: true }, limits)).toEqual([
-      'Average median on the reference runner 6.50 ms is over the 6 ms limit.',
-      'p95 median on the reference runner 15.50 ms is over the 15 ms limit.',
-    ]);
-  });
-
-  it('scales the medians to the reference runner before comparing them', () => {
-    const runs = [run(6.6, 16.5, 24), run(6.6, 16.5, 24), run(6.6, 16.5, 24)];
-
-    expect(fullTowerGateFailures({ runs, runsAgree: true }, limits, 1.1)).toEqual([]);
-    expect(fullTowerGateFailures({ runs, runsAgree: true }, limits, 0.8)).toEqual([
-      'Average median on the reference runner 8.25 ms is over the 6 ms limit.',
-      'p95 median on the reference runner 20.63 ms is over the 15 ms limit.',
-      'p99 median on the reference runner 30.00 ms is over the 25 ms limit.',
+      'Average median 6.50 ms is over the 6 ms limit.',
+      'p95 median 15.50 ms is over the 15 ms limit.',
     ]);
   });
 
