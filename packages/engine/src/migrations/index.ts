@@ -91,6 +91,7 @@ const MIGRATIONS: readonly Migration[] = [
   addNewsSent,
   addHotelBookings,
   addVipVisit,
+  addRoomDirtyChecks,
   dropOrphanLedgerEntries,
 ];
 
@@ -479,14 +480,29 @@ function addVipVisit(raw: Record<string, unknown>): Record<string, unknown> {
   return { vipVisit: null, ...raw, schemaVersion: 31 };
 }
 
-/** Version 32 drops the filed trips of units a bomb or a fire destroyed. */
+/** Version 32 counts the daily dirty checks of each room; an older room has had none. */
+function addRoomDirtyChecks(raw: Record<string, unknown>): Record<string, unknown> {
+  if (!isRecord(raw.units)) {
+    return { ...raw, schemaVersion: 32 };
+  }
+  const units: Record<string, unknown> = {};
+  for (const [id, unit] of Object.entries(raw.units)) {
+    units[id] =
+      isRecord(unit) && isRecord(unit.hotel)
+        ? { ...unit, hotel: { dirtyChecks: 0, ...unit.hotel } }
+        : unit;
+  }
+  return { ...raw, schemaVersion: 32, units };
+}
+
+/** Version 33 drops the filed trips of units a bomb or a fire destroyed. */
 function dropOrphanLedgerEntries(raw: Record<string, unknown>): Record<string, unknown> {
   const { units, unitLedger } = raw;
   if (!isRecord(units) || !isRecord(unitLedger)) {
-    return { ...raw, schemaVersion: 32 };
+    return { ...raw, schemaVersion: 33 };
   }
   const kept = Object.entries(unitLedger).filter(([unitId]) => Object.hasOwn(units, unitId));
-  return { ...raw, schemaVersion: 32, unitLedger: Object.fromEntries(kept) };
+  return { ...raw, schemaVersion: 33, unitLedger: Object.fromEntries(kept) };
 }
 
 function withHotelBooking(unit: Record<string, unknown>): Record<string, unknown> {
@@ -592,7 +608,9 @@ function isHotelRoom(value: unknown): value is HotelRoom {
     (value.checkInStep === null || isNonNegativeInteger(value.checkInStep)) &&
     (value.paidLevel === null || (PRICE_LEVELS as readonly unknown[]).includes(value.paidLevel)) &&
     (value.arrivalStep === null || isNonNegativeInteger(value.arrivalStep)) &&
-    typeof value.rollDue === 'boolean'
+    typeof value.rollDue === 'boolean' &&
+    isNonNegativeInteger(value.dirtyChecks) &&
+    (value.state === 'dirty' || value.dirtyChecks === 0)
   );
 }
 

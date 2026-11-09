@@ -458,6 +458,7 @@ describe('migrateState hotel rooms', () => {
       paidLevel: null,
       arrivalStep: null,
       rollDue: true,
+      dirtyChecks: 0,
     });
   });
 
@@ -473,6 +474,7 @@ describe('migrateState hotel rooms', () => {
         paidLevel: null,
         arrivalStep: null,
         rollDue: false,
+        dirtyChecks: 0,
       },
     };
     expect(migrateState(JSON.parse(JSON.stringify(tower)))).toEqual(tower);
@@ -594,6 +596,7 @@ describe('migrateState unit evaluation', () => {
       paidLevel: null,
       arrivalStep: null,
       rollDue: false,
+      dirtyChecks: 0,
     });
   });
 
@@ -604,14 +607,14 @@ describe('migrateState unit evaluation', () => {
     expect(migrateState(JSON.parse(JSON.stringify(tower)))).toEqual(tower);
   });
 
-  it('drops the 28 ledger entries a bomb left in a version 31 save and keeps the others', () => {
+  it('drops the 28 ledger entries a bomb left in a version 32 save and keeps the others', () => {
     const tower = createTower(5);
     tower.units.u3 = newUnit('u3', 'office', 10, 2);
     tower.unitLedger = { u3: [100, 40, 200, 60] };
     const raw = JSON.parse(JSON.stringify(tower)) as Record<string, unknown>;
     const ledger = { ...tower.unitLedger } as Record<string, number[]>;
     for (let unit = 346; unit < 346 + 28; unit++) ledger[`u${unit}`] = [300, 15];
-    const migrated = migrateState({ ...raw, unitLedger: ledger, schemaVersion: 31 });
+    const migrated = migrateState({ ...raw, unitLedger: ledger, schemaVersion: 32 });
     expect(migrated.unitLedger).toEqual({ u3: [100, 40, 200, 60] });
     expect(migrated).toEqual(tower);
   });
@@ -782,6 +785,34 @@ describe('migrateState hotel bookings', () => {
     expect(migrateState(raw).units.u3?.hotel?.arrivalStep).toBe(7_398);
     for (const bad of [{ arrivalStep: -6 }, { rollDue: 'yes' }]) {
       raw.units.u3 = { ...(raw.units.u3 as object), hotel: { ...booked, ...bad } };
+      expect(() => migrateState(raw)).toThrow(StateMigrationError);
+    }
+  });
+
+  it('gives the rooms of a version 31 save no dirty checks', () => {
+    const tower = createTower(5);
+    tower.units.u3 = newUnit('u3', 'double-room', 10, 2);
+    const old = JSON.parse(JSON.stringify(tower)) as {
+      schemaVersion: number;
+      units: Record<string, { hotel: Record<string, unknown> }>;
+    };
+    old.schemaVersion = 31;
+    delete old.units.u3?.hotel.dirtyChecks;
+    expect(migrateState(old).units.u3?.hotel?.dirtyChecks).toBe(0);
+  });
+
+  it('keeps the dirty checks of a dirty room and refuses them on any other state', () => {
+    const tower = createTower(5);
+    tower.units.u3 = newUnit('u3', 'single-room', 10, 2);
+    const raw = JSON.parse(JSON.stringify(tower)) as { units: Record<string, { hotel: object }> };
+    const hotel = raw.units.u3?.hotel as object;
+    raw.units.u3 = {
+      ...(raw.units.u3 as object),
+      hotel: { ...hotel, state: 'dirty', dirtyChecks: 2 },
+    };
+    expect(migrateState(raw).units.u3?.hotel?.dirtyChecks).toBe(2);
+    for (const bad of [{ dirtyChecks: -1 }, { state: 'clean', dirtyChecks: 1 }]) {
+      raw.units.u3 = { ...(raw.units.u3 as object), hotel: { ...hotel, state: 'dirty', ...bad } };
       expect(() => migrateState(raw)).toThrow(StateMigrationError);
     }
   });
