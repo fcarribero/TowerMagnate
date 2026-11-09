@@ -10,12 +10,12 @@ import {
   shaftLevels,
   STEPS_PER_DAY,
   DAYS_PER_WEEK,
+  isOutsideTower,
   trekPhaseAt,
   type TrekPhase,
 } from '@tower-magnate/engine';
 import type { PersonView as EnginePerson } from '@tower-magnate/engine';
 import {
-  DEFAULT_PRICE_LEVEL,
   levelToIndex,
   LEDGER_CATEGORIES,
   STRESS_ALTO_FROM,
@@ -109,7 +109,7 @@ function unitView(unit: TowerState['units'][string], occupied: boolean): UnitVie
     x: unit.x,
     level: unit.level,
     name: unit.name,
-    price: DEFAULT_PRICE_LEVEL,
+    price: unit.priceLevel,
     occupied,
     variant: occupied ? 'occupied' : 'empty',
   };
@@ -242,6 +242,7 @@ export function peopleViews(
   const rides = ridePlaces(state);
   const views: PersonView[] = [];
   people.forEach((person, slot) => {
+    if (isOutsideTower(state.people, slot)) return;
     const phase = trekPhaseAt(state.people, slot);
     const ride = phase === 'riding' ? rides.get(person.id) : undefined;
     const place = {
