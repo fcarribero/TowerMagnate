@@ -50,3 +50,24 @@ export function crowdFrame(size: number, shift: number): DrawnFrame {
     ),
   );
 }
+
+/** A crowd spread over the floors of a tower, the people whose id is in `leaving` left out. */
+export function towerCrowdFrame(
+  size: number,
+  shift: number,
+  floors: number,
+  leaving: (index: number) => boolean = () => false,
+): DrawnFrame {
+  const stresses = ['normal', 'stressed', 'veryStressed'] as const;
+  const people = [];
+  for (let index = 0; index < size; index++) {
+    if (leaving(index)) continue;
+    const one = person(`p${index}`, {
+      x: (index % 200) + shift,
+      mode: index % 2 === 0 ? 'walk' : 'wait',
+      stress: stresses[index % 3],
+    });
+    people.push({ person: one, x: one.x, position: index % floors });
+  }
+  return { cars: new Map(), people };
+}

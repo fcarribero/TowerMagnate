@@ -16,6 +16,8 @@ interface DrawnRider {
 interface DrawnShaftCar {
   view: Container;
   body: Sprite;
+  /** Texture id of the body, so it changes only when the doors do. */
+  bodyTextureId: string;
   riders: Map<string, DrawnRider>;
   /** Dense level index the car was last drawn at. */
   position: number;
@@ -34,6 +36,8 @@ export class ElevatorLayer {
   private readonly shaftPieces = new Map<string, Sprite[]>();
   private readonly shaftsDrawn = new Map<string, ShaftView>();
   private readonly cars = new Map<string, DrawnShaftCar>();
+  /** Rider sprites no car is using, kept so doors opening and closing do not create new ones. */
+  private readonly spareRiders: Sprite[] = [];
   private range: LevelRange | null = null;
 
   constructor(private readonly sprites: SpriteRegistry) {}
@@ -66,8 +70,10 @@ export class ElevatorLayer {
   showCars(frame: DrawnFrame, shafts: ReadonlyMap<string, ShaftView>): void {
     const ridersByCar = groupRiders(frame.people);
     for (const key of [...this.cars.keys()]) {
-      if (!frame.cars.has(key)) {
-        this.cars.get(key)?.view.destroy({ children: true });
+      const car = this.cars.get(key);
+      if (car !== undefined && !frame.cars.has(key)) {
+        this.releaseRiders(car, NO_RIDERS);
+        car.view.destroy({ children: true });
         this.cars.delete(key);
       }
     }
@@ -126,9 +132,15 @@ export class ElevatorLayer {
     car.position = drawn.position;
     car.view.position.set(origin.x, origin.y);
     const subject = `transport/${shaft.type}-car`;
-    car.body.texture = this.sprites.variant(subject, { state: drawn.car.doors });
+    const bodyTextureId = this.sprites.idOf(subject, { state: drawn.car.doors });
+    if (car.bodyTextureId !== bodyTextureId) {
+      car.body.texture = this.sprites.variant(subject, { state: drawn.car.doors });
+      car.bodyTextureId = bodyTextureId;
+    }
     car.view.visible = this.range === null || carInRange(drawn.position, this.range);
-    this.placeRiders(car, shaft, drawn.car.doors === 'open' ? riders : []);
+    if (car.view.visible) {
+      this.placeRiders(car, shaft, drawn.car.doors === 'open' ? riders : NO_RIDERS);
+    }
   }
 
   private createCar(key: string): DrawnShaftCar {
@@ -136,25 +148,39 @@ export class ElevatorLayer {
     const view = new Container();
     view.addChild(body);
     this.carView.addChild(view);
-    const car = { view, body, riders: new Map<string, DrawnRider>(), position: 0 };
+    const car = {
+      view,
+      body,
+      bodyTextureId: '',
+      riders: new Map<string, DrawnRider>(),
+      position: 0,
+    };
     this.cars.set(key, car);
     return car;
   }
 
-  private placeRiders(car: DrawnShaftCar, shaft: ShaftView, riders: DrawnPerson[]): void {
-    const present = new Set(riders.map((rider) => rider.person.id));
+  private releaseRiders(car: DrawnShaftCar, riders: readonly DrawnPerson[]): void {
+    if (car.riders.size === 0) return;
     for (const [id, rider] of car.riders) {
-      if (!present.has(id)) {
-        rider.sprite.destroy();
-        car.riders.delete(id);
-      }
+      if (riders.some((drawn) => drawn.person.id === id)) continue;
+      rider.sprite.removeFromParent();
+      this.spareRiders.push(rider.sprite);
+      car.riders.delete(id);
     }
+  }
+
+  private takeRiderSprite(): Sprite {
+    return this.spareRiders.pop() ?? new Sprite();
+  }
+
+  private placeRiders(car: DrawnShaftCar, shaft: ShaftView, riders: readonly DrawnPerson[]): void {
+    this.releaseRiders(car, riders);
     riders.forEach(({ person }, n) => {
       const look = riderSprite(person);
       const textureId = this.sprites.idOf(look.subject, { state: look.state });
       let rider = car.riders.get(person.id);
       if (rider === undefined) {
-        rider = { sprite: new Sprite(), textureId: '' };
+        rider = { sprite: this.takeRiderSprite(), textureId: '' };
         car.view.addChild(rider.sprite);
         car.riders.set(person.id, rider);
       }
@@ -167,6 +193,8 @@ export class ElevatorLayer {
     });
   }
 }
+
+const NO_RIDERS: readonly DrawnPerson[] = [];
 
 function groupRiders(people: readonly DrawnPerson[]): Map<string, DrawnPerson[]> {
   const grouped = new Map<string, DrawnPerson[]>();
