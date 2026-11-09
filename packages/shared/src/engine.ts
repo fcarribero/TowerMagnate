@@ -302,6 +302,8 @@ export interface TowerState {
   treasureLevels: Level[];
   /** Set when a VIP visit that started at 3 stars ends approved. */
   vipApproved: boolean;
+  /** The VIP visit from its 00:00 roll until the VIP's stay ends; null when there is none. */
+  vipVisit: VipVisit | null;
   /** Step of the last medical visit that failed; null if none yet. */
   lastMedicalFailureStep: number | null;
   /** Step of the last parking failure; null if none yet. */
@@ -313,6 +315,21 @@ export interface TowerState {
   wedding: WeddingAttempt | null;
   /** Day number of the last wedding attempt, kept after its guests leave; null if none yet. */
   lastWeddingDay: number | null;
+}
+
+export type VipOutcome = 'pending' | 'approved' | 'rejected';
+
+/** A VIP visit (events spec 6, people spec 9). */
+export interface VipVisit {
+  id: EventId;
+  /** Day number of the VIP day, when the suite is booked at 12:00. */
+  day: number;
+  startedAtStars: StarRating;
+  /** The suite booked at 12:00; null before the booking. */
+  unitId: UnitId | null;
+  /** Person number of the VIP once they appear; null before. */
+  personId: number | null;
+  outcome: VipOutcome;
 }
 
 /** A weekend day's wedding attempt (stars spec 7, people spec 15). */

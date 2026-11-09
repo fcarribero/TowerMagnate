@@ -4,6 +4,7 @@ import { isOnTrek } from './trek';
 import type { StepContext } from './step';
 
 export const HOTEL_GUEST_KIND = PERSON_KINDS.indexOf('hotelGuest');
+export const VIP_KIND = PERSON_KINDS.indexOf('vip');
 
 export type GuestPhase =
   | 'arriving'
@@ -75,8 +76,13 @@ export function decodeGuestRoutine(trip: number): GuestRoutine | null {
   return { phase, venue, slots: [leave, back, outing] };
 }
 
+/** Hotel guests and the VIP, who stays in a suite like a guest (people spec 9). */
 export function isHotelGuest(pool: PersonPool, slot: number): boolean {
-  return pool.kind[slot] === HOTEL_GUEST_KIND;
+  return pool.kind[slot] === HOTEL_GUEST_KIND || pool.kind[slot] === VIP_KIND;
+}
+
+export function isVip(pool: PersonPool, slot: number): boolean {
+  return pool.kind[slot] === VIP_KIND;
 }
 
 export function guestRoutineAt(pool: PersonPool, slot: number): GuestRoutine | null {
