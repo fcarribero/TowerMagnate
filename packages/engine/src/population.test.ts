@@ -51,6 +51,8 @@ function occupy(state: TowerState, id: UnitId | undefined): void {
     stayEndStep: at(THURSDAY, 10),
     checkInStep: null,
     paidLevel: null,
+    arrivalStep: null,
+    rollDue: false,
   };
 }
 
@@ -282,6 +284,8 @@ describe('population worked examples', () => {
         stayEndStep: at(THURSDAY, 10),
         checkInStep: null,
         paidLevel: null,
+        arrivalStep: null,
+        rollDue: false,
       });
     addCopies(state, single as Unit, 40, stay);
     addCopies(state, double as Unit, 30, stay);
