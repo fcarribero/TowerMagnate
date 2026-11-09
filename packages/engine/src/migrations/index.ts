@@ -45,7 +45,7 @@ import { readActiveEvents, readClosedDecisions, readNotices, readTreasureLevels 
 import { readGrid } from './grid';
 import { readLedger, readMoney } from './money';
 import { readPeople, readTripLedger } from './people';
-import { readStars, readWedding } from './stars';
+import { readLastWeddingDay, readStars, readWedding } from './stars';
 import { readFloorPurchases, readLobbyPurchases, readTransports } from './transports';
 
 export { StateMigrationError } from './errors';
@@ -80,6 +80,7 @@ const MIGRATIONS: readonly Migration[] = [
   addLobbyPurchases,
   addUnitEvaluation,
   addShopWeekVisits,
+  addLastWeddingDay,
 ];
 
 /** Version 2 records each unit's price level, what was paid for it and when it was placed. */
@@ -429,6 +430,12 @@ function addShopWeekVisits(raw: Record<string, unknown>): Record<string, unknown
     units[id] = isRecord(unit) ? withWeekVisits(unit) : unit;
   }
   return { ...raw, schemaVersion: 27, units };
+}
+
+/** Version 28 remembers the day of the last wedding attempt, taken from one under way. */
+function addLastWeddingDay(raw: Record<string, unknown>): Record<string, unknown> {
+  const lastWeddingDay = isRecord(raw.wedding) ? raw.wedding.day : null;
+  return { lastWeddingDay, ...raw, schemaVersion: 28 };
 }
 
 function withWeekVisits(unit: Record<string, unknown>): Record<string, unknown> {
@@ -809,6 +816,7 @@ function assertCurrentShape(raw: Record<string, unknown>): TowerState {
     medicalDay: readMedicalDay(raw.medicalDay),
     parking: readParking(raw.parking),
     wedding: readWedding(raw.wedding),
+    lastWeddingDay: readLastWeddingDay(raw.lastWeddingDay),
   };
 }
 

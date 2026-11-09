@@ -662,6 +662,24 @@ describe('migrateState wedding', () => {
   });
 });
 
+describe('migrateState last wedding day', () => {
+  it('takes the day from an attempt under way in a version 27 save, or none', () => {
+    const old = JSON.parse(JSON.stringify(createTower(5))) as Record<string, unknown>;
+    delete old.lastWeddingDay;
+    old.schemaVersion = 27;
+    expect(migrateState(old).lastWeddingDay).toBeNull();
+    const wedding = { day: 5, cathedral: 'u3', arrivals: [], inside: 0, outcome: 'pending' };
+    expect(migrateState({ ...old, wedding }).lastWeddingDay).toBe(5);
+  });
+
+  it('keeps a day number and refuses anything else', () => {
+    const saved = JSON.parse(JSON.stringify(createTower(5))) as Record<string, unknown>;
+    expect(migrateState({ ...saved, lastWeddingDay: 12 }).lastWeddingDay).toBe(12);
+    expect(() => migrateState({ ...saved, lastWeddingDay: -1 })).toThrow(StateMigrationError);
+    expect(() => migrateState({ ...saved, lastWeddingDay: '5' })).toThrow(StateMigrationError);
+  });
+});
+
 describe('migrateState sky lobby purchases', () => {
   it('gives a version 24 save no lobby purchases', () => {
     const old = JSON.parse(JSON.stringify(createTower(5))) as Record<string, unknown>;
