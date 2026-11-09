@@ -85,3 +85,13 @@ export type {
   ExpectedDay,
   TimedEconomyAction,
 } from './economy-scenario';
+export {
+  LONG_RUN_DAYS,
+  LONG_RUN_SEED,
+  LONG_RUN_SNAPSHOT_DAY,
+  longRunScript,
+  longRunTower,
+  playLongRun,
+  resumeLongRun,
+} from './long-run';
+export type { LongRun, LongRunCommand } from './long-run';
