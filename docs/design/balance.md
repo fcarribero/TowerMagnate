@@ -42,7 +42,7 @@ Seed 1, develop at 624bda5, 130 days: 2 stars on day 12, 3 stars on day 61, 4,45
 
 ### 2.2 What blocked 4 stars
 
-Nothing in the engine. With $5,000,000 added on day 1, seed 1 reached 4 stars on day 82, at the first weekday check where population was 5,003. With $60,000,000 added it reached 4 stars on day 9. In both runs the security office, 4 suites, the VIP flag and recycling (3 centers at 5,000) were in place before population got there. VIP visits came about 1 day in 9 at 3 stars, and the flag was set within 2 to 4 weeks of 3 stars on every run. Medical failures and parking failures showed up in some windows, and each cost a day at most, because the bot adds a medical center and parking spaces as population grows. The draft never reached 4 stars because it never reached 5,000 people.
+Nothing in the engine. With $5,000,000 added on day 1, seed 1 reached 4 stars on day 82, at the first weekday check where population was 5,003. With $60,000,000 added it reached 4 stars on day 9. In both runs the security office, 4 suites, the VIP flag and recycling (3 centers at 5,000) were in place before population got there. VIP visits came about 1 day in 9 at 3 stars, and the flag was set 1 to 5 weeks after 3 stars on every run. Medical failures and parking failures showed up in some windows, and each cost a day at most, because the bot adds a medical center and parking spaces as population grows. The draft never reached 4 stars because it never reached 5,000 people.
 
 ### 2.3 Current bot, 5 seeds
 
