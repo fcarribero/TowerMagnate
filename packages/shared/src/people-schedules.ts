@@ -248,6 +248,17 @@ export const HOTEL_CHECK_OUT_LEAVE: readonly WindowPart[] = [
   { from: minutes(9), to: minutes(10), weight: 25 },
 ];
 
+/** The VIP (people spec 9). */
+export const VIP_ARRIVAL: readonly WindowPart[] = [
+  { from: minutes(17), to: minutes(19), weight: 50 },
+  { from: minutes(19), to: minutes(21), weight: 50 },
+];
+
+export const VIP_LEAVE: readonly WindowPart[] = [
+  { from: minutes(8), to: minutes(9), weight: 50 },
+  { from: minutes(9), to: minutes(10), weight: 50 },
+];
+
 /** Where a guest goes on an outing, in percent, highest first. */
 export const HOTEL_OUTING_VENUES: readonly { type: VisitedVenueType; weight: number }[] = [
   { type: 'restaurant', weight: 50 },

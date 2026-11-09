@@ -171,3 +171,39 @@ describe('migrateState events', () => {
     expect(() => migrateState({ ...saved, treasureLevels: [2] })).toThrow(StateMigrationError);
   });
 });
+
+describe('migrateState VIP visit', () => {
+  it('gives a version 30 save no VIP visit', () => {
+    const old = roundTrip(createTower(4)) as Record<string, unknown>;
+    delete old.vipVisit;
+    old.schemaVersion = 30;
+    expect(migrateState(old).vipVisit).toBeNull();
+  });
+
+  it('keeps a visit under way and refuses a malformed one', () => {
+    const tower = createTower(4);
+    tower.vipVisit = {
+      id: 'e3',
+      day: 12,
+      startedAtStars: 3,
+      unitId: 'u7',
+      personId: 41,
+      outcome: 'pending',
+    };
+    expect(migrateState(roundTrip(tower))).toEqual(tower);
+    const saved = roundTrip(tower) as Record<string, unknown>;
+    const visit = tower.vipVisit;
+    for (const bad of [
+      { startedAtStars: 7 },
+      { unitId: 'p7' },
+      { personId: -1 },
+      { outcome: 'maybe' },
+      { day: 1.5 },
+    ]) {
+      expect(() => migrateState({ ...saved, vipVisit: { ...visit, ...bad } })).toThrow(
+        StateMigrationError,
+      );
+    }
+    expect(() => migrateState({ ...saved, vipVisit: undefined })).toThrow(StateMigrationError);
+  });
+});

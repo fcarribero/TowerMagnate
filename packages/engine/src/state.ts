@@ -5,7 +5,7 @@ import { clonePersonPool, createPersonPool } from './people';
 import { createRng } from './rng';
 import { copyPlainData } from './step-copy';
 
-export const SCHEMA_VERSION = 30;
+export const SCHEMA_VERSION = 31;
 
 export function createTower(seed: number): TowerState {
   if (!Number.isInteger(seed)) {
@@ -34,6 +34,7 @@ export function createTower(seed: number): TowerState {
     newsSent: {},
     treasureLevels: [],
     vipApproved: false,
+    vipVisit: null,
     lastMedicalFailureStep: null,
     lastParkingFailureStep: null,
     medicalDay: { day: 0, visits: {}, noticed: [] },
