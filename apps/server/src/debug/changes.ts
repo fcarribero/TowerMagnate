@@ -1,7 +1,10 @@
 import {
+  announceSanta,
   DAYS_PER_WEEK,
   openRandomBombThreat,
   openRandomFire,
+  openVipVisitNow,
+  recordNotices,
   rollLedgerWeek,
   STEPS_PER_DAY,
   STEPS_PER_MINUTE,
@@ -23,6 +26,8 @@ export class DebugRefusal extends Error {
 }
 
 export function forceEvent(kind: DebugEventKind): TowerChange {
+  if (kind === 'vip') return forceVipVisit;
+  if (kind === 'santa') return forceSanta;
   return (state) => {
     const context: StepContext = { state: structuredClone(state), events: [] };
     const opened =
@@ -42,6 +47,24 @@ export function forceEvent(kind: DebugEventKind): TowerChange {
     return { state: context.state, events: context.events };
   };
 }
+
+/**
+ * Starts a VIP visit without the daily roll or the star check. The VIP books a suite at the next
+ * 12:00. Only one visit runs at a time.
+ */
+const forceVipVisit: TowerChange = (state) => {
+  const forced = structuredClone(state);
+  if (openVipVisitNow(forced) === null) throw new DebugRefusal('LIMIT_REACHED');
+  return { state: forced, events: [] };
+};
+
+/** Santa is only a notice: it is kept with the other notices and nothing else changes. */
+const forceSanta: TowerChange = (state) => {
+  const context: StepContext = { state: structuredClone(state), events: [] };
+  announceSanta(context);
+  recordNotices(context.state, context.events);
+  return { state: context.state, events: context.events };
+};
 
 /** Runs the steps through the same advance the real clock uses, so the result matches. */
 export function fastForward(steps: number): TowerChange {

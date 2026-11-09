@@ -282,7 +282,7 @@ describe('bomb search outcome', () => {
     const disaster = atOne.events.find((event) => event.type === 'disaster');
     expect(disaster).toMatchObject({ type: 'disaster', step: atOne.state.step, kind: 'bomb' });
     expect(atOne.events).toContainEqual(
-      expect.objectContaining({ type: 'news', key: 'news.bombExploded', level: 5 }),
+      expect.objectContaining({ type: 'news', key: 'news.bombExploded', params: { level: 5 } }),
     );
     expect(atOne.state.units[officeId]).toBeUndefined();
     expect(peopleCount(atOne.state.people)).toBe(before);

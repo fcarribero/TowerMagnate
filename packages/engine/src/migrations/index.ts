@@ -41,7 +41,14 @@ import { STEPS_PER_DAY } from '../clock';
 import { SCHEMA_VERSION } from '../state';
 import { isHotelRoomType, isVenueType, newHotelRoom, newVenueDay } from '../units';
 import { isRecord, StateMigrationError } from './errors';
-import { readActiveEvents, readClosedDecisions, readNotices, readTreasureLevels } from './events';
+import {
+  readActiveEvents,
+  readClosedDecisions,
+  readNewsSent,
+  readNotices,
+  readTreasureLevels,
+  readVipVisit,
+} from './events';
 import { readGrid } from './grid';
 import { readLedger, readMoney } from './money';
 import { readPeople, readTripLedger } from './people';
@@ -81,6 +88,9 @@ const MIGRATIONS: readonly Migration[] = [
   addUnitEvaluation,
   addShopWeekVisits,
   addLastWeddingDay,
+  addNewsSent,
+  addHotelBookings,
+  addVipVisit,
 ];
 
 /** Version 2 records each unit's price level, what was paid for it and when it was placed. */
@@ -438,9 +448,38 @@ function addLastWeddingDay(raw: Record<string, unknown>): Record<string, unknown
   return { lastWeddingDay, ...raw, schemaVersion: 28 };
 }
 
+/** Version 29 keeps when each news key last went out; older saves have sent nothing yet. */
+function addNewsSent(raw: Record<string, unknown>): Record<string, unknown> {
+  return { newsSent: {}, ...raw, schemaVersion: 29 };
+}
+
 function withWeekVisits(unit: Record<string, unknown>): Record<string, unknown> {
   if (!isRecord(unit.lease)) return unit;
   return { ...unit, lease: { weekVisits: SHOP_EARLY_LEAVE_MIN_VISITS, ...unit.lease } };
+}
+
+/**
+ * Version 30 keeps each hotel room's booking and whether it rolls for one at once. A room in an
+ * older tower has no booking.
+ */
+function addHotelBookings(raw: Record<string, unknown>): Record<string, unknown> {
+  if (!isRecord(raw.units)) {
+    return { ...raw, schemaVersion: 30 };
+  }
+  const units: Record<string, unknown> = {};
+  for (const [id, unit] of Object.entries(raw.units)) {
+    units[id] = isRecord(unit) && isRecord(unit.hotel) ? withHotelBooking(unit) : unit;
+  }
+  return { ...raw, schemaVersion: 30, units };
+}
+
+/** Version 31 keeps the VIP visit under way; an older tower has none. */
+function addVipVisit(raw: Record<string, unknown>): Record<string, unknown> {
+  return { vipVisit: null, ...raw, schemaVersion: 31 };
+}
+
+function withHotelBooking(unit: Record<string, unknown>): Record<string, unknown> {
+  return { ...unit, hotel: { arrivalStep: null, rollDue: false, ...(unit.hotel as object) } };
 }
 
 /** Version 11 gives each hotel room a state; every room in an older tower is clean and empty. */
@@ -540,7 +579,9 @@ function isHotelRoom(value: unknown): value is HotelRoom {
     (value.stayEndStep === null || isNonNegativeInteger(value.stayEndStep)) &&
     (value.state === 'occupied') === (value.stayEndStep !== null) &&
     (value.checkInStep === null || isNonNegativeInteger(value.checkInStep)) &&
-    (value.paidLevel === null || (PRICE_LEVELS as readonly unknown[]).includes(value.paidLevel))
+    (value.paidLevel === null || (PRICE_LEVELS as readonly unknown[]).includes(value.paidLevel)) &&
+    (value.arrivalStep === null || isNonNegativeInteger(value.arrivalStep)) &&
+    typeof value.rollDue === 'boolean'
   );
 }
 
@@ -811,8 +852,10 @@ function assertCurrentShape(raw: Record<string, unknown>): TowerState {
     activeEvents: readActiveEvents(raw.activeEvents),
     closedDecisions: readClosedDecisions(raw.closedDecisions),
     notices: readNotices(raw.notices),
+    newsSent: readNewsSent(raw.newsSent),
     treasureLevels: readTreasureLevels(raw.treasureLevels),
     ...readStarState(raw),
+    vipVisit: readVipVisit(raw.vipVisit),
     medicalDay: readMedicalDay(raw.medicalDay),
     parking: readParking(raw.parking),
     wedding: readWedding(raw.wedding),

@@ -111,6 +111,10 @@ export interface HotelRoom {
   checkInStep: number | null;
   /** Price level the current or last stay paid at check-in; null before the first stay. */
   paidLevel: PriceLevel | null;
+  /** Arrival step of the booked party until it checks in or gives up; null with no booking. */
+  arrivalStep: number | null;
+  /** The room just became clean and rolls for a booking at once if the clock allows it. */
+  rollDue: boolean;
 }
 
 /** A staircase or escalator. Its cells on `level` are the footprint; the level above has the landing. */
@@ -292,10 +296,14 @@ export interface TowerState {
   closedDecisions: EventId[];
   /** The last NOTICES_KEPT notices, newest last. */
   notices: Notice[];
+  /** Step each news key last went out at, by key and scope value, for the rate limit. */
+  newsSent: Record<string, number>;
   /** Basement levels that have already given treasure. */
   treasureLevels: Level[];
   /** Set when a VIP visit that started at 3 stars ends approved. */
   vipApproved: boolean;
+  /** The VIP visit from its 00:00 roll until the VIP's stay ends; null when there is none. */
+  vipVisit: VipVisit | null;
   /** Step of the last medical visit that failed; null if none yet. */
   lastMedicalFailureStep: number | null;
   /** Step of the last parking failure; null if none yet. */
@@ -307,6 +315,21 @@ export interface TowerState {
   wedding: WeddingAttempt | null;
   /** Day number of the last wedding attempt, kept after its guests leave; null if none yet. */
   lastWeddingDay: number | null;
+}
+
+export type VipOutcome = 'pending' | 'approved' | 'rejected';
+
+/** A VIP visit (events spec 6, people spec 9). */
+export interface VipVisit {
+  id: EventId;
+  /** Day number of the VIP day, when the suite is booked at 12:00. */
+  day: number;
+  startedAtStars: StarRating;
+  /** The suite booked at 12:00; null before the booking. */
+  unitId: UnitId | null;
+  /** Person number of the VIP once they appear; null before. */
+  personId: number | null;
+  outcome: VipOutcome;
 }
 
 /** A weekend day's wedding attempt (stars spec 7, people spec 15). */
@@ -349,6 +372,13 @@ export interface NoticeParams {
   n?: number;
   /** Id of the option a decision applied by default; the client shows its button text. */
   option?: string;
+}
+
+/** What a news event says: its text key, the unit it is about and its placeholder values. */
+export interface NewsFields {
+  key: string;
+  unitId: UnitId | null;
+  params: NoticeParams;
 }
 
 /** A news line the player was shown; `key` names its text. */
@@ -492,17 +522,6 @@ export type EngineEvent =
       choice: string;
     }
   | { type: 'treasureFound'; step: number; commandId: string; level: Level; amount: number }
-  | {
-      type: 'news';
-      step: number;
-      commandId: string;
-      key: 'news.treasure';
-      level: Level;
-      amount: number;
-    }
-  | { type: 'news'; step: number; commandId: string; key: 'news.bombPaid'; unitId: null }
+  | ({ type: 'news'; step: number; commandId: string } & NewsFields)
   | { type: 'disaster'; step: number; kind: DecisionKind; cells: CellRange[] }
-  | { type: 'news'; step: number; key: 'news.bombExploded' | 'news.fire'; level: Level }
-  | { type: 'news'; step: number; key: 'news.starsUp'; n: number }
-  | { type: 'news'; step: number; key: 'news.decisionDefault'; eventId: EventId; choice: string }
-  | { type: 'news'; step: number; key: string; unitId: UnitId | null };
+  | ({ type: 'news'; step: number } & NewsFields);

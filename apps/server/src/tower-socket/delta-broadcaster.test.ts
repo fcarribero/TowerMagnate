@@ -154,7 +154,7 @@ describe('delta broadcaster', () => {
   });
 
   it('sends events right after the delta that covers their step', () => {
-    newsFor = (step) => [{ type: 'news', step, key: 'news.test', unitId: null }];
+    newsFor = (step) => [{ type: 'news', step, key: 'news.test', unitId: null, params: {} }];
 
     pass(DELTA_INTERVAL_MS);
 
@@ -167,7 +167,7 @@ describe('delta broadcaster', () => {
   });
 
   it('does not hold an idle delta back when events came with it', () => {
-    newsFor = (step) => [{ type: 'news', step, key: 'news.test', unitId: null }];
+    newsFor = (step) => [{ type: 'news', step, key: 'news.test', unitId: null, params: {} }];
 
     pass(DELTA_INTERVAL_MS * 2);
 
@@ -177,17 +177,33 @@ describe('delta broadcaster', () => {
 
   it('does not repeat events a socket already saw', () => {
     newsFor = (step) =>
-      step === 30 ? [{ type: 'news', step, key: 'news.test', unitId: null }] : [];
+      step === 30 ? [{ type: 'news', step, key: 'news.test', unitId: null, params: {} }] : [];
 
     pass(5000);
 
     expect(messages('events')).toHaveLength(1);
   });
 
+  it('sends an event a change adds at the step a socket was already sent', async () => {
+    pass(DELTA_INTERVAL_MS);
+    const sentStep = towerState().step;
+
+    await runner.change(TOWER, (state) => ({
+      state,
+      events: [{ type: 'news', step: state.step, key: 'news.test', unitId: null, params: {} }],
+    }));
+    broadcaster.tick(registry);
+
+    const events = messages('events').flatMap(
+      (message) => (message.p as unknown as { events: { step: number }[] }).events,
+    );
+    expect(events).toEqual([expect.objectContaining({ key: 'news.test', step: sentStep })]);
+  });
+
   it('skips events that are older than the socket snapshot', () => {
     const late = new FakeSocket();
     registry.add(late, { userId: 'u1', towerId: TOWER });
-    newsFor = (step) => [{ type: 'news', step, key: 'news.test', unitId: null }];
+    newsFor = (step) => [{ type: 'news', step, key: 'news.test', unitId: null, params: {} }];
     clock += DELTA_INTERVAL_MS;
     runner.tick();
     const snapshotStep = towerState().step;

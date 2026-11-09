@@ -11,6 +11,7 @@ import {
 } from '@tower-magnate/shared';
 import { dateOfStep, STEPS_PER_HOUR } from './calendar';
 import { STEPS_PER_DAY } from './clock';
+import { releaseStayGuests } from './hotel-guest-trip';
 import { creditMoney } from './money';
 import { nextInt } from './rng';
 import type { SimulationSystem, StepContext } from './step';
@@ -71,9 +72,10 @@ function setRoomState(context: StepContext, room: RoomUnit, state: HotelRoomStat
 
 /**
  * Checks a party into a room at the current step and credits the whole stay at once. Called by the
- * guest routine and by tests. A refused check-in changes nothing.
+ * guest routine and by tests. A refused check-in changes nothing. The VIP passes `nights` and
+ * draws no stay length (economy E-23).
  */
-export function checkIn(context: StepContext, roomId: UnitId): CheckInResult {
+export function checkIn(context: StepContext, roomId: UnitId, nights?: number): CheckInResult {
   const room = context.state.units[roomId];
   if (!room || !isRoom(room)) {
     throw new Error(`Unit ${roomId} is not a hotel room`);
@@ -85,20 +87,22 @@ export function checkIn(context: StepContext, roomId: UnitId): CheckInResult {
   if (room.hotel.state !== 'clean') {
     return { checkedIn: false, reason: 'roomNotClean' };
   }
-  const nights = drawStayNights(context.state.rng);
+  const stayNights = nights ?? drawStayNights(context.state.rng);
   const paid = creditMoney(
     context.state,
     'hotel',
-    nights * HOTEL_NIGHTLY_PRICE[room.type][room.priceLevel],
+    stayNights * HOTEL_NIGHTLY_PRICE[room.type][room.priceLevel],
   );
-  room.hotel.stayEndStep = stayEndStep(step, nights);
+  room.hotel.stayEndStep = stayEndStep(step, stayNights);
   room.hotel.checkInStep = step;
   room.hotel.paidLevel = room.priceLevel;
+  room.hotel.arrivalStep = null;
+  room.hotel.rollDue = false;
   clearUnitLedger(context.state, room.id);
   room.used = true;
-  context.events.push({ type: 'hotelCheckIn', step, unitId: room.id, nights, paid });
+  context.events.push({ type: 'hotelCheckIn', step, unitId: room.id, nights: stayNights, paid });
   setRoomState(context, room, 'occupied');
-  return { checkedIn: true, nights, paid };
+  return { checkedIn: true, nights: stayNights, paid };
 }
 
 function checkOut(context: StepContext, room: RoomUnit): void {
@@ -106,12 +110,20 @@ function checkOut(context: StepContext, room: RoomUnit): void {
   room.hotel.stayEndStep = null;
   context.events.push({ type: 'hotelCheckOut', step: context.state.step, unitId: room.id });
   setRoomState(context, room, 'dirty');
+  releaseStayGuests(context, unitNumber(room.id));
 }
 
-function stayersEndingAt(step: number, units: Record<UnitId, Unit>): RoomUnit[] {
-  return Object.values(units)
-    .filter((unit): unit is RoomUnit => isRoom(unit) && unit.hotel.stayEndStep === step)
-    .sort((a, b) => unitNumber(a.id) - unitNumber(b.id));
+/** Runs every step, so it walks the units without building a list unless a stay ends. */
+function stayersEndingAt(step: number, units: Record<UnitId, Unit>): readonly RoomUnit[] {
+  let rooms: RoomUnit[] | null = null;
+  for (const id in units) {
+    const unit = units[id as UnitId] as Unit;
+    if (unit.hotel?.stayEndStep !== step || !isRoom(unit)) continue;
+    rooms ??= [];
+    rooms.push(unit);
+  }
+  if (rooms === null) return [];
+  return rooms.sort((a, b) => unitNumber(a.id) - unitNumber(b.id));
 }
 
 /** Ends each stay at its check-out time and leaves the room dirty, in order of unit id. */

@@ -41,6 +41,7 @@ import { nextInt } from '../rng';
 import type { StepContext } from '../step';
 import { startBombSearch } from './bomb-search';
 import { endDisaster, hasActiveDisaster, openBombThreat } from './decisions';
+import { emitNews } from '../news';
 
 const ROLL_STEP_OF_DAY = BOMB_ROLL_HOUR * STEPS_PER_HOUR;
 const EXPLODE_STEP_OF_DAY = BOMB_EXPLODE_HOUR * STEPS_PER_HOUR;
@@ -72,20 +73,29 @@ export function openRandomBombThreat(context: StepContext): BombThreat | null {
   if (hasActiveDisaster(state)) return null;
   const candidates = bombCandidates(state);
   if (candidates.length === 0) return null;
-  const threat = openBombThreat(context, bombRansom(state.stars), drawBombCell(state, candidates));
-  context.events.push({ type: 'news', step: state.step, key: 'news.bombThreat', unitId: null });
+  const ransom = bombRansom(state.stars);
+  const threat = openBombThreat(context, ransom, drawBombCell(state, candidates)) as BombThreat;
+  context.events.push(...emitNews(state, 'news.bombThreat', { eventId: threat.id }));
   return threat;
 }
 
+/** Opens the 09:00 bomb threat, or not. Scenarios swap the daily roll for their own. */
+export type BombRoll = (context: StepContext) => void;
+
+/** Whether a threat could open now: 2 stars or more, no disaster active and a unit to hide it in. */
+export function canOpenBombThreat(state: TowerState): boolean {
+  return (
+    state.stars >= BOMB_MIN_STARS && !hasActiveDisaster(state) && bombCandidates(state).length > 0
+  );
+}
+
 /** Events phase item 3: the 09:00 roll, made only when every condition holds. */
-function rollBombThreat(context: StepContext): void {
+export const rollBombThreat: BombRoll = (context) => {
   const { state } = context;
-  const canRoll =
-    state.stars >= BOMB_MIN_STARS && !hasActiveDisaster(state) && bombCandidates(state).length > 0;
-  if (!canRoll) return;
+  if (!canOpenBombThreat(state)) return;
   if (nextInt(state.rng, 0, BOMB_DAILY_ODDS - 1) !== 0) return;
   openRandomBombThreat(context);
-}
+};
 
 /** Ends a threat whose ransom was just paid. Guards have not left their offices yet. */
 export function endPaidBombThreat(state: TowerState, eventId: string): void {
@@ -95,12 +105,7 @@ export function endPaidBombThreat(state: TowerState, eventId: string): void {
 /** The search starts once the decision closed with `refuse`, by answer or at the deadline. */
 function startSearchAfterRefusal(context: StepContext, threat: BombThreat): void {
   if (threat.search !== null || threat.decision.choice !== 'refuse') return;
-  context.events.push({
-    type: 'news',
-    step: context.state.step,
-    key: 'news.bombSearch',
-    unitId: null,
-  });
+  context.events.push(...emitNews(context.state, 'news.bombSearch', { eventId: threat.id }));
   startBombSearch(context, threat, threat.bomb.level);
 }
 
@@ -188,12 +193,8 @@ function explode(context: StepContext, threat: BombThreat): void {
   const cells = ruinBlastBox(state, threat.bomb);
   context.graph?.rebuild(state);
   context.events.push({ type: 'disaster', step: state.step, kind: 'bomb', cells });
-  context.events.push({
-    type: 'news',
-    step: state.step,
-    key: 'news.bombExploded',
-    level: threat.bomb.level,
-  });
+  const target = { eventId: threat.id, params: { level: threat.bomb.level } };
+  context.events.push(...emitNews(state, 'news.bombExploded', target));
   endDisaster(context, threat.id);
 }
 
@@ -202,11 +203,11 @@ function activeBombThreat(state: TowerState): BombThreat | undefined {
 }
 
 /** Bomb work of the events phase that is not the search itself: refusal, roll and explosion. */
-export function runBombSchedule(context: StepContext): void {
+export function runBombSchedule(context: StepContext, roll: BombRoll = rollBombThreat): void {
   const threat = activeBombThreat(context.state);
   if (threat) startSearchAfterRefusal(context, threat);
   const stepOfDay = context.state.step % STEPS_PER_DAY;
-  if (stepOfDay === ROLL_STEP_OF_DAY) rollBombThreat(context);
+  if (stepOfDay === ROLL_STEP_OF_DAY) roll(context);
   const current = activeBombThreat(context.state);
   if (stepOfDay === EXPLODE_STEP_OF_DAY && current) explode(context, current);
 }

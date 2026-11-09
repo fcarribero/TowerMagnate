@@ -15,6 +15,7 @@ import {
 import { chargeMoney } from '../money';
 import type { StepContext } from '../step';
 import { sendGuardsHome } from './guards';
+import { emitNews } from '../news';
 
 interface DecisionRule {
   /** Dialog order, default last. */
@@ -164,13 +165,8 @@ export function runDecisionDeadlines(context: StepContext): void {
   for (const event of context.state.activeEvents) {
     if (isOpen(event) && context.state.step >= event.decision.deadlineStep) {
       closeWithDefault(context, event);
-      context.events.push({
-        type: 'news',
-        step: context.state.step,
-        key: 'news.decisionDefault',
-        eventId: event.id,
-        choice: event.decision.defaultChoice,
-      });
+      const target = { eventId: event.id, params: { option: event.decision.defaultChoice } };
+      context.events.push(...emitNews(context.state, 'news.decisionDefault', target));
     }
   }
 }

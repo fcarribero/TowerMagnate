@@ -456,6 +456,8 @@ describe('migrateState hotel rooms', () => {
       stayEndStep: null,
       checkInStep: null,
       paidLevel: null,
+      arrivalStep: null,
+      rollDue: true,
     });
   });
 
@@ -464,7 +466,14 @@ describe('migrateState hotel rooms', () => {
     tower.units.u2 = {
       ...newUnit('u2', 'double-room', 0, 2),
       used: true,
-      hotel: { state: 'occupied', stayEndStep: 12_960, checkInStep: null, paidLevel: null },
+      hotel: {
+        state: 'occupied',
+        stayEndStep: 12_960,
+        checkInStep: null,
+        paidLevel: null,
+        arrivalStep: null,
+        rollDue: false,
+      },
     };
     expect(migrateState(JSON.parse(JSON.stringify(tower)))).toEqual(tower);
   });
@@ -583,6 +592,8 @@ describe('migrateState unit evaluation', () => {
       stayEndStep: null,
       checkInStep: null,
       paidLevel: null,
+      arrivalStep: null,
+      rollDue: false,
     });
   });
 
@@ -662,6 +673,24 @@ describe('migrateState wedding', () => {
   });
 });
 
+describe('migrateState news rate limit', () => {
+  it('gives a version 28 save no sent news', () => {
+    const old = JSON.parse(JSON.stringify(createTower(5))) as Record<string, unknown>;
+    delete old.newsSent;
+    old.schemaVersion = 28;
+    expect(migrateState(old).newsSent).toEqual({});
+  });
+
+  it('keeps sent steps and refuses anything else', () => {
+    const saved = JSON.parse(JSON.stringify(createTower(5))) as Record<string, unknown>;
+    const newsSent = { 'news.officeLeft|unit:u4': 1_000 };
+    expect(migrateState({ ...saved, newsSent }).newsSent).toEqual(newsSent);
+    expect(() => migrateState({ ...saved, newsSent: [] })).toThrow(StateMigrationError);
+    expect(() => migrateState({ ...saved, newsSent: { slot: -1 } })).toThrow(StateMigrationError);
+    expect(() => migrateState({ ...saved, newsSent: { slot: '5' } })).toThrow(StateMigrationError);
+  });
+});
+
 describe('migrateState last wedding day', () => {
   it('takes the day from an attempt under way in a version 27 save, or none', () => {
     const old = JSON.parse(JSON.stringify(createTower(5))) as Record<string, unknown>;
@@ -714,5 +743,34 @@ describe('migrateState shop week visits', () => {
     const tower = migrateState(old);
     expect(tower.units.u3?.lease).toEqual({ anchorStep: 100, nextDueStep: 60_580, weekVisits: 70 });
     expect(tower.units.u4?.lease).toBeNull();
+  });
+});
+
+describe('migrateState hotel bookings', () => {
+  it('gives the rooms of a version 27 save no booking and no pending roll', () => {
+    const tower = createTower(5);
+    tower.units.u3 = newUnit('u3', 'suite', 10, 2);
+    const old = JSON.parse(JSON.stringify(tower)) as {
+      schemaVersion: number;
+      units: Record<string, { hotel: Record<string, unknown> }>;
+    };
+    old.schemaVersion = 27;
+    delete old.units.u3?.hotel.arrivalStep;
+    delete old.units.u3?.hotel.rollDue;
+    expect(migrateState(old).units.u3?.hotel).toMatchObject({ arrivalStep: null, rollDue: false });
+  });
+
+  it('keeps a booking and refuses a malformed one', () => {
+    const tower = createTower(5);
+    tower.units.u3 = newUnit('u3', 'single-room', 10, 2);
+    const raw = JSON.parse(JSON.stringify(tower)) as { units: Record<string, { hotel: object }> };
+    const hotel = raw.units.u3?.hotel as object;
+    const booked = { ...hotel, arrivalStep: 7_398, rollDue: false };
+    raw.units.u3 = { ...(raw.units.u3 as object), hotel: booked };
+    expect(migrateState(raw).units.u3?.hotel?.arrivalStep).toBe(7_398);
+    for (const bad of [{ arrivalStep: -6 }, { rollDue: 'yes' }]) {
+      raw.units.u3 = { ...(raw.units.u3 as object), hotel: { ...booked, ...bad } };
+      expect(() => migrateState(raw)).toThrow(StateMigrationError);
+    }
   });
 });
