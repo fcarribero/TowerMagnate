@@ -146,6 +146,7 @@ describe('inspecting a unit', () => {
       paidLevel: null,
       arrivalStep: null,
       rollDue: false,
+      dirtyChecks: 0,
     };
     expect(inspectUnit(state, id)).toMatchObject({
       details: { state: 'occupied', checkoutStep: 5000 },
@@ -161,6 +162,7 @@ describe('inspecting a unit', () => {
       paidLevel: null,
       arrivalStep: null,
       rollDue: false,
+      dirtyChecks: 0,
     };
 
     expect(inspectUnit(state, id)).toMatchObject({

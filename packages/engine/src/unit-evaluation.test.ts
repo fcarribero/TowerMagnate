@@ -103,6 +103,7 @@ describe('hotel room evaluation (10.5)', () => {
       paidLevel: 'high',
       arrivalStep: null,
       rollDue: false,
+      dirtyChecks: 0,
     };
     room.priceLevel = 'low';
     const trips: [number, number][] = [
