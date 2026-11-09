@@ -112,7 +112,7 @@ describe('bomb threat roll', () => {
 
   it.each([
     ['below 2 stars', (state: TowerState) => void (state.stars = 1)],
-    ['with a fire active', (state: TowerState) => void openFire(atStep(state, 0), 5)],
+    ['with a fire active', (state: TowerState) => void openFire(atStep(state, NINE_AM), 5)],
     ['with only lobbies', (state: TowerState) => void (state.units = {})],
   ])('makes no draw %s', (_name, prepare) => {
     const state = officeTower();
