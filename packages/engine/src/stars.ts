@@ -9,12 +9,14 @@ import {
   type TowerState,
   type Unit,
   type UnitType,
+  type NewsId,
 } from '@tower-magnate/shared';
 import { STEPS_PER_HOUR, WEEKDAYS, weekdayOfDay } from './calendar';
 import { STEPS_PER_DAY } from './clock';
 import { populationOf } from './population';
 import type { ScheduledHook } from './scheduler';
 import type { StepContext } from './step';
+import { emitNews } from './news';
 
 const STAR_CHECK_HOUR = 17;
 
@@ -28,7 +30,7 @@ const REQUIREMENTS_BY_RATING: Readonly<Record<StarRating, readonly StarRequireme
   6: [],
 };
 
-const BLOCKED_NEWS: Readonly<Partial<Record<StarRequirement, string>>> = {
+const BLOCKED_NEWS: Readonly<Partial<Record<StarRequirement, NewsId>>> = {
   security: 'news.starBlockedSecurity',
   vip: 'news.starBlockedVip',
   suites: 'news.starBlockedSuites',
@@ -163,7 +165,7 @@ export function runStarCheck(context: StepContext): void {
   for (const requirement of missing) {
     const key = BLOCKED_NEWS[requirement];
     if (key !== undefined) {
-      context.events.push({ type: 'news', step: state.step, key, unitId: null });
+      context.events.push(...emitNews(state, key));
     }
   }
 }
@@ -177,7 +179,7 @@ function promote(context: StepContext): void {
     stars: state.stars,
     unlocked: unitsUnlockedAt(state.stars),
   });
-  context.events.push({ type: 'news', step: state.step, key: 'news.starsUp', n: state.stars });
+  context.events.push(...emitNews(state, 'news.starsUp', { params: { n: state.stars } }));
 }
 
 export const starCheckHook: ScheduledHook = {

@@ -41,6 +41,7 @@ import { nextInt } from '../rng';
 import type { StepContext } from '../step';
 import { startBombSearch } from './bomb-search';
 import { endDisaster, hasActiveDisaster, openBombThreat } from './decisions';
+import { emitNews } from '../news';
 
 const ROLL_STEP_OF_DAY = BOMB_ROLL_HOUR * STEPS_PER_HOUR;
 const EXPLODE_STEP_OF_DAY = BOMB_EXPLODE_HOUR * STEPS_PER_HOUR;
@@ -72,8 +73,9 @@ export function openRandomBombThreat(context: StepContext): BombThreat | null {
   if (hasActiveDisaster(state)) return null;
   const candidates = bombCandidates(state);
   if (candidates.length === 0) return null;
-  const threat = openBombThreat(context, bombRansom(state.stars), drawBombCell(state, candidates));
-  context.events.push({ type: 'news', step: state.step, key: 'news.bombThreat', unitId: null });
+  const ransom = bombRansom(state.stars);
+  const threat = openBombThreat(context, ransom, drawBombCell(state, candidates)) as BombThreat;
+  context.events.push(...emitNews(state, 'news.bombThreat', { eventId: threat.id }));
   return threat;
 }
 
@@ -103,12 +105,7 @@ export function endPaidBombThreat(state: TowerState, eventId: string): void {
 /** The search starts once the decision closed with `refuse`, by answer or at the deadline. */
 function startSearchAfterRefusal(context: StepContext, threat: BombThreat): void {
   if (threat.search !== null || threat.decision.choice !== 'refuse') return;
-  context.events.push({
-    type: 'news',
-    step: context.state.step,
-    key: 'news.bombSearch',
-    unitId: null,
-  });
+  context.events.push(...emitNews(context.state, 'news.bombSearch', { eventId: threat.id }));
   startBombSearch(context, threat, threat.bomb.level);
 }
 
@@ -196,12 +193,8 @@ function explode(context: StepContext, threat: BombThreat): void {
   const cells = ruinBlastBox(state, threat.bomb);
   context.graph?.rebuild(state);
   context.events.push({ type: 'disaster', step: state.step, kind: 'bomb', cells });
-  context.events.push({
-    type: 'news',
-    step: state.step,
-    key: 'news.bombExploded',
-    level: threat.bomb.level,
-  });
+  const target = { eventId: threat.id, params: { level: threat.bomb.level } };
+  context.events.push(...emitNews(state, 'news.bombExploded', target));
   endDisaster(context, threat.id);
 }
 

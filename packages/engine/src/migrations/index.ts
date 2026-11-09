@@ -41,7 +41,13 @@ import { STEPS_PER_DAY } from '../clock';
 import { SCHEMA_VERSION } from '../state';
 import { isHotelRoomType, isVenueType, newHotelRoom, newVenueDay } from '../units';
 import { isRecord, StateMigrationError } from './errors';
-import { readActiveEvents, readClosedDecisions, readNotices, readTreasureLevels } from './events';
+import {
+  readActiveEvents,
+  readClosedDecisions,
+  readNewsSent,
+  readNotices,
+  readTreasureLevels,
+} from './events';
 import { readGrid } from './grid';
 import { readLedger, readMoney } from './money';
 import { readPeople, readTripLedger } from './people';
@@ -81,6 +87,7 @@ const MIGRATIONS: readonly Migration[] = [
   addUnitEvaluation,
   addShopWeekVisits,
   addLastWeddingDay,
+  addNewsSent,
 ];
 
 /** Version 2 records each unit's price level, what was paid for it and when it was placed. */
@@ -436,6 +443,11 @@ function addShopWeekVisits(raw: Record<string, unknown>): Record<string, unknown
 function addLastWeddingDay(raw: Record<string, unknown>): Record<string, unknown> {
   const lastWeddingDay = isRecord(raw.wedding) ? raw.wedding.day : null;
   return { lastWeddingDay, ...raw, schemaVersion: 28 };
+}
+
+/** Version 29 keeps when each news key last went out; older saves have sent nothing yet. */
+function addNewsSent(raw: Record<string, unknown>): Record<string, unknown> {
+  return { newsSent: {}, ...raw, schemaVersion: 29 };
 }
 
 function withWeekVisits(unit: Record<string, unknown>): Record<string, unknown> {
@@ -811,6 +823,7 @@ function assertCurrentShape(raw: Record<string, unknown>): TowerState {
     activeEvents: readActiveEvents(raw.activeEvents),
     closedDecisions: readClosedDecisions(raw.closedDecisions),
     notices: readNotices(raw.notices),
+    newsSent: readNewsSent(raw.newsSent),
     treasureLevels: readTreasureLevels(raw.treasureLevels),
     ...readStarState(raw),
     medicalDay: readMedicalDay(raw.medicalDay),

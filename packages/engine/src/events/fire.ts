@@ -25,6 +25,7 @@ import { endDisaster, hasActiveDisaster, openFire } from './decisions';
 import { burnCell, noDamage, type FireDamage } from './fire-cells';
 import { burningLevels, runFireGuards, tickFireFronts } from './fire-guards';
 import { structureOfLevel } from './guards';
+import { emitNews } from '../news';
 
 const ROLL_STEP_OF_DAY = FIRE_ROLL_HOUR * STEPS_PER_HOUR;
 
@@ -96,7 +97,9 @@ export function openRandomFire(context: StepContext): Fire | null {
   const unit = candidates[nextInt(state.rng, 0, candidates.length - 1)] as Unit;
   const column = nextInt(state.rng, unit.x, unit.x + UNIT_CATALOG[unit.type].width - 1);
   const fire = openFire(context, unit.level) as Fire;
-  context.events.push({ type: 'news', step: state.step, key: 'news.fire', level: unit.level });
+  context.events.push(
+    ...emitNews(state, 'news.fire', { eventId: fire.id, params: { level: unit.level } }),
+  );
   const damage = noDamage();
   igniteLevel(context, fire, unit.level, column, damage);
   reportDamage(context, damage);
@@ -158,7 +161,7 @@ function putOut(fire: Fire): void {
 
 function finish(context: StepContext, fire: Fire, key: 'news.fireOut' | 'news.fireHelicopter') {
   putOut(fire);
-  context.events.push({ type: 'news', step: context.state.step, key, unitId: null });
+  context.events.push(...emitNews(context.state, key, { eventId: fire.id }));
   endDisaster(context, fire.id);
 }
 

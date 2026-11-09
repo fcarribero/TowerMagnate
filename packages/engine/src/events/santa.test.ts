@@ -31,7 +31,9 @@ describe('Papá Noel', () => {
     const christmasEve = stepOfDate({ year: 1, month: 12, day: 24 });
     const { events } = step({ ...createTower(9), step: christmasEve }, [], 2 * STEPS_PER_DAY);
     const santa = events.filter((event) => event.type === 'news' && event.key === 'news.santa');
-    expect(santa).toEqual([{ type: 'news', step: santaStep(1), key: 'news.santa', unitId: null }]);
+    expect(santa).toEqual([
+      { type: 'news', step: santaStep(1), key: 'news.santa', unitId: null, params: {} },
+    ]);
   });
 
   it('comes back the next year', () => {
@@ -41,6 +43,7 @@ describe('Papá Noel', () => {
       step: santaStep(2),
       key: 'news.santa',
       unitId: null,
+      params: {},
     });
   });
 
@@ -52,10 +55,11 @@ describe('Papá Noel', () => {
     const withoutSanta = step(quiet, [], 1).state;
 
     expect(withSanta.notices.map((notice) => notice.key)).toEqual(['news.santa']);
-    expect({ ...withSanta, step: 0, notices: [] }).toEqual({
+    expect({ ...withSanta, step: 0, notices: [], newsSent: {} }).toEqual({
       ...withoutSanta,
       step: 0,
       notices: [],
+      newsSent: {},
     });
   });
 });

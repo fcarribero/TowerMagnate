@@ -31,6 +31,7 @@ import { addFailedSearch, hasPendingTrip, recordTrip, stressOfTripEndedNow } fro
 import { unitNumber } from './units';
 import { customersInsideVenue } from './venue-visitors';
 import { countVenueVisit } from './venues';
+import { emitNews } from './news';
 
 export interface Place {
   level: Level;
@@ -459,7 +460,7 @@ function failMedicalVisit(worker: Worker, full: boolean): void {
   const today = medicalDay(state);
   if (today.noticed.includes(key)) return;
   today.noticed.push(key);
-  context.events.push({ type: 'news', step: state.step, key, unitId: null });
+  context.events.push(...emitNews(state, key));
 }
 
 /** Sends the worker to a medical center; on failure it is recorded and the worker goes home. */

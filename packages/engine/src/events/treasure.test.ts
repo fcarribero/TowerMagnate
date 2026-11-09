@@ -61,8 +61,8 @@ describe('basement treasure', () => {
       step: 0,
       commandId: 'c0',
       key: 'news.treasure',
-      level: -4,
-      amount: 100_000,
+      unitId: null,
+      params: { level: -4, amount: 100_000 },
     });
   });
 
