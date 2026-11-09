@@ -41,7 +41,7 @@ import type { HookOccurrence, ScheduledHook } from './scheduler';
 import type { SimulationSystem, StepContext } from './step';
 import { drawMinuteFromWindow } from './time-windows';
 import { cancelTrek, isOnTrek, startTrek } from './trek';
-import { guestsAtVenue } from './hotel-guest-trip';
+import { isGuestAtVenue } from './hotel-guest-trip';
 import { stressOfTripEndedNow } from './trip-ledger';
 import { fileShopVisit } from './unit-evaluation';
 import { unitNumber } from './units';
@@ -307,13 +307,13 @@ export function isVenueOpen(type: VisitedVenueType, minute: number): boolean {
   return minute >= hours.open && minute < hours.close;
 }
 
-/** Everyone inside the venue right now: office diners, residents and outside customers. */
+/** Everyone inside the venue right now: office diners, residents, hotel guests and outside customers. */
 export function visitorsAt(state: TowerState, type: VisitedVenueType, venue: number): number {
   const pool = state.people;
   let count = type === 'fast-food' ? officeDinersAt(state, venue) : 0;
   count += customersInsideVenue(state, venue);
-  count += guestsAtVenue(state, venue);
   for (let slot = 0; slot < pool.id.length; slot++) {
+    if (isGuestAtVenue(pool, slot, venue)) count += 1;
     if (!isResident(pool, slot)) continue;
     const routine = decodeResidentRoutine(pool.trip[slot] ?? NO_TRIP);
     if (routine?.phase === 'atVenue' && routine.venue === venue) count += 1;

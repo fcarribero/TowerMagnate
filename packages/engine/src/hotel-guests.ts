@@ -21,6 +21,7 @@ import {
   type HotelRoom,
   type TowerState,
   type Unit,
+  type UnitId,
   type VisitedVenueType,
   type WindowPart,
 } from '@tower-magnate/shared';
@@ -69,14 +70,24 @@ type RoomUnit = Unit & { type: RoomType; hotel: HotelRoom };
 const routes: RoutePlanner = (_state, from, to, context) => plannedTripSteps(context, from, to);
 
 function isRoom(unit: Unit | undefined): unit is RoomUnit {
-  return unit !== undefined && unit.type in HOTEL_PARTY_SIZE && unit.hotel !== null;
+  return unit !== undefined && unit.hotel !== null && unit.type in HOTEL_PARTY_SIZE;
 }
 
-function roomsById(state: TowerState, keep: (room: RoomUnit) => boolean = () => true): RoomUnit[] {
-  const rooms: RoomUnit[] = [];
-  for (const unit of Object.values(state.units)) {
-    if (isRoom(unit) && keep(unit)) rooms.push(unit);
+const NO_ROOMS: readonly RoomUnit[] = [];
+
+/** Runs on most steps, so it walks the units without building a list unless a room matches. */
+function roomsById(
+  state: TowerState,
+  keep: (room: RoomUnit) => boolean = () => true,
+): readonly RoomUnit[] {
+  let rooms: RoomUnit[] | null = null;
+  for (const id in state.units) {
+    const unit = state.units[id as UnitId];
+    if (!isRoom(unit) || !keep(unit)) continue;
+    rooms ??= [];
+    rooms.push(unit);
   }
+  if (rooms === null) return NO_ROOMS;
   return rooms.sort((a, b) => unitNumber(a.id) - unitNumber(b.id));
 }
 

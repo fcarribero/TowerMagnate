@@ -1,4 +1,4 @@
-import { PERSON_KINDS, type PersonPool, type TowerState } from '@tower-magnate/shared';
+import { PERSON_KINDS, type PersonPool } from '@tower-magnate/shared';
 import { NO_HOME_UNIT, NO_TRIP, NOTHING_DUE, removePerson } from './people';
 import { isOnTrek } from './trek';
 import type { StepContext } from './step';
@@ -84,15 +84,10 @@ export function guestRoutineAt(pool: PersonPool, slot: number): GuestRoutine | n
   return decodeGuestRoutine(pool.trip[slot] ?? NO_TRIP);
 }
 
-/** Hotel guests inside this venue right now; guests on their way in do not count. */
-export function guestsAtVenue(state: TowerState, venue: number): number {
-  const pool = state.people;
-  let count = 0;
-  for (let slot = 0; slot < pool.id.length; slot++) {
-    const routine = guestRoutineAt(pool, slot);
-    if (routine?.phase === 'atVenue' && routine.venue === venue) count += 1;
-  }
-  return count;
+/** True for a hotel guest inside this venue right now; a guest on the way in does not count. */
+export function isGuestAtVenue(pool: PersonPool, slot: number, venue: number): boolean {
+  const routine = guestRoutineAt(pool, slot);
+  return routine?.phase === 'atVenue' && routine.venue === venue;
 }
 
 /** Guests who belong to the room, by person id. */

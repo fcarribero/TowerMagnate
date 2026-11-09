@@ -112,10 +112,17 @@ function checkOut(context: StepContext, room: RoomUnit): void {
   releaseStayGuests(context, unitNumber(room.id));
 }
 
-function stayersEndingAt(step: number, units: Record<UnitId, Unit>): RoomUnit[] {
-  return Object.values(units)
-    .filter((unit): unit is RoomUnit => isRoom(unit) && unit.hotel.stayEndStep === step)
-    .sort((a, b) => unitNumber(a.id) - unitNumber(b.id));
+/** Runs every step, so it walks the units without building a list unless a stay ends. */
+function stayersEndingAt(step: number, units: Record<UnitId, Unit>): readonly RoomUnit[] {
+  let rooms: RoomUnit[] | null = null;
+  for (const id in units) {
+    const unit = units[id as UnitId] as Unit;
+    if (unit.hotel?.stayEndStep !== step || !isRoom(unit)) continue;
+    rooms ??= [];
+    rooms.push(unit);
+  }
+  if (rooms === null) return [];
+  return rooms.sort((a, b) => unitNumber(a.id) - unitNumber(b.id));
 }
 
 /** Ends each stay at its check-out time and leaves the room dirty, in order of unit id. */
