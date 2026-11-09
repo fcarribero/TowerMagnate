@@ -415,6 +415,104 @@ describe('guest outings', () => {
   });
 });
 
+describe('hotel guests by subway', () => {
+  const RIGHT = 130;
+  const SUBWAY_LEVEL = -7;
+
+  /** Ten rooms on level 2 and, below the lobby, a station reached by an elevator, or no station. */
+  function subwayHotel(station: boolean, reachable = true) {
+    const { state } = buildTower({
+      seed: 6,
+      lobby: { x0: 0, x1: RIGHT },
+      floors: [
+        { from: 2, to: 2 as Level, x0: 0, x1: RIGHT },
+        { from: -9 as Level, to: -1 as Level, x0: 0, x1: RIGHT },
+      ],
+      units: [
+        ...Array.from({ length: 10 }, (_, index) => ({
+          type: ROOM_TYPES[index % ROOM_TYPES.length] as UnitType,
+          x: 20 + index * 10,
+          level: 2 as Level,
+        })),
+        ...(station ? [{ type: 'subway-station' as UnitType, x: 10, level: -9 as Level }] : []),
+      ],
+      shafts: reachable ? [{ type: 'standard', x: 124, bottom: -7, top: 2 }] : [],
+    });
+    return state;
+  }
+
+  interface EntranceLog {
+    arrivals: { level: number; room: number }[];
+    exits: number[];
+    checkIns: UnitId[];
+  }
+
+  /** Where each guest appears, the level of each walk out, and the rooms that checked in. */
+  function entranceWatcher(log: EntranceLog): SimulationSystem {
+    const seen = new Map<number, { level: number; phase: GuestRoutine['phase'] }>();
+    return ({ state, events }) => {
+      for (const event of events.splice(0)) {
+        if (event.type === 'hotelCheckIn') log.checkIns.push(event.unitId);
+      }
+      const pool = state.people;
+      const present = new Set<number>();
+      for (let slot = 0; slot < pool.id.length; slot++) {
+        const routine = guestRoutineAt(pool, slot);
+        if (!routine) continue;
+        const id = pool.id[slot] as number;
+        const level = pool.level[slot] as number;
+        present.add(id);
+        const before = seen.get(id);
+        if (!before) log.arrivals.push({ level, room: pool.homeUnit[slot] as number });
+        if (routine.phase === 'outside' && before?.phase !== 'outside') log.exits.push(level);
+        seen.set(id, { level, phase: routine.phase });
+      }
+      for (const [id, last] of seen) {
+        if (present.has(id)) continue;
+        if (last.phase === 'leaving') log.exits.push(last.level);
+        seen.delete(id);
+      }
+    };
+  }
+
+  function runDays(tower: TowerState, days: number) {
+    const log: EntranceLog = { arrivals: [], exits: [], checkIns: [] };
+    const engine = createEngine({
+      commandHandlers: {},
+      systems: [cleanAtEleven, ...towerSystems, entranceWatcher(log)],
+    });
+    return { log, state: engine.runDays(tower, days).state };
+  }
+
+  function runWeek(station: boolean): EntranceLog {
+    return runDays(subwayHotel(station), 7).log;
+  }
+
+  it('brings some guests in and out by subway, and they still check in', () => {
+    const log = runWeek(true);
+    const bySubway = log.arrivals.filter((arrival) => arrival.level === SUBWAY_LEVEL);
+    expect(bySubway.length).toBeGreaterThan(0);
+    expect(bySubway.length).toBeLessThan(log.arrivals.length);
+    expect(log.exits.filter((level) => level === SUBWAY_LEVEL).length).toBeGreaterThan(0);
+    const checkedInRooms = new Set(log.checkIns.map((id) => Number(id.slice(1))));
+    expect(bySubway.some((arrival) => checkedInRooms.has(arrival.room))).toBe(true);
+  });
+
+  it('brings every guest by street without a station, still checking parties in', () => {
+    const log = runWeek(false);
+    expect(log.checkIns.length).toBeGreaterThan(10);
+    expect(log.arrivals.every((arrival) => arrival.level === 1)).toBe(true);
+    expect(log.exits.every((level) => level === 1)).toBe(true);
+  });
+
+  it('gives up at 23:00 when the rooms cannot be reached from any entrance', () => {
+    const { log, state } = runDays(subwayHotel(true, false), 3);
+    expect(log.arrivals.length).toBeGreaterThan(0);
+    expect(log.checkIns).toHaveLength(0);
+    expect(state.people.id).toHaveLength(0);
+  });
+});
+
 /** One suite on level 2 and a basement with a ramp and `spaces` parking spaces, at 3 stars. */
 function suiteParkingTower(spaces: number) {
   const { state, unitIds } = buildTower({
