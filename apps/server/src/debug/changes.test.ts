@@ -111,16 +111,28 @@ describe('debug changes on a running tower', () => {
     expect(state().activeEvents).toHaveLength(1);
   });
 
-  it('announces santa at the current step and leaves the tower as it was', async () => {
+  it('announces santa at the current step and keeps it with the notices', async () => {
     await start(2, towerWithOffice());
-    const before = hashState(state());
+    const before = state();
 
     await runner.change('1', forceEvent('santa'));
 
     expect(runner.takeEvents('1')).toEqual([
       { type: 'news', step: state().step, key: 'news.santa', unitId: null },
     ]);
-    expect(hashState(state())).toBe(before);
+    expect(state().notices).toEqual([
+      ...before.notices,
+      { id: `n${state().step}.0`, step: state().step, key: 'news.santa', unitId: null, params: {} },
+    ]);
+  });
+
+  it('changes nothing but the notices when santa is forced', async () => {
+    await start(2, towerWithOffice());
+    const before = state();
+
+    await runner.change('1', forceEvent('santa'));
+
+    expect(hashState({ ...state(), notices: before.notices })).toBe(hashState(before));
   });
 
   it('fast forwards a day to the same state as running the steps', async () => {

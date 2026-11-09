@@ -182,5 +182,5 @@ export type {
   UserClass,
   WalkableRun,
 } from './routing';
-export { noticeParams } from './notices';
+export { noticeParams, recordNotices } from './notices';
 export { isEvaluatedUnit, storedGrade } from './unit-evaluation';

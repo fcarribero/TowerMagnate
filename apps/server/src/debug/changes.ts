@@ -3,6 +3,7 @@ import {
   DAYS_PER_WEEK,
   openRandomBombThreat,
   openRandomFire,
+  recordNotices,
   STEPS_PER_DAY,
   STEPS_PER_MINUTE,
   weekdayOfDay,
@@ -43,11 +44,12 @@ export function forceEvent(kind: DebugEventKind): TowerChange {
   };
 }
 
-/** Santa is only a notice, so the tower stays exactly as it was. */
+/** Santa is only a notice: it is kept with the other notices and nothing else changes. */
 const forceSanta: TowerChange = (state) => {
-  const context: StepContext = { state, events: [] };
+  const context: StepContext = { state: structuredClone(state), events: [] };
   announceSanta(context);
-  return { state, events: context.events };
+  recordNotices(context.state, context.events);
+  return { state: context.state, events: context.events };
 };
 
 /** Runs the steps through the same advance the real clock uses, so the result matches. */

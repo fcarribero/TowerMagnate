@@ -91,13 +91,18 @@ describe('debug messages over the tower socket', () => {
     expect(errors(client)[0]?.p.code).toBe('INVALID_COMMAND');
   });
 
-  it('sends the santa notice to the player', async () => {
+  it('sends the santa notice to the player and keeps it in the notices', async () => {
     const client = await connectTo(true);
     await client.next('delta');
 
     client.sendRaw(debugFrame('debug.forceEvent', { id: 's', kind: 'santa' }));
 
-    await waitFor(() => results(client).length === 1 && santaNotices(client).length === 1);
+    await waitFor(
+      () =>
+        results(client).length === 1 &&
+        santaEvents(client).length === 1 &&
+        storedSantaNotices(client).length === 1,
+    );
     expect(results(client)[0]).toEqual(expect.objectContaining({ id: 's', ok: true }));
   });
 
@@ -115,8 +120,17 @@ describe('debug messages over the tower socket', () => {
     return client.received.flatMap((message) => (message.t === 'commandResult' ? [message.p] : []));
   }
 
-  function santaNotices(client: TestSocketClient) {
-    return client.received.filter((message) => JSON.stringify(message).includes('news.santa'));
+  function santaEvents(client: TestSocketClient) {
+    return client.received.filter(
+      (message) => message.t !== 'delta' && JSON.stringify(message).includes('news.santa'),
+    );
+  }
+
+  function storedSantaNotices(client: TestSocketClient) {
+    return client.received.filter(
+      (message) =>
+        message.t === 'delta' && JSON.stringify(message.p.notices ?? []).includes('news.santa'),
+    );
   }
 
   function errors(client: TestSocketClient) {
