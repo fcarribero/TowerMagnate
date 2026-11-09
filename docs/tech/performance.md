@@ -202,4 +202,16 @@ Render tasks that touch frame time copy this into their QA notes:
 
 ### Reference result
 
-Not measured yet. A first attempt on 2027-02-01 was stopped before its first run finished, because the machine ran low on memory while other work was running on it. The summary row "60 fps at 1x zoom" stays "Not judged yet" until 3 uncapped runs and one capped run are made on the idle machine.
+Not judged yet. Two sets of runs on 2027-02-04 were void under the 15% rule, because the machine was not idle. Before the runs, with nothing of this test running, CPU load sampled every 3 seconds for 30 seconds was 41% to 71% (average 59%) with 12.3 of 31.9 GB free; the load came from Docker (13 test database containers and a dev stack) and other Node processes. During the runs the load stayed at 77% to 100%.
+
+| Run | Frames | fps | Average frame | p95 frame | Max draw calls |
+| --- | --- | --- | --- | --- | --- |
+| Set 1, run 1, uncapped | 74,942 | 277 | 3.6 ms | 5.6 ms | 69 |
+| Set 1, run 2, uncapped | 131,582 | 728 | 1.4 ms | 2.9 ms | 69 |
+| Set 1, run 3, uncapped | 145,198 | 853 | 1.2 ms | 2.7 ms | 69 |
+| Set 2, run 1, uncapped | not printed | 301 | 3.3 ms | 5.3 ms | 69 |
+| Set 2, run 2, uncapped | not printed | 580 | 1.7 ms | 3.0 ms | 69 |
+| Set 2, run 3, uncapped | not printed | 540 | 1.9 ms | 3.6 ms | 69 |
+| Capped, 1 minute | 3,694 | 56.8 | 17.6 ms | 18.1 ms | 69 |
+
+In both sets the first run is about twice as slow as the other two, so the p95 frame costs differ by far more than 15% and both results are void. The medians would pass (p95 2.9 ms and 3.6 ms against 8.3 ms, average 1.4 ms and 1.9 ms against 5 ms), and the capped run reads 56.8 fps, but a void set is not a result. The summary row "60 fps at 1x zoom" stays "Not judged yet" until 3 uncapped runs agree within 15% on the idle machine.
