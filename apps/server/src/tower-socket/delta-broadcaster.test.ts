@@ -184,6 +184,22 @@ describe('delta broadcaster', () => {
     expect(messages('events')).toHaveLength(1);
   });
 
+  it('sends an event a change adds at the step a socket was already sent', async () => {
+    pass(DELTA_INTERVAL_MS);
+    const sentStep = towerState().step;
+
+    await runner.change(TOWER, (state) => ({
+      state,
+      events: [{ type: 'news', step: state.step, key: 'news.test', unitId: null, params: {} }],
+    }));
+    broadcaster.tick(registry);
+
+    const events = messages('events').flatMap(
+      (message) => (message.p as unknown as { events: { step: number }[] }).events,
+    );
+    expect(events).toEqual([expect.objectContaining({ key: 'news.test', step: sentStep })]);
+  });
+
   it('skips events that are older than the socket snapshot', () => {
     const late = new FakeSocket();
     registry.add(late, { userId: 'u1', towerId: TOWER });

@@ -18,6 +18,7 @@ export {
 } from './bomb';
 export type { BombRoll } from './bomb';
 export { pickFireTargets } from './fire-guards';
+export { announceSanta } from './santa';
 export { fireCandidates, igniteLevel, openRandomFire } from './fire';
 
 /** Event work of one step, in the order of events spec section 10, with the given 09:00 bomb roll. */

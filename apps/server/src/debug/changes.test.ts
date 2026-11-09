@@ -113,10 +113,36 @@ describe('debug changes on a running tower', () => {
     await expect(runner.change('1', forceEvent('fire'))).rejects.toEqual(
       new DebugRefusal('BOMB_EVENT_ACTIVE'),
     );
-    await expect(runner.change('1', forceEvent('santa'))).rejects.toEqual(
+    await expect(runner.change('1', forceEvent('vip'))).rejects.toEqual(
       new DebugRefusal('INVALID_COMMAND'),
     );
     expect(state().activeEvents).toHaveLength(1);
+  });
+
+  it('announces santa at the current step and keeps it with the notices', async () => {
+    await start(2, towerWithOffice());
+    const before = state();
+
+    await runner.change('1', forceEvent('santa'));
+
+    expect(runner.takeEvents('1')).toEqual([
+      { type: 'news', step: state().step, key: 'news.santa', unitId: null, params: {} },
+    ]);
+    expect(state().notices).toEqual([
+      ...before.notices,
+      { id: `n${state().step}.0`, step: state().step, key: 'news.santa', unitId: null, params: {} },
+    ]);
+  });
+
+  it('changes nothing but the notices when santa is forced', async () => {
+    await start(2, towerWithOffice());
+    const before = state();
+
+    await runner.change('1', forceEvent('santa'));
+
+    expect(hashState({ ...state(), notices: before.notices, newsSent: before.newsSent })).toBe(
+      hashState(before),
+    );
   });
 
   it('fast forwards a day to the same state as running the steps', async () => {
