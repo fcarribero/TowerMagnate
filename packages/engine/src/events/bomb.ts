@@ -45,7 +45,7 @@ import { endDisaster, hasActiveDisaster, openBombThreat } from './decisions';
 const ROLL_STEP_OF_DAY = BOMB_ROLL_HOUR * STEPS_PER_HOUR;
 const EXPLODE_STEP_OF_DAY = BOMB_EXPLODE_HOUR * STEPS_PER_HOUR;
 
-function unitNumber(unit: Unit): number {
+export function unitNumber(unit: Unit): number {
   return parseUnitNumber(unit.id) ?? 0;
 }
 
@@ -147,7 +147,7 @@ function unitsInBox(state: TowerState, levels: readonly Level[], x0: number, x1:
 }
 
 /** Like a demolition, with no refund and no condo buyback; every cell of the unit turns to ruins. */
-function destroyUnit(state: TowerState, unit: Unit): CellRange[] {
+export function destroyUnit(state: TowerState, unit: Unit): CellRange[] {
   const x1 = unit.x + UNIT_CATALOG[unit.type].width - 1;
   const ruined: CellRange[] = [];
   removePeopleOfUnit(state, unit.id);

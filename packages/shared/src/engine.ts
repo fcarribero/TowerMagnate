@@ -309,6 +309,8 @@ export interface TowerState {
   parking: ParkingState;
   /** Today's wedding attempt, from 00:00 until its guests leave; null on other days. */
   wedding: WeddingAttempt | null;
+  /** Day number of the last wedding attempt, kept after its guests leave; null if none yet. */
+  lastWeddingDay: number | null;
 }
 
 /** A weekend day's wedding attempt (stars spec 7, people spec 15). */
@@ -504,7 +506,7 @@ export type EngineEvent =
     }
   | { type: 'news'; step: number; commandId: string; key: 'news.bombPaid'; unitId: null }
   | { type: 'disaster'; step: number; kind: DecisionKind; cells: CellRange[] }
-  | { type: 'news'; step: number; key: 'news.bombExploded'; level: Level }
+  | { type: 'news'; step: number; key: 'news.bombExploded' | 'news.fire'; level: Level }
   | { type: 'news'; step: number; key: 'news.starsUp'; n: number }
   | { type: 'news'; step: number; key: 'news.decisionDefault'; eventId: EventId; choice: string }
   | { type: 'news'; step: number; key: string; unitId: UnitId | null };

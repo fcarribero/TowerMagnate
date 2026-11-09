@@ -45,7 +45,7 @@ import { readActiveEvents, readClosedDecisions, readNotices, readTreasureLevels 
 import { readGrid } from './grid';
 import { readLedger, readMoney } from './money';
 import { readPeople, readTripLedger } from './people';
-import { readStars, readWedding } from './stars';
+import { readLastWeddingDay, readStars, readWedding } from './stars';
 import { readFloorPurchases, readLobbyPurchases, readTransports } from './transports';
 
 export { StateMigrationError } from './errors';
@@ -80,6 +80,7 @@ const MIGRATIONS: readonly Migration[] = [
   addLobbyPurchases,
   addUnitEvaluation,
   addShopWeekVisits,
+  addLastWeddingDay,
   addHotelBookings,
 ];
 
@@ -432,24 +433,30 @@ function addShopWeekVisits(raw: Record<string, unknown>): Record<string, unknown
   return { ...raw, schemaVersion: 27, units };
 }
 
+/** Version 28 remembers the day of the last wedding attempt, taken from one under way. */
+function addLastWeddingDay(raw: Record<string, unknown>): Record<string, unknown> {
+  const lastWeddingDay = isRecord(raw.wedding) ? raw.wedding.day : null;
+  return { lastWeddingDay, ...raw, schemaVersion: 28 };
+}
+
 function withWeekVisits(unit: Record<string, unknown>): Record<string, unknown> {
   if (!isRecord(unit.lease)) return unit;
   return { ...unit, lease: { weekVisits: SHOP_EARLY_LEAVE_MIN_VISITS, ...unit.lease } };
 }
 
 /**
- * Version 28 keeps each hotel room's booking and whether it rolls for one at once. A room in an
+ * Version 29 keeps each hotel room's booking and whether it rolls for one at once. A room in an
  * older tower has no booking.
  */
 function addHotelBookings(raw: Record<string, unknown>): Record<string, unknown> {
   if (!isRecord(raw.units)) {
-    return { ...raw, schemaVersion: 28 };
+    return { ...raw, schemaVersion: 29 };
   }
   const units: Record<string, unknown> = {};
   for (const [id, unit] of Object.entries(raw.units)) {
     units[id] = isRecord(unit) && isRecord(unit.hotel) ? withHotelBooking(unit) : unit;
   }
-  return { ...raw, schemaVersion: 28, units };
+  return { ...raw, schemaVersion: 29, units };
 }
 
 function withHotelBooking(unit: Record<string, unknown>): Record<string, unknown> {
@@ -831,6 +838,7 @@ function assertCurrentShape(raw: Record<string, unknown>): TowerState {
     medicalDay: readMedicalDay(raw.medicalDay),
     parking: readParking(raw.parking),
     wedding: readWedding(raw.wedding),
+    lastWeddingDay: readLastWeddingDay(raw.lastWeddingDay),
   };
 }
 
