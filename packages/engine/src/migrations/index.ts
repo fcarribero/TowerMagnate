@@ -11,6 +11,7 @@ import {
   RESPONSE_DISTANCE_MAX,
   RESPONSE_DISTANCE_MIN,
   SHAFT_TYPES,
+  SHOP_EARLY_LEAVE_MIN_VISITS,
   UNIT_TYPES,
   type ElevatorCar,
   type CondoSale,
@@ -29,6 +30,7 @@ import {
   type ShaftType,
   type ShaftId,
   type StopQueues,
+  type TenantEvaluation,
   type TowerState,
   type Unit,
   type UnitId,
@@ -43,8 +45,8 @@ import { readActiveEvents, readClosedDecisions, readNotices, readTreasureLevels 
 import { readGrid } from './grid';
 import { readLedger, readMoney } from './money';
 import { readPeople, readTripLedger } from './people';
-import { readStars } from './stars';
-import { readTransports } from './transports';
+import { readStars, readWedding } from './stars';
+import { readFloorPurchases, readLobbyPurchases, readTransports } from './transports';
 
 export { StateMigrationError } from './errors';
 
@@ -72,6 +74,12 @@ const MIGRATIONS: readonly Migration[] = [
   addGuardEventState,
   addVenueDayCounts,
   addBombCell,
+  addVenueCustomers,
+  addTransportPurchaseRecord,
+  addWeddingAttempt,
+  addLobbyPurchases,
+  addUnitEvaluation,
+  addShopWeekVisits,
 ];
 
 /** Version 2 records each unit's price level, what was paid for it and when it was placed. */
@@ -314,9 +322,34 @@ function addVenueDayCounts(raw: Record<string, unknown>): Record<string, unknown
   return { ...raw, schemaVersion: 20, units };
 }
 
-function venueDayFor(type: unknown): VenueDay | null {
+function venueDayFor(type: unknown): Record<string, unknown> | null {
   const isVenue = (UNIT_TYPES as readonly unknown[]).includes(type) && isVenueType(type as never);
-  return isVenue ? newVenueDay() : null;
+  return isVenue ? { visits: 0, eveningShowVisits: 0, yesterday: null } : null;
+}
+
+/**
+ * Version 22 keeps each venue's day count until 00:00, the trip stress of its visits and its
+ * outside customers still to come. Retail shops get counts as well.
+ */
+function addVenueCustomers(raw: Record<string, unknown>): Record<string, unknown> {
+  if (!isRecord(raw.units)) {
+    return { ...raw, schemaVersion: 22 };
+  }
+  const units: Record<string, unknown> = {};
+  for (const [id, unit] of Object.entries(raw.units)) {
+    units[id] = isRecord(unit) ? withCustomerCounts(unit) : unit;
+  }
+  return { ...raw, schemaVersion: 22, units };
+}
+
+function withCustomerCounts(unit: Record<string, unknown>): Record<string, unknown> {
+  if (isRecord(unit.venue)) {
+    return { ...unit, venue: { ...newVenueDay(), ...unit.venue } };
+  }
+  if (unit.type === 'retail-shop') {
+    return { ...unit, venue: newVenueDay() };
+  }
+  return unit;
 }
 
 /**
@@ -333,6 +366,74 @@ function addBombCell(raw: Record<string, unknown>): Record<string, unknown> {
       })
     : raw.activeEvents;
   return { ...raw, activeEvents, schemaVersion: 21 };
+}
+
+/**
+ * Version 23 records what each staircase and escalator cost and when it was placed, and keeps
+ * floor tool purchases. Older transports and floor are past the refund window, so they get zero.
+ */
+function addTransportPurchaseRecord(raw: Record<string, unknown>): Record<string, unknown> {
+  const transports = isRecord(raw.transports)
+    ? Object.fromEntries(
+        Object.entries(raw.transports).map(([id, transport]) => [
+          id,
+          isRecord(transport) ? { paid: 0, placedAtStep: 0, ...transport } : transport,
+        ]),
+      )
+    : raw.transports;
+  return { ...raw, transports, floorPurchases: [], schemaVersion: 23 };
+}
+
+/** Version 24 keeps the day's wedding attempt; an older tower has none under way. */
+function addWeddingAttempt(raw: Record<string, unknown>): Record<string, unknown> {
+  return { wedding: null, ...raw, schemaVersion: 24 };
+}
+
+/** Version 25 keeps sky lobby purchases; an older tower's lobbies are past the refund window. */
+function addLobbyPurchases(raw: Record<string, unknown>): Record<string, unknown> {
+  return { ...raw, lobbyPurchases: [], schemaVersion: 25 };
+}
+
+/**
+ * Version 26 stores each unit's grade, each evaluated unit's trip ledger and what a hotel stay
+ * paid at check-in. Older saves have no grades and no filed trips.
+ */
+function addUnitEvaluation(raw: Record<string, unknown>): Record<string, unknown> {
+  if (!isRecord(raw.units)) {
+    return { unitLedger: {}, ...raw, schemaVersion: 26 };
+  }
+  const units: Record<string, unknown> = {};
+  for (const [id, unit] of Object.entries(raw.units)) {
+    units[id] = isRecord(unit) ? withUnitEvaluation(unit) : unit;
+  }
+  return { unitLedger: {}, ...raw, schemaVersion: 26, units };
+}
+
+function withUnitEvaluation(unit: Record<string, unknown>): Record<string, unknown> {
+  const hotel = isRecord(unit.hotel)
+    ? { checkInStep: null, paidLevel: null, ...unit.hotel }
+    : unit.hotel;
+  return { evaluation: null, ...unit, hotel };
+}
+
+/**
+ * Version 27 counts each lease's customer visits for the shop early-leave check. A lease saved
+ * before that starts at the minimum, so no shop leaves for a week it was never counted in.
+ */
+function addShopWeekVisits(raw: Record<string, unknown>): Record<string, unknown> {
+  if (!isRecord(raw.units)) {
+    return { ...raw, schemaVersion: 27 };
+  }
+  const units: Record<string, unknown> = {};
+  for (const [id, unit] of Object.entries(raw.units)) {
+    units[id] = isRecord(unit) ? withWeekVisits(unit) : unit;
+  }
+  return { ...raw, schemaVersion: 27, units };
+}
+
+function withWeekVisits(unit: Record<string, unknown>): Record<string, unknown> {
+  if (!isRecord(unit.lease)) return unit;
+  return { ...unit, lease: { weekVisits: SHOP_EARLY_LEAVE_MIN_VISITS, ...unit.lease } };
 }
 
 /** Version 11 gives each hotel room a state; every room in an older tower is clean and empty. */
@@ -398,6 +499,7 @@ function isUnit(value: unknown): value is Unit {
     (value.lease === null || isLease(value.lease)) &&
     (value.hotel === null || isHotelRoom(value.hotel)) &&
     (value.sale === null || isCondoSale(value.sale)) &&
+    (value.evaluation === null || isTenantEvaluation(value.evaluation)) &&
     (value.venue === null || isVenueDay(value.venue))
   );
 }
@@ -410,8 +512,18 @@ function isVenueDay(value: unknown): value is VenueDay {
     (value.yesterday === null ||
       (isRecord(value.yesterday) &&
         isNonNegativeInteger(value.yesterday.visits) &&
-        (value.yesterday.result === null || Number.isSafeInteger(value.yesterday.result))))
+        (value.yesterday.result === null || Number.isSafeInteger(value.yesterday.result)))) &&
+    isNonNegativeInteger(value.countToday) &&
+    isNonNegativeInteger(value.previousDayCount) &&
+    isNonNegativeInteger(value.stressSum) &&
+    isNonNegativeInteger(value.stressTrips) &&
+    Array.isArray(value.customers) &&
+    value.customers.every(isNonNegativeInteger)
   );
+}
+
+function isTenantEvaluation(value: unknown): value is TenantEvaluation {
+  return value === 'good' || value === 'fair' || value === 'poor';
 }
 
 function isHotelRoom(value: unknown): value is HotelRoom {
@@ -419,7 +531,9 @@ function isHotelRoom(value: unknown): value is HotelRoom {
     isRecord(value) &&
     (HotelRoomStateSchema.options as readonly unknown[]).includes(value.state) &&
     (value.stayEndStep === null || isNonNegativeInteger(value.stayEndStep)) &&
-    (value.state === 'occupied') === (value.stayEndStep !== null)
+    (value.state === 'occupied') === (value.stayEndStep !== null) &&
+    (value.checkInStep === null || isNonNegativeInteger(value.checkInStep)) &&
+    (value.paidLevel === null || (PRICE_LEVELS as readonly unknown[]).includes(value.paidLevel))
   );
 }
 
@@ -438,8 +552,28 @@ function isLease(value: unknown): value is Lease {
     isRecord(value) &&
     isNonNegativeInteger(value.anchorStep) &&
     isNonNegativeInteger(value.nextDueStep) &&
-    value.nextDueStep > value.anchorStep
+    value.nextDueStep > value.anchorStep &&
+    isNonNegativeInteger(value.weekVisits)
   );
+}
+
+function readUnitLedger(raw: unknown, units: Record<UnitId, Unit>): Record<UnitId, number[]> {
+  if (!isRecord(raw)) {
+    throw new StateMigrationError('State unit ledger must be a record');
+  }
+  const ledger: Record<UnitId, number[]> = {};
+  for (const [unitId, trips] of Object.entries(raw)) {
+    const valid =
+      unitId in units &&
+      Array.isArray(trips) &&
+      trips.length % 2 === 0 &&
+      trips.every((value) => Number.isInteger(value));
+    if (!valid) {
+      throw new StateMigrationError(`State unit ledger entry ${unitId} is malformed`);
+    }
+    ledger[unitId] = (trips as number[]).slice();
+  }
+  return ledger;
 }
 
 /** Towers saved before units existed have no `units` record; they start with none. */
@@ -468,6 +602,7 @@ function readUnits(raw: unknown): Record<UnitId, Unit> {
       lease: unit.lease === null ? null : { ...unit.lease },
       sale: unit.sale === null ? null : { ...unit.sale },
       hotel: unit.hotel === null ? null : { ...unit.hotel },
+      evaluation: unit.evaluation,
       venue: readVenueDay(unit.venue),
     };
   }
@@ -478,7 +613,11 @@ function readVenueDay(venue: VenueDay | null): VenueDay | null {
   if (venue === null) {
     return null;
   }
-  return { ...venue, yesterday: venue.yesterday === null ? null : { ...venue.yesterday } };
+  return {
+    ...venue,
+    yesterday: venue.yesterday === null ? null : { ...venue.yesterday },
+    customers: [...venue.customers],
+  };
 }
 
 function isElevatorCar(value: unknown): value is ElevatorCar {
@@ -644,6 +783,7 @@ function assertCurrentShape(raw: Record<string, unknown>): TowerState {
     throw new StateMigrationError('State nextId must be a non-negative integer');
   }
   const people = readPeople(raw.people);
+  const units = readUnits(raw.units);
   return {
     schemaVersion: SCHEMA_VERSION,
     step: raw.step,
@@ -651,12 +791,15 @@ function assertCurrentShape(raw: Record<string, unknown>): TowerState {
     nextId: raw.nextId,
     money: readMoney(raw.money),
     stars: readStars(raw.stars),
-    units: readUnits(raw.units),
+    units,
     transports: readTransports(raw.transports),
     shafts: readShafts(raw.shafts),
     grid: readGrid(raw.grid),
+    floorPurchases: readFloorPurchases(raw.floorPurchases),
+    lobbyPurchases: readLobbyPurchases(raw.lobbyPurchases),
     people: people,
     tripLedger: readTripLedger(raw.tripLedger, people.id),
+    unitLedger: readUnitLedger(raw.unitLedger, units),
     ledger: readLedger(raw.ledger),
     activeEvents: readActiveEvents(raw.activeEvents),
     closedDecisions: readClosedDecisions(raw.closedDecisions),
@@ -665,6 +808,7 @@ function assertCurrentShape(raw: Record<string, unknown>): TowerState {
     ...readStarState(raw),
     medicalDay: readMedicalDay(raw.medicalDay),
     parking: readParking(raw.parking),
+    wedding: readWedding(raw.wedding),
   };
 }
 

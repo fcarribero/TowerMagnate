@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { defaultSchedule } from '../commands/shafts';
 import { createTower, SCHEMA_VERSION } from '../state';
-import { newUnit } from '../units';
+import { newUnit, newVenueDay } from '../units';
 import {
   VERSION_1_SAVE,
   VERSION_2_SAVE,
@@ -92,7 +92,7 @@ describe('migrateState unit leases', () => {
       ...newUnit('u3', 'office', 0, 1),
       priceLevel: 'high',
       used: true,
-      lease: { anchorStep: 100, nextDueStep: 60580 },
+      lease: { anchorStep: 100, nextDueStep: 60580, weekVisits: 0 },
     };
     expect(migratedUnit(JSON.parse(JSON.stringify(rented)))).toEqual(rented);
   });
@@ -100,9 +100,43 @@ describe('migrateState unit leases', () => {
   it('keeps the day counts of a venue', () => {
     const cinema = {
       ...newUnit('u3', 'cinema', 0, 2),
-      venue: { visits: 70, eveningShowVisits: 90, yesterday: { visits: 80, result: 10_000 } },
+      venue: {
+        visits: 70,
+        eveningShowVisits: 90,
+        yesterday: { visits: 80, result: 10_000 },
+        countToday: 160,
+        previousDayCount: 150,
+        stressSum: 900,
+        stressTrips: 12,
+        customers: [],
+      },
     };
     expect(migratedUnit(JSON.parse(JSON.stringify(cinema)))).toEqual(cinema);
+  });
+
+  it('keeps the outside customers still to come', () => {
+    const shop = { ...newUnit('u3', 'retail-shop', 0, 2) };
+    shop.venue = { ...newVenueDay(), countToday: 4, customers: [3_600, 3_660, 4_200] };
+    expect(migratedUnit(JSON.parse(JSON.stringify(shop)))).toEqual(shop);
+  });
+
+  it('gives a version 21 save day counts, stress sums and no customers', () => {
+    const food = {
+      ...newUnit('u3', 'fast-food', 0, 2),
+      venue: { visits: 12, eveningShowVisits: 0, yesterday: null },
+    };
+    const shop = { ...newUnit('u4', 'retail-shop', 10, 2), venue: null };
+    const office = newUnit('u5', 'office', 20, 2);
+    const save = {
+      ...createTower(5),
+      schemaVersion: 20,
+      units: { u3: food, u4: shop, u5: office },
+    };
+    const tower = migrateState(JSON.parse(JSON.stringify(save)));
+    expect(tower.schemaVersion).toBe(SCHEMA_VERSION);
+    expect(tower.units.u3?.venue).toEqual({ ...newVenueDay(), visits: 12 });
+    expect(tower.units.u4?.venue).toEqual(newVenueDay());
+    expect(tower.units.u5?.venue).toBeNull();
   });
 
   it('gives venues of a version 19 save zero counts and other units none', () => {
@@ -115,7 +149,7 @@ describe('migrateState unit leases', () => {
     const office = withoutVenue(newUnit('u4', 'office', 5, 2));
     const save = { ...createTower(5), schemaVersion: 19, units: { u3: food, u4: office } };
     const tower = migrateState(save);
-    expect(tower.units.u3?.venue).toEqual({ visits: 0, eveningShowVisits: 0, yesterday: null });
+    expect(tower.units.u3?.venue).toEqual(newVenueDay());
     expect(tower.units.u4?.venue).toBeNull();
   });
 
@@ -123,9 +157,13 @@ describe('migrateState unit leases', () => {
     const food = newUnit('u3', 'fast-food', 0, 2);
     const badCounts = [
       'u3',
-      { visits: -1, eveningShowVisits: 0, yesterday: null },
-      { visits: 1.5, eveningShowVisits: 0, yesterday: null },
-      { visits: 0, eveningShowVisits: 0, yesterday: { visits: 0 } },
+      { ...newVenueDay(), visits: -1 },
+      { ...newVenueDay(), visits: 1.5 },
+      { ...newVenueDay(), yesterday: { visits: 0 } },
+      { ...newVenueDay(), countToday: -1 },
+      { ...newVenueDay(), stressTrips: 0.5 },
+      { ...newVenueDay(), customers: [100, -6] },
+      { ...newVenueDay(), customers: null },
     ];
     for (const venue of badCounts) {
       expect(() => migratedUnit({ ...food, venue })).toThrow(StateMigrationError);
@@ -170,6 +208,7 @@ describe('migrateState fixtures', () => {
       lease: null,
       sale: null,
       hotel: null,
+      evaluation: null,
       venue: null,
     });
   });
@@ -330,16 +369,19 @@ describe('migrateState transports', () => {
   it('loads a frozen version 5 save', () => {
     const tower = migrateState(JSON.parse(VERSION_5_SAVE));
     expect(tower.transports).toEqual({
-      t2: { id: 't2', type: 'escalator', x: 20, level: 2 },
+      t2: { id: 't2', type: 'escalator', x: 20, level: 2, paid: 0, placedAtStep: 0 },
     });
   });
 
   it('refuses a malformed transport', () => {
+    const purchase = { paid: 5_000, placedAtStep: 0 };
     const bad = [
-      { id: 't1', type: 'ramp', x: 0, level: 2 },
-      { id: 't1', type: 'stairs', x: 400, level: 2 },
-      { id: 't1', type: 'stairs', x: 0, level: 0 },
-      { id: 't9', type: 'stairs', x: 0, level: 2 },
+      { id: 't1', type: 'ramp', x: 0, level: 2, ...purchase },
+      { id: 't1', type: 'stairs', x: 400, level: 2, ...purchase },
+      { id: 't1', type: 'stairs', x: 0, level: 0, ...purchase },
+      { id: 't9', type: 'stairs', x: 0, level: 2, ...purchase },
+      { id: 't1', type: 'stairs', x: 0, level: 2, paid: -1, placedAtStep: 0 },
+      { id: 't1', type: 'stairs', x: 0, level: 2 },
     ];
     for (const transport of bad) {
       const saved = JSON.parse(JSON.stringify(createTower(5)));
@@ -409,7 +451,12 @@ describe('migrateState hotel rooms', () => {
     const tower = migrateState(JSON.parse(VERSION_9_SAVE));
     expect(tower.schemaVersion).toBe(SCHEMA_VERSION);
     expect(tower.units.u1?.hotel).toBeNull();
-    expect(tower.units.u3?.hotel).toEqual({ state: 'clean', stayEndStep: null });
+    expect(tower.units.u3?.hotel).toEqual({
+      state: 'clean',
+      stayEndStep: null,
+      checkInStep: null,
+      paidLevel: null,
+    });
   });
 
   it('keeps an occupied room with its stay end', () => {
@@ -417,7 +464,7 @@ describe('migrateState hotel rooms', () => {
     tower.units.u2 = {
       ...newUnit('u2', 'double-room', 0, 2),
       used: true,
-      hotel: { state: 'occupied', stayEndStep: 12_960 },
+      hotel: { state: 'occupied', stayEndStep: 12_960, checkInStep: null, paidLevel: null },
     };
     expect(migrateState(JSON.parse(JSON.stringify(tower)))).toEqual(tower);
   });
@@ -508,5 +555,146 @@ describe('migrateState medical day', () => {
       migrateState({ ...saved, medicalDay: { day: 2, visits: { '4': -1 }, noticed: [] } }),
     ).toThrow(StateMigrationError);
     expect(() => migrateState({ ...saved, medicalDay: null })).toThrow(StateMigrationError);
+  });
+});
+
+describe('migrateState unit evaluation', () => {
+  function version20Save(): Record<string, unknown> {
+    const tower = createTower(5);
+    tower.units.u2 = newUnit('u2', 'double-room', 0, 2);
+    tower.units.u3 = newUnit('u3', 'office', 10, 2);
+    const raw = JSON.parse(JSON.stringify(tower)) as Record<string, unknown>;
+    const units = raw.units as Record<string, Record<string, unknown>>;
+    for (const unit of Object.values(units)) {
+      delete unit.evaluation;
+      if (unit.hotel) unit.hotel = { state: 'clean', stayEndStep: null };
+    }
+    delete raw.unitLedger;
+    return { ...raw, schemaVersion: 20 };
+  }
+
+  it('gives a version 20 save no grades, no filed trips and rooms with no stay paid', () => {
+    const tower = migrateState(version20Save());
+    expect(tower.schemaVersion).toBe(SCHEMA_VERSION);
+    expect(tower.unitLedger).toEqual({});
+    expect(tower.units.u3?.evaluation).toBeNull();
+    expect(tower.units.u2?.hotel).toEqual({
+      state: 'clean',
+      stayEndStep: null,
+      checkInStep: null,
+      paidLevel: null,
+    });
+  });
+
+  it('keeps grades and unit ledgers', () => {
+    const tower = createTower(5);
+    tower.units.u3 = { ...newUnit('u3', 'office', 10, 2), evaluation: 'fair' };
+    tower.unitLedger = { u3: [100, 40, 200, 60] };
+    expect(migrateState(JSON.parse(JSON.stringify(tower)))).toEqual(tower);
+  });
+
+  it('refuses a ledger of a unit that does not exist or a malformed one', () => {
+    const tower = createTower(5);
+    tower.units.u3 = newUnit('u3', 'office', 10, 2);
+    for (const unitLedger of [{ u9: [1, 2] }, { u3: [1] }, { u3: [1, 'a'] }]) {
+      const raw = { ...JSON.parse(JSON.stringify(tower)), unitLedger };
+      expect(() => migrateState(raw)).toThrow(StateMigrationError);
+    }
+  });
+
+  it('refuses a malformed grade', () => {
+    const tower = createTower(5);
+    tower.units.u3 = newUnit('u3', 'office', 10, 2);
+    const raw = JSON.parse(JSON.stringify(tower)) as { units: Record<string, unknown> };
+    raw.units.u3 = { ...(raw.units.u3 as object), evaluation: 'great' };
+    expect(() => migrateState(raw)).toThrow(StateMigrationError);
+  });
+});
+
+describe('migrateState construction refund records', () => {
+  it('gives a version 22 save unrefundable transports and no floor purchases', () => {
+    const old = JSON.parse(JSON.stringify(createTower(5))) as Record<string, unknown>;
+    delete old.floorPurchases;
+    old.schemaVersion = 22;
+    old.transports = { t2: { id: 't2', type: 'stairs', x: 10, level: 3 } };
+    const tower = migrateState(old);
+    expect(tower.transports.t2).toEqual({
+      id: 't2',
+      type: 'stairs',
+      x: 10,
+      level: 3,
+      paid: 0,
+      placedAtStep: 0,
+    });
+    expect(tower.floorPurchases).toEqual([]);
+  });
+
+  it('keeps floor purchases and refuses a malformed one', () => {
+    const saved = JSON.parse(JSON.stringify(createTower(5))) as Record<string, unknown>;
+    const floorPurchases = [{ level: 4, x0: 2, x1: 9, paidPerCell: 500, placedAtStep: 30 }];
+    expect(migrateState({ ...saved, floorPurchases }).floorPurchases).toEqual(floorPurchases);
+    const backwards = [{ level: 4, x0: 9, x1: 2, paidPerCell: 500, placedAtStep: 30 }];
+    expect(() => migrateState({ ...saved, floorPurchases: backwards })).toThrow(
+      StateMigrationError,
+    );
+    expect(() => migrateState({ ...saved, floorPurchases: null })).toThrow(StateMigrationError);
+  });
+});
+
+describe('migrateState wedding', () => {
+  it('gives a version 23 save no wedding under way', () => {
+    const old = JSON.parse(JSON.stringify(createTower(5))) as Record<string, unknown>;
+    delete old.wedding;
+    old.schemaVersion = 23;
+    expect(migrateState(old).wedding).toBeNull();
+  });
+
+  it('keeps an attempt and refuses a malformed one', () => {
+    const saved = JSON.parse(JSON.stringify(createTower(5))) as Record<string, unknown>;
+    const wedding = { day: 5, cathedral: 'u3', arrivals: [46_000], inside: 12, outcome: 'pending' };
+    expect(migrateState({ ...saved, wedding }).wedding).toEqual(wedding);
+    expect(() => migrateState({ ...saved, wedding: { ...wedding, outcome: 'won' } })).toThrow(
+      StateMigrationError,
+    );
+    expect(() => migrateState({ ...saved, wedding: { ...wedding, inside: -1 } })).toThrow(
+      StateMigrationError,
+    );
+  });
+});
+
+describe('migrateState sky lobby purchases', () => {
+  it('gives a version 24 save no lobby purchases', () => {
+    const old = JSON.parse(JSON.stringify(createTower(5))) as Record<string, unknown>;
+    delete old.lobbyPurchases;
+    old.schemaVersion = 24;
+    expect(migrateState(old).lobbyPurchases).toEqual([]);
+  });
+
+  it('keeps lobby purchases and refuses a malformed one', () => {
+    const saved = JSON.parse(JSON.stringify(createTower(5))) as Record<string, unknown>;
+    const lobbyPurchases = [
+      { level: 15, x0: 100, x1: 103, paidPerColumn: 10_000, placedAtStep: 7 },
+    ];
+    expect(migrateState({ ...saved, lobbyPurchases }).lobbyPurchases).toEqual(lobbyPurchases);
+    const negative = [{ ...lobbyPurchases[0], paidPerColumn: -1 }];
+    expect(() => migrateState({ ...saved, lobbyPurchases: negative })).toThrow(StateMigrationError);
+    expect(() => migrateState({ ...saved, lobbyPurchases: null })).toThrow(StateMigrationError);
+  });
+});
+
+describe('migrateState shop week visits', () => {
+  it('starts an older lease at the early-leave minimum so no shop leaves for an uncounted week', () => {
+    const old = JSON.parse(JSON.stringify(createTower(5))) as Record<string, unknown>;
+    old.schemaVersion = 26;
+    old.units = {
+      u3: {
+        ...newUnit('u3', 'retail-shop', 0, 2),
+        lease: { anchorStep: 100, nextDueStep: 60_580 },
+      },
+      u4: newUnit('u4', 'retail-shop', 20, 2),
+    };
+    const tower = migrateState(old);
+    expect(tower.units.u3?.lease).toEqual({ anchorStep: 100, nextDueStep: 60_580, weekVisits: 70 });
+    expect(tower.units.u4?.lease).toBeNull();
   });
 });

@@ -1,6 +1,6 @@
 {
   "name": "tower-magnate",
-  "version": "0.10.0",
+  "version": "0.11.0",
   "private": true,
   "type": "module",
   "packageManager": "pnpm@10.18.3",
@@ -17,6 +17,7 @@
     "test:watch": "vitest",
     "bench:snapshots": "pnpm --filter @tower-magnate/server bench:snapshots",
     "bench:person-view": "pnpm --filter @tower-magnate/server bench:person-view",
+    "bench:runner-load": "pnpm --filter @tower-magnate/server bench:runner-load",
     "bench:graph": "tsx scripts/bench-transport-graph.ts",
     "bench:people-layer": "tsx apps/web/src/render/peopleLayer.bench.ts",
     "bench:routes": "tsx scripts/bench-route-planner.ts",
@@ -27,7 +28,11 @@
     "bench:people": "node --expose-gc --import tsx scripts/bench-person-pool.ts",
     "bench:trek": "tsx scripts/bench-trek.ts",
     "bench:office-week": "tsx scripts/bench-office-week.ts",
-    "bench:events": "tsx scripts/bench-security-events.ts"
+    "bench:vertical-slice": "tsx scripts/bench-vertical-slice.ts",
+    "bench:events": "tsx scripts/bench-security-events.ts",
+    "bench:customers": "tsx scripts/bench-customers.ts",
+    "bench:subway": "tsx scripts/bench-subway-customers.ts",
+    "bench:evaluation": "tsx scripts/bench-unit-evaluation.ts"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.5",

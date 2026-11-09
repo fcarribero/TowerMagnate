@@ -29,7 +29,10 @@ import {
   hasStructure,
   isInteger,
   refundConstruction,
+  refundFloor,
+  refundLobby,
 } from './structure';
+import { clearUnitLedger } from '../unit-evaluation';
 
 type Rejection = { ok: false; error: ErrorCode };
 type Plan = Rejection | { ok: true; apply: () => number };
@@ -82,6 +85,7 @@ function planUnit(state: TowerState, unitId: string): Plan {
         setStructure(state.grid, level, unit.x, x1, 'floor');
       }
       Reflect.deleteProperty(state.units, unit.id);
+      clearUnitLedger(state, unit.id);
       return refundConstruction(state, unit);
     },
   };
@@ -110,7 +114,7 @@ function planTransport(state: TowerState, transportId: string): Plan {
         });
       }
       Reflect.deleteProperty(state.transports, transport.id);
-      return 0;
+      return refundConstruction(state, transport);
     },
   };
 }
@@ -158,7 +162,7 @@ function planFloor(state: TowerState, level: Level, x0: number, x1: number): Pla
     ok: true,
     apply() {
       for (const run of columnRuns(floorColumns)) clearStructure(grid, level, run.x0, run.x1);
-      return 0;
+      return refundFloor(state, level, floorColumns);
     },
   };
 }
@@ -193,7 +197,7 @@ function planLobby(state: TowerState, level: Level, x0: number, x1: number): Pla
         for (const run of columnRuns(lobbyColumns))
           setStructure(grid, row, run.x0, run.x1, 'floor');
       }
-      return 0;
+      return refundLobby(state, sky.base, lobbyColumns);
     },
   };
 }

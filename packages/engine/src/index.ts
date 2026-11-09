@@ -47,9 +47,15 @@ export {
 export { hashState } from './hash';
 export { migrateState, StateMigrationError } from './migrations';
 export { createCondoSystem, sellCondo } from './condos';
-export { checkIn, createHotelSystem, drawStayNights } from './hotel';
+export { bookingChance, checkIn, createHotelSystem, drawStayNights, rollBooking } from './hotel';
 export type { CheckInResult } from './hotel';
-export { createLeaseSystem, isLeasable, moveInTenant, STEPS_PER_WEEK } from './leases';
+export {
+  createLeaseSystem,
+  isLeasable,
+  moveInTenant,
+  recordShopVisit,
+  STEPS_PER_WEEK,
+} from './leases';
 export type { TenantEvaluator } from './leases';
 export {
   chargeMoney,
@@ -128,7 +134,10 @@ export { createEngine, runDays, step } from './step';
 export { populationOf } from './population';
 export type { PopulationBreakdown } from './population';
 export { chargeWeeklyUpkeep, weeklyUpkeepHook } from './upkeep';
-export { recordVenueVisit, venuePayoutHooks } from './venues';
+export { countVenueVisit, recordVenueVisit, rollVenueDay, venuePayoutHooks } from './venues';
+export { createCustomers, outsideCustomerCount } from './customers';
+export type { CustomerSystems, OutsideCustomerFactors } from './customers';
+export { startWeddingAttempt, weddingAttemptHook, weddingSystem } from './wedding';
 export { newUnit } from './units';
 export type {
   CommandContext,
@@ -171,3 +180,5 @@ export type {
   UserClass,
   WalkableRun,
 } from './routing';
+export { noticeParams } from './notices';
+export { isEvaluatedUnit, storedGrade } from './unit-evaluation';

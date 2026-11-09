@@ -58,8 +58,20 @@ jobs:
       - name: Office tower week benchmark
         run: pnpm bench:office-week
 
+      - name: Vertical slice week benchmark
+        run: pnpm bench:vertical-slice
+
       - name: Security events benchmark
         run: pnpm bench:events
+
+      - name: Venue customers benchmark
+        run: pnpm bench:customers
+
+      - name: Subway customers benchmark
+        run: pnpm bench:subway
+
+      - name: Unit evaluation benchmark
+        run: pnpm bench:evaluation
 
   e2e:
     name: End-to-end tests

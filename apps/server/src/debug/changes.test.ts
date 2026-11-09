@@ -4,7 +4,7 @@ import type { StarRating, TowerState } from '@tower-magnate/shared';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { TowerRunner } from '../runner';
 import type { TowerStore } from '../runner';
-import { DebugRefusal, fastForward, forceEvent, setClock, setMoney } from './changes';
+import { DebugRefusal, fastForward, forceEvent, loadScenario, setClock, setMoney } from './changes';
 
 class MemoryStore implements TowerStore {
   readonly towers = new Map<string, TowerState>();
@@ -121,6 +121,19 @@ describe('debug changes on a running tower', () => {
     await runner.change('1', setMoney(1234));
 
     expect(store.towers.get('1')?.money).toBe(1234);
+  });
+
+  it('loads the vertical slice tower in place of the running one', async () => {
+    await start();
+
+    await runner.change('1', loadScenario('verticalSlice'));
+
+    const loaded = store.towers.get('1') as TowerState;
+    const offices = Object.values(loaded.units).filter((unit) => unit.type === 'office');
+    expect(offices).toHaveLength(90);
+    expect(Object.keys(loaded.transports)).toHaveLength(9);
+    expect(loaded.step).toBe(0);
+    expect(state()).toBe(loaded);
   });
 
   it('sets the clock to the next matching time, never backwards', async () => {

@@ -73,7 +73,7 @@ describe('inspecting a unit', () => {
   it('shows a let office with its persons, lease week and next payment', () => {
     const { state, id } = towerWith('office');
     unitOf(state).name = 'Oficinas';
-    unitOf(state).lease = { anchorStep: 0, nextDueStep: 2 * STEPS_PER_WEEK };
+    unitOf(state).lease = { anchorStep: 0, nextDueStep: 2 * STEPS_PER_WEEK, weekVisits: 0 };
     state.step = STEPS_PER_WEEK + 5;
     addOfficeWorkers(state, 7, 6);
 
@@ -93,7 +93,7 @@ describe('inspecting a unit', () => {
 
   it('caps the lease week at the length of the contract', () => {
     const { state, id } = towerWith('retail-shop');
-    unitOf(state).lease = { anchorStep: 0, nextDueStep: 4 * STEPS_PER_WEEK };
+    unitOf(state).lease = { anchorStep: 0, nextDueStep: 4 * STEPS_PER_WEEK, weekVisits: 0 };
     state.step = 4 * STEPS_PER_WEEK;
 
     expect(inspectUnit(state, id)).toMatchObject({ details: { group: 'lease', leaseWeek: 4 } });
@@ -106,6 +106,13 @@ describe('inspecting a unit', () => {
       type: 'retail-shop',
       details: { group: 'lease', state: 'forRent' },
     });
+  });
+
+  it('shows the stored grade of the unit', () => {
+    const { state, id } = towerWith('retail-shop');
+    unitOf(state).evaluation = 'poor';
+
+    expect(inspectUnit(state, id)).toMatchObject({ details: { evaluation: 'poor' } });
   });
 
   it('answers a condo for sale and a sold one', () => {
@@ -132,7 +139,12 @@ describe('inspecting a unit', () => {
       details: { group: 'hotel', state: 'clean', guests: 0, capacity: 2, checkoutStep: null },
     });
 
-    unitOf(state).hotel = { state: 'occupied', stayEndStep: 5000 };
+    unitOf(state).hotel = {
+      state: 'occupied',
+      stayEndStep: 5000,
+      checkInStep: null,
+      paidLevel: null,
+    };
     expect(inspectUnit(state, id)).toMatchObject({
       details: { state: 'occupied', checkoutStep: 5000 },
     });
@@ -140,7 +152,7 @@ describe('inspecting a unit', () => {
 
   it('hides the checkout of a room that is not occupied', () => {
     const { state, id } = towerWith('suite');
-    unitOf(state).hotel = { state: 'dirty', stayEndStep: 5000 };
+    unitOf(state).hotel = { state: 'dirty', stayEndStep: 5000, checkInStep: null, paidLevel: null };
 
     expect(inspectUnit(state, id)).toMatchObject({
       details: { state: 'dirty', checkoutStep: null },

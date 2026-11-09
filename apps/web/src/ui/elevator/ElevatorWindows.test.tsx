@@ -15,7 +15,7 @@ import type { ShaftData } from './ElevatorWindow';
 useFakeLayoutSizes({ clientWidth: 800, clientHeight: 600, offsetWidth: 200, offsetHeight: 100 });
 afterEach(cleanup);
 
-const band = { mode: 'normal', dwellSeconds: 5, responseDistance: 5 } as const;
+const band = { mode: 'normal', dwellSeconds: 30, responseDistance: 5 } as const;
 const schedule = {
   weekday: Array.from({ length: 6 }, () => band),
   weekend: Array.from({ length: 6 }, () => band),
@@ -65,6 +65,16 @@ describe('elevator windows', () => {
     });
     fireEvent.click(screen.getByRole('tab', { name: 'Cabinas' }));
     expect(screen.getByRole('button', { name: 'Agregar cabina ($150.000)' })).toBeTruthy();
+  });
+
+  it('marks the band in force from the game clock', () => {
+    const { inspect } = setup();
+    act(() => inspect.requestShaftWindow('s4'));
+    act(() => inspect.receive({ v: 1, t: 'inspect', p: shaftData }));
+    fireEvent.click(screen.getByRole('tab', { name: 'Horarios' }));
+    const now = document.querySelector('tr[aria-current="time"]');
+    expect(now?.textContent).toContain('00:00 a 07:00');
+    expect(now?.textContent).toContain('En curso');
   });
 
   it('stops inspecting when the window closes', () => {

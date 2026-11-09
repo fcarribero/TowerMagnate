@@ -78,7 +78,9 @@ export interface Unit {
   hotel: HotelRoom | null;
   /** The current owners' purchase of a condo; null while the condo is for sale. */
   sale: CondoSale | null;
-  /** The day's visit counts of a food or entertainment venue; null for every other unit. */
+  /** The last grade of an office, shop, condo or hotel room; null shows "Sin evaluar". */
+  evaluation: TenantEvaluation | null;
+  /** The day's visit counts of a food, entertainment or retail venue; null for every other unit. */
   venue: VenueDay | null;
 }
 
@@ -89,12 +91,26 @@ export interface VenueDay {
   eveningShowVisits: number;
   /** Count and payout of the last paid day; null until the first payout. */
   yesterday: { visits: number; result: number | null } | null;
+  /** Visits started today inside the venue's counting hours, retail shops included. */
+  countToday: number;
+  /** The count of the day that ended at the last 00:00 (stars spec 3.2). */
+  previousDayCount: number;
+  /** Trip stress, in steps, of today's counted visits whose trip was walked. */
+  stressSum: number;
+  /** How many of today's counted visits added to `stressSum`. */
+  stressTrips: number;
+  /** Steps at which today's outside customers still to come appear, earliest first. */
+  customers: number[];
 }
 
 export interface HotelRoom {
   state: HotelRoomState;
   /** When the current stay ends (10:00 on its last day); null while nobody is staying. */
   stayEndStep: number | null;
+  /** Check-in step of the current or last stay; null before the first stay. */
+  checkInStep: number | null;
+  /** Price level the current or last stay paid at check-in; null before the first stay. */
+  paidLevel: PriceLevel | null;
 }
 
 /** A staircase or escalator. Its cells on `level` are the footprint; the level above has the landing. */
@@ -105,6 +121,26 @@ export interface Transport {
   x: number;
   /** Lower level. */
   level: Level;
+  /** Whole dollars charged at placement. */
+  paid: number;
+  placedAtStep: number;
+}
+
+/** Floor bought with the floor tool on one level, kept while it can still be refunded. */
+export interface FloorPurchase extends ColumnSpan {
+  level: Level;
+  /** Whole dollars charged for each cell. */
+  paidPerCell: number;
+  placedAtStep: number;
+}
+
+/** Sky lobby columns bought on one lobby level, kept while they can still be refunded. */
+export interface LobbyPurchase extends ColumnSpan {
+  /** The sky lobby level the run stands on. */
+  level: Level;
+  /** Whole dollars charged for each column, all its rows together. */
+  paidPerColumn: number;
+  placedAtStep: number;
 }
 
 /** Instance id of a placed elevator shaft, such as `s4`. */
@@ -206,6 +242,8 @@ export interface Lease {
   anchorStep: number;
   /** The next payment or, at the end of the term, the evaluation. */
   nextDueStep: number;
+  /** Customer visits that started since the last payment or move-in; only shops count them. */
+  weekVisits: number;
 }
 
 export interface CondoSale {
@@ -232,12 +270,21 @@ export interface TowerState {
   transports: Record<EntityId, Transport>;
   shafts: Record<ShaftId, Shaft>;
   grid: GridState;
+  /** Floor tool purchases still inside the refund window; older ones may linger until pruned. */
+  floorPurchases: FloorPurchase[];
+  /** Sky lobby purchases still inside the refund window; older ones may linger until pruned. */
+  lobbyPurchases: LobbyPurchase[];
   people: PersonPool;
   /**
    * Trips each person ended in the last STRESS_WINDOW_STEPS, keyed by person number: pairs of
    * end step and trip stress, oldest first.
    */
   tripLedger: Record<string, number[]>;
+  /**
+   * Trips filed for each evaluated unit since its ledger was last cleared, keyed by unit id:
+   * pairs of end step and trip stress, oldest first.
+   */
+  unitLedger: Record<UnitId, number[]>;
   ledger: Ledger;
   /** At most one bomb threat or fire at a time. */
   activeEvents: ActiveEvent[];
@@ -256,7 +303,24 @@ export interface TowerState {
   /** Medical center visits and notices of one game day; a new day starts them over. */
   medicalDay: MedicalDay;
   parking: ParkingState;
+  /** Today's wedding attempt, from 00:00 until its guests leave; null on other days. */
+  wedding: WeddingAttempt | null;
 }
+
+/** A weekend day's wedding attempt (stars spec 7, people spec 15). */
+export interface WeddingAttempt {
+  /** Day number of the attempt. */
+  day: number;
+  /** The cathedral the guests travel to. */
+  cathedral: UnitId;
+  /** Steps at which the guests still to come appear, earliest first. */
+  arrivals: number[];
+  /** Guests inside the cathedral. */
+  inside: number;
+  outcome: WeddingOutcome;
+}
+
+export type WeddingOutcome = 'pending' | 'completed' | 'failed';
 
 export interface ParkingState {
   /** Parking holders by person number; the value is the unit number of their space, or 0 for none. */
@@ -276,6 +340,15 @@ export interface MedicalDay {
   noticed: string[];
 }
 
+/** The values a news text fills in, as the engine knows them (messages.md, params column). */
+export interface NoticeParams {
+  level?: Level;
+  amount?: number;
+  n?: number;
+  /** Id of the option a decision applied by default; the client shows its button text. */
+  option?: string;
+}
+
 /** A news line the player was shown; `key` names its text. */
 export interface Notice {
   /** `n<step>.<index>`, unique within the tower. */
@@ -283,6 +356,7 @@ export interface Notice {
   step: number;
   key: string;
   unitId: UnitId | null;
+  params: NoticeParams;
 }
 
 /** Id of a tower event, such as `e7`. */
@@ -398,6 +472,7 @@ export type EngineEvent =
   | { type: 'hotelCheckOut'; step: number; unitId: UnitId }
   | { type: 'roomStateChanged'; step: number; unitId: UnitId; state: HotelRoomState }
   | { type: 'starsChanged'; step: number; stars: StarRating; unlocked: UnitType[] }
+  | { type: 'weddingCompleted'; step: number }
   | {
       type: 'decisionOpened';
       step: number;
@@ -415,9 +490,17 @@ export type EngineEvent =
       choice: string;
     }
   | { type: 'treasureFound'; step: number; commandId: string; level: Level; amount: number }
-  | { type: 'news'; step: number; commandId: string; key: 'news.treasure'; level: Level }
+  | {
+      type: 'news';
+      step: number;
+      commandId: string;
+      key: 'news.treasure';
+      level: Level;
+      amount: number;
+    }
   | { type: 'news'; step: number; commandId: string; key: 'news.bombPaid'; unitId: null }
   | { type: 'disaster'; step: number; kind: DecisionKind; cells: CellRange[] }
   | { type: 'news'; step: number; key: 'news.bombExploded'; level: Level }
+  | { type: 'news'; step: number; key: 'news.starsUp'; n: number }
   | { type: 'news'; step: number; key: 'news.decisionDefault'; eventId: EventId; choice: string }
   | { type: 'news'; step: number; key: string; unitId: UnitId | null };

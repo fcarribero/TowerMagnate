@@ -1,6 +1,6 @@
 {
   "name": "@tower-magnate/server",
-  "version": "0.10.0",
+  "version": "0.11.0",
   "private": true,
   "type": "module",
   "exports": {
@@ -12,7 +12,8 @@
     "migrate": "tsx src/migrate.ts",
     "build": "node scripts/build.mjs",
     "bench:snapshots": "tsx src/bench/save-snapshot.ts",
-    "bench:person-view": "tsx src/bench/person-view.ts"
+    "bench:person-view": "tsx src/bench/person-view.ts",
+    "bench:runner-load": "tsx src/bench/runner-load.ts"
   },
   "dependencies": {
     "@fastify/cookie": "^11.1.5",

@@ -10,6 +10,7 @@ describe('debug messages', () => {
     expect(parse('debug.fastForward', { steps: MAX_FAST_FORWARD_STEPS }).success).toBe(true);
     expect(parse('debug.setClock', { day: 0, time: '09:00' }).success).toBe(true);
     expect(parse('debug.setMoney', { amount: -500 }).success).toBe(true);
+    expect(parse('debug.loadScenario', { name: 'verticalSlice' }).success).toBe(true);
   });
 
   it('rejects unknown kinds and out of range values', () => {
@@ -19,6 +20,7 @@ describe('debug messages', () => {
     expect(parse('debug.setClock', { day: 7, time: '09:00' }).success).toBe(false);
     expect(parse('debug.setClock', { day: 1, time: '24:00' }).success).toBe(false);
     expect(parse('debug.setMoney', { amount: 1.5 }).success).toBe(false);
+    expect(parse('debug.loadScenario', { name: 'castle' }).success).toBe(false);
   });
 
   it('stays out of the shared client protocol', () => {

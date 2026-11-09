@@ -118,6 +118,53 @@ export const VENUE_HOURS: Readonly<Record<VisitedVenueType, { open: number; clos
   'retail-shop': { open: minutes(10), close: minutes(20) },
 };
 
+/** When outside customers appear at each kind of venue (people spec 11.1). */
+export const CUSTOMER_ARRIVAL: Readonly<Record<VisitedVenueType, readonly WindowPart[]>> = {
+  'fast-food': [
+    { from: minutes(8), to: minutes(11), weight: 20 },
+    { from: minutes(11), to: minutes(14), weight: 50 },
+    { from: minutes(14), to: minutes(17), weight: 15 },
+    { from: minutes(17), to: minutes(19, 30), weight: 15 },
+  ],
+  restaurant: [
+    { from: minutes(17), to: minutes(19), weight: 35 },
+    { from: minutes(19), to: minutes(21), weight: 50 },
+    { from: minutes(21), to: minutes(22, 30), weight: 15 },
+  ],
+  'retail-shop': [
+    { from: minutes(10), to: minutes(12), weight: 20 },
+    { from: minutes(12), to: minutes(15), weight: 30 },
+    { from: minutes(15), to: minutes(19, 30), weight: 50 },
+  ],
+};
+
+/** How long an outside customer stays inside the venue (people spec 11.2). */
+export const CUSTOMER_STAY_MINUTES: Readonly<Record<VisitedVenueType, number>> = {
+  'fast-food': 30,
+  restaurant: 60,
+  'retail-shop': 45,
+};
+
+/** Outside customers a day before the other factors (people spec 11.3). */
+export const OUTSIDE_CUSTOMER_BASE: Readonly<
+  Record<VisitedVenueType, { weekday: number; weekend: number }>
+> = {
+  'fast-food': { weekday: 20, weekend: 30 },
+  restaurant: { weekday: 20, weekend: 30 },
+  'retail-shop': { weekday: 20, weekend: 25 },
+};
+
+/** Price factor of a retail shop's outside customers; food venues always use 1. */
+export const RETAIL_PRICE_CUSTOMER_FACTOR: Readonly<
+  Record<'high' | 'normal' | 'low' | 'minimum', number>
+> = { high: 0.7, normal: 1, low: 1.2, minimum: 1.4 };
+
+/** Outside visitors are multiplied by this when the tower has a subway station. */
+export const SUBWAY_VISITOR_FACTOR = 1.2;
+
+/** Chance that an outside trip uses the subway entrance when the tower has a station (people spec 3). */
+export const SUBWAY_ENTRANCE_CHANCE = 0.25;
+
 /** Weight of a retail shop when a person draws venue candidates (people spec 5). */
 export const RETAIL_PRICE_ATTRACTION: Readonly<
   Record<'high' | 'normal' | 'low' | 'minimum', number>
@@ -133,3 +180,19 @@ export const PROSPECT_CHANCE: Readonly<Record<'high' | 'normal' | 'low' | 'minim
   low: 0.3,
   minimum: 0.4,
 };
+
+/** Guests of one wedding attempt, the cathedral's capacity (people spec 2). */
+export const WEDDING_GUESTS = 40;
+
+/** When wedding guests appear at the street entrance on an attempt day (people spec 15). */
+export const WEDDING_GUEST_ARRIVAL: readonly WindowPart[] = [
+  { from: minutes(8), to: minutes(9), weight: 40 },
+  { from: minutes(9), to: minutes(10), weight: 40 },
+  { from: minutes(10), to: minutes(10, 30), weight: 20 },
+];
+
+/** The last guest must be inside the cathedral before this minute of the day (stars spec 7.2). */
+export const WEDDING_DEADLINE_MINUTE = minutes(12, 30);
+
+/** Every wedding guest leaves the tower at this minute of the day (people spec 15). */
+export const WEDDING_GUESTS_LEAVE_MINUTE = minutes(15);

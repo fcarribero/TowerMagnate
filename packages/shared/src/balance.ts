@@ -18,6 +18,9 @@ import { SHAFT_UNIT_TYPES } from './units';
 export const STARTING_MONEY = 2_000_000;
 export const MONEY_CAP = 99_999_999;
 export const OFFICE_POPULATION = 6;
+export const CONDO_POPULATION = 3;
+/** Party size of a hotel stay by room type (stars spec 3.1). */
+export const HOTEL_PARTY_SIZE = { 'single-room': 1, 'double-room': 2, suite: 2 } as const;
 
 export const TOWER_LAYOUT = {
   floorsAboveGround: 100,
@@ -388,6 +391,9 @@ export const TOWER_LIMITS: Readonly<Record<LimitGroupId, number>> = {
 export const DEFAULT_PRICE_LEVEL: PriceLevel = 'normal';
 
 export const LEASE_CONTRACT_WEEKS = 4;
+
+/** A shop with fewer customer visits than this in a lease week leaves at once (economy 4.3). */
+export const SHOP_EARLY_LEAVE_MIN_VISITS = 70;
 export const CONDO_EVALUATION_WEEKS = 4;
 
 export const WEEKLY_RENT: Readonly<Record<'office' | 'retail-shop', PriceTable>> = {
@@ -407,6 +413,14 @@ export const HOTEL_STAY_NIGHTS = { min: 1, max: 4 } as const;
 
 /** Percent chance of a stay of 1, 2, 3 and 4 nights. */
 export const HOTEL_STAY_NIGHT_WEIGHTS = [40, 30, 20, 10] as const;
+
+/** Percent chance that a free, clean room is booked at its daily roll, by its stored grade. */
+export const HOTEL_BOOKING_CHANCE = {
+  good: 90,
+  fair: 70,
+  poor: 40,
+  ungraded: 80,
+} as const;
 
 export const HOTEL_CHECK_IN_HOURS = { from: 12, until: 23 } as const;
 export const HOTEL_CHECK_OUT_HOUR = 10;
@@ -476,6 +490,8 @@ export const SEARCH_COLUMNS_PER_MINUTE = 4;
 export const SEARCH_STEPS_PER_MINUTE = 6;
 export const FIRE_SPREAD_STEPS = 6;
 export const FIRE_FRONT_CONTAINMENT = 10;
+/** Papá Noel crosses the sky once a year at this date and time. */
+export const SANTA_TIME = { month: 12, day: 24, hour: 22, minute: 0 } as const;
 export const BOMB_DAILY_ODDS = 60;
 export const BOMB_MIN_STARS = 2;
 export const BOMB_ROLL_HOUR = 9;

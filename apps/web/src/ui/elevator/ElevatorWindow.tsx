@@ -20,6 +20,15 @@ import {
   offeredLevels,
   toggleStop,
 } from './elevatorDraft';
+import './elevatorWindow.css';
+import { ScheduleTab } from './ScheduleTab';
+import {
+  draftOf,
+  parseSchedule,
+  scheduleChanged,
+  type BandInForce,
+  type ScheduleDraft,
+} from './scheduleDraft';
 
 export type ShaftData = Extract<InspectData, { kind: 'shaft'; status: 'ok' }>;
 
@@ -27,6 +36,8 @@ export interface ElevatorWindowProps {
   shaft: ShaftData;
   send: (command: Command) => Promise<CommandOutcome>;
   onClose: () => void;
+  /** Null before the first snapshot. */
+  bandNow?: BandInForce | null;
 }
 
 const TYPE_NAMES: Record<ShaftData['type'], StringKey> = {
@@ -66,16 +77,23 @@ function carPrice(type: ShaftData['type']): number {
   return cost.kind === 'shaft' ? cost.perCarAmount : 0;
 }
 
-export function ElevatorWindow({ shaft, send, onClose }: ElevatorWindowProps) {
+export function ElevatorWindow({ shaft, send, onClose, bandNow = null }: ElevatorWindowProps) {
   const savedHomes = shaft.cars.map((car) => car.homeLevel);
   const [tab, setTab] = useState('route');
   const [stops, setStops] = useState<Level[]>([...shaft.stops]);
   const [homes, setHomes] = useState<Level[]>(savedHomes);
   const [from, setFrom] = useState<Level>(shaft.bottom);
   const [to, setTo] = useState<Level>(shaft.top);
+  const [schedule, setSchedule] = useState<ScheduleDraft>(() => draftOf(shaft.schedule));
   const [error, setError] = useState<string | null>(null);
 
-  const savedKey = JSON.stringify([shaft.bottom, shaft.top, shaft.stops, savedHomes]);
+  const savedKey = JSON.stringify([
+    shaft.bottom,
+    shaft.top,
+    shaft.stops,
+    savedHomes,
+    shaft.schedule,
+  ]);
   const [syncedKey, setSyncedKey] = useState(savedKey);
   if (savedKey !== syncedKey) {
     setSyncedKey(savedKey);
@@ -83,12 +101,13 @@ export function ElevatorWindow({ shaft, send, onClose }: ElevatorWindowProps) {
     setHomes(savedHomes);
     setFrom(shaft.bottom);
     setTo(shaft.top);
+    setSchedule(draftOf(shaft.schedule));
   }
 
-  const changed = hasChanges(
-    { stops: shaft.stops, carHomes: savedHomes },
-    { stops, carHomes: homes },
-  );
+  const changed =
+    hasChanges({ stops: shaft.stops, carHomes: savedHomes }, { stops, carHomes: homes }) ||
+    scheduleChanged(shaft.schedule, schedule);
+  const scheduleToSend = parseSchedule(schedule);
   const levels = offeredLevels(shaft.type, shaft.bottom, shaft.top);
   const endpoints = offeredLevels(shaft.type, LOWEST_LEVEL, HIGHEST_LEVEL);
 
@@ -190,21 +209,35 @@ export function ElevatorWindow({ shaft, send, onClose }: ElevatorWindowProps) {
         tabs={[
           { id: 'route', label: t('ui.shaftTabRoute'), content: routeTab },
           { id: 'cars', label: t('ui.shaftTabCars'), content: carsTab },
+          {
+            id: 'schedule',
+            label: t('ui.shaftTabSchedule'),
+            content: (
+              <ScheduleTab
+                shaftId={shaft.id}
+                draft={schedule}
+                inForce={bandNow}
+                onChange={setSchedule}
+              />
+            ),
+          },
         ]}
       />
       {error === null ? null : <p role="alert">{error}</p>}
       <Button
-        disabled={!changed}
+        disabled={!changed || scheduleToSend === null}
         isDefault
-        onClick={() =>
-          void run({
-            type: 'configureShaft',
-            shaftId: shaft.id,
-            stops,
-            carHomes: homes,
-            schedule: shaft.schedule,
-          })
-        }
+        onClick={() => {
+          if (scheduleToSend !== null) {
+            void run({
+              type: 'configureShaft',
+              shaftId: shaft.id,
+              stops,
+              carHomes: homes,
+              schedule: scheduleToSend,
+            });
+          }
+        }}
       >
         {t('ui.apply')}
       </Button>
@@ -213,6 +246,7 @@ export function ElevatorWindow({ shaft, send, onClose }: ElevatorWindowProps) {
         onClick={() => {
           setStops([...shaft.stops]);
           setHomes(savedHomes);
+          setSchedule(draftOf(shaft.schedule));
         }}
       >
         {t('ui.shaftDiscard')}

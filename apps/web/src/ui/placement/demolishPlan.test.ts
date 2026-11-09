@@ -91,4 +91,24 @@ describe('pickDemolition', () => {
     const pick = pickDemolition(world({ transports: [stairs] }), { x: 20, level: 2 });
     expect(pick?.command).toEqual({ type: 'demolish', target: { kind: 'transport', id: 't1' } });
   });
+
+  it('picks a unit before ruins, and ruins before lobby and floor', () => {
+    const ruined = world({
+      structure: new Map([
+        [2, 'ffrrff'],
+        [1, 'llllll'],
+      ]),
+      units: [unit({ x: 3, level: 2 })],
+    });
+    expect(pickDemolition(ruined, { x: 3, level: 2 })?.command).toEqual({
+      type: 'demolish',
+      target: { kind: 'unit', id: 'u1' },
+    });
+    const ruins = pickDemolition(world({ structure: ruined.structure }), { x: 3, level: 2 });
+    expect(ruins?.command).toEqual({ type: 'demolish', target: { kind: 'ruins', level: 2, x: 3 } });
+    expect(ruins?.run).toBe('ruins');
+    expect(ruins?.footprint).toEqual({ x: 3, level: 2, width: 1, floors: 1 });
+    expect(pickDemolition(ruined, { x: 1, level: 2 })?.run).toBe('floor');
+    expect(pickDemolition(ruined, { x: 3, level: 1 })?.run).toBe('lobby');
+  });
 });

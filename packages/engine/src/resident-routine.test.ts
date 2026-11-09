@@ -127,7 +127,7 @@ function condoTower(seed: number, condos: number): CondoTower {
   VENUE_LAYOUT.forEach((venue, index) => {
     const unit = state.units[unitIds[index] ?? ''];
     if (unit && venue.type === 'retail-shop') {
-      unit.lease = { anchorStep: 0, nextDueStep: Number.MAX_SAFE_INTEGER };
+      unit.lease = { anchorStep: 0, nextDueStep: Number.MAX_SAFE_INTEGER, weekVisits: 0 };
     }
   });
   return {
@@ -340,7 +340,12 @@ describe('skip rules', () => {
     });
     const result = engine.step(tower.state, [], STEPS_PER_DAY - 1);
     const oneResident = (visit: Visit) => visit.personId === pool.id[0];
-    return { ...result, visits: watch.visits.filter(oneResident), sightings: watch.sightings };
+    return {
+      ...result,
+      visits: watch.visits.filter(oneResident),
+      allVisits: watch.visits,
+      sightings: watch.sightings,
+    };
   }
 
   it('skips the afternoon trip when the morning trip has not finished', () => {
@@ -352,6 +357,19 @@ describe('skip rules', () => {
   it('makes both trips when the first one is back in time', () => {
     const { visits } = weekendResident([MORNING_TRIP, 14 * 60 + 1, 0], straightLineRoutes);
     expect(visits).toHaveLength(2);
+  });
+
+  it('adds every visit to the day count of the venue it went to', () => {
+    const { allVisits, state } = weekendResident(
+      [MORNING_TRIP, 14 * 60 + 1, 0],
+      straightLineRoutes,
+    );
+    const counted = Object.values(state.units).reduce(
+      (sum, unit) => sum + (unit.venue?.countToday ?? 0),
+      0,
+    );
+    expect(allVisits.length).toBeGreaterThan(0);
+    expect(counted).toBe(allVisits.length);
   });
 
   it('skips a dinner that comes while the resident is still outside', () => {
@@ -397,5 +415,19 @@ describe('plans', () => {
     expect(early.people.trip.every((trip) => trip === NO_TRIP)).toBe(true);
     const later = engine.step(early, [], STEPS_PER_DAY / 2 + 2).state;
     expect(later.people.trip.some((trip) => trip !== NO_TRIP)).toBe(true);
+  });
+});
+
+describe('shop visits for the early-leave check', () => {
+  it('counts every resident who goes into a shop on that shop lease', () => {
+    const tower = condoTower(SEEDS[0] ?? 1, 30);
+    populate(tower);
+    const result = run(tower.state, 2 * STEPS_PER_DAY);
+    const shopVisits = result.visits.filter((visit) => visit.type === 'retail-shop').length;
+    const counted = Object.values(result.state.units)
+      .filter((unit) => unit.type === 'retail-shop')
+      .reduce((sum, unit) => sum + (unit.lease?.weekVisits ?? 0), 0);
+    expect(shopVisits).toBeGreaterThan(0);
+    expect(counted).toBe(shopVisits);
   });
 });

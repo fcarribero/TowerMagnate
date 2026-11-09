@@ -294,7 +294,7 @@ Expected daily counts for a venue that is easy to reach and not stressed, normal
 
 | Venue | Outside | Inside the tower | Total |
 |---|---|---|---|
-| Fast food, weekday | 20 | office lunches, resident and guest trips | 35 to 60 with 50 or more offices nearby |
+| Fast food, weekday | 20 | office lunches (about 4.8 per office whose workers pick it), resident and guest trips | 25 to 35 with no offices, 50 or more from about 6 offices, up to about 125 when capacity fills at lunch |
 | Fast food, weekend | 30 | resident and guest trips | 35 to 45 |
 | Restaurant, weekday | 20 | guest outings, resident dinners | 30 to 45 |
 | Restaurant, weekend | 30 | same | 35 to 50 |
@@ -302,6 +302,10 @@ Expected daily counts for a venue that is easy to reach and not stressed, normal
 | Retail shop, weekend | 25 | same | 28 to 35 |
 
 These match the economy spec's balance check (fast food and restaurant at 35 to 49 a day, shops at about 25 on weekdays and 30 on weekends, about 185 a week) and leave a stressed or remote shop under the 70-a-week early-leave line. A shop at mínimo gets 28 outside customers a weekday, which is how the player saves a weak shop.
+
+Fast food next to offices: each office with a tenant sends 6 × 0.8 = 4.8 workers to lunch on a weekday (P-13), split among the fast foods they pick (section 5). Measured in full-engine runs (TM-36 QA): one fast food with 10 offices logs about 69 visits a weekday, with 50 offices about 125. Above that the 40-seat capacity turns lunch visitors away. The earlier "35 to 60" figure left these lunches out.
+
+Design call on fast food visits above 50: the counts stay as they are and no engine constant changes. The fast food payout is tiered and stops at $5,000 for 50 or more visits (economy 7.1), so 69 and 125 visits pay the same. A fast food serving 6 or more offices earns about $31,000 a week instead of $21,000 and pays back in 3.5 weeks instead of 5.1, close to the office's 4.5. This is the reward for building food next to offices, as in the original. Lunch demand from 50 offices (240 workers) needs 2 or more fast foods, so the player still has a reason to build several. If the balance simulation (TM-136) shows fast food income pulling the star pacing ahead, the lever is the lunch chance in P-13, not the outside base.
 
 Design call: the GDD and the research give customer windows but no counts. A fixed outside base per venue keeps every venue alive in a small tower, and the inside visits reward building venues near offices, hotels and condos, as in the original. The stress factor is the "stressed people don't come back" rule from the research, applied to the venue as a whole.
 

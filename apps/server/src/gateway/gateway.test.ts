@@ -162,6 +162,80 @@ describe('message routing', () => {
     expect(socket.closeCode).toBeUndefined();
   });
 
+  describe('a command whose payload fails the schema', () => {
+    const INVALID_SHAFT_COMMAND = JSON.stringify({
+      v: 1,
+      t: 'command',
+      p: {
+        id: 'x1',
+        command: {
+          type: 'configureShaft',
+          shaftId: 's1',
+          stops: [1],
+          carHomes: [1],
+          schedule: { weekday: [], weekend: [] },
+        },
+      },
+    });
+
+    it('goes to the invalid command handler with its id', async () => {
+      const command = vi.fn();
+      const invalidCommand = vi.fn();
+      const gateway = new Gateway({ ...joinOnHello, command, invalidCommand });
+      const socket = await joinedSocket(gateway, ALICE_TOWER);
+
+      socket.receive(INVALID_SHAFT_COMMAND);
+      await flush();
+
+      expect(command).not.toHaveBeenCalled();
+      expect(invalidCommand).toHaveBeenCalledWith(
+        'x1',
+        expect.objectContaining({ socket, identity: ALICE_TOWER }),
+      );
+      expect(socket.sent).toEqual([]);
+    });
+
+    it('is dropped before hello', async () => {
+      const invalidCommand = vi.fn();
+      const gateway = new Gateway({ ...joinOnHello, invalidCommand });
+      const socket = new FakeSocket();
+      gateway.attach(socket, ALICE_TOWER);
+
+      socket.receive(INVALID_SHAFT_COMMAND);
+      await flush();
+
+      expect(invalidCommand).not.toHaveBeenCalled();
+      expect(socket.sent).toEqual([]);
+    });
+
+    it('gets an error frame when no invalid command handler is set', async () => {
+      const gateway = new Gateway(joinOnHello);
+      const socket = await joinedSocket(gateway, ALICE_TOWER);
+
+      socket.receive(INVALID_SHAFT_COMMAND);
+      await flush();
+
+      expect(socket.sent).toEqual([errorFrame('INVALID_COMMAND')]);
+    });
+
+    it.each([
+      '{"v":1,"t":"command","p":{"command":{"type":"buildFloor"}}}',
+      '{"v":1,"t":"command","p":{"id":"","command":{"type":"buildFloor"}}}',
+      '{"v":1,"t":"command","p":{"id":7,"command":{"type":"buildFloor"}}}',
+      '{"t":"command","p":{"id":"x1","command":{"type":"buildFloor"}}}',
+    ])('keeps the error frame when the id cannot be read: %s', async (text) => {
+      const invalidCommand = vi.fn();
+      const gateway = new Gateway({ ...joinOnHello, invalidCommand });
+      const socket = await joinedSocket(gateway, ALICE_TOWER);
+
+      socket.receive(text);
+      await flush();
+
+      expect(invalidCommand).not.toHaveBeenCalled();
+      expect(socket.sent).toEqual([errorFrame('INVALID_COMMAND')]);
+    });
+  });
+
   it('rejects a message over the size limit', async () => {
     const ping = vi.fn();
     const gateway = new Gateway({ ...joinOnHello, ping });

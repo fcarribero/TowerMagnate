@@ -5,6 +5,7 @@ export type { TowerSummary } from './summary';
 export { buildTower, plainTowerPlan } from './tower-builder';
 export type {
   BuiltTower,
+  PlannedFlight,
   PlannedFloors,
   PlannedShaft,
   PlannedSpan,
@@ -44,3 +45,43 @@ export {
 } from './trek-crowd';
 export type { TrekCrowdTiming } from './trek-crowd';
 export { OFFICE_WEEK_BUDGET_MS, tenFloorOfficeTowerPlan } from './ten-floor-office-tower';
+export {
+  VERTICAL_SLICE_DAYS,
+  VERTICAL_SLICE_SEED,
+  VERTICAL_SLICE_STEP_BUDGET_MS,
+  formatSliceDays,
+  runVerticalSlice,
+  verticalSliceTower,
+  verticalSliceTowerPlan,
+} from './vertical-slice';
+export type { SliceDay, SliceRun, WorkerDeparture } from './vertical-slice';
+export {
+  MAX_CUSTOMER_STEP_MS,
+  MAX_SUBWAY_STEP_MS,
+  customerStepMillis,
+  subwayStepMillis,
+  venueTower,
+} from './customer-day';
+export type { SubwayStepTiming } from './customer-day';
+export {
+  EVALUATED_UNITS,
+  MAX_DAILY_GRADES_MS,
+  evaluationTower,
+  timeDailyGrades,
+} from './evaluation-scenario';
+export {
+  createEconomyEngine,
+  firstLedgerMismatch,
+  ledgerChanges,
+  runEconomyScenario,
+} from './economy-scenario';
+export type {
+  CategoryChanges,
+  DayCommand,
+  EconomyAction,
+  EconomyDay,
+  EconomyRun,
+  EconomyScript,
+  ExpectedDay,
+  TimedEconomyAction,
+} from './economy-scenario';

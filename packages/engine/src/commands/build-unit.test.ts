@@ -148,6 +148,7 @@ describe('buildUnit', () => {
       lease: null,
       sale: null,
       hotel: null,
+      evaluation: null,
       venue: null,
     });
     expect(state.nextId).toBe(2);

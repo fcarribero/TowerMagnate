@@ -49,6 +49,7 @@ import { DEFAULT_LOBBY_HEIGHT, DEFAULT_TOOL, type ToolId } from './toolbar/toolb
 import { TowerMapWindow } from './TowerMapWindow';
 import { AvisosWindow } from './notices/AvisosWindow';
 import { DecisionDialogs } from './notices/DecisionDialogs';
+import { InfoDialogs } from './notices/InfoDialogs';
 import { NewsLine } from './notices/NewsLine';
 import { useNotices } from './notices/useNotices';
 import { Toasts } from './toast/Toasts';
@@ -91,6 +92,9 @@ export function App({ onLogout, onRestartTower, onSessionLost }: AppProps) {
     }
     if (id === 'finance') {
       setFinanceOpen((open) => !open);
+    }
+    if (id === 'notices') {
+      setAvisosOpen((open) => !open);
     }
     if (id === 'stars') {
       setStarsOpen((open) => !open);
@@ -344,7 +348,10 @@ export function App({ onLogout, onRestartTower, onSessionLost }: AppProps) {
           {avisosOpen && (
             <AvisosWindow
               notices={notices.avisos}
-              onSeeUnit={(unitId) => stage?.centerOnUnit(unitId)}
+              onSeeUnit={(unitId) => {
+                stage?.centerOnUnit(unitId);
+                connection.inspect.requestUnitWindow(unitId);
+              }}
               onClose={() => setAvisosOpen(false)}
             />
           )}
@@ -352,6 +359,7 @@ export function App({ onLogout, onRestartTower, onSessionLost }: AppProps) {
             <StarsWindow store={connection.store} onClose={() => setStarsOpen(false)} />
           )}
           <UnitWindows connection={connection} />
+          <InfoDialogs subscribe={connection.onMessage} />
           <DecisionDialogs
             store={connection.store}
             onAnswer={notices.answerEvent}

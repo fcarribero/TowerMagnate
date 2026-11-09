@@ -7,6 +7,7 @@ import type { StructureInput } from './structureRows';
 import { skyTimeAt, stepAtHour, timeOfDayAt, type SkyTime } from './timeOfDay';
 import type { UnitsInput } from './unitLayer';
 import { isPlacedUnit, type TransportSource } from './unitPlan';
+import { openVenuesAt } from './venueHours';
 
 export function unitsOf(state: GameState, overlay: OverlayId = 'normal'): UnitsInput {
   return {
@@ -14,12 +15,13 @@ export function unitsOf(state: GameState, overlay: OverlayId = 'normal'): UnitsI
     units: state.units.values(),
     transports: state.transports.values(),
     time: timeOfDayAt(state.step),
+    openVenues: openVenuesAt(state.step),
   };
 }
 
 /**
- * Feeds `show` from the store on every frame that changes a unit, a transport
- * or the time of day, so a variant change in a delta is drawn on the next frame.
+ * Feeds `show` from the store on every frame that changes a unit, a transport,
+ * the time of day or which venues are open, so a variant change in a delta is drawn on the next frame.
  */
 export function bindUnits(
   store: ClientStore,
@@ -32,12 +34,14 @@ export function bindUnits(
       units: state.units,
       transports: state.transports,
       time: timeOfDayAt(state.step),
+      openVenues: openVenuesAt(state.step),
     }),
     (selected) =>
       show({
         units: selected.units.values(),
         transports: selected.transports.values(),
         time: selected.time,
+        openVenues: selected.openVenues,
         overlay: { id: overlay, data: selected.overlays },
       }),
   );
@@ -97,6 +101,7 @@ export function debugUnits(
       },
     ],
     time: timeOfDayAt(stepAtHour(hour)),
+    openVenues: openVenuesAt(stepAtHour(hour)),
     overlay: { id: overlay, data: { evaluation: {}, price: {}, hotel: {} } },
   };
 }

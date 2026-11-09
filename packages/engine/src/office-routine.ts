@@ -27,8 +27,10 @@ import type { HookOccurrence, ScheduledHook } from './scheduler';
 import type { SimulationSystem, StepContext } from './step';
 import { drawMinuteFromWindow } from './time-windows';
 import { cancelTrek, isOnTrek, startTrek } from './trek';
-import { addFailedSearch, hasPendingTrip, recordTrip } from './trip-ledger';
+import { addFailedSearch, hasPendingTrip, recordTrip, stressOfTripEndedNow } from './trip-ledger';
 import { unitNumber } from './units';
+import { customersInsideVenue } from './venue-visitors';
+import { countVenueVisit } from './venues';
 
 export interface Place {
   level: Level;
@@ -501,12 +503,14 @@ function leaveMedicalCenter(worker: Worker, routes: RoutePlanner): void {
 function arriveAtFastFood(worker: Worker, routes: RoutePlanner): void {
   const { routine, state } = worker;
   const venue = venueUnit(state, routine.venue);
-  const eating = diners(state).get(routine.venue) ?? 0;
+  const inside =
+    (diners(state).get(routine.venue) ?? 0) + customersInsideVenue(state, routine.venue);
   const canEnter =
     venue?.type === 'fast-food' &&
     isFastFoodOpen(minuteOfDay(worker)) &&
-    eating < FAST_FOOD_CAPACITY;
+    inside < FAST_FOOD_CAPACITY;
   if (canEnter) {
+    countVenueVisit(state, venue, stressOfTripEndedNow(state, worker.slot));
     routine.phase = 'atLunch';
     changeDiners(state, routine.venue, 1);
     save(worker, state.step + FAST_FOOD_LUNCH_MINUTES * STEPS_PER_MINUTE);

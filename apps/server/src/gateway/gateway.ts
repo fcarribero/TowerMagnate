@@ -1,7 +1,8 @@
 import { ConnectionRegistry } from './connection-registry';
 import { Heartbeat } from './heartbeat';
 import {
-  readClientMessage,
+  readClientFrame,
+  rejectInvalidCommand,
   routeMessage,
   type DebugFrames,
   type MessageContext,
@@ -83,14 +84,20 @@ export class Gateway {
       }
       return;
     }
-    const message = readClientMessage(data, socket);
-    if (!message) {
+    const frame = readClientFrame(data, socket);
+    if (!frame) {
       return;
     }
-    if (message.t !== 'hello' && !this.registry.hasSocket(socket)) {
+    const isHello = frame.kind === 'message' && frame.message.t === 'hello';
+    if (!isHello && !this.registry.hasSocket(socket)) {
       return;
     }
-    await routeMessage(this.handlers, message, { socket, identity, join });
+    const context = { socket, identity, join };
+    if (frame.kind === 'invalidCommand') {
+      rejectInvalidCommand(this.handlers, frame.id, context);
+      return;
+    }
+    await routeMessage(this.handlers, frame.message, context);
   }
 
   private async handleDebugFrame(

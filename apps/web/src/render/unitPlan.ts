@@ -4,6 +4,7 @@ import type { SpriteVariant } from './spriteRegistry';
 import { levelToIndex, levelTop } from './levels';
 import { FLOOR_HEIGHT, TILE_WIDTH } from './metrics';
 import type { TimeOfDay } from './structurePlan';
+import { ALL_VENUES_OPEN, isVenue, type OpenVenues } from './venueHours';
 
 /** What the unit layer needs to draw one unit or transport, in world pixels. */
 export interface UnitDrawing {
@@ -48,25 +49,48 @@ export function planUnit(
   unit: UnitSource,
   time: TimeOfDay,
   overlay: OverlayColor | null = null,
+  openVenues: OpenVenues = ALL_VENUES_OPEN,
 ): UnitDrawing | null {
   if (!isPlacedUnit(unit.type)) {
     return null;
   }
-  const state = unitState(unit);
+  const state = unitState(unit, openVenues);
   return footprint(unit.id, `units/${unit.type}`, unit, { state, time }, overlay);
 }
 
 const HOTEL_ROOMS: readonly UnitType[] = ['single-room', 'double-room', 'suite'];
 
-function unitState(unit: UnitSource): string {
+function unitState(unit: UnitSource, openVenues: OpenVenues): string {
   const { type, variant } = unit;
+  if (isVenue(type) && !openVenues.has(type)) {
+    return 'closed';
+  }
   if ((variant === 'dirty' || variant === 'infested') && HOTEL_ROOMS.includes(type)) {
     return variant;
   }
   if (variant === 'disconnected' && type === 'parking-space') {
     return variant;
   }
-  return unit.occupied || variant === 'occupied' ? 'occupied' : 'empty';
+  return spriteState(type, unit.occupied || variant === 'occupied');
+}
+
+/** Shops and food venues are drawn open or busy instead of empty or occupied. */
+const SHOP_STATES = { empty: 'open', occupied: 'busy' } as const;
+
+/** Units whose sprites name their states differently from `empty` and `occupied`. */
+const SPRITE_STATES: Partial<Record<UnitType, { empty: string; occupied: string }>> = {
+  'fast-food': SHOP_STATES,
+  restaurant: SHOP_STATES,
+  'retail-shop': SHOP_STATES,
+  cinema: { empty: 'empty', occupied: 'show' },
+  'party-hall': { empty: 'empty', occupied: 'party' },
+  cathedral: { empty: 'empty', occupied: 'wedding' },
+};
+
+/** The sprite state for an empty or occupied unit, such as `open` for an empty fast food. */
+export function spriteState(type: UnitType, occupied: boolean): string {
+  const states = SPRITE_STATES[type] ?? { empty: 'empty', occupied: 'occupied' };
+  return occupied ? states.occupied : states.empty;
 }
 
 export function planTransport(
