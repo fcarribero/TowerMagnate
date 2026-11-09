@@ -499,7 +499,7 @@ The zod schemas for every message, command and view are in `packages/shared/src/
 
 ## 9. Performance budgets
 
-- One `step` call with `steps = 1` on a tower of 15,000 people stays under 5 ms on the CI machine. Engine scenario tests that run a game week stay under 10 s.
+- One `step` call with `steps = 1` on a tower of 15,000 people has an average under 5 ms, a p95 under 8 ms and a p99 under 15 ms on the CI runner, raw, with no CPU scaling. At 1x a step is due every 104 ms (8,640 steps in a 15-minute day), so 8 ms on the largest tower is under 8% of a tick. Process capacity is covered by the runner load gate (30 towers, p95 lag 100 ms). The trek system and the office routine each stay under 2.5 ms at p95. Engine scenario tests that run a game week stay under 10 s.
 - A delta for a full-screen viewport stays under 50 KB of JSON. People and cars are already packed arrays; a binary format is the next step if it grows past that.
 - Snapshot size is not budgeted, but it is gzip-compressed with permessage-deflate. Messages under 1 KB skip compression.
 
