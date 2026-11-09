@@ -97,7 +97,7 @@ Runner load, 30 towers of 20 floors at 1x for 10 minutes, release image. Workflo
 
 The runs agree within 2%. The p95 lag scaled to the reference runner is 81.6 ms, within the 100 ms budget.
 
-Step budget, section 9 of `engine-and-protocol.md`: one `step` call with `steps = 1` on a tower of 15,000 people under 5 ms. `pnpm bench:full-tower` builds 2,500 leased offices of 6 workers on 100 floors, with four zones of 25 floors, six standard elevators per zone and stairs between zones. It times every one-step call from 06:00 to 14:00 of the first weekday with commuters, 2,880 calls per run, including the state copy each call makes. It also times the same hours as one call. Workflow run 42564837735, 2027-01-28, Node v22.23.4, 4 x Intel Xeon Platinum 8370C.
+Step budget, section 9 of `engine-and-protocol.md`: one `step` call with `steps = 1` on a tower of 15,000 people under 5 ms. `pnpm bench:full-tower` builds 2,500 leased offices of 6 workers on 100 floors, with four zones of 25 floors, six standard elevators per zone and stairs between zones. It times every one-step call from 06:00 to 14:00 of the first weekday with commuters, 2,880 calls per run, including the state copy each call makes. It also times the same hours as one call. The first table is workflow run 42564837735, 2027-01-28, Node v22.23.4, 4 x Intel Xeon Platinum 8370C, before TM-249.
 
 | Run | Average | p95 | p99 | Max | Per step in one call |
 | --- | --- | --- | --- | --- | --- |
@@ -106,7 +106,20 @@ Step budget, section 9 of `engine-and-protocol.md`: one `step` call with `steps 
 | 3 | 22.03 ms | 34.49 ms | 45.53 ms | 204.95 ms | 3.46 ms |
 | Median | 21.89 ms | 34.39 ms | 44.24 ms | | 3.54 ms |
 
-The runs agree within 3%. The p95 of 34.4 ms is about seven times the budget, so this target is missed (TM-249). The systems themselves fit: run as one call, the same hours cost 3.5 ms per step. The rest is the `structuredClone` at the start of every `step` call. At 08:00 the state of this tower is 2.05 MB as JSON, and on the desktop above one clone of it takes 26.6 ms. Runner ticks pay this clone today, as TM-245 found for 20-floor towers.
+The runs agree within 3%. The p95 of 34.4 ms was about seven times the budget. The systems themselves fit: run as one call, the same hours cost 3.5 ms per step. The rest was the `structuredClone` at the start of every `step` call. At 08:00 the state of this tower is 2.05 MB as JSON, and on a Ryzen 7 5800X desktop one clone of it takes 26.6 ms. Runner ticks paid this clone too, as TM-245 found for 20-floor towers.
+
+TM-249 removed the clone. A `step` call now copies the small parts of the state and shares units, the grid and the trip and unit ledgers with the state it was given until a system asks for a writable copy (`step-copy.ts`). Units are copied with `structuredClone`, so every unit keeps one object layout and the scans over all units stay as fast as before. The check that a kept transport graph still fits the state compares the inputs in place instead of building a key string, which took 2 ms per call on this tower. Workflow run 42586088231, 2027-02-01, Node v22.23.4, 4 x AMD EPYC 9V74:
+
+| Run | Average | p95 | p99 | Max | Per step in one call |
+| --- | --- | --- | --- | --- | --- |
+| 1 | 4.35 ms | 13.07 ms | 19.85 ms | 30.38 ms | 3.14 ms |
+| 2 | 4.25 ms | 12.70 ms | 18.73 ms | 36.72 ms | 3.11 ms |
+| 3 | 4.55 ms | 13.40 ms | 18.95 ms | 36.33 ms | 3.13 ms |
+| Median | 4.35 ms | 13.07 ms | 18.95 ms | | 3.13 ms |
+
+The runs agree within 6%. The average is under the 5 ms budget, but the p95 is not. What is left is the cost of the systems on the busiest steps, mostly trek and the office routine at the morning peak, and TM-252 owns it. Until then the step budget job is blocking with interim limits: `pnpm bench:full-tower --gate --avg-ms 7 --p95-ms 17.5 --p99-ms 27.5` fails when a median is over its limit or the p95 of the runs differs by over 15%. The limits apply to the raw numbers. The job log shows the CPU model and the raw medians.
+
+The CPU type matters here, and the TM-245 calibration does not predict it. On the same code, the p95 was 9.27 ms on an AMD EPYC 9V45, 13.07 ms on an EPYC 9V74, 13.89 ms on an EPYC 7763 and 15.18 ms on a Xeon Platinum 8573C. The calibration ranks the same CPUs 9V45, 8573C, 7763, 9V74 from fastest to slowest (16.5, 25.7, 33.5 and 34.1 ms). Dividing by its slowdown gave the 9V45 a p95 of 18.57 ms, so the step gate does not scale. The slowest type seen is the Xeon Platinum 8370C: workflow run 42594672807 measured a median average of 5.96 ms, p95 16.34 ms and p99 26.01 ms there. The p95 limit of 17.5 ms and the p99 limit of 27.5 ms leave about 7% and 6% over it. The 7 ms average limit leaves about 17% over it. TM-252 targets 5 ms average, 8 ms p95 and 15 ms p99 on every runner type seen so far, which leaves enough margin without scaling.
 
 ### Client results
 
@@ -145,7 +158,7 @@ The 60 fps line is judged on the render reference machine with the method in [Re
 | Target | Result | Status |
 | --- | --- | --- |
 | 30 towers, p95 tick lag at most 100 ms, release image | 84.3 ms raw, 81.6 ms scaled | Met |
-| One step of a 15,000-person tower under 5 ms | 34.4 ms p95, 21.9 ms average | Missed, TM-249 |
+| One step of a 15,000-person tower under 5 ms | 13.1 ms p95, 4.4 ms average (was 34.4 and 21.9 ms) | Missed, TM-252; CI gate at 7 ms average, 17.5 ms p95, 27.5 ms p99 |
 | 100 floors, 3,000 people, draw calls under 200 | 69 | Met |
 | Heap growth under 5% over 30 minutes | 3.3% median, 4.5% highest | Met |
 | 60 fps at 1x zoom | Reference machine, median of 3 uncapped runs: p95 frame cost 0.8 ms, average 0.69 ms, 69 draw calls; capped 60.0 fps. See [Render reference machine](#render-reference-machine) | Met |

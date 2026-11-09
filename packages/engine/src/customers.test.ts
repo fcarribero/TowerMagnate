@@ -154,7 +154,7 @@ describe('the 00:00 customer plan', () => {
 
   it('applies the subway factor when the tower has a station', () => {
     const { state, food } = venueTower();
-    state.units.u99 = newUnit('u99', 'subway-station', 0, -7);
+    state.units.u99 = newUnit('u99', 'subway-station', 0, -9);
     expect(venueOf(planDay(state, TUESDAY), food).customers).toHaveLength(24);
   });
 
