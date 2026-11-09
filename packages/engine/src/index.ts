@@ -35,6 +35,7 @@ export { defaultSchedule, defaultStops, isExpressStop, shaftLevels } from './com
 export { evaluateUnit, gradeOfScore, unitScore } from './evaluation';
 export type { UnitEvaluation, UnitEvaluationInput, UnitGrade } from './evaluation';
 export {
+  announceSanta,
   answerDecision,
   buildEventViews,
   endDisaster,
@@ -182,6 +183,7 @@ export type {
   UserClass,
   WalkableRun,
 } from './routing';
+export { recordNotices } from './notices';
 export { emitNews } from './news';
 export type { NewsEvent } from './news';
 export { isEvaluatedUnit, storedGrade } from './unit-evaluation';
