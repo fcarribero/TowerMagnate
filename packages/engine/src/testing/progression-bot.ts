@@ -55,14 +55,14 @@ const TICK_STEPS = 10 * STEPS_PER_MINUTE;
 const GROWTH_RESERVE = 100_000;
 /** Leased offices that keep one more fast food busy at lunch. */
 const OFFICES_PER_FAST_FOOD = 10;
-/** Types a careful player builds first once unlocked, because they pay back in days. */
-const PREFERRED_TYPES: ReadonlySet<UnitType> = new Set(['party-hall', 'condo']);
+/** Condos sell within days for nearly twice their price, so a careful player builds them first. */
+const PREFERRED_TYPES: ReadonlySet<UnitType> = new Set(['condo']);
 /** Hotel rooms one housekeeping unit is planned for. */
 const ROOMS_PER_HOUSEKEEPING = 24;
 /** Money the bot keeps back from star requirements and transport. */
 const NEED_RESERVE = 50_000;
 /** Zone load (people and visits a day) one local car is planned for. */
-const LOAD_PER_LOCAL_CAR = 110;
+const LOAD_PER_LOCAL_CAR = 150;
 /** Load above zone 0 one express car is planned for. */
 const LOAD_PER_EXPRESS_CAR = 450;
 const MAX_CARS = 8;

@@ -148,6 +148,12 @@ function bothSides(level: Level, types: readonly UnitType[], repeatLast = true):
   return slots;
 }
 
+/**
+ * Party halls and cinemas get no guests until TM-37 lands, so a careful player leaves their levels
+ * empty; turn this on when it does.
+ */
+const ENTERTAINMENT_HAS_VISITORS = false;
+
 /** Hotel rooms: suites nearest the core, then doubles, then singles. */
 const HOTEL_ROOMS: readonly UnitType[] = [
   'suite',
@@ -191,7 +197,7 @@ export function levelSlots(level: Level): Slot[] {
     case 'shops':
       return bothSides(level, ['restaurant', 'retail-shop']);
     case 'entertainment':
-      return bothSides(level, ['party-hall']);
+      return bothSides(level, ['party-hall']).filter(() => ENTERTAINMENT_HAS_VISITORS);
     case 'hotelA':
       return hotelLevel(level, true);
     case 'hotelB':
