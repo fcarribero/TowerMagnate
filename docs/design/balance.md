@@ -35,7 +35,9 @@ Growth keeps back $100,000, a week of upkeep and the current bomb ransom. Prices
 
 ## 2. Results before tuning
 
-To be filled in.
+First run, seed 1 only, develop at 624bda5, 130 days: 2 stars on day 12, 3 stars on day 61, 4,453 people and no 4 stars by day 130. The other 4 seeds are still to run. Money is the gate: from day 14 on the bot spends every week's income and keeps the tower about $300,000 above its reserve.
+
+Party halls and cinemas get no guests on develop (TM-37 is in the backlog), so they only cost upkeep. The bot leaves their levels empty until TM-37 lands. Party halls at 50 guests would pay back in about two weeks, so these numbers will move when it does.
 
 ## 3. Constants changed
 
