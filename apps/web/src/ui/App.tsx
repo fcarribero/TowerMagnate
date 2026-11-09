@@ -108,9 +108,7 @@ export function App({ onLogout, onRestartTower, onSessionLost }: AppProps) {
     });
     connection.onMessage((message) => {
       api.receive(message);
-      if (message.t === 'commandResult' || message.t === 'events') {
-        director.serverMessage(message);
-      }
+      director.serverMessage(message);
     });
     return api;
   }, [connection, director]);

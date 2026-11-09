@@ -16,6 +16,9 @@ const manifest: SfxManifest = {
       volume: 0.5,
       loop: false,
       trigger: 'ui.click',
+      stopTrigger: null,
+      minIntervalMs: 0,
+      duckOthers: null,
     },
   ],
 };
