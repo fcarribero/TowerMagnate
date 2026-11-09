@@ -43,6 +43,7 @@ export {
   openFire,
   openRandomBombThreat,
   openRandomFire,
+  openVipVisitNow,
 } from './events';
 
 export { hashState } from './hash';

@@ -11,7 +11,7 @@ import { STEPS_PER_DAY } from './clock';
 import { towerCommandHandlers } from './commands';
 import { rollBasementTreasure } from './events/treasure';
 import { createElevatorSystem } from './elevators';
-import { eventsPhase } from './events';
+import { eventsPhase, vipBookingHook } from './events';
 import { createCondoSystem } from './condos';
 import { createCustomers } from './customers';
 import { createHotelSystem } from './hotel';
@@ -244,6 +244,7 @@ export const towerSystems: readonly SimulationSystem[] = [
     hotelGuests.planHook,
     hotelGuests.nightHook,
     ...prospects.rollHooks,
+    vipBookingHook,
     hotelGuests.bookingHook,
     hotelGuests.giveUpHook,
     customers.planHook,

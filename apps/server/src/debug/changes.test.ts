@@ -119,6 +119,17 @@ describe('debug changes on a running tower', () => {
     expect(state().activeEvents).toHaveLength(1);
   });
 
+  it('opens a VIP visit that books at the next 12:00, one at a time', async () => {
+    await start(3);
+
+    await runner.change('1', forceEvent('vip'));
+
+    expect(state().vipVisit).toMatchObject({ day: 0, unitId: null, outcome: 'pending' });
+    await expect(runner.change('1', forceEvent('vip'))).rejects.toEqual(
+      new DebugRefusal('LIMIT_REACHED'),
+    );
+  });
+
   it('fast forwards a day to the same state as running the steps', async () => {
     await start();
     const expected = step(state(), [], STEPS_PER_DAY).state;

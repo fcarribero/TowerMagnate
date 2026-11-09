@@ -511,6 +511,12 @@ export const BOMB_BLAST_COLUMNS_LEFT = 20;
 export const BOMB_BLAST_COLUMNS_RIGHT = 19;
 export const BOMB_BLAST_LEVELS_BELOW = 2;
 export const BOMB_BLAST_LEVELS_ABOVE = 3;
+/** A VIP visit is rolled at 00:00 only at exactly this rating. */
+export const VIP_STARS = 3;
+export const VIP_DAILY_ODDS = 9;
+export const VIP_NIGHTS = 1;
+/** The visit is approved when the VIP's average trip stress is under this many steps (15 minutes). */
+export const VIP_MAX_STRESS_STEPS = 90;
 
 /** The ransom asked when a bomb threat opens, by star rating. */
 export function bombRansom(stars: StarRating): number {

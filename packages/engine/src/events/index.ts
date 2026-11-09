@@ -4,6 +4,7 @@ import { runBombSearch } from './bomb-search';
 import { runDecisionDeadlines } from './decisions';
 import { runFire, runFireRoll } from './fire';
 import { runSanta } from './santa';
+import { rollVipVisit, runVipVisit } from './vip';
 
 export { buildEventViews } from './view';
 export { answerDecision, endDisaster, openBombThreat, openFire } from './decisions';
@@ -11,10 +12,13 @@ export { startBombSearch } from './bomb-search';
 export { blastColumns, blastLevels, openRandomBombThreat, ruinBlastBox } from './bomb';
 export { pickFireTargets } from './fire-guards';
 export { fireCandidates, igniteLevel, openRandomFire } from './fire';
+export { isVipStay, openVipVisit, openVipVisitNow, vipBookingHook } from './vip';
 
 /** Event work of one step, in the order of events spec section 10. */
 export const eventsPhase: SimulationSystem = (context) => {
   runDecisionDeadlines(context);
+  rollVipVisit(context);
+  runVipVisit(context);
   runBombSchedule(context);
   runFireRoll(context);
   if (context.state.activeEvents.length > 0) runActiveEvents(context);

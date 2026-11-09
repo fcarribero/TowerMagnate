@@ -18,6 +18,8 @@ import {
   HOTEL_PARTY_SIZE,
   ROUTE_RETRY_STEPS,
   VENUE_VISIT_MINUTES,
+  VIP_LEAVE,
+  VIP_NIGHTS,
   type HotelRoom,
   type TowerState,
   type Unit,
@@ -27,6 +29,7 @@ import {
 } from '@tower-magnate/shared';
 import { STEPS_PER_MINUTE } from './calendar';
 import { STEPS_PER_DAY } from './clock';
+import { isVipBooking, vipLeftTower } from './events/vip';
 import { checkIn, rollBooking } from './hotel';
 import {
   decodeGuestRoutine,
@@ -34,6 +37,7 @@ import {
   guestRoutineAt,
   guestsOfRoom,
   isHotelGuest,
+  isVip,
   LEAVE_SLOT,
   NO_SLOT,
   OUTING_SLOT,
@@ -176,26 +180,45 @@ function sendParty(context: StepContext, room: RoomUnit): void {
   const { state } = context;
   const entrance = entrancePlace(state, chance(state.rng, 0.5));
   if (!entrance) return;
-  const roomNumber = unitNumber(room.id);
   for (let index = 0; index < HOTEL_PARTY_SIZE[room.type]; index++) {
-    const personId = addPerson(state, {
-      kind: 'hotelGuest',
-      homeUnit: roomNumber,
-      level: entrance.level,
-      column: entrance.column,
-    });
+    const personId = sendGuest(context, room, 'hotelGuest', entrance);
     if (index === 0 && room.type === 'suite') rollParkingHolder(state, personId, 'suite');
-    const slot = slotOfPerson(state.people, personId);
-    const routine: GuestRoutine = {
-      phase: 'arriving',
-      venue: 0,
-      slots: [NO_SLOT, NO_SLOT, NO_SLOT],
-    };
-    save(state, slot, routine, NOTHING_DUE);
-    if (!startTrek(context, slot, unitPlace(room))) {
-      save(state, slot, { ...routine, phase: 'arrivalRetry' }, state.step + ROUTE_RETRY_STEPS);
-    }
   }
+}
+
+/** People spec 9: the VIP comes alone through the street entrance and never parks. */
+function sendVip(context: StepContext, room: RoomUnit): void {
+  const { state } = context;
+  const entrance = entrancePlace(state, chance(state.rng, 0.5));
+  const visit = state.vipVisit;
+  if (!entrance || !visit) return;
+  visit.personId = sendGuest(context, room, 'vip', entrance);
+}
+
+function sendGuest(
+  context: StepContext,
+  room: RoomUnit,
+  kind: 'hotelGuest' | 'vip',
+  entrance: Place,
+): number {
+  const { state } = context;
+  const personId = addPerson(state, {
+    kind,
+    homeUnit: unitNumber(room.id),
+    level: entrance.level,
+    column: entrance.column,
+  });
+  const slot = slotOfPerson(state.people, personId);
+  const routine: GuestRoutine = {
+    phase: 'arriving',
+    venue: 0,
+    slots: [NO_SLOT, NO_SLOT, NO_SLOT],
+  };
+  save(state, slot, routine, NOTHING_DUE);
+  if (!startTrek(context, slot, unitPlace(room))) {
+    save(state, slot, { ...routine, phase: 'arrivalRetry' }, state.step + ROUTE_RETRY_STEPS);
+  }
+  return personId;
 }
 
 function sendDueParties(context: StepContext): void {
@@ -203,7 +226,9 @@ function sendDueParties(context: StepContext): void {
   if (state.step % STEPS_PER_MINUTE !== 0) return;
   const arriving = roomsById(state, (room) => room.hotel.arrivalStep === state.step);
   for (const room of arriving) {
-    if (canTakeArrival(room)) sendParty(context, room);
+    if (!canTakeArrival(room)) continue;
+    if (isVipBooking(state, room.id)) sendVip(context, room);
+    else sendParty(context, room);
   }
 }
 
@@ -273,14 +298,18 @@ function fileArrivalTrips(state: TowerState, room: RoomUnit): void {
   }
 }
 
-/** People spec 8.2: on the check-in day each guest goes out once with 40% chance. */
+/**
+ * People spec 8.2: on the check-in day each guest goes out once with 40% chance. The VIP always
+ * plans the restaurant (people spec 9).
+ */
 function drawCheckInOutings(state: TowerState, room: RoomUnit): void {
   const first = minuteAtOrAfter(state.step) + HOTEL_CHECK_IN_OUTING_DELAY_MINUTES;
   if (first >= HOTEL_OUTING_END_MINUTE) return;
   for (const personId of guestsOfRoom(state.people, unitNumber(room.id))) {
     const slot = slotOfPerson(state.people, personId);
     const routine = guestRoutineAt(state.people, slot);
-    if (!routine || !chance(state.rng, HOTEL_CHECK_IN_OUTING_CHANCE)) continue;
+    if (!routine) continue;
+    if (!isVip(state.people, slot) && !chance(state.rng, HOTEL_CHECK_IN_OUTING_CHANCE)) continue;
     const minute = nextInt(state.rng, first, HOTEL_OUTING_END_MINUTE - 1);
     const slots = withSlot(routine.slots, OUTING_SLOT, minute + 1);
     state.people.trip[slot] = encodeGuestRoutine({ ...routine, slots });
@@ -292,7 +321,8 @@ function arriveAtRoom(context: StepContext, slot: number, room: RoomUnit): void 
   const { state } = context;
   const personId = state.people.id[slot] as number;
   if (room.hotel.arrivalStep !== null && room.hotel.state === 'clean') {
-    if (!checkIn(context, room.id).checkedIn) {
+    const nights = isVip(state.people, slot) ? VIP_NIGHTS : undefined;
+    if (!checkIn(context, room.id, nights).checkedIn) {
       removeParty(state, room);
       return;
     }
@@ -398,8 +428,14 @@ function outingTypeWithCandidates(state: TowerState): VisitedVenueType | null {
   return order.find((type) => hasVenueCandidate(state, type)) ?? null;
 }
 
+/** The VIP only dines, and only when a restaurant has a route (people spec 9). */
+function outingTypeOf(guest: Guest): VisitedVenueType | null {
+  if (!isVip(guest.state.people, guest.slot)) return outingTypeWithCandidates(guest.state);
+  return hasVenueCandidate(guest.state, 'restaurant') ? 'restaurant' : null;
+}
+
 function startOuting(guest: Guest): void {
-  const type = outingTypeWithCandidates(guest.state);
+  const type = outingTypeOf(guest);
   const from = unitPlace(guest.room);
   const choice = type ? chooseVenue(guest.context, routes, from, type) : null;
   if (!choice) {
@@ -463,7 +499,7 @@ function arriveAtVenue(guest: Guest): void {
 }
 
 function advance(guest: Guest): void {
-  const { routine, state, slot, room } = guest;
+  const { routine, slot, room } = guest;
   switch (routine.phase) {
     case 'arriving':
       arriveAtRoom(guest.context, slot, room);
@@ -492,13 +528,25 @@ function advance(guest: Guest): void {
     case 'atVenue':
       walkBack(guest, currentPlace(guest));
       break;
-    case 'leaving':
-      removePerson(state, state.people.id[slot] as number);
-      break;
     case 'leaveRetry':
       startDeparture(guest);
       break;
   }
+}
+
+function isAtEntrance(state: TowerState, slot: number): boolean {
+  const pool = state.people;
+  return [entrancePlace(state, false), entrancePlace(state, true)].some(
+    (place) => place?.level === pool.level[slot] && place?.column === pool.column[slot],
+  );
+}
+
+/** The guest reached an entrance on the way out. The VIP's visit is judged before they go. */
+function leaveTower(context: StepContext, slot: number): void {
+  const { state } = context;
+  const personId = state.people.id[slot] as number;
+  if (isVip(state.people, slot)) vipLeftTower(context, personId, isAtEntrance(state, slot));
+  removePerson(state, personId);
 }
 
 function runGuest(context: StepContext, slot: number): void {
@@ -509,6 +557,10 @@ function runGuest(context: StepContext, slot: number): void {
   while (pool.id[slot] === personId && pool.dueStep[slot] === state.step) {
     const routine = decodeGuestRoutine(pool.trip[slot] ?? NO_TRIP);
     const room = roomOf(state, pool.homeUnit[slot] as number);
+    if (routine?.phase === 'leaving') {
+      leaveTower(context, slot);
+      return;
+    }
     if (!routine || !room) {
       removePerson(state, personId as number);
       return;
@@ -517,8 +569,11 @@ function runGuest(context: StepContext, slot: number): void {
   }
 }
 
-function drawDayPlan(state: TowerState, checkOutDay: boolean): GuestSlots {
-  if (checkOutDay) return [windowSlot(state, HOTEL_CHECK_OUT_LEAVE), NO_SLOT, NO_SLOT];
+function drawDayPlan(state: TowerState, checkOutDay: boolean, vip: boolean): GuestSlots {
+  if (checkOutDay) {
+    const leave = windowSlot(state, vip ? VIP_LEAVE : HOTEL_CHECK_OUT_LEAVE);
+    return [leave, NO_SLOT, NO_SLOT];
+  }
   let leave = NO_SLOT;
   let back = NO_SLOT;
   if (chance(state.rng, HOTEL_DAY_OUT_CHANCE)) {
@@ -542,7 +597,7 @@ function drawPlans(context: StepContext): void {
     if (!room || stayEnd === null) continue;
     if (isOnTrek(pool, slot)) cancelTrek(context, slot);
     const checkOutDay = dayStartOf(stayEnd) === dayStartOf(state.step);
-    const slots = drawDayPlan(state, checkOutDay);
+    const slots = drawDayPlan(state, checkOutDay, isVip(pool, slot));
     settleInRoom(state, slot, room, { phase: 'room', venue: 0, slots });
   }
 }
