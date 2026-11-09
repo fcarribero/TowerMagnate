@@ -227,8 +227,9 @@ describe('decision deadline', () => {
   it('leaves an answered decision alone', () => {
     const { state: tower, id } = towerWithFire();
     const { state, events } = step(tower, [answer(id, 'helicopter')], DECISION_DEADLINE_STEPS);
-    expect(events).toHaveLength(1);
+    expect(events).toHaveLength(2);
     expect(events[0]).toMatchObject({ commandId: 'c1', choice: 'helicopter' });
+    expect(events[1]).toMatchObject({ type: 'news', key: 'news.fireHelicopter' });
     expect(state.closedDecisions).toEqual([id]);
   });
 

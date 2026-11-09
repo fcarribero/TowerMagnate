@@ -36,3 +36,8 @@ export function readWedding(raw: unknown): WeddingAttempt | null {
     outcome: raw.outcome as WeddingAttempt['outcome'],
   };
 }
+
+export function readLastWeddingDay(raw: unknown): number | null {
+  if (raw === null || isNonNegativeInteger(raw)) return raw;
+  throw new StateMigrationError('State lastWeddingDay must be null or a day number');
+}
