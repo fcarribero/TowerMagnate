@@ -345,7 +345,9 @@ function describeEvent(event: EngineEvent): string {
     case 'disaster':
       return `disaster ${event.kind}, ${event.cells.length} ruined spans`;
     case 'news':
-      return 'level' in event ? `${event.key} on level ${event.level}` : event.key;
+      return event.params.level === undefined
+        ? event.key
+        : `${event.key} on level ${event.params.level}`;
     default:
       return event.type;
   }

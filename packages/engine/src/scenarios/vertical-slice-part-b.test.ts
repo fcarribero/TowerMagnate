@@ -87,7 +87,9 @@ describe('scenario: vertical slice part B, stars, forced bomb and 14 days', () =
     expect(isWeekdayFivePm(change?.step ?? -1)).toBe(true);
     expect(change?.step).toBeLessThanOrEqual(FRIDAY_CHECK);
     const news = run.events.filter((event) => event.type === 'news' && event.step === change?.step);
-    expect(news).toEqual([{ type: 'news', step: change?.step, key: 'news.starsUp', n: 2 }]);
+    expect(news).toEqual([
+      { type: 'news', step: change?.step, key: 'news.starsUp', unitId: null, params: { n: 2 } },
+    ]);
   });
 
   it('keeps 2 stars to the end of day 14', () => {
@@ -134,7 +136,7 @@ describe('scenario: vertical slice part B, stars, forced bomb and 14 days', () =
     const exploded = run.events.find(
       (event) => event.type === 'news' && event.key === 'news.bombExploded',
     );
-    expect(exploded).toMatchObject({ level: threat?.bomb.level });
+    expect(exploded).toMatchObject({ params: { level: threat?.bomb.level } });
     expect(run.state.activeEvents).toEqual([]);
     const ruinedOffices = 90 - (run.days[13]?.leasedOffices ?? 90);
     expect(ruinedOffices).toBeGreaterThan(0);
