@@ -15,6 +15,7 @@ import {
   timeFullTowerRuns,
   type FullTowerLimits,
   type FullTowerRun,
+  type SystemTiming,
 } from '@tower-magnate/engine/testing';
 
 const { values: options } = parseArgs({
@@ -44,6 +45,22 @@ const list = (pick: (run: FullTowerRun) => number) =>
   runs.map((run) => pick(run).toFixed(2)).join(', ');
 const median = (pick: (run: FullTowerRun) => number) => medianOf(runs.map(pick)).toFixed(2);
 const limitText = (limit: number | undefined) => (limit === undefined ? '' : `, limit ${limit}`);
+function systemLines(): string[] {
+  const first = runs[0];
+  if (!first) return [];
+  return first.systems.map(({ name }, index) => {
+    const of = (pick: (system: SystemTiming) => number) =>
+      median((run) => pick(run.systems[index] as SystemTiming)).padStart(7);
+    const columns = [
+      of((system) => system.averageMs),
+      of((system) => system.p95Ms),
+      of((system) => system.p99Ms),
+      of((system) => system.maxMs),
+    ];
+    return `  ${columns.join(' ')}  ${name}`;
+  });
+}
+
 const machine = `${os.cpus().length} x ${os.cpus()[0]?.model.trim()}, ${os.platform()}`;
 
 console.log(
@@ -56,6 +73,8 @@ console.log(
     `p99 step ms per run: ${list((run) => run.p99Ms)} (median ${median((run) => run.p99Ms)}${limitText(limits?.p99Ms)})`,
     `Max step ms per run: ${list((run) => run.maxMs)}`,
     `Step ms when the same hours run in one call: ${list((run) => run.batchedMs)}`,
+    'Median ms per step by system (average, p95, p99, max):',
+    ...systemLines(),
   ].join('\n'),
 );
 

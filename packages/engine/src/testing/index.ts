@@ -108,4 +108,4 @@ export {
   timeFullTowerDay,
   timeFullTowerRuns,
 } from './full-tower';
-export type { FullTowerLimits, FullTowerResult, FullTowerRun } from './full-tower';
+export type { FullTowerLimits, FullTowerResult, FullTowerRun, SystemTiming } from './full-tower';

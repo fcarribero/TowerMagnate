@@ -221,17 +221,19 @@ export function lobbyHeightAt(grid: GridState, level: Level, column: number): nu
   return lobby ? lobby[1] : null;
 }
 
-/** A person joins a queue: the wait starts, and a tall lobby cuts it when the ride goes up. */
+/**
+ * A person joins a queue: the wait starts, and a tall lobby cuts it when the ride goes up.
+ * `lobbyHeight` is `lobbyHeightAt` the person's level and the shaft's column.
+ */
 export function startWait(
   state: TowerState,
   slot: number,
-  shaft: Shaft,
   direction: HallDirection,
+  lobbyHeight: number | null,
 ): void {
   const pool = state.people;
-  const level = field(pool.level, slot) as Level;
   pool.tripPartStep[slot] = state.step;
-  pool.tripPartCut[slot] = tallLobbyCut(direction, lobbyHeightAt(state.grid, level, shaft.x));
+  pool.tripPartCut[slot] = tallLobbyCut(direction, lobbyHeight);
 }
 
 /** The person steps into a car: the counted wait is final and the ride starts. */

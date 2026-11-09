@@ -3,7 +3,8 @@ import { STEPS_PER_HOUR } from '../calendar';
 import { STEPS_PER_DAY } from '../clock';
 import { moveInTenant } from '../leases';
 import { addPeopleForUnit, peopleCount } from '../people';
-import { step } from '../step';
+import { towerCommandHandlers } from '../commands';
+import { createEngine, namedTowerSystems, type Engine, type SimulationSystem } from '../step';
 import { medianOf } from './fastest-run';
 import { addFlight } from './hundred-floor-tower';
 import { buildTower, plainTowerPlan, type PlannedShaft, type PlannedUnit } from './tower-builder';
@@ -70,6 +71,51 @@ export interface FullTowerRun {
   maxMs: number;
   /** Average cost of a step when the same hours run in one `step` call, which copies the state once. */
   batchedMs: number;
+  /** Each system's cost per timed step, in `namedTowerSystems` order. */
+  systems: SystemTiming[];
+}
+
+export interface SystemTiming {
+  name: string;
+  averageMs: number;
+  p95Ms: number;
+  p99Ms: number;
+  maxMs: number;
+}
+
+interface Percentiles {
+  averageMs: number;
+  p95Ms: number;
+  p99Ms: number;
+  maxMs: number;
+}
+
+function percentilesOf(times: Float64Array): Percentiles {
+  const sorted = Array.from(times).sort((a, b) => a - b);
+  const at = (share: number) => sorted[Math.floor(sorted.length * share)] as number;
+  return {
+    averageMs: sorted.reduce((sum, ms) => sum + ms, 0) / sorted.length,
+    p95Ms: at(0.95),
+    p99Ms: at(0.99),
+    maxMs: sorted[sorted.length - 1] as number,
+  };
+}
+
+/**
+ * The engine's own systems, each timed into `perSystem` at the index of the step being timed.
+ * `timedIndex` returns -1 outside the timed steps.
+ */
+function timedEngine(perSystem: Float64Array[], timedIndex: () => number): Engine {
+  const systems = namedTowerSystems.map(({ system }, systemIndex): SimulationSystem => {
+    const own = perSystem[systemIndex] as Float64Array;
+    return (context) => {
+      const started = performance.now();
+      system(context);
+      const index = timedIndex();
+      if (index >= 0) own[index] = performance.now() - started;
+    };
+  });
+  return createEngine({ commandHandlers: towerCommandHandlers, systems });
 }
 
 /**
@@ -77,27 +123,30 @@ export interface FullTowerRun {
  * Each call includes the state copy the engine makes on entry, as the server pays it.
  */
 export function timeFullTowerDay(): FullTowerRun {
-  const atSix = step(fullTower(), [], TIMED_FROM).state;
+  const perSystem = namedTowerSystems.map(() => new Float64Array(TIMED_STEPS));
+  let timing = -1;
+  const engine = timedEngine(perSystem, () => timing);
+  const atSix = engine.step(fullTower(), [], TIMED_FROM).state;
   const batchStarted = performance.now();
-  step(atSix, [], TIMED_STEPS);
+  engine.step(atSix, [], TIMED_STEPS);
   const batchedMs = (performance.now() - batchStarted) / TIMED_STEPS;
 
   let state = atSix;
   const times = new Float64Array(TIMED_STEPS);
   for (let index = 0; index < TIMED_STEPS; index++) {
+    timing = index;
     const started = performance.now();
-    state = step(state, [], 1).state;
+    state = engine.step(state, [], 1).state;
     times[index] = performance.now() - started;
   }
-  const sorted = Array.from(times).sort((a, b) => a - b);
-  const at = (share: number) => sorted[Math.floor(sorted.length * share)] as number;
   return {
     people: peopleCount(state.people),
-    averageMs: sorted.reduce((sum, ms) => sum + ms, 0) / sorted.length,
-    p95Ms: at(0.95),
-    p99Ms: at(0.99),
-    maxMs: sorted[sorted.length - 1] as number,
+    ...percentilesOf(times),
     batchedMs,
+    systems: namedTowerSystems.map(({ name }, index) => ({
+      name,
+      ...percentilesOf(perSystem[index] as Float64Array),
+    })),
   };
 }
 

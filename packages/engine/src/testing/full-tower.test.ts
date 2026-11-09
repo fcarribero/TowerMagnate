@@ -20,7 +20,15 @@ describe('fullTower', () => {
 });
 
 function run(averageMs: number, p95Ms: number, p99Ms: number): FullTowerRun {
-  return { people: FULL_TOWER_PEOPLE, averageMs, p95Ms, p99Ms, maxMs: p99Ms, batchedMs: 1 };
+  return {
+    people: FULL_TOWER_PEOPLE,
+    averageMs,
+    p95Ms,
+    p99Ms,
+    maxMs: p99Ms,
+    batchedMs: 1,
+    systems: [],
+  };
 }
 
 describe('fullTowerGateFailures', () => {
