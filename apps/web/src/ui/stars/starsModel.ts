@@ -15,14 +15,21 @@ export interface StarsView {
   next: NextStep | null;
 }
 
+export function currentRankLabel(stars: StarRating): StringKey {
+  if (stars === 6) {
+    return 'window.stars.currentTower';
+  }
+  return stars === 1 ? 'window.stars.currentOne' : 'window.stars.current';
+}
+
 export function starsView(stars: StarRating): StarsView {
   if (stars === 6) {
-    return { currentLabel: 'window.stars.currentTower', next: null };
+    return { currentLabel: currentRankLabel(stars), next: null };
   }
   const targetPopulation = STAR_POPULATION_THRESHOLDS[stars];
   if (stars === 5) {
     return {
-      currentLabel: 'window.stars.current',
+      currentLabel: currentRankLabel(stars),
       next: {
         titleLabel: 'window.stars.nextTower',
         rank: null,
@@ -33,7 +40,7 @@ export function starsView(stars: StarRating): StarsView {
   }
   const rank = stars + 1;
   return {
-    currentLabel: 'window.stars.current',
+    currentLabel: currentRankLabel(stars),
     next: {
       titleLabel: 'window.stars.next',
       rank,

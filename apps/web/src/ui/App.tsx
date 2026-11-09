@@ -44,6 +44,7 @@ import { StarsWindow } from './stars/StarsWindow';
 import { StatusPanel, type StatusWindowId } from './status/StatusPanel';
 import { debugStarsFromQuery } from './toolbar/debugStars';
 import { t } from './strings';
+import { useViewportUiScale } from './uiScale';
 import { Toolbar } from './toolbar/Toolbar';
 import { DEFAULT_LOBBY_HEIGHT, DEFAULT_TOOL, type ToolId } from './toolbar/toolbarModel';
 import { TowerMapWindow } from './TowerMapWindow';
@@ -76,6 +77,7 @@ export function App({ onLogout, onRestartTower, onSessionLost }: AppProps) {
     return store;
   }, []);
   const [stage, setStage] = useState<Stage | null>(null);
+  const uiScale = useViewportUiScale();
   const [mapOpen, setMapOpen] = useState(false);
   const [financeOpen, setFinanceOpen] = useState(false);
   const [avisosOpen, setAvisosOpen] = useState(false);
@@ -334,12 +336,12 @@ export function App({ onLogout, onRestartTower, onSessionLost }: AppProps) {
           protocolMismatch={protocolMismatch}
           onReload={() => location.reload()}
         />
-        {mapOpen && stage && (
-          <TowerMapWindow content={content} stage={stage} onClose={() => setMapOpen(false)} />
-        )}
         <Toasts commands={connection.commands} />
         <NewsLine subscribe={notices.subscribeLine} onOpenAvisos={() => setAvisosOpen(true)} />
-        <WindowLayer class="ui-windows">
+        <WindowLayer class="ui-windows" uiScale={uiScale}>
+          {mapOpen && stage && (
+            <TowerMapWindow content={content} stage={stage} onClose={() => setMapOpen(false)} />
+          )}
           <DemolishConfirm
             confirmation={pendingDemolition?.confirmation ?? null}
             onConfirm={() => {
