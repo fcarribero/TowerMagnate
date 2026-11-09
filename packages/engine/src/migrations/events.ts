@@ -257,3 +257,17 @@ export function readNotices(raw: unknown): Notice[] {
   }
   return raw.map(readNotice);
 }
+
+export function readNewsSent(raw: unknown): Record<string, number> {
+  if (!isRecord(raw)) {
+    throw new StateMigrationError('State newsSent must map news slots to steps');
+  }
+  const sent: Record<string, number> = {};
+  for (const [slot, step] of Object.entries(raw)) {
+    if (!Number.isInteger(step) || (step as number) < 0) {
+      throw new StateMigrationError('State newsSent steps must be non-negative integers');
+    }
+    sent[slot] = step as number;
+  }
+  return sent;
+}
