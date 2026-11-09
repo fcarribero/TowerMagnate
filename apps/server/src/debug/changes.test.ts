@@ -1,4 +1,12 @@
-import { createTower, hashState, step, STEPS_PER_DAY } from '@tower-magnate/engine';
+import {
+  chargeMoney,
+  createTower,
+  creditMoney,
+  hashState,
+  step,
+  STEPS_PER_DAY,
+  STEPS_PER_WEEK,
+} from '@tower-magnate/engine';
 import { buildTower, plainTowerPlan } from '@tower-magnate/engine/testing';
 import type { StarRating, TowerState } from '@tower-magnate/shared';
 import { beforeEach, describe, expect, it } from 'vitest';
@@ -185,5 +193,45 @@ describe('debug changes on a running tower', () => {
 
     await runner.change('1', setClock(2, '08:00'));
     expect(state().step).toBe(9 * STEPS_PER_DAY + 8 * 360);
+  });
+
+  it('closes the week the clock jump leaves when it crosses Monday', async () => {
+    const sunday = createTower(1);
+    sunday.step = 6 * STEPS_PER_DAY + 14 * 360;
+    creditMoney(sunday, 'condoSales', 2_250_000);
+    chargeMoney(sunday, 'construction', 18_230_000);
+    await start(2, sunday);
+
+    await runner.change('1', setClock(0, '10:00'));
+
+    expect(state().step).toBe(STEPS_PER_WEEK + 10 * 360);
+    expect(state().ledger.previousWeek.condoSales.income).toBe(2_250_000);
+    expect(state().ledger.previousWeek.construction.expense).toBe(-18_230_000);
+    expect(state().ledger.currentWeek.condoSales.income).toBe(0);
+    expect(state().ledger.currentWeek.construction.expense).toBe(0);
+  });
+
+  it('closes the week when the jump lands exactly on Monday midnight', async () => {
+    const sunday = createTower(1);
+    sunday.step = 6 * STEPS_PER_DAY + 23 * 360;
+    creditMoney(sunday, 'condoSales', 100_000);
+    await start(2, sunday);
+
+    await runner.change('1', setClock(0, '00:00'));
+
+    expect(state().step).toBe(STEPS_PER_WEEK);
+    expect(state().ledger.previousWeek.condoSales.income).toBe(100_000);
+    expect(state().ledger.currentWeek.condoSales.income).toBe(0);
+  });
+
+  it('keeps the current week when the jump stays inside it', async () => {
+    const tower = createTower(1);
+    creditMoney(tower, 'condoSales', 100_000);
+    await start(2, tower);
+
+    await runner.change('1', setClock(3, '12:00'));
+
+    expect(state().ledger.currentWeek.condoSales.income).toBe(100_000);
+    expect(state().ledger.previousWeek.condoSales.income).toBe(0);
   });
 });
