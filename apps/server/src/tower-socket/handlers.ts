@@ -3,7 +3,6 @@ import { CLOSE_CODES, sendError, sendMessage, type MessageHandlers } from '../ga
 import type { TowerRunner } from '../runner';
 import type { DeltaBroadcaster } from './delta-broadcaster';
 import type { Inspections } from './inspections';
-import { buildSnapshot } from './snapshot';
 import type { Viewports } from './viewports';
 
 export interface TowerSocketDependencies {
@@ -36,7 +35,7 @@ export function towerSocketHandlers({
       await runner.resume(identity.towerId);
       const state = runner.stateOf(identity.towerId);
       if (state) {
-        broadcaster.sendSnapshot(socket, buildSnapshot(state, viewports.get(socket)));
+        broadcaster.sendSnapshot(socket, broadcaster.snapshotFor(socket, identity.towerId, state));
       }
     },
     command: async (message, { socket, identity }) => {

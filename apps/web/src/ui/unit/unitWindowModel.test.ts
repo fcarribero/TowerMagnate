@@ -160,6 +160,19 @@ describe('unit window model', () => {
     ]);
   });
 
+  it('shows the working maids and the dirty rooms of a housekeeping unit', () => {
+    const housekeeping: UnitInspect = {
+      ...office,
+      type: 'housekeeping',
+      details: { group: 'housekeeping', maidsWorking: 4, maids: 6, dirtyRooms: 11 },
+    };
+    expect(unitRows(housekeeping)).toEqual([
+      { id: 'maidsWorking', label: 'Mucamas trabajando', value: '4 de 6' },
+      { id: 'dirtyRooms', label: 'Habitaciones sucias en la torre', value: '11' },
+    ]);
+    expect(priceOf(housekeeping)).toBeNull();
+  });
+
   it('shows no film row while the film is unknown', () => {
     const cinema: UnitInspect = {
       ...office,
