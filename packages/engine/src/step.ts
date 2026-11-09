@@ -29,7 +29,13 @@ import { createScheduler } from './scheduler';
 import { cancelTrek, createTrekSystem, isOnTrek, plannedTripSteps } from './trek';
 import { createNightReset } from './trip-ledger';
 import { createDailyGradeSystem, storedGrade } from './unit-evaluation';
-import { graphInputsKey, TransportGraph, type ShaftStops } from './routing';
+import {
+  graphInputsMatch,
+  graphInputsOf,
+  TransportGraph,
+  type GraphInputs,
+  type ShaftStops,
+} from './routing';
 import { starCheckHook } from './stars';
 import { weeklyUpkeepHook } from './upkeep';
 import { weddingAttemptHook, weddingSystem } from './wedding';
@@ -129,30 +135,29 @@ function commandTypeOf(queued: QueuedCommand | undefined): string {
 export function createEngine(rules: EngineRules): Engine {
   /**
    * The graph of each state this engine returned, so stepping on from it keeps the planner's
-   * caches. The key catches a state changed in place after it was returned.
+   * caches. The inputs catch a state changed in place after it was returned.
    */
-  const graphsByState = new WeakMap<TowerState, { graph: TransportGraph; key: string }>();
+  const graphsByState = new WeakMap<TowerState, { graph: TransportGraph; inputs: GraphInputs }>();
 
-  /** The graph kept for `state` if its inputs did not change, and the key of those inputs. */
-  function graphKeptFor(state: TowerState): { graph?: TransportGraph; key: string | null } {
+  /** The graph kept for `state` if its inputs did not change, and those inputs. */
+  function graphKeptFor(state: TowerState): { graph?: TransportGraph; inputs: GraphInputs | null } {
     const kept = graphsByState.get(state);
-    if (!kept) return { key: null };
-    const key = graphInputsKey(state);
-    return { graph: kept.key === key ? kept.graph : undefined, key };
+    if (!kept || !graphInputsMatch(state, kept.inputs)) return { inputs: null };
+    return { graph: kept.graph, inputs: kept.inputs };
   }
 
   /**
    * Systems never change what the graph is built from, only commands and ruins do, so a step
-   * call without either keeps the key it started with.
+   * call without either keeps the inputs it started with.
    */
-  function graphKeyAfter(
+  function graphInputsAfter(
     before: TowerState,
     after: TowerState,
-    keyBefore: string | null,
+    inputsBefore: GraphInputs | null,
     results: readonly CommandResult[],
-  ): string {
+  ): GraphInputs {
     const unchanged = after.grid === before.grid && results.every((result) => !result.ok);
-    return unchanged && keyBefore !== null ? keyBefore : graphInputsKey(after);
+    return unchanged && inputsBefore !== null ? inputsBefore : graphInputsOf(after);
   }
 
   function handlerFor(command: unknown): AnyCommandHandler | undefined {
@@ -205,7 +210,7 @@ export function createEngine(rules: EngineRules): Engine {
     const changesGraph = results.some(
       (result, index) => result.ok && GRAPH_COMMANDS.has(commandTypeOf(commands[index])),
     );
-    const kept = graph ? { graph, key: null } : graphKeptFor(state);
+    const kept = graph ? { graph, inputs: null } : graphKeptFor(state);
     const known = kept.graph;
     const currentGraph =
       known && !changesGraph ? known : new TransportGraph(context.state, shaftStops(context.state));
@@ -215,7 +220,7 @@ export function createEngine(rules: EngineRules): Engine {
     }
     graphsByState.set(context.state, {
       graph: currentGraph,
-      key: graphKeyAfter(state, context.state, kept.key, results),
+      inputs: graphInputsAfter(state, context.state, kept.inputs, results),
     });
     recordNotices(context.state, context.events);
     endStepCopy(context.state);

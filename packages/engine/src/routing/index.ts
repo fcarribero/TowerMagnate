@@ -1,4 +1,5 @@
-export { graphInputsKey, TransportGraph } from './transport-graph';
+export { graphInputsMatch, graphInputsOf, TransportGraph } from './transport-graph';
+export type { GraphInputs } from './transport-graph';
 export type {
   GraphNode,
   Link,
