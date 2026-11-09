@@ -88,6 +88,7 @@ const MIGRATIONS: readonly Migration[] = [
   addShopWeekVisits,
   addLastWeddingDay,
   addNewsSent,
+  addHotelBookings,
 ];
 
 /** Version 2 records each unit's price level, what was paid for it and when it was placed. */
@@ -455,6 +456,25 @@ function withWeekVisits(unit: Record<string, unknown>): Record<string, unknown> 
   return { ...unit, lease: { weekVisits: SHOP_EARLY_LEAVE_MIN_VISITS, ...unit.lease } };
 }
 
+/**
+ * Version 30 keeps each hotel room's booking and whether it rolls for one at once. A room in an
+ * older tower has no booking.
+ */
+function addHotelBookings(raw: Record<string, unknown>): Record<string, unknown> {
+  if (!isRecord(raw.units)) {
+    return { ...raw, schemaVersion: 30 };
+  }
+  const units: Record<string, unknown> = {};
+  for (const [id, unit] of Object.entries(raw.units)) {
+    units[id] = isRecord(unit) && isRecord(unit.hotel) ? withHotelBooking(unit) : unit;
+  }
+  return { ...raw, schemaVersion: 30, units };
+}
+
+function withHotelBooking(unit: Record<string, unknown>): Record<string, unknown> {
+  return { ...unit, hotel: { arrivalStep: null, rollDue: false, ...(unit.hotel as object) } };
+}
+
 /** Version 11 gives each hotel room a state; every room in an older tower is clean and empty. */
 function addHotelRooms(raw: Record<string, unknown>): Record<string, unknown> {
   if (!isRecord(raw.units)) {
@@ -552,7 +572,9 @@ function isHotelRoom(value: unknown): value is HotelRoom {
     (value.stayEndStep === null || isNonNegativeInteger(value.stayEndStep)) &&
     (value.state === 'occupied') === (value.stayEndStep !== null) &&
     (value.checkInStep === null || isNonNegativeInteger(value.checkInStep)) &&
-    (value.paidLevel === null || (PRICE_LEVELS as readonly unknown[]).includes(value.paidLevel))
+    (value.paidLevel === null || (PRICE_LEVELS as readonly unknown[]).includes(value.paidLevel)) &&
+    (value.arrivalStep === null || isNonNegativeInteger(value.arrivalStep)) &&
+    typeof value.rollDue === 'boolean'
   );
 }
 

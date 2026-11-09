@@ -16,7 +16,14 @@ export function isHotelRoomType(type: UnitType): boolean {
 }
 
 export function newHotelRoom(): HotelRoom {
-  return { state: 'clean', stayEndStep: null, checkInStep: null, paidLevel: null };
+  return {
+    state: 'clean',
+    stayEndStep: null,
+    checkInStep: null,
+    paidLevel: null,
+    arrivalStep: null,
+    rollDue: true,
+  };
 }
 
 export function isVenueType(type: UnitType): type is keyof typeof VENUE_PAYOUT_HOURS {

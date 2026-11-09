@@ -41,6 +41,7 @@ import type { HookOccurrence, ScheduledHook } from './scheduler';
 import type { SimulationSystem, StepContext } from './step';
 import { drawMinuteFromWindow } from './time-windows';
 import { cancelTrek, isOnTrek, startTrek } from './trek';
+import { isGuestAtVenue } from './hotel-guest-trip';
 import { stressOfTripEndedNow } from './trip-ledger';
 import { fileShopVisit } from './unit-evaluation';
 import { unitNumber } from './units';
@@ -297,17 +298,22 @@ function minuteOfDay(resident: Resident): number {
   return Math.floor((resident.state.step - resident.dayStart) / STEPS_PER_MINUTE);
 }
 
-function isOpen(type: VisitedVenueType, minute: number): boolean {
+function minuteOfStep(step: number): number {
+  return Math.floor((step % STEPS_PER_DAY) / STEPS_PER_MINUTE);
+}
+
+export function isVenueOpen(type: VisitedVenueType, minute: number): boolean {
   const hours = VENUE_HOURS[type];
   return minute >= hours.open && minute < hours.close;
 }
 
-/** Everyone inside the venue right now: office diners, residents and outside customers. */
+/** Everyone inside the venue right now: office diners, residents, hotel guests and outside customers. */
 export function visitorsAt(state: TowerState, type: VisitedVenueType, venue: number): number {
   const pool = state.people;
   let count = type === 'fast-food' ? officeDinersAt(state, venue) : 0;
   count += customersInsideVenue(state, venue);
   for (let slot = 0; slot < pool.id.length; slot++) {
+    if (isGuestAtVenue(pool, slot, venue)) count += 1;
     if (!isResident(pool, slot)) continue;
     const routine = decodeResidentRoutine(pool.trip[slot] ?? NO_TRIP);
     if (routine?.phase === 'atVenue' && routine.venue === venue) count += 1;
@@ -315,16 +321,16 @@ export function visitorsAt(state: TowerState, type: VisitedVenueType, venue: num
   return count;
 }
 
-function hasRoom(state: TowerState, unit: Unit, type: VisitedVenueType): boolean {
+export function venueHasRoom(state: TowerState, unit: Unit, type: VisitedVenueType): boolean {
   return visitorsAt(state, type, unitNumber(unit.id)) < VENUE_CAPACITY[type];
 }
 
 function openVenues(state: TowerState, type: VisitedVenueType, minute: number): Unit[] {
-  if (!isOpen(type, minute)) return [];
+  if (!isVenueOpen(type, minute)) return [];
   return Object.values(state.units)
     .filter((unit) => unit.type === type)
     .filter((unit) => type !== 'retail-shop' || unit.lease !== null)
-    .filter((unit) => hasRoom(state, unit, type))
+    .filter((unit) => venueHasRoom(state, unit, type))
     .sort((a, b) => unitNumber(a.id) - unitNumber(b.id));
 }
 
@@ -342,13 +348,23 @@ function drawByAttraction(state: TowerState, units: readonly Unit[]): Unit {
   return units[units.length - 1] as Unit;
 }
 
-/** Draws up to three distinct venues by attraction; the cheapest reachable one wins, ties go to the lower id. */
-function chooseVenue(
-  resident: Resident,
+/** True when at least one venue of the type is open and not full right now (people spec 5). */
+export function hasVenueCandidate(state: TowerState, type: VisitedVenueType): boolean {
+  return openVenues(state, type, minuteOfStep(state.step)).length > 0;
+}
+
+/**
+ * Draws up to three distinct open venues by attraction; the cheapest reachable one from `from`
+ * wins, ties go to the lower id (people spec 5).
+ */
+export function chooseVenue(
+  context: StepContext,
+  routes: RoutePlanner,
+  from: Place,
   type: VisitedVenueType,
 ): { unit: Unit; steps: number } | null {
-  const { state } = resident;
-  const remaining = openVenues(state, type, minuteOfDay(resident));
+  const { state } = context;
+  const remaining = openVenues(state, type, minuteOfStep(state.step));
   const drawn: Unit[] = [];
   while (drawn.length < VENUE_CANDIDATES_DRAWN && remaining.length > 0) {
     const picked = drawByAttraction(state, remaining);
@@ -358,7 +374,7 @@ function chooseVenue(
   drawn.sort((a, b) => unitNumber(a.id) - unitNumber(b.id));
   let best: { unit: Unit; steps: number } | null = null;
   for (const unit of drawn) {
-    const steps = resident.routes(state, resident.home, unitPlace(unit), resident.context);
+    const steps = routes(state, from, unitPlace(unit), context);
     if (steps !== null && (best === null || steps < best.steps)) best = { unit, steps };
   }
   return best;
@@ -374,7 +390,8 @@ function drawVenueType(resident: Resident, kind: Intention): VisitedVenueType {
 }
 
 function startVisit(resident: Resident, kind: Intention): void {
-  const choice = chooseVenue(resident, drawVenueType(resident, kind));
+  const type = drawVenueType(resident, kind);
+  const choice = chooseVenue(resident.context, resident.routes, resident.home, type);
   if (!choice) {
     settle(resident);
     return;
@@ -423,7 +440,12 @@ function arriveAtVenue(resident: Resident): void {
   const venue = venueUnit(state, routine.venue);
   if (venue) fileShopVisit(state, venue, state.people.id[resident.slot] as number);
   const type = venue?.type as VisitedVenueType | undefined;
-  if (!venue || !type || !isOpen(type, minuteOfDay(resident)) || !hasRoom(state, venue, type)) {
+  if (
+    !venue ||
+    !type ||
+    !isVenueOpen(type, minuteOfDay(resident)) ||
+    !venueHasRoom(state, venue, type)
+  ) {
     startWalkHome(resident, venue ? unitPlace(venue) : resident.home);
     return;
   }
