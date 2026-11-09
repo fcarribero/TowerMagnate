@@ -153,6 +153,18 @@ The median p95 frame cost is 3.1 ms, well inside the 16.7 ms a 60 fps frame allo
 
 The 60 fps line is judged on the render reference machine with the method in [Render reference machine](#render-reference-machine), not on CI. The CI runner has no GPU and cannot draw at game speed. The desktop table above predates that method: its runs were not on an idle machine and the first run is more than 15% off the other two, so it is not the reference result.
 
+### Heap growth in the stress run (TM-264)
+
+On PR #258 (TM-252) two uncapped runs measured 5.4% heap growth against the 5% limit, on code that had measured 1.5% to 4.5% before. The heap at the end of those runs was always 17.0 to 17.3 MB, so the growth was a slow climb to a ceiling, not an open-ended leak.
+
+`pnpm perf:stress` now prints the settled heap every minute and, with `--snapshots 5,30`, writes heap snapshots at those minutes and prints which kinds of objects grew between them. CI keeps the snapshots as a job artifact for 14 days.
+
+A 5-minute uncapped run on the desktop, with snapshots at minute 1 and minute 5, showed the cause. The people layer kept one sprite for every person in the tower, about 2,900 sprites, although only the people on screen were drawn. PixiJS builds a sprite's batch data (`BatchableSprite`, its bounds and two points, about 200 bytes) the first time the sprite is drawn. A sprite whose person stayed off screen had no batch data yet. With 1% of the people replaced on each step, pooled sprites were handed to people on screen one by one, and each one built its batch data then. Between minute 1 and minute 5, 588 people-layer sprites were drawn for the first time, and 595 had never been drawn at minute 1. The heap kept growing until every sprite in the pool had been drawn once, which takes up to about 0.9 MB on a 16.6 MB heap, so the run passed or failed depending on how far it got in 30 minutes.
+
+The people layer now gives a sprite only to people on screen. People who leave the screen, by walking or because the camera moved, return their sprite to the pool. Every sprite is drawn the frame it is taken, so it builds its batch data at once, and the pool stays at the peak number of people on screen (about 1,000 at 1x zoom) instead of the whole crowd. The same 5-minute run after the change settled at 14.5 to 15.1 MB, about 2 MB less, with growth of -1.0% between the 15-second mark and minute 5. The snapshot diff showed 40 new sprites, all drawn, as the pool reached a new peak.
+
+The other object kinds that grew are bounded by the browser. Chromium keeps the first 200 long task entries (`PerformanceLongTaskTiming`) in the performance timeline buffer, about 40 KB in all. The page has no news ticker, overlays or window placement code, so those were not in the run.
+
 ### Summary
 
 | Target | Result | Status |
