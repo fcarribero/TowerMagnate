@@ -53,6 +53,7 @@ function occupy(state: TowerState, id: UnitId | undefined): void {
     paidLevel: null,
     arrivalStep: null,
     rollDue: false,
+    dirtyChecks: 0,
   };
 }
 
@@ -286,6 +287,7 @@ describe('population worked examples', () => {
         paidLevel: null,
         arrivalStep: null,
         rollDue: false,
+        dirtyChecks: 0,
       });
     addCopies(state, single as Unit, 40, stay);
     addCopies(state, double as Unit, 30, stay);

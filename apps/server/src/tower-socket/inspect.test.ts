@@ -146,6 +146,7 @@ describe('inspecting a unit', () => {
       paidLevel: null,
       arrivalStep: null,
       rollDue: false,
+      dirtyChecks: 0,
     };
     expect(inspectUnit(state, id)).toMatchObject({
       details: { state: 'occupied', checkoutStep: 5000 },
@@ -161,6 +162,7 @@ describe('inspecting a unit', () => {
       paidLevel: null,
       arrivalStep: null,
       rollDue: false,
+      dirtyChecks: 0,
     };
 
     expect(inspectUnit(state, id)).toMatchObject({
@@ -176,6 +178,30 @@ describe('inspecting a unit', () => {
     expect(data).toMatchObject({
       type: 'cinema',
       details: { group: 'cinema', filmWeek: null, filmAgeDays: null, price: 'normal' },
+    });
+  });
+
+  it('answers a housekeeping unit with its working maids and the dirty rooms of the tower', () => {
+    const { state, id } = towerWith('housekeeping');
+    const dirtyRoom = newUnit('u8', 'single-room', 40, 4);
+    dirtyRoom.hotel = {
+      state: 'dirty',
+      stayEndStep: null,
+      checkInStep: null,
+      paidLevel: null,
+      arrivalStep: null,
+      rollDue: false,
+      dirtyChecks: 1,
+    };
+    state.units.u8 = dirtyRoom;
+    state.units.u9 = newUnit('u9', 'suite', 60, 4);
+
+    const data = inspectUnit(state, id);
+
+    expect(throughTheWire(data)).toBe(true);
+    expect(data).toMatchObject({
+      type: 'housekeeping',
+      details: { group: 'housekeeping', maidsWorking: 0, maids: 6, dirtyRooms: 1 },
     });
   });
 
