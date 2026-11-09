@@ -6,6 +6,7 @@ import {
   newUnit,
   openFire,
   setStructure,
+  step,
   TREK_PHASES,
 } from '@tower-magnate/engine';
 import {
@@ -82,6 +83,23 @@ describe('delta between snapshots', () => {
 
     expect(quiet).toBe(false);
     expect(delta.overlays?.evaluation).toEqual({ u1: null, u2: 'good' });
+    expect(DeltaSchema.safeParse(delta).success).toBe(true);
+  });
+
+  it('sends the stored price level after a setPrice', () => {
+    const before = towerWithOffices(2);
+    const beforeSnapshot = buildSnapshot(before, null);
+    const command = { type: 'setPrice' as const, unitId: 'u1', price: 'high' as const };
+
+    const { state, results } = step(before, [{ id: 'c1', command }], 0);
+    const afterSnapshot = buildSnapshot(state, null);
+    const { delta } = diffSnapshots(beforeSnapshot, afterSnapshot);
+
+    expect(results[0]?.ok).toBe(true);
+    expect(afterSnapshot.units.find((unit) => unit.id === 'u1')?.price).toBe('high');
+    expect(afterSnapshot.overlays.price).toEqual({ u1: 'high', u2: 'normal' });
+    expect(delta.unitsUpserted).toEqual([expect.objectContaining({ id: 'u1', price: 'high' })]);
+    expect(delta.overlays?.price).toEqual({ u1: 'high', u2: 'normal' });
     expect(DeltaSchema.safeParse(delta).success).toBe(true);
   });
 

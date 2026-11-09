@@ -246,6 +246,20 @@ describe('snapshot from tower state', () => {
     expect(snapshot.overlays.price).toEqual({ u5: 'normal', u6: 'normal' });
   });
 
+  it('sends the stored price level of each unit in its view and the price overlay', () => {
+    const state = towerWithPeople();
+    (state.units.u5 as Unit).priceLevel = 'high';
+    (state.units.u6 as Unit).priceLevel = 'low';
+
+    const snapshot = buildSnapshot(state, null);
+
+    expect(snapshot.units).toEqual([
+      expect.objectContaining({ id: 'u5', price: 'high' }),
+      expect.objectContaining({ id: 'u6', price: 'low' }),
+    ]);
+    expect(snapshot.overlays.price).toEqual({ u5: 'high', u6: 'low' });
+  });
+
   it('sends the stored grade of each evaluated unit in the evaluation overlay', () => {
     const state = towerWithPeople();
     (state.units.u5 as Unit).evaluation = 'fair';
