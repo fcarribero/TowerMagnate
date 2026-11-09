@@ -88,7 +88,10 @@ export function isSoldCondo(unit: Pick<UnitInspect, 'details'>): boolean {
 /** The price level the server last sent, for the types that have a price choice. */
 export function priceOf(unit: Pick<UnitInspect, 'details'>): PriceLevel | null {
   const { details } = unit;
-  return details === null ? null : details.price;
+  if (details === null || !('price' in details)) {
+    return null;
+  }
+  return details.price;
 }
 
 export type EvaluationColor = 'sky-deep' | 'lamp' | 'cloth-red' | 'gray';

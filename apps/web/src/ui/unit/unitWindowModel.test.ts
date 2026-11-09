@@ -170,6 +170,7 @@ describe('unit window model', () => {
       { id: 'maidsWorking', label: 'Mucamas trabajando', value: '4 de 6' },
       { id: 'dirtyRooms', label: 'Habitaciones sucias en la torre', value: '11' },
     ]);
+    expect(priceOf(housekeeping)).toBeNull();
   });
 
   it('shows no film row while the film is unknown', () => {
