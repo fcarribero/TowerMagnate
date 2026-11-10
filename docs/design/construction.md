@@ -128,7 +128,7 @@ All units are placed at the normal price level. The player changes the price lat
 | Fast food | 16 x 1 | $100,000 | 1 | any | commercial |
 | Single room | 4 x 1 | $20,000 | 2 | above ground | |
 | Double room | 6 x 1 | $50,000 | 2 | above ground | |
-| Suite | 10 x 1 | $100,000 | 2 | above ground | |
+| Suite | 10 x 1 | $150,000 | 2 | above ground | |
 | Housekeeping | 15 x 1 | $50,000 | 2 | any | |
 | Security | 16 x 1 | $100,000 | 2 | any | security |
 | Restaurant | 24 x 1 | $200,000 | 3 | any | commercial |
@@ -139,8 +139,8 @@ All units are placed at the normal price level. The player changes the price lat
 | Parking ramp | 16 x 1 | $50,000 | 3 | basement only | |
 | Parking space | 4 x 1 | $3,000 | 3 | basement only | parking |
 | Recycling center | 25 x 2 | $500,000 | 3 | basement only | |
-| Subway station | 30 x 3 | $1,000,000 | 4 | lowest basement | subway |
-| Cathedral | 28 x 4 | $3,000,000 | 5 | level 101 | cathedral |
+| Subway station | 30 x 3 | $3,000,000 | 4 | lowest basement | subway |
+| Cathedral | 28 x 4 | $35,000,000 | 5 | level 101 | cathedral |
 
 "Above ground" means levels 2 to 100, and the unit's top row must also be at level 100 or lower. "Any" means levels 2 to 100 or -1 to -9. "Stars" is the star rating the tower needs before the unit can be built.
 
@@ -179,7 +179,7 @@ Design call: GDD lists "lobby, commerce, entertainment or single rooms". Fast fo
 |---|---|---|---|---|---|
 | Standard | 4 | $200,000 | $80,000 | 30 levels | 1 |
 | Service | 4 | $100,000 | $50,000 | 30 levels | 2 |
-| Express | 6 | $400,000 | $150,000 | no limit | 3 |
+| Express | 6 | $600,000 | $250,000 | no limit | 3 |
 
 A shaft is placed by its left column `x`, a bottom level `B` and a top level `T`. Placing a shaft creates it with 1 car, so the first payment is shaft price plus one car price. Its span is the number of levels from B to T inclusive, counted in the order of section 1 (so -9 to 21 is 30 levels).
 
@@ -451,7 +451,7 @@ C-32. Stairs plus escalators are at most 64 per tower. Error: `LIMIT_REACHED`.
 
 ### Elevators
 
-C-33. Placing a shaft charges the shaft price plus one car. Standard is 4 wide ($200,000 + $80,000), service 4 wide ($100,000 + $50,000), express 6 wide ($400,000 + $150,000). Error: `INSUFFICIENT_FUNDS` if the balance is short.
+C-33. Placing a shaft charges the shaft price plus one car. Standard is 4 wide ($200,000 + $80,000), service 4 wide ($100,000 + $50,000), express 6 wide ($600,000 + $250,000). Error: `INSUFFICIENT_FUNDS` if the balance is short.
 
 C-34. Every shaft cell on every level from bottom to top must have structure. Error: `NO_FLOOR`.
 

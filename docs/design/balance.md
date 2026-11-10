@@ -101,3 +101,43 @@ Seeds 1 to 5, `pnpm balance:progression --seeds N --days 200`, one process per s
 5 stars is 8 days early and four seeds come before day 84. Torre is 29 days early. After 4 stars the bot needs only 20 days to reach 10,000 people and 16 more for 15,000, because condo sales and rents compound. The planned steps are about 40 days each.
 
 A lower condo price delays every rating, so it cannot fix this alone. Moving 4 stars to day 72 with a price cut would move 5 stars to about day 95 and Torre to about day 112, still short of 126. The late steps need their own change, for example the 10,000 and 15,000 population thresholds or the late-game costs.
+
+## 6. Late-cost retune (9 February 2027)
+
+The 10,000 and 15,000 population thresholds stay as in the GDD. The build cost and upkeep of the units used from 3 stars on were raised, then the 5-seed run was repeated to day 200 (`pnpm balance:progression --seeds N --days 200`, one process per seed). Three trials, medians in game days:
+
+| Trial | Change | 3 stars | 4 stars | 5 stars | Torre |
+|---|---|---|---|---|---|
+| Section 5 | none | 18 | 61 | 81 | 97 |
+| A | Suite $250,000 and $15,000 upkeep; express shaft $1,000,000 plus $400,000 per car, $50,000 upkeep per car; subway $3,000,000 and $250,000; cathedral $12,000,000 and $100,000 | 25 | 78 | 107 | 132 |
+| B | Suite $150,000 and $10,000; express shaft $600,000 plus $250,000 per car, $30,000 per car; subway and cathedral as in A | 19 | 67 | 93 | 119 |
+| C (kept) | As B, cathedral $35,000,000 and $200,000 upkeep | 19 | 67 | 93 | 146 |
+
+Trial A put 3 stars and 4 stars outside their ranges, because the suite and the express shaft are paid for before 4 stars. Trial B brought 4 stars back, and its Torre came 8 days early. The cathedral is the last purchase before Torre, so its price moves Torre and leaves the earlier ratings alone.
+
+Constants kept in `packages/shared/src/balance.ts`:
+
+| Constant | Before | After |
+|---|---|---|
+| Suite build cost | $100,000 | $150,000 |
+| Suite weekly upkeep | $6,000 | $10,000 |
+| Express shaft | $400,000 plus $150,000 per car | $600,000 plus $250,000 per car |
+| Express car weekly upkeep | $20,000 | $30,000 |
+| Subway station build cost | $1,000,000 | $3,000,000 |
+| Subway station weekly upkeep | $100,000 | $250,000 |
+| Cathedral build cost | $3,000,000 | $35,000,000 |
+| Cathedral weekly upkeep | $0 | $200,000 |
+
+The bot priced a new shaft at a fixed $550,000 or $280,000. It now reads the first shaft and car price from the catalog.
+
+### Results, constants of this section
+
+| Rating | Seed 1 | Seed 2 | Seed 3 | Seed 4 | Seed 5 | Median | Target |
+|---|---|---|---|---|---|---|---|
+| 2 stars | 2 | 2 | 2 | 2 | 2 | 2 | by 7 |
+| 3 stars | 19 | 19 | 22 | 19 | 19 | 19 | 14 to 21 |
+| 4 stars | 67 | 66 | 71 | 67 | 67 | 67 | 54 to 72 |
+| 5 stars | 93 | 94 | 92 | 92 | 95 | 93 | 89 to 121 |
+| Torre | 146 | 146 | 146 | 146 | 146 | 146 | 126 to 168 |
+
+Every median is inside its range and no seed reaches 5 stars before day 84. Seed 3 reaches 3 stars on day 22 and 4 stars on day 71, which is the slowest seed; the medians are what the targets apply to. A rerun of seed 4 gave a byte-identical report.

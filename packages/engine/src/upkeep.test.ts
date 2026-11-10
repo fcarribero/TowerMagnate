@@ -47,25 +47,25 @@ describe('weekly upkeep', () => {
     expect(state.ledger.currentWeek.upkeep.expense).toBe(0);
   });
 
-  it('charges $75,000 at 3 stars on the first Monday', () => {
+  it('charges $85,000 at 3 stars on the first Monday', () => {
     const { state } = runToStep(upkeepTower(3), FIRST_MONDAY);
-    expect(state.money).toBe(2_000_000 - 75_000);
-    expect(state.ledger.currentWeek.upkeep.expense).toBe(-75_000);
+    expect(state.money).toBe(2_000_000 - 85_000);
+    expect(state.ledger.currentWeek.upkeep.expense).toBe(-85_000);
   });
 
   it('charges the lobby at $1,500 a column at 4 stars', () => {
     const { state } = runToStep(upkeepTower(4), FIRST_MONDAY);
-    expect(state.money).toBe(2_000_000 - 85_000);
+    expect(state.money).toBe(2_000_000 - 95_000);
   });
 
   it('charges again every following Monday and not in between', () => {
     const { state } = runToStep(upkeepTower(3), FIRST_MONDAY + 1);
     const secondWeek = runToStep(state, 2 * FIRST_MONDAY - 1).state;
-    expect(secondWeek.money).toBe(2_000_000 - 75_000);
+    expect(secondWeek.money).toBe(2_000_000 - 85_000);
     const monday = runToStep(secondWeek, 2 * FIRST_MONDAY).state;
-    expect(monday.money).toBe(2_000_000 - 150_000);
-    expect(monday.ledger.previousWeek.upkeep.expense).toBe(-75_000);
-    expect(monday.ledger.currentWeek.upkeep.expense).toBe(-75_000);
+    expect(monday.money).toBe(2_000_000 - 170_000);
+    expect(monday.ledger.previousWeek.upkeep.expense).toBe(-85_000);
+    expect(monday.ledger.currentWeek.upkeep.expense).toBe(-85_000);
   });
 
   it('charges a full week for a car added one step before Monday', () => {
@@ -73,7 +73,7 @@ describe('weekly upkeep', () => {
     const before = runToStep(tower, FIRST_MONDAY - 1).state;
     addStandardCar(before);
     const { state } = runToStep(before, FIRST_MONDAY);
-    expect(state.money).toBe(2_000_000 - 85_000);
+    expect(state.money).toBe(2_000_000 - 95_000);
   });
 
   it('charges hotel rooms, a party hall and the other flat items by type', () => {
@@ -90,13 +90,13 @@ describe('weekly upkeep', () => {
     });
     tower.stars = 2;
     const { state } = runToStep(tower, FIRST_MONDAY);
-    expect(2_000_000 - state.money).toBe(2_000 + 3_000 + 6_000 + 20_000);
+    expect(2_000_000 - state.money).toBe(2_000 + 3_000 + 10_000 + 20_000);
   });
 
   it('applies in full into the negative and emits the news once', () => {
     const tower = upkeepTower(3, 40_000);
     const result = runToStep(tower, 2 * FIRST_MONDAY);
-    expect(result.state.money).toBe(40_000 - 150_000);
+    expect(result.state.money).toBe(40_000 - 170_000);
     const news = result.events.filter((event) => event.type === 'news');
     expect(news).toEqual([
       {
@@ -109,9 +109,9 @@ describe('weekly upkeep', () => {
     ]);
   });
 
-  it('ends at -$35,000 from $40,000 and records the whole week', () => {
+  it('ends at -$45,000 from $40,000 and records the whole week', () => {
     const { state } = runToStep(upkeepTower(3, 40_000), FIRST_MONDAY);
-    expect(state.money).toBe(-35_000);
+    expect(state.money).toBe(-45_000);
   });
 
   it('does not charge or emit news for an empty tower', () => {

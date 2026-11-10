@@ -189,7 +189,7 @@ function economyScript(units: EconomyUnits): EconomyScript {
 
 /**
  * Hand-computed from docs/design/economy.md. Each row ends at 00:00 of the next day, so the
- * Monday upkeep of 101,000 lands on the Sunday rows.
+ * Monday upkeep of 105,000 lands on the Sunday rows.
  *
  * Rent: office A 10,000 on days 0 and 7; office B 15,000 (alto) on day 2 and 5,000 (bajo) on
  * day 9; shop 15,000 on days 6 and 13 at 23:59, with 90 visits in between so it stays.
@@ -209,16 +209,16 @@ const EXPECTED_DAYS: ExpectedDay[] = [
   { balance: 2_329_000, changes: { hotel: 6_000, venues: 9_000 } },
   { balance: 2_350_000, changes: { hotel: 6_000, venues: 15_000 } },
   {
-    balance: 2_289_000,
-    changes: { rent: 15_000, hotel: 6_000, venues: 19_000, upkeep: -101_000 },
+    balance: 2_285_000,
+    changes: { rent: 15_000, hotel: 6_000, venues: 19_000, upkeep: -105_000 },
   },
-  { balance: 2_334_000, changes: { rent: 10_000, hotel: 12_000, venues: 23_000 } },
-  { balance: 2_340_000, changes: { hotel: 3_000, venues: 3_000 } },
-  { balance: 2_375_000, changes: { rent: 5_000, hotel: 3_000, venues: 27_000 } },
-  { balance: 2_621_000, changes: { condoSales: 230_000, venues: 16_000 } },
-  { balance: 2_654_000, changes: { hotel: 4_000, venues: 29_000 } },
-  { balance: 2_660_000, changes: { venues: 6_000 } },
-  { balance: 2_614_000, changes: { rent: 15_000, venues: 40_000, upkeep: -101_000 } },
+  { balance: 2_330_000, changes: { rent: 10_000, hotel: 12_000, venues: 23_000 } },
+  { balance: 2_336_000, changes: { hotel: 3_000, venues: 3_000 } },
+  { balance: 2_371_000, changes: { rent: 5_000, hotel: 3_000, venues: 27_000 } },
+  { balance: 2_617_000, changes: { condoSales: 230_000, venues: 16_000 } },
+  { balance: 2_650_000, changes: { hotel: 4_000, venues: 29_000 } },
+  { balance: 2_656_000, changes: { venues: 6_000 } },
+  { balance: 2_606_000, changes: { rent: 15_000, venues: 40_000, upkeep: -105_000 } },
 ];
 
 type PartialWeek = Partial<Record<LedgerCategory, { income?: number; expense?: number }>>;
@@ -246,10 +246,10 @@ const WEEK_TWO = weekTotals({
   hotel: { income: 22_000 },
   condoSales: { income: 230_000 },
   venues: { income: 165_000, expense: -21_000 },
-  upkeep: { expense: -101_000 },
+  upkeep: { expense: -105_000 },
 });
 
-const UPKEEP_ONLY = weekTotals({ upkeep: { expense: -101_000 } });
+const UPKEEP_ONLY = weekTotals({ upkeep: { expense: -105_000 } });
 
 function runTwoWeeks(): EconomyRun {
   const { tower, units } = economyTower();
@@ -317,6 +317,6 @@ describe('scenario: economy week boundary at step 60,480', () => {
     const monday = engine.step(sunday, [], 1).state;
     expect(monday.ledger.previousWeek).toEqual(WEEK_ONE);
     expect(monday.ledger.currentWeek).toEqual(UPKEEP_ONLY);
-    expect(monday.money).toBe(2_289_000);
+    expect(monday.money).toBe(2_285_000);
   });
 });

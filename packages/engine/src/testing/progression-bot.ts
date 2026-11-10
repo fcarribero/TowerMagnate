@@ -134,6 +134,11 @@ function unitCost(type: UnitType): number {
   return cost.kind === 'per-unit' ? cost.amount : 0;
 }
 
+function firstCarShaftCost(type: UnitType): number {
+  const cost = UNIT_CATALOG[type].cost;
+  return cost.kind === 'shaft' ? cost.shaftAmount + cost.perCarAmount : 0;
+}
+
 function topLevelOf(level: Level, floors: number): Level {
   let top = level;
   for (let count = 1; count < floors; count++) top = levelAbove(top) as Level;
@@ -477,7 +482,7 @@ export class ProgressionBot {
       if (level === top) break;
     }
     action.commands.push({ type: 'buildShaft', shaftType: type, x, bottom, top });
-    action.cost += type === 'express' ? 550_000 : 280_000;
+    action.cost += firstCarShaftCost(type === 'express' ? 'express-elevator' : 'standard-elevator');
     return action;
   }
 
