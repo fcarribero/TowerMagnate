@@ -1,6 +1,6 @@
 {
   "name": "@tower-magnate/sfx",
-  "version": "0.13.0",
+  "version": "1.0.0",
   "private": true,
   "description": "Generates the game sound effects with ElevenLabs and converts them for the web",
   "type": "module",
