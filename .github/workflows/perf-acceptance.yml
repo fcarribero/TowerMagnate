@@ -72,7 +72,7 @@ jobs:
         run: |
           set -o pipefail
           status=0
-          pnpm bench:full-tower --gate --avg-ms 7 --p95-ms 17.5 --p99-ms 27.5 2>&1 | tee bench.txt || status=$?
+          pnpm bench:full-tower --gate --avg-ms 5 --p95-ms 8 --p99-ms 15 --system-p95-ms 3 --system-p95-report-ms 2.5 2>&1 | tee bench.txt || status=$?
           { echo '### Step budget, 15,000 people'; echo '```'; cat bench.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
           exit $status
 
@@ -111,6 +111,14 @@ jobs:
           pnpm --filter @tower-magnate/web exec vite preview --mode perf --outDir dist-perf --port 4173 --strictPort &
           npx --yes wait-on@8.0.3 http://localhost:4173/perf.html
           flag=${{ matrix.frames == 'uncapped' && '--uncapped' || '' }}
-          pnpm perf:stress --minutes 30 --url http://localhost:4173/perf.html $flag 2>&1 | tee stress.txt || status=$?
+          pnpm perf:stress --minutes 30 --url http://localhost:4173/perf.html $flag --snapshots 5,30 --snapshot-dir heap-snapshots 2>&1 | tee stress.txt || status=$?
           { echo '### Render stress run ${{ matrix.run }}, ${{ matrix.frames }}'; echo "CPU: $(grep -m1 'model name' /proc/cpuinfo | cut -d: -f2), $(nproc) cores"; echo '```'; cat stress.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
           exit $status
+
+      - name: Keep the heap snapshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: heap-snapshots-run-${{ matrix.run }}-${{ matrix.frames }}
+          path: heap-snapshots/
+          retention-days: 14

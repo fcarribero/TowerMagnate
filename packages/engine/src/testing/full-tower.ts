@@ -3,7 +3,8 @@ import { STEPS_PER_HOUR } from '../calendar';
 import { STEPS_PER_DAY } from '../clock';
 import { moveInTenant } from '../leases';
 import { addPeopleForUnit, peopleCount } from '../people';
-import { step } from '../step';
+import { towerCommandHandlers } from '../commands';
+import { createEngine, namedTowerSystems, type Engine, type SimulationSystem } from '../step';
 import { medianOf } from './fastest-run';
 import { addFlight } from './hundred-floor-tower';
 import { buildTower, plainTowerPlan, type PlannedShaft, type PlannedUnit } from './tower-builder';
@@ -70,6 +71,51 @@ export interface FullTowerRun {
   maxMs: number;
   /** Average cost of a step when the same hours run in one `step` call, which copies the state once. */
   batchedMs: number;
+  /** Each system's cost per timed step, in `namedTowerSystems` order. */
+  systems: SystemTiming[];
+}
+
+export interface SystemTiming {
+  name: string;
+  averageMs: number;
+  p95Ms: number;
+  p99Ms: number;
+  maxMs: number;
+}
+
+interface Percentiles {
+  averageMs: number;
+  p95Ms: number;
+  p99Ms: number;
+  maxMs: number;
+}
+
+function percentilesOf(times: Float64Array): Percentiles {
+  const sorted = Array.from(times).sort((a, b) => a - b);
+  const at = (share: number) => sorted[Math.floor(sorted.length * share)] as number;
+  return {
+    averageMs: sorted.reduce((sum, ms) => sum + ms, 0) / sorted.length,
+    p95Ms: at(0.95),
+    p99Ms: at(0.99),
+    maxMs: sorted[sorted.length - 1] as number,
+  };
+}
+
+/**
+ * The engine's own systems, each timed into `perSystem` at the index of the step being timed.
+ * `timedIndex` returns -1 outside the timed steps.
+ */
+function timedEngine(perSystem: Float64Array[], timedIndex: () => number): Engine {
+  const systems = namedTowerSystems.map(({ system }, systemIndex): SimulationSystem => {
+    const own = perSystem[systemIndex] as Float64Array;
+    return (context) => {
+      const started = performance.now();
+      system(context);
+      const index = timedIndex();
+      if (index >= 0) own[index] = performance.now() - started;
+    };
+  });
+  return createEngine({ commandHandlers: towerCommandHandlers, systems });
 }
 
 /**
@@ -77,27 +123,30 @@ export interface FullTowerRun {
  * Each call includes the state copy the engine makes on entry, as the server pays it.
  */
 export function timeFullTowerDay(): FullTowerRun {
-  const atSix = step(fullTower(), [], TIMED_FROM).state;
+  const perSystem = namedTowerSystems.map(() => new Float64Array(TIMED_STEPS));
+  let timing = -1;
+  const engine = timedEngine(perSystem, () => timing);
+  const atSix = engine.step(fullTower(), [], TIMED_FROM).state;
   const batchStarted = performance.now();
-  step(atSix, [], TIMED_STEPS);
+  engine.step(atSix, [], TIMED_STEPS);
   const batchedMs = (performance.now() - batchStarted) / TIMED_STEPS;
 
   let state = atSix;
   const times = new Float64Array(TIMED_STEPS);
   for (let index = 0; index < TIMED_STEPS; index++) {
+    timing = index;
     const started = performance.now();
-    state = step(state, [], 1).state;
+    state = engine.step(state, [], 1).state;
     times[index] = performance.now() - started;
   }
-  const sorted = Array.from(times).sort((a, b) => a - b);
-  const at = (share: number) => sorted[Math.floor(sorted.length * share)] as number;
   return {
     people: peopleCount(state.people),
-    averageMs: sorted.reduce((sum, ms) => sum + ms, 0) / sorted.length,
-    p95Ms: at(0.95),
-    p99Ms: at(0.99),
-    maxMs: sorted[sorted.length - 1] as number,
+    ...percentilesOf(times),
     batchedMs,
+    systems: namedTowerSystems.map(({ name }, index) => ({
+      name,
+      ...percentilesOf(perSystem[index] as Float64Array),
+    })),
   };
 }
 
@@ -120,17 +169,30 @@ export function timeFullTowerRuns(): FullTowerResult {
   return { runs: second, runsAgree: agree(second) };
 }
 
+/** The systems that carry the morning peak, each held to its own p95 limit by the gate. */
+export const PEAK_SYSTEMS: readonly string[] = ['trek', 'office routine'];
+
 export interface FullTowerLimits {
   averageMs: number;
   p95Ms: number;
   p99Ms: number;
+  /** Limit on the median p95 of each of `PEAK_SYSTEMS`; no limit when left out. */
+  systemP95Ms?: number;
+  /** Median p95 of a peak system above this is reported but does not fail the gate. */
+  systemP95ReportMs?: number;
+}
+
+function systemP95(run: FullTowerRun, name: string): number {
+  const timing = run.systems.find((system) => system.name === name);
+  if (!timing) throw new Error(`The bench timed no system named ${name}`);
+  return timing.p95Ms;
 }
 
 /** The reasons a result fails the limits: a median over its limit, or runs that disagree. */
 export function fullTowerGateFailures(result: FullTowerResult, limits: FullTowerLimits): string[] {
   const failures: string[] = [];
   if (!result.runsAgree) failures.push('Runs differ by over 15%, result void.');
-  const checks: [label: string, key: keyof FullTowerLimits][] = [
+  const checks: [label: string, key: 'averageMs' | 'p95Ms' | 'p99Ms'][] = [
     ['Average', 'averageMs'],
     ['p95', 'p95Ms'],
     ['p99', 'p99Ms'],
@@ -141,5 +203,29 @@ export function fullTowerGateFailures(result: FullTowerResult, limits: FullTower
       failures.push(`${label} median ${median.toFixed(2)} ms is over the ${limits[key]} ms limit.`);
     }
   }
+  const systemLimit = limits.systemP95Ms;
+  if (systemLimit === undefined) return failures;
+  for (const name of PEAK_SYSTEMS) {
+    const median = medianOf(result.runs.map((run) => systemP95(run, name)));
+    if (median > systemLimit) {
+      failures.push(
+        `${name} p95 median ${median.toFixed(2)} ms is over the ${systemLimit} ms limit.`,
+      );
+    }
+  }
   return failures;
+}
+
+/** The peak systems whose median p95 is over the report limit but not over the failing one. */
+export function fullTowerGateWarnings(result: FullTowerResult, limits: FullTowerLimits): string[] {
+  const reportLimit = limits.systemP95ReportMs;
+  if (reportLimit === undefined) return [];
+  const warnings: string[] = [];
+  for (const name of PEAK_SYSTEMS) {
+    const median = medianOf(result.runs.map((run) => systemP95(run, name)));
+    if (median > reportLimit && median <= (limits.systemP95Ms ?? Infinity)) {
+      warnings.push(`${name} p95 median ${median.toFixed(2)} ms is over ${reportLimit} ms.`);
+    }
+  }
+  return warnings;
 }

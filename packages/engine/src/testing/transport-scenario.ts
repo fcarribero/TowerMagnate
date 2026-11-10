@@ -3,7 +3,13 @@ import { STEPS_PER_HOUR } from '../calendar';
 import { STEPS_PER_DAY } from '../clock';
 import { towerCommandHandlers } from '../commands';
 import { addPeopleForUnit, peopleCount } from '../people';
-import { createEngine, towerSystems, type Engine, type SimulationSystem } from '../step';
+import {
+  createEngine,
+  namedTowerSystems,
+  towerSystems,
+  type Engine,
+  type SimulationSystem,
+} from '../step';
 import { isOnTrek } from '../trek';
 import { medianOf } from './fastest-run';
 import { addFlight } from './hundred-floor-tower';
@@ -25,21 +31,8 @@ export const MAX_SPREAD = 0.15;
 export const MAX_AVERAGE_MS = 1.0;
 export const MAX_P99_MS = 5;
 
-/** Matches the order of `towerSystems`. */
-export const SYSTEM_NAMES = [
-  'scheduler (ledger, upkeep, office plans)',
-  'leases',
-  'hotels',
-  'condos',
-  'daily grades',
-  'trek',
-  'prospects',
-  'office routine',
-  'resident routine',
-  'elevators',
-  'scheduler (star check)',
-  'events',
-];
+/** The name of each system, in `towerSystems` order. */
+export const SYSTEM_NAMES = namedTowerSystems.map(({ name }) => name);
 
 /** 500 offices of 6 workers on levels 2..60, served by two banks of 6 shafts that meet at level 30. */
 export function sixtyFloorTower(): TowerState {

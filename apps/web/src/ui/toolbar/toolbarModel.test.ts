@@ -31,7 +31,7 @@ const DESIGN_TABLE: Readonly<Record<ToolbarCategory, readonly Row[]>> = {
     ['escalator', '8 casilleros, une 2 pisos', '$20.000', 1],
     ['standard-elevator', 'Hueco de 4, hasta 30 pisos', '$200.000 + $80.000 por cabina', 1],
     ['service-elevator', 'Hueco de 4, hasta 30 pisos', '$100.000 + $50.000 por cabina', 2],
-    ['express-elevator', 'Hueco de 6', '$400.000 + $150.000 por cabina', 3],
+    ['express-elevator', 'Hueco de 6', '$600.000 + $250.000 por cabina', 3],
   ],
   'offices-and-housing': [
     ['office', '9 x 1 casilleros', '$40.000', 1],
@@ -40,7 +40,7 @@ const DESIGN_TABLE: Readonly<Record<ToolbarCategory, readonly Row[]>> = {
   hotel: [
     ['single-room', '4 x 1 casilleros', '$20.000', 2],
     ['double-room', '6 x 1 casilleros', '$50.000', 2],
-    ['suite', '10 x 1 casilleros', '$100.000', 2],
+    ['suite', '10 x 1 casilleros', '$150.000', 2],
     ['housekeeping', '15 x 1 casilleros', '$50.000', 2],
   ],
   'commerce-and-entertainment': [
@@ -56,8 +56,8 @@ const DESIGN_TABLE: Readonly<Record<ToolbarCategory, readonly Row[]>> = {
     ['parking-ramp', '16 x 1 casilleros', '$50.000', 3],
     ['parking-space', '4 x 1 casilleros', '$3.000', 3],
     ['recycling-center', '25 x 2 casilleros', '$500.000', 3],
-    ['subway-station', '30 x 3 casilleros', '$1.000.000', 4],
-    ['cathedral', '28 x 4 casilleros', '$3.000.000', 5],
+    ['subway-station', '30 x 3 casilleros', '$3.000.000', 4],
+    ['cathedral', '28 x 4 casilleros', '$35.000.000', 5],
   ],
 };
 
@@ -95,7 +95,7 @@ describe('tool texts', () => {
 
   it('adds the unlock stars to a locked tool', () => {
     expect(tooltipLines('cathedral', 4)).toEqual([
-      'Catedral: $3.000.000',
+      'Catedral: $35.000.000',
       '28 x 4 casilleros',
       'Se desbloquea con 5 estrellas',
     ]);

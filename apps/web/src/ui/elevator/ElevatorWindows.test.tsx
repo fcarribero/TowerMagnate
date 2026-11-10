@@ -64,7 +64,7 @@ describe('elevator windows', () => {
       p: { target: { kind: 'shaft', id: 's4' } },
     });
     fireEvent.click(screen.getByRole('tab', { name: 'Cabinas' }));
-    expect(screen.getByRole('button', { name: 'Agregar cabina ($150.000)' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Agregar cabina ($250.000)' })).toBeTruthy();
   });
 
   it('marks the band in force from the game clock', () => {

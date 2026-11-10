@@ -37,10 +37,10 @@ function condoRun(options: { sellAt?: number[]; evaluate?: () => TenantEvaluatio
 
 describe('condo sale', () => {
   it.each<[PriceLevel, number]>([
-    ['high', 200_000],
-    ['normal', 150_000],
-    ['low', 100_000],
-    ['minimum', 40_000],
+    ['high', 230_000],
+    ['normal', 175_000],
+    ['low', 115_000],
+    ['minimum', 45_000],
   ])('credits the %s price once and records it', (priceLevel, price) => {
     const { tower, unitId, engine } = condoRun();
     condoOf(tower, unitId).priceLevel = priceLevel;
@@ -101,8 +101,8 @@ describe('condo owner evaluation', () => {
     sold.money = 0;
     condoOf(sold, unitId).priceLevel = 'minimum';
     const { state, events } = engine.step(sold, [], CHECK);
-    expect(state.money).toBe(-150_000);
-    expect(state.ledger.currentWeek.condoBuybacks.expense).toBe(-150_000);
+    expect(state.money).toBe(-175_000);
+    expect(state.ledger.currentWeek.condoBuybacks.expense).toBe(-175_000);
     expect(condoOf(state, unitId).sale).toBeNull();
     expect(events.map((event) => event.type)).toEqual(['condoVacated', 'news']);
     expect(events[1]).toMatchObject({ key: 'news.condoBuyback', unitId });
@@ -116,7 +116,7 @@ describe('condo owner evaluation', () => {
     });
     const { state } = engine.step(tower, [], resale + 1);
     expect(condoOf(state, unitId).sale).toEqual({
-      price: 150_000,
+      price: 175_000,
       anchorStep: resale,
       nextEvaluationStep: resale + CHECK,
     });

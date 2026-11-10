@@ -159,7 +159,7 @@ The engine emits `disaster` with kind `bomb` and the ruined cells, the alert not
 
 Design call on transport: a shaft can span 30 levels or, for an express, the whole tower. Destroying it for a 6-level blast would cut transport far from the box, and construction has no partial shaft. Stairs and escalators are kept for the same reason, so the player's transport layout survives. The units, which are the income, take the loss.
 
-Design call on the cathedral: the fire never burns the cathedral (5.6), and the bomb follows the same rule. The cathedral costs $3,000,000 and is the only way to the Torre rank, and the player has no way to protect it, since the bomb cell is random and the security lock blocks new offices.
+Design call on the cathedral: the fire never burns the cathedral (5.6), and the bomb follows the same rule. The cathedral costs $35,000,000 and is the only way to the Torre rank, and the player has no way to protect it, since the bomb cell is random and the security lock blocks new offices.
 
 Design call on condos: demolishing a sold condo costs the sale price because the player chose it (construction 8.5). The player did not choose the explosion, and the GDD gives a block of destroyed units as the whole penalty.
 

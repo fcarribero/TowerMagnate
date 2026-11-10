@@ -245,13 +245,42 @@ function changeDiners(state: TowerState, venue: number, change: number): void {
   byVenue.set(venue, Math.max(0, (byVenue.get(venue) ?? 0) + change));
 }
 
+interface UnitsOfType {
+  step: number;
+  units: Unit[];
+}
+
+/** Units of each venue type by units record, so a busy minute scans the tower once per step. */
+const venuesByRecord = new WeakMap<TowerState['units'], Map<Unit['type'], UnitsOfType>>();
+
+/** The units of one type in increasing id. */
+function unitsOfType(state: TowerState, type: Unit['type']): Unit[] {
+  let byType = venuesByRecord.get(state.units);
+  if (!byType) {
+    byType = new Map();
+    venuesByRecord.set(state.units, byType);
+  }
+  const known = byType.get(type);
+  if (known && known.step === state.step && known.units.every(isCurrentIn(state))) {
+    return known.units;
+  }
+  const units = Object.values(state.units)
+    .filter((unit) => unit.type === type)
+    .sort((a, b) => unitNumber(a.id) - unitNumber(b.id));
+  byType.set(type, { step: state.step, units });
+  return units;
+}
+
+function isCurrentIn(state: TowerState): (unit: Unit) => boolean {
+  return (unit) => state.units[unit.id] === unit;
+}
+
 function openFastFoods(state: TowerState, minuteOfDay: number): Unit[] {
   if (!isFastFoodOpen(minuteOfDay)) return [];
   const eating = diners(state);
-  return Object.values(state.units)
-    .filter((unit) => unit.type === 'fast-food')
-    .filter((unit) => (eating.get(unitNumber(unit.id)) ?? 0) < FAST_FOOD_CAPACITY)
-    .sort((a, b) => unitNumber(a.id) - unitNumber(b.id));
+  return unitsOfType(state, 'fast-food').filter(
+    (unit) => (eating.get(unitNumber(unit.id)) ?? 0) < FAST_FOOD_CAPACITY,
+  );
 }
 
 /** Draws up to three distinct venues; the cheapest reachable one wins, ties go to the lower id. */
@@ -432,7 +461,7 @@ function startLeaving(worker: Worker, routes: RoutePlanner, from: Place = worker
 }
 
 function medicalCenters(state: TowerState): Unit[] {
-  return Object.values(state.units).filter((unit) => unit.type === 'medical-center');
+  return unitsOfType(state, 'medical-center');
 }
 
 /** Today's visit counts and notices; a new day starts them over. */

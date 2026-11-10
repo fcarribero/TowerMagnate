@@ -109,7 +109,7 @@ describe('Toolbar', () => {
     render(<Harness stars={1} />);
     openCategory('Servicios');
     fireEvent.pointerEnter(toolButton('Catedral'));
-    expect(infoText()).toBe('Catedral28 x 4 casilleros$3.000.000Se desbloquea con 5 estrellas');
+    expect(infoText()).toBe('Catedral28 x 4 casilleros$35.000.000Se desbloquea con 5 estrellas');
     fireEvent.pointerLeave(toolButton('Catedral'));
     expect(infoText()).toBe('Lupa');
   });
@@ -227,7 +227,7 @@ describe('Toolbar', () => {
       });
       const lines = [...screen.getByRole('tooltip').querySelectorAll('.tm-tooltip__line')];
       expect(lines.map((line) => line.textContent)).toEqual([
-        'Ascensor expreso: $400.000 + $150.000 por cabina',
+        'Ascensor expreso: $600.000 + $250.000 por cabina',
         'Hueco de 6',
         'Se desbloquea con 3 estrellas',
       ]);

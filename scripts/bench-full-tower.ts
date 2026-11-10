@@ -4,17 +4,22 @@
  * of 3 runs, void if their p95 differs by over 15%.
  *
  * With `--gate --avg-ms <ms> --p95-ms <ms> --p99-ms <ms>` it exits with 1 when a median is over
- * its limit or the result is void. Without `--gate` it only reports.
+ * its limit or the result is void. `--system-p95-ms <ms>` adds a limit on the median p95 of the
+ * trek and the office routine; `--system-p95-report-ms <ms>` reports those medians above it
+ * without failing. Without `--gate` it only reports.
  */
 import os from 'node:os';
 import { parseArgs } from 'node:util';
 import {
   FULL_TOWER_STEP_BUDGET_MS,
+  PEAK_SYSTEMS,
   fullTowerGateFailures,
+  fullTowerGateWarnings,
   medianOf,
   timeFullTowerRuns,
   type FullTowerLimits,
   type FullTowerRun,
+  type SystemTiming,
 } from '@tower-magnate/engine/testing';
 
 const { values: options } = parseArgs({
@@ -23,10 +28,14 @@ const { values: options } = parseArgs({
     'avg-ms': { type: 'string' },
     'p95-ms': { type: 'string' },
     'p99-ms': { type: 'string' },
+    'system-p95-ms': { type: 'string' },
+    'system-p95-report-ms': { type: 'string' },
   },
 });
 
-function limitFrom(name: 'avg-ms' | 'p95-ms' | 'p99-ms'): number {
+function limitFrom(
+  name: 'avg-ms' | 'p95-ms' | 'p99-ms' | 'system-p95-ms' | 'system-p95-report-ms',
+): number {
   const value = Number(options[name]);
   if (options[name] === undefined || !Number.isFinite(value) || value <= 0) {
     throw new Error(`--gate needs --${name} with a positive number of milliseconds`);
@@ -35,7 +44,16 @@ function limitFrom(name: 'avg-ms' | 'p95-ms' | 'p99-ms'): number {
 }
 
 const limits: FullTowerLimits | null = options.gate
-  ? { averageMs: limitFrom('avg-ms'), p95Ms: limitFrom('p95-ms'), p99Ms: limitFrom('p99-ms') }
+  ? {
+      averageMs: limitFrom('avg-ms'),
+      p95Ms: limitFrom('p95-ms'),
+      p99Ms: limitFrom('p99-ms'),
+      systemP95Ms: options['system-p95-ms'] === undefined ? undefined : limitFrom('system-p95-ms'),
+      systemP95ReportMs:
+        options['system-p95-report-ms'] === undefined
+          ? undefined
+          : limitFrom('system-p95-report-ms'),
+    }
   : null;
 
 const result = timeFullTowerRuns();
@@ -44,6 +62,22 @@ const list = (pick: (run: FullTowerRun) => number) =>
   runs.map((run) => pick(run).toFixed(2)).join(', ');
 const median = (pick: (run: FullTowerRun) => number) => medianOf(runs.map(pick)).toFixed(2);
 const limitText = (limit: number | undefined) => (limit === undefined ? '' : `, limit ${limit}`);
+function systemLines(): string[] {
+  const first = runs[0];
+  if (!first) return [];
+  return first.systems.map(({ name }, index) => {
+    const of = (pick: (system: SystemTiming) => number) =>
+      median((run) => pick(run.systems[index] as SystemTiming)).padStart(7);
+    const columns = [
+      of((system) => system.averageMs),
+      of((system) => system.p95Ms),
+      of((system) => system.p99Ms),
+      of((system) => system.maxMs),
+    ];
+    return `  ${columns.join(' ')}  ${name}`;
+  });
+}
+
 const machine = `${os.cpus().length} x ${os.cpus()[0]?.model.trim()}, ${os.platform()}`;
 
 console.log(
@@ -56,11 +90,14 @@ console.log(
     `p99 step ms per run: ${list((run) => run.p99Ms)} (median ${median((run) => run.p99Ms)}${limitText(limits?.p99Ms)})`,
     `Max step ms per run: ${list((run) => run.maxMs)}`,
     `Step ms when the same hours run in one call: ${list((run) => run.batchedMs)}`,
+    `Median ms per step by system (average, p95, p99, max)${limitText(limits?.systemP95Ms)} on the p95 of ${PEAK_SYSTEMS.join(' and ')}:`,
+    ...systemLines(),
   ].join('\n'),
 );
 
 if (limits) {
   const failures = fullTowerGateFailures(result, limits);
+  for (const warning of fullTowerGateWarnings(result, limits)) console.log(`Report: ${warning}`);
   for (const failure of failures) console.error(failure);
   console.log(failures.length === 0 ? 'Gate: passed' : 'Gate: failed');
   process.exitCode = failures.length === 0 ? 0 : 1;

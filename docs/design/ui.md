@@ -182,12 +182,12 @@ Categories follow the GDD order. Inside each category, tools are sorted by unloc
 | | | 2 | `escalator` | Escalera mecánica | 8 x 2 | $20.000 | 1 |
 | | | 3 | `standard-elevator` | Ascensor estándar | 4, hasta 30 pisos | $200.000 + $80.000 por cabina | 1 |
 | | | 4 | `service-elevator` | Ascensor de servicio | 4, hasta 30 pisos | $100.000 + $50.000 por cabina | 2 |
-| | | 5 | `express-elevator` | Ascensor expreso | 6 | $400.000 + $150.000 por cabina | 3 |
+| | | 5 | `express-elevator` | Ascensor expreso | 6 | $600.000 + $250.000 por cabina | 3 |
 | `offices-and-housing` | Oficinas y vivienda | 1 | `office` | Oficina | 9 x 1 | $40.000 | 1 |
 | | | 2 | `condo` | Departamento | 16 x 1 | $80.000 | 1 |
 | `hotel` | Hotel | 1 | `single-room` | Habitación simple | 4 x 1 | $20.000 | 2 |
 | | | 2 | `double-room` | Habitación doble | 6 x 1 | $50.000 | 2 |
-| | | 3 | `suite` | Suite | 10 x 1 | $100.000 | 2 |
+| | | 3 | `suite` | Suite | 10 x 1 | $150.000 | 2 |
 | | | 4 | `housekeeping` | Limpieza | 15 x 1 | $50.000 | 2 |
 | `commerce-and-entertainment` | Comercio y entretenimiento | 1 | `fast-food` | Comida rápida | 16 x 1 | $100.000 | 1 |
 | | | 2 | `restaurant` | Restaurante | 24 x 1 | $200.000 | 3 |
@@ -199,8 +199,8 @@ Categories follow the GDD order. Inside each category, tools are sorted by unloc
 | | | 3 | `parking-ramp` | Rampa de estacionamiento | 16 x 1 | $50.000 | 3 |
 | | | 4 | `parking-space` | Cochera | 4 x 1 | $3.000 | 3 |
 | | | 5 | `recycling-center` | Centro de reciclaje | 25 x 2 | $500.000 | 3 |
-| | | 6 | `subway-station` | Estación de subte | 30 x 3 | $1.000.000 | 4 |
-| | | 7 | `cathedral` | Catedral | 28 x 4 | $3.000.000 | 5 |
+| | | 6 | `subway-station` | Estación de subte | 30 x 3 | $3.000.000 | 4 |
+| | | 7 | `cathedral` | Catedral | 28 x 4 | $35.000.000 | 5 |
 
 Names, sizes, prices and stars are read from the shared catalog, never typed into the UI. This table is the check that the catalog and the UI agree. The "Size" column is what the info box and tooltip print, in the format `{w} x {h} casilleros`; stairs and escalators print `8 casilleros, une 2 pisos`, shafts print `Hueco de {w}, hasta 30 pisos` or `Hueco de 6` for the express.
 
@@ -367,7 +367,7 @@ Saldo                         $1.234.567
                      Esta semana   Semana anterior
 Alquileres              $40.000         $35.000
 Hotel                   $12.000         $18.000
-Venta de departamentos       $0        $150.000
+Venta de departamentos       $0        $175.000
 Comercios y entretenimiento ...
 Eventos                     ...
 Construcción          -$120.000        -$80.000
