@@ -185,7 +185,7 @@ describe('unit windows', () => {
     );
     expect(screen.getByText('Ya está vendido.')).toBeTruthy();
     expect(
-      (screen.getByRole('radio', { name: 'Alto $200.000' }) as HTMLInputElement).matches(
+      (screen.getByRole('radio', { name: 'Alto $230.000' }) as HTMLInputElement).matches(
         ':disabled',
       ),
     ).toBe(true);

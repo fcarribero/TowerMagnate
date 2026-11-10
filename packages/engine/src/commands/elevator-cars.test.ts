@@ -51,7 +51,7 @@ describe('addCar', () => {
   it('parks express cars only at express stops', () => {
     const tower = towerWithShafts();
     expect(rejection(tower, addCar('s2', 16))).toBe('EXPRESS_STOP_NOT_ALLOWED');
-    expect(accept(tower, addCar('s2', 15)).spent).toBe(150_000);
+    expect(accept(tower, addCar('s2', 15)).spent).toBe(250_000);
   });
 
   it('rejects unknown shafts, short funds and debt', () => {

@@ -48,7 +48,7 @@ describe('buildShaft', () => {
 
   it('charges each type its own price', () => {
     expect(accept(fullSiteTower(), shaft('service', 40, 1, 10)).spent).toBe(150_000);
-    expect(accept(fullSiteTower(), shaft('express', 40, 1, 90)).spent).toBe(550_000);
+    expect(accept(fullSiteTower(), shaft('express', 40, 1, 90)).spent).toBe(850_000);
   });
 
   it('limits standard and service shafts to 30 levels, counted without level 0', () => {
