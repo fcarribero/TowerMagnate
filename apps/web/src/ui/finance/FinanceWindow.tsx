@@ -8,6 +8,7 @@ import { Window } from '../kit/Window';
 import { useWindowManager } from '../kit/WindowLayer';
 import { formatMoney } from '../money';
 import { t, type StringKey } from '../strings';
+import { MAP_WINDOW_ID } from '../windowIds';
 import { financeTable } from './financeTable';
 import './financeWindow.css';
 
@@ -35,7 +36,7 @@ export function FinanceWindow({ store, onClose }: FinanceWindowProps) {
   const manager = useWindowManager();
   const selected = useStoreSelect(store, selectFinance);
   useEffect(() => {
-    manager.open({ id: FINANCE_WINDOW_ID });
+    manager.open({ id: FINANCE_WINDOW_ID, corner: 'topRight', belowId: MAP_WINDOW_ID });
     return () => manager.close(FINANCE_WINDOW_ID);
   }, []);
   if (selected === null) {

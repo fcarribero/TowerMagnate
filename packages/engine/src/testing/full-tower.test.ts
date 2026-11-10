@@ -4,7 +4,9 @@ import {
   FULL_TOWER_PEOPLE,
   fullTower,
   fullTowerGateFailures,
+  fullTowerGateWarnings,
   type FullTowerRun,
+  type SystemTiming,
 } from './full-tower';
 
 describe('fullTower', () => {
@@ -19,8 +21,20 @@ describe('fullTower', () => {
   });
 });
 
-function run(averageMs: number, p95Ms: number, p99Ms: number): FullTowerRun {
-  return { people: FULL_TOWER_PEOPLE, averageMs, p95Ms, p99Ms, maxMs: p99Ms, batchedMs: 1 };
+function timing(name: string, p95Ms: number): SystemTiming {
+  return { name, averageMs: p95Ms / 2, p95Ms, p99Ms: p95Ms, maxMs: p95Ms };
+}
+
+function run(averageMs: number, p95Ms: number, p99Ms: number, trekP95Ms = 1): FullTowerRun {
+  return {
+    people: FULL_TOWER_PEOPLE,
+    averageMs,
+    p95Ms,
+    p99Ms,
+    maxMs: p99Ms,
+    batchedMs: 1,
+    systems: [timing('trek', trekP95Ms), timing('office routine', 1)],
+  };
 }
 
 describe('fullTowerGateFailures', () => {
@@ -44,5 +58,27 @@ describe('fullTowerGateFailures', () => {
     expect(fullTowerGateFailures({ runs, runsAgree: false }, limits)).toEqual([
       'Runs differ by over 15%, result void.',
     ]);
+  });
+
+  it('names a peak system whose median p95 is over the system limit', () => {
+    const runs = [run(1, 2, 3, 2.4), run(1, 2, 3, 2.7), run(1, 2, 3, 2.6)];
+    const withSystems = { ...limits, systemP95Ms: 2.5 };
+    expect(fullTowerGateFailures({ runs, runsAgree: true }, withSystems)).toEqual([
+      'trek p95 median 2.60 ms is over the 2.5 ms limit.',
+    ]);
+  });
+
+  it('reports a peak system between the report and failing limits without failing', () => {
+    const runs = [run(1, 2, 3, 2.6), run(1, 2, 3, 2.8), run(1, 2, 3, 2.7)];
+    const withSystems = { ...limits, systemP95Ms: 3, systemP95ReportMs: 2.5 };
+    expect(fullTowerGateFailures({ runs, runsAgree: true }, withSystems)).toEqual([]);
+    expect(fullTowerGateWarnings({ runs, runsAgree: true }, withSystems)).toEqual([
+      'trek p95 median 2.70 ms is over 2.5 ms.',
+    ]);
+  });
+
+  it('leaves the systems out without a system limit', () => {
+    const runs = [run(1, 2, 3, 9), run(1, 2, 3, 9), run(1, 2, 3, 9)];
+    expect(fullTowerGateFailures({ runs, runsAgree: true }, limits)).toEqual([]);
   });
 });

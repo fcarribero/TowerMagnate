@@ -9,6 +9,8 @@ import {
   ROUTE_RIDE_COST,
   ROUTE_STAIR_LEG_COST,
   ROUTE_TRANSFER_COST,
+  LAST_COLUMN,
+  LOWEST_LEVEL,
   type EntityId,
   type HallDirection,
   type Level,
@@ -299,6 +301,8 @@ export class TripPlanner {
   private firstOptions = new Map<string, FirstOption[]>();
   private runOptions = new Map<number, RunOption[]>();
   private runsByX = new Map<number, RunByX>();
+  private runEnds = new Map<number, { first: number; last: number }>();
+  private groups = new Map<number, number | null>();
 
   constructor(private readonly graph: TransportGraph) {}
 
@@ -372,6 +376,38 @@ export class TripPlanner {
     this.firstOptions.clear();
     this.runOptions.clear();
     this.runsByX.clear();
+    this.runEnds.clear();
+    this.groups.clear();
+  }
+
+  /**
+   * A number that is the same for two destinations exactly when they share a destination table.
+   * Plans to such destinations from the same start and budget choose the same first leg and
+   * differ only in columns walked. Null when the point is on no walkable run.
+   */
+  destinationGroup(to: RoutePoint, userClass: UserClass): number | null {
+    this.dropStaleCaches();
+    const isMaid = userClass === 'maid' ? 1 : 0;
+    const key = ((to.level - LOWEST_LEVEL) * (LAST_COLUMN + 1) + to.x) * 2 + isMaid;
+    let group = this.groups.get(key);
+    if (group === undefined) {
+      const run = this.graph.runAtCell(to.level, to.x);
+      const shared = run && run.nodes.length > 0 ? this.sharedColumn(run.id, to.x) : 0;
+      group = run ? (run.id * COLUMN_RANGE + shared) * 2 + isMaid : null;
+      this.groups.set(key, group);
+    }
+    return group;
+  }
+
+  /** The column whose table a destination at `x` on `run` uses. */
+  private sharedColumn(run: number, x: number): number {
+    let ends = this.runEnds.get(run);
+    if (!ends) {
+      const nodeColumns = this.graph.run(run).nodes.map((id) => this.graph.node(id).x);
+      ends = { first: Math.min(...nodeColumns), last: Math.max(...nodeColumns) };
+      this.runEnds.set(run, ends);
+    }
+    return x >= ends.last ? ends.last : x <= ends.first ? ends.first : x;
   }
 
   private runOptionsOf(run: number, userClass: UserClass): RunOption[] {
@@ -408,10 +444,7 @@ export class TripPlanner {
     run: number,
     userClass: UserClass,
   ): { table: DestinationTable; extraColumns: number } {
-    const nodeColumns = this.graph.run(run).nodes.map((id) => this.graph.node(id).x);
-    const first = Math.min(...nodeColumns);
-    const last = Math.max(...nodeColumns);
-    const shared = point.x >= last ? last : point.x <= first ? first : point.x;
+    const shared = this.sharedColumn(run, point.x);
     const key = `${userClass}:${run}:${shared}`;
     let table = this.tables.get(key);
     if (!table) {

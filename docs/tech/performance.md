@@ -38,6 +38,8 @@ Calibration times on CI were 32.9 to 33.5 ms on three EPYC 7763 jobs and 25.7 ms
 
 The reference is the 7763 because it is the slowest type seen so far. If GitHub changes the pool, rerun the bench on the new slowest type and update `REFERENCE_CALIBRATION_MS`.
 
+This gate covers the server only. The client has no CI gate, because the runners have no GPU. Its pass criteria and the machine they are judged on are in [Render reference machine](#render-reference-machine).
+
 ### Results
 
 Run of 2027-01-20, workflow run 42519972766, Node v22.23.4. The two jobs ran on different runner CPUs.
@@ -95,7 +97,7 @@ Runner load, 30 towers of 20 floors at 1x for 10 minutes, release image. Workflo
 
 The runs agree within 2%. The p95 lag scaled to the reference runner is 81.6 ms, within the 100 ms budget.
 
-Step budget, section 9 of `engine-and-protocol.md`: one `step` call with `steps = 1` on a tower of 15,000 people under 5 ms. `pnpm bench:full-tower` builds 2,500 leased offices of 6 workers on 100 floors, with four zones of 25 floors, six standard elevators per zone and stairs between zones. It times every one-step call from 06:00 to 14:00 of the first weekday with commuters, 2,880 calls per run, including the state copy each call makes. It also times the same hours as one call. The first table is workflow run 42564837735, 2027-01-28, Node v22.23.4, 4 x Intel Xeon Platinum 8370C, before TM-249.
+Step budget, section 9 of `engine-and-protocol.md`: one `step` call with `steps = 1` on a tower of 15,000 people, average under 5 ms, p95 under 8 ms and p99 under 15 ms. `pnpm bench:full-tower` builds 2,500 leased offices of 6 workers on 100 floors, with four zones of 25 floors, six standard elevators per zone and stairs between zones. It times every one-step call from 06:00 to 14:00 of the first weekday with commuters, 2,880 calls per run, including the state copy each call makes. It also times the same hours as one call. The first table is workflow run 42564837735, 2027-01-28, Node v22.23.4, 4 x Intel Xeon Platinum 8370C, before TM-249.
 
 | Run | Average | p95 | p99 | Max | Per step in one call |
 | --- | --- | --- | --- | --- | --- |
@@ -115,9 +117,20 @@ TM-249 removed the clone. A `step` call now copies the small parts of the state 
 | 3 | 4.55 ms | 13.40 ms | 18.95 ms | 36.33 ms | 3.13 ms |
 | Median | 4.35 ms | 13.07 ms | 18.95 ms | | 3.13 ms |
 
-The runs agree within 6%. The average is under the 5 ms budget, but the p95 is not. What is left is the cost of the systems on the busiest steps, mostly trek and the office routine at the morning peak, and TM-252 owns it. Until then the step budget job is blocking with interim limits: `pnpm bench:full-tower --gate --avg-ms 7 --p95-ms 17.5 --p99-ms 27.5` fails when a median is over its limit or the p95 of the runs differs by over 15%. The limits apply to the raw numbers. The job log shows the CPU model and the raw medians.
+The runs agree within 6%. The average is under the 5 ms budget, but the p95 is not. What is left is the cost of the systems on the busiest steps, mostly trek and the office routine at the morning peak, and TM-252 owns it. Before TM-252 the step budget job was blocking with interim limits of 7 ms average, 17.5 ms p95 and 27.5 ms p99. It is now blocking with the final limits: `pnpm bench:full-tower --gate --avg-ms 5 --p95-ms 8 --p99-ms 15 --system-p95-ms 3 --system-p95-report-ms 2.5` fails when a median is over its limit, when the median p95 of trek or the office routine is over 3.0 ms, or when the p95 of the runs differs by over 15%. A median p95 of trek or the office routine above 2.5 ms and up to 3.0 ms is printed as a report line and does not fail. The limits apply to the raw numbers. The job log shows the CPU model and the raw medians.
 
-The CPU type matters here, and the TM-245 calibration does not predict it. On the same code, the p95 was 9.27 ms on an AMD EPYC 9V45, 13.07 ms on an EPYC 9V74, 13.89 ms on an EPYC 7763 and 15.18 ms on a Xeon Platinum 8573C. The calibration ranks the same CPUs 9V45, 8573C, 7763, 9V74 from fastest to slowest (16.5, 25.7, 33.5 and 34.1 ms). Dividing by its slowdown gave the 9V45 a p95 of 18.57 ms, so the step gate does not scale. The slowest type seen is the Xeon Platinum 8370C: workflow run 42594672807 measured a median average of 5.96 ms, p95 16.34 ms and p99 26.01 ms there. The p95 limit of 17.5 ms and the p99 limit of 27.5 ms leave about 7% and 6% over it. The 7 ms average limit leaves about 17% over it. TM-252 targets 5 ms average, 8 ms p95 and 15 ms p99 on every runner type seen so far, which leaves enough margin without scaling.
+TM-252 cut the peak cost of the trek system and the office routine: people beside a full queue share plans per destination group and forget only the plans that ride a queue that just filled, shaft keys and lobby heights are cached per pass, and the office routine scans venue units once per step. The bench now prints the cost per step of every system. The 15,000-person day state hash equals develop's. Workflow run 42687414824, 2027-02-05, Node v22.23.4, 4 x AMD EPYC 9V74:
+
+| Run | Average | p95 | p99 | Max | Per step in one call |
+| --- | --- | --- | --- | --- | --- |
+| 1 | 2.92 ms | 5.11 ms | 6.83 ms | 11.06 ms | 2.00 ms |
+| 2 | 2.89 ms | 5.21 ms | 6.40 ms | 8.31 ms | 1.86 ms |
+| 3 | 2.98 ms | 5.46 ms | 6.60 ms | 8.53 ms | 1.87 ms |
+| Median | 2.92 ms | 5.21 ms | 6.60 ms | | 1.87 ms |
+
+The median p95 of trek is 2.29 ms and of the office routine 0.68 ms, against a blocking limit of 3.0 ms each, with values above 2.5 ms reported. Workflow run 42644799549 landed on a 4 x Intel Xeon 6973P-C and measured a median average of 3.41 ms, p95 6.32 ms and p99 7.46 ms, with trek at 2.45 ms and the office routine at 0.75 ms at p95. The Xeon Platinum 8370C, the slowest type seen before this change, has not come up since. On the old code it ran about 25% slower than the 9V74 at p95, which would put trek near 2.9 ms there. The 3.0 ms blocking limit leaves room for a slow runner, and a trek median between 2.5 and 3.0 ms shows as a report line without failing the job.
+
+The CPU type matters here, and the TM-245 calibration does not predict it. On the same code, the p95 was 9.27 ms on an AMD EPYC 9V45, 13.07 ms on an EPYC 9V74, 13.89 ms on an EPYC 7763 and 15.18 ms on a Xeon Platinum 8573C. The calibration ranks the same CPUs 9V45, 8573C, 7763, 9V74 from fastest to slowest (16.5, 25.7, 33.5 and 34.1 ms). Dividing by its slowdown gave the 9V45 a p95 of 18.57 ms, so the step gate does not scale. The slowest type seen is the Xeon Platinum 8370C: workflow run 42594672807 measured a median average of 5.96 ms, p95 16.34 ms and p99 26.01 ms there. The p95 limit of 17.5 ms and the p99 limit of 27.5 ms leave about 7% and 6% over it. The 7 ms average limit leaves about 17% over it. The limits of TM-252 are 5 ms average, 8 ms p95 and 15 ms p99, raw.
 
 ### Client results
 
@@ -149,14 +162,122 @@ Desktop, the same release build, headed Chromium on a Ryzen 7 5800X with a GPU a
 
 The median p95 frame cost is 3.1 ms, well inside the 16.7 ms a 60 fps frame allows. The first run disagrees with the other two by more than 15% because the desktop was busy with other work. The capped check shows the display limit: a 59 Hz display holds any page at about 56 fps, as QA found in TM-124. The TM-124 dev build measured 6.2 ms p95 uncapped on the same kind of machine, so the release build costs about half as much per frame.
 
-The 60 fps line is not judged here. No reference machine with a GPU is defined yet, and the CI runner cannot draw at game speed without one. TM-248 will name the render reference machine and make frame cost the primary figure. Until then, this table records frame cost next to fps, and the result to compare against is the 3.1 ms p95 frame cost on the desktop.
+The 60 fps line is judged on the render reference machine with the method in [Render reference machine](#render-reference-machine), not on CI. The CI runner has no GPU and cannot draw at game speed. The desktop table above predates that method: its runs were not on an idle machine and the first run is more than 15% off the other two, so it is not the reference result.
+
+### Heap growth in the stress run (TM-264)
+
+On PR #258 (TM-252) two uncapped runs measured 5.4% heap growth against the 5% limit, on code that had measured 1.5% to 4.5% before. The heap at the end of those runs was always 17.0 to 17.3 MB, so the growth was a slow climb to a ceiling, not an open-ended leak.
+
+`pnpm perf:stress` now prints the settled heap every minute and, with `--snapshots 5,30`, writes heap snapshots at those minutes and prints which kinds of objects grew between them. CI keeps the snapshots as a job artifact for 14 days.
+
+A 5-minute uncapped run on the desktop, with snapshots at minute 1 and minute 5, showed the cause. The people layer kept one sprite for every person in the tower, about 2,900 sprites, although only the people on screen were drawn. PixiJS builds a sprite's batch data (`BatchableSprite`, its bounds and two points, about 200 bytes) the first time the sprite is drawn. A sprite whose person stayed off screen had no batch data yet. With 1% of the people replaced on each step, pooled sprites were handed to people on screen one by one, and each one built its batch data then. Between minute 1 and minute 5, 588 people-layer sprites were drawn for the first time, and 595 had never been drawn at minute 1. The heap kept growing until every sprite in the pool had been drawn once, which takes up to about 0.9 MB on a 16.6 MB heap, so the run passed or failed depending on how far it got in 30 minutes.
+
+The people layer now gives a sprite only to people on screen. People who leave the screen, by walking or because the camera moved, return their sprite to the pool. Every sprite is drawn the frame it is taken, so it builds its batch data at once, and the pool stays at the peak number of people on screen (about 1,000 at 1x zoom) instead of the whole crowd. The same 5-minute run after the change settled at 14.5 to 15.1 MB, about 2 MB less, with growth of -1.0% between the 15-second mark and minute 5. The snapshot diff showed 40 new sprites, all drawn, as the pool reached a new peak.
+
+CI, workflow run 42713772705 on PR #264, 30 minutes per run, heap after collection 15 seconds in and at the end, and the snapshot diff from minute 5 to minute 30:
+
+| Run | Heap growth | Per-minute heap range | Snapshot diff, minute 5 to 30 |
+| --- | --- | --- | --- |
+| 1, capped | 14.60 to 14.56 MB, -0.2% | 14.70 to 14.97 MB | +50 KB |
+| 2, capped | 14.47 to 14.84 MB, 2.6% | 14.68 to 15.26 MB | +59 KB |
+| 3, capped | 14.52 to 14.80 MB, 1.9% | 14.53 to 14.96 MB | +68 KB |
+| 1, uncapped | 14.61 to 14.85 MB, 1.6% | 14.52 to 14.92 MB | +60 KB |
+| 2, uncapped | 14.72 to 14.68 MB, -0.2% | 14.66 to 15.05 MB | +56 KB |
+| 3, uncapped | 14.81 to 14.88 MB, 0.5% | 14.66 to 15.10 MB | +99 KB |
+
+The three uncapped runs are under 4%. The per-minute heap moves up and down by about 0.4 MB with no upward trend, so the start-to-end figure is mostly that noise. The snapshots grew by 50 to 99 KB between minute 5 and minute 30, under 0.7% of the heap; the largest part was compiled code (35 KB in uncapped run 1), and 13 new people sprites as the pool reached a new peak.
+
+The other object kinds that grew are bounded by the browser. Chromium keeps the first 200 long task entries (`PerformanceLongTaskTiming`) in the performance timeline buffer, about 40 KB in all. The page has no news ticker, overlays or window placement code, so those were not in the run.
 
 ### Summary
 
 | Target | Result | Status |
 | --- | --- | --- |
 | 30 towers, p95 tick lag at most 100 ms, release image | 84.3 ms raw, 81.6 ms scaled | Met |
-| One step of a 15,000-person tower under 5 ms | 13.1 ms p95, 4.4 ms average (was 34.4 and 21.9 ms) | Missed, TM-252; CI gate at 7 ms average, 17.5 ms p95, 27.5 ms p99 |
+| One step of a 15,000-person tower, average under 5 ms, p95 under 8 ms, p99 under 15 ms | 2.9 ms average, 5.2 ms p95, 6.6 ms p99 (was 21.9, 34.4 and 44.2 ms) | Met |
 | 100 floors, 3,000 people, draw calls under 200 | 69 | Met |
-| Heap growth under 5% over 30 minutes | 3.3% median, 4.5% highest | Met |
-| 60 fps at 1x zoom | p95 frame cost 3.1 ms on a desktop GPU; not measurable on CI | Not judged until TM-248 |
+| Heap growth under 5% over 30 minutes | Uncapped 1.6%, -0.2% and 0.5% after TM-264 (was up to 5.4%) | Met |
+| 60 fps at 1x zoom | Reference machine, median of 3 uncapped runs: p95 frame cost 0.8 ms, average 0.69 ms, 69 draw calls; capped 60.0 fps. See [Render reference machine](#render-reference-machine) | Met |
+
+## Render reference machine
+
+Frame rate depends on the display and the GPU of the machine that runs the test. QA found that a 59 Hz display holds even a blank page at 55.9 fps (213 fps and 6.2 ms p95 uncapped), and CI runners have no GPU, so their client timings are void (TM-137). The 60 fps target is therefore judged by frame cost on one named machine, and fps is a secondary check.
+
+### The machine
+
+| Part | Value |
+| --- | --- |
+| CPU | AMD Ryzen 7 5800X, 8 cores |
+| GPU | NVIDIA GeForce RTX 3060 Ti, driver 32.0.16.1692 (NVIDIA 516.92); chrome://gpu reports `ANGLE (NVIDIA, NVIDIA GeForce RTX 3060 Ti Direct3D11 vs_5_0 ps_5_0, D3D11-32.0.16.1692)`, WebGL and canvas hardware accelerated |
+| RAM | 32 GB |
+| OS | Windows 10 Home 22H2, build 19045 |
+| Display | 59 Hz |
+| Browser | Chromium 158.0.8127.18, the build that ships with `@playwright/test` 1.65.0 pinned in the repo |
+| Page | `perf.html` defaults: 100 floors, 3,000 people, 1x zoom, at 1920 x 1080 |
+
+This is the desktop already used in the client results above. When the GPU driver, the display or the Playwright version changes, update this table and run the reference again.
+
+### Running the reference
+
+Close other programs first; the machine must be otherwise idle. Then:
+
+```bash
+pnpm --filter @tower-magnate/web build:perf
+pnpm --filter @tower-magnate/web exec vite preview --outDir dist-perf --port 4173
+pnpm perf:stress --minutes 3 --url http://localhost:4173/perf.html --headed --uncapped   # 3 times
+pnpm perf:stress --minutes 1 --url http://localhost:4173/perf.html --headed              # once, capped
+```
+
+Each run warms up for 15 seconds before it measures. `--uncapped` turns off vsync and the frame rate limit, so a frame takes what it costs and not the display interval. The report prints `fps` and `p95FrameMs` over the last 600 frames of the run, and `maxDrawCalls`. Average frame cost is `1000 / fps` of an uncapped run.
+
+### Pass criteria for the 60 fps target
+
+A 60 fps frame has 16.7 ms. The criteria keep half of that for the game's own work outside drawing.
+
+- From the 3 uncapped runs, take the median of each figure. The p95 frame cost is at most 8.3 ms and the average frame cost is at most 5 ms.
+- The 3 runs agree within 15% on p95 frame cost. If they do not, the result is void: close what else is running and make 3 new runs.
+- Draw calls stay under 200 in every run.
+- The capped run reads at least 55 fps on the 59 Hz display.
+
+### Comparing another machine
+
+On any other machine, run the same uncapped command and report the p95 and average frame cost next to the reference figures. Frame cost is the number to compare. A capped fps figure from a different display says how fast that display refreshes, so it is never a pass or fail figure. CI client timings stay void for the same reason, since the runners draw in software.
+
+### QA notes for render tasks
+
+Render tasks that touch frame time copy this into their QA notes:
+
+> Build the perf page and run the uncapped command from [Render reference machine](#render-reference-machine) 3 times on your machine, then one capped run. Report the median p95 and average frame cost and the highest draw call count next to the reference figures. Judge the change by frame cost, not by fps. Only a run on the reference machine passes or fails the 60 fps target.
+
+### Reference result
+
+Met. Set 4 on 2027-02-05 is the reference result. Two earlier sets on 2027-02-04 and one on the same day as set 4 were void under the 15% rule.
+
+Before set 4, with nothing of this test running, CPU load sampled 6 times over 50 seconds was 3% to 8% with 14.4 to 14.9 GB free. Docker held only the dev stack (web, server and database); the 13 test database containers were gone. Set 4 ran with no load sampler.
+
+| Run | Frames | fps | Average frame | p95 frame | Max draw calls |
+| --- | --- | --- | --- | --- | --- |
+| Set 4, run 1, uncapped | 267,448 | 1,425 | 0.70 ms | 0.8 ms | 69 |
+| Set 4, run 2, uncapped | 273,101 | 1,468 | 0.68 ms | 0.8 ms | 69 |
+| Set 4, run 3, uncapped | 275,858 | 1,451 | 0.69 ms | 0.8 ms | 69 |
+| Median of 3 | | 1,451 | 0.69 ms | 0.8 ms | 69 |
+| Capped, 1 minute | 3,903 | 60.0 | 16.7 ms | 16.8 ms | 69 |
+
+The 3 runs have the same p95 frame cost, so they agree within 15%. The median p95 of 0.8 ms is under 8.3 ms, the median average of 0.69 ms is under 5 ms, draw calls are 69 (under 200), and the capped run reads 60.0 fps (at least 55). The 60 fps target is met on the reference machine. The p95 value is a multiple of the 0.1 ms timer step.
+
+Void sets, kept for the record:
+
+| Run | fps | Average frame | p95 frame | Max draw calls | Why void |
+| --- | --- | --- | --- | --- | --- |
+| Set 1, run 1, uncapped | 277 | 3.6 ms | 5.6 ms | 69 | 59% background CPU, 13 test containers |
+| Set 1, run 2, uncapped | 728 | 1.4 ms | 2.9 ms | 69 | same |
+| Set 1, run 3, uncapped | 853 | 1.2 ms | 2.7 ms | 69 | same |
+| Set 2, run 1, uncapped | 301 | 3.3 ms | 5.3 ms | 69 | same |
+| Set 2, run 2, uncapped | 580 | 1.7 ms | 3.0 ms | 69 | same |
+| Set 2, run 3, uncapped | 540 | 1.9 ms | 3.6 ms | 69 | same |
+| Set 2 capped | 56.8 | 17.6 ms | 18.1 ms | 69 | same |
+| Set 3, run 1, uncapped | 1,465 | 0.68 ms | 0.8 ms | 69 | load sampler running |
+| Set 3, run 2, uncapped | 1,448 | 0.69 ms | 0.8 ms | 69 | load sampler running |
+| Set 3, run 3, uncapped | 879 | 1.14 ms | 2.2 ms | 77 | load sampler running; p95 off by more than 15% |
+
+Set 3 ran a PowerShell CPU sampler every 20 seconds, which pushed CPU to 90% or more in short bursts. Run 3 of that set shows the effect. Do not sample load during a reference run; sample before it.

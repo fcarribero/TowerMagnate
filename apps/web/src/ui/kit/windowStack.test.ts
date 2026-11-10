@@ -2,8 +2,10 @@ import { describe, expect, it } from 'vitest';
 import {
   EMPTY_STACK,
   centeredPosition,
+  belowCovering,
   clampPosition,
   closeWindow,
+  cornerPosition,
   focusWindow,
   frontWindow,
   moveWindow,
@@ -106,16 +108,16 @@ describe('dialogs on top', () => {
 describe('centered windows', () => {
   it('opens without a position as waiting to be centered until moved', () => {
     let stack = openWindow(EMPTY_STACK, { id: 'newTower', onTop: true });
-    expect(stack.windows[0]?.pendingCenter).toBe(true);
+    expect(stack.windows[0]?.pendingPlacement).toEqual({ kind: 'center' });
     stack = moveWindow(stack, 'newTower', { x: 10, y: 20 });
-    expect(stack.windows[0]?.pendingCenter).toBe(false);
+    expect(stack.windows[0]?.pendingPlacement).toBeNull();
   });
 
   it('centers again when reopened instead of coming back where it was', () => {
     let stack = openWindow(EMPTY_STACK, { id: 'newTower', onTop: true });
     stack = moveWindow(stack, 'newTower', { x: 10, y: 20 });
     stack = openWindow(closeWindow(stack, 'newTower'), { id: 'newTower', onTop: true });
-    expect(stack.windows[0]?.pendingCenter).toBe(true);
+    expect(stack.windows[0]?.pendingPlacement).toEqual({ kind: 'center' });
   });
 
   it('computes the centered position in whole pixels', () => {
@@ -134,5 +136,64 @@ describe('clampPosition at a larger UI scale', () => {
       x: 2000 - 48,
       y: 1000 - 24,
     });
+  });
+});
+
+describe('corner windows', () => {
+  it('waits for a corner placement and remembers where it was left', () => {
+    let stack = openWindow(EMPTY_STACK, { id: 'stars', corner: 'topLeft' });
+    expect(stack.windows[0]?.pendingPlacement).toEqual({
+      kind: 'corner',
+      corner: 'topLeft',
+      belowId: undefined,
+    });
+    stack = moveWindow(stack, 'stars', { x: 50, y: 60 });
+    stack = openWindow(closeWindow(stack, 'stars'), { id: 'stars', corner: 'topLeft' });
+    expect(stack.windows[0]?.position).toEqual({ x: 50, y: 60 });
+    expect(stack.windows[0]?.pendingPlacement).toBeNull();
+  });
+
+  it('puts a window 8 pixels from the top right corner', () => {
+    expect(
+      cornerPosition('topRight', { width: 200, height: 100 }, { width: 800, height: 600 }, 8),
+    ).toEqual({
+      x: 592,
+      y: 8,
+    });
+  });
+
+  it('puts a window 8 pixels from the top left corner and lets it start lower', () => {
+    expect(
+      cornerPosition('topLeft', { width: 200, height: 100 }, { width: 800, height: 600 }, 8, 120),
+    ).toEqual({
+      x: 8,
+      y: 120,
+    });
+  });
+});
+
+describe('belowCovering', () => {
+  const candidate = { x: 8, y: 8, width: 200, height: 100 };
+
+  it('keeps the position when nothing is in the way', () => {
+    expect(belowCovering(candidate, [{ x: 400, y: 8, width: 200, height: 100 }], 8)).toEqual({
+      x: 8,
+      y: 8,
+    });
+  });
+
+  it('moves below a window it would cover', () => {
+    expect(belowCovering(candidate, [{ x: 8, y: 8, width: 360, height: 150 }], 8)).toEqual({
+      x: 8,
+      y: 166,
+    });
+  });
+
+  it('moves below a whole column of windows', () => {
+    const column = [
+      { x: 8, y: 8, width: 360, height: 150 },
+      { x: 8, y: 166, width: 220, height: 80 },
+    ];
+    expect(belowCovering(candidate, column, 8).y).toBe(254);
   });
 });

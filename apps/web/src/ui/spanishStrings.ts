@@ -257,6 +257,7 @@ export const SPANISH_STRINGS = {
   'window.finance.category.condoBuybacks': 'Devolución de departamentos',
   'window.finance.category.films': 'Películas',
   'window.stars.current': 'Rango actual: {n} estrellas',
+  'window.stars.currentOne': 'Rango actual: 1 estrella',
   'window.stars.currentTower': 'Rango actual: Torre',
   'window.stars.next': 'Para {n} estrellas:',
   'window.stars.nextTower': 'Para el rango Torre:',
