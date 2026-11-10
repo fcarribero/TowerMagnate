@@ -233,8 +233,8 @@ Start state: 3 stars, 5 suites, 3 doubles, 2 singles, a housekeeping unit, a sec
 | Step | Population target | Units that must exist | Check |
 |---|---|---|---|
 | 3 to 4 | 5,300 or more (threshold 5,000) | 2 or more suites that are not infested (keep 3 or more clean for the VIP); recycling `ceil(pop / 2,500)`: 3 centers for 5,001 to 7,500; medical: 4 centers for 520 leased offices; parking spaces for the demand below | VIP approved, no medical or parking failure since the previous weekday 17:00 |
-| 4 to 5 | 10,500 or more (threshold 10,000) | subway station on level -9 (30 x 3, covers -9 to -7, $1,000,000; C-50, place it on -9 by hand until TM-247 is fixed); recycling 5 centers (covers 12,500); medical: 6 centers for 800 leased offices, 10 as the safe choice | no medical or parking failure in the window |
-| 5 to Torre | 16,000 or more at Saturday 00:00 (threshold 15,000) | cathedral on level 101 (28 x 4, $3,000,000) with structure on all 28 cells of level 100 below it; a route for 40 guests | 40 guests inside before 12:30 |
+| 4 to 5 | 10,500 or more (threshold 10,000) | subway station on level -9 (30 x 3, covers -9 to -7, $3,000,000; C-50, place it on -9 by hand until TM-247 is fixed); recycling 5 centers (covers 12,500); medical: 6 centers for 800 leased offices, 10 as the safe choice | no medical or parking failure in the window |
+| 5 to Torre | 16,000 or more at Saturday 00:00 (threshold 15,000) | cathedral on level 101 (28 x 4, $35,000,000) with structure on all 28 cells of level 100 below it; a route for 40 guests | 40 guests inside before 12:30 |
 
 Reference mixes that reach the targets (economy 12 and section 3.4):
 

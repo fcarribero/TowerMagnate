@@ -61,8 +61,8 @@ function named(unitIds: readonly UnitId[]): EconomyUnits {
 
 /**
  * Lobby on 80 columns, three floors of units, two-floor party hall and cinema on top, and one
- * standard shaft with 3 cars. Upkeep at 3 stars: rooms 2,000 + 3,000 + 6,000, party hall 20,000,
- * cars 3 x 10,000, lobby 80 x 500 = 101,000 a week.
+ * standard shaft with 3 cars. Upkeep at 3 stars: rooms 2,000 + 3,000 + 10,000, party hall 20,000,
+ * cars 3 x 10,000, lobby 80 x 500 = 105,000 a week.
  */
 function economyTower(): { tower: TowerState; units: EconomyUnits } {
   const { state, unitIds, shaftIds } = buildTower({
