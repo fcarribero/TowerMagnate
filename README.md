@@ -73,6 +73,8 @@ By default the run starts its own compose stack (project `tm-e2e`, ports from `P
 
 Copy `.env.example` to `.env` to change the project name, ports or database credentials. To run several stacks side by side, use `pnpm stack`, which wraps `docker compose` and derives the ports from `PORT_BASE`: postgres on `PORT_BASE`, the server on `PORT_BASE + 1` and web on `PORT_BASE + 2`.
 
+Dev watchers (Vite and tsx) use file events by default. If edits do not reload, which can happen on Docker Desktop for Windows when the repo is on a Windows drive, set `CHOKIDAR_USEPOLLING=true` in `.env`. Polling makes idle web and server use about 50% and 30% of a core there, so leave it off unless reload breaks.
+
 ```bash
 COMPOSE_PROJECT_NAME=tm-dev PORT_BASE=4190 pnpm stack up -d
 curl http://localhost:4191/health       # {"status":"ok","version":"0.0.0","database":"ok"}
