@@ -164,6 +164,31 @@ The median p95 frame cost is 3.1 ms, well inside the 16.7 ms a 60 fps frame allo
 
 The 60 fps line is judged on the render reference machine with the method in [Render reference machine](#render-reference-machine), not on CI. The CI runner has no GPU and cannot draw at game speed. The desktop table above predates that method: its runs were not on an idle machine and the first run is more than 15% off the other two, so it is not the reference result.
 
+### Heap growth in the stress run (TM-264)
+
+On PR #258 (TM-252) two uncapped runs measured 5.4% heap growth against the 5% limit, on code that had measured 1.5% to 4.5% before. The heap at the end of those runs was always 17.0 to 17.3 MB, so the growth was a slow climb to a ceiling, not an open-ended leak.
+
+`pnpm perf:stress` now prints the settled heap every minute and, with `--snapshots 5,30`, writes heap snapshots at those minutes and prints which kinds of objects grew between them. CI keeps the snapshots as a job artifact for 14 days.
+
+A 5-minute uncapped run on the desktop, with snapshots at minute 1 and minute 5, showed the cause. The people layer kept one sprite for every person in the tower, about 2,900 sprites, although only the people on screen were drawn. PixiJS builds a sprite's batch data (`BatchableSprite`, its bounds and two points, about 200 bytes) the first time the sprite is drawn. A sprite whose person stayed off screen had no batch data yet. With 1% of the people replaced on each step, pooled sprites were handed to people on screen one by one, and each one built its batch data then. Between minute 1 and minute 5, 588 people-layer sprites were drawn for the first time, and 595 had never been drawn at minute 1. The heap kept growing until every sprite in the pool had been drawn once, which takes up to about 0.9 MB on a 16.6 MB heap, so the run passed or failed depending on how far it got in 30 minutes.
+
+The people layer now gives a sprite only to people on screen. People who leave the screen, by walking or because the camera moved, return their sprite to the pool. Every sprite is drawn the frame it is taken, so it builds its batch data at once, and the pool stays at the peak number of people on screen (about 1,000 at 1x zoom) instead of the whole crowd. The same 5-minute run after the change settled at 14.5 to 15.1 MB, about 2 MB less, with growth of -1.0% between the 15-second mark and minute 5. The snapshot diff showed 40 new sprites, all drawn, as the pool reached a new peak.
+
+CI, workflow run 42713772705 on PR #264, 30 minutes per run, heap after collection 15 seconds in and at the end, and the snapshot diff from minute 5 to minute 30:
+
+| Run | Heap growth | Per-minute heap range | Snapshot diff, minute 5 to 30 |
+| --- | --- | --- | --- |
+| 1, capped | 14.60 to 14.56 MB, -0.2% | 14.70 to 14.97 MB | +50 KB |
+| 2, capped | 14.47 to 14.84 MB, 2.6% | 14.68 to 15.26 MB | +59 KB |
+| 3, capped | 14.52 to 14.80 MB, 1.9% | 14.53 to 14.96 MB | +68 KB |
+| 1, uncapped | 14.61 to 14.85 MB, 1.6% | 14.52 to 14.92 MB | +60 KB |
+| 2, uncapped | 14.72 to 14.68 MB, -0.2% | 14.66 to 15.05 MB | +56 KB |
+| 3, uncapped | 14.81 to 14.88 MB, 0.5% | 14.66 to 15.10 MB | +99 KB |
+
+The three uncapped runs are under 4%. The per-minute heap moves up and down by about 0.4 MB with no upward trend, so the start-to-end figure is mostly that noise. The snapshots grew by 50 to 99 KB between minute 5 and minute 30, under 0.7% of the heap; the largest part was compiled code (35 KB in uncapped run 1), and 13 new people sprites as the pool reached a new peak.
+
+The other object kinds that grew are bounded by the browser. Chromium keeps the first 200 long task entries (`PerformanceLongTaskTiming`) in the performance timeline buffer, about 40 KB in all. The page has no news ticker, overlays or window placement code, so those were not in the run.
+
 ### Summary
 
 | Target | Result | Status |
@@ -171,7 +196,7 @@ The 60 fps line is judged on the render reference machine with the method in [Re
 | 30 towers, p95 tick lag at most 100 ms, release image | 84.3 ms raw, 81.6 ms scaled | Met |
 | One step of a 15,000-person tower, average under 5 ms, p95 under 8 ms, p99 under 15 ms | 2.9 ms average, 5.2 ms p95, 6.6 ms p99 (was 21.9, 34.4 and 44.2 ms) | Met |
 | 100 floors, 3,000 people, draw calls under 200 | 69 | Met |
-| Heap growth under 5% over 30 minutes | 3.3% median, 4.5% highest | Met |
+| Heap growth under 5% over 30 minutes | Uncapped 1.6%, -0.2% and 0.5% after TM-264 (was up to 5.4%) | Met |
 | 60 fps at 1x zoom | Reference machine, median of 3 uncapped runs: p95 frame cost 0.8 ms, average 0.69 ms, 69 draw calls; capped 60.0 fps. See [Render reference machine](#render-reference-machine) | Met |
 
 ## Render reference machine

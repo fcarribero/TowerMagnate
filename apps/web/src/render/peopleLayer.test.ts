@@ -47,13 +47,26 @@ describe('PeopleLayer', () => {
     expect(layer.count).toBe(0);
   });
 
-  it('hides people off screen and shows them when the range reaches them', () => {
+  it('gives no sprite to people off screen and draws them when the range reaches them', () => {
     const { layer } = layerWithArt();
     layer.showOnly({ lowest: 50, highest: 60 });
     layer.show(frameOf(person('p1', {})));
-    expect(layer.view.children[0]?.visible).toBe(false);
+    expect(layer.spriteCount).toBe(0);
     layer.showOnly({ lowest: 0, highest: 5 });
+    layer.show(frameOf(person('p1', {})));
     expect(layer.view.children[0]?.visible).toBe(true);
+  });
+
+  it('frees the sprites of people the camera leaves for the people it reaches', () => {
+    const { layer } = layerWithArt();
+    layer.showOnly({ lowest: 0, highest: 33 });
+    layer.show(towerCrowdFrame(3000, 0, 100));
+    layer.showOnly({ lowest: 34, highest: 66 });
+    expect(layer.count).toBe(0);
+    expect(layer.spareCount).toBe(1020);
+    layer.show(towerCrowdFrame(3000, 0, 100));
+    expect(layer.count).toBe(990);
+    expect(layer.spriteCount).toBe(1020);
   });
 
   it('mirrors a person facing left', () => {
@@ -80,7 +93,7 @@ describe('PeopleLayer', () => {
     layer.show(frameOf(person('p2', {}), person('p3', {})));
     expect(layer.spareCount).toBe(0);
     expect(layer.view.children).toHaveLength(2);
-    expect(layer.visibleCount).toBe(2);
+    expect(layer.view.children.every((sprite) => sprite.visible)).toBe(true);
   });
 
   it('gives a reused sprite the look of its new person', () => {
@@ -119,7 +132,7 @@ describe('PeopleLayer', () => {
     const { layer } = layerWithArt();
     layer.showOnly({ lowest: 0, highest: 33 });
     layer.show(towerCrowdFrame(3000, 0, 100));
-    expect(layer.count).toBe(3000);
-    expect(layer.visibleCount).toBe(1020);
+    expect(layer.count).toBe(1020);
+    expect(layer.spriteCount).toBe(1020);
   });
 });
