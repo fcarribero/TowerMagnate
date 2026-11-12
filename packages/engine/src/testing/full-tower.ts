@@ -32,8 +32,7 @@ const TIMED_STEPS = 8 * STEPS_PER_HOUR;
 
 /**
  * 2,500 leased offices of 6 workers on 100 floors. Four zones of 25 floors each have a bank of six
- * standard elevators, and stairs join each zone to the next. The ground bank has 4 cars per shaft,
- * the upper banks one.
+ * standard elevators, and stairs join each zone to the next. Every shaft has 4 cars, 96 in all.
  */
 export function fullTower(): TowerState {
   const shafts: PlannedShaft[] = [];
