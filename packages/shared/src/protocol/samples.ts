@@ -141,6 +141,7 @@ export const sampleServerMessages: ServerMessage[] = [
             { level: 13, x0: 10, x1: 16, out: false },
           ],
         },
+        { kind: 'wedding', cathedral: 'u40', guests: ['p3501', 'p3502'] },
       ],
       notices: [{ id: 'n1', step: 60400, key: 'news.parkingOffice', unitId: 'u12', params: {} }],
       overlays: {
