@@ -14,7 +14,12 @@ import {
 
 describe('status bar formats', () => {
   it('starts a tower on Lunes 1 de enero, año 1 at 00:00', () => {
-    expect(formatGameDate(0)).toEqual({ text: 'Lunes 1 de enero, año 1', isWeekend: false });
+    expect(formatGameDate(0)).toEqual({
+      text: 'Lunes 1 de enero, año 1',
+      weekday: 'Lunes',
+      rest: ' 1 de enero, año 1',
+      isWeekend: false,
+    });
     expect(formatGameTime(0)).toBe('00:00');
   });
 
@@ -30,6 +35,8 @@ describe('status bar formats', () => {
     const monday = stepOfDate({ year: 1, month: 1, day: 8 });
     expect(formatGameDate(saturday)).toEqual({
       text: 'Sábado 6 de enero, año 1',
+      weekday: 'Sábado',
+      rest: ' 6 de enero, año 1',
       isWeekend: true,
     });
     expect(formatGameDate(sunday).isWeekend).toBe(true);

@@ -168,4 +168,26 @@ describe('AuthScreen', () => {
 
     expect(screen.queryByRole('status')).toBeNull();
   });
+
+  it('shows the game name above a window titled Entrar and no close button', () => {
+    render(<AuthScreen api={fakeApi()} onSignedIn={vi.fn()} />);
+
+    expect(screen.getByRole('heading', { name: 'Tower Magnate' })).toBeTruthy();
+    expect(screen.getByText('Entrar', { selector: 'span' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'x' })).toBeNull();
+    expect(screen.getByLabelText('Usuario').closest('form')).toBeTruthy();
+  });
+
+  it('reads Creando... and disables the register button while the request runs', async () => {
+    const ui = userEvent.setup();
+    const api = fakeApi();
+    api.register = vi.fn(() => new Promise<AuthResult>(() => {}));
+    render(<AuthScreen api={api} onSignedIn={vi.fn()} initialMode="register" />);
+
+    await ui.type(input('Usuario'), 'ana_42');
+    await ui.type(input('Contraseña'), 'secreto123');
+    await ui.type(input('Repetir contraseña'), 'secreto123{Enter}');
+
+    expect(button('Creando...').disabled).toBe(true);
+  });
 });

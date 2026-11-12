@@ -1,20 +1,13 @@
 import { useEffect, useState } from 'preact/hooks';
 import type { GameConnection } from '../../net/gameConnection';
-import type { UnitView } from '@tower-magnate/shared';
-import {
-  Button,
-  ConfirmDialog,
-  RadioGroup,
-  Tooltip,
-  Window,
-  dialogRequest,
-  useWindowManager,
-} from '../kit';
+import type { PriceLevel, UnitView } from '@tower-magnate/shared';
+import { Button, ConfirmDialog, Tooltip, Window, dialogRequest, useWindowManager } from '../kit';
 import { unitWindowId } from '../inspectTarget';
 import { t } from '../strings';
 import {
   NAME_MAX_LENGTH,
   filmChangeState,
+  groupUnitRows,
   isSoldCondo,
   locationText,
   priceLabelKey,
@@ -22,7 +15,10 @@ import {
   priceOptions,
   typeName,
   unitRows,
+  unitSubtitle,
   unitTitle,
+  type PriceOption,
+  type UnitRow,
 } from './unitWindowModel';
 import './unit.css';
 
@@ -116,9 +112,12 @@ export function UnitWindow({ unitId, connection }: UnitWindowProps) {
   const priceLabel = found === undefined ? null : priceLabelKey(found.type);
   const price = found === undefined ? null : priceOf(found);
 
+  const groups = found === undefined ? null : groupUnitRows(unitRows(found));
+
   return (
     <>
-      <Window id={windowId} title={title} onClose={close} width={150}>
+      <Window id={windowId} title={title} onClose={close} width={200}>
+        {found !== undefined && <p class="tm-unit__subtitle">{unitSubtitle(found)}</p>}
         {gone && <p class="tm-unit__gone">{t('ui.goneFromTower')}</p>}
         <div class="tm-field">
           <label class="tm-field__label" for={`${windowId}-name`}>
@@ -141,17 +140,24 @@ export function UnitWindow({ unitId, connection }: UnitWindowProps) {
             }}
           />
         </div>
+        {groups !== null && groups.tiles.length > 0 && (
+          <div class="tm-unit__tiles">
+            {groups.tiles.map((row) => (
+              <StatTile key={row.id} row={row} />
+            ))}
+          </div>
+        )}
         {found !== undefined && (
           <dl class="tm-unit__rows">
             <Row label={t('window.unit.location')} value={locationText(found)} />
-            {unitRows(found).map((row) => (
-              <Row key={row.id} label={row.label} value={row.value} swatch={row.evaluationColor} />
+            {groups?.rows.map((row) => (
+              <Row key={row.id} label={row.label} value={row.value} />
             ))}
           </dl>
         )}
         {found !== undefined && priceLabel !== null && price !== null && (
           <>
-            <RadioGroup
+            <PriceTiles
               name={`${windowId}-price`}
               label={t(priceLabel)}
               options={priceOptions(found.type)}
@@ -159,12 +165,21 @@ export function UnitWindow({ unitId, connection }: UnitWindowProps) {
               disabled={gone || sold}
               onChange={(price) => {
                 void commands.setPrice(unitId, price);
-                // The radio keeps what the server last said until the next inspect.
+                // The tiles keep what the server last said until the next inspect.
                 redraw((count) => count + 1);
               }}
             />
             {sold && <p class="tm-unit__note">{t('window.unit.alreadySold')}</p>}
           </>
+        )}
+        {groups !== null && groups.chips.length > 0 && (
+          <div class="tm-unit__chips">
+            {groups.chips.map((row) => (
+              <span key={row.id} class="tm-unit__chip">
+                {row.label} · {row.value}
+              </span>
+            ))}
+          </div>
         )}
         {found?.type === 'cinema' && (
           <FilmButton
@@ -189,18 +204,59 @@ export function UnitWindow({ unitId, connection }: UnitWindowProps) {
 interface RowProps {
   label: string;
   value: string;
-  swatch?: string;
 }
 
-function Row({ label, value, swatch }: RowProps) {
+function Row({ label, value }: RowProps) {
   return (
     <div class="tm-unit__row">
       <dt>{label}</dt>
-      <dd>
-        {swatch !== undefined && <span class={`tm-unit__swatch is-${swatch}`} aria-hidden="true" />}
-        {value}
-      </dd>
+      <dd>{value}</dd>
     </div>
+  );
+}
+
+function StatTile({ row }: { row: UnitRow }) {
+  return (
+    <div class={`tm-unit__tile is-${row.tone}`}>
+      <span class="tm-unit__tile-label">{row.label}</span>
+      <span class="tm-unit__tile-value">{row.value}</span>
+    </div>
+  );
+}
+
+interface PriceTilesProps {
+  name: string;
+  label: string;
+  options: readonly PriceOption[];
+  value: PriceLevel;
+  disabled: boolean;
+  onChange: (value: PriceLevel) => void;
+}
+
+/** Four big tiles that behave as one radio group. */
+function PriceTiles({ name, label, options, value, disabled, onChange }: PriceTilesProps) {
+  return (
+    <fieldset class="tm-unit__prices" disabled={disabled}>
+      <legend class="tm-unit__prices-label">{label}</legend>
+      <div class="tm-unit__price-row">
+        {options.map((option) => (
+          <label key={option.value} class="tm-unit__price">
+            <input
+              type="radio"
+              name={name}
+              value={option.value}
+              aria-label={option.label}
+              checked={option.value === value}
+              onChange={() => onChange(option.value)}
+            />
+            <span class="tm-unit__price-face" aria-hidden="true">
+              <span class="tm-unit__price-name">{option.name}</span>
+              <span class="tm-unit__price-amount">{option.amount}</span>
+            </span>
+          </label>
+        ))}
+      </div>
+    </fieldset>
   );
 }
 
@@ -216,5 +272,6 @@ function FilmButton({ disabled, tooltip, onClick }: FilmButtonProps) {
       {t('window.unit.changeFilm')}
     </Button>
   );
-  return tooltip === undefined ? button : <Tooltip text={tooltip}>{button}</Tooltip>;
+  const withTooltip = tooltip === undefined ? button : <Tooltip text={tooltip}>{button}</Tooltip>;
+  return <div class="tm-unit__primary">{withTooltip}</div>;
 }

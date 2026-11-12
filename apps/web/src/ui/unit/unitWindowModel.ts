@@ -46,7 +46,10 @@ export function locationText(unit: Pick<UnitInspect, 'level' | 'from' | 'to'>): 
 
 export interface PriceOption {
   value: PriceLevel;
+  /** Level name and amount together, the accessible name of the tile. */
   label: string;
+  name: string;
+  amount: string;
 }
 
 /** The price table a unit type charges from, or null when the type has no price choice. */
@@ -65,10 +68,11 @@ export function priceOptions(type: UnitType): PriceOption[] {
   if (table === null) {
     return [];
   }
-  return PRICE_LEVELS.map((value) => ({
-    value,
-    label: `${t(`value.price.${value}` as StringKey)} ${formatMoney(table[value])}`,
-  }));
+  return PRICE_LEVELS.map((value) => {
+    const name = t(`value.price.${value}` as StringKey);
+    const amount = formatMoney(table[value]);
+    return { value, label: `${name} ${amount}`, name, amount };
+  });
 }
 
 export function priceLabelKey(type: UnitType): StringKey | null {
@@ -118,12 +122,14 @@ export function evaluationView(evaluation: Evaluation | null): EvaluationView {
   };
 }
 
+/** How a state value is colored: green is good, red is bad, yellow is in between. */
+export type RowTone = 'good' | 'warn' | 'bad' | 'plain';
+
 export interface UnitRow {
   id: string;
   label: string;
   value: string;
-  /** Set on the evaluation row, which draws a color square beside the word. */
-  evaluationColor?: EvaluationColor;
+  tone: RowTone;
 }
 
 function weekdayName(weekday: number): string {
@@ -150,13 +156,20 @@ function countOf(n: number, max: number): string {
   return t('window.unit.countOf', { n, max });
 }
 
+const EVALUATION_TONES: Readonly<Record<EvaluationColor, RowTone>> = {
+  'sky-deep': 'good',
+  lamp: 'warn',
+  'cloth-red': 'bad',
+  gray: 'plain',
+};
+
 function evaluationRow(evaluation: Evaluation | null): UnitRow {
   const view = evaluationView(evaluation);
   return {
     id: 'evaluation',
     label: t('window.unit.evaluation'),
     value: view.label,
-    evaluationColor: view.color,
+    tone: EVALUATION_TONES[view.color],
   };
 }
 
@@ -169,8 +182,14 @@ function leaseRows(lease: Details<'lease'>): UnitRow[] {
       id: 'status',
       label: t('window.unit.status'),
       value: t(leased ? 'value.lease.occupied' : 'value.lease.forRent'),
+      tone: leased ? 'good' : 'plain',
     },
-    { id: 'people', label: t('window.unit.people'), value: countOf(lease.persons, lease.capacity) },
+    {
+      id: 'people',
+      label: t('window.unit.people'),
+      value: countOf(lease.persons, lease.capacity),
+      tone: 'plain',
+    },
     evaluationRow(lease.evaluation),
     {
       id: 'lease',
@@ -179,6 +198,7 @@ function leaseRows(lease: Details<'lease'>): UnitRow[] {
         leased && lease.leaseWeek !== null
           ? t('window.unit.leaseWeek', { k: lease.leaseWeek })
           : t('window.unit.noLease'),
+      tone: 'plain',
     },
   ];
   if (lease.nextPaymentStep !== null) {
@@ -186,6 +206,7 @@ function leaseRows(lease: Details<'lease'>): UnitRow[] {
       id: 'nextPayment',
       label: t('window.unit.nextPayment'),
       value: weekdayAndTime(lease.nextPaymentStep),
+      tone: 'plain',
     });
   }
   return rows;
@@ -198,11 +219,13 @@ function condoRows(condo: Details<'condo'>): UnitRow[] {
       id: 'status',
       label: t('window.unit.status'),
       value: t(sold ? 'value.condo.sold' : 'value.condo.forSale'),
+      tone: sold ? 'good' : 'plain',
     },
     {
       id: 'residents',
       label: t('window.unit.residents'),
       value: countOf(condo.residents, condo.capacity),
+      tone: 'plain',
     },
     evaluationRow(condo.evaluation),
   ];
@@ -211,6 +234,7 @@ function condoRows(condo: Details<'condo'>): UnitRow[] {
       id: 'nextEvaluation',
       label: t('window.unit.nextEvaluation'),
       value: weekdayAndDay(condo.nextEvaluationStep),
+      tone: 'plain',
     });
   }
   return rows;
@@ -223,10 +247,27 @@ const ROOM_STATE_KEYS: Readonly<Record<Details<'hotel'>['state'], StringKey>> = 
   infested: 'value.room.infested',
 };
 
+const ROOM_STATE_TONES: Readonly<Record<Details<'hotel'>['state'], RowTone>> = {
+  clean: 'plain',
+  occupied: 'good',
+  dirty: 'bad',
+  infested: 'bad',
+};
+
 function hotelRows(hotel: Details<'hotel'>): UnitRow[] {
   const rows: UnitRow[] = [
-    { id: 'status', label: t('window.unit.status'), value: t(ROOM_STATE_KEYS[hotel.state]) },
-    { id: 'guests', label: t('window.unit.guests'), value: countOf(hotel.guests, hotel.capacity) },
+    {
+      id: 'status',
+      label: t('window.unit.status'),
+      value: t(ROOM_STATE_KEYS[hotel.state]),
+      tone: ROOM_STATE_TONES[hotel.state],
+    },
+    {
+      id: 'guests',
+      label: t('window.unit.guests'),
+      value: countOf(hotel.guests, hotel.capacity),
+      tone: 'plain',
+    },
     evaluationRow(hotel.evaluation),
   ];
   if (hotel.state === 'occupied' && hotel.checkoutStep !== null) {
@@ -234,6 +275,7 @@ function hotelRows(hotel: Details<'hotel'>): UnitRow[] {
       id: 'checkout',
       label: t('window.unit.checkout'),
       value: weekdayAndTime(hotel.checkoutStep),
+      tone: 'plain',
     });
   }
   return rows;
@@ -244,7 +286,7 @@ function cinemaRows(cinema: Details<'cinema'>): UnitRow[] {
     return [];
   }
   const value = t('window.unit.filmAge', { w: cinema.filmWeek, age: cinema.filmAgeDays });
-  return [{ id: 'film', label: t('window.unit.film'), value }];
+  return [{ id: 'film', label: t('window.unit.film'), value, tone: 'plain' }];
 }
 
 function housekeepingRows(housekeeping: Details<'housekeeping'>): UnitRow[] {
@@ -253,17 +295,26 @@ function housekeepingRows(housekeeping: Details<'housekeeping'>): UnitRow[] {
       id: 'maidsWorking',
       label: t('window.unit.maidsWorking'),
       value: countOf(housekeeping.maidsWorking, housekeeping.maids),
+      tone: 'plain',
     },
     {
       id: 'dirtyRooms',
       label: t('window.unit.dirtyRooms'),
       value: String(housekeeping.dirtyRooms),
+      tone: 'plain',
     },
   ];
 }
 
 function inServiceRows(): UnitRow[] {
-  return [{ id: 'status', label: t('window.unit.status'), value: t('value.service.active') }];
+  return [
+    {
+      id: 'status',
+      label: t('window.unit.status'),
+      value: t('value.service.active'),
+      tone: 'good',
+    },
+  ];
 }
 
 function detailRows(details: InspectedUnitDetails): UnitRow[] {
@@ -287,6 +338,33 @@ export function unitRows(unit: UnitInspect): UnitRow[] {
     return detailRows(unit.details);
   }
   return unit.type === 'security' || unit.type === 'subway-station' ? inServiceRows() : [];
+}
+
+export interface UnitRowGroups {
+  /** State, occupancy and evaluation, drawn as stat tiles. */
+  tiles: UnitRow[];
+  /** Contract and next payment, drawn as chips. */
+  chips: UnitRow[];
+  rows: UnitRow[];
+}
+
+const TILE_IDS: readonly string[] = ['status', 'people', 'residents', 'guests', 'evaluation'];
+const CHIP_IDS: readonly string[] = ['lease', 'nextPayment'];
+
+export function groupUnitRows(rows: readonly UnitRow[]): UnitRowGroups {
+  return {
+    tiles: rows.filter((row) => TILE_IDS.includes(row.id)),
+    chips: rows.filter((row) => CHIP_IDS.includes(row.id)),
+    rows: rows.filter((row) => !TILE_IDS.includes(row.id) && !CHIP_IDS.includes(row.id)),
+  };
+}
+
+export function unitSubtitle(unit: Pick<UnitInspect, 'type' | 'level' | 'from' | 'to'>): string {
+  return t('window.unit.subtitle', {
+    type: typeName(unit.type),
+    level: levelText(unit.level),
+    columns: t('ui.columns', { x0: unit.from, x1: unit.to }),
+  });
 }
 
 export interface FilmChangeState {
