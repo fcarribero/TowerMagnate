@@ -191,7 +191,7 @@ The cross-section of the whole site: 375 columns and levels from S10 up to four 
 
 ### 3.5 FPS line
 
-In development builds the FPS line (`ui.stage.stats`) is an `obra.ink` block with `border.control` and `space.1` padding, 8 px from the bottom and right edges of the stage, with the text on one line in `text.status-label` and `obra.yellow`.
+In development builds the FPS line (`ui.stage.stats`) is an `obra.ink` block with `border.control` and `space.1` padding, 8 px from the right edge of the stage and 8 px above the news line (28 px from the bottom edge), with the text on one line in `text.status-label` and `obra.yellow`.
 
 ## 4. Status panel
 

@@ -60,6 +60,12 @@ export interface PersonPool {
   legColumn: number[];
   /** Step at which a flight ends or a full queue is checked again. */
   legStep: number[];
+  /** Switches made beside full queues in this trip, at most FULL_QUEUE_MAX_SWITCHES_PER_TRIP. */
+  tripSwitches: number[];
+  /** Rechecks made beside the current full queue, counted up to FULL_QUEUE_STAY_RECHECKS. */
+  queueRechecks: number[];
+  /** Numbers of the shafts left in this trip, first and second packed into one number; 0 is none. */
+  leftShafts: number[];
   /** 1 when the last horizontal move was to the left, otherwise 0. */
   facing: number[];
   /** Ids of followed people, in increasing order, at most MAX_FOLLOWED_PEOPLE. Each has a name. */

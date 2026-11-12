@@ -86,6 +86,20 @@ function readFacing(raw: unknown, count: number): number[] {
   return raw.slice();
 }
 
+/** Saves from before the full-queue rule have no switches, rechecks or left shafts. */
+function readFullQueueTrip(raw: Record<string, unknown>, pool: PersonPool): void {
+  for (const field of ['tripSwitches', 'queueRechecks', 'leftShafts'] as const) {
+    const values = raw[field];
+    if (values === undefined) {
+      pool[field] = Array<number>(pool.id.length).fill(0);
+    } else if (isIntegerArray(values) && values.length === pool.id.length) {
+      pool[field] = values.slice();
+    } else {
+      fail(`${field} must hold one integer per person`);
+    }
+  }
+}
+
 const TRIP_FIELDS = ['tripSum', 'tripSlowFloors', 'tripPartStep', 'tripPartCut'] as const;
 
 export function readTripLedger(raw: unknown, ids: readonly number[]): Record<string, number[]> {
@@ -133,6 +147,7 @@ export function readPeople(raw: unknown): PersonPool {
     }
     pool[field] = values.slice();
   }
+  readFullQueueTrip(raw, pool);
   pool.facing = readFacing(raw.facing, id.length);
   pool.names = readNames(raw.names, id);
   pool.followed = readFollowed(raw.followed, id);

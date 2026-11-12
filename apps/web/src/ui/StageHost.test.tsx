@@ -69,4 +69,9 @@ describe('page stylesheet', () => {
   it('takes every font family from the tokens', () => {
     expect(css).not.toMatch(/font-family:\s*(?!\s|var\()/);
   });
+
+  it('keeps the FPS line 8 px above the news line', () => {
+    const start = css.indexOf('.render-stats {');
+    expect(css.slice(start, css.indexOf('}', start))).toContain('bottom: calc(28 * var(--tm-px))');
+  });
 });
