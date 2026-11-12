@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { attachCameraInput, scrollKeyDirection, zoomKeyDirection } from './cameraInput';
+import { attachCameraInput, keyScrollPixels, scrollKeyDirection, zoomKeyDirection } from './cameraInput';
 import type { Camera } from './camera';
 
 describe('zoomKeyDirection', () => {
@@ -158,5 +158,17 @@ describe('attachCameraInput scroll keys and Space pan', () => {
     press(window, { key: ' ', code: 'Space' });
     drag();
     expect(update).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('keyScrollPixels', () => {
+  it('moves one level vertically per press', () => {
+    expect(keyScrollPixels(1, { x: 0, y: 1 })).toEqual({ dx: 0, dy: 32 });
+    expect(keyScrollPixels(3, { x: 0, y: -1 })).toEqual({ dx: 0, dy: -96 });
+  });
+
+  it('moves 8 columns horizontally per press', () => {
+    expect(keyScrollPixels(1, { x: 1, y: 0 })).toEqual({ dx: 64, dy: 0 });
+    expect(keyScrollPixels(2, { x: -1, y: 0 })).toEqual({ dx: -128, dy: 0 });
   });
 });
