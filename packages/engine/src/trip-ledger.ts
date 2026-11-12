@@ -183,6 +183,12 @@ export function stressOfTripEndedNow(state: TowerState, slot: number): number | 
   return field(flat, flat.length - 1);
 }
 
+/** Trip stress of the last trip the person ended, or null if they have none on record. */
+export function stressOfLastTrip(state: TowerState, slot: number): number | null {
+  const flat = state.tripLedger[String(field(state.people.id, slot))] ?? [];
+  return flat.length < 2 ? null : field(flat, flat.length - 1);
+}
+
 /** True when the person has stress parts that no recorded trip holds yet. */
 export function hasPendingTrip(pool: PersonPool, slot: number): boolean {
   return field(pool.tripSum, slot) > 0 || field(pool.tripSlowFloors, slot) > 0;

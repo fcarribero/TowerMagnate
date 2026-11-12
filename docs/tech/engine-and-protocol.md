@@ -371,6 +371,16 @@ export interface Snapshot {
   finances: FinanceSummary;   // this week and last week
 }
 
+// A fire's EventView (decision or disaster) carries `spans: { level, x0, x1, out }[]`, one per level
+// that has burned, in increasing level. x0 and x1 are the left and right fronts; `out` is true when
+// both fronts are out. The fire's view disappears the step the fire ends.
+//
+// A wedding day adds `{ kind: 'wedding', cathedral: UnitId, guests: PersonId[] }` to `activeEvents`
+// from 00:00 of the attempt until the wedding completes or fails. `guests` lists the wedding guests
+// in the tower so far (up to 40, all of them once the last has appeared). The view has no event id.
+// `news.santa` is sent as a `news` client event and as a notice, both with the step it was emitted
+// at (22:00 on 24 December).
+
 export interface UnitView {
   id: UnitId;
   type: UnitType;

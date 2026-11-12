@@ -475,6 +475,19 @@ export const CINEMA_SHOW_LENGTH_HOURS = 2;
 
 export const CINEMA_MOVIE_CHANGE_COST = 300_000;
 
+/** Economy 7.3: the show cap from this film age in days on. Sorted by age. */
+export const CINEMA_SHOW_CAPS: readonly { fromAgeDays: number; cap: number }[] = [
+  { fromAgeDays: 0, cap: 120 },
+  { fromAgeDays: 14, cap: 100 },
+  { fromAgeDays: 28, cap: 85 },
+  { fromAgeDays: 42, cap: 65 },
+  { fromAgeDays: 56, cap: 35 },
+];
+
+/** From this film age the cinema asks for a new film, then again every CINEMA_CHANGE_FILM_REPEAT_DAYS. */
+export const CINEMA_CHANGE_FILM_FROM_AGE_DAYS = 56;
+export const CINEMA_CHANGE_FILM_REPEAT_DAYS = 7;
+
 /** People spec sections 16 and 17. */
 export const MEDICAL_VISIT_CHANCE = 0.1;
 export const MEDICAL_VISIT_MINUTES = 60;
@@ -514,6 +527,11 @@ export const BOMB_BLAST_LEVELS_ABOVE = 3;
 /** A VIP visit is rolled at 00:00 only at exactly this rating. */
 export const VIP_STARS = 3;
 export const VIP_DAILY_ODDS = 9;
+/** Chance in percent of the first roll after a VIP day. */
+export const VIP_BASE_PERCENT = 8;
+export const VIP_STEP_PERCENT = 4;
+/** The roll on this day without a VIP always succeeds. */
+export const VIP_GUARANTEE_DAY = 21;
 export const VIP_NIGHTS = 1;
 /** The visit is approved when the VIP's average trip stress is under this many steps (15 minutes). */
 export const VIP_MAX_STRESS_STEPS = 90;
@@ -536,12 +554,12 @@ export const WEEKLY_UPKEEP: Readonly<Record<UnitType, UpkeepRule>> = {
     basis: 'per-column',
     amountByStars: [
       { minStars: 1, amount: 0 },
-      { minStars: 3, amount: 500 },
-      { minStars: 4, amount: 1_500 },
+      { minStars: 3, amount: 300 },
+      { minStars: 4, amount: 1_000 },
     ],
   },
   stairs: flatUpkeep('per-unit', 0),
-  escalator: flatUpkeep('per-unit', 10_000),
+  escalator: flatUpkeep('per-unit', 5_000),
   'standard-elevator': flatUpkeep('per-car', 10_000),
   office: flatUpkeep('per-unit', 0),
   condo: flatUpkeep('per-unit', 0),
@@ -558,7 +576,7 @@ export const WEEKLY_UPKEEP: Readonly<Record<UnitType, UpkeepRule>> = {
   'party-hall': flatUpkeep('per-unit', 20_000),
   'express-elevator': flatUpkeep('per-car', 30_000),
   'medical-center': flatUpkeep('per-unit', 0),
-  'parking-ramp': flatUpkeep('per-unit', 20_000),
+  'parking-ramp': flatUpkeep('per-unit', 10_000),
   'parking-space': flatUpkeep('per-unit', 0),
   'recycling-center': flatUpkeep('per-unit', 50_000),
   'subway-station': flatUpkeep('per-unit', 250_000),

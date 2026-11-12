@@ -24,6 +24,16 @@ describe('toClientEvents', () => {
     expect(toClientEvents(events)).toEqual([{ type: 'disaster', step: 7, kind: 'bomb', cells }]);
   });
 
+  it('passes the santa notice on with its step', () => {
+    const events: EngineEvent[] = [
+      { type: 'news', step: 1_000_000, key: 'news.santa', unitId: null, params: {} },
+    ];
+
+    expect(toClientEvents(events)).toEqual([
+      { type: 'news', step: 1_000_000, key: 'news.santa', unitId: null, params: {} },
+    ]);
+  });
+
   it('passes the wedding on so the client opens the Torre dialog', () => {
     const events: EngineEvent[] = [{ type: 'weddingCompleted', step: 12 }];
 

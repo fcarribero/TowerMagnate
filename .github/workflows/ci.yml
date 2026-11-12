@@ -52,6 +52,9 @@ jobs:
       - name: People layer benchmark
         run: pnpm bench:people-layer
 
+      - name: Person pool snapshot benchmark
+        run: pnpm bench:person-snapshot
+
       - name: Trek step benchmark
         run: pnpm bench:trek
 

@@ -131,7 +131,17 @@ export const sampleServerMessages: ServerMessage[] = [
           deadlineStep: 61000,
           options: ['pay', 'refuse'],
         },
-        { kind: 'disaster', id: 'e3', disaster: 'fire', cells: [{ level: 12, x0: 0, x1: 30 }] },
+        {
+          kind: 'disaster',
+          id: 'e3',
+          disaster: 'fire',
+          cells: [{ level: 12, x0: 0, x1: 30 }],
+          spans: [
+            { level: 12, x0: 4, x1: 30, out: true },
+            { level: 13, x0: 10, x1: 16, out: false },
+          ],
+        },
+        { kind: 'wedding', cathedral: 'u40', guests: ['p3501', 'p3502'] },
       ],
       notices: [{ id: 'n1', step: 60400, key: 'news.parkingOffice', unitId: 'u12', params: {} }],
       overlays: {

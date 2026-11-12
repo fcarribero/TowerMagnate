@@ -24,7 +24,7 @@ A day with the event rolls of this document is any day of the week, weekdays and
 |---|---|---|---|---|---|
 | Bomb threat | 2 or more | 09:00 | 1 in 60 | pay the ransom or not, until 10:00 | `refuse` |
 | Fire | 3 or more | 15:00 | 1 in 84 | call the helicopter or not, until 16:00 | `burn` |
-| VIP visit | exactly 3 | 00:00 | 1 in 9 | none | |
+| VIP visit | exactly 3 | 00:00 | 8% rising 4 points per day without a VIP (6.1) | none | |
 | Treasure | any | on a construction command | 1 in 40 per command, once per basement level | none | |
 | Papá Noel | any | 22:00 on 24 December | always | none | |
 
@@ -260,7 +260,41 @@ Design call on spread: the GDD says the fire spreads along the floor and upward,
 
 ### 6.1 Trigger
 
-At 00:00 every day the engine rolls 1 in 9 for a VIP visit when the rating is exactly 3 stars and no VIP visit is in progress. If either condition fails, no draw is made. On success that day is a VIP day for people.md 9.
+At 00:00 every day the engine rolls for a VIP visit when the rating is exactly 3 stars and no VIP visit is in progress. If either condition fails, no draw is made and the counter below does not change.
+
+The tower keeps `vipDryDays`, the number of rolls made since the last VIP day, starting at 0. The chance of the roll is:
+
+`chance = 100` when `vipDryDays + 1 >= VIP_GUARANTEE_DAY`, otherwise `VIP_BASE_PERCENT + VIP_STEP_PERCENT x vipDryDays`, in percent.
+
+On success that day is a VIP day for people.md 9 and `vipDryDays` goes back to 0. On failure `vipDryDays` goes up by 1. A VIP day counts as a visit for the reset even if the visit later fails (6.2) or is rejected (6.3). The counter keeps its value when the rating leaves 3 stars and when a visit is in progress.
+
+With `VIP_BASE_PERCENT` 8, `VIP_STEP_PERCENT` 4 and `VIP_GUARANTEE_DAY` 21, a tower at 3 stars sees this, where "day" is the number of rolls since the last VIP day. The cumulative column is 1 minus the product of the failure chances up to that day.
+
+| Day | Chance | Cumulative |
+|---|---|---|
+| 1 | 8% | 8.00% |
+| 2 | 12% | 19.04% |
+| 3 | 16% | 31.99% |
+| 4 | 20% | 45.59% |
+| 5 | 24% | 58.65% |
+| 6 | 28% | 70.23% |
+| 7 | 32% | 79.76% |
+| 8 | 36% | 87.04% |
+| 9 | 40% | 92.23% |
+| 10 | 44% | 95.65% |
+| 11 | 48% | 97.74% |
+| 12 | 52% | 98.91% |
+| 13 | 56% | 99.52% |
+| 14 | 60% | 99.81% |
+| 15 | 64% | 99.93% |
+| 16 | 68% | 99.98% |
+| 17 | 72% | 99.99% |
+| 18 | 76% | 100.00% |
+| 19 | 80% | 100.00% |
+| 20 | 84% | 100.00% |
+| 21 | 100% | 100.00% |
+
+The mean wait is 5.16 days, under the target of 6. The cumulative chance is 99.81% at day 14, over the target of 95%, and 100% at day 21 because the roll on day 21 always succeeds. The 95% mark is reached on day 10 (95.65%).
 
 ### 6.2 Visit
 
@@ -282,7 +316,7 @@ Visits go on at 3 stars after the flag is set, since the GDD ties them to 3 star
 
 Design call on the threshold: the GDD asks for "estrés bajo". TM-13 shows stress in pink from 15 minutes and red from 30, so under 15 means the VIP never looked stressed on average. The original passed at half of its stress scale, which is about the same point.
 
-Design call on the 1 in 9: with the GDD's average of 9 days, a 3-star tower waits about 2 hours and 15 real minutes for a VIP on average. Each failed visit adds another wait, which is the pressure to keep two suites and a quick route to them (stars 5.3).
+Design call on the rising chance: a flat 1 in 9 gave a mean wait of 9 days and left 8% of towers waiting more than 21 game days, which is over 5 real hours with nothing to do (playtest TM-139 saw 24 days). Raising the chance by 4 points for each roll without a VIP gives a mean wait of 5.16 days, about 77 real minutes, and no tower waits past day 21. A failed or rejected visit starts the wait again from 8%, which is the pressure to keep two suites and a quick route to them (stars 5.3).
 
 ## 7. Treasure
 
@@ -391,7 +425,7 @@ The tower also keeps `closedDecisions: string[]`, the ids of the last 20 closed 
 
 ### 11.2 Client view
 
-`EventView` sends, per active event: the kind, the id, the open decision (options, default, deadline step) if any, the ransom, the burning spans per level as `{ level, x0, x1, out }`, and for a bomb whether the search has started. The bomb cell is not sent; the player does not know where the bomb is. The VIP visit is not sent as an event view; the VIP is a person and shows like one.
+`EventView` sends, per active event: the kind, the id, the open decision (options, default, deadline step) if any, the ransom, the burning spans per level as `{ level, x0, x1, out }`, and for a bomb whether the search has started. The bomb cell is not sent; the player does not know where the bomb is. The VIP visit is not sent as an event view; the VIP is a person and shows like one. A bomb explosion is not an event view: the threat ends at the blast (4.6), so the ruined cell ranges travel only in the one `disaster` client event of that step and are never sent again.
 
 ### 11.3 Ledger
 
@@ -459,7 +493,7 @@ The same fire in a tower with no security office and no answer to the dialog. On
 
 ### 13.5 The VIP
 
-The tower has 3 stars, no flag, 2 clean free suites, units 31 and 44. Thursday 00:00: the VIP roll returns 0. At 12:00 the VIP books suite 31, the lower id. The VIP arrives at 18:12 and makes 4 trips with stress 8, 6, 6 and 12 game minutes: arrival, to the restaurant, back to the suite, and out on Friday at 09:20. Average 8, under 15: approved, the flag is set. If the trip out had taken 40 minutes because of a crowded elevator, the average would be exactly 15, which is not under 15: rejected.
+The tower has 3 stars, no flag, 2 clean free suites, units 31 and 44. Thursday 00:00: it is the 4th roll since the last VIP day (`vipDryDays` 3), so the chance is 8 + 4 x 3 = 20%, and the roll succeeds; `vipDryDays` goes to 0. At 12:00 the VIP books suite 31, the lower id. The VIP arrives at 18:12 and makes 4 trips with stress 8, 6, 6 and 12 game minutes: arrival, to the restaurant, back to the suite, and out on Friday at 09:20. Average 8, under 15: approved, the flag is set. If the trip out had taken 40 minutes because of a crowded elevator, the average would be exactly 15, which is not under 15: rejected.
 
 ### 13.6 Treasure
 
@@ -490,7 +524,7 @@ The natural 09:00 roll is off in the scenario for days 0 to 12, so the forced th
 | Helicopter $500,000 or let it burn | 5.3 | Kept |
 | Spreads along the floor and upward; security contains it | 5.4 to 5.7 | Defined |
 | Burned area cleared by demolishing | 5.8 | Kept (construction C-71) |
-| VIP at 3 stars, about every 9 days, stays in a suite | 6 | Kept, 1 in 9 per day |
+| VIP at 3 stars, about every 9 days, stays in a suite | 6 | Kept at 3 stars; the daily chance rises from 8% so the mean gap is about 5 days (6.1) |
 | VIP approves with low stress; needed for 4 stars | 6.3 | Defined: under 15 minutes |
 | Treasure when building basements, low chance, cash bonus | 7 | Defined: 1 in 40, once per level |
 | Cockroaches | | TM-16 |
@@ -519,7 +553,9 @@ The natural 09:00 roll is off in the scenario for days 0 to 12, so the forced th
 | `FIRE_FRONT_CONTAINMENT` | 10 guard-minutes |
 | `FIRE_MAX_STEPS` | 1,440 (ends 19:00) |
 | `HELICOPTER_COST` | $500,000 |
-| `VIP_DAILY_ODDS` | 9 |
+| `VIP_BASE_PERCENT` | 8 |
+| `VIP_STEP_PERCENT` | 4 (added for each roll since the last VIP day) |
+| `VIP_GUARANTEE_DAY` | 21 (the roll on this day always succeeds) |
 | `VIP_STARS` | 3 |
 | `VIP_MAX_STRESS_MINUTES` | 15 (approved when under) |
 | `TREASURE_ODDS` | 40 |
@@ -592,7 +628,9 @@ EV-28. The fire ends when every level is out, when the helicopter is called, or 
 
 ### VIP
 
-EV-29. At 00:00 daily, at exactly 3 stars with no VIP visit in progress, the engine rolls 1 in 9. On success the day is a VIP day for people.md 9.
+EV-29. At 00:00 daily, at exactly 3 stars with no VIP visit in progress, the engine rolls with chance `VIP_BASE_PERCENT + VIP_STEP_PERCENT x vipDryDays` percent, and 100% when `vipDryDays + 1 >= VIP_GUARANTEE_DAY`. On success the day is a VIP day for people.md 9.
+
+EV-29a. `vipDryDays` starts at 0, goes up by 1 on each failed roll and goes back to 0 on a successful roll. It does not change on days with no roll. A failed or rejected visit does not undo the reset.
 
 EV-30. With no clean free suite at 12:00, the visit fails with `news.vipNoSuite` and the flag does not change.
 

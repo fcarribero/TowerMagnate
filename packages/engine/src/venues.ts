@@ -1,4 +1,5 @@
 import {
+  CINEMA_CHANGE_FILM_FROM_AGE_DAYS,
   CINEMA_SHOW_HOURS,
   CINEMA_SHOW_LENGTH_HOURS,
   DAILY_INCOME_BRACKETS,
@@ -13,8 +14,10 @@ import {
 } from '@tower-magnate/shared';
 import { STEPS_PER_HOUR, STEPS_PER_MINUTE } from './calendar';
 import { STEPS_PER_DAY } from './clock';
+import { filmAgeDays } from './films';
 import { recordShopVisit } from './leases';
 import { chargeMoney, creditMoney } from './money';
+import { emitNews } from './news';
 import type { ScheduledHook } from './scheduler';
 import type { StepContext } from './step';
 import { writableUnit } from './step-copy';
@@ -147,6 +150,21 @@ function wasOpenToday(unit: VenueUnit, step: number): boolean {
   return unit.placedAtStep <= openingStep;
 }
 
+const LOSS_NEWS: Partial<Record<VenueType, 'news.fastFoodLoss' | 'news.restaurantLoss'>> = {
+  'fast-food': 'news.fastFoodLoss',
+  restaurant: 'news.restaurantLoss',
+};
+
+/** A cinema with a young film or a party hall that pays nothing says why (messages MSG-09, MSG-10). */
+function unpaidVenueNews(
+  state: TowerState,
+  unit: VenueUnit,
+): 'news.cinemaLowAudience' | 'news.partyHallEmpty' | null {
+  if (unit.type === 'party-hall') return 'news.partyHallEmpty';
+  const filmIsYoung = (filmAgeDays(state, unit) ?? 0) < CINEMA_CHANGE_FILM_FROM_AGE_DAYS;
+  return unit.type === 'cinema' && filmIsYoung ? 'news.cinemaLowAudience' : null;
+}
+
 function payOut(context: StepContext, unit: VenueUnit): void {
   const { state } = context;
   const customers = customersOf(unit);
@@ -154,7 +172,15 @@ function payOut(context: StepContext, unit: VenueUnit): void {
   if (wasOpenToday(unit, state.step)) {
     result = amountFor(DAILY_INCOME_BRACKETS[unit.type], customers);
     if (result > 0) creditMoney(state, 'venues', result);
-    if (result < 0) chargeMoney(state, 'venues', -result);
+    if (result < 0) {
+      chargeMoney(state, 'venues', -result);
+      const lossNews = LOSS_NEWS[unit.type];
+      if (lossNews) context.events.push(...emitNews(state, lossNews, { unitId: unit.id }));
+    }
+    if (result === 0) {
+      const unpaidNews = unpaidVenueNews(state, unit);
+      if (unpaidNews) context.events.push(...emitNews(state, unpaidNews, { unitId: unit.id }));
+    }
   }
   unit.venue.yesterday = { visits: customers, result };
   unit.venue.visits = 0;

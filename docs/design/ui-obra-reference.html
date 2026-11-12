@@ -1,0 +1,742 @@
+<!doctype html>
+<!--
+  Reference for TM-274 (docs/design/ui.md, version 2). Only the style of concept C, "Obra", applies:
+  colors, borders, shadows, fonts, tiles and stripes. The layout in this file does not apply. The game
+  keeps the layout of ui.md section 2. Concepts A and B are not used.
+-->
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tower Magnate · Conceptos de UI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body { background: #0b0b0f; color: #ddd; font-family: Inter, system-ui, sans-serif; overflow: hidden; }
+
+  /* ---------- preview chrome (not part of the game) ---------- */
+  .chrome { height: 56px; display: flex; align-items: center; gap: 16px; padding: 0 20px; border-bottom: 1px solid #222; }
+  .chrome h1 { font-size: 14px; font-weight: 600; margin: 0 12px 0 0; color: #fff; letter-spacing: .02em; }
+  .tabs { display: flex; gap: 4px; background: #16161c; padding: 4px; border-radius: 10px; }
+  .tabs button { background: none; border: 0; color: #999; font: 500 13px Inter; padding: 8px 14px; border-radius: 7px; cursor: pointer; }
+  .tabs button.on { background: #2a2a34; color: #fff; }
+  .tabs button small { color: #666; margin-right: 6px; }
+  .chrome .opt { display: flex; gap: 8px; margin-left: auto; }
+  .chrome .opt button { background: #16161c; border: 1px solid #2a2a34; color: #bbb; font: 500 12px Inter; padding: 7px 12px; border-radius: 7px; cursor: pointer; }
+  .chrome .opt button.on { border-color: #5a5aff; color: #fff; }
+  .desc { position: absolute; left: 20px; bottom: 12px; font-size: 12px; color: #888; max-width: 900px; }
+  .stage { position: absolute; top: 56px; left: 0; right: 0; bottom: 36px; display: grid; place-items: center; }
+  .frame { width: 1280px; height: 800px; position: relative; overflow: hidden; transform-origin: center; box-shadow: 0 20px 80px #000; flex: none; }
+  .frame canvas.tower { position: absolute; inset: 0; width: 100%; height: 100%; image-rendering: pixelated; }
+  .concept { position: absolute; inset: 0; display: none; }
+  .concept.on { display: block; }
+  .concept .dlg-layer { display: none; }
+  .show-dlg .concept .dlg-layer { display: grid; }
+  svg.i { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+
+  /* =========================================================
+     CONCEPT A · PLANO (blueprint / drafting table)
+     ========================================================= */
+  .A { --bp: #0c2342; --bp2: #10305a; --line: #6cc8ff; --dim: #3c6c9c; --ink: #e8f4ff; --warn: #ff6b5b; --ok: #7be0a6; --amber: #ffd36b;
+       font-family: "IBM Plex Mono", monospace; color: var(--ink); font-size: 12px; }
+  .A .grid-bg { background-color: var(--bp);
+     background-image: linear-gradient(var(--bp2) 1px, transparent 1px), linear-gradient(90deg, var(--bp2) 1px, transparent 1px);
+     background-size: 12px 12px; }
+  .A .top { position: absolute; left: 0; right: 0; top: 0; height: 44px; display: flex; align-items: stretch; border-bottom: 1px solid var(--line); }
+  .A .top > * { display: flex; align-items: center; padding: 0 10px; border-right: 1px solid var(--dim); gap: 8px; white-space: nowrap; }
+  .A .lbl { font-size: 9px; letter-spacing: .14em; color: var(--line); text-transform: uppercase; }
+  .A .cell { flex-direction: column; justify-content: center; align-items: flex-start; gap: 1px; }
+  .A .val { font-size: 14px; font-weight: 600; }
+  .A .val.big { font-size: 16px; }
+  .A .wkd { color: var(--amber); }
+  .A .menu { font-weight: 600; letter-spacing: .1em; }
+  .A .stars { color: var(--amber); letter-spacing: 2px; font-size: 14px; }
+  .A .stars b { color: var(--dim); font-weight: 400; }
+  .A .seg { display: flex; padding: 0 !important; }
+  .A .seg button, .A .ib { background: none; border: 0; border-left: 1px dashed var(--dim); color: var(--ink); font: 500 10px "IBM Plex Mono"; letter-spacing: .06em; padding: 0 8px; cursor: pointer; height: 100%; text-transform: uppercase; }
+  .A .seg button:first-child { border-left: 0; }
+  .A .seg button.on { background: var(--line); color: var(--bp); }
+  .A .ib { width: 34px; display: grid; place-items: center; padding: 0; }
+  .A .ib.on { color: var(--amber); }
+  .A .side { position: absolute; left: 0; top: 44px; bottom: 30px; width: 176px; border-right: 1px solid var(--line); display: flex; flex-direction: column; }
+  .A .sec { border-bottom: 1px solid var(--dim); padding: 10px; }
+  .A .sec .lbl { margin-bottom: 8px; display: flex; justify-content: space-between; }
+  .A .fixed { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+  .A .tb { border: 1px solid var(--line); background: transparent; color: var(--ink); height: 40px; display: grid; place-items: center; cursor: pointer; position: relative; }
+  .A .tb.on { background: var(--line); color: var(--bp); }
+  .A .tb.on::after { content: ""; position: absolute; inset: -4px; border: 1px dashed var(--line); }
+  .A .cats { display: grid; grid-template-columns: 1fr 1fr; gap: 0; border: 1px solid var(--dim); }
+  .A .cats button { background: none; border: 0; border-right: 1px solid var(--dim); border-bottom: 1px solid var(--dim); color: var(--ink); font: 500 10px "IBM Plex Mono"; text-align: left; padding: 7px 8px; cursor: pointer; text-transform: uppercase; letter-spacing: .05em; }
+  .A .cats button:nth-child(2n) { border-right: 0; }
+  .A .cats button:nth-last-child(-n+2) { border-bottom: 0; }
+  .A .cats button.on { background: var(--bp2); color: var(--line); box-shadow: inset 3px 0 0 var(--line); }
+  .A .tools { display: flex; flex-direction: column; gap: 4px; flex: 1; }
+  .A .tool { display: flex; align-items: center; gap: 8px; border: 1px solid transparent; padding: 6px; cursor: pointer; }
+  .A .tool:hover { border-color: var(--dim); }
+  .A .tool.on { border-color: var(--line); background: rgba(108,200,255,.12); }
+  .A .tool .n { font-size: 11px; line-height: 1.2; }
+  .A .tool .p { font-size: 10px; color: var(--line); }
+  .A .tool.lock { opacity: .55; background: repeating-linear-gradient(45deg, transparent 0 4px, rgba(108,200,255,.15) 4px 5px); }
+  .A .tool .ic { width: 30px; height: 30px; border: 1px solid var(--dim); display: grid; place-items: center; flex: none; }
+  .A .info { border-top: 1px solid var(--line); padding: 10px; background: var(--bp); }
+  .A .info .t { font-size: 13px; font-weight: 600; margin: 4px 0 8px; }
+  .A .dimline { display: flex; align-items: center; gap: 4px; color: var(--line); font-size: 10px; margin-bottom: 6px; }
+  .A .dimline i { flex: 1; height: 1px; background: var(--line); position: relative; }
+  .A .dimline i::before, .A .dimline i::after { content: ""; position: absolute; top: -3px; width: 1px; height: 7px; background: var(--line); }
+  .A .dimline i::before { left: 0; } .A .dimline i::after { right: 0; }
+  .A .kv { display: flex; justify-content: space-between; font-size: 11px; padding: 2px 0; }
+  .A .kv span:first-child { color: #9bb8d4; }
+  .A .news { position: absolute; left: 0; right: 0; bottom: 0; height: 30px; border-top: 1px solid var(--line); display: flex; align-items: center; font-size: 11px; }
+  .A .news .tag { background: var(--line); color: var(--bp); height: 100%; display: flex; align-items: center; padding: 0 12px; font-weight: 600; letter-spacing: .1em; }
+  .A .news .msg { padding: 0 14px; }
+  .A .news .msg em { color: #9bb8d4; font-style: normal; margin-right: 10px; }
+  .A .win { position: absolute; background: rgba(12,35,66,.94); border: 1px solid var(--line); box-shadow: 6px 6px 0 rgba(0,0,0,.35); }
+  .A .win::before, .A .win::after { content: ""; position: absolute; width: 10px; height: 10px; border: 2px solid var(--amber); }
+  .A .win::before { left: -5px; top: -5px; border-right: 0; border-bottom: 0; }
+  .A .win::after { right: -5px; bottom: -5px; border-left: 0; border-top: 0; }
+  .A .wt { display: flex; align-items: center; border-bottom: 1px solid var(--line); height: 30px; }
+  .A .wt .fig { background: var(--line); color: var(--bp); height: 100%; padding: 0 8px; display: flex; align-items: center; font-size: 10px; font-weight: 600; }
+  .A .wt .ttl { padding: 0 10px; font-weight: 600; font-size: 12px; flex: 1; }
+  .A .wt .x { width: 30px; height: 100%; border-left: 1px solid var(--dim); display: grid; place-items: center; color: var(--line); cursor: pointer; }
+  .A .wb { padding: 12px; }
+  .A .field { border: 0; border-bottom: 1px dashed var(--line); background: none; color: var(--ink); font: 13px "IBM Plex Mono"; width: 100%; padding: 4px 0; outline: none; }
+  .A .row { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px dotted var(--dim); font-size: 11px; }
+  .A .row span:first-child { color: #9bb8d4; }
+  .A .eval { display: inline-flex; align-items: center; gap: 6px; color: var(--ok); }
+  .A .eval::before { content: ""; width: 8px; height: 8px; background: var(--ok); }
+  .A .prices { margin-top: 10px; display: grid; grid-template-columns: repeat(4, 1fr); border: 1px solid var(--line); }
+  .A .prices label { padding: 6px 4px; text-align: center; border-right: 1px solid var(--dim); cursor: pointer; }
+  .A .prices label:last-child { border-right: 0; }
+  .A .prices label b { display: block; font-size: 9px; letter-spacing: .1em; color: var(--line); font-weight: 500; text-transform: uppercase; }
+  .A .prices label.on { background: var(--line); color: var(--bp); }
+  .A .prices label.on b { color: var(--bp); }
+  .A table { width: 100%; border-collapse: collapse; font-size: 11px; }
+  .A th { font-weight: 500; color: var(--line); font-size: 9px; letter-spacing: .1em; text-transform: uppercase; text-align: right; padding: 4px 0; border-bottom: 1px solid var(--line); }
+  .A th:first-child, .A td:first-child { text-align: left; }
+  .A td { text-align: right; padding: 3px 0; border-bottom: 1px dotted var(--dim); }
+  .A td.neg { color: var(--warn); }
+  .A tr.res td { font-weight: 600; border-top: 1px solid var(--line); border-bottom: 0; padding-top: 6px; color: var(--ok); }
+  .A .bal { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 10px; }
+  .A .bal .val { font-size: 20px; }
+  .A .callout { position: absolute; font-size: 10px; color: var(--amber); display: flex; align-items: center; gap: 6px; }
+  .A .callout i { display: block; width: 60px; height: 1px; background: var(--amber); }
+  .A .dlg-layer { position: absolute; inset: 0; place-items: center; background: rgba(6,18,36,.55); }
+  .A .dlg { width: 440px; background: var(--bp); border: 2px solid var(--warn); position: relative; }
+  .A .dlg .wt { border-color: var(--warn); }
+  .A .dlg .wt .fig { background: var(--warn); }
+  .A .dlg p { margin: 0 0 12px; line-height: 1.6; font-size: 12px; }
+  .A .clock { color: var(--amber); font-size: 11px; display: flex; align-items: center; gap: 8px; margin-bottom: 14px; }
+  .A .clock .bar { flex: 1; height: 4px; border: 1px solid var(--amber); }
+  .A .clock .bar i { display: block; height: 100%; width: 62%; background: var(--amber); }
+  .A .btns { display: flex; gap: 8px; justify-content: flex-end; }
+  .A .btn { border: 1px solid var(--line); background: none; color: var(--ink); font: 600 11px "IBM Plex Mono"; padding: 9px 14px; cursor: pointer; text-transform: uppercase; letter-spacing: .06em; }
+  .A .btn.pri { background: var(--warn); border-color: var(--warn); color: var(--bp); }
+  .A .toast { position: absolute; bottom: 42px; left: 50%; transform: translateX(-50%); border: 1px solid var(--warn); background: var(--bp); color: var(--warn); padding: 6px 12px; font-size: 11px; }
+
+  /* =========================================================
+     CONCEPT B · CRISTAL (floating frosted glass)
+     ========================================================= */
+  .B { --glass: rgba(22, 20, 40, .52); --glass2: rgba(255,255,255,.08); --stroke: rgba(255,255,255,.16); --t: #f6f2ff; --mut: #b7b0d0;
+       --acc1: #ff9a5a; --acc2: #ff5fa2; --acc: linear-gradient(135deg, var(--acc1), var(--acc2)); --good: #6ee7b7; --bad: #ff6b81;
+       font-family: Inter, sans-serif; color: var(--t); font-size: 13px; }
+  .B .gl { background: var(--glass); backdrop-filter: blur(18px) saturate(1.4); -webkit-backdrop-filter: blur(18px) saturate(1.4); border: 1px solid var(--stroke); box-shadow: 0 12px 40px rgba(10,0,30,.35), inset 0 1px 0 rgba(255,255,255,.14); }
+  .B .hud { position: absolute; top: 16px; left: 50%; transform: translateX(-50%); border-radius: 999px; display: flex; align-items: center; gap: 4px; padding: 6px; }
+  .B .chip { display: flex; align-items: center; gap: 8px; padding: 8px 14px; border-radius: 999px; white-space: nowrap; }
+  .B .chip.money { background: var(--acc); font-weight: 700; font-size: 15px; color: #fff; box-shadow: 0 4px 16px rgba(255,95,162,.4); }
+  .B .chip .sub { color: var(--mut); font-size: 11px; font-weight: 500; }
+  .B .time { font-variant-numeric: tabular-nums; font-weight: 700; font-size: 15px; }
+  .B .sep { width: 1px; height: 22px; background: var(--stroke); }
+  .B .stars { display: flex; gap: 2px; }
+  .B .stars i { width: 14px; height: 14px; clip-path: polygon(50% 0, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%); background: #ffd36b; }
+  .B .stars i.o { background: rgba(255,255,255,.2); }
+  .B .corner { position: absolute; top: 16px; display: flex; gap: 8px; }
+  .B .corner.l { left: 16px; } .B .corner.r { right: 16px; }
+  .B .rb { width: 44px; height: 44px; border-radius: 14px; display: grid; place-items: center; color: var(--t); cursor: pointer; position: relative; }
+  .B .rb .dot { position: absolute; top: 8px; right: 8px; width: 8px; height: 8px; border-radius: 50%; background: var(--acc2); box-shadow: 0 0 0 2px rgba(22,20,40,.8); }
+  .B .rb.on { background: rgba(255,255,255,.22); }
+  .B .ov { display: flex; border-radius: 14px; padding: 4px; gap: 2px; }
+  .B .ov button { border: 0; background: none; color: var(--mut); font: 600 12px Inter; padding: 0 12px; border-radius: 10px; cursor: pointer; }
+  .B .ov button.on { background: rgba(255,255,255,.9); color: #241b3a; }
+  .B .dock { position: absolute; left: 16px; top: 50%; transform: translateY(-50%); border-radius: 22px; padding: 8px; display: flex; flex-direction: column; gap: 4px; }
+  .B .dock .db { width: 48px; height: 48px; border-radius: 14px; display: grid; place-items: center; color: var(--mut); cursor: pointer; position: relative; }
+  .B .dock .db:hover { background: var(--glass2); color: var(--t); }
+  .B .dock .db.on { background: var(--acc); color: #fff; box-shadow: 0 6px 18px rgba(255,95,162,.45); }
+  .B .dock .db.open { background: rgba(255,255,255,.14); color: var(--t); }
+  .B .dock .db.open::after { content: ""; position: absolute; right: -9px; width: 4px; height: 20px; border-radius: 4px; background: var(--acc1); }
+  .B .dock hr { border: 0; height: 1px; background: var(--stroke); margin: 4px 6px; }
+  .B .tray { position: absolute; left: 96px; top: 50%; transform: translateY(-50%); width: 290px; border-radius: 22px; padding: 16px; }
+  .B .tray h3 { margin: 0 0 2px; font-size: 16px; font-weight: 700; }
+  .B .tray .hint { color: var(--mut); font-size: 12px; margin-bottom: 12px; }
+  .B .cards { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .B .card { border-radius: 16px; padding: 10px; background: var(--glass2); border: 1px solid transparent; cursor: pointer; position: relative; }
+  .B .card:hover { border-color: var(--stroke); }
+  .B .card.on { border-color: var(--acc1); background: rgba(255,154,90,.14); }
+  .B .card .ic { width: 34px; height: 34px; border-radius: 10px; background: rgba(255,255,255,.1); display: grid; place-items: center; margin-bottom: 8px; }
+  .B .card.on .ic { background: var(--acc); }
+  .B .card .n { font-weight: 600; font-size: 12px; line-height: 1.25; }
+  .B .card .p { color: var(--mut); font-size: 11px; margin-top: 2px; }
+  .B .card.lock { opacity: .5; }
+  .B .card .lk { position: absolute; top: 8px; right: 8px; font-size: 10px; display: flex; align-items: center; gap: 2px; color: #ffd36b; }
+  .B .sel { margin-top: 12px; border-radius: 14px; padding: 12px; background: rgba(0,0,0,.2); }
+  .B .sel .k { display: flex; justify-content: space-between; font-size: 12px; padding: 2px 0; color: var(--mut); }
+  .B .sel .k b { color: var(--t); font-weight: 600; }
+  .B .ticker { position: absolute; bottom: 16px; left: 50%; transform: translateX(-50%); border-radius: 999px; padding: 6px 6px 6px 6px; display: flex; align-items: center; gap: 10px; max-width: 640px; }
+  .B .ticker .av { width: 30px; height: 30px; border-radius: 50%; background: var(--good); color: #0b3326; display: grid; place-items: center; }
+  .B .ticker .m { font-size: 13px; padding-right: 14px; white-space: nowrap; }
+  .B .ticker .m span { color: var(--mut); margin-right: 6px; }
+  .B .zoom { position: absolute; right: 16px; bottom: 16px; border-radius: 14px; display: flex; flex-direction: column; padding: 4px; }
+  .B .zoom button { width: 36px; height: 32px; border: 0; background: none; color: var(--t); font: 600 16px Inter; cursor: pointer; border-radius: 10px; }
+  .B .zoom span { text-align: center; font-size: 11px; color: var(--mut); padding: 2px 0; }
+  .B .card-win { position: absolute; border-radius: 22px; overflow: hidden; }
+  .B .wh { display: flex; align-items: center; gap: 10px; padding: 14px 14px 10px 16px; cursor: grab; }
+  .B .wh .badge { width: 36px; height: 36px; border-radius: 12px; background: var(--acc); display: grid; place-items: center; }
+  .B .wh .tt { flex: 1; }
+  .B .wh .tt b { display: block; font-size: 15px; }
+  .B .wh .tt span { color: var(--mut); font-size: 12px; }
+  .B .wh .x { width: 28px; height: 28px; border-radius: 50%; background: var(--glass2); display: grid; place-items: center; color: var(--mut); cursor: pointer; }
+  .B .wbody { padding: 4px 16px 16px; }
+  .B .pillrow { display: flex; gap: 6px; margin-bottom: 12px; }
+  .B .pill { white-space: nowrap; border-radius: 999px; padding: 4px 9px; font-size: 11px; font-weight: 600; background: var(--glass2); }
+  .B .pill.g { background: rgba(110,231,183,.18); color: var(--good); }
+  .B .stat { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+  .B .stat > div { border-radius: 14px; background: var(--glass2); padding: 10px 12px; }
+  .B .stat small { color: var(--mut); font-size: 11px; display: block; }
+  .B .stat b { font-size: 16px; }
+  .B .meter { height: 6px; border-radius: 6px; background: rgba(255,255,255,.12); margin-top: 6px; overflow: hidden; }
+  .B .meter i { display: block; height: 100%; background: var(--acc); border-radius: 6px; }
+  .B .segp { display: grid; grid-template-columns: repeat(4,1fr); background: rgba(0,0,0,.22); border-radius: 14px; padding: 4px; gap: 2px; }
+  .B .segp label { text-align: center; padding: 7px 0; border-radius: 10px; font-size: 11px; color: var(--mut); cursor: pointer; }
+  .B .segp label b { display: block; color: var(--t); font-size: 12px; }
+  .B .segp label.on { background: rgba(255,255,255,.92); color: #6b5a8a; }
+  .B .segp label.on b { color: #241b3a; }
+  .B .lab { font-size: 11px; color: var(--mut); margin: 4px 0 6px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; }
+  .B .bars { display: flex; flex-direction: column; gap: 8px; }
+  .B .bar { display: grid; grid-template-columns: 110px 1fr 80px; align-items: center; gap: 8px; font-size: 12px; }
+  .B .bar .tr { height: 8px; border-radius: 8px; background: rgba(255,255,255,.1); overflow: hidden; }
+  .B .bar .tr i { display: block; height: 100%; border-radius: 8px; background: var(--good); }
+  .B .bar .tr i.n { background: var(--bad); }
+  .B .bar .v { text-align: right; font-variant-numeric: tabular-nums; }
+  .B .bar .v.n { color: var(--bad); }
+  .B .result { margin-top: 12px; padding: 12px; border-radius: 14px; background: rgba(110,231,183,.14); display: flex; justify-content: space-between; align-items: center; }
+  .B .result b { color: var(--good); font-size: 18px; }
+  .B .dlg-layer { position: absolute; inset: 0; place-items: center; background: rgba(20,6,30,.35); backdrop-filter: blur(1px); }
+  .B .dlg { width: 420px; border-radius: 26px; padding: 22px; text-align: center; }
+  .B .dlg .ring { width: 64px; height: 64px; margin: 0 auto 12px; border-radius: 50%; display: grid; place-items: center; background: conic-gradient(var(--bad) 0 62%, rgba(255,255,255,.12) 62% 100%); }
+  .B .dlg .ring div { width: 52px; height: 52px; border-radius: 50%; background: #2a1830; display: grid; place-items: center; color: var(--bad); }
+  .B .dlg h2 { margin: 0 0 6px; font-size: 20px; }
+  .B .dlg p { color: var(--mut); line-height: 1.55; margin: 0 0 6px; }
+  .B .dlg .dl { font-size: 12px; color: #ffd36b; margin-bottom: 16px; }
+  .B .dlg .bt { display: flex; gap: 8px; }
+  .B .dlg .bt button { flex: 1; border: 0; border-radius: 14px; padding: 12px; font: 600 13px Inter; cursor: pointer; background: var(--glass2); color: var(--t); }
+  .B .dlg .bt button.pri { background: var(--acc); color: #fff; }
+
+  /* =========================================================
+     CONCEPT C · OBRA (neo-brutalist construction signage)
+     ========================================================= */
+  .C { --y: #ffd400; --k: #111; --w: #fffaf0; --r: #ff3b2f; --b: #2f6bff; --g: #18c46a; --sh: 4px 4px 0 var(--k);
+       font-family: "Space Grotesk", sans-serif; color: var(--k); font-size: 13px; }
+  .C .head { position: absolute; top: 12px; left: 12px; right: 12px; height: 56px; display: flex; gap: 10px; }
+  .C .blk { background: var(--w); border: 3px solid var(--k); box-shadow: var(--sh); display: flex; align-items: center; padding: 0 14px; gap: 10px; white-space: nowrap; }
+  .C .blk.y { background: var(--y); }
+  .C .blk.k { background: var(--k); color: var(--y); }
+  .C .logo { font-family: "Archivo Black"; font-size: 15px; letter-spacing: .02em; line-height: 1; cursor: pointer; }
+  .C .date b { font-family: "Archivo Black"; font-size: 22px; display: block; line-height: 1; }
+  .C .date small { font-size: 11px; font-weight: 700; text-transform: uppercase; }
+  .C .date small em { font-style: normal; background: var(--r); color: var(--w); padding: 0 4px; }
+  .C .money { font-family: "Archivo Black"; font-size: 22px; }
+  .C .money small { font-family: "Space Grotesk"; font-size: 10px; font-weight: 700; display: block; letter-spacing: .1em; }
+  .C .pop b { font-family: "Archivo Black"; font-size: 18px; }
+  .C .pop small { font-size: 10px; font-weight: 700; display: block; text-transform: uppercase; letter-spacing: .1em; }
+  .C .stars { font-size: 20px; letter-spacing: 1px; }
+  .C .stars s { text-decoration: none; color: #444; }
+  .C .spacer { flex: 1; }
+  .C .ovs { padding: 0; }
+  .C .ovs button { height: 100%; border: 0; border-left: 3px solid var(--k); background: none; font: 700 11px "Space Grotesk"; padding: 0 9px; cursor: pointer; text-transform: uppercase; }
+  .C .ovs button:first-child { border-left: 0; }
+  .C .ovs button.on { background: var(--k); color: var(--y); }
+  .C .sq { width: 48px; justify-content: center; padding: 0; cursor: pointer; position: relative; }
+  .C .sq .cnt { position: absolute; top: -10px; right: -10px; background: var(--r); color: var(--w); border: 3px solid var(--k); font: 700 11px "Space Grotesk"; min-width: 24px; height: 24px; display: grid; place-items: center; border-radius: 50%; }
+  .C .bar { position: absolute; left: 12px; right: 12px; bottom: 54px; display: flex; gap: 10px; align-items: flex-end; }
+  .C .fixed { display: flex; gap: 6px; padding: 6px; background: var(--k); border: 3px solid var(--k); box-shadow: var(--sh); }
+  .C .fx { width: 52px; height: 52px; background: var(--w); border: 0; display: grid; place-items: center; cursor: pointer; position: relative; }
+  .C .fx.on { background: var(--y); }
+  .C .fx kbd { position: absolute; bottom: 2px; right: 4px; font: 700 9px "Space Grotesk"; }
+  .C .catbox { flex: 1; display: flex; flex-direction: column; }
+  .C .cattabs { display: flex; gap: 0; margin-left: 10px; }
+  .C .cattabs button { border: 3px solid var(--k); border-bottom: 0; margin-right: -3px; background: var(--w); font: 700 12px "Space Grotesk"; padding: 6px 12px; cursor: pointer; text-transform: uppercase; }
+  .C .cattabs button.on { background: var(--y); position: relative; top: 3px; padding-bottom: 9px; }
+  .C .toolrow { background: var(--y); border: 3px solid var(--k); box-shadow: var(--sh); display: flex; padding: 8px; gap: 8px; }
+  .C .tl { width: 112px; background: var(--w); border: 3px solid var(--k); padding: 6px 8px; cursor: pointer; position: relative; transition: transform .08s; }
+  .C .tl:hover { transform: translate(-2px,-2px); box-shadow: 2px 2px 0 var(--k); }
+  .C .tl.on { background: var(--k); color: var(--y); }
+  .C .tl .n { font-weight: 700; font-size: 12px; line-height: 1.15; margin-top: 4px; min-height: 28px; }
+  .C .tl .p { font-family: "Archivo Black"; font-size: 12px; }
+  .C .tl.lock { background: repeating-linear-gradient(-45deg, var(--w) 0 8px, #e6e1d4 8px 16px); color: #777; }
+  .C .tl .lk { position: absolute; top: -10px; right: -8px; background: var(--k); color: var(--y); font: 700 10px "Space Grotesk"; padding: 2px 6px; }
+  .C .detail { width: 220px; background: var(--w); border: 3px solid var(--k); box-shadow: var(--sh); padding: 10px 12px; }
+  .C .detail .t { font-family: "Archivo Black"; font-size: 16px; line-height: 1.1; }
+  .C .detail .r { display: flex; justify-content: space-between; font-size: 12px; border-top: 2px solid var(--k); padding: 4px 0; margin-top: 4px; }
+  .C .detail .r b { font-weight: 700; }
+  .C .zoom { display: flex; flex-direction: column; gap: 6px; }
+  .C .zoom button { width: 44px; height: 38px; border: 3px solid var(--k); background: var(--w); box-shadow: 3px 3px 0 var(--k); font: 700 18px "Archivo Black"; cursor: pointer; }
+  .C .led { position: absolute; left: 0; right: 0; bottom: 0; height: 40px; background: var(--k); display: flex; align-items: center; overflow: hidden; border-top: 3px solid var(--k); }
+  .C .led .tag { background: var(--r); color: var(--w); height: 100%; display: flex; align-items: center; padding: 0 14px; font: 700 12px "Space Grotesk"; text-transform: uppercase; letter-spacing: .1em; flex: none; z-index: 1; }
+  .C .led .scroll { white-space: nowrap; font: 600 14px "IBM Plex Mono"; color: var(--y); text-shadow: 0 0 6px rgba(255,212,0,.6); animation: mq 28s linear infinite -9s; padding-left: 100%; }
+  .C .led .scroll span { margin-right: 60px; }
+  .C .led .scroll span::before { content: "■ "; color: var(--r); }
+  @keyframes mq { to { transform: translateX(-100%); } }
+  .C .win { position: absolute; background: var(--w); border: 3px solid var(--k); box-shadow: 8px 8px 0 var(--k); }
+  .C .wt { display: flex; align-items: stretch; border-bottom: 3px solid var(--k); background: var(--b); color: var(--w); }
+  .C .wt .tt { padding: 8px 12px; flex: 1; font-family: "Archivo Black"; font-size: 15px; }
+  .C .wt .tt small { display: block; font-family: "Space Grotesk"; font-size: 11px; font-weight: 700; opacity: .85; }
+  .C .wt .x { width: 44px; border-left: 3px solid var(--k); background: var(--w); color: var(--k); display: grid; place-items: center; font: 700 18px "Archivo Black"; cursor: pointer; }
+  .C .wb { padding: 12px; }
+  .C .field { width: 100%; border: 3px solid var(--k); background: #fff; font: 600 14px "Space Grotesk"; padding: 6px 8px; outline: none; margin-bottom: 10px; }
+  .C .tiles { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; margin-bottom: 10px; }
+  .C .tiles div { border: 3px solid var(--k); padding: 6px 8px; }
+  .C .tiles small { font-size: 10px; font-weight: 700; text-transform: uppercase; display: block; }
+  .C .tiles b { font-family: "Archivo Black"; font-size: 15px; }
+  .C .tiles .gd { background: var(--g); }
+  .C .pr { display: grid; grid-template-columns: repeat(4,1fr); gap: 6px; }
+  .C .pr label { border: 3px solid var(--k); padding: 6px 4px; text-align: center; cursor: pointer; font-weight: 700; font-size: 11px; text-transform: uppercase; }
+  .C .pr label b { display: block; font-family: "Archivo Black"; font-size: 13px; }
+  .C .pr label.on { background: var(--y); box-shadow: inset 0 -5px 0 var(--k); }
+  .C .meta { display: flex; justify-content: space-between; margin-top: 10px; font-size: 12px; font-weight: 600; }
+  .C .meta span { background: var(--k); color: var(--w); padding: 3px 8px; }
+  .C .fin .bal { background: var(--k); color: var(--y); padding: 10px 12px; display: flex; justify-content: space-between; align-items: baseline; }
+  .C .fin .bal b { font-family: "Archivo Black"; font-size: 22px; }
+  .C .fin table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .C .fin th { text-align: right; font-size: 10px; text-transform: uppercase; padding: 6px 8px; border-bottom: 3px solid var(--k); }
+  .C .fin td { text-align: right; padding: 4px 8px; border-bottom: 1px solid #ccc; font-weight: 600; }
+  .C .fin th:first-child, .C .fin td:first-child { text-align: left; }
+  .C .fin td.neg { color: var(--r); }
+  .C .fin tr.res td { background: var(--g); font-family: "Archivo Black"; border-top: 3px solid var(--k); border-bottom: 0; }
+  .C .dlg-layer { position: absolute; inset: 0; place-items: center; background: rgba(17,17,17,.4); }
+  .C .dlg { width: 460px; background: var(--w); border: 4px solid var(--k); box-shadow: 12px 12px 0 var(--k); }
+  .C .hz { height: 22px; background: repeating-linear-gradient(-45deg, var(--y) 0 16px, var(--k) 16px 32px); border-bottom: 4px solid var(--k); }
+  .C .dlg h2 { font-family: "Archivo Black"; font-size: 30px; margin: 0; padding: 12px 16px 0; text-transform: uppercase; color: var(--r); line-height: 1; }
+  .C .dlg p { padding: 8px 16px 0; margin: 0; line-height: 1.5; font-size: 14px; font-weight: 500; }
+  .C .dlg .dl { margin: 12px 16px; background: var(--k); color: var(--y); padding: 6px 10px; font-weight: 700; display: inline-block; font-size: 13px; }
+  .C .dlg .bt { display: flex; border-top: 4px solid var(--k); }
+  .C .dlg .bt button { flex: 1; border: 0; padding: 16px; font: 700 14px "Space Grotesk"; text-transform: uppercase; cursor: pointer; background: var(--w); }
+  .C .dlg .bt button + button { border-left: 4px solid var(--k); }
+  .C .dlg .bt button.pri { background: var(--r); color: var(--w); }
+  .C .sticker { position: absolute; background: var(--r); color: var(--w); border: 3px solid var(--k); padding: 6px 10px; font-weight: 700; transform: rotate(-3deg); box-shadow: 3px 3px 0 var(--k); }
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute">
+  <defs>
+    <symbol id="i-lupa" viewBox="0 0 24 24"><circle cx="10" cy="10" r="6"/><path d="M15 15l5 5"/></symbol>
+    <symbol id="i-topa" viewBox="0 0 24 24"><path d="M3 17h11v-5H8l-2 5"/><path d="M14 13h3l2 4"/><circle cx="7" cy="18" r="2"/><circle cx="14" cy="18" r="2"/><path d="M19 9v9h2"/></symbol>
+    <symbol id="i-cab" viewBox="0 0 24 24"><rect x="6" y="5" width="12" height="15" rx="1"/><path d="M12 5v15M12 2v3"/></symbol>
+    <symbol id="i-est" viewBox="0 0 24 24"><path d="M3 20h18M5 20V9h14v11M5 14h14M9 9V5h6v4"/></symbol>
+    <symbol id="i-trans" viewBox="0 0 24 24"><rect x="7" y="3" width="10" height="18" rx="1"/><path d="M10 8l2-2 2 2M10 16l2 2 2-2"/></symbol>
+    <symbol id="i-of" viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18"/><path d="M8 7h2M14 7h2M8 11h2M14 11h2M8 15h2M14 15h2"/></symbol>
+    <symbol id="i-hotel" viewBox="0 0 24 24"><path d="M3 18V8M3 14h18v4M21 14v-2a3 3 0 0 0-3-3h-7v5"/><circle cx="7" cy="11" r="2"/></symbol>
+    <symbol id="i-com" viewBox="0 0 24 24"><path d="M4 9l2-5h12l2 5M4 9h16v11H4zM4 9a3 3 0 0 0 5 0 3 3 0 0 0 6 0 3 3 0 0 0 5 0"/><path d="M10 20v-5h4v5"/></symbol>
+    <symbol id="i-serv" viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 5-4 8-8 9-4-1-8-4-8-9V6z"/><path d="M9 12l2 2 4-4"/></symbol>
+    <symbol id="i-stairs" viewBox="0 0 24 24"><path d="M3 20h5v-5h5v-5h5V5h3"/></symbol>
+    <symbol id="i-esc" viewBox="0 0 24 24"><path d="M3 19h4l10-12h4M5 15l9-10"/></symbol>
+    <symbol id="i-elev" viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18"/><path d="M9 9l3-3 3 3M9 15l3 3 3-3"/></symbol>
+    <symbol id="i-elevs" viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18"/><path d="M9 12h6M12 9v6"/></symbol>
+    <symbol id="i-elevx" viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18"/><path d="M10 7l-2 5h4l-2 5M15 7v10"/></symbol>
+    <symbol id="i-map" viewBox="0 0 24 24"><path d="M3 6l6-3 6 3 6-3v15l-6 3-6-3-6 3z"/><path d="M9 3v15M15 6v15"/></symbol>
+    <symbol id="i-fin" viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></symbol>
+    <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></symbol>
+    <symbol id="i-bell" viewBox="0 0 24 24"><path d="M6 16V11a6 6 0 0 1 12 0v5l2 2H4zM10 21h4"/></symbol>
+    <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></symbol>
+    <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="1"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></symbol>
+    <symbol id="i-fire" viewBox="0 0 24 24"><path d="M12 3c1 4 6 6 6 11a6 6 0 0 1-12 0c0-3 2-4 2-7 2 1 3 3 3 5 2-2 1-6 1-9z"/></symbol>
+    <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c1-4 4-6 8-6s7 2 8 6"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12l5 5 9-10"/></symbol>
+  </defs>
+</svg>
+
+<div class="chrome">
+  <h1>Tower Magnate · UI</h1>
+  <div class="tabs">
+    <button data-c="A" class="on"><small>A</small>Plano</button>
+    <button data-c="B"><small>B</small>Cristal</button>
+    <button data-c="C"><small>C</small>Obra</button>
+  </div>
+  <div class="opt">
+    <button id="tDlg">Mostrar diálogo</button>
+    <button id="tNight">Noche</button>
+  </div>
+</div>
+
+<div class="stage"><div class="frame" id="frame">
+<canvas class="tower" id="tower" width="320" height="200"></canvas>
+
+<!-- ======================= A · PLANO ======================= -->
+<div class="concept A on" data-c="A">
+  <div class="top grid-bg">
+    <div class="menu"><svg class="i"><use href="#i-menu"/></svg>MENÚ</div>
+    <div class="cell"><span class="lbl">Fecha</span><span class="val"><span class="wkd">Mié</span> 11 nov · año 3</span></div>
+    <div class="cell"><span class="lbl">Hora</span><span class="val big">14:35</span></div>
+    <div class="cell"><span class="lbl">Saldo</span><span class="val big">$1.234.567</span></div>
+    <div class="cell"><span class="lbl">Población</span><span class="val">2.345</span></div>
+    <div class="cell"><span class="lbl">Rango</span><span class="stars">★★<b>☆☆☆</b></span></div>
+    <div class="seg"><button class="on">Normal</button><button>Evaluación</button><button>Precios</button><button>Hotel</button></div>
+    <div style="flex:1;border-right:0"></div>
+    <div class="seg" style="border-left:1px solid var(--dim)"><button class="ib">−</button><button class="ib" style="width:auto;padding:0 8px">2×</button><button class="ib">+</button></div>
+    <div class="seg"><button class="ib"><svg class="i"><use href="#i-map"/></svg></button><button class="ib on"><svg class="i"><use href="#i-fin"/></svg></button><button class="ib"><svg class="i"><use href="#i-eye"/></svg></button><button class="ib"><svg class="i"><use href="#i-bell"/></svg></button></div>
+  </div>
+
+  <div class="side grid-bg">
+    <div class="sec">
+      <div class="lbl"><span>Herramientas</span><span>L T C</span></div>
+      <div class="fixed">
+        <button class="tb"><svg class="i"><use href="#i-lupa"/></svg></button>
+        <button class="tb"><svg class="i"><use href="#i-topa"/></svg></button>
+        <button class="tb"><svg class="i"><use href="#i-cab"/></svg></button>
+      </div>
+    </div>
+    <div class="sec">
+      <div class="lbl"><span>Categoría</span></div>
+      <div class="cats">
+        <button>Estructura</button><button class="on">Transporte</button>
+        <button>Of. y viv.</button><button>Hotel</button>
+        <button>Com. y entr.</button><button>Servicios</button>
+      </div>
+    </div>
+    <div class="sec tools" style="border-bottom:0">
+      <div class="lbl"><span>Transporte</span><span>05</span></div>
+      <div class="tool"><div class="ic"><svg class="i"><use href="#i-stairs"/></svg></div><div><div class="n">Escalera</div><div class="p">$5.000</div></div></div>
+      <div class="tool"><div class="ic"><svg class="i"><use href="#i-esc"/></svg></div><div><div class="n">Esc. mecánica</div><div class="p">$20.000</div></div></div>
+      <div class="tool on"><div class="ic"><svg class="i"><use href="#i-elev"/></svg></div><div><div class="n">Ascensor estándar</div><div class="p">$200.000</div></div></div>
+      <div class="tool"><div class="ic"><svg class="i"><use href="#i-elevs"/></svg></div><div><div class="n">Asc. de servicio</div><div class="p">$100.000</div></div></div>
+      <div class="tool lock"><div class="ic"><svg class="i"><use href="#i-lock"/></svg></div><div><div class="n">Ascensor expreso</div><div class="p">3 ★ para desbloquear</div></div></div>
+    </div>
+    <div class="info">
+      <div class="lbl">Herramienta actual</div>
+      <div class="t">Ascensor estándar</div>
+      <div class="dimline">4<i></i>col</div>
+      <div class="kv"><span>Alto</span><span>hasta 30 pisos</span></div>
+      <div class="kv"><span>Base</span><span>$200.000</span></div>
+      <div class="kv"><span>Cabina</span><span>+$80.000</span></div>
+    </div>
+  </div>
+
+  <div class="win" style="left:236px;top:84px;width:300px">
+    <div class="wt"><span class="fig">FIG.03</span><span class="ttl">Oficina · Piso 12</span><span class="x">✕</span></div>
+    <div class="wb">
+      <div class="lbl">Nombre</div>
+      <input class="field" placeholder="Oficina" value="Estudio Ferraro">
+      <div class="row" style="margin-top:8px"><span>Ubicación</span><span>Piso 12 · cas. 40–48</span></div>
+      <div class="row"><span>Estado</span><span>Ocupada</span></div>
+      <div class="row"><span>Personas</span><span>6 de 6</span></div>
+      <div class="row"><span>Evaluación</span><span class="eval">Buena</span></div>
+      <div class="row"><span>Contrato</span><span>Semana 2 de 4</span></div>
+      <div class="row"><span>Próximo pago</span><span>Lunes 07:00</span></div>
+      <div class="prices">
+        <label><b>Alto</b>$15.000</label><label class="on"><b>Normal</b>$10.000</label><label><b>Bajo</b>$5.000</label><label><b>Mínimo</b>$2.000</label>
+      </div>
+    </div>
+  </div>
+
+  <div class="win" style="right:24px;top:84px;width:360px">
+    <div class="wt"><span class="fig">FIG.07</span><span class="ttl">Finanzas</span><span class="x">✕</span></div>
+    <div class="wb">
+      <div class="bal"><span class="lbl">Saldo</span><span class="val">$1.234.567</span></div>
+      <div class="lbl" style="margin-bottom:4px">Semana del lunes 9 de noviembre</div>
+      <table>
+        <tr><th></th><th>Esta sem.</th><th>Anterior</th></tr>
+        <tr><td>Alquileres</td><td>$40.000</td><td>$35.000</td></tr>
+        <tr><td>Hotel</td><td>$12.000</td><td>$18.000</td></tr>
+        <tr><td>Venta de deptos.</td><td>$0</td><td>$175.000</td></tr>
+        <tr><td>Construcción</td><td class="neg">-$120.000</td><td class="neg">-$80.000</td></tr>
+        <tr><td>Mantenimiento</td><td class="neg">-$30.000</td><td class="neg">-$30.000</td></tr>
+        <tr class="res"><td>Resultado</td><td style="color:var(--warn)">-$98.000</td><td>$118.000</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <div class="callout" style="left:700px;top:430px"><i></i>CURSOR · PISO 7 · CAS. 188</div>
+  <div class="toast">No alcanza el dinero.</div>
+
+  <div class="news grid-bg"><span class="tag">AVISO</span><span class="msg"><em>14:32</em>Se alquiló la oficina del piso 12.</span><span class="msg" style="color:#9bb8d4"><em>14:05</em>Llegó un huésped a la suite del piso 9.</span></div>
+
+  <div class="dlg-layer">
+    <div class="dlg">
+      <div class="wt"><span class="fig">ALERTA</span><span class="ttl">Incendio</span></div>
+      <div class="wb">
+        <p>Hay un incendio en el piso 8. Un helicóptero lo puede apagar por $500.000. Si no lo llamás, seguridad va a tratar de contenerlo.</p>
+        <div class="clock">Respondé antes de las 15:10<span class="bar"><i></i></span></div>
+        <div class="btns"><button class="btn">Llamar al helicóptero ($500.000)</button><button class="btn pri">No llamar</button></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ======================= B · CRISTAL ======================= -->
+<div class="concept B" data-c="B">
+  <div class="corner l">
+    <div class="gl rb"><svg class="i"><use href="#i-menu"/></svg></div>
+    <div class="gl ov"><button class="on">Normal</button><button>Evaluación</button><button>Precios</button><button>Hotel</button></div>
+  </div>
+
+  <div class="gl hud">
+    <div class="chip"><span class="time">14:35</span><span class="sub">Mié 11 nov · año 3</span></div>
+    <div class="sep"></div>
+    <div class="chip money">$1.234.567</div>
+    <div class="chip"><svg class="i" style="width:16px"><use href="#i-user"/></svg><b>2.345</b></div>
+    <div class="sep"></div>
+    <div class="chip"><div class="stars"><i></i><i></i><i class="o"></i><i class="o"></i><i class="o"></i></div></div>
+  </div>
+
+  <div class="corner r">
+    <div class="gl rb"><svg class="i"><use href="#i-map"/></svg></div>
+    <div class="gl rb on"><svg class="i"><use href="#i-fin"/></svg></div>
+    <div class="gl rb"><svg class="i"><use href="#i-eye"/></svg></div>
+    <div class="gl rb"><svg class="i"><use href="#i-bell"/></svg><span class="dot"></span></div>
+  </div>
+
+  <div class="gl dock">
+    <div class="db"><svg class="i"><use href="#i-lupa"/></svg></div>
+    <div class="db"><svg class="i"><use href="#i-topa"/></svg></div>
+    <div class="db"><svg class="i"><use href="#i-cab"/></svg></div>
+    <hr>
+    <div class="db"><svg class="i"><use href="#i-est"/></svg></div>
+    <div class="db open"><svg class="i"><use href="#i-trans"/></svg></div>
+    <div class="db"><svg class="i"><use href="#i-of"/></svg></div>
+    <div class="db"><svg class="i"><use href="#i-hotel"/></svg></div>
+    <div class="db"><svg class="i"><use href="#i-com"/></svg></div>
+    <div class="db"><svg class="i"><use href="#i-serv"/></svg></div>
+  </div>
+
+  <div class="gl tray">
+    <h3>Transporte</h3>
+    <div class="hint">Conectá los pisos para que la gente circule.</div>
+    <div class="cards">
+      <div class="card"><div class="ic"><svg class="i"><use href="#i-stairs"/></svg></div><div class="n">Escalera</div><div class="p">$5.000 · 8×2</div></div>
+      <div class="card"><div class="ic"><svg class="i"><use href="#i-esc"/></svg></div><div class="n">Escalera mecánica</div><div class="p">$20.000 · 8×2</div></div>
+      <div class="card on"><div class="ic"><svg class="i"><use href="#i-elev"/></svg></div><div class="n">Ascensor estándar</div><div class="p">$200.000</div></div>
+      <div class="card"><div class="ic"><svg class="i"><use href="#i-elevs"/></svg></div><div class="n">Ascensor de servicio</div><div class="p">$100.000</div></div>
+      <div class="card lock"><span class="lk">★ 3</span><div class="ic"><svg class="i"><use href="#i-elevx"/></svg></div><div class="n">Ascensor expreso</div><div class="p">$600.000</div></div>
+    </div>
+    <div class="sel">
+      <div class="k"><span>Ancho</span><b>4 casilleros</b></div>
+      <div class="k"><span>Alto</span><b>hasta 30 pisos</b></div>
+      <div class="k"><span>Por cabina</span><b>+$80.000</b></div>
+    </div>
+  </div>
+
+  <div class="gl card-win" style="left:420px;top:96px;width:320px">
+    <div class="wh"><div class="badge"><svg class="i"><use href="#i-of"/></svg></div><div class="tt"><b>Estudio Ferraro</b><span>Oficina · Piso 12 · cas. 40–48</span></div><div class="x">✕</div></div>
+    <div class="wbody">
+      <div class="pillrow"><span class="pill g">● Ocupada</span><span class="pill g">Buena</span><span class="pill">Contrato 2/4</span></div>
+      <div class="stat">
+        <div><small>Personas</small><b>6 de 6</b><div class="meter"><i style="width:100%"></i></div></div>
+        <div><small>Próximo pago</small><b>Lun 07:00</b><div class="meter"><i style="width:45%"></i></div></div>
+      </div>
+      <div class="lab">Precio por semana</div>
+      <div class="segp"><label><b>$15.000</b>Alto</label><label class="on"><b>$10.000</b>Normal</label><label><b>$5.000</b>Bajo</label><label><b>$2.000</b>Mínimo</label></div>
+    </div>
+  </div>
+
+  <div class="gl card-win" style="right:16px;top:76px;width:340px">
+    <div class="wh"><div class="badge"><svg class="i"><use href="#i-fin"/></svg></div><div class="tt"><b>Finanzas</b><span>Semana del lunes 9 de noviembre</span></div><div class="x">✕</div></div>
+    <div class="wbody">
+      <div class="bars">
+        <div class="bar"><span>Alquileres</span><div class="tr"><i style="width:33%"></i></div><span class="v">$40.000</span></div>
+        <div class="bar"><span>Hotel</span><div class="tr"><i style="width:10%"></i></div><span class="v">$12.000</span></div>
+        <div class="bar"><span>Construcción</span><div class="tr"><i class="n" style="width:100%"></i></div><span class="v n">-$120.000</span></div>
+        <div class="bar"><span>Mantenimiento</span><div class="tr"><i class="n" style="width:25%"></i></div><span class="v n">-$30.000</span></div>
+      </div>
+      <div class="result" style="background:rgba(255,107,129,.14)"><span>Resultado de la semana</span><b style="color:var(--bad)">-$98.000</b></div>
+    </div>
+  </div>
+
+  <div class="gl zoom"><button>+</button><span>2×</span><button>−</button></div>
+
+  <div class="gl ticker"><div class="av"><svg class="i" style="width:16px"><use href="#i-check"/></svg></div><div class="m"><span>14:32</span>Se alquiló la oficina del piso 12.</div></div>
+
+  <div class="dlg-layer">
+    <div class="gl dlg">
+      <div class="ring"><div><svg class="i" style="width:26px;height:26px"><use href="#i-fire"/></svg></div></div>
+      <h2>Incendio</h2>
+      <p>Hay un incendio en el piso 8. Un helicóptero lo puede apagar por $500.000. Si no lo llamás, seguridad va a tratar de contenerlo.</p>
+      <div class="dl">Respondé antes de las 15:10</div>
+      <div class="bt"><button>Llamar al helicóptero ($500.000)</button><button class="pri">No llamar</button></div>
+    </div>
+  </div>
+</div>
+
+<!-- ======================= C · OBRA ======================= -->
+<div class="concept C" data-c="C">
+  <div class="head">
+    <div class="blk k logo">TOWER<br>MAGNATE</div>
+    <div class="blk date"><div><b>14:35</b><small><em>Mié</em> 11 nov · año 3</small></div></div>
+    <div class="blk y money"><div><small>SALDO</small>$1.234.567</div></div>
+    <div class="blk pop"><div><small>Población</small><b>2.345</b></div></div>
+    <div class="blk stars">★★<s>★★★</s></div>
+    <div class="spacer"></div>
+    <div class="blk ovs"><button class="on">Normal</button><button>Evaluación</button><button>Precios</button><button>Hotel</button></div>
+    <div class="blk sq"><svg class="i"><use href="#i-map"/></svg></div>
+    <div class="blk sq y"><svg class="i"><use href="#i-fin"/></svg></div>
+    <div class="blk sq"><svg class="i"><use href="#i-eye"/></svg></div>
+    <div class="blk sq"><svg class="i"><use href="#i-bell"/></svg><span class="cnt">3</span></div>
+  </div>
+
+  <div class="win" style="left:40px;top:100px;width:340px">
+    <div class="wt"><div class="tt"><small>OFICINA · PISO 12 · CAS. 40–48</small>Estudio Ferraro</div><div class="x">✕</div></div>
+    <div class="wb">
+      <input class="field" value="Estudio Ferraro">
+      <div class="tiles">
+        <div class="gd"><small>Estado</small><b>Ocupada</b></div>
+        <div><small>Personas</small><b>6 / 6</b></div>
+        <div class="gd"><small>Evaluación</small><b>Buena</b></div>
+      </div>
+      <div class="pr"><label>Alto<b>$15.000</b></label><label class="on">Normal<b>$10.000</b></label><label>Bajo<b>$5.000</b></label><label>Mínimo<b>$2.000</b></label></div>
+      <div class="meta"><span>Contrato · semana 2 de 4</span><span>Pago · lun 07:00</span></div>
+    </div>
+  </div>
+
+  <div class="win fin" style="right:40px;top:100px;width:360px">
+    <div class="wt" style="background:var(--g);color:var(--k)"><div class="tt"><small>SEMANA DEL LUNES 9 DE NOVIEMBRE</small>Finanzas</div><div class="x">✕</div></div>
+    <div class="bal"><span>SALDO</span><b>$1.234.567</b></div>
+    <table>
+      <tr><th></th><th>Esta semana</th><th>Anterior</th></tr>
+      <tr><td>Alquileres</td><td>$40.000</td><td>$35.000</td></tr>
+      <tr><td>Hotel</td><td>$12.000</td><td>$18.000</td></tr>
+      <tr><td>Venta de deptos.</td><td>$0</td><td>$175.000</td></tr>
+      <tr><td>Construcción</td><td class="neg">-$120.000</td><td class="neg">-$80.000</td></tr>
+      <tr><td>Mantenimiento</td><td class="neg">-$30.000</td><td class="neg">-$30.000</td></tr>
+      <tr class="res" style="background:var(--r)"><td style="background:var(--r);color:var(--w)">Resultado</td><td style="background:var(--r);color:var(--w)">-$98.000</td><td style="background:var(--g)">$118.000</td></tr>
+    </table>
+  </div>
+
+  <div class="sticker" style="left:560px;top:380px">No alcanza el dinero.</div>
+
+  <div class="bar">
+    <div class="fixed">
+      <button class="fx"><svg class="i" style="width:22px;height:22px"><use href="#i-lupa"/></svg><kbd>L</kbd></button>
+      <button class="fx"><svg class="i" style="width:22px;height:22px"><use href="#i-topa"/></svg><kbd>T</kbd></button>
+      <button class="fx"><svg class="i" style="width:22px;height:22px"><use href="#i-cab"/></svg><kbd>C</kbd></button>
+    </div>
+    <div class="catbox">
+      <div class="cattabs"><button>Estructura</button><button class="on">Transporte</button><button>Oficinas y vivienda</button><button>Hotel</button><button>Comercio</button><button>Servicios</button></div>
+      <div class="toolrow">
+        <div class="tl"><svg class="i"><use href="#i-stairs"/></svg><div class="n">Escalera</div><div class="p">$5.000</div></div>
+        <div class="tl"><svg class="i"><use href="#i-esc"/></svg><div class="n">Escalera mecánica</div><div class="p">$20.000</div></div>
+        <div class="tl on"><svg class="i"><use href="#i-elev"/></svg><div class="n">Ascensor estándar</div><div class="p">$200.000</div></div>
+        <div class="tl"><svg class="i"><use href="#i-elevs"/></svg><div class="n">Ascensor de servicio</div><div class="p">$100.000</div></div>
+        <div class="tl lock"><span class="lk">★★★</span><svg class="i"><use href="#i-lock"/></svg><div class="n">Ascensor expreso</div><div class="p">$600.000</div></div>
+      </div>
+    </div>
+    <div class="detail">
+      <div class="t">Ascensor estándar</div>
+      <div class="r"><span>Ancho</span><b>4 casilleros</b></div>
+      <div class="r"><span>Alto</span><b>hasta 30 pisos</b></div>
+      <div class="r"><span>Base</span><b>$200.000</b></div><div class="r"><span>Por cabina</span><b>+$80.000</b></div>
+    </div>
+    <div class="zoom"><button>+</button><button>−</button></div>
+  </div>
+
+  <div class="led"><span class="tag">Noticias</span><div class="scroll"><span>14:32 Se alquiló la oficina del piso 12.</span><span>14:05 Llegó un huésped a la suite del piso 9.</span><span>13:40 Se vendió el departamento del piso 15.</span></div></div>
+
+  <div class="dlg-layer">
+    <div class="dlg">
+      <div class="hz"></div>
+      <h2>Incendio</h2>
+      <p>Hay un incendio en el piso 8. Un helicóptero lo puede apagar por $500.000. Si no lo llamás, seguridad va a tratar de contenerlo.</p>
+      <div class="dl">Respondé antes de las 15:10</div>
+      <div class="bt"><button>Llamar al helicóptero ($500.000)</button><button class="pri">No llamar</button></div>
+    </div>
+  </div>
+</div>
+
+</div></div>
+<div class="desc" id="desc"></div>
+
+<script>
+// ---------- placeholder tower art, drawn with the game palette (same under every concept) ----------
+const P = { ink:'#141218', charcoal:'#2e2c36', slate:'#4f4e5c', gray:'#7b7a86', silver:'#a9a8b0', cloud:'#d6d4d0', white:'#f4f1e8',
+  cd:'#6b5f55', c:'#948576', cl:'#bfb19c', wd:'#5a3a26', w:'#8a5a36', wl:'#c08a54', skyD:'#3d6fb6', sky:'#6f9fd8', skyL:'#a9cdee',
+  nD:'#10183a', n:'#23305e', dusk:'#e0875a', glass:'#8fb8c8', lamp:'#f2d36b', glow:'#fff3b8', leafD:'#2f5a32', leaf:'#4f8a3e',
+  s1:'#7a4a32', s2:'#b97a52', s3:'#e6b48a', red:'#b0353a', blue:'#2f4f9a', pink:'#f07aa8', sred:'#d81e2a' };
+let night = false;
+function rnd(seed){ return () => (seed = (seed * 16807) % 2147483647) / 2147483647; }
+function drawTower(){
+  const cv = document.getElementById('tower'), g = cv.getContext('2d');
+  const r = rnd(42), R = (x,y,w,h,c)=>{ g.fillStyle=c; g.fillRect(x,y,w,h); };
+  const W = 320, H = 200, ground = 150;
+  const bands = night ? [P.nD,P.nD,P.n,P.n,P.n,'#3a3a6e'] : [P.skyD,P.skyD,P.sky,P.sky,P.skyL,P.skyL];
+  bands.forEach((c,i)=>R(0,i*25,W,25,c));
+  if (night) for (let i=0;i<60;i++) R(Math.floor(r()*W),Math.floor(r()*100),1,1,P.glow);
+  else [[30,20],[220,12],[270,40],[120,30]].forEach(([x,y])=>{R(x,y,18,3,P.white);R(x+4,y-2,9,2,P.white);});
+  // distant skyline
+  for (let x=0;x<W;x+=14){ const h=12+Math.floor(r()*28); R(x,ground-h,12,h,night?'#1a2248':'#8aa9c9'); }
+  R(0,ground,W,H-ground,P.wd); R(0,ground,W,2,P.leaf); R(0,ground+2,W,1,P.leafD);
+  for (let i=0;i<80;i++) R(Math.floor(r()*W),ground+4+Math.floor(r()*46),2,1,P.cd);
+  const x0 = 96, x1 = 236, fh = 9, floors = 14;
+  // basement
+  R(x0,ground,x1-x0,fh*2,P.cd); R(x0,ground+fh,x1-x0,1,P.c);
+  for (let x=x0+4;x<x1-4;x+=8){ R(x,ground+3,5,3,P.slate); R(x+1,ground+fh+3,4,3,P.red); }
+  const types = ['lobby','office','office','office','condo','condo','office','office','hotel','hotel','office','condo','condo','office'];
+  for (let f=0; f<floors; f++){
+    const y = ground - (f+1)*fh, t = types[f];
+    R(x0-1,y,x1-x0+2,fh,P.ink); R(x0,y+1,x1-x0,fh-1,P.cloud);
+    R(x0,y+fh-1,x1-x0,1,P.c);
+    if (t==='lobby'){ R(x0,y+1,x1-x0,fh-1,P.cl); for(let x=x0+3;x<x1;x+=10) R(x,y+2,6,5,night?P.lamp:P.glass); R(x0+56,y+3,8,5,P.wd); }
+    else for (let x=x0+2; x<x1-2; x+= (t==='condo'?16:9)){
+      const lit = !night || r()>.35, wcol = lit ? (night?P.lamp:P.glass) : P.n;
+      if (t==='office'){ R(x,y+2,7,3,wcol); R(x+1,y+6,4,1,P.w); }
+      if (t==='condo'){ R(x,y+1,15,fh-2,P.wl); R(x+2,y+2,5,3,wcol); R(x+9,y+2,5,3,wcol); R(x+8,y+6,4,1,P.red); }
+      if (t==='hotel'){ R(x,y+2,4,3,wcol); R(x+5,y+5,3,2,P.white); R(x+5,y+5,3,1,P.blue); }
+      R(x+(t==='condo'?15:8),y+1,1,fh-2,P.silver);
+    }
+  }
+  // elevator shaft + cars
+  const ex = 160; R(ex,ground-floors*fh,8,floors*fh,P.slate);
+  for (let f=0; f<floors; f++) R(ex,ground-(f+1)*fh,8,1,P.charcoal);
+  [[3],[10]].forEach(([f])=>{ const y=ground-(f+1)*fh+1; R(ex+1,y,6,fh-2,P.silver); R(ex+3,y,1,fh-2,P.gray); });
+  // stairs
+  for (let f=0; f<floors-1; f+=2){ const y=ground-(f+2)*fh; for(let s=0;s<8;s++) R(214+s,y+fh*2-2-Math.floor(s*2.1),1,2,P.wd); }
+  // people
+  const cols=[P.blue,P.red,P.leaf,P.charcoal];
+  for (let i=0;i<34;i++){ const f=Math.floor(r()*floors), x=x0+4+Math.floor(r()*(x1-x0-8)); if (Math.abs(x-ex)<10) continue;
+    const y=ground-(f+1)*fh+fh-6; const st=r(); R(x,y,2,2, st>.9?P.sred:st>.8?P.pink:[P.s1,P.s2,P.s3][i%3]); R(x,y+2,2,3,cols[i%4]); }
+  // roof
+  R(x0-2,ground-floors*fh-2,x1-x0+4,2,P.ink); R(x0+20,ground-floors*fh-8,6,6,P.gray); R(x0+100,ground-floors*fh-10,2,8,P.gray); R(x0+100,ground-floors*fh-11,2,1,P.red);
+  // tree
+  [[60],[262]].forEach(([x])=>{ R(x+3,ground-6,2,6,P.wd); R(x,ground-14,8,9,P.leaf); R(x+1,ground-15,6,2,P.leafD); });
+  // fire on floor 8 (for the dialog)
+  if (document.body.classList.contains('show-dlg')){ const y=ground-8*fh; for(let x=x0+40;x<x0+70;x+=3){ R(x,y+3,2,5,P.dusk); R(x,y+5,2,3,P.lamp); } }
+}
+
+// ---------- preview controls ----------
+const DESC = {
+  A: 'A · Plano. Lámina técnica de arquitecto: grilla azul, líneas finas, etiquetas en mayúscula y cotas. Mantiene el layout de la spec (barra arriba, herramientas a la izquierda, noticias abajo). Encaja con la idea de construir.',
+  B: 'B · Cristal. Paneles flotantes de vidrio esmerilado sobre la torre, sin barras fijas. Dock vertical con bandeja de herramientas en tarjetas, HUD tipo píldora y finanzas en barras. La torre ocupa toda la pantalla.',
+  C: 'C · Obra. Neo-brutalista con señalética de obra: amarillo, negro, bordes gruesos y sombras duras. Herramientas abajo como hotbar con pestañas, cartel LED de noticias, diálogos con cinta de peligro.'
+};
+const frame = document.getElementById('frame');
+function fit(){ const s = document.querySelector('.stage'); const k = Math.min((s.clientWidth-40)/1280, (s.clientHeight-20)/800, 1.25); frame.style.transform = `scale(${k})`; }
+function show(c){
+  document.querySelectorAll('.tabs button').forEach(b=>b.classList.toggle('on', b.dataset.c===c));
+  document.querySelectorAll('.concept').forEach(el=>el.classList.toggle('on', el.dataset.c===c));
+  document.getElementById('desc').textContent = DESC[c];
+}
+document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>show(b.dataset.c));
+document.getElementById('tDlg').onclick = e => { document.body.classList.toggle('show-dlg'); e.target.classList.toggle('on'); drawTower(); };
+document.getElementById('tNight').onclick = e => { night = !night; e.target.classList.toggle('on'); drawTower(); };
+// small interactivity: selectable buttons inside groups
+document.querySelectorAll('.seg, .ov, .ovs, .cats, .cattabs, .prices, .segp, .pr').forEach(grp=>{
+  grp.addEventListener('click', ev=>{ const t = ev.target.closest('button, label'); if(!t || t.classList.contains('ib')) return;
+    [...grp.children].forEach(c=>c.classList.remove('on')); t.classList.add('on'); });
+});
+document.querySelectorAll('.tools, .cards, .toolrow').forEach(grp=>{
+  grp.addEventListener('click', ev=>{ const t = ev.target.closest('.tool, .card, .tl'); if(!t || t.classList.contains('lock')) return;
+    grp.querySelectorAll('.on').forEach(c=>c.classList.remove('on')); t.classList.add('on'); });
+});
+window.addEventListener('resize', fit);
+show('A'); fit(); drawTower();
+</script>
+</body>
+</html>

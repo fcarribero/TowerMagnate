@@ -170,14 +170,15 @@ describe('inspecting a unit', () => {
     });
   });
 
-  it('answers a cinema with its price and no film data yet', () => {
+  it('answers a cinema with its price and the age of its film', () => {
     const { state, id } = towerWith('cinema');
+    state.step = 15 * STEPS_PER_DAY;
     const data = inspectUnit(state, id);
 
     expect(throughTheWire(data)).toBe(true);
     expect(data).toMatchObject({
       type: 'cinema',
-      details: { group: 'cinema', filmWeek: null, filmAgeDays: null, price: 'normal' },
+      details: { group: 'cinema', filmWeek: 3, filmAgeDays: 15, price: 'normal' },
     });
   });
 
