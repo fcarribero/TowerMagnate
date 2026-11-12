@@ -1,5 +1,6 @@
 import { useEffect } from 'preact/hooks';
 import { Button } from '../kit/Button';
+import { ScrollArea } from '../kit/ScrollArea';
 import { Window } from '../kit/Window';
 import { useWindowManager } from '../kit/WindowLayer';
 import { t } from '../strings';
@@ -8,6 +9,7 @@ import { noticeBody, noticeStamp } from './noticeText';
 import './notices.css';
 
 export const AVISOS_WINDOW_ID = 'avisos';
+const AVISOS_LIST_HEIGHT = 200;
 
 export interface AvisosWindowProps {
   notices: readonly Notice[];
@@ -23,19 +25,24 @@ export function AvisosWindow({ notices, onSeeUnit, onClose }: AvisosWindowProps)
     return () => manager.close(AVISOS_WINDOW_ID);
   }, []);
   return (
-    <Window id={AVISOS_WINDOW_ID} title={t('window.notices.title')} onClose={onClose} width={360}>
+    <Window id={AVISOS_WINDOW_ID} title={t('window.notices.title')} onClose={onClose} width={280}>
       {notices.length === 0 && <p class="tm-avisos__empty">{t('window.notices.empty')}</p>}
-      <ul class="tm-avisos">
-        {notices.map((notice) => (
-          <li key={notice.id} class={notice.alert ? 'tm-avisos__item is-alert' : 'tm-avisos__item'}>
-            <span class="tm-avisos__stamp">{noticeStamp(notice.step)}</span>
-            <span class="tm-avisos__text">{noticeBody(notice)}</span>
-            {notice.unitId !== null && (
-              <Button onClick={() => onSeeUnit(notice.unitId as string)}>{t('ui.see')}</Button>
-            )}
-          </li>
-        ))}
-      </ul>
+      <ScrollArea label={t('window.notices.title')} maxHeight={AVISOS_LIST_HEIGHT}>
+        <ul class="tm-avisos">
+          {notices.map((notice) => (
+            <li
+              key={notice.id}
+              class={notice.alert ? 'tm-avisos__item is-alert' : 'tm-avisos__item'}
+            >
+              <span class="tm-avisos__stamp">{noticeStamp(notice.step)}</span>
+              <span class="tm-avisos__text">{noticeBody(notice)}</span>
+              {notice.unitId !== null && (
+                <Button onClick={() => onSeeUnit(notice.unitId as string)}>{t('ui.see')}</Button>
+              )}
+            </li>
+          ))}
+        </ul>
+      </ScrollArea>
     </Window>
   );
 }
