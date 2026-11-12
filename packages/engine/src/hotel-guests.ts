@@ -548,7 +548,7 @@ function arriveAtVenue(guest: Guest): void {
     return;
   }
   standAt(state, guest.slot, unitPlace(venue));
-  countVenueVisit(state, venue, stressOfTripEndedNow(state, guest.slot));
+  countVenueVisit(state, venue, stressOfTripEndedNow(state, guest.slot), 'hotel-guest');
   const stayEnds = state.step + VENUE_VISIT_MINUTES[type] * STEPS_PER_MINUTE;
   save(state, guest.slot, { ...routine, phase: 'atVenue' }, stayEnds);
 }

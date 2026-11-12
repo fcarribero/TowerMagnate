@@ -20,6 +20,7 @@ import { STEPS_PER_MINUTE } from '../calendar';
 import { STEPS_PER_DAY } from '../clock';
 import { cellsWithoutStructure, overlappingOccupants, structureAt } from '../grid';
 import { populationOf } from '../population';
+import { observeVenueVisits, type VisitSource } from '../venues';
 import { createTower } from '../state';
 import { step } from '../step';
 import {
@@ -85,11 +86,16 @@ export interface ProgressionOptions {
   onDay?: (day: number, state: TowerState) => void;
 }
 
+/** Counted visits to fast food, restaurants and shops in one day, by who made them. */
+export type VisitSplit = Record<VisitSource, number>;
+
 export interface StarDay {
   stars: StarRating;
   day: number;
   population: number;
   money: number;
+  /** The previous day's visits by source, which is what the venue population counts. */
+  visits: VisitSplit;
 }
 
 export interface DaySample {
@@ -759,25 +765,49 @@ function sampleOf(day: number, state: TowerState): DaySample {
   };
 }
 
+const POPULATION_VENUE_TYPES: ReadonlySet<UnitType> = new Set([
+  'fast-food',
+  'restaurant',
+  'retail-shop',
+]);
+
+function emptySplit(): VisitSplit {
+  return { resident: 0, 'office-worker': 0, 'hotel-guest': 0, 'outside-customer': 0 };
+}
+
 /** Plays the bot from an empty tower until the Torre rank or `maxDays`. */
 export function runProgression(options: ProgressionOptions): ProgressionRun {
   const bot = new ProgressionBot(options.seed);
   const starDays: StarDay[] = [];
   const samples: DaySample[] = [];
   let stars = bot.tower.stars;
+  let today = emptySplit();
+  let yesterday = emptySplit();
+  observeVenueVisits((source, type) => {
+    if (POPULATION_VENUE_TYPES.has(type)) today[source] += 1;
+  });
   for (let day = 0; day < options.maxDays; day++) {
+    yesterday = today;
+    today = emptySplit();
     for (let tick = 0; tick < STEPS_PER_DAY / TICK_STEPS; tick++) {
       bot.playTick();
       const state = bot.tower;
       if (state.stars !== stars) {
         stars = state.stars;
-        starDays.push({ stars, day, population: populationOf(state).total, money: state.money });
+        starDays.push({
+          stars,
+          day,
+          population: populationOf(state).total,
+          money: state.money,
+          visits: { ...yesterday },
+        });
       }
     }
     samples.push(sampleOf(day, bot.tower));
     options.onDay?.(day, bot.tower);
     if (stars === 6) break;
   }
+  observeVenueVisits(null);
   return {
     seed: options.seed,
     starDays,
