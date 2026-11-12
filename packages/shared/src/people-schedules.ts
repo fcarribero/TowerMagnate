@@ -145,6 +145,25 @@ export const CUSTOMER_STAY_MINUTES: Readonly<Record<VisitedVenueType, number>> =
   'retail-shop': 45,
 };
 
+/** Minutes around a cinema show start at which its audience appears (people spec 12), negative = before. */
+export const CINEMA_AUDIENCE_ARRIVAL: readonly WindowPart[] = [
+  { from: -60, to: -30, weight: 40 },
+  { from: -30, to: 0, weight: 60 },
+];
+
+/** Someone who reaches the cinema up to this many minutes after the show starts still goes in. */
+export const CINEMA_LATE_ENTRY_MINUTES = 15;
+
+/** When the guests of the party hall appear (people spec 13). */
+export const PARTY_GUEST_ARRIVAL: readonly WindowPart[] = [
+  { from: minutes(12), to: minutes(12, 30), weight: 30 },
+  { from: minutes(12, 30), to: minutes(13), weight: 50 },
+  { from: minutes(13), to: minutes(13, 30), weight: 20 },
+];
+
+/** A guest who reaches the party hall at this minute of the day or later does not go in. */
+export const PARTY_HALL_ENTRY_CLOSES = minutes(15);
+
 /** Outside customers a day before the other factors (people spec 11.3). */
 export const OUTSIDE_CUSTOMER_BASE: Readonly<
   Record<VisitedVenueType, { weekday: number; weekend: number }>

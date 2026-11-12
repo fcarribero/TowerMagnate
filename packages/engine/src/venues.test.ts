@@ -100,17 +100,42 @@ describe('venue daily income', () => {
     );
   });
 
-  it('reports no notice for a venue that was not open that day, a cinema or a party hall', () => {
+  it('reports no notice for a venue that was not open that day', () => {
     const late = towerWith('fast-food', at(1, 8, 1));
     const state = structuredClone(late.tower);
     state.step = at(1, 20) - 5;
     expect(engine.step(state, [], 6).events).toEqual([]);
-    for (const type of ['cinema', 'party-hall'] as const) {
-      const { tower } = towerWith(type);
-      const quiet = structuredClone(tower);
-      quiet.step = at(1, VENUE_PAYOUT_HOURS[type].pays) - 5;
-      expect(engine.step(quiet, [], 6).events).toEqual([]);
-    }
+  });
+
+  it.each([
+    ['cinema', 'news.cinemaLowAudience', 0, 79, true],
+    ['cinema', 'news.cinemaLowAudience', 40, 40, false],
+    ['cinema', 'news.cinemaLowAudience', 40, 39, true],
+    ['party-hall', 'news.partyHallEmpty', 24, 0, true],
+    ['party-hall', 'news.partyHallEmpty', 25, 0, false],
+  ] as const)(
+    '%s with %i and %i visits reports its notice: %s',
+    (type, key, visits, evening, reported) => {
+      const { tower, id } = towerWith(type);
+      setCounts(tower, id, visits, evening);
+      const state = structuredClone(tower);
+      state.step = at(1, VENUE_PAYOUT_HOURS[type].pays) - 5;
+      const { events } = engine.step(state, [], 6);
+      const news = events.filter((event) => event.type === 'news');
+      expect(news.map((event) => ({ key: event.key, unitId: event.unitId }))).toEqual(
+        reported ? [{ key, unitId: id }] : [],
+      );
+    },
+  );
+
+  it('reports no cinema notice once the film is 56 days old', () => {
+    const { tower, id } = towerWith('cinema');
+    const venue = tower.units[id]?.venue;
+    if (!venue) throw new Error('not a venue');
+    venue.filmChangedAtStep = at(1, 0) - 56 * STEPS_PER_DAY;
+    const state = structuredClone(tower);
+    state.step = at(1, VENUE_PAYOUT_HOURS.cinema.pays) - 5;
+    expect(engine.step(state, [], 6).events.filter((event) => event.type === 'news')).toEqual([]);
   });
 
   it('averages the two cinema shows and rounds down', () => {
