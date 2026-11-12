@@ -24,15 +24,25 @@ import type { SimulationSystem, StepContext } from './step';
 import { writableUnit } from './step-copy';
 import { drawMinuteFromWindow } from './time-windows';
 import { startTrek } from './trek';
-import { stressOfTripEndedNow } from './trip-ledger';
+import {
+  drawShowArrivals,
+  isShowVenue,
+  showCapacity,
+  showEntryAt,
+  showGuestCount,
+  showVisitorKind,
+  type ShowVenue,
+} from './show-visitors';
+import { stressOfLastTrip, stressOfTripEndedNow } from './trip-ledger';
 import { fileShopVisit } from './unit-evaluation';
 import { unitNumber } from './units';
 import {
-  CUSTOMER_KIND,
   changeCustomersInside,
+  customersInsideVenue,
   customerTripAt,
   encodeCustomerTrip,
   forgetCustomersInside,
+  isOutsideVisitor,
   type CustomerEntrance,
   type CustomerPhase,
 } from './venue-visitors';
@@ -103,6 +113,19 @@ function drawAppearanceSteps(
   return minutes.map((minute) => dayStart + minute * STEPS_PER_MINUTE);
 }
 
+/** Every show of the day gets the same number of visitors, from the venue's cap and yesterday's stress. */
+function planShowVisitors(
+  state: TowerState,
+  unit: ShowVenue,
+  averageStress: number | null,
+  subway: boolean,
+  dayStart: number,
+): number[] {
+  const cap = showCapacity(state, unit);
+  const guestsPerShow = showGuestCount({ cap, averageStress, subway });
+  return drawShowArrivals(state, unit, guestsPerShow, dayStart);
+}
+
 /**
  * At 00:00 every venue's day count rolls over (stars spec 3.2), then each food venue and each
  * let shop gets the day's outside customers from yesterday's stress, in increasing unit id.
@@ -116,6 +139,10 @@ function planCustomers(context: StepContext, occurrence: HookOccurrence): void {
     const venue = unit.venue as VenueDay;
     const averageStress = rollVenueDay(venue);
     venue.customers = [];
+    if (isShowVenue(unit)) {
+      venue.customers = planShowVisitors(state, unit, averageStress, subway, occurrence.step);
+      continue;
+    }
     if (!getsCustomers(unit)) continue;
     const count = outsideCustomerCount({
       type: unit.type,
@@ -163,7 +190,7 @@ function sendCustomer(context: StepContext, unit: Unit, station: Unit | null): v
   const door = entranceDoor(state, entrance);
   if (!door) return;
   const personId = addPerson(state, {
-    kind: 'customer',
+    kind: isShowVenue(unit) ? showVisitorKind(unit.type) : 'customer',
     homeUnit: unitNumber(unit.id),
     level: door.level,
     column: door.column,
@@ -233,9 +260,50 @@ function leaveTower(context: StepContext, slot: number, entrance: CustomerEntran
   removePerson(state, personId);
 }
 
+function showVenueOf(state: TowerState, slot: number): ShowVenue | null {
+  const unitId = `u${state.people.homeUnit[slot]}`;
+  const unit = Object.hasOwn(state.units, unitId) ? state.units[unitId] : undefined;
+  return unit && isShowVenue(unit) ? unit : null;
+}
+
+/**
+ * A visitor of a show waits inside until it starts and goes in until the entry time is over,
+ * when the show has room. The visit counts from the step they go in and lasts until the show ends.
+ */
+function arriveAtShow(
+  context: StepContext,
+  slot: number,
+  unit: ShowVenue,
+  entrance: CustomerEntrance,
+): void {
+  const { state } = context;
+  const stepOfDay = state.step % STEPS_PER_DAY;
+  const dayStart = state.step - stepOfDay;
+  const entry = showEntryAt(unit.type, stepOfDay);
+  if (entry.kind === 'wait') {
+    state.people.dueStep[slot] = dayStart + entry.until;
+    return;
+  }
+  const venue = unitNumber(unit.id);
+  const full = customersInsideVenue(state, venue) >= showCapacity(state, unit);
+  if (entry.kind === 'turnAway' || full) {
+    leaveTower(context, slot, entrance);
+    return;
+  }
+  countVenueVisit(state, unit, stressOfLastTrip(state, slot));
+  changeCustomersInside(state, venue, 1);
+  setPhase(state, slot, 'atVenue', entrance);
+  state.people.dueStep[slot] = dayStart + entry.endsAt;
+}
+
 /** In if the venue is open and not full; the visit counts and lasts until its time or closing. */
 function arriveAtVenue(context: StepContext, slot: number, entrance: CustomerEntrance): void {
   const { state } = context;
+  const show = showVenueOf(state, slot);
+  if (show) {
+    arriveAtShow(context, slot, show, entrance);
+    return;
+  }
   const unit = customerVenueOf(state, slot);
   if (unit) fileShopVisit(state, unit, state.people.id[slot] as number);
   const canEnter =
@@ -271,13 +339,13 @@ function advanceCustomer(context: StepContext, slot: number): void {
   }
 }
 
-/** People spec 4.1: at 03:00 every customer still in the tower leaves the simulation. */
+/** People spec 4.1: at 03:00 every customer, audience member and party guest still in the tower leaves the simulation. */
 function sendCustomersHome(context: StepContext): void {
   const { state } = context;
   const pool = state.people;
   const leaving: number[] = [];
   for (let slot = 0; slot < pool.id.length; slot++) {
-    if (pool.kind[slot] === CUSTOMER_KIND) leaving.push(pool.id[slot] as number);
+    if (isOutsideVisitor(pool, slot)) leaving.push(pool.id[slot] as number);
   }
   for (const personId of leaving) removePerson(state, personId);
   forgetCustomersInside(state);
@@ -290,7 +358,7 @@ export interface CustomerSystems {
   system: SimulationSystem;
 }
 
-/** Outside customers of fast food, restaurants and retail shops (people spec 11). */
+/** Outside customers of fast food, restaurants and retail shops (people spec 11), and the audience and guests of cinemas and party halls (12, 13). */
 export function createCustomers(): CustomerSystems {
   const walk = createPeopleSystem(advanceCustomer);
   return {
