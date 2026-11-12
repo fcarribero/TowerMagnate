@@ -4,12 +4,14 @@ import type { UnitInspect } from '../../model/inspectStore';
 import {
   evaluationView,
   filmChangeState,
+  groupUnitRows,
   levelText,
   locationText,
   isSoldCondo,
   priceOf,
   priceOptions,
   unitRows,
+  unitSubtitle,
   unitTitle,
 } from './unitWindowModel';
 
@@ -156,7 +158,7 @@ describe('unit window model', () => {
       details: { group: 'cinema', filmWeek: 3, filmAgeDays: 15, price: 'normal' },
     };
     expect(unitRows(cinema)).toEqual([
-      { id: 'film', label: 'Película', value: 'Semana 3 (día 15)' },
+      { id: 'film', label: 'Película', value: 'Semana 3 (día 15)', tone: 'plain' },
     ]);
   });
 
@@ -167,8 +169,8 @@ describe('unit window model', () => {
       details: { group: 'housekeeping', maidsWorking: 4, maids: 6, dirtyRooms: 11 },
     };
     expect(unitRows(housekeeping)).toEqual([
-      { id: 'maidsWorking', label: 'Mucamas trabajando', value: '4 de 6' },
-      { id: 'dirtyRooms', label: 'Habitaciones sucias en la torre', value: '11' },
+      { id: 'maidsWorking', label: 'Mucamas trabajando', value: '4 de 6', tone: 'plain' },
+      { id: 'dirtyRooms', label: 'Habitaciones sucias en la torre', value: '11', tone: 'plain' },
     ]);
     expect(priceOf(housekeeping)).toBeNull();
   });
@@ -192,6 +194,34 @@ describe('unit window model', () => {
     expect(evaluationView('good').color).toBe('sky-deep');
     expect(evaluationView('poor').color).toBe('cloth-red');
     expect(evaluationView(null)).toEqual({ label: 'Sin evaluar', color: 'gray' });
+  });
+
+  it('splits a price into its level name and amount', () => {
+    expect(priceOptions('office')[0]).toMatchObject({ name: 'Alto', amount: '$15.000' });
+  });
+
+  it('writes the type, level and cells in the subtitle', () => {
+    expect(unitSubtitle(office)).toBe('Oficina · Piso 12 · casilleros 40 a 48');
+  });
+
+  it('groups state, occupancy and evaluation as tiles and contract and payment as chips', () => {
+    const groups = groupUnitRows(unitRows(office));
+    expect(groups.tiles.map((row) => row.id)).toEqual(['status', 'people', 'evaluation']);
+    expect(groups.chips.map((row) => row.id)).toEqual(['lease', 'nextPayment']);
+    expect(groups.rows).toEqual([]);
+    const cinema = groupUnitRows([{ id: 'film', label: 'Película', value: 'x', tone: 'plain' }]);
+    expect(cinema.rows.map((row) => row.id)).toEqual(['film']);
+  });
+
+  it('tones the state and evaluation tiles', () => {
+    const [status, , evaluation] = unitRows(office);
+    expect(status?.tone).toBe('good');
+    expect(evaluation?.tone).toBe('warn');
+    const forRent: Lease = { ...lease, state: 'forRent', evaluation: 'good' };
+    const [vacant, , good] = unitRows({ ...office, details: forRent });
+    expect([vacant?.tone, good?.tone]).toEqual(['plain', 'good']);
+    const poor: Lease = { ...lease, evaluation: 'poor' };
+    expect(unitRows({ ...office, details: poor })[2]?.tone).toBe('bad');
   });
 
   it('disables the film change under $300.000, with a reason', () => {
