@@ -4,6 +4,7 @@ import { buildFloor } from './build-floor';
 import { buildLobby } from './build-lobby';
 import { buildTransport } from './build-transport';
 import { buildShaft, resizeShaft } from './build-shaft';
+import { changeFilm } from '../films';
 import { configureShaft } from './configure-shaft';
 import { buildUnit } from './build-unit';
 import { demolish } from './demolish';
@@ -26,6 +27,7 @@ export const towerCommandHandlers: CommandHandlers = {
   demolish,
   renameUnit,
   setPrice,
+  changeFilm,
   followPerson: followPersonCommand,
   unfollowPerson: unfollowPersonCommand,
 };

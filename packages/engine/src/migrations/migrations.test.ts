@@ -109,6 +109,7 @@ describe('migrateState unit leases', () => {
         stressSum: 900,
         stressTrips: 12,
         customers: [],
+        filmChangedAtStep: 9_000,
       },
     };
     expect(migratedUnit(JSON.parse(JSON.stringify(cinema)))).toEqual(cinema);
@@ -622,6 +623,16 @@ describe('migrateState unit evaluation', () => {
     for (let unit = 346; unit < 346 + 28; unit++) ledger[`u${unit}`] = [300, 15];
     const migrated = migrateState({ ...raw, unitLedger: ledger, schemaVersion: 32 });
     expect(migrated.unitLedger).toEqual({ u3: [100, 40, 200, 60] });
+    expect(migrated).toEqual(tower);
+  });
+
+  it('gives a cinema saved before version 34 its first film', () => {
+    const tower = createTower(5);
+    tower.units.u3 = newUnit('u3', 'cinema', 10, 2);
+    const raw = JSON.parse(JSON.stringify(tower)) as { units: Record<string, { venue: object }> };
+    delete (raw.units.u3?.venue as { filmChangedAtStep?: number }).filmChangedAtStep;
+    const migrated = migrateState({ ...raw, schemaVersion: 33 });
+    expect(migrated.units.u3?.venue?.filmChangedAtStep).toBeNull();
     expect(migrated).toEqual(tower);
   });
 

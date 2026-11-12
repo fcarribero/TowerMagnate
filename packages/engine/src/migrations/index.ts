@@ -93,6 +93,7 @@ const MIGRATIONS: readonly Migration[] = [
   addVipVisit,
   addRoomDirtyChecks,
   dropOrphanLedgerEntries,
+  addFilmChangeStep,
 ];
 
 /** Version 2 records each unit's price level, what was paid for it and when it was placed. */
@@ -505,6 +506,22 @@ function dropOrphanLedgerEntries(raw: Record<string, unknown>): Record<string, u
   return { ...raw, schemaVersion: 33, unitLedger: Object.fromEntries(kept) };
 }
 
+/** Version 34 keeps when a cinema's film last changed; a saved cinema still shows its first film. */
+function addFilmChangeStep(raw: Record<string, unknown>): Record<string, unknown> {
+  if (!isRecord(raw.units)) {
+    return { ...raw, schemaVersion: 34 };
+  }
+  const units: Record<string, unknown> = {};
+  for (const [id, unit] of Object.entries(raw.units)) {
+    units[id] = isRecord(unit) && isRecord(unit.venue) ? withFilmChangeStep(unit) : unit;
+  }
+  return { ...raw, schemaVersion: 34, units };
+}
+
+function withFilmChangeStep(unit: Record<string, unknown>): Record<string, unknown> {
+  return { ...unit, venue: { filmChangedAtStep: null, ...(unit.venue as object) } };
+}
+
 function withHotelBooking(unit: Record<string, unknown>): Record<string, unknown> {
   return { ...unit, hotel: { arrivalStep: null, rollDue: false, ...(unit.hotel as object) } };
 }
@@ -591,7 +608,8 @@ function isVenueDay(value: unknown): value is VenueDay {
     isNonNegativeInteger(value.stressSum) &&
     isNonNegativeInteger(value.stressTrips) &&
     Array.isArray(value.customers) &&
-    value.customers.every(isNonNegativeInteger)
+    value.customers.every(isNonNegativeInteger) &&
+    (value.filmChangedAtStep === null || isNonNegativeInteger(value.filmChangedAtStep))
   );
 }
 
