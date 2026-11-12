@@ -82,6 +82,30 @@ describe('InfoDialogs', () => {
     expect(document.querySelector('.tm-modal-backdrop')).toBeNull();
   });
 
+  it.each([
+    ['stars', '¡3 estrellas!'],
+    ['wedding', '¡Rango Torre!'],
+    ['welcome', 'Bienvenida'],
+  ])('shows the %s dialog with an ink title, one Aceptar and a close square', (kind, title) => {
+    const { send, sendEvents } = renderDialogs();
+    if (kind === 'stars') {
+      sendEvents([{ type: 'starsChanged', step: 200, stars: 3 }]);
+    } else if (kind === 'wedding') {
+      sendEvents([{ type: 'weddingCompleted', step: 200 }]);
+    } else {
+      send(serverMessage('snapshot', newTower));
+    }
+
+    const frame = screen.getByText(title).closest('section') as HTMLElement;
+    expect(frame.classList.contains('tm-window--dialog-info')).toBe(true);
+    expect(frame.querySelector('.tm-window__stripe')).not.toBeNull();
+    expect(frame.querySelector('.tm-window__close')).not.toBeNull();
+    const buttons = Array.from(frame.querySelectorAll('.tm-dialog__buttons button'));
+    expect(buttons.map((button) => button.textContent)).toEqual(['Aceptar']);
+    expect(buttons[0]?.classList.contains('is-default')).toBe(true);
+    expect(document.querySelector('.tm-modal-backdrop')).toBeNull();
+  });
+
   it('focuses Aceptar so Enter confirms', () => {
     const { sendEvents } = renderDialogs();
     sendEvents([{ type: 'weddingCompleted', step: 200 }]);
