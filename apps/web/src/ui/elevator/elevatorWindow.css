@@ -14,10 +14,6 @@
   white-space: nowrap;
 }
 
-.elevator-schedule .tm-input {
-  width: calc(36 * var(--tm-px));
-}
-
 .elevator-schedule tr.is-now {
   color: var(--obra-ink);
   background: var(--obra-yellow);
@@ -37,6 +33,15 @@
   font: var(--text-status-label);
   text-transform: uppercase;
   border-bottom: var(--border-control);
+}
+
+.elevator-schedule .tm-input {
+  width: calc(40 * var(--tm-px));
+}
+
+.elevator-schedule select {
+  width: calc(60 * var(--tm-px));
+  font: var(--text-body-strong);
 }
 
 .elevator-schedule td {
