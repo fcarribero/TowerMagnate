@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { TOWER_LAYOUT } from '../balance';
 import { CAR_DIRECTIONS } from '../engine';
 import { MAX_NAME_LENGTH } from '../names';
+import { WEDDING_GUESTS } from '../people-schedules';
 import { ElevatorScheduleSchema, MAX_CARS_PER_SHAFT } from './commands';
 import {
   CAR_DOORS,
@@ -145,6 +146,12 @@ export const EventViewSchema = z.discriminatedUnion('kind', [
     cells: z.array(CellRangeSchema),
     /** Only for a fire: the burned span of every level that has burned. */
     spans: z.array(FireSpanSchema).optional(),
+  }),
+  z.object({
+    kind: z.literal('wedding'),
+    cathedral: UnitEntityIdSchema,
+    /** The wedding guests in the tower so far; all of them once the last has arrived. */
+    guests: z.array(PersonEntityIdSchema).max(WEDDING_GUESTS),
   }),
 ]);
 
