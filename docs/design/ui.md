@@ -1,12 +1,12 @@
 # UI layout, tools and Spanish glossary
 
-Version 2.0, 18 February 2027. Owner: Game Designer. Tasks TM-18 (version 1) and TM-274 (visual style "Obra").
+Version 3.0, 12 March 2027. Owner: Game Designer. Tasks TM-18 (version 1), TM-274 (visual style "Obra") and the Obra layout rework (version 3).
 
 This document defines the game screen: where each region sits, what every tool does, what every window shows, how overlays and dialogs work, and the exact Spanish text of every label and message. It is the contract for the UI kit (TM-63), the toolbar (TM-66), the renderer and the screens that follow, and for QA.
 
 Sources: `docs/GDD.md` section Interfaz, the construction rules (`docs/design/construction.md`, TM-8), the economy rules (`docs/design/economy.md`, TM-9), the unit catalog in `packages/shared` (TM-6), the engine and protocol doc (`docs/tech/engine-and-protocol.md`, TM-5) and the art style guide (`docs/art/style-guide.md`, TM-69). Where the GDD leaves a point open, the decision is marked "Design call" with a short reason. The numbered rules in section 14 are what QA checks.
 
-Version 2 changes the visual style only. The layout of section 2, the region sizes, the tower view, the camera, the UI scale rule, every Spanish text and every string key stay as in version 1. The style comes from concept C, "Obra", of `docs/design/ui-obra-reference.html`; of that file only colors, borders, shadows, fonts, tiles and stripes apply, and its layout does not. Section 1.1 holds the style tokens the code uses.
+Version 2 changed the visual style: colors, borders, shadows, fonts, tiles and stripes of concept C, "Obra", from `docs/design/ui-obra-reference.html`. Version 3 also takes the layout of that file. The status bar becomes a row of separate blocks, the 80 px left toolbar becomes a bar along the bottom with category tabs, a row of tool tiles, a detail box and the zoom buttons, and the news line becomes an LED ticker on the bottom edge. The tower view, the camera and the Spanish texts do not change. The UI scale rule changes because the reference is drawn for a 1280 x 800 window (section 1). Section 1.1 holds the style tokens the code uses.
 
 Other specs own parts of the content shown here. Elevator band times and limits come from TM-12. Event deadlines and options come from TM-15. The full list of news and notice texts belongs to TM-17; section 13.9 holds the texts that exist today, and TM-17 adds to that table rather than starting a new one.
 
@@ -17,19 +17,19 @@ All UI text is Spanish (Rioplatense, with voseo: "Dejá", "Cambiá"). Code, ids 
 Two scales are used and they never mix.
 
 - Zoom applies to the tower view only. It is a whole number from 1 to 4 and means one art pixel is drawn as `zoom × zoom` device pixels, nearest neighbour, as in the style guide.
-- UI scale applies to everything else (status bar, toolbar, windows, news line). Sizes in this document are in UI pixels at UI scale 1. At UI scale `s` every UI pixel is `s × s` CSS pixels.
+- UI scale applies to everything else (top bar, build bar, windows, news line). Sizes in this document are in UI pixels. At UI scale `s` every UI pixel is `s × s` CSS pixels.
 
-UI scale is chosen from the browser viewport in CSS pixels:
+UI scale is chosen from the browser viewport in CSS pixels. At the design size of 1280 x 800 it is 1.5, so 1 UI pixel is 1.5 CSS pixels and the sizes below match the reference file at 1280 x 800. It follows the smaller side of the viewport in steps of 0.25:
 
 ```
-uiScale = clamp(floor(min(viewportWidth / 1024, viewportHeight / 640)), 1, 3)
+uiScale = clamp(round(1.5 × min(viewportWidth / 1280, viewportHeight / 800) / 0.25) × 0.25, 1, 4.5)
 ```
 
-So 1024 x 640 up to 2047 x 1279 is scale 1, 2048 x 1280 and up is scale 2, and so on. The scale is recalculated on every resize. Below 1024 x 640 the game is not drawn and a centered message reads "Agrandá la ventana del navegador para jugar." (`ui.viewportTooSmall`).
+So 1024 x 640 is scale 1.25, 1280 x 800 is 1.5, 1920 x 1080 is 2 and 2560 x 1600 is 3. The scale is recalculated on every resize. Below 1024 x 640 the game is not drawn and a centered message reads "Agrandá la ventana del navegador para jugar." (`ui.viewportTooSmall`).
 
-Design call: a fixed minimum and whole-number UI scale keep the 16 x 16 icons and the 1 px borders sharp, and make every font size an exact whole number of CSS pixels, the same reason the tower uses whole-number zoom.
+Design call: the fonts are outline fonts, so the scale does not have to be a whole number. The steps of 0.25 keep borders of 2 UI pixels near a whole number of CSS pixels.
 
-Fonts: three web fonts replace the pixel font. Sizes are in UI pixels, so at UI scale `s` a size of 9 is `9 × s` CSS pixels. Line heights are fixed numbers, never `normal`, so text cannot push a bar taller than its fixed height. All three fonts cover the Spanish letters (á é í ó ú ü ñ Ñ ¿ ¡ and the uppercase accented vowels). Text is never scaled by fractions, and the smallest size is 8 UI pixels.
+Fonts: three web fonts replace the pixel font. Sizes are in UI pixels, so at UI scale `s` a size of 9 is `9 × s` CSS pixels (13.5 at the design size). Line heights are fixed numbers, never `normal`, so text cannot push a bar taller than its fixed height. All three fonts cover the Spanish letters (á é í ó ú ü ñ Ñ ¿ ¡ and the uppercase accented vowels). The smallest size is 6.5 UI pixels.
 
 | Font id | Family | Weights | Used for |
 |---|---|---|---|
@@ -122,34 +122,38 @@ Design call: the reference draws 3 px borders and 4 px shadows on a 1280 x 800 f
 
 ## 2. Screen layout
 
-The screen at UI scale 1, with `W` and `H` the viewport size in UI pixels:
+The screen, with `W` and `H` the viewport size in UI pixels. The tower view fills the area above the build bar, and the bars float over it as separate blocks:
 
 ```
 +--------------------------------------------------------------+  y = 0
-| Status bar (full width, 24 px)                               |
-+--------+-----------------------------------------------------+  y = 24
-|        |                                                     |
-| Tool-  |                Tower view                           |
-| bar    |      (floating windows open over this area)         |
-| 80 px  |                                                     |
-|        |                                       [legend]      |
-+--------+-----------------------------------------------------+  y = H - 20
-| News line (full width, 20 px)                                |
+|  [TOWER] [time/date] [$ saldo] [Pobl.] [stars]  [overlays][4] |  top bar, blocks 38 px tall
+|  [legend]                                                     |
+|                      Tower view                               |
+|          (floating windows open over this area)               |
+|                                                               |
+|    [Estructura][Transporte][...]                              |  tabs of the build menu
+| [L][T][C]  [tool tile][tile][tile]...     [detail box]  [+]   |  build bar, 100 px
+|                                                         [-]   |
++--------------------------------------------------------------+  y = H - 27
+| NOTICIAS  news ticker                                         |  news line, 27 px
 +--------------------------------------------------------------+  y = H
 ```
 
 | Region | Position | Size |
 |---|---|---|
-| Status bar | x 0, y 0 | W x 24 |
-| Toolbar | x 0, y 24 | 80 x (H - 44) |
-| Tower view | x 80, y 24 | (W - 80) x (H - 44) |
-| News line | x 0, y H - 20 | W x 20 |
-| Overlay legend | bottom left corner of the tower view, 4 px inset | as needed, only when an overlay other than Normal is on |
-| Toast | centered over the news line, bottom edge 4 px above it | as needed |
+| Top bar | x 8, y 8 | (W - 16) x 38, blocks 6 px apart |
+| Tower view | x 0, y 0 | W x (H - 135); the soil color `tm-soil` fills the rest behind the build bar |
+| Build bar | x 8, bottom edge 8 px above the news line | (W - 16) x 100 including the tabs |
+| News line | x 0, y H - 27 | W x 27 |
+| Overlay legend | bottom left of the tower view, 8 px above the build bar | as needed, only when an overlay other than Normal is on |
+| Toast | centered, 8 px above the build bar | as needed |
+| Level ruler | left edge of the tower view, 8 px in | 20 wide |
 
-Windows float over the tower view. They can be dragged anywhere, but at least 24 x 12 UI pixels of the title bar always stay inside the tower view, so a window can never be lost off screen. A window that would end up outside after a resize is moved back in.
+The top bar and the build bar are not part of the tower view, but the top bar floats over its top edge. The camera works on the tower view rectangle, so the ground and the first two basement levels show above the build bar at the start, as before.
 
-Default window positions, measured inside the tower view:
+Windows float over the area between the top bar and the build bar. They can be dragged anywhere, but at least 24 x 12 UI pixels of the title bar always stay inside that area, so a window can never be lost off screen. A window that would end up outside after a resize is moved back in.
+
+Default window positions, measured inside that area:
 
 | Window | Default position |
 |---|---|
@@ -158,7 +162,7 @@ Default window positions, measured inside the tower view:
 | Inspection windows (unit, person, elevator) | next to the clicked object, on the side with more room, 16 px away, then clamped into the view |
 | Personas seguidas, Avisos, Estrellas | top left, 8 px from each edge |
 | Decision and confirm dialogs | centered in the tower view |
-| Menú | below the Menú button |
+| Menú | below the logo block |
 
 A window opened a second time comes back where the player last left it during this session.
 
@@ -171,7 +175,7 @@ The cross-section of the whole site: 375 columns and levels from S10 up to four 
 ### 3.2 Zoom
 
 - Levels 1x, 2x, 3x and 4x. Default 2x.
-- Ctrl + mouse wheel, the `+` and `-` keys, and the two zoom buttons in the status bar change zoom by one step.
+- Ctrl + mouse wheel, the `+` and `-` keys, and the two zoom buttons at the right of the build bar change zoom by one step.
 - Zooming with the wheel keeps the cell under the cursor fixed on screen. Zooming with keys or buttons keeps the center of the view fixed.
 
 ### 3.3 Scroll
@@ -189,90 +193,66 @@ The cross-section of the whole site: 375 columns and levels from S10 up to four 
 - A level ruler on the left edge of the tower view shows the label of every visible level ("12", "S3"). Level labels are in `text.status-label` on a `obra.paper` tag with `border.control` and the text in `obra.ink`; the hovered level label is `obra.yellow` with `obra.ink` text. The ruler sits over the tower view, so its tags use the `obra` tokens as the other chrome does.
 - With the Lupa, hovering over a person, car or unit shows a tooltip with its name after 0.5 s.
 
-### 3.5 FPS line
+### 3.5 No debug text
 
-In development builds the FPS line (`ui.stage.stats`) is an `obra.ink` block with `border.control` and `space.1` padding, 8 px from the right edge of the stage and 8 px above the news line (28 px from the bottom edge), with the text on one line in `text.status-label` and `obra.yellow`.
+The tower view shows no FPS, zoom or drawn-level counter, in any build.
 
 ## 4. Status panel
 
-The status bar is 24 px tall and as wide as the screen, with a `border.window` bottom edge drawn inside the 24 px. Its background is `obra.ink`. Every item is a block 18 px tall, placed 2 px from the top (`space.1`) and 2 px above the bottom edge line, so the blocks never touch the 2 px `border.window` (2 + 18 + 2 + 2 = 24), with `space.1` between blocks. A block has `border.control`, `obra.paper` as background unless the table says otherwise, and `space.2` padding on the left and right. Block text is on one line.
+The status panel is the top bar: a row of separate blocks 38 px tall, 8 px from the top and from both sides, with 6 px between blocks. It has no background of its own, so the tower shows between the blocks. Every block has `border.control`, `obra.paper` as background unless the table says otherwise, a hard shadow of 3 px in `obra.ink`, and `space.4` padding on the left and right. Block text is on one line. A pressed block moves `size.press-offset`.
 
-The status bar holds, from left to right:
+The bar holds, from left to right:
 
-| Item | Content | Width | Style |
-|---|---|---|---|
-| Menú button | text "Menú" | 40 | `obra.ink` background, `obra.yellow` text in `text.button`. Open: `obra.yellow` background, `obra.ink` text. |
-| Date | `{weekday} {day} de {month}, año {year}` | fits text | `text.status-value`. Saturday and Sunday put the weekday name in a tag: `obra.red` background, `obra.paper` text, 2 px padding left and right. |
-| Time | `HH:MM` | 32 minimum, no maximum | `text.status-value`, `space.1` padding left and right. The block is as wide as its text plus 4 px, and never under 32 px, so the digits are not clipped at UI scale 2 or 3 or with the fallback fonts. The built CSS sets no `max-width`; `HH:MM` is always 5 characters, so the width is bounded by the widest 5 characters of the font. |
-| Money | balance in money format | 72 minimum, 120 maximum | `obra.yellow` background, `obra.ink` text in `text.status-value`. Negative: `obra.red` background, `obra.paper` text. The block grows with its text between 72 and 120 px, so "$2.000.000" and "-$1.500.000" fit in `text.status-value`; the items to its right move over. |
-| Population | `Población {n}` | fits text | the word "Población" in `text.status-label`, then `{n}` in `text.status-value` |
-| Stars | 5 star icons, or 5 stars plus the word "TORRE" at the top rank; click opens Estrellas | 80 or 112 | 5 slots of 14 px. A filled star is `obra.ink`. An empty star is a 1 px `obra.muted` outline with no fill. "TORRE" is in `text.status-label` on an `obra.ink` tag with `obra.yellow` text. |
-| Overlay selector | 4 buttons: Normal, Evaluación, Precios, Hotel | 4 x 24 | One button per overlay, 24 wide, divided by `border.control`. Each shows its key, `1` to `4`, in `text.button`; the name is the tooltip and the accessible name. The current button is `obra.ink` with `obra.yellow` text, the others are `obra.paper`. |
-| Zoom | buttons "-" and "+" | 2 x 16 wide, 18 tall | `obra.paper` buttons with `border.control`, the sign in `text.status-value`. Pressed: `size.press-offset`. |
-| Window buttons | Mapa, Finanzas, Seguidos, Avisos | 4 x 24 | 24 wide, 18 tall blocks with the window icon at 1x. The button of an open window is `obra.yellow`. Avisos also carries the unread badge described below the table. |
+| Item | Content | Style |
+|---|---|---|
+| Logo block | "TOWER" over "MAGNATE"; click opens the Menú | `obra.ink` background, `obra.yellow` text in `font.display` 10. Open: `obra.yellow` background, `obra.ink` text. Its accessible name is "Menú". |
+| Date block | `HH:MM` over `{weekday} {day} de {month}, año {year}` | The time in `font.display` 14, the date in `font.text` 700 at 7, uppercase. Saturday and Sunday put the weekday name in a tag: `obra.red` background, `obra.paper` text. |
+| Money | balance in money format | `obra.yellow` background, `obra.ink` text in `font.display` 14, 80 wide at least, growing with its text. Negative: `obra.red` background, `obra.paper` text. |
+| Population | "Población" over `{n}` | The word in `font.text` 700 at 6.5, uppercase, letter-spaced; the number in `font.display` 12. |
+| Stars | 5 stars, or 5 stars plus the word "TORRE" at the top rank; click opens Estrellas | Stars of 12 px. A filled star is `obra.ink`; an empty star is an `obra.ink` outline filled with `obra.rule`. "TORRE" is on an `obra.ink` tag with `obra.yellow` text. |
+| Spacer | | Takes the free width, so the next blocks sit at the right edge. |
+| Overlay selector | 4 buttons: Normal, Evaluación, Precios, Hotel | One block, the buttons divided by `border.control`. Each shows its name in `font.text` 700 at 7, uppercase. The current button is `obra.ink` with `obra.yellow` text. The keys `1` to `4` still pick an overlay (section 11). |
+| Window buttons | Mapa, Finanzas, Seguidos, Avisos | Four blocks 32 wide with a line icon of 14 (map, bars, eye, bell). The button of an open window is `obra.yellow`. Avisos also carries the unread badge below. |
 
-Examples of the date block: "Lunes 1 de enero, año 1  00:00", "Miércoles 11 de noviembre, año 3  14:35".
+Examples of the date block: "00:00 / Lunes 1 de enero, año 1", "14:35 / Miércoles 11 de noviembre, año 3".
 
 - The time shows game hours and minutes, truncated, so it changes every game minute (every 0.625 real seconds).
 - The date changes at 00:00. On Saturday and Sunday the weekday carries the red tag, so the weekend reads at a glance.
 - Money and population update with every delta.
-- Block text never wraps. If the text of a block is wider than the block, the block grows (items marked "fits text"), and the items to its right keep their order; they do not shrink.
-- When the window is narrower than everything above, the window buttons drop into the Menú list first, then the zoom buttons.
-- At the minimum viewport of 1024 px the items need at most 904 px: Menú 40, date 260 at the longest ("Miércoles 30 de septiembre, año 99"), time 32 (more if the text is wider, see its row), money 120, population 96, stars 112, overlays 96, zoom 32, window buttons 96, plus 2 px between the 9 blocks and 2 px at each end. The bar fits with 120 px to spare.
+- Block text never wraps. If the text of a block is wider than the block, the block grows and the items to its right keep their order.
+- When the window is too narrow for everything above, the window buttons drop into the Menú list. The zoom buttons are not in this bar any more; they sit at the right of the build bar (section 5.1).
 
-Design calls against the reference: an empty star is a 1 px `obra.muted` outline, where the reference fills it with `#444`, so it reads as empty on `obra.paper`. The Avisos button has a small unread badge (below), and the status bar has no 3-tile status grid or meta chips, because the 18 px blocks have no room for them; the news line shows what is new.
+Design calls against the reference: an empty star is filled with `obra.rule` instead of `#444`, so it reads as empty on `obra.paper`. The status panel has no 3-tile status grid or meta chips. The news ticker shows what is new.
 
-Avisos unread badge (TM-276, PR 296): a red square on the top right corner of the Avisos window button, `obra.red` background with the count in `obra.paper` `text.status-label`. It is 8 UI px tall and at least 8 wide (1 px padding left and right, so it grows with the text), and it shows the number of unread notices from 1 to 9, and `9+` above 9. It is hidden at 0. Its accessible name is `ui.unreadNotices` (`{n} sin leer`). It sits inside the 18 px block and does not change the block size.
-
-Design call: the overlay buttons keep their 24 px width, which cannot hold "Evaluación" in `text.button`. The key digit fits, matches the shortcut of section 11, and the name stays in the tooltip.
+Avisos unread badge: a red circle on the top right corner of the Avisos window button, `obra.red` background with the count in `obra.paper`, `font.text` 700 at 7, with `border.control`. It is 16 UI px tall and at least 16 wide, and it shows the number of unread notices from 1 to 9, and `9+` above 9. It is hidden at 0. Its accessible name is `ui.unreadNotices` (`{n} sin leer`). It hangs 7 px over the corner of the button and does not change the block size.
 
 ## 5. Toolbar
 
 ### 5.1 Layout
 
-The toolbar is 80 px wide and as tall as the tower view. Its background is `obra.yellow`, with a `border.window` edge on the right drawn inside the 80 px, so the inner width is 78. Content has `space.1` padding on the left and right, which leaves 74 px for the controls below.
+The toolbar is the build bar along the bottom of the screen, 8 px from both sides and 8 px above the news line. Items sit on the bottom line, 6 px apart, from left to right:
 
 ```
-+--------------------+
-| [Lu][To][Ca]       |  fixed tools, 3 tiles 22 x 24, 4 px apart
-+--------------------+
-| [Estr.]  [Trans.]  |
-| [Of/V]   [Hotel ]  |  categories, 2 x 3 tiles 36 x 24, 2 px apart
-| [Com/E]  [Serv. ]  |
-+--------------------+
-| [t1] [t2]          |
-| [t3] [t4]          |  tools of the open category,
-| [t5] [t6]          |  2 columns of 36 x 36 tiles, 2 px apart
-| ...                |
-+--------------------+
-| Tool info box      |  bottom, 74 x 62, 2 px above the bottom edge
-+--------------------+
+          [Estructura][Transporte][Oficinas y vivienda][Hotel][...]
++-------+ +----------------------------------------------------+ +-----------+ [+]
+| L T C | | [tile] [tile] [tile] [tile] [tile]                 | | Detail    | [-]
++-------+ +----------------------------------------------------+ +-----------+
 ```
 
-Heights: 2 px of top padding, the fixed row (24), 2 px, the category grid (3 x 24 + 2 x 2 = 76), 2 px, the tool grid (as many rows of 36 + 2 as the category needs, at most 4 rows, 150 px), and the info box pinned to the bottom. At the minimum viewport the toolbar is 596 px tall and the content above the info box needs at most 2 + 24 + 2 + 76 + 2 + 150 = 256 px, so nothing scrolls.
+- Fixed tools: an `obra.ink` block with `border.control`, 4 px padding and three 35 x 35 buttons 4 px apart. A button is `obra.paper` with a line icon of 15 and its key (`L`, `T`, `C`) at the bottom right in `font.text` 700 at 6. The selected one is `obra.yellow`.
+- Category tabs: one tab per category, in the order of 5.3, with its full name in `font.text` 700 at 8, uppercase, `border.control` without a bottom edge, tabs overlapping by one border, starting 10 px from the left of the tool row. The open tab is `obra.yellow`, 2 px lower than the others, with 4 px more padding at the bottom; the others are `obra.paper`.
+- Tool row: `obra.yellow` with `border.control`, a hard shadow of 3 px and 6 px padding, tiles 6 px apart, scrolling sideways when the tiles do not fit.
+- Tool tile: 75 wide, `obra.paper` with `border.control`, 6 px top and bottom padding and 8 px left and right. It shows a line icon of 14, the name in `font.text` 700 at 8 (two lines at most, always the full name) and the price in `font.display` at 8, the price of one unit, one cell or the shaft. A hovered tile moves 2 up and 2 left and shows `shadow.control`. A pressed tile moves `size.press-offset`. The current tool is `obra.ink` with `obra.yellow` text. A tool locked by stars has `size.lock-stripe` stripes as background and `obra.muted` text, and carries a tag on its top right corner with one star per unlock star on `obra.ink` with `obra.yellow` text. A locked tile cannot be selected and does not move on hover.
+- Detail box: 147 wide, `obra.paper` with `border.control` and a hard shadow of 3 px, 8 px padding. It shows the current tool, or the hovered tool until the cursor leaves it: the name in `font.display` 11, then one row per fact with a rule above (`Tamaño` and `Precio` in `font.text` at 8). A locked tool adds a row "Se desbloquea con {n} estrellas" in `obra.red`. Fixed tools show the name only.
+- Zoom: two buttons, "+" over "−", 29 x 25 each, `obra.paper` with `border.control` and a shadow of 2 px, the sign in `font.display` 12.
 
-Tiles:
+One category is open at a time. Clicking a tab opens it and does not change the current tool.
 
-- Every tile has `border.control` and `obra.paper` as background. A hovered tile moves 1 up and 1 left and shows `shadow.control` (motion rule of section 1.1). A pressed tile moves `size.press-offset`.
-- The current tool is `obra.ink` with `obra.yellow` text; its icon sits on an `obra.yellow` 34 x 34 square inside the tile when the art has no one-color version. The open category tile is `obra.yellow`.
-- Until the icons exist, tiles show their name in `text.tile-label`, centered, at most 2 lines of 10 px. A name with a short form in 13.3 (`category.short.*`, `tool.short.*`) always shows the short form on its button, at every UI scale; a name without one shows in full. The short forms are the names that do not fit a tile without breaking a word, for example Servicios, whose tile reads "Servic.". The tooltip, the info box, the accessible name and window titles keep the full name.
-- Tool tiles show the 16 x 16 icon at 2x (32 px), centered; the tile is 36 px, so the 1 px border leaves 1 px around the icon. Fixed tools show the icon at 1x.
-- One category is open at a time. Clicking a category opens it and does not change the current tool.
-- A tool locked by stars has `size.lock-stripe` stripes (`obra.paper` and `obra.paper-shade`) as background, its icon at 55 % opacity, and `obra.muted` text. It carries a lock badge: an 8 x 8 `obra.ink` square with an `obra.yellow` lock, inside the tile at the top right corner. A locked tile cannot be selected and does not move on hover.
+For the lobby the detail box also shows the height choice: the label `ui.lobbyHeight` and three 14 x 14 buttons "1", "2", "3" with `border.control`, the selected one `obra.yellow`. When the height is locked by an existing lobby the buttons are disabled in `obra.muted` and only the locked height keeps its `obra.yellow` fill. The texts `ui.lobbyHeightLocked` and `ui.mainLobbyWarning` show in a note above the build bar: `obra.paper` background, `border.window`, `text.body`, `space.2` padding, 160 px wide, at its left edge. The note shows while the lobby tool is selected and the situation applies, and it is not clickable.
 
-The tool info box is 74 x 62 with `border.control`, `obra.paper` background and `space.2` padding, so the content area is 64 x 52. It shows the current tool, or the hovered tool until the cursor leaves it:
+Tooltips: `obra.paper` background, `border.window`, `space.2` padding, at most 160 px wide, no shadow. Line 1 is the name and price in `text.body-strong`, line 2 the size in `text.body`, and line 3 (locked tools only) "Se desbloquea con {n} estrellas" in `text.body` with `obra.red` text. A tooltip opens after 0.5 s under its tile, or above it when there is no room below, which is the case for the build bar.
 
-| Row | Style | Height |
-|---|---|---|
-| Name (1 or 2 lines, short form never used here; a name that needs a third line is cut with "...") | `text.body-strong` | 24 |
-| Size, in the format of 5.3, one line cut with "..." | `text.tile-label`, `obra.muted` | 10 |
-| Price, one line cut with "..." | `text.price` | 10 |
-
-For the lobby the size row is replaced by the height choice: the label `ui.lobbyHeight` and three 14 x 14 buttons "1", "2", "3" with `border.control`, the selected one `obra.yellow`. When the height is locked by an existing lobby the buttons are disabled in `obra.muted` and only the locked height keeps its `obra.yellow` fill. The texts `ui.lobbyHeightLocked` and `ui.mainLobbyWarning` do not fit in the box. They show in a note next to the toolbar: `obra.paper` background, `border.window`, `text.body`, `space.2` padding, 160 px wide, its left edge at the toolbar edge and its bottom edge level with the info box. The note shows while the lobby tool is selected and the situation applies, and it is not clickable.
-
-Tooltips: `obra.paper` background, `border.window`, `space.2` padding, at most 160 px wide, no shadow. Line 1 is the name and price in `text.body-strong`, line 2 the size in `text.body`, and line 3 (locked tools only) "Se desbloquea con {n} estrellas" in `text.body` with `obra.red` text. A tooltip opens after 0.5 s and opens to the right of the toolbar.
-
-Design call: the reference tool tiles show a name and a price inside a 112 px tile. A 36 px tile cannot hold them, so the name and price live in the info box and the tooltip, and the tile is an icon. This keeps the toolbar width of 80.
+Design call: the detail box repeats what the tooltip says, so the player can read the size and the price of a tool without waiting for the tooltip.
 
 ### 5.2 Fixed tools
 
@@ -612,12 +592,12 @@ The legend in the bottom left of the tower view is a box with `obra.paper` backg
 
 ### 8.1 News line
 
-The bottom bar is 20 px tall and as wide as the screen. Its background is `obra.ink`, with a `border.window` top edge drawn inside the 20 px, so the content area is 18 px tall. It shows one notice at a time, left aligned: a stamp, then the text.
+The news line is the LED ticker on the bottom edge: 27 px tall and as wide as the screen, with an `obra.ink` background and a `border.control` top edge. At the left it has a fixed red tag, "NOTICIAS", in `obra.red` with `obra.paper` text in `font.text` 700 at 8, uppercase, letter-spaced, with 12 px padding on the left and right. Next to it it shows one notice at a time, left aligned: a small red square, the stamp, then the text.
 
-- The stamp is the `{weekday abbr} {HH:MM}` part of the notice. It is a block 18 px tall, `obra.red` background, `obra.paper` text in `text.status-label`, `space.2` padding left and right, with no border of its own.
-- The text is the rest of the notice in `text.news` and `obra.yellow`, starting 6 px after the stamp, on one line and cut with "..." if too long (the full text is in the tooltip and in Avisos).
-- Alert notices have an alarm icon at 1x (16 x 16, 1 px above and below) in front of the stamp, and their text is `obra.red`.
-- After 20 real seconds without a new notice the line keeps the last one with the stamp background and the text in `obra.muted`.
+- The stamp is the `{weekday abbr} {HH:MM}` part of the notice, in `text.news` and `obra.yellow`, with no background.
+- The text is the rest of the notice in `font.mono` 600 at 9.5 and `obra.yellow` with a soft yellow glow, on one line and cut with "..." if too long (the full text is in the tooltip and in Avisos).
+- Alert notices have an alarm icon at 1x in front of the stamp, and their text is `obra.red`.
+- After 20 real seconds without a new notice the line keeps the last one with its text in `obra.muted`.
 
 Rules of the queue:
 
@@ -1258,13 +1238,13 @@ The username and password limits come from TM-52. The server's 409 maps to `auth
 
 ### Layout and scale
 
-UI-01. UI scale is `clamp(floor(min(viewportWidth / 1024, viewportHeight / 640)), 1, 3)` and is recalculated on resize.
+UI-01. UI scale is `clamp(round(1.5 × min(viewportWidth / 1280, viewportHeight / 800) / 0.25) × 0.25, 1, 4.5)` and is recalculated on resize.
 
 UI-02. Below 1024 x 640 CSS pixels the game is not drawn and `ui.viewportTooSmall` is shown.
 
-UI-03. At UI scale 1 the status bar is 24 px tall at the top, the news line 20 px tall at the bottom, the toolbar 80 px wide on the left between them, and the tower view fills the rest.
+UI-03. The top bar is a row of blocks 38 px tall, 8 px from the top and the sides. The news line is 27 px tall at the bottom. The build bar sits above the news line, 100 px tall including its tabs. The tower view fills the width and ends above the build bar.
 
-UI-04. A window can be dragged anywhere, but at least 24 x 12 px of its title bar stays inside the tower view, including after a resize.
+UI-04. A window can be dragged anywhere, but at least 24 x 12 px of its title bar stays inside the area between the top bar and the build bar, including after a resize.
 
 UI-05. Tower zoom is 1x to 4x in whole steps, default 2x. Wheel zoom keeps the cell under the cursor fixed.
 
@@ -1282,7 +1262,7 @@ UI-10. Money uses `.` for thousands and no decimals. The money block is `obra.ye
 
 UI-11. Stars show 5 slots, filled up to the rating; at the top rank all 5 are filled and "TORRE" is shown.
 
-UI-11a. The Avisos button shows an unread badge: a red 8 px tall square (at least 8 wide) on its top right corner with the number of unread notices, 1 to 9 and `9+` above 9, hidden at 0, named `ui.unreadNotices` (`{n} sin leer`), inside the 18 px block without changing its size.
+UI-11a. The Avisos button shows an unread badge: a red circle (16 px tall, at least 16 wide) on its top right corner with the number of unread notices, 1 to 9 and `9+` above 9, hidden at 0, named `ui.unreadNotices` (`{n} sin leer`), over the corner of the 38 px block without changing its size.
 
 ### Toolbar
 

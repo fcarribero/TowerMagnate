@@ -2,14 +2,25 @@ import { useEffect, useState } from 'preact/hooks';
 
 export const MIN_VIEWPORT_WIDTH = 1024;
 export const MIN_VIEWPORT_HEIGHT = 640;
-export const MAX_UI_SCALE = 3;
+export const MIN_UI_SCALE = 1;
+export const MAX_UI_SCALE = 4.5;
+/** The scale at the design size: 1 UI pixel is 1.5 CSS pixels at 1280 x 800. */
+export const DESIGN_UI_SCALE = 1.5;
+export const DESIGN_VIEWPORT_WIDTH = 1280;
+export const DESIGN_VIEWPORT_HEIGHT = 800;
+const SCALE_STEP = 0.25;
 
-/** How many CSS pixels one UI pixel takes: whole steps only, so the pixel font stays sharp. */
+/**
+ * How many CSS pixels one UI pixel takes. It grows with the viewport in quarter steps, from the
+ * design size of 1280 x 800, where it is 1.5. The fonts are outline fonts, so it need not be whole.
+ */
 export function uiScaleFor(viewportWidth: number, viewportHeight: number): number {
-  const fit = Math.floor(
-    Math.min(viewportWidth / MIN_VIEWPORT_WIDTH, viewportHeight / MIN_VIEWPORT_HEIGHT),
+  const fit = Math.min(
+    viewportWidth / DESIGN_VIEWPORT_WIDTH,
+    viewportHeight / DESIGN_VIEWPORT_HEIGHT,
   );
-  return Math.min(Math.max(fit, 1), MAX_UI_SCALE);
+  const stepped = Math.round((fit * DESIGN_UI_SCALE) / SCALE_STEP) * SCALE_STEP;
+  return Math.min(Math.max(stepped, MIN_UI_SCALE), MAX_UI_SCALE);
 }
 
 export function isViewportTooSmall(viewportWidth: number, viewportHeight: number): boolean {

@@ -16,7 +16,6 @@ function storeAt(fields: Partial<typeof snapshot> = {}): ClientStore {
 function renderPanel(store: ClientStore, props: Partial<StatusPanelProps> = {}) {
   const handlers = {
     onOpenWindow: vi.fn(),
-    onZoom: vi.fn(),
     onLogout: vi.fn(),
   };
   render(<StatusPanel store={store} {...handlers} {...props} />);
@@ -30,7 +29,7 @@ function text(selector: string): string {
 describe('StatusPanel', () => {
   it('shows the first moment of a new tower', () => {
     renderPanel(storeAt({ step: 0, money: 2_000_000, population: 0, stars: 1 }));
-    expect(text('.status-panel__date')).toBe('Lunes 1 de enero, año 1');
+    expect(text('.status-panel__day')).toBe('Lunes 1 de enero, año 1');
     expect(text('.status-panel__time')).toBe('00:00');
     expect(text('.status-panel__money')).toBe('$2.000.000');
     expect(text('.status-panel__population')).toBe('Población 0');
@@ -45,7 +44,7 @@ describe('StatusPanel', () => {
 
   it('marks a Saturday date as weekend', () => {
     renderPanel(storeAt({ step: stepOfDate({ year: 1, month: 1, day: 6, hour: 8 }) }));
-    const date = document.querySelector('.status-panel__date');
+    const date = document.querySelector('.status-panel__day');
     expect(date?.textContent).toBe('Sábado 6 de enero, año 1');
     const tag = document.querySelector('.status-panel__weekday');
     expect(tag?.textContent).toBe('Sábado');
@@ -124,15 +123,12 @@ describe('StatusPanel', () => {
     expect(text('.status-panel__time')).toBe('00:01');
   });
 
-  it('opens windows and zooms from its buttons', () => {
+  it('opens windows from its buttons', () => {
     const handlers = renderPanel(storeAt());
     fireEvent.click(screen.getByRole('button', { name: 'Finanzas' }));
     fireEvent.click(screen.getByRole('button', { name: 'Mapa' }));
     fireEvent.click(screen.getByRole('button', { name: /Rango actual/ }));
-    fireEvent.click(screen.getByRole('button', { name: 'Acercar' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Alejar' }));
     expect(handlers.onOpenWindow.mock.calls).toEqual([['finance'], ['map'], ['stars']]);
-    expect(handlers.onZoom.mock.calls).toEqual([[1], [-1]]);
   });
 
   it('logs out from the menu', () => {

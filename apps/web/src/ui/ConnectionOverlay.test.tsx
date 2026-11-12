@@ -39,9 +39,9 @@ describe('ConnectionOverlay', () => {
     expect(onReload).toHaveBeenCalledTimes(1);
   });
 
-  it('starts the banner after the 80 px toolbar so it stays over the tower view', () => {
+  it('runs the banner across the whole width, under the top bar', () => {
     const css = readFileSync(resolve(__dirname, '../style.css'), 'utf8');
     const banner = /\.connection-banner \{[^}]*\}/.exec(css)?.[0] ?? '';
-    expect(banner).toContain('left: calc(80 * var(--tm-px));');
+    expect(banner).toContain('left: 0;');
   });
 });

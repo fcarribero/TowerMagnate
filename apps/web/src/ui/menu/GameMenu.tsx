@@ -64,11 +64,13 @@ export function GameMenu({ items = [], onLogout }: GameMenuProps) {
     <div class="game-menu" ref={rootRef}>
       <button
         type="button"
-        class="status-button"
+        class="status-panel__logo"
+        aria-label={t('ui.menu')}
         aria-expanded={open}
         onClick={() => setOpen((isOpen) => !isOpen)}
       >
-        {t('ui.menu')}
+        <span>{t('ui.gameNameTop')}</span>
+        <span>{t('ui.gameNameBottom')}</span>
       </button>
       {open && (
         <div class="game-menu-list" role="menu" onKeyDown={onListKeyDown}>

@@ -1,3 +1,4 @@
+/* The LED ticker on the bottom edge: a red tag, then one notice in yellow mono on black. */
 .tm-news {
   position: absolute;
   right: 0;
@@ -5,14 +6,22 @@
   left: 0;
   box-sizing: border-box;
   display: flex;
-  height: calc(20 * var(--tm-px));
+  height: var(--chrome-news-height);
   overflow: hidden;
   background: var(--obra-ink);
-  border-top: var(--border-window);
+  border-top: var(--border-control);
 }
 
-.tm-news:hover {
-  border-top-color: var(--obra-yellow);
+.tm-news__tag {
+  display: flex;
+  flex: none;
+  align-items: center;
+  padding: 0 var(--space-6);
+  font: 700 calc(8 * var(--tm-px)) / 1 var(--font-text);
+  color: var(--obra-paper);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  background: var(--obra-red);
 }
 
 .tm-news > .tm-tooltip-anchor {
@@ -25,13 +34,14 @@
   flex: 1;
   min-width: 0;
   height: 100%;
-  padding: 0;
+  padding: 0 var(--space-6);
   overflow: hidden;
   color: var(--obra-yellow);
   text-align: left;
   background: none;
   border: 0;
   cursor: pointer;
+  text-shadow: 0 0 calc(4 * var(--tm-px)) rgb(255 212 0 / 60%);
 }
 
 .tm-news__notice {
@@ -43,38 +53,42 @@
   animation: tm-news-in 0.25s linear;
 }
 
+.tm-news__notice::before {
+  flex: none;
+  width: calc(5 * var(--tm-px));
+  height: calc(5 * var(--tm-px));
+  content: '';
+  background: var(--obra-red);
+}
+
 .tm-news.is-alert .tm-news__button {
   color: var(--obra-red);
+  text-shadow: none;
 }
 
 .tm-news.is-muted .tm-news__button {
   color: var(--obra-muted);
+  text-shadow: none;
 }
 
 .tm-news__icon {
   flex: none;
-  width: calc(16 * var(--tm-px));
-  height: calc(16 * var(--tm-px));
-  margin-right: calc(-6 * var(--tm-px));
+  width: calc(14 * var(--tm-px));
+  height: calc(14 * var(--tm-px));
   fill: var(--obra-red);
 }
 
 .tm-news__stamp {
   flex: none;
-  padding: 0 var(--space-2);
-  font: var(--text-status-label);
-  line-height: calc(18 * var(--tm-px));
-  color: var(--obra-paper);
-  text-transform: uppercase;
+  font: var(--text-news);
   white-space: nowrap;
-  background: var(--obra-red);
 }
 
 .tm-news__text {
   flex: 1;
   min-width: 0;
   overflow: hidden;
-  font: var(--text-news);
+  font: 600 calc(9.5 * var(--tm-px)) / 1.2 var(--font-mono);
   text-overflow: ellipsis;
   white-space: nowrap;
 }

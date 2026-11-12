@@ -63,7 +63,7 @@ body,
 
 .kit-demo__status-bar {
   position: relative;
-  height: calc(24 * var(--tm-px));
+  height: calc(var(--chrome-top-height) + 2 * var(--chrome-gap));
 }
 
 .kit-demo__status .kit-demo__row {

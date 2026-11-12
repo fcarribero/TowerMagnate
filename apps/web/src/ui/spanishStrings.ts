@@ -92,6 +92,11 @@ export const SPANISH_STRINGS = {
 
   // 13.4 Status bar, calendar and menus
   'ui.menu': 'Menú',
+  'ui.newsTag': 'Noticias',
+  'ui.detailSize': 'Tamaño',
+  'ui.detailPrice': 'Precio',
+  'ui.gameNameTop': 'TOWER',
+  'ui.gameNameBottom': 'MAGNATE',
   'ui.date': '{weekday} {day} de {month}, año {year}',
   'ui.population': 'Población {n}',
   'ui.towerRank': 'TORRE',
@@ -523,5 +528,4 @@ export const SPANISH_STRINGS = {
   'auth.passwordLong': 'La contraseña lleva como máximo 128 caracteres.',
   'ui.stage.loading': 'Cargando gráficos…',
   'ui.stage.loadError': 'No se pudieron cargar los gráficos. Recargá la página.',
-  'ui.stage.stats': '{fps} FPS · Zoom {zoom}x · Pisos dibujados: {floors}',
 } as const;

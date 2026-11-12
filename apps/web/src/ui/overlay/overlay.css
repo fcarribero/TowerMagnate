@@ -1,23 +1,19 @@
-/* The buttons share the block's outer border and are divided by one control border. */
-.overlay-selector {
-  box-sizing: border-box;
-  display: flex;
-  flex: none;
+/* The overlay buttons share one block, divided by thick rules; the pressed one is ink. */
+.status-panel .status-panel__overlay .overlay-selector {
+  gap: 0;
   align-items: stretch;
-  width: calc(96 * var(--tm-px));
-  height: calc(18 * var(--tm-px));
+  padding: 0;
   overflow: hidden;
-  border: var(--border-control);
 }
 
 .status-panel .overlay-selector__button {
-  flex: 1;
   height: auto;
-  padding: 0;
-  font: var(--text-button);
+  padding: 0 var(--space-3);
+  font: 700 calc(7 * var(--tm-px)) / 1 var(--font-text);
   color: var(--obra-ink);
+  text-transform: uppercase;
   cursor: pointer;
-  background: var(--obra-paper);
+  background: none;
   border: none;
 }
 
@@ -36,8 +32,8 @@
 
 .overlay-legend {
   position: absolute;
-  bottom: calc(24 * var(--tm-px));
-  left: calc(84 * var(--tm-px));
+  bottom: calc(var(--chrome-bottom-edge) + var(--chrome-gap));
+  left: var(--chrome-gap);
   box-sizing: border-box;
   width: calc(96 * var(--tm-px));
   padding: var(--space-2);

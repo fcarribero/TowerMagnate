@@ -26,6 +26,7 @@ function Harness({ stars, initialTool = 'inspect', ...lobbyContext }: HarnessPro
       onSelectTool={setTool}
       lobbyHeight={lobbyHeight}
       onLobbyHeightChange={setLobbyHeight}
+      onZoom={() => undefined}
       {...lobbyContext}
     />
   );
@@ -66,12 +67,12 @@ describe('Toolbar', () => {
     ).toEqual(['Piso', 'Lobby']);
   });
 
-  it('shows short labels on buttons and keeps full names for screen readers', () => {
+  it('writes the full category names on the tabs and the name and price on a tool tile', () => {
     render(<Harness stars={2} />);
     const category = screen.getByRole('tab', { name: 'Comercio y entretenimiento' });
-    expect(category.textContent).toBe('Com. y entr.');
+    expect(category.textContent).toBe('Comercio y entretenimiento');
     openCategory('Hotel');
-    expect(toolButton('Habitación simple').textContent).toBe('Hab. simple');
+    expect(toolButton('Habitación simple').textContent).toBe('Habitación simple$20.000');
   });
 
   it('opens a category without changing the current tool', () => {
@@ -88,7 +89,7 @@ describe('Toolbar', () => {
     fireEvent.click(toolButton('Oficina'));
     expect(toolButton('Oficina').getAttribute('aria-pressed')).toBe('true');
     expect(toolButton('Lupa').getAttribute('aria-pressed')).toBe('false');
-    expect(infoText()).toBe('Oficina9 x 1 casilleros$40.000');
+    expect(infoText()).toBe('OficinaTamaño9 x 1 casillerosPrecio$40.000');
   });
 
   it('keeps locked tools unselectable at 1 star', () => {
@@ -113,7 +114,9 @@ describe('Toolbar', () => {
     render(<Harness stars={1} />);
     openCategory('Servicios');
     fireEvent.pointerEnter(toolButton('Catedral'));
-    expect(infoText()).toBe('Catedral28 x 4 casilleros$35.000.000');
+    expect(infoText()).toBe(
+      'CatedralTamaño28 x 4 casillerosPrecio$35.000.000Se desbloquea con 5 estrellas',
+    );
     expect(document.querySelector('.tm-toolbar__info-size')?.textContent).toBe('28 x 4 casilleros');
     expect(document.querySelector('.tm-toolbar__info-price')?.textContent).toBe('$35.000.000');
     fireEvent.pointerLeave(toolButton('Catedral'));

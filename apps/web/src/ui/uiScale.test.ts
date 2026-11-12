@@ -8,20 +8,20 @@ function resizeTo(width: number, height: number): void {
 }
 
 describe('uiScaleFor', () => {
-  it('is 1 from 1024 x 640 up to just below twice that', () => {
-    expect(uiScaleFor(1024, 640)).toBe(1);
-    expect(uiScaleFor(2047, 1279)).toBe(1);
+  it('is 1.5 at the design size of 1280 x 800', () => {
+    expect(uiScaleFor(1280, 800)).toBe(1.5);
   });
 
-  it('steps up only when both sides fit the next whole scale', () => {
-    expect(uiScaleFor(2048, 1280)).toBe(2);
-    expect(uiScaleFor(4000, 1279)).toBe(1);
-    expect(uiScaleFor(3072, 1920)).toBe(3);
+  it('follows the smaller side in quarter steps', () => {
+    expect(uiScaleFor(1024, 640)).toBe(1.25);
+    expect(uiScaleFor(1920, 1080)).toBe(2);
+    expect(uiScaleFor(1920, 1200)).toBe(2.25);
+    expect(uiScaleFor(4000, 1000)).toBe(2);
   });
 
-  it('stays between 1 and 3', () => {
+  it('stays between 1 and 4.5', () => {
     expect(uiScaleFor(800, 500)).toBe(1);
-    expect(uiScaleFor(8000, 5000)).toBe(3);
+    expect(uiScaleFor(8000, 5000)).toBe(4.5);
   });
 });
 
@@ -39,12 +39,12 @@ describe('useUiScale', () => {
   it('follows resizes and publishes the CSS variable', () => {
     resizeTo(1280, 800);
     const { result } = renderHook(() => useUiScale());
-    expect(result.current).toEqual({ scale: 1, tooSmall: false });
-    expect(document.documentElement.style.getPropertyValue('--tm-ui-scale')).toBe('1');
+    expect(result.current).toEqual({ scale: 1.5, tooSmall: false });
+    expect(document.documentElement.style.getPropertyValue('--tm-ui-scale')).toBe('1.5');
 
     act(() => resizeTo(2560, 1440));
-    expect(result.current).toEqual({ scale: 2, tooSmall: false });
-    expect(document.documentElement.style.getPropertyValue('--tm-ui-scale')).toBe('2');
+    expect(result.current).toEqual({ scale: 2.75, tooSmall: false });
+    expect(document.documentElement.style.getPropertyValue('--tm-ui-scale')).toBe('2.75');
 
     act(() => resizeTo(900, 600));
     expect(result.current).toEqual({ scale: 1, tooSmall: true });

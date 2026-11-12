@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'preact/hooks';
 import { NEWS_GRAY_AFTER_MS, NewsQueue, type Notice } from './noticeModel';
 import { noticeBody, noticeStamp } from './noticeText';
 import { Tooltip } from '../kit';
+import { t } from '../strings';
 import { ALARM_ICON, PixelIcon } from '../status/pixelIcons';
 import './notices.css';
 
@@ -45,7 +46,11 @@ export function NewsLine({ subscribe, onOpenAvisos, onSeeUnit, now = Date.now }:
 
   const current = queue.current.current();
   if (current === null) {
-    return <div class="tm-news" />;
+    return (
+      <div class="tm-news">
+        <span class="tm-news__tag">{t('ui.newsTag')}</span>
+      </div>
+    );
   }
   const classes = [
     'tm-news',
@@ -62,6 +67,7 @@ export function NewsLine({ subscribe, onOpenAvisos, onSeeUnit, now = Date.now }:
   };
   return (
     <div class={classes}>
+      <span class="tm-news__tag">{t('ui.newsTag')}</span>
       <Tooltip text={noticeBody(current)}>
         <button type="button" class="tm-news__button" onClick={open}>
           <span key={current.id} class="tm-news__notice">

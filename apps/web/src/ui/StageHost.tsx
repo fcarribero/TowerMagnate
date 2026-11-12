@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { t } from './strings';
-import { mountStage, type RenderStats, type Stage } from '../render/stage';
+import { mountStage, type Stage } from '../render/stage';
 
 interface StageHostProps {
   onStage?: (stage: Stage | null) => void;
@@ -8,7 +8,6 @@ interface StageHostProps {
 
 export function StageHost({ onStage }: StageHostProps) {
   const hostRef = useRef<HTMLDivElement>(null);
-  const [stats, setStats] = useState<RenderStats | null>(null);
   const [loadState, setLoadState] = useState<'loading' | 'ready' | 'failed'>('loading');
 
   useEffect(() => {
@@ -19,7 +18,7 @@ export function StageHost({ onStage }: StageHostProps) {
     let stage: Stage | undefined;
     let unmounted = false;
 
-    mountStage(host, { onStats: setStats }).then(
+    mountStage(host, {}).then(
       (mounted) => {
         if (unmounted) {
           mounted.destroy();
@@ -46,14 +45,10 @@ export function StageHost({ onStage }: StageHostProps) {
 
   return (
     <>
+      <div class="stage-ground" />
       <div class="stage-host" ref={hostRef} />
       {loadState === 'loading' && <div class="stage-message">{t('ui.stage.loading')}</div>}
       {loadState === 'failed' && <div class="stage-message">{t('ui.stage.loadError')}</div>}
-      {import.meta.env.DEV && stats && (
-        <div class="render-stats">
-          {t('ui.stage.stats', { fps: stats.fps, zoom: stats.zoom, floors: stats.floorsDrawn })}
-        </div>
-      )}
     </>
   );
 }

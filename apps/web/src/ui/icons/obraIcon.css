@@ -1,0 +1,10 @@
+.obra-icon {
+  flex: none;
+  width: calc(14 * var(--tm-px));
+  height: calc(14 * var(--tm-px));
+  fill: none;
+  stroke: currentcolor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
