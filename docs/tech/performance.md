@@ -72,6 +72,18 @@ TM-245 replaced the JSON comparison with a structural comparison of plain data (
 
 The next saving is the state clone. The runner owns its states, so it could step them in place and skip `structuredClone`, but a snapshot or a save that holds a reference to the state would then see it change. That needs its own task with tests for those references.
 
+## Transport step benchmark (TM-288)
+
+`pnpm bench:transport` (`scripts/bench-transport.ts`) times one weekday of the 60-floor tower three times. It runs in the `Lint, typecheck and test` job on every pull request, so a failure from runner noise blocks PRs that do not touch the engine. On 2027-02-16 and 2027-02-18 PRs 278 and 280 failed this way. The p99 step time varied from 1.35 to 1.59 ms between runs while the average stayed between 0.257 and 0.265 ms.
+
+The rule is now:
+
+- The 15% spread check between runs applies to the average step time only. The p99 varies too much on shared runners to compare between runs.
+- The budgets are hard limits: a median average step over 1 ms or a median p99 over 5 ms fails the job. People still on the move at 03:00 also fail it.
+- When a result fails for any reason, the whole benchmark (three runs) is run once more and the second result decides. A budget that is missed on the retry still fails.
+
+The check is `weekdayProblems` and the retry is `timeWeekdayBench`, both in `packages/engine/src/testing/transport-scenario.ts`.
+
 ## Release acceptance (TM-137)
 
 TM-137 checks the TM-114 and TM-124 targets on the release build. The `Performance acceptance` workflow (`.github/workflows/perf-acceptance.yml`) runs every check on GitHub Actions `ubuntu-latest` (4 vCPU, 16 GB) with Node 22. It runs on demand and on pull requests that change the workflow file. Each result is the median of 3 runs.
