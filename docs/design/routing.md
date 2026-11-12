@@ -186,7 +186,7 @@ The queue was not full when the leg was planned, but it can fill while the perso
    - that route costs at least 500 points less than the current ride with its surcharge (`FULL_QUEUE_SWITCH_MARGIN`). The surcharge is 1,000, so the new ride may cost up to 500 more than the current ride without the surcharge.
 4. If any condition fails, the person keeps waiting beside the same shaft and rechecks 6 steps later. A person who has made 2 switches stays at the shaft they are at until they join its queue and does not search for routes again in this trip.
 5. A switch counts when the person starts walking to the new shaft. The shaft they leave is added to the list of left shafts of the trip (2 entries at most, because of the cap). On arrival at the new shaft, step 1 starts again with a wait count of 0.
-6. The switch count and the list of left shafts belong to the trip. A new trip starts them at 0 and empty. A re-plan from 8.4 keeps the switch count and empties the list, because the old shafts may be gone or changed.
+6. The switch count and the list of left shafts belong to the trip. A new trip starts them at 0 and empty. A re-plan from 8.4 keeps the switch count and keeps the entries of the list whose shaft still exists and is not disabled. It drops only the entries of demolished or disabled shafts, so A to B to A cannot happen after a re-plan.
 
 A switch is not a leg break (8.4). It does not change the trip's ride counter, because a ride only counts when it is finished.
 
@@ -219,9 +219,16 @@ TM-287 runs the TM-258 count again on `pnpm bench:full-tower`, over the same win
 | People who went back to a shaft they had already chosen | 10,794 | 0 |
 | People who never boarded a car by 14:00 | 7,609 (of those with changes) | 750 or fewer (5% of 15,000) |
 | People still trying to leave the lobby at 14:00 | about 7,400 | 750 or fewer |
-| Boardings at level 1 | 4,541 | 14,250 or more (95% of 15,000) |
+| Boardings at level 1 | 4,541 | 11,500 or more (see below) |
+| Longest wait beside a full queue, in steps | not counted | 1,721 or fewer |
+| 99th percentile of waits beside a full queue, in steps | not counted | 1,383 or fewer |
+| People who made 2 switches and still wait beside a full queue at 14:00 | not counted | 260 or fewer |
 
-The 30,000 limit is 2 changes for each of the 15,000 people. The step budget in performance.md still has to hold with its final limits (5 ms average, 8 ms p95, 15 ms p99).
+The 30,000 limit is 2 changes for each of the 15,000 people.
+
+The level 1 target comes from trip starts. Only 12,150 of the 15,000 people start a trip in the window (06:00 to 14:00), so every one of them boards at level 1 at most once, and 15,000 was never reachable. 95% of 12,150 is 11,542, rounded down to 11,500. The TM-287 bench boards 11,989 people with 4 cars per shaft and 11,942 with 6, so the target is below both and below 12,150.
+
+The three wait limits are the TM-287 bench output for the 4-car layout with 20% added and rounded up: longest wait 1,434 steps, p99 1,152 steps and 216 people still waiting at 14:00, all with 2 switches. 1,434 x 1.2 = 1,721, 1,152 x 1.2 = 1,383 and 216 x 1.2 = 260. A wait is counted from the arrival beside a full queue to the join, for waits that ended; the people still waiting at 14:00 are counted separately. BE reruns the bench after the 8.4 change and GD adjusts these three numbers in a new task only if the rerun shows a change of more than the margin. The step budget in performance.md still has to hold with its final limits (5 ms average, 8 ms p95, 15 ms p99).
 
 #### Feasibility note for TL
 
@@ -239,7 +246,7 @@ Q5. Can a person wait for a long time beside a full queue? Joins go in increasin
 
 Q6. Does it stay deterministic? Yes. The rule uses no random draws, the list is in the order of switching, and ties between routes stay as in 7.2.
 
-Q7. What if the shaft the person waits at is demolished or its stop is disabled? 8.4 applies: the person re-plans at once, the list is emptied and the switch count is kept.
+Q7. What if the shaft the person waits at is demolished or its stop is disabled? 8.4 applies: the person re-plans at once, the switch count is kept, and the list keeps the shafts that still exist and are not disabled (the shaft the person waited at drops out if it is the one demolished or disabled).
 
 Q8. Which constants go to `packages/shared`? `FULL_QUEUE_STAY_RECHECKS` = 3, `FULL_QUEUE_SWITCH_MARGIN` = 500 and `FULL_QUEUE_MAX_SWITCHES_PER_TRIP` = 2, next to `FULL_QUEUE_RECHECK_STEPS`. TM-287 adds them to `balance.ts`.
 
@@ -258,7 +265,9 @@ A person re-plans at once, from where they stand, when the leg they are on stops
 
 A person on a flight that is demolished arrives on the flight's other level at once (construction 8.5) and re-plans there. What riders do when their exit stop is disabled is TM-12; they re-plan when they leave the car.
 
-The person's trip counters are kept when they re-plan. A flight or a ride only counts once it is finished.
+The person's trip counters are kept when they re-plan. A flight or a ride only counts once it is finished. The switch count stays as it is. The list of left shafts keeps every entry whose shaft still exists and is not disabled, and drops only the entries of demolished or disabled shafts. The re-plan then follows the same rule as a switch (8.3 step 3): its route may not board at a shaft still in the list.
+
+Example: p1 left s1 and then s2 (switch count 2, left list [s1, s2]) and now waits beside s3. s2 is demolished while p1 waits. p1 re-plans at once with switch count 2 and left list [s1], because s2 is gone and s1 still stands. The new route may not board at s1, so p1 cannot go back to s1. If s1 had been demolished instead, the list would be [s2] and s2 would stay forbidden.
 
 ## 9. No route
 
@@ -481,9 +490,9 @@ R-19a. A person beside a full queue switches to another ride only after 3 rechec
 
 R-19b. A person never returns to a shaft they left in the same trip, so A to B to A does not happen. After 2 switches they wait at their shaft until they join its queue.
 
-R-19c. The switch count and the list of left shafts reset with each new trip. A re-plan from 8.4 keeps the count and empties the list.
+R-19c. The switch count and the list of left shafts reset with each new trip. A re-plan from 8.4 keeps the count and drops only the list entries of demolished or disabled shafts.
 
-R-19d. In the bench tower of performance.md, the targets table in 8.3 holds: 30,000 or fewer ride changes, 0 A-to-B-to-A flips, at most 2 switches per person and trip, 750 or fewer people who never boarded by 14:00, and 14,250 or more boardings at level 1.
+R-19d. In the bench tower of performance.md, the targets table in 8.3 holds: 30,000 or fewer ride changes, 0 A-to-B-to-A flips, at most 2 switches per person and trip, 750 or fewer people who never boarded by 14:00, 11,500 or more boardings at level 1, and the three wait limits of the table (longest wait 1,721 steps or fewer, p99 wait 1,383 steps or fewer, 260 or fewer people at 2 switches still waiting at 14:00).
 
 ### Re-planning
 

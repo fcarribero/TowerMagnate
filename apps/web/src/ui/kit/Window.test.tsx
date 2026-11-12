@@ -166,6 +166,12 @@ describe('Window', () => {
     expect(frameOf('a').style.top).toBe('10px');
   });
 
+  it('limits the body to the view height minus 24 UI pixels', () => {
+    renderWindows([{ id: 'a', ...at(10, 10) }]);
+    const body = frameOf('a').querySelector<HTMLElement>('.tm-window__body');
+    expect(body?.style.maxHeight).toBe(`calc(${VIEW.height}px - 24 * var(--tm-px))`);
+  });
+
   it('moves a window back inside when it starts outside the view', () => {
     renderWindows([{ id: 'a', ...at(2000, 2000) }]);
     expect(frameOf('a').style.left).toBe(`${VIEW.width - 24}px`);
