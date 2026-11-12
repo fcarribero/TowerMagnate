@@ -119,7 +119,7 @@ export function Toolbar({
       <div class="tm-toolbar__tools" role="tabpanel" aria-label={t(`category.${openCategory}`)}>
         {toolsInCategory(openCategory).map((tool) => toolButton(tool, 'tm-tool'))}
       </div>
-      <ToolInfo tool={hoveredTool ?? currentTool} stars={stars}>
+      <ToolInfo tool={hoveredTool ?? currentTool}>
         {(hoveredTool ?? currentTool) === 'lobby' && currentTool === 'lobby' && (
           <LobbyHeightPicker
             height={lockedLobbyHeight ?? lobbyHeight}
@@ -182,11 +182,10 @@ function ToolButton({
 
 interface ToolInfoProps {
   tool: ToolId;
-  stars: StarRating;
   children?: ComponentChildren;
 }
 
-function ToolInfo({ tool, stars, children }: ToolInfoProps) {
+function ToolInfo({ tool, children }: ToolInfoProps) {
   if (isFixedTool(tool)) {
     return (
       <div class="tm-toolbar__info" aria-live="polite">
@@ -198,9 +197,8 @@ function ToolInfo({ tool, stars, children }: ToolInfoProps) {
   return (
     <div class="tm-toolbar__info" aria-live="polite">
       <span class="tm-toolbar__info-name">{toolName(tool)}</span>
-      <span>{sizeText(unit)}</span>
-      <span>{priceText(unit)}</span>
-      {isLocked(tool, stars) && <span>{t('ui.lockedStars', { n: unit.unlockStars })}</span>}
+      <span class="tm-toolbar__info-size">{sizeText(unit)}</span>
+      <span class="tm-toolbar__info-price">{priceText(unit)}</span>
       {children}
     </div>
   );

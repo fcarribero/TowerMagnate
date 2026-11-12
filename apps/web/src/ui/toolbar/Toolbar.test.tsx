@@ -109,7 +109,9 @@ describe('Toolbar', () => {
     render(<Harness stars={1} />);
     openCategory('Servicios');
     fireEvent.pointerEnter(toolButton('Catedral'));
-    expect(infoText()).toBe('Catedral28 x 4 casilleros$35.000.000Se desbloquea con 5 estrellas');
+    expect(infoText()).toBe('Catedral28 x 4 casilleros$35.000.000');
+    expect(document.querySelector('.tm-toolbar__info-size')?.textContent).toBe('28 x 4 casilleros');
+    expect(document.querySelector('.tm-toolbar__info-price')?.textContent).toBe('$35.000.000');
     fireEvent.pointerLeave(toolButton('Catedral'));
     expect(infoText()).toBe('Lupa');
   });
