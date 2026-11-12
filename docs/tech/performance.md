@@ -156,6 +156,14 @@ Two things are true at once. The people do alternate between full queues without
 
 The churn does not cost throughput. The queues stay full and the cars take people as fast as they can, with or without the swapping. The cost is the walking and the rechecks, which are part of the trek system time in the step bench. Whether to change the 8.3 rule (for example letting a person keep waiting beside the same shaft for a few rechecks before switching) is a design question for GD and TL and is not part of TM-258. The bench tower itself is a stress case for the step budget and is not a layout a player could run: a tower with this many workers needs more than one bank at the ground lobby.
 
+#### Ground bank of the bench tower (TM-286)
+
+GD decided in TM-286 that the bench tower needs more ground capacity, and the 8.3 rule change (routing.md) does not replace it. In the TM-258 window the six ground shafts, with one car each, boarded 4,541 people at level 1, which is 757 per car in 8 hours (a car carries 21 riders). The tower sends all 15,000 people through level 1. The target is 14,250 boardings at level 1 (95%), which at 757 per car needs 19 cars.
+
+Decision: the ground bank keeps its 6 standard shafts and each shaft gets 4 cars, 24 cars in all. At 757 boardings per car that is about 18,200 boardings in the window, 28% above the 14,250 target. Shafts hold up to 8 cars (construction 5.3), so this is a change to the bench layout (`scripts/bench-full-tower.ts`) and needs no new rule. The upper banks stay at one car per shaft, because the TM-258 counts show them boarding far fewer people (329 at level 26, 156 at level 51) than the ground bank. The bench stays a stress case for the step budget and is not a layout a player could run.
+
+If TM-287 meets the 8.3 targets for ride changes and flips but fewer than 14,250 people board at level 1, the next step is 6 cars per shaft (36 cars, about 27,200 boardings) before the rule values change. The step budget gate is re-run with the new layout, since more cars add work to the elevator system.
+
 ### Client results
 
 The 100-floor stress tower with 3,000 people at 1x zoom (`perf.html` defaults), 30 minutes per run after a 15-second warm-up, Chromium from Playwright at 1920 x 1080. "Capped" runs use the browser's normal frame pacing. "Uncapped" runs pass `--uncapped` to `pnpm perf:stress`, which turns off vsync and the frame rate limit, so the frame time is what a frame costs and not the display interval. Frame cost is the p95 frame time in ms. Memory is the JS heap after a forced garbage collection, 15 seconds in and at the end.
