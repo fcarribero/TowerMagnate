@@ -3,6 +3,11 @@ export interface TextFieldProps {
   label: string;
   value: string;
   onChange: (value: string) => void;
+  /** Called with the current value when the field loses focus. */
+  onBlur?: (value: string) => void;
+  /** Called with the current value on Enter. Enter then does not submit a parent form. */
+  onEnter?: (value: string) => void;
+  placeholder?: string;
   maxLength?: number;
   type?: 'text' | 'password';
   hint?: string;
@@ -15,6 +20,9 @@ export function TextField({
   label,
   value,
   onChange,
+  onBlur,
+  onEnter,
+  placeholder,
   maxLength,
   type = 'text',
   hint,
@@ -35,10 +43,21 @@ export function TextField({
         type={type}
         value={value}
         maxLength={maxLength}
+        placeholder={placeholder}
         disabled={disabled}
         aria-invalid={error !== undefined}
         aria-describedby={describedBy}
         onInput={(event) => onChange(event.currentTarget.value)}
+        onBlur={onBlur && ((event) => onBlur(event.currentTarget.value))}
+        onKeyDown={
+          onEnter &&
+          ((event) => {
+            if (event.key === 'Enter') {
+              event.preventDefault();
+              onEnter(event.currentTarget.value);
+            }
+          })
+        }
       />
       {hint !== undefined && (
         <p id={hintId} class="tm-field__hint">

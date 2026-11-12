@@ -1,25 +1,17 @@
 import { formatMoney } from '../money';
 import { t } from '../strings';
 import type { DragLabel } from './bindBuildInput';
-import type { FloatingCost, Toast } from './useBuildFeedback';
+import type { FloatingCost } from './useBuildFeedback';
 import './buildFeedback.css';
 
 export interface BuildFeedbackProps {
-  toasts: readonly Toast[];
   floats: readonly FloatingCost[];
   dragLabel?: DragLabel | null;
 }
 
-export function BuildFeedback({ toasts, floats, dragLabel = null }: BuildFeedbackProps) {
+export function BuildFeedback({ floats, dragLabel = null }: BuildFeedbackProps) {
   return (
     <>
-      <div class="tm-toasts" role="status" aria-live="polite">
-        {toasts.map((toast) => (
-          <div key={toast.id} class="tm-toast">
-            {toast.text}
-          </div>
-        ))}
-      </div>
       {dragLabel !== null && (
         <div
           class={dragLabel.valid ? 'tm-drag-label' : 'tm-drag-label is-failed'}
