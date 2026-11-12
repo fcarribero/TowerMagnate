@@ -178,10 +178,74 @@ At the shaft, the person joins the queue for the ride's direction at the boardin
 The queue was not full when the leg was planned, but it can fill while the person walks to the shaft. If the queue holds 40 people when the person arrives:
 
 1. The person waits next to the shaft, outside the queue (state "Esperando el ascensor"), and the ride records one full-queue event for TM-13.
-2. Every 6 steps (1 game minute) the person re-plans. The full-queue surcharge now applies to that ride, so a cheaper alternative wins if one exists.
-3. If the same ride still wins and the queue has room, the person joins it. If the same ride wins and the queue is still full, the person keeps waiting and checks again 6 steps later. Several waiting people who re-plan in the same step join in increasing person id (people.md 1.2) until the queue is full again.
+2. Every 6 steps (1 game minute, `FULL_QUEUE_RECHECK_STEPS`) the person rechecks. The recheck first looks at the queue of the shaft they wait at. If it has room, they join it. Several people who recheck in the same step join in increasing person id (people.md 1.2) until the queue is full again. Joining never depends on the rules below.
+3. If the queue is still full, the person may switch to another ride only when all of these hold:
+   - they have waited beside this shaft for at least 3 rechecks (18 steps, `FULL_QUEUE_STAY_RECHECKS`), counted from their arrival. Rechecks 1 and 2 beside a shaft only look at its queue;
+   - they have made fewer than 2 switches in this trip (`FULL_QUEUE_MAX_SWITCHES_PER_TRIP`);
+   - the best route, planned with the full-queue surcharge on the current ride, does not board at a shaft the person already left in this trip, and the queue it boards has room;
+   - that route costs at least 500 points less than the current ride with its surcharge (`FULL_QUEUE_SWITCH_MARGIN`). The surcharge is 1,000, so the new ride may cost up to 500 more than the current ride without the surcharge.
+4. If any condition fails, the person keeps waiting beside the same shaft and rechecks 6 steps later. A person who has made 2 switches stays at the shaft they are at until they join its queue and does not search for routes again in this trip.
+5. A switch counts when the person starts walking to the new shaft. The shaft they leave is added to the list of left shafts of the trip (2 entries at most, because of the cap). On arrival at the new shaft, step 1 starts again with a wait count of 0.
+6. The switch count and the list of left shafts belong to the trip. A new trip starts them at 0 and empty. A re-plan from 8.4 keeps the switch count and empties the list, because the old shafts may be gone or changed.
 
-Design call: the original sent people back with a small stress cost and let them try again. Waiting in place and checking once a game minute gives the same outcome with fewer moving parts and keeps the overflow visible to the player as a crowd by the shaft.
+A switch is not a leg break (8.4). It does not change the trip's ride counter, because a ride only counts when it is finished.
+
+Design call: the original sent people back with a small stress cost and let them try again, and the first version of this rule let people re-plan at every recheck. Walking costs nothing in section 6, so every shaft of one lobby has the same base cost, and the surcharge made every full shaft look the same. Each recheck then sent the person to whichever queue had room at that moment, and that queue was full again on arrival. In the TM-258 bench tower (15,000 people, 06:00 to 14:00) that gave 933,687 ride changes in 1,549,036 rechecks, 10,373 people who went from A to B and straight back to A (55,651 times), 10,346 people with 10 or more changes, and 7,609 people with changes who never boarded. The new rule keeps the crowd visible beside the shaft and makes a person commit: they stay at least 18 steps, they switch at most twice, and they never go back to a shaft they left.
+
+#### Worked examples
+
+Standard shafts s1, s2 and s3 stand in the level 1 lobby, all with levels 1 to 30. A ride to level 12 costs 8 x 11 + 500 = 588 on each. Person p1 plans s1 for level 12.
+
+E1. Stay, then switch. p1 arrives at s1 at step 100 and the queue holds 40 people. The rechecks are at steps 106, 112 and 118. At 106 and 112, s1 is still full and p1 only looks at s1. At 118 (third recheck) s1 is full, s2 has room and costs 588. The current ride costs 588 + 1,000 = 1,588 with the surcharge, and 1,588 - 588 = 1,000, which is at least 500. s2 is not in the left list, so p1 switches (switch count 1, left list [s1]) and walks to s2.
+
+E2. A to B to A. p1 reaches s2 at step 130 and it is full, wait count 0. The third recheck is at step 148. s2 is full and s1 has room. s1 is in the left list, so it is not a candidate. s3 has room and costs 588, so p1 switches to s3 (switch count 2, left list [s1, s2]). p1 never goes back to s1.
+
+E3. Cap reached. p1 reaches s3 at step 160 and it is full. p1 has made 2 switches, so at every recheck p1 only looks at the queue of s3 and joins it when it has room, in person id order with the others who recheck in the same step.
+
+E4. Alternative too expensive. p1 waits at s1 (588). The only other shaft with room is s4, which reaches level 11 and needs one stair flight to level 12: 8 x 10 + 500 + 8 x 1 + 600 = 1,188. 1,588 - 1,188 = 400, under the margin of 500, so p1 keeps waiting at s1.
+
+E5. Room at the first recheck. p1 arrives at s1, finds it full, and at step 106 the queue holds 39 people. p1 joins at once. The wait count and the switch rules do not apply.
+
+#### Targets for the bench tower (TM-287)
+
+TM-287 runs the TM-258 count again on `pnpm bench:full-tower`, over the same window (06:00 to 14:00 of the first weekday with commuters, 2,880 steps, 15,000 people), with the ground bank decided in performance.md ("Ground bank of the bench tower"). QA passes TM-287 only if every line holds.
+
+| Count, 06:00 to 14:00 | TM-258 baseline | Pass if |
+| --- | --- | --- |
+| Rechecks that changed the chosen ride | 933,687 | 30,000 or fewer |
+| Switches by one person in one trip | 10,346 people had 10 or more | 2 or fewer for every person |
+| People with 10 or more changes | 10,346 | 0 |
+| People who went A to B and straight back to A | 10,373 (55,651 times) | 0 |
+| People who went back to a shaft they had already chosen | 10,794 | 0 |
+| People who never boarded a car by 14:00 | 7,609 (of those with changes) | 750 or fewer (5% of 15,000) |
+| People still trying to leave the lobby at 14:00 | about 7,400 | 750 or fewer |
+| Boardings at level 1 | 4,541 | 14,250 or more (95% of 15,000) |
+
+The 30,000 limit is 2 changes for each of the 15,000 people. The step budget in performance.md still has to hold with its final limits (5 ms average, 8 ms p95, 15 ms p99).
+
+#### Feasibility note for TL
+
+The questions below are the ones GD expects TL to ask, with GD's answers. TL confirms or changes them in the review of TM-286 and signs at the end of this section. Until then the acceptance line "TL has signed off" is open.
+
+Q1. What state does a person need? Three small values for the trip: the switch count (0 to 2), the wait count beside the current shaft (0 to 3, reset on arrival and on a switch) and the list of left shafts (up to 2 shaft ids). All three reset when the trip ends. A saved game without them reads as 0, 0 and empty, so the values need no data migration.
+
+Q2. Does the person pool snapshot grow? Yes, by the three values. TM-169 packs the person pool, so the values belong in its columns. GD gives no byte figure; TL decides the layout.
+
+Q3. What does a recheck cost now? Today every recheck runs a route search, shared per destination group since TM-252. With the rule, rechecks 1 and 2 beside a shaft read one queue length. A search happens on the third recheck, and again every 3 rechecks while the person has fewer than 2 switches and found nothing to switch to. After 2 switches there are no searches. So a person searches at most once per 18 steps, against once per 6 today. GD expects the trek system time to go down. TL measures it in TM-287 and the step budget gate stays as it is.
+
+Q4. How do the shared plans per destination group work with the left list? The group key must include the left list, because two people at the same shaft with different lists get different routes. Most people at one queue have the same list (empty or one entry), so groups stay few. If TL finds the key too costly, the fallback is to search without sharing for people with a non-empty list only, who are the minority.
+
+Q5. Can a person wait for a long time beside a full queue? Joins go in increasing person id, so a high id waits while lower ids join. The cars empty the queue at the shaft's boarding rate, so the wait is bounded by the people ahead. The ground bank size in performance.md is what keeps it short in the bench tower. In a real tower the player fixes it with more cars or shafts, which is what the full-queue event in stress (TM-13) is for.
+
+Q6. Does it stay deterministic? Yes. The rule uses no random draws, the list is in the order of switching, and ties between routes stay as in 7.2.
+
+Q7. What if the shaft the person waits at is demolished or its stop is disabled? 8.4 applies: the person re-plans at once, the list is emptied and the switch count is kept.
+
+Q8. Which constants go to `packages/shared`? `FULL_QUEUE_STAY_RECHECKS` = 3, `FULL_QUEUE_SWITCH_MARGIN` = 500 and `FULL_QUEUE_MAX_SWITCHES_PER_TRIP` = 2, next to `FULL_QUEUE_RECHECK_STEPS`. TM-287 adds them to `balance.ts`.
+
+Q9. What if the targets fail with these values? TL or QA reports the counts to GD and GD changes the values in a new task. The engine does not pick other values.
+
+TL sign-off: pending.
 
 ### 8.4 When the current leg breaks
 
@@ -339,6 +403,9 @@ C3. A maid leaves u70 (level 50, column 207).
 | `MAX_RIDES_PER_TRIP` | 3 |
 | `ELEVATOR_QUEUE_CAPACITY` | 40 (shared with TM-12) |
 | `FULL_QUEUE_RECHECK_STEPS` | 6 |
+| `FULL_QUEUE_STAY_RECHECKS` | 3 |
+| `FULL_QUEUE_SWITCH_MARGIN` | 500 |
+| `FULL_QUEUE_MAX_SWITCHES_PER_TRIP` | 2 |
 | `WALK_COLUMNS_PER_STEP` | 1 |
 | `STAIR_FLIGHT_STEPS` | 12 |
 | `ESCALATOR_FLIGHT_STEPS` | 6 |
@@ -408,7 +475,15 @@ R-17. The route cost used to compare venues (people.md P-09) is the total cost o
 
 R-18. A person in an elevator queue stays in it until boarding, unless the shaft is demolished or the stop is disabled.
 
-R-19. A person who arrives at a queue with 40 people waits next to it, records one full-queue event, and re-plans every 6 steps with the full-queue surcharge. They join when that ride still wins and the queue has room; several join in increasing person id.
+R-19. A person who arrives at a queue with 40 people waits next to it, records one full-queue event, and rechecks every 6 steps. At each recheck they join if the queue has room; several join in increasing person id.
+
+R-19a. A person beside a full queue switches to another ride only after 3 rechecks (18 steps) at that shaft, with fewer than 2 switches in the trip, to a shaft they have not left in this trip, with room in its queue, and only if the new route costs at least 500 less than the current ride with the full-queue surcharge.
+
+R-19b. A person never returns to a shaft they left in the same trip, so A to B to A does not happen. After 2 switches they wait at their shaft until they join its queue.
+
+R-19c. The switch count and the list of left shafts reset with each new trip. A re-plan from 8.4 keeps the count and empties the list.
+
+R-19d. In the bench tower of performance.md, the targets table in 8.3 holds: 30,000 or fewer ride changes, 0 A-to-B-to-A flips, at most 2 switches per person and trip, 750 or fewer people who never boarded by 14:00, and 14,250 or more boardings at level 1.
 
 ### Re-planning
 
