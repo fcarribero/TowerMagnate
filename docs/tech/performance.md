@@ -132,6 +132,30 @@ The median p95 of trek is 2.29 ms and of the office routine 0.68 ms, against a b
 
 The CPU type matters here, and the TM-245 calibration does not predict it. On the same code, the p95 was 9.27 ms on an AMD EPYC 9V45, 13.07 ms on an EPYC 9V74, 13.89 ms on an EPYC 7763 and 15.18 ms on a Xeon Platinum 8573C. The calibration ranks the same CPUs 9V45, 8573C, 7763, 9V74 from fastest to slowest (16.5, 25.7, 33.5 and 34.1 ms). Dividing by its slowdown gave the 9V45 a p95 of 18.57 ms, so the step gate does not scale. The slowest type seen is the Xeon Platinum 8370C: workflow run 42594672807 measured a median average of 5.96 ms, p95 16.34 ms and p99 26.01 ms there. The p95 limit of 17.5 ms and the p99 limit of 27.5 ms leave about 7% and 6% over it. The 7 ms average limit leaves about 17% over it. The limits of TM-252 are 5 ms average, 8 ms p95 and 15 ms p99, raw.
 
+### Lobby queues in the bench tower (TM-258)
+
+GD saw about 8,000 workers moving between full lobby queues until 14:00 in the 15,000-person bench tower. TM-258 counted it on develop with a temporary counter in `recheckFullQueue` and in the queue joins and boardings, over the same window as the step bench (06:00 to 14:00 of the first weekday with commuters, 2,880 steps). The counter was not kept in the code. A person is counted when they change the chosen ride at a recheck, when they reach a queue and when they board.
+
+| Count, 06:00 to 14:00 | Value |
+| --- | --- |
+| People who rechecked a full queue at least once | 11,937 |
+| Rechecks | 1,549,036 |
+| Rechecks that changed the chosen ride | 933,687 |
+| People with at least 1 change | 11,634 |
+| People with 10 or more changes | 10,346 |
+| Arrivals at a queue | 939,136, of which 934,406 found it full |
+| Joins from beside a full queue | 719 |
+| Boardings in the whole tower | 5,270 |
+| People with changes who never boarded | 7,609 |
+| People who went back to a shaft they had already chosen | 10,794 |
+| People who went A to B and straight back to A | 10,373 (55,651 times) |
+
+Every change leads to a walk to a shaft whose queue had room at that moment. The person arrives, finds that queue full, waits, rechecks a minute later and is sent to another shaft. At 14:00, 7,430 people are walking to a shaft, 179 are queued and 6,945 are idle.
+
+Two things are true at once. The people do alternate between full queues without progress, as routing.md 8.3 allows: the surcharge makes every full shaft cost the same, so each recheck sends the person to whichever queue looks open, and that queue is full again when they arrive. That is what GD saw. The same counts show the bench tower is too small for 15,000 people. Every worker starts at the level 1 lobby, and the ground bank of six standard elevators boards between 666 and 813 people per shaft in the window, 4,541 in total, with 254 to 1,005 boardings per hour in the whole tower. The busiest shafts of the upper banks board 329 people at level 26 and 156 at level 51. About 7,400 people are still trying to leave the lobby at 14:00.
+
+The churn does not cost throughput. The queues stay full and the cars take people as fast as they can, with or without the swapping. The cost is the walking and the rechecks, which are part of the trek system time in the step bench. Whether to change the 8.3 rule (for example letting a person keep waiting beside the same shaft for a few rechecks before switching) is a design question for GD and TL and is not part of TM-258. The bench tower itself is a stress case for the step budget and is not a layout a player could run: a tower with this many workers needs more than one bank at the ground lobby.
+
 ### Client results
 
 The 100-floor stress tower with 3,000 people at 1x zoom (`perf.html` defaults), 30 minutes per run after a 15-second warm-up, Chromium from Playwright at 1920 x 1080. "Capped" runs use the browser's normal frame pacing. "Uncapped" runs pass `--uncapped` to `pnpm perf:stress`, which turns off vsync and the frame rate limit, so the frame time is what a frame costs and not the display interval. Frame cost is the p95 frame time in ms. Memory is the JS heap after a forced garbage collection, 15 seconds in and at the end.
