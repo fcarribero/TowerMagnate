@@ -189,6 +189,10 @@ The cross-section of the whole site: 375 columns and levels from S10 up to four 
 - A level ruler on the left edge of the tower view shows the label of every visible level ("12", "S3"). Level labels are in `text.status-label` on a `obra.paper` tag with `border.control` and the text in `obra.ink`; the hovered level label is `obra.yellow` with `obra.ink` text. The ruler sits over the tower view, so its tags use the `obra` tokens as the other chrome does.
 - With the Lupa, hovering over a person, car or unit shows a tooltip with its name after 0.5 s.
 
+### 3.5 FPS line
+
+In development builds the FPS line (`ui.stage.stats`) is an `obra.ink` block with `border.control` and `space.1` padding, 8 px from the right edge of the stage and 8 px above the news line (28 px from the bottom edge), with the text on one line in `text.status-label` and `obra.yellow`.
+
 ## 4. Status panel
 
 The status bar is 24 px tall and as wide as the screen, with a `border.window` bottom edge drawn inside the 24 px. Its background is `obra.ink`. Every item is a block 18 px tall, placed 2 px from the top (`space.1`) and 2 px above the bottom edge line, so the blocks never touch the 2 px `border.window` (2 + 18 + 2 + 2 = 24), with `space.1` between blocks. A block has `border.control`, `obra.paper` as background unless the table says otherwise, and `space.2` padding on the left and right. Block text is on one line.
@@ -1038,6 +1042,7 @@ Finance categories use the TM-9 labels under `value.ledger.{categoryId}`: Alquil
 | `value.person.resident` | Residente |
 | `value.person.hotelGuest` | Huésped |
 | `value.person.customer` | Cliente |
+| `value.person.prospect` | Interesado |
 | `value.person.audience` | Espectador |
 | `value.person.partyGuest` | Invitado a la fiesta |
 | `value.person.maid` | Mucama |

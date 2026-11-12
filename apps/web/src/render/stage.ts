@@ -103,6 +103,8 @@ export interface Stage {
   showSky(time: SkyTime): void;
   /** Draws units and transports; later calls change only what differs. */
   showUnits(input: UnitsInput): void;
+  /** Marks the followed people on the floor with a lamp above the head. */
+  showFollowed(followed: ReadonlySet<string>): void;
   /** Draws elevator shafts; later calls change only the shafts that differ. */
   showShafts(shafts: Iterable<ShaftView>): void;
   /**
@@ -356,6 +358,9 @@ export async function mountStage(host: HTMLElement, options: StageOptions = {}):
     },
     showUnits(input) {
       units.update(input);
+    },
+    showFollowed(followed) {
+      people.markFollowed(followed);
     },
     showShafts(shafts) {
       elevators.showShafts(shafts);

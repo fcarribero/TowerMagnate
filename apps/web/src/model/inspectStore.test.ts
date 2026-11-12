@@ -65,3 +65,31 @@ describe('inspect store with several unit windows', () => {
     expect(performance.now() - started).toBeLessThan(1);
   });
 });
+
+describe('inspect store with person windows', () => {
+  const personData = (id: string, name: string | null): InspectData =>
+    ({ kind: 'person', id, status: 'ok', name }) as unknown as InspectData;
+
+  it('keeps the latest data per person and forgets a closed one', () => {
+    const store = new InspectStore();
+    receive(store, personData('p1', null));
+    receive(store, personData('p2', 'Ana'));
+    receive(store, personData('p1', 'Beto'));
+    expect(store.person('p1')).toMatchObject({ name: 'Beto' });
+    store.forgetPerson('p2');
+    expect(store.person('p2')).toBeUndefined();
+    expect(store.person('p1')).toMatchObject({ name: 'Beto' });
+  });
+
+  it('tells the subscribers and the window host', () => {
+    const store = new InspectStore();
+    const changed = vi.fn();
+    const requested = vi.fn();
+    store.subscribe(changed);
+    store.onPersonWindowRequest(requested);
+    receive(store, personData('p1', null));
+    store.requestPersonWindow('p1');
+    expect(changed).toHaveBeenCalledTimes(1);
+    expect(requested).toHaveBeenCalledWith('p1');
+  });
+});

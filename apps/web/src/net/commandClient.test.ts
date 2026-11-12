@@ -31,6 +31,21 @@ describe('CommandClient', () => {
     await expect(result).resolves.toMatchObject({ ok: true, step: 5 });
   });
 
+  it('sends the person commands', () => {
+    const { client, sent } = clientWith();
+    void client.renamePerson('p1', 'Ana');
+    void client.followPerson('p1');
+    void client.unfollowPerson('p1');
+    const commands = sent.flatMap((message) =>
+      message.t === 'command' ? [message.p.command] : [],
+    );
+    expect(commands).toEqual([
+      { type: 'renamePerson', personId: 'p1', name: 'Ana' },
+      { type: 'followPerson', personId: 'p1' },
+      { type: 'unfollowPerson', personId: 'p1' },
+    ]);
+  });
+
   it('gives each command its own id', () => {
     const { client, sent } = clientWith();
     void client.changeFilm('u1');
