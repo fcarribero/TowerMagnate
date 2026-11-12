@@ -1,6 +1,6 @@
 # UI layout, tools and Spanish glossary
 
-Version 2.0 (draft, in progress), 16 February 2027. Owner: Game Designer. Tasks TM-18 (version 1) and TM-274 (visual style "Obra").
+Version 2.0, 18 February 2027. Owner: Game Designer. Tasks TM-18 (version 1) and TM-274 (visual style "Obra").
 
 This document defines the game screen: where each region sits, what every tool does, what every window shows, how overlays and dialogs work, and the exact Spanish text of every label and message. It is the contract for the UI kit (TM-63), the toolbar (TM-66), the renderer and the screens that follow, and for QA.
 
@@ -214,7 +214,7 @@ Examples of the date block: "Lunes 1 de enero, año 1  00:00", "Miércoles 11 de
 - Money and population update with every delta.
 - Block text never wraps. If the text of a block is wider than the block, the block grows (items marked "fits text"), and the items to its right keep their order; they do not shrink.
 - When the window is narrower than everything above, the window buttons drop into the Menú list first, then the zoom buttons.
-- At the minimum viewport of 1024 px the items need at most 880 px: Menú 40, date 260 at the longest ("Miércoles 30 de septiembre, año 99"), time 32, money 72, population 96, stars 112, overlays 96, zoom 32, window buttons 96, plus 2 px between the 9 blocks and 2 px at each end. The bar fits with 144 px to spare.
+- At the minimum viewport of 1024 px the items need at most 856 px: Menú 40, date 260 at the longest ("Miércoles 30 de septiembre, año 99"), time 32, money 72, population 96, stars 112, overlays 96, zoom 32, window buttons 96, plus 2 px between the 9 blocks and 2 px at each end. The bar fits with 168 px to spare.
 
 Design call: the overlay buttons keep their 24 px width, which cannot hold "Evaluación" in `text.button`. The key digit fits, matches the shortcut of section 11, and the name stays in the tooltip.
 
@@ -460,7 +460,7 @@ Title: the person's name, or the kind ("Oficinista") when unnamed.
 | Tipo | Person kind (13.6) |
 | Estado | Caminando / Esperando el ascensor / En el ascensor / En la escalera / En {unit name} / Sin ruta / Fuera de la torre |
 | Destino | `{unit name} · {level label}`, or "Sale de la torre", or "Ninguno" |
-| Estrés | `{n} min ({level})` in the stress color: normal is ink, alto is `stress-pink`, muy alto is `stress-red` |
+| Estrés | `{n} min ({level})` in the stress color: normal is `obra.ink`, alto is `stress-pink`, muy alto is `stress-red` |
 | Vive en / Trabaja en / Se aloja en | The home unit, by kind: residents "Vive en", office workers "Trabaja en", guests "Se aloja en"; hidden for kinds with no home unit |
 
 Buttons:
@@ -1263,9 +1263,9 @@ UI-07. On load the view is centered on the main lobby, or on column 187 of level
 
 UI-08. The date reads `{weekday} {day} de {month}, año {year}` and the time `HH:MM` in 24 h, truncated to the game minute. Lunes 1 de enero, año 1, 00:00 is the first moment of a new tower.
 
-UI-09. Saturday and Sunday dates are drawn in `dusk`, weekdays in ink.
+UI-09. On Saturday and Sunday the weekday name is drawn in a tag with `obra.red` background and `obra.paper` text. Weekdays have no tag.
 
-UI-10. Money uses `.` for thousands and no decimals. A negative balance is drawn in `cloth-red` with the minus sign before `$`.
+UI-10. Money uses `.` for thousands and no decimals. The money block is `obra.yellow`; a negative balance turns it `obra.red` with `obra.paper` text and the minus sign before `$`.
 
 UI-11. Stars show 5 slots, filled up to the rating; at the top rank all 5 are filled and "TORRE" is shown.
 
@@ -1291,7 +1291,7 @@ UI-20. Lupa and Topadora pick, in order: person (Lupa only), car, unit or transp
 
 UI-21. Demolition asks for confirmation only for a sold condo or a target whose build price is $500.000 or more.
 
-UI-22. An accepted construction shows a floating `-{price}` in `cloth-red`; a refund above $0 shows `+{refund}` in `leaf`.
+UI-22. An accepted construction shows a floating `-{price}` in the palette color `cloth-red`; a refund above $0 shows `+{refund}` in `leaf`. These are drawn over the tower, so they keep the tower palette.
 
 UI-23. A rejected command shows its `error.{CODE}` message in a toast for 3 real seconds and does not write to the news line. An unknown code shows "No se pudo hacer."
 
@@ -1331,7 +1331,7 @@ UI-37. The legend shows the active overlay's labels and colors, and is hidden in
 
 UI-38. Each notice stays on the news line at least 4 real seconds. With more than 5 waiting, the line jumps to the newest.
 
-UI-39. Alert notices are drawn in `cloth-red` with an alarm icon.
+UI-39. Alert notices have the alarm icon, and their text is `obra.red`.
 
 UI-40. The Avisos window keeps the last 50 notices, newest first.
 
@@ -1352,3 +1352,39 @@ UI-46. Every `ErrorCode` in `shared` has an `error.{CODE}` text, and every catal
 UI-47. Keyboard shortcuts are ignored while a text or number field has focus.
 
 UI-48. The sound setting is stored in the browser and defaults to on.
+
+### Style (version 2)
+
+UI-49. The code defines every token of section 1.1 once as a CSS custom property `--{id with dots replaced by dashes}`, and no component writes a color, border width, shadow offset or spacing as a literal.
+
+UI-50. Fonts are Archivo Black (`font.display`), Space Grotesk 500 and 700 (`font.text`) and IBM Plex Mono 600 (`font.mono`), with the fallbacks of section 1. No text uses another font.
+
+UI-51. Font sizes are the whole numbers of the section 1 text styles, multiplied by the UI scale, with fixed line heights. The smallest size is 8 UI px.
+
+UI-52. The status bar is `obra.ink` with `border.window` on its bottom edge. Each item is a 20 px block with `border.control`, 2 px from the top and bottom of the bar. No block is taller than 20 px at any UI scale or with the fallback fonts.
+
+UI-53. The toolbar is `obra.yellow` with `border.window` on its right edge and stays 80 px wide. The current tool is `obra.ink` with `obra.yellow` text, and a tool locked by stars has the `size.lock-stripe` background and cannot be selected.
+
+UI-54. The news line is `obra.ink` with `border.window` on its top edge and stays 20 px tall. The notice text is `text.news` in `obra.yellow`; alert text is `obra.red`.
+
+UI-55. Every window has `obra.paper` background, `border.window`, `shadow.window` and an `obra.blue` title bar (`obra.green` for Finanzas), with the close button on the right of the bar.
+
+UI-56. Decision, information and confirm dialogs have `border.dialog`, `shadow.dialog` and the `size.hazard-stripe` band on top. The default button is `obra.yellow` and is the right-most one. A confirm dialog also has an `obra.scrim` layer behind it.
+
+UI-57. Shadows have no blur. A hovered tile shows `shadow.control` and moves 1 px up and left in 0.08 real seconds. A pressed tile moves `size.press-offset`. The only other animation is the news line slide of section 8.1, and it is off when the browser asks for reduced motion.
+
+UI-58. Drawing over or about the tower (overlays, legend, tower map, floating amounts, ghosts, stress colors, followed marker) keeps the tower palette of the style guide, not the `obra` tokens.
+
+## 15. Notes for TL and FU (TM-274 buildability check)
+
+Questions written by GD for the buildability check. Answers go under each question.
+
+TL-1. Fonts: is loading three web fonts (Archivo Black, Space Grotesk 500 and 700, IBM Plex Mono 600) from files in the repo acceptable for the bundle, and is the fallback list in section 1 enough while they load? Answer:
+
+TL-2. Tokens: are the CSS custom properties of 1.1 enough for the UI kit (TM-63), or does the renderer need the same values as constants in `packages/shared`? Answer:
+
+FU-1. Hard shadows and the hazard and lock stripes: can they be done with `box-shadow` offsets and `repeating-linear-gradient` at whole-pixel sizes at UI scale 1 to 3 without blur? Answer:
+
+FU-2. Fixed bars: with the line heights of section 1, do the 24 px status bar and 20 px news line hold at every UI scale with the fallback fonts? Answer:
+
+FU-3. Overlay selector shows digits 1 to 4 with the name in the tooltip (section 4 design call): is that acceptable? Answer:
