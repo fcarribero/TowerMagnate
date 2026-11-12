@@ -92,6 +92,12 @@ function announce(context: StepContext, levels: ReadonlySet<Level>): void {
   }
 }
 
+/** Infests a dirty room now, with the same notice as the daily check. */
+export function infestDirtyRoomNow(context: StepContext, found: RoomUnit): void {
+  infest(context, found);
+  announce(context, new Set([found.level]));
+}
+
 /** Hotel spec 7.1: spread from the rooms infested at the start, then count dirty rooms. */
 export function runInfestationCheck(context: StepContext): void {
   const rooms = allRooms(context.state);

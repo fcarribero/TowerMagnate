@@ -1,4 +1,9 @@
-import { MAX_FOLLOWED_PEOPLE, PERSON_KINDS, type PersonPool } from '@tower-magnate/shared';
+import {
+  MAX_FOLLOWED_PEOPLE,
+  MAX_NAME_LENGTH,
+  PERSON_KINDS,
+  type PersonPool,
+} from '@tower-magnate/shared';
 import { createPersonPool } from '../people';
 import { isRecord, StateMigrationError } from './errors';
 
@@ -53,6 +58,23 @@ function readFollowed(raw: unknown, ids: number[]): number[] {
   const known = new Set(ids);
   if (!raw.every((personId) => known.has(personId))) fail('follow someone not in the pool');
   return raw.slice();
+}
+
+function readNames(raw: unknown, ids: number[]): Record<number, string> {
+  if (!isRecord(raw)) fail('names must be a record');
+  const known = new Set(ids);
+  const names: Record<number, string> = {};
+  for (const [key, name] of Object.entries(raw)) {
+    const personId = Number(key);
+    const valid =
+      known.has(personId) &&
+      typeof name === 'string' &&
+      name.trim() !== '' &&
+      Array.from(name).length <= MAX_NAME_LENGTH;
+    if (!valid) fail(`name of ${key} is malformed`);
+    names[personId] = name as string;
+  }
+  return names;
 }
 
 /** Saves from before facing was kept have everyone facing right. */
@@ -112,6 +134,10 @@ export function readPeople(raw: unknown): PersonPool {
     pool[field] = values.slice();
   }
   pool.facing = readFacing(raw.facing, id.length);
+  pool.names = readNames(raw.names, id);
   pool.followed = readFollowed(raw.followed, id);
+  if (!pool.followed.every((personId) => Object.hasOwn(pool.names, personId))) {
+    fail('follow someone with no name');
+  }
   return pool;
 }

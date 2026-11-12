@@ -45,6 +45,7 @@ export const SPANISH_STRINGS = {
   'category.short.transport': 'Transp.',
   'category.short.offices-and-housing': 'Of. y viv.',
   'category.short.commerce-and-entertainment': 'Com. y entr.',
+  'category.short.services': 'Servic.',
   'tool.short.bulldozer': 'Topa',
   'tool.short.car': 'Cab.',
   'tool.short.condo': 'Depto.',

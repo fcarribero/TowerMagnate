@@ -37,6 +37,8 @@ export interface WindowProps {
   onClose?: () => void;
   /** Decision dialogs have no close button and ignore Esc. */
   closable?: boolean;
+  /** False keeps Esc but hides the close button, as confirm dialogs do. */
+  showCloseButton?: boolean;
   /** Width in UI pixels. */
   width?: number;
   /** Blocks the rest of the UI, keeps Tab inside and gives focus back when it closes. */
@@ -57,6 +59,7 @@ export function Window({
   children,
   onClose,
   closable = true,
+  showCloseButton = true,
   width,
   modal = false,
   tone = 'blue',
@@ -233,7 +236,7 @@ export function Window({
               {title}
             </span>
           </span>
-          {closable && (
+          {closable && showCloseButton && (
             <button
               type="button"
               class="tm-window__close"

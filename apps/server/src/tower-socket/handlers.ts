@@ -43,7 +43,9 @@ export function towerSocketHandlers({
       sendMessage(socket, serverMessage('commandResult', result));
       const { command } = message.p;
       if (result.ok && (command.type === 'setPrice' || command.type === 'renameUnit')) {
-        inspections.pushChange(socket, command.unitId);
+        inspections.pushChange(socket, 'unit', command.unitId);
+      } else if (result.ok && command.type === 'renamePerson') {
+        inspections.pushChange(socket, 'person', command.personId);
       }
     },
     invalidCommand: (id, { socket, identity }) => {
@@ -55,7 +57,11 @@ export function towerSocketHandlers({
     },
     inspect: (message, { socket, identity }) => {
       if (!inspections.set(socket, identity.towerId, message.p.target)) {
-        sendError(socket, 'INVALID_COMMAND', 'Only units and shafts can be inspected so far');
+        sendError(
+          socket,
+          'INVALID_COMMAND',
+          'Only units, shafts and people can be inspected so far',
+        );
       }
     },
     inspectAdd: (message, { socket, identity }) => {
@@ -63,7 +69,11 @@ export function towerSocketHandlers({
       if (result === 'limit') {
         sendError(socket, 'INSPECT_LIMIT', 'At most 5 targets can be inspected at once');
       } else if (result === 'unsupported') {
-        sendError(socket, 'INVALID_COMMAND', 'Only units can be inspected so far');
+        sendError(
+          socket,
+          'INVALID_COMMAND',
+          'Only units, shafts and people can be inspected so far',
+        );
       }
     },
     inspectRemove: (message, { socket }) => {

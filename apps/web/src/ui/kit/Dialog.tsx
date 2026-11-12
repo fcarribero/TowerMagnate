@@ -29,6 +29,8 @@ interface DialogFrameProps {
   onChoose: (choiceId: string) => void;
   /** The choice Esc and the close button make; without one the dialog has no close button. */
   escapeChoiceId?: string;
+  /** Confirm dialogs answer Esc but show no close button. */
+  showCloseButton?: boolean;
   modal?: boolean;
   tone?: 'alert' | 'info';
 }
@@ -42,6 +44,7 @@ function DialogFrame({
   focusedChoiceId,
   onChoose,
   escapeChoiceId,
+  showCloseButton,
   modal,
   tone = 'alert',
 }: DialogFrameProps) {
@@ -51,6 +54,7 @@ function DialogFrame({
       id={id}
       title={title}
       closable={closable}
+      showCloseButton={showCloseButton}
       modal={modal}
       width={DIALOG_WIDTH}
       isDialog
@@ -151,6 +155,7 @@ export function ConfirmDialog({
       redChoiceId={actionTone === 'danger' ? CONFIRM : undefined}
       focusedChoiceId={CANCEL}
       escapeChoiceId={CANCEL}
+      showCloseButton={false}
       onChoose={(choice) => (choice === CONFIRM ? onConfirm() : onCancel())}
       modal
     />

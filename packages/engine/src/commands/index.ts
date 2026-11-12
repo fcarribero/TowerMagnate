@@ -10,6 +10,7 @@ import { buildUnit } from './build-unit';
 import { demolish } from './demolish';
 import { addCar, removeCar } from './elevator-cars';
 import { followPersonCommand, unfollowPersonCommand } from './follow-person';
+import { renamePerson } from './rename-person';
 import { renameUnit } from './rename-unit';
 import { setPrice } from './set-price';
 
@@ -26,6 +27,7 @@ export const towerCommandHandlers: CommandHandlers = {
   removeCar,
   demolish,
   renameUnit,
+  renamePerson,
   setPrice,
   changeFilm,
   followPerson: followPersonCommand,
