@@ -250,7 +250,7 @@ Medical demand is `0.6 x leased offices` visits a weekday against 100 per center
 
 VIP visit, in order (events 6, people 9):
 
-1. The roll is at 00:00 every day, 1 in 9, only at exactly 3 stars and with no visit in progress. Budget up to 3 game weeks at 3 stars: the chance of at least one VIP day in 21 days is 92% (1 - (8/9)^21), and 96% in 28 days. A day with no free suite or a rejected visit uses up a VIP day.
+1. The roll is at 00:00 every day, only at exactly 3 stars and with no visit in progress. Its chance starts at 8% and rises 4 points for each roll without a VIP day (events 6.1). Budget up to 2 game weeks at 3 stars: the chance of at least one VIP day in 14 rolls is 99.8%, and the 21st roll always succeeds. A day with no free suite or a rejected visit uses up a VIP day.
 2. At 12:00 on the VIP day, before the booking rolls, the VIP books the clean suite with no stay and no booking that has the lowest unit id. A suite that is Ocupada, Sucia or Con plaga is not a candidate. Keep 3 or more suites in service so that a guest from the previous night does not leave none free. With no suite, `news.vipNoSuite` shows, the flag does not change, and the next roll is the next 00:00.
 3. The VIP arrives at the street entrance between 17:00 and 21:00, goes to a restaurant for 60 minutes if one has a route, and leaves the next day between 08:00 and 10:00. `news.vipArrives` shows at 12:00, when the suite is booked (events 6.2).
 4. The visit is approved when the average stress of all the VIP's trips, including the trip out, is under 15 game minutes. 15 exactly is rejected. A demolished, bombed or burned suite during the stay, or a VIP who gives up before check-in at 23:00, is a rejection. `news.vipApproved` or `news.vipRejected` shows when the visit ends.
