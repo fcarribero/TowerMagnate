@@ -44,6 +44,10 @@ export function isGhostTool(type: UnitType): boolean {
   );
 }
 
+function isTransportTool(type: UnitType): boolean {
+  return type === 'stairs' || type === 'escalator';
+}
+
 export function footprintWidth(type: UnitType): number {
   return UNIT_CATALOG[type].width;
 }
@@ -87,7 +91,9 @@ export function checkPlacement(
     return { x0, x1, levels: levels ?? [bottom], problem: 'OUT_OF_BOUNDS' };
   }
   const cells = new BuiltCells(world);
-  if (levels.some((level) => cells.hasOccupant(level, x0, x1))) {
+  // Stairs and escalators are in the front layer: they pass over units and lobby rows.
+  const overlay = isTransportTool(type);
+  if (levels.some((level) => cells.hasOccupant(level, x0, x1, overlay))) {
     return { x0, x1, levels, problem: 'CELL_OCCUPIED' };
   }
   const anchor = isBasement(bottom) ? (levels[levels.length - 1] ?? bottom) : bottom;
@@ -151,9 +157,14 @@ class BuiltCells {
     }
   }
 
-  hasOccupant(level: Level, x0: number, x1: number): boolean {
+  /** With `frontLayer` only a stair or escalator counts: units and lobby rows are passed over. */
+  hasOccupant(level: Level, x0: number, x1: number, frontLayer = false): boolean {
     for (let x = x0; x <= x1; x += 1) {
-      if (this.structureAt(level, x) === 'l' || this.thingAt(level, x)) {
+      if (frontLayer) {
+        if (this.transportAt(level, x)) {
+          return true;
+        }
+      } else if (this.structureAt(level, x) === 'l' || this.thingAt(level, x)) {
         return true;
       }
     }
@@ -177,6 +188,14 @@ class BuiltCells {
       return '.';
     }
     return this.world.structure.get(level)?.charAt(x) || '.';
+  }
+
+  private transportAt(level: Level, x: number): boolean {
+    return (
+      this.byLevel
+        .get(level)
+        ?.some((thing) => isTransportTool(thing.type) && covers(thing, x, level)) ?? false
+    );
   }
 
   private thingAt(level: Level, x: number): boolean {

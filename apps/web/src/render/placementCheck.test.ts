@@ -49,6 +49,15 @@ describe('checkPlacement', () => {
     expect(checkPlacement('office', 14, 3, withCinema).problem).toBe('CELL_OCCUPIED');
   });
 
+  it('lets stairs pass over a unit but not over other stairs', () => {
+    const office = { type: 'office', x: 12, level: 3 } as const;
+    expect(checkPlacement('stairs', 10, 3, world({ units: [office] })).problem).toBeNull();
+    const stairs = { type: 'stairs', x: 10, level: 3 } as const;
+    expect(checkPlacement('escalator', 14, 3, world({ transports: [stairs] })).problem).toBe(
+      'CELL_OCCUPIED',
+    );
+  });
+
   it('rejects overlap with stairs', () => {
     const stairs = { type: 'stairs', x: 10, level: 3 } as const;
     expect(checkPlacement('office', 12, 3, world({ transports: [stairs] })).problem).toBe(

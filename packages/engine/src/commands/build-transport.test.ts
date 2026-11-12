@@ -100,9 +100,24 @@ describe('buildTransport stairs', () => {
     expect(rejection(towerWith(), transport('stairs', 76, 2))).toBe('NO_FLOOR');
   });
 
-  it('rejects a footprint on a unit as CELL_OCCUPIED', () => {
+  it('places stairs over a unit: the unit stays in the back layer', () => {
     const tower = towerWith([{ type: 'office', level: 2, x: 12 }]);
-    expect(rejection(tower, transport('stairs', 10, 2))).toBe('CELL_OCCUPIED');
+    const { state, result } = run(tower, transport('stairs', 10, 2));
+    expect(result.ok).toBe(true);
+    expect(Object.keys(state.units)).toHaveLength(1);
+    expect(occupantAt(state.grid, 2, 12)?.kind).toBe('unit');
+    const spans = state.grid.levels[2]?.occupants ?? [];
+    expect(spans.some(({ occupant }) => occupant.kind === 'transport')).toBe(true);
+  });
+
+  it('rejects stairs over a shaft as CELL_OCCUPIED', () => {
+    const tower = towerWith();
+    tower.money = 10_000_000;
+    const built = run(tower, {
+      id: 'c0',
+      command: { type: 'buildShaft', shaftType: 'standard', x: 12, bottom: 1, top: 4 } as never,
+    }).state;
+    expect(rejection(built, transport('stairs', 10, 2))).toBe('CELL_OCCUPIED');
   });
 
   it('rejects a footprint on another footprint as CELL_OCCUPIED', () => {
@@ -120,9 +135,11 @@ describe('buildTransport stairs', () => {
     expect(rejection(tower, transport('stairs', 10, 2))).toBe('TRANSPORT_LANDING');
   });
 
-  it('rejects a landing on a unit as TRANSPORT_LANDING', () => {
+  it('lets the landing rest over a unit', () => {
     const tower = towerWith([{ type: 'office', level: 3, x: 12 }]);
-    expect(rejection(tower, transport('stairs', 10, 2))).toBe('TRANSPORT_LANDING');
+    const { state, result } = run(tower, transport('stairs', 10, 2));
+    expect(result.ok).toBe(true);
+    expect(occupantAt(state.grid, 3, 12)?.kind).toBe('unit');
   });
 
   it('rejects the subway tunnel level and the top level', () => {

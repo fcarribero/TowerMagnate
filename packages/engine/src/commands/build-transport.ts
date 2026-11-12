@@ -13,6 +13,7 @@ import {
 } from '@tower-magnate/shared';
 import {
   addOccupant,
+  isOverlay,
   levelError,
   overlappingOccupants,
   removeOccupant,
@@ -30,19 +31,22 @@ function hasStructureAcross(grid: GridState, level: Level, x0: number, x1: numbe
   return columnsBetween(x0, x1).every((x) => structureAt(grid, level, x) !== null);
 }
 
-/** C-28: empty floor or lobby. The landing of another transport can be stepped onto and built over. */
+/**
+ * C-28: floor, lobby, a unit or ruins. Stairs and escalators pass over the back layer. The landing
+ * of another transport can be stepped onto and built over. Another footprint or a shaft blocks it.
+ */
 function footprintError(grid: GridState, level: Level, x0: number, x1: number): ErrorCode | null {
   const blocked = overlappingOccupants(grid, level, x0, x1).some(
-    (span) => !isTransportPart(span.occupant, 'landing'),
+    (span) => isOverlay(span.occupant) && !isTransportPart(span.occupant, 'landing'),
   );
   if (blocked) return 'CELL_OCCUPIED';
   return hasStructureAcross(grid, level, x0, x1) ? null : 'NO_FLOOR';
 }
 
-/** C-29: structure on every landing cell, each either free or the footprint of another transport. */
+/** C-29: structure on every landing cell, each free, in the back layer or the footprint of another transport. */
 function landingError(grid: GridState, level: Level, x0: number, x1: number): ErrorCode | null {
-  const clear = overlappingOccupants(grid, level, x0, x1).every((span) =>
-    isTransportPart(span.occupant, 'footprint'),
+  const clear = overlappingOccupants(grid, level, x0, x1).every(
+    (span) => !isOverlay(span.occupant) || isTransportPart(span.occupant, 'footprint'),
   );
   return clear && hasStructureAcross(grid, level, x0, x1) ? null : 'TRANSPORT_LANDING';
 }
@@ -71,9 +75,9 @@ function claimLandingCells(grid: GridState, level: Level, x0: number, x1: number
 /** The landing cells that are not already the footprint of another transport. */
 function freeLandingRuns(grid: GridState, level: Level, x0: number, x1: number): ColumnSpan[] {
   const taken = new Set(
-    overlappingOccupants(grid, level, x0, x1).flatMap((span) =>
-      columnsBetween(Math.max(span.x0, x0), Math.min(span.x1, x1)),
-    ),
+    overlappingOccupants(grid, level, x0, x1)
+      .filter((span) => isOverlay(span.occupant))
+      .flatMap((span) => columnsBetween(Math.max(span.x0, x0), Math.min(span.x1, x1))),
   );
   const runs: ColumnSpan[] = [];
   for (const x of columnsBetween(x0, x1)) {

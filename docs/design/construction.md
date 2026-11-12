@@ -28,6 +28,7 @@ Each cell holds two independent things:
 
 - Structure: none, floor, or lobby. A unit's cells also count as structure (see 2.3).
 - Occupant: nothing, a unit, a stair or escalator footprint, a stair or escalator landing, an elevator shaft, or ruins left by an event.
+- Layers: a cell has two layers. The back layer holds units, lobby rows and ruins. The front layer holds stairs, escalators (footprint and landing) and elevator shafts. Things of one layer never share a cell, so two stairs cannot overlap and a stair cannot go over a shaft. A front layer thing can go over a back layer thing, so stairs, escalators and shafts can be placed on top of units.
 
 A cell is "empty floor" when its structure is floor or lobby and it has no occupant.
 
@@ -159,10 +160,10 @@ Transport, floor and lobby are not in this table. Their rules are in sections 2,
 
 A stair or escalator is placed by its left column `x` and its lower level `L`. Call the level above `U`.
 
-- Footprint: the 8 cells on level L. They must be empty floor.
-- Landing: the 8 cells on level U in the same columns. Each must have structure (floor or lobby) and either no occupant or the footprint of another stair or escalator. Landings let people step off, and stacked stairs in the same columns are allowed.
+- Footprint: the 8 cells on level L. They must have structure and no other front layer occupant (no stair footprint, no shaft). Units, lobby rows and ruins in those cells stay where they are.
+- Landing: the 8 cells on level U in the same columns. Each must have structure (floor or lobby) and no front layer occupant except the footprint of another stair or escalator. A unit under the landing stays. Landings let people step off, and stacked stairs in the same columns are allowed.
 - No automatic floor. The player lays floor first.
-- After placement, the landing cells are reserved. Units, shafts and ruins cannot use them.
+- After placement, the landing cells are reserved in the front layer. Shafts and other stairs cannot use them, and no unit can be built there.
 - L can be -1, linking S1 with floor 1. L cannot be -10 or 104.
 
 ### 5.2 Escalator floor types
@@ -183,7 +184,7 @@ Design call: GDD lists "lobby, commerce, entertainment or single rooms". Fast fo
 
 A shaft is placed by its left column `x`, a bottom level `B` and a top level `T`. Placing a shaft creates it with 1 car, so the first payment is shaft price plus one car price. Its span is the number of levels from B to T inclusive, counted in the order of section 1 (so -9 to 21 is 30 levels).
 
-- Every cell of the shaft, on every level from B to T, must be empty floor. Lobby cells count as floor. No automatic floor.
+- Every cell of the shaft, on every level from B to T, must have structure and no front layer occupant (no stair, escalator or other shaft). Lobby cells count as floor, and units in those cells stay: the shaft passes over them. No automatic floor.
 - Levels allowed: -9 to 101. A shaft can reach level 101 to serve the cathedral. Express shafts are further limited by 5.4.
 - Standard and service shafts span at most 30 levels.
 - A shaft holds 1 to 8 cars. Adding a car costs the car price. The last car cannot be removed; demolish the shaft instead.
@@ -439,9 +440,9 @@ C-27. Every unit is placed at the normal price level. Error: none.
 
 ### Stairs and escalators
 
-C-28. Stairs ($5,000) and escalators ($20,000) are 8 wide and link level L with the level above. Their 8 cells on L must be empty floor or lobby. Error: `NO_FLOOR` when a cell has no structure, `CELL_OCCUPIED` when it has an occupant.
+C-28. Stairs ($5,000) and escalators ($20,000) are 8 wide and link level L with the level above. Their 8 cells on L must have structure (floor or lobby) and no stair, escalator or shaft; a unit there does not block them. Error: `NO_FLOOR` when a cell has no structure, `CELL_OCCUPIED` when a front layer occupant is there.
 
-C-29. The 8 landing cells on the level above must have structure and either no occupant or another stair or escalator footprint. Error: `TRANSPORT_LANDING`.
+C-29. The 8 landing cells on the level above must have structure and no front layer occupant except another stair or escalator footprint; a unit does not block them. Error: `TRANSPORT_LANDING`.
 
 C-30. An escalator needs both of its levels to be escalator floors (section 5.2). Error: `ESCALATOR_FLOOR_TYPE`.
 
@@ -455,7 +456,7 @@ C-33. Placing a shaft charges the shaft price plus one car. Standard is 4 wide (
 
 C-34. Every shaft cell on every level from bottom to top must have structure. Error: `NO_FLOOR`.
 
-C-35. Every shaft cell must have no occupant. Error: `CELL_OCCUPIED`.
+C-35. Every shaft cell must have no stair, escalator or other shaft; units in the cell do not block it. Error: `CELL_OCCUPIED`.
 
 C-36. Shafts span levels -9 to 101 at most. Error: `OUT_OF_BOUNDS`.
 
