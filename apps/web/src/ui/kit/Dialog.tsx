@@ -9,6 +9,8 @@ export function dialogRequest(id: string): OpenRequest {
   return { id, onTop: true };
 }
 
+const DIALOG_WIDTH = 280;
+
 export interface DialogChoice {
   id: string;
   label: string;
@@ -26,7 +28,7 @@ interface DialogFrameProps {
   /** The choice Esc and the close button make; without one the dialog has no close button. */
   escapeChoiceId?: string;
   modal?: boolean;
-  width?: number;
+  tone?: 'alert' | 'info';
 }
 
 function DialogFrame({
@@ -38,7 +40,7 @@ function DialogFrame({
   onChoose,
   escapeChoiceId,
   modal,
-  width,
+  tone = 'alert',
 }: DialogFrameProps) {
   const closable = escapeChoiceId !== undefined;
   return (
@@ -47,8 +49,9 @@ function DialogFrame({
       title={title}
       closable={closable}
       modal={modal}
-      width={width}
+      width={DIALOG_WIDTH}
       isDialog
+      dialogTone={tone}
       onClose={closable ? () => onChoose(escapeChoiceId) : undefined}
     >
       {body}
@@ -181,6 +184,7 @@ export function InfoDialog({
       escapeChoiceId={closable ? ACCEPT : undefined}
       onChoose={onClose}
       modal={modal}
+      tone="info"
     />
   );
 }

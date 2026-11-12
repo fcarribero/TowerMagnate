@@ -10,6 +10,10 @@ export interface TooltipProps {
   /** A single element; its root gets `aria-describedby` pointing at the tooltip. */
   children: VNode;
   delayMs?: number;
+  /** `beside` opens right of the nearest `[data-tooltip-edge]` ancestor, level with the anchor. */
+  side?: 'below' | 'beside';
+  /** Draws the last line in the alert color. */
+  alertLastLine?: boolean;
 }
 
 interface Placement {
@@ -21,7 +25,13 @@ interface Placement {
  * Shows a short text under its element after the pointer rests on it, or at
  * once when the element gets keyboard focus.
  */
-export function Tooltip({ text, children, delayMs = TOOLTIP_DELAY_MS }: TooltipProps) {
+export function Tooltip({
+  text,
+  children,
+  delayMs = TOOLTIP_DELAY_MS,
+  side = 'below',
+  alertLastLine = false,
+}: TooltipProps) {
   const tooltipId = useId();
   const anchorRef = useRef<HTMLSpanElement>(null);
   const tipRef = useRef<HTMLSpanElement>(null);
@@ -73,7 +83,14 @@ export function Tooltip({ text, children, delayMs = TOOLTIP_DELAY_MS }: TooltipP
     if (!visible || anchor === null || tip === null) {
       return;
     }
-    setPlacement(placeBelow(anchor.getBoundingClientRect(), tip, uiScaleOf(anchor)));
+    const anchorRect = anchor.getBoundingClientRect();
+    const scale = uiScaleOf(anchor);
+    const edge = anchor.closest('[data-tooltip-edge]');
+    setPlacement(
+      side === 'beside' && edge !== null
+        ? placeBeside(anchorRect, edge.getBoundingClientRect(), tip, scale)
+        : placeBelow(anchorRect, tip, scale),
+    );
   }, [visible, lines.join('\n')]);
 
   return (
@@ -103,8 +120,15 @@ export function Tooltip({ text, children, delayMs = TOOLTIP_DELAY_MS }: TooltipP
           visibility: placement === null ? 'hidden' : undefined,
         }}
       >
-        {lines.map((line) => (
-          <span key={line} class="tm-tooltip__line">
+        {lines.map((line, index) => (
+          <span
+            key={line}
+            class={
+              alertLastLine && index === lines.length - 1
+                ? 'tm-tooltip__line is-alert'
+                : 'tm-tooltip__line'
+            }
+          >
             {line}
           </span>
         ))}
@@ -128,5 +152,21 @@ export function placeBelow(anchor: DOMRect, tip: HTMLElement, uiScale: number): 
   return {
     left: Math.round(Math.max(Math.min(anchor.left, maxLeft), 0)),
     top: Math.round(fitsBelow ? anchor.bottom + gap : Math.max(anchor.top - gap - height, 0)),
+  };
+}
+
+/** Right of the edge element, level with the anchor, and pushed back inside the viewport. */
+export function placeBeside(
+  anchor: DOMRect,
+  edge: DOMRect,
+  tip: HTMLElement,
+  uiScale: number,
+): Placement {
+  const gap = GAP_UI_PIXELS * uiScale;
+  const maxLeft = window.innerWidth - tip.offsetWidth;
+  const maxTop = window.innerHeight - tip.offsetHeight;
+  return {
+    left: Math.round(Math.max(Math.min(edge.right + gap, maxLeft), 0)),
+    top: Math.round(Math.max(Math.min(anchor.top, maxTop), 0)),
   };
 }

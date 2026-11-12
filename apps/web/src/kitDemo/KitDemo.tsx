@@ -149,7 +149,7 @@ function DemoWindows() {
 
   return (
     <>
-      <Window id="buttons" title="Botones" width={200}>
+      <Window id="buttons" title="Botones" subtitle="Acciones de ejemplo" width={200}>
         <p>Clics: {clicks}</p>
         <div class="kit-demo__row">
           <Tooltip text={[t('ui.apply'), 'Suma un clic']}>
@@ -163,6 +163,11 @@ function DemoWindows() {
             {t('ui.accept')}
           </Button>
         </div>
+        <div class="kit-demo__row">
+          <Button isPrimary onClick={() => manager.close('buttons')}>
+            Construir
+          </Button>
+        </div>
       </Window>
 
       <Window id="fields" title="Campos" width={220}>
@@ -172,6 +177,7 @@ function DemoWindows() {
           value={name}
           maxLength={24}
           hint="Hasta 24 caracteres"
+          error={name.trim() === '' ? 'Escribe un nombre' : undefined}
           onChange={setName}
         />
         <NumberInput
