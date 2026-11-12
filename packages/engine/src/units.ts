@@ -46,6 +46,7 @@ export function newVenueDay(): VenueDay {
     stressSum: 0,
     stressTrips: 0,
     customers: [],
+    filmChangedAtStep: null,
   };
 }
 
