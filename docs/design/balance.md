@@ -209,3 +209,36 @@ The 5-star share is 54.6%, against the target of 30% to 36%. Seed 3 did not reac
 ### 8.3 Constants changed
 
 None. A trial that halved `OUTSIDE_CUSTOMER_BASE` gave a 3-star share of 39.2% on seed 1, the same as before, so outside customers are not what drives the share. The trial did not reach 4 or 5 stars and was reverted. The acceptance for the 5-star share is not met and stays open. The next step is to split venue visits by source (workers, residents, hotel guests, outside customers) at 5 stars before choosing a constant.
+
+## 8.5 Seed 3 at 3 stars (TM-311, 8 March 2027)
+
+### 8.5.1 Method
+
+One process, seed 3, 100 days, develop at 2b7ee40 (engine and shared identical to the current develop apart from version numbers). A probe called `nextStarRequirements` and `populationOf` at the end of every weekday and logged each requirement of the next step as met or unmet. The probe was a temporary script and is not committed. Day numbers below count from 1.
+
+### 8.5.2 Result
+
+Seed 3 does not stay at 3 stars on this develop. It reaches 3 stars on day 22, 4 stars on day 67 and 5 stars on day 93, and is at 5 stars with 10,670 population on day 100 (cathedral and wedding unmet, as expected before the Torre rank). The 17,482 population at 3 stars in the TM-296 notes of 2 and 4 March does not appear in this run: population on day 66 is 5,044.
+
+First weekday on which each 3 to 4 requirement is met, with the numbers of that day:
+
+| Requirement | First met | Numbers |
+|---|---|---|
+| Suites (2) | day 22 | 4 suites |
+| Parking, no failure | day 24 | last failure at step 203,674 (day 24); failures return on later weekdays until day 46, last at step 390,960 |
+| VIP approved | day 29 | flag set by the first approved visit |
+| Medical | day 46 | 2 medical centers built; last medical failure at step 386,964 |
+| Recycling | day 57 | 2 centers for 4,391 population (2 x 2,500 = 5,000) |
+| Population 5,000 | day 66 | 5,044 |
+
+All five other requirements are met from day 57 to day 65 while population is 4,391 to 4,914. Population is the last gate, and the promotion comes at the first check after it passes 5,000 (4 stars on day 67, population 5,370). The progression bot builds the medical centers at 60% of the threshold and the recycling centers at 80% (`medicalAction`, `recyclingAction`), and each was in place before population reached 5,000, so the bot has no gap on this seed.
+
+### 8.5.3 Decision
+
+Not an engine bug, not a bot gap and not a balance constant: the stall in the notes does not reproduce. The star rules in `stars.ts` match stars.md 5 for all five requirements. The likely cause is that the 2 March run was taken on the TM-296 branch while the venue-share experiments (`OUTSIDE_CUSTOMER_BASE` x0.4, office lunch chance 0.5) were being tried, which changes population and cash for the whole run. This is a guess: the branch state of that run was not kept, so it cannot be confirmed.
+
+No linked fix task is created and no constant changed. Seed 3 reaches 4 stars on day 67 and 5 stars on day 93, so the five-seed milestone acceptance of TM-144 is not blocked by seed 3.
+
+### 8.5.4 Next step
+
+BE re-runs seed 3 for TM-296 (D2) from clean develop before and after the lunch-chance change, and records the 3, 4 and 5 star days. If seed 3 stalls again after a constant change, the star check log of 8.5.1 shows which requirement fails; the first suspect is recycling, since `recyclingAction` sizes the centers from population at the moment it builds and population can pass 2,500 per center faster than the bot adds them.
