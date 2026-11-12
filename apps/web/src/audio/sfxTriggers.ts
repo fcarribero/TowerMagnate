@@ -83,7 +83,13 @@ function isAlarmTrigger(trigger: SfxTrigger): boolean {
   return trigger === 'event.bomb' || trigger === 'event.fire';
 }
 
-function eventViewKind(view: EventView): DecisionKind {
+type AlarmEventView = Exclude<EventView, { kind: 'wedding' }>;
+
+function alarmEventViews(views: EventView[]): AlarmEventView[] {
+  return views.filter((view): view is AlarmEventView => view.kind !== 'wedding');
+}
+
+function eventViewKind(view: AlarmEventView): DecisionKind {
   return view.kind === 'decision' ? view.decision : view.disaster;
 }
 
@@ -251,7 +257,7 @@ export class SfxDirector {
 
   private stopAlarmsMissingFrom(views: EventView[]): void {
     for (const [kind, alarm] of this.alarms) {
-      const stillActive = views.some((view) =>
+      const stillActive = alarmEventViews(views).some((view) =>
         alarm.eventId === null ? eventViewKind(view) === kind : view.id === alarm.eventId,
       );
       if (!stillActive) {
@@ -263,7 +269,9 @@ export class SfxDirector {
   /** After a reload only an open decision brings the alarm back, not a search or a fire alone. */
   private startAlarmsForOpenDecisions(views: EventView[]): void {
     for (const kind of ALARM_KINDS) {
-      const decision = views.find((view) => view.kind === 'decision' && view.decision === kind);
+      const decision = alarmEventViews(views).find(
+        (view) => view.kind === 'decision' && view.decision === kind,
+      );
       if (decision !== undefined) {
         this.startAlarm(kind, decision.id);
       }

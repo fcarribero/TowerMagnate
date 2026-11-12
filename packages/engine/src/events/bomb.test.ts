@@ -17,6 +17,7 @@ import { isOnTrek } from '../trek';
 import { buildTower, plainTowerPlan, type PlannedUnit } from '../testing';
 import { blastColumns, blastLevels, openRandomBombThreat, ruinBlastBox } from './bomb';
 import { openBombThreat, openFire } from './decisions';
+import { buildEventViews } from './view';
 import { eventsPhase } from '.';
 
 /** Seed 95 rolls 0 on its first draw, a hit; seed 1 does not. */
@@ -287,6 +288,22 @@ describe('bomb search outcome', () => {
     expect(atOne.state.units[officeId]).toBeUndefined();
     expect(peopleCount(atOne.state.people)).toBe(before);
     expect(atOne.state.activeEvents).toEqual([]);
+  });
+
+  it('sends the ruined ranges of the destroyed unit with the explosion and keeps no view of them', () => {
+    const state = officeTower();
+    threatAt(state, { x: 124, level: 5 });
+
+    const atOne = step(state, [], ONE_PM - NINE_AM);
+
+    const disaster = atOne.events.find((event) => event.type === 'disaster');
+    expect(disaster).toMatchObject({ kind: 'bomb' });
+    const cells = disaster && 'cells' in disaster ? disaster.cells : [];
+    expect(cellsOn(cells, 5)).toEqual(columns(104, 143));
+    expect(buildEventViews(atOne.state)).toEqual([]);
+
+    const later = step(atOne.state, [], 1);
+    expect(later.events.some((event) => event.type === 'disaster')).toBe(false);
   });
 
   it('does not explode a step before 13:00', () => {

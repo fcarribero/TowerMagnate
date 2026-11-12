@@ -425,7 +425,7 @@ The tower also keeps `closedDecisions: string[]`, the ids of the last 20 closed 
 
 ### 11.2 Client view
 
-`EventView` sends, per active event: the kind, the id, the open decision (options, default, deadline step) if any, the ransom, the burning spans per level as `{ level, x0, x1, out }`, and for a bomb whether the search has started. The bomb cell is not sent; the player does not know where the bomb is. The VIP visit is not sent as an event view; the VIP is a person and shows like one.
+`EventView` sends, per active event: the kind, the id, the open decision (options, default, deadline step) if any, the ransom, the burning spans per level as `{ level, x0, x1, out }`, and for a bomb whether the search has started. The bomb cell is not sent; the player does not know where the bomb is. The VIP visit is not sent as an event view; the VIP is a person and shows like one. A bomb explosion is not an event view: the threat ends at the blast (4.6), so the ruined cell ranges travel only in the one `disaster` client event of that step and are never sent again.
 
 ### 11.3 Ledger
 
