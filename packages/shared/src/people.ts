@@ -62,6 +62,8 @@ export interface PersonPool {
   legStep: number[];
   /** 1 when the last horizontal move was to the left, otherwise 0. */
   facing: number[];
-  /** Ids of followed people, in increasing order, at most MAX_FOLLOWED_PEOPLE. */
+  /** Ids of followed people, in increasing order, at most MAX_FOLLOWED_PEOPLE. Each has a name. */
   followed: number[];
+  /** Names the player gave, by person id. People without an entry are unnamed. */
+  names: Record<number, string>;
 }

@@ -106,9 +106,9 @@ describe('step', () => {
     expect(state).toEqual(tower);
   });
 
-  it('rejects a command that has no handler yet', () => {
-    const renamePerson = { type: 'renamePerson', personId: 'p1', name: 'Ana' };
-    const queued = { id: 'c1', command: renamePerson as unknown as Command };
+  it('rejects a command that has no handler', () => {
+    const withoutHandler = { type: 'danceOnRoof' };
+    const queued = { id: 'c1', command: withoutHandler as unknown as Command };
     const { results, state } = step(createTower(1), [queued], 0);
     expect(results).toEqual([{ id: 'c1', ok: false, step: 0, error: 'INVALID_COMMAND' }]);
     expect(state).toEqual(createTower(1));
