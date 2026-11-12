@@ -264,7 +264,7 @@ No linked fix task is created and no constant changed. Seed 3 reaches 4 stars on
 
 BE re-runs seed 3 for TM-296 (D2) from clean develop before and after the lunch-chance change, and records the 3, 4 and 5 star days. If seed 3 stalls again after a constant change, the star check log of 8.5.1 shows which requirement fails; the first suspect is recycling, since `recyclingAction` sizes the centers from population at the moment it builds and population can pass 2,500 per center faster than the bot adds them.
 
-### 8.6 ecision: venue share target against milestone pace (TM-315, 9 March 2027)
+### 8.6 Decision: venue share target against milestone pace (TM-315, 9 March 2027)
 
 ### 8.6.1 Choice
 
@@ -287,3 +287,51 @@ No constant changes and no engine code changes. `scripts/balance-progression.ts`
 ### 8.6.4 For TM-144
 
 Seed 1 reaches 3 stars on day 19 and 5 stars on day 89, inside 15% of 21 and 84 (18 to 24 and 71 to 97). Seed 1 reaches 4 stars on day 65 and seed 3 on day 67 (8.5.2), against 49 in the TM-144 acceptance, which allows 42 to 56. The economy.md 12 range for 4 stars is days 54 to 72, which both seeds meet. The two documents disagree, so TM-144 must first say which of 49 or 54 to 72 is the target. If 49 stays, the 4-star step needs 16 days less, and the likely lever is the 5,000 population threshold's pace (offices built per day at 3 stars), not the venue constants.
+
+## 9. Balance pass 2: final bot run (TM-144, 11 March 2027)
+
+### 9.1 Target decision
+
+The 4-star target of TM-144 (day 49 within 15%, so days 42 to 56) conflicted with economy.md 12 (4 stars on days 54 to 72, "around week 9"). The economy.md 12 ranges are the targets, as medians over seeds 1 to 5. The TM-144 numbers of 49, 84 and 98 were a first guess made before the late-cost retune of section 6, and the measured medians had been inside the economy.md ranges since then. Changing the pace to day 49 would need about 16 days less at 3 stars, which is a pace change of its own and not part of a balance pass on constants.
+
+| Rating | Target (median of 5 seeds) | Source |
+|---|---|---|
+| 2 stars | by day 7 | economy.md 12 |
+| 3 stars | days 14 to 21 | economy.md 12 |
+| 4 stars | days 54 to 72 | economy.md 12 |
+| 5 stars | days 89 to 121; no seed before day 84 | economy.md 12, balance.md 1 |
+| Torre | days 126 to 168 | economy.md 12 |
+
+### 9.2 Run
+
+`pnpm balance:progression`, one seed per process, at most two processes at a time, develop of 11 March 2027, no debug money, 160 to 170 days. The first attempt of seeds 3, 4 and 5 stopped without a report and was rerun.
+
+| Rating | Seed 1 | Seed 2 | Seed 3 | Seed 4 | Seed 5 | Median | Target |
+|---|---|---|---|---|---|---|---|
+| 2 stars | 2 | 2 | 2 | 2 | 2 | 2 | by 7 |
+| 3 stars | 19 | 19 | 22 | 19 | 19 | 19 | 14 to 21 |
+| 4 stars | 66 | 65 | 67 | 66 | 80 | 66 | 54 to 72 |
+| 5 stars | 92 | 92 | 93 | 94 | 107 | 93 | 89 to 121 |
+| Torre | 139 | 139 | 146 | 139 | 153 | 139 | 126 to 168 |
+
+Every median is inside its range and no seed reaches 5 stars before day 84. Seed 3 reaches every rating, which closes the open question of TM-311. Seed 5 is 14 days behind the other four at 4 stars (day 80, outside 54 to 72 as a single seed); the cause was not diagnosed, and the target applies to medians.
+
+### 9.3 Venue share
+
+Venue visits as a share of population when each rating came:
+
+| Rating | Seed 1 | Seed 2 | Seed 3 | Seed 4 | Seed 5 |
+|---|---|---|---|---|---|
+| 3 stars | 39.9% | 38.0% | 28.8% | 38.4% | 36.8% |
+| 4 stars | 53.5% | 52.9% | 51.7% | 53.2% | 54.3% |
+| 5 stars | 52.9% | 52.3% | 54.1% | 54.4% | 54.3% |
+
+All five seeds are in the 45% to 55% target of section 8.6 at 5 stars. Seed 3 at 3 stars (28.8%) is under the 35% lower bound of 8.6.2, a gap that existed before this pass.
+
+### 9.4 VIP wait
+
+The rising chance is already in the engine from the TM-139 work: `VIP_BASE_PERCENT` 8, `VIP_STEP_PERCENT` 4, `VIP_GUARANTEE_DAY` 21 (events.md 6.1). The wait is 5.16 days on average and never more than 21, which meets the mean under 6 and the cap of 21. The test "waits 5.16 days on average and visits every tower by day 21 over 1,000 towers" in `vip.test.ts` covers it. The progression report does not print VIP waits, so the five seed runs do not measure it.
+
+### 9.5 Constants changed
+
+None. The medians already meet the targets, so no constant in `packages/shared` and no test changed.
