@@ -165,12 +165,12 @@ describe('ConfirmDialog', () => {
     expect(document.activeElement).toBe(buttons[1]);
   });
 
-  it('chooses the safe option with Esc and with the close button', () => {
+  it('chooses the safe option with Esc and has no close button', () => {
     const { onConfirm, onCancel } = renderConfirm();
     fireEvent.keyDown(window, { key: 'Escape' });
-    fireEvent.click(within(frameOf('Torre nueva')).getByRole('button', { name: 'Cerrar' }));
-    expect(onCancel).toHaveBeenCalledTimes(2);
+    expect(onCancel).toHaveBeenCalledOnce();
     expect(onConfirm).not.toHaveBeenCalled();
+    expect(frameOf('Torre nueva').querySelector('.tm-window__close')).toBeNull();
   });
 
   it('runs the action from its button', () => {
