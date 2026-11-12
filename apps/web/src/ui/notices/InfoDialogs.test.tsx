@@ -72,6 +72,16 @@ describe('InfoDialogs', () => {
     expect(screen.queryByText('¡Rango Torre!')).toBeNull();
   });
 
+  it('has an ink title, a hazard stripe and no scrim', () => {
+    const { sendEvents } = renderDialogs();
+    sendEvents([{ type: 'weddingCompleted', step: 200 }]);
+
+    const frame = screen.getByText('¡Rango Torre!').closest('section') as HTMLElement;
+    expect(frame.classList.contains('tm-window--dialog-info')).toBe(true);
+    expect(frame.querySelector('.tm-window__stripe')).not.toBeNull();
+    expect(document.querySelector('.tm-modal-backdrop')).toBeNull();
+  });
+
   it('focuses Aceptar so Enter confirms', () => {
     const { sendEvents } = renderDialogs();
     sendEvents([{ type: 'weddingCompleted', step: 200 }]);

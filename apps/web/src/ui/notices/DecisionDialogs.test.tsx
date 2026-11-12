@@ -54,6 +54,14 @@ describe('DecisionDialogs', () => {
     expect(screen.getByText('Amenaza de bomba')).toBeTruthy();
   });
 
+  it('has a hazard stripe, no close button and no scrim', () => {
+    renderDialogs([bomb]);
+
+    expect(document.querySelector('.tm-window__stripe')).not.toBeNull();
+    expect(screen.queryByRole('button', { name: 'Cerrar' })).toBeNull();
+    expect(document.querySelector('.tm-modal-backdrop')).toBeNull();
+  });
+
   it('sends the answer and closes the dialog', () => {
     const { onAnswer } = renderDialogs([bomb]);
 
