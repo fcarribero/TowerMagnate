@@ -13,6 +13,7 @@ const FLOORS = 100;
 const TOWER_X1 = 374;
 const ZONE_FLOORS = 25;
 const SHAFTS_PER_ZONE = 6;
+const CARS_PER_SHAFT_BY_ZONE = [4, 4, 4, 4];
 const SHAFT_SPACING = 4;
 const ZONE_SPACING = 30;
 const STAIRS_X = 124;
@@ -31,7 +32,7 @@ const TIMED_STEPS = 8 * STEPS_PER_HOUR;
 
 /**
  * 2,500 leased offices of 6 workers on 100 floors. Four zones of 25 floors each have a bank of six
- * standard elevators, and stairs join each zone to the next.
+ * standard elevators, and stairs join each zone to the next. Every shaft has 4 cars, 96 in all.
  */
 export function fullTower(): TowerState {
   const shafts: PlannedShaft[] = [];
@@ -40,7 +41,8 @@ export function fullTower(): TowerState {
     const bottom = zone * ZONE_FLOORS + 1;
     for (let index = 0; index < SHAFTS_PER_ZONE; index++) {
       const x = SHAFT_SPACING + zone * ZONE_SPACING + index * SHAFT_SPACING;
-      shafts.push({ type: 'standard', x, bottom, top: bottom + ZONE_FLOORS - 1 });
+      const cars = CARS_PER_SHAFT_BY_ZONE[zone] as number;
+      shafts.push({ type: 'standard', x, bottom, top: bottom + ZONE_FLOORS - 1, cars });
     }
   }
   const units: PlannedUnit[] = [];
