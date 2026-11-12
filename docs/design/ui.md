@@ -1,10 +1,12 @@
 # UI layout, tools and Spanish glossary
 
-Version 1.0, 11 November 2026. Owner: Game Designer. Task TM-18.
+Version 2.0 (draft, in progress), 16 February 2027. Owner: Game Designer. Tasks TM-18 (version 1) and TM-274 (visual style "Obra").
 
 This document defines the game screen: where each region sits, what every tool does, what every window shows, how overlays and dialogs work, and the exact Spanish text of every label and message. It is the contract for the UI kit (TM-63), the toolbar (TM-66), the renderer and the screens that follow, and for QA.
 
 Sources: `docs/GDD.md` section Interfaz, the construction rules (`docs/design/construction.md`, TM-8), the economy rules (`docs/design/economy.md`, TM-9), the unit catalog in `packages/shared` (TM-6), the engine and protocol doc (`docs/tech/engine-and-protocol.md`, TM-5) and the art style guide (`docs/art/style-guide.md`, TM-69). Where the GDD leaves a point open, the decision is marked "Design call" with a short reason. The numbered rules in section 14 are what QA checks.
+
+Version 2 changes the visual style only. The layout of section 2, the region sizes, the tower view, the camera, the UI scale rule, every Spanish text and every string key stay as in version 1. The style comes from concept C, "Obra", of `docs/design/ui-obra-reference.html`; of that file only colors, borders, shadows, fonts, tiles and stripes apply, and its layout does not. Section 1.1 holds the style tokens the code uses.
 
 Other specs own parts of the content shown here. Elevator band times and limits come from TM-12. Event deadlines and options come from TM-15. The full list of news and notice texts belongs to TM-17; section 13.9 holds the texts that exist today, and TM-17 adds to that table rather than starting a new one.
 
@@ -25,11 +27,89 @@ uiScale = clamp(floor(min(viewportWidth / 1024, viewportHeight / 640)), 1, 3)
 
 So 1024 x 640 up to 2047 x 1279 is scale 1, 2048 x 1280 and up is scale 2, and so on. The scale is recalculated on every resize. Below 1024 x 640 the game is not drawn and a centered message reads "Agrandá la ventana del navegador para jugar." (`ui.viewportTooSmall`).
 
-Design call: a fixed minimum and whole-number UI scale keep the pixel font and the 16 x 16 icons sharp, the same reason the tower uses whole-number zoom.
+Design call: a fixed minimum and whole-number UI scale keep the 16 x 16 icons and the 1 px borders sharp, and make every font size an exact whole number of CSS pixels, the same reason the tower uses whole-number zoom.
 
-Font: one bitmap pixel font, 8 UI pixels line height, glyphs about 6 UI pixels wide, with full Spanish coverage (á é í ó ú ü ñ Ñ ¿ ¡ and the uppercase accented vowels). Text is never scaled by fractions.
+Fonts: three web fonts replace the pixel font. Sizes are in UI pixels, so at UI scale `s` a size of 9 is `9 × s` CSS pixels. Line heights are fixed numbers, never `normal`, so text cannot push a bar taller than its fixed height. All three fonts cover the Spanish letters (á é í ó ú ü ñ Ñ ¿ ¡ and the uppercase accented vowels). Text is never scaled by fractions, and the smallest size is 8 UI pixels.
 
-Number formats:
+| Font id | Family | Weights | Used for |
+|---|---|---|---|
+| `font.display` | Archivo Black | 400 | numbers in the status bar, window and dialog titles, prices, result rows |
+| `font.text` | Space Grotesk | 500, 700 | labels, body text, buttons, tooltips |
+| `font.mono` | IBM Plex Mono | 600 | the news line |
+
+If a font does not load, `font.display` falls back to `Impact, sans-serif`, `font.text` to `system-ui, sans-serif` and `font.mono` to `ui-monospace, monospace`. The fixed line heights keep every bar at its height with the fallback.
+
+Text styles, at UI scale 1:
+
+| Style id | Font | Size / line height | Case | Used for |
+|---|---|---|---|---|
+| `text.status-value` | display | 11 / 12 | as written | date, time, money, population in the status bar |
+| `text.status-label` | text 700 | 8 / 10 | upper | "Población", "TORRE", small labels beside a value |
+| `text.news` | mono | 10 / 12 | as written | news line |
+| `text.window-title` | display | 12 / 14 | as written | window title |
+| `text.window-subtitle` | text 700 | 8 / 10 | upper | line above the title in a window (type, level) |
+| `text.dialog-title` | display | 16 / 18 | upper | decision, information and confirm dialog titles |
+| `text.body` | text 500 | 9 / 12 | as written | window rows, dialog body, tooltips |
+| `text.body-strong` | text 700 | 9 / 12 | as written | row values, field text |
+| `text.button` | text 700 | 9 / 12 | upper | buttons, tabs, category buttons |
+| `text.tile-label` | text 700 | 8 / 10 | upper | tool and category tile text, shortcut hints |
+| `text.price` | display | 8 / 10 | as written | prices and amounts in tiles and the tool info box |
+| `text.number-large` | display | 14 / 16 | as written | balance in the finance window |
+
+Uppercase styles use `text-transform`, so string keys and accessible names keep the text of section 13.
+
+### 1.1 Style tokens
+
+The code defines these tokens once, as CSS custom properties named `--{id with dots replaced by dashes}` (`obra.yellow` is `--obra-yellow`), and every control uses them. Sizes are in UI pixels at UI scale 1 and are multiplied by the UI scale like every other size.
+
+Colors:
+
+| Token id | Value | Used for |
+|---|---|---|
+| `obra.ink` | `#111111` | borders, shadows, text, the status bar and news line background |
+| `obra.paper` | `#fffaf0` | block, tile, window and dialog backgrounds |
+| `obra.paper-shade` | `#e6e1d4` | second stripe of a locked tile |
+| `obra.field` | `#ffffff` | text and number field background |
+| `obra.yellow` | `#ffd400` | selected tool, current overlay, toolbar background, money block, hazard stripe, news text |
+| `obra.red` | `#ff3b2f` | negative amounts in windows, alerts, weekend tag, news tag, danger button |
+| `obra.blue` | `#2f6bff` | window title bar |
+| `obra.green` | `#18c46a` | good evaluation, occupied state, positive result, finance title bar |
+| `obra.muted` | `#777777` | locked tile text, disabled text, a notice kept after 20 s |
+| `obra.rule` | `#cccccc` | thin row separators in tables |
+| `obra.scrim` | `rgba(17,17,17,0.4)` | layer behind a dialog |
+
+The palette ids of the tower art (`cloth-red`, `leaf`, `lamp`, `dusk`, `slate`, `stress-pink`, `stress-red`, `sky-deep`, `charcoal` and the rest of the style guide) stay for everything drawn over or about the tower: overlay and legend colors, tower map colors, floating amounts and ghost outlines of section 5.4, stress colors and the followed marker. Where version 1 used a palette id for chrome, version 2 uses a token: `ink` becomes `obra.ink`, chrome `cloth-red` becomes `obra.red`, chrome `leaf` becomes `obra.green`, a selected state in `lamp` becomes `obra.yellow`, and the weekend date in `dusk` becomes the red tag of section 4.
+
+Borders and shadows:
+
+| Token id | Value | Used for |
+|---|---|---|
+| `border.control` | 1, `obra.ink` | buttons, tiles, fields, status bar blocks, tool tiles |
+| `border.window` | 2, `obra.ink` | windows, tooltips, toolbar right edge, news line top edge |
+| `border.dialog` | 3, `obra.ink` | decision, information and confirm dialogs |
+| `shadow.control` | 1 right and 1 down, `obra.ink`, no blur | hovered tile |
+| `shadow.window` | 3 right and 3 down, `obra.ink`, no blur | windows, toasts |
+| `shadow.dialog` | 5 right and 5 down, `obra.ink`, no blur | dialogs |
+
+Shadows have no blur and no transparency. A shadow may reach over the toolbar or past the tower view edge, but it never changes the size of a region.
+
+Spacing and sizes:
+
+| Token id | Value | Used for |
+|---|---|---|
+| `space.1` | 2 | gap between blocks in the status bar, gap inside the toolbar grid |
+| `space.2` | 4 | padding inside a block, between two rows of a window |
+| `space.3` | 6 | padding of a window body |
+| `space.4` | 8 | gap between groups in a window |
+| `size.hazard-stripe` | 6 high, stripes 6 wide at 45 degrees, `obra.yellow` and `obra.ink` | top of a dialog |
+| `size.lock-stripe` | stripes 4 wide at 45 degrees, `obra.paper` and `obra.paper-shade` | locked tool tile |
+| `size.press-offset` | 1 | a pressed tile moves 1 right and 1 down |
+
+Motion: a hovered tile moves 1 up and 1 left and shows `shadow.control`, in 0.08 real seconds. Nothing else is animated, apart from the news line of section 8.1.
+
+Design call: the reference draws 3 px borders and 4 px shadows on a 1280 x 800 frame. Here the status bar is 24 px and the news line 20 px, so controls use 1 px borders, windows 2 px and dialogs 3 px. This keeps the thick-outline look of the reference and leaves room for text inside the fixed bars.
+
+### 1.2 Number formats
 
 | What | Format | Example |
 |---|---|---|
@@ -111,26 +191,32 @@ The cross-section of the whole site: 375 columns and levels from S10 up to four 
 
 ## 4. Status panel
 
+The status bar is 24 px tall and as wide as the screen, with a `border.window` bottom edge drawn inside the 24 px. Its background is `obra.ink`. Every item is a block 20 px tall, placed 2 px from the top and 2 px from the bottom (`space.1`), with `space.1` between blocks. A block has `border.control`, `obra.paper` as background unless the table says otherwise, and `space.2` padding on the left and right. Block text is on one line.
+
 The status bar holds, from left to right:
 
-| Item | Content | Width |
-|---|---|---|
-| Menú button | text "Menú" | 40 |
-| Date | `{weekday} {day} de {month}, año {year}` | fits text |
-| Time | `HH:MM` | 32 |
-| Money | balance in money format; red (`cloth-red`) when negative | 72 |
-| Population | `Población {n}` | fits text |
-| Stars | 5 star icons, or 5 stars plus the word "TORRE" at the top rank; click opens Estrellas | 80 or 112 |
-| Overlay selector | 4 buttons: Normal, Evaluación, Precios, Hotel | 4 x 24 |
-| Zoom | buttons "-" and "+" | 2 x 16 |
-| Window buttons | Mapa, Finanzas, Seguidos, Avisos | 4 x 24, icon buttons with tooltips |
+| Item | Content | Width | Style |
+|---|---|---|---|
+| Menú button | text "Menú" | 40 | `obra.ink` background, `obra.yellow` text in `text.button`. Open: `obra.yellow` background, `obra.ink` text. |
+| Date | `{weekday} {day} de {month}, año {year}` | fits text | `text.status-value`. Saturday and Sunday put the weekday name in a tag: `obra.red` background, `obra.paper` text, 2 px padding left and right. |
+| Time | `HH:MM` | 32 | `text.status-value` |
+| Money | balance in money format | 72 | `obra.yellow` background, `obra.ink` text in `text.status-value`. Negative: `obra.red` background, `obra.paper` text. |
+| Population | `Población {n}` | fits text | the word "Población" in `text.status-label`, then `{n}` in `text.status-value` |
+| Stars | 5 star icons, or 5 stars plus the word "TORRE" at the top rank; click opens Estrellas | 80 or 112 | 5 slots of 14 px. A filled star is `obra.ink`. An empty star is a 1 px `obra.muted` outline with no fill. "TORRE" is in `text.status-label` on an `obra.ink` tag with `obra.yellow` text. |
+| Overlay selector | 4 buttons: Normal, Evaluación, Precios, Hotel | 4 x 24 | One button per overlay, 24 wide, divided by `border.control`. Each shows its key, `1` to `4`, in `text.button`; the name is the tooltip and the accessible name. The current button is `obra.ink` with `obra.yellow` text, the others are `obra.paper`. |
+| Zoom | buttons "-" and "+" | 2 x 16 | `obra.paper` buttons with `border.control`, the sign in `text.status-value`. Pressed: `size.press-offset`. |
+| Window buttons | Mapa, Finanzas, Seguidos, Avisos | 4 x 24 | 24 x 20 square blocks with the window icon at 1x. The button of an open window is `obra.yellow`. |
 
 Examples of the date block: "Lunes 1 de enero, año 1  00:00", "Miércoles 11 de noviembre, año 3  14:35".
 
 - The time shows game hours and minutes, truncated, so it changes every game minute (every 0.625 real seconds).
-- The date changes at 00:00. Saturday and Sunday are written in `dusk` instead of ink, so the weekend reads at a glance.
-- Money and population update with every delta. A filled star is `lamp`, an empty star is a `slate` outline.
+- The date changes at 00:00. On Saturday and Sunday the weekday carries the red tag, so the weekend reads at a glance.
+- Money and population update with every delta.
+- Block text never wraps. If the text of a block is wider than the block, the block grows (items marked "fits text"), and the items to its right keep their order; they do not shrink.
 - When the window is narrower than everything above, the window buttons drop into the Menú list first, then the zoom buttons.
+- At the minimum viewport of 1024 px the items need at most 880 px: Menú 40, date 260 at the longest ("Miércoles 30 de septiembre, año 99"), time 32, money 72, population 96, stars 112, overlays 96, zoom 32, window buttons 96, plus 2 px between the 9 blocks and 2 px at each end. The bar fits with 144 px to spare.
+
+Design call: the overlay buttons keep their 24 px width, which cannot hold "Evaluación" in `text.button`. The key digit fits, matches the shortcut of section 11, and the name stays in the tooltip.
 
 ## 5. Toolbar
 
