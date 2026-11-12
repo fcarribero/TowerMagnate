@@ -358,7 +358,11 @@ export function App({ onLogout, onRestartTower, onSessionLost }: AppProps) {
           onReload={() => location.reload()}
         />
         <Toasts commands={connection.commands} />
-        <NewsLine subscribe={notices.subscribeLine} onOpenAvisos={() => setAvisosOpen(true)} />
+        <NewsLine
+          subscribe={notices.subscribeLine}
+          onOpenAvisos={() => setAvisosOpen(true)}
+          onSeeUnit={(unitId) => stage?.centerOnUnit(unitId)}
+        />
         <WindowLayer class="ui-windows" uiScale={uiScale}>
           {mapOpen && stage && (
             <TowerMapWindow content={content} stage={stage} onClose={() => setMapOpen(false)} />
