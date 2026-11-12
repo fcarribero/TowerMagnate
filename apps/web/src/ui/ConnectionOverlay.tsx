@@ -15,9 +15,11 @@ export function ConnectionOverlay({ status, protocolMismatch, onReload }: Connec
       <div class="connection-blocker">
         <div class="connection-dialog" role="alertdialog" aria-describedby="protocol-mismatch-body">
           <p id="protocol-mismatch-body">{t('dialog.protocolMismatch.body')}</p>
-          <Button isDefault onClick={onReload}>
-            {t('dialog.protocolMismatch.reload')}
-          </Button>
+          <div class="connection-dialog__buttons">
+            <Button isDefault onClick={onReload}>
+              {t('dialog.protocolMismatch.reload')}
+            </Button>
+          </div>
         </div>
       </div>
     );
