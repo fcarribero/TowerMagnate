@@ -1,4 +1,5 @@
 import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { cleanup, fireEvent, render, screen } from '@testing-library/preact';
 import userEvent from '@testing-library/user-event';
 import { useState } from 'preact/hooks';
@@ -15,7 +16,7 @@ import { Tabs } from './Tabs';
 
 afterEach(cleanup);
 
-const kitCss = readFileSync(new URL('./kit.css', import.meta.url), 'utf8');
+const kitCss = readFileSync(resolve(__dirname, 'kit.css'), 'utf8');
 
 function ruleBody(selector: string): string {
   const start = kitCss.indexOf(`${selector} {`);
