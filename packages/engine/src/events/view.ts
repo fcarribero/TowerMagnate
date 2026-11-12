@@ -1,11 +1,15 @@
-import type {
-  ActiveEvent,
-  BurningLevel,
-  EventView,
-  FireSpan,
-  Fire,
-  TowerState,
+import {
+  PERSON_KINDS,
+  type ActiveEvent,
+  type BurningLevel,
+  type EventView,
+  type FireSpan,
+  type Fire,
+  type PersonEntityId,
+  type TowerState,
 } from '@tower-magnate/shared';
+
+const GUEST_KIND = PERSON_KINDS.indexOf('weddingGuest');
 
 function spansOf(fire: Fire): FireSpan[] {
   return Object.keys(fire.levels)
@@ -39,7 +43,18 @@ function viewOf(event: ActiveEvent): EventView {
   return event.kind === 'fire' ? { ...base, spans: spansOf(event) } : base;
 }
 
+function weddingViewOf(state: TowerState): EventView[] {
+  const wedding = state.wedding;
+  if (!wedding || wedding.outcome !== 'pending') return [];
+  const pool = state.people;
+  const guests: PersonEntityId[] = [];
+  pool.id.forEach((id, slot) => {
+    if (pool.kind[slot] === GUEST_KIND) guests.push(`p${id}`);
+  });
+  return [{ kind: 'wedding', cathedral: wedding.cathedral, guests }];
+}
+
 /** What the client sees of the active events. Never includes where a bomb is hidden. */
 export function buildEventViews(state: TowerState): EventView[] {
-  return state.activeEvents.map(viewOf);
+  return [...state.activeEvents.map(viewOf), ...weddingViewOf(state)];
 }
