@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { cleanup, fireEvent, render, screen } from '@testing-library/preact';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { OverlayLegend } from './OverlayLegend';
@@ -40,5 +42,13 @@ describe('OverlayLegend', () => {
     expect(
       [...document.querySelectorAll('.overlay-legend__row')].map((r) => r.textContent),
     ).toEqual(['Buena', 'Regular', 'Mala', 'Sin evaluar']);
+  });
+});
+
+describe('OverlayLegend layout', () => {
+  it('sits 4 UI px above the 20 px news line', () => {
+    const css = readFileSync(resolve(__dirname, 'overlay.css'), 'utf8');
+    const legendRule = css.match(/\.overlay-legend \{[^}]*\}/)?.[0] ?? '';
+    expect(legendRule).toContain('bottom: calc(24 * var(--tm-px));');
   });
 });
