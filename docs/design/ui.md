@@ -52,7 +52,7 @@ Text styles, at UI scale 1:
 | `text.body` | text 500 | 9 / 12 | as written | window rows, dialog body, tooltips |
 | `text.body-strong` | text 700 | 9 / 12 | as written | row values, field text |
 | `text.button` | text 700 | 9 / 12 | upper | buttons, tabs, category buttons |
-| `text.tile-label` | text 700 | 8 / 10 | upper | tool and category tile text, shortcut hints |
+| `text.tile-label` | text 700 | 8 / 10 | upper | tool and category tile text, size row of the info box |
 | `text.price` | display | 8 / 10 | as written | prices and amounts in tiles and the tool info box |
 | `text.number-large` | display | 14 / 16 | as written | balance in the finance window |
 
@@ -76,7 +76,7 @@ Colors:
 | `obra.green` | `#18c46a` | good evaluation, occupied state, positive result, finance title bar |
 | `obra.muted` | `#777777` | locked tile text, disabled text, a notice kept after 20 s |
 | `obra.rule` | `#cccccc` | thin row separators in tables |
-| `obra.scrim` | `rgba(17,17,17,0.4)` | layer behind a dialog |
+| `obra.scrim` | `rgba(17,17,17,0.4)` | layer behind a confirm dialog and the version dialog |
 
 The palette ids of the tower art (`cloth-red`, `leaf`, `lamp`, `dusk`, `slate`, `stress-pink`, `stress-red`, `sky-deep`, `charcoal` and the rest of the style guide) stay for everything drawn over or about the tower: overlay and legend colors, tower map colors, floating amounts and ghost outlines of section 5.4, stress colors and the followed marker. Where version 1 used a palette id for chrome, version 2 uses a token: `ink` becomes `obra.ink`, chrome `cloth-red` becomes `obra.red`, chrome `leaf` becomes `obra.green`, a selected state in `lamp` becomes `obra.yellow`, and the weekend date in `dusk` becomes the red tag of section 4.
 
@@ -222,29 +222,49 @@ Design call: the overlay buttons keep their 24 px width, which cannot hold "Eval
 
 ### 5.1 Layout
 
+The toolbar is 80 px wide and as tall as the tower view. Its background is `obra.yellow`, with a `border.window` edge on the right drawn inside the 80 px, so the inner width is 78. Content has `space.1` padding on the left and right, which leaves 74 px for the controls below.
+
 ```
 +--------------------+
-| [Lupa][Topa][Cab.] |  fixed tools, 3 buttons 24 x 24
+| [Lu][To][Ca]       |  fixed tools, 3 tiles 22 x 24, 4 px apart
 +--------------------+
 | [Estr.]  [Trans.]  |
-| [Of/V]   [Hotel ]  |  categories, 2 x 3 buttons 36 x 24
+| [Of/V]   [Hotel ]  |  categories, 2 x 3 tiles 36 x 24, 2 px apart
 | [Com/E]  [Serv. ]  |
 +--------------------+
 | [t1] [t2]          |
 | [t3] [t4]          |  tools of the open category,
-| [t5] [t6]          |  2 columns of 36 x 36 buttons
+| [t5] [t6]          |  2 columns of 36 x 36 tiles, 2 px apart
 | ...                |
 +--------------------+
-| Tool info box      |  bottom, 80 x 64
+| Tool info box      |  bottom, 74 x 62, 2 px above the bottom edge
 +--------------------+
 ```
 
-- Until the icons exist, buttons show their name as text. A name that does not fit the button without breaking a word uses its short form from 13.3 (`category.short.*`, `tool.short.*`). The tooltip and the accessible name keep the full name.
+Heights: 2 px of top padding, the fixed row (24), 2 px, the category grid (3 x 24 + 2 x 2 = 76), 2 px, the tool grid (as many rows of 36 + 2 as the category needs, at most 4 rows, 150 px), and the info box pinned to the bottom. At the minimum viewport the toolbar is 596 px tall and the content above the info box needs at most 2 + 24 + 2 + 76 + 2 + 150 = 256 px, so nothing scrolls.
+
+Tiles:
+
+- Every tile has `border.control` and `obra.paper` as background. A hovered tile moves 1 up and 1 left and shows `shadow.control` (motion rule of section 1.1). A pressed tile moves `size.press-offset`.
+- The current tool is `obra.ink` with `obra.yellow` text; its icon sits on an `obra.yellow` 34 x 34 square inside the tile when the art has no one-color version. The open category tile is `obra.yellow`.
+- Until the icons exist, tiles show their name in `text.tile-label`, centered, at most 2 lines of 10 px. A name that does not fit the tile without breaking a word uses its short form from 13.3 (`category.short.*`, `tool.short.*`). The tooltip and the accessible name keep the full name.
+- Tool tiles show the 16 x 16 icon at 2x (32 px), centered; the tile is 36 px, so the 1 px border leaves 1 px around the icon. Fixed tools show the icon at 1x.
 - One category is open at a time. Clicking a category opens it and does not change the current tool.
-- Tool buttons show the 16 x 16 icon at 2x. The current tool's button is drawn pressed.
-- The tool info box shows the current tool: name, size, price, and for the lobby the height choice (5.4). Hovering any tool button shows that tool in the box until the cursor leaves.
-- Every tool button also has a tooltip: line 1 name and price, line 2 size, line 3 (locked tools only) "Se desbloquea con {n} estrellas".
-- A tool locked by stars is drawn with a gray dither over its icon and a small lock, and cannot be selected.
+- A tool locked by stars has `size.lock-stripe` stripes (`obra.paper` and `obra.paper-shade`) as background, its icon at 55 % opacity, and `obra.muted` text. It carries a lock badge: an 8 x 8 `obra.ink` square with an `obra.yellow` lock, inside the tile at the top right corner. A locked tile cannot be selected and does not move on hover.
+
+The tool info box is 74 x 62 with `border.control`, `obra.paper` background and `space.2` padding, so the content area is 64 x 52. It shows the current tool, or the hovered tool until the cursor leaves it:
+
+| Row | Style | Height |
+|---|---|---|
+| Name (1 or 2 lines, short form never used here; a name that needs a third line is cut with "...") | `text.body-strong` | 24 |
+| Size, in the format of 5.3, one line cut with "..." | `text.tile-label`, `obra.muted` | 10 |
+| Price, one line cut with "..." | `text.price` | 10 |
+
+For the lobby the size row is replaced by the height choice: the label `ui.lobbyHeight` and three 14 x 14 buttons "1", "2", "3" with `border.control`, the selected one `obra.yellow`. When the height is locked by an existing lobby the buttons are disabled in `obra.muted` and only the locked height keeps its `obra.yellow` fill. The texts `ui.lobbyHeightLocked` and `ui.mainLobbyWarning` do not fit in the box. They show in a note next to the toolbar: `obra.paper` background, `border.window`, `text.body`, `space.2` padding, 160 px wide, its left edge at the toolbar edge and its bottom edge level with the info box. The note shows while the lobby tool is selected and the situation applies, and it is not clickable.
+
+Tooltips: `obra.paper` background, `border.window`, `space.2` padding, at most 160 px wide, no shadow. Line 1 is the name and price in `text.body-strong`, line 2 the size in `text.body`, and line 3 (locked tools only) "Se desbloquea con {n} estrellas" in `text.body` with `obra.red` text. A tooltip opens after 0.5 s and opens to the right of the toolbar.
+
+Design call: the reference tool tiles show a name and a price inside a 112 px tile. A 36 px tile cannot hold them, so the name and price live in the info box and the tooltip, and the tile is an icon. This keeps the toolbar width of 80.
 
 ### 5.2 Fixed tools
 
@@ -339,7 +359,40 @@ Every other demolition is immediate. Design call: the game has no pause and a 1-
 
 ### 6.1 Common window frame
 
-Every window (from TM-63) has a title bar with the title on the left and a close button "x" on the right, a 1 px ink border, a bevel, and a body. Clicking anywhere on a window brings it to the front. Esc closes the front window when no drag or text field is active.
+Every window (from TM-63) is a box with `obra.paper` background, `border.window` and `shadow.window`. From top to bottom it has a title bar, a body and, for the Elevator window only, a footer.
+
+Title bar: `obra.blue` background (Finanzas uses `obra.green`), `border.control` line under it. The title is on the left in `text.window-title` with `space.3` padding, `obra.paper` text (`obra.ink` on `obra.green`), cut with "..." if it is wider than the window. The close button "x" is on the right: a square as tall as the bar, `obra.paper` background, `border.control` on its left edge, the x in `text.window-title`, `obra.ink`. A hovered close button is `obra.red` with `obra.paper` text. The bar is 20 px tall. When the window has a subtitle line above the title in `text.window-subtitle`, it is 28 px tall. Only the Unit window has one: when the unit has a custom name, the title is that name and the subtitle is `{type name} · {level label}`. Dragging the title bar moves the window.
+
+Body: `space.3` padding, rows `space.2` apart, groups `space.4` apart. A row has its label on the left in `text.body` and its value on the right in `text.body-strong`, both on one line; a thin line in `obra.rule` separates rows of a table. Texts in a window never wrap except long body text, which wraps inside the window width.
+
+Window widths, in UI pixels:
+
+| Window | Width |
+|---|---|
+| Unit, Person, Personas seguidas | 200 |
+| Estrellas | 220 |
+| Elevator | 260 |
+| Finanzas, Avisos | 280 |
+| Mapa de la torre | 389 |
+
+The height follows the content. A window taller than the tower view limits its body height to the view minus 24 px and the body scrolls vertically.
+
+Controls inside windows:
+
+| Control | Style |
+|---|---|
+| Button | 16 tall, `border.control`, `obra.paper` background, `text.button`, `space.3` padding left and right. Primary button: `obra.yellow`. Danger button: `obra.red` with `obra.paper` text. Hover moves it 1 up and 1 left with `shadow.control`; press moves it `size.press-offset`. Disabled: `obra.muted` text, no hover motion. |
+| Text and number field | 16 tall, `border.control`, `obra.field` background, `text.body-strong`, 3 px padding. A number field is 40 wide. |
+| Dropdown | A field with a 12 px wide cell on the right holding a triangle, divided by `border.control`. Its list is `obra.paper`, `border.window`, `shadow.window`, rows 14 tall; the hovered row is `obra.yellow`. |
+| Checkbox | 10 x 10, `border.control`, `obra.field` background; checked: `obra.ink` fill with an `obra.yellow` check. |
+| Tab | A 16 tall button in a row, `border.control`, `text.button`. The selected tab is `obra.yellow` and has no bottom border, so it joins the body. |
+| Two-way switch | Two buttons side by side sharing one `border.control`. The selected one is `obra.ink` with `obra.yellow` text. |
+| Price tile | See 6.2. |
+| Scroll bar | 6 wide, track `obra.paper-shade`, thumb `obra.ink`, `border.control` on its left side. |
+| Focus | A focused control gets a 1 px `obra.blue` outline outside its border. |
+| Row of a list that opens something (Personas seguidas, Avisos) | Hovered row `obra.yellow`. |
+
+Clicking anywhere on a window brings it to the front. Esc closes the front window when no drag or text field is active.
 
 Window limits:
 
@@ -380,20 +433,20 @@ Then the rows for the unit type. A value in braces comes from the `inspect` data
 | Estación de subte | Estado: En servicio. |
 | Catedral | Invitados presentes: `{n} de 40`. Último intento de boda: `{date}` or `Ninguno`. (new data) |
 
-The price choice is a column of 4 radio buttons with the amount from the economy tables, for example for an office:
+The price choice is a row of 4 price tiles, a radio group with the amount from the economy tables, for example for an office. Each tile is 44 x 24 with `border.control`, the name in `text.tile-label` and the amount in `text.price`, centered, with 2 px between tiles:
 
 ```
-( ) Alto     $15.000
-(o) Normal   $10.000
-( ) Bajo      $5.000
-( ) Mínimo    $2.000
+[ALTO   ] [NORMAL ] [BAJO  ] [MÍNIMO]
+[$15.000] [$10.000] [$5.000] [$2.000]
 ```
 
-Choosing a radio sends `setPrice` at once. There is no confirm; changing the price is free (TM-9 section 3).
+The selected tile is `obra.yellow` with a 2 px `obra.ink` bar along its bottom edge inside the border. The others are `obra.paper`. When the whole choice is disabled (a sold condo) all four tiles have `obra.muted` text on `obra.paper`, the selected one keeps its `obra.yellow`, and the note "Ya está vendido." is under the row. Choosing a tile sends `setPrice` at once. There is no confirm; changing the price is free (TM-9 section 3).
 
-Evaluation is shown as a 6 x 6 color square plus the word, using the colors of the Evaluación overlay (section 7): "Buena", "Regular", "Mala", or "Sin evaluar" before the first evaluation.
+Evaluation is shown as a 6 x 6 color square with `border.control` plus the word in `text.body-strong`, using the colors of the Evaluación overlay (section 7): "Buena", "Regular", "Mala", or "Sin evaluar" before the first evaluation.
 
-The film change button asks for confirmation (dialog 9.3), then sends `changeFilm`. It is disabled with the tooltip "No alcanza el dinero." when the balance is under $300.000.
+The film change button is a primary button. It asks for confirmation (dialog 9.3), then sends `changeFilm`. It is disabled with the tooltip "No alcanza el dinero." when the balance is under $300.000.
+
+State values are drawn as tags: `text.body-strong` with `space.1` padding and `border.control`. "Ocupada", "Vendido", "Abierto", "Libre" (cochera), "Asignada" and "En servicio" are `obra.green` with `obra.ink` text. "Sucia", "Con plaga", "Cerrado" and "Sin conexión" are `obra.red` with `obra.paper` text. Every other state is `obra.paper` with `obra.ink` text.
 
 The Lupa on lobby, floor, stairs and escalators opens no window; the hover tooltip shows the name only.
 
@@ -415,17 +468,19 @@ Buttons:
 - "Seguir" / "Dejar de seguir". Following needs a name (GDD: "hasta 20 personas con nombre"). With no name the button is disabled and its tooltip is "Poné un nombre para seguir a esta persona." With 20 followed it is disabled with the `FOLLOW_LIMIT` message as tooltip.
 - "Centrar": moves the view to the person, keeping the zoom.
 
+"Seguir" is a primary button when it would follow and a plain button when it stops following; "Centrar" is a plain button. They sit side by side at the bottom of the body.
+
 Followed people are drawn with a 3 x 2 `lamp` marker 2 px above the head, at every zoom.
 
 ### 6.4 Personas seguidas window
 
-Title "Personas seguidas ({n} de 20)". One row per followed person: stress color square, name, kind, and an "x" to stop following. Clicking a row centers the view on the person and opens the person window. Empty list text: "Todavía no seguís a nadie. Abrí una persona con la Lupa, ponele nombre y tocá Seguir."
+Title "Personas seguidas ({n} de 20)". One row per followed person: stress color square, name, kind, and an "x" to stop following. Each row is 16 tall: a 6 x 6 stress square with `border.control`, the name in `text.body-strong`, the kind in `text.body` and `obra.muted`, and the "x" as a 12 x 12 button on the right with `border.control`. Clicking a row centers the view on the person and opens the person window. Empty list text, in `text.body`: "Todavía no seguís a nadie. Abrí una persona con la Lupa, ponele nombre y tocá Seguir."
 
 ### 6.5 Elevator window
 
 Title: `{shaft type name} · {bottom label} a {top label}`, for example "Ascensor estándar · S2 a Piso 25". An asterisk is added at the end while there are unapplied changes.
 
-Three tabs: "Recorrido", "Cabinas", "Horarios". The footer has "Aplicar" and "Descartar", which act on the stops, car homes and schedule together (`configureShaft`). Both are disabled when there are no changes. Closing the window with unapplied changes discards them.
+Three tabs: "Recorrido", "Cabinas", "Horarios". The footer has "Aplicar" (primary button) and "Descartar" (plain button) on the right, above a `border.control` line, with `space.3` padding; which act on the stops, car homes and schedule together (`configureShaft`). Both are disabled when there are no changes. Closing the window with unapplied changes discards them.
 
 Recorrido tab:
 
@@ -440,7 +495,7 @@ Cabinas tab:
 Horarios tab:
 
 - A two-way switch "Días hábiles" / "Fin de semana" picks which 6 bands are edited.
-- A table with 6 rows. Columns: "Franja" (`HH:MM a HH:MM`, from the TM-12 band boundaries), "Modo" (dropdown: Normal, Expreso hacia arriba, Expreso hacia abajo), "Espera" (number field, game seconds, `{n} s`), "Respuesta" (number field, `{n} pisos`, default 5). Number limits come from TM-12; the field clamps to them.
+- A table with 6 rows. Columns: "Franja" (`HH:MM a HH:MM`, from the TM-12 band boundaries), "Modo" (dropdown: Normal, Expreso hacia arriba, Expreso hacia abajo), "Espera" (number field, game seconds, `{n} s`), "Respuesta" (number field, `{n} pisos`, default 5). Number limits come from TM-12; the field clamps to them. The table header is in `text.status-label` with a `border.control` line under it, and the rows are 16 tall.
 - Button "Copiar a fin de semana" (or "Copiar a días hábiles") copies the visible 6 bands to the other day type.
 
 ### 6.6 Finance window
@@ -466,11 +521,11 @@ Total gastos            ...             ...
 Resultado               ...             ...
 ```
 
-Header line under the title: "Semana del lunes {day} de {month}" for the current week. Rows are in the TM-9 category order. Each amount is right aligned; negatives in `cloth-red`. "Resultado" is bold (drawn one pixel wider) and colored by sign. Categories with income and expenses show the net in the row, while the totals split them as TM-9 9.3 says.
+Header line under the title: "Semana del lunes {day} de {month}" for the current week, in `text.body` and `obra.muted`. The balance sits in a full-width block with `obra.ink` background and `space.3` padding: "Saldo" on the left in `text.status-label` and `obra.yellow`, the amount on the right in `text.number-large` and `obra.yellow` (`obra.red` when negative). Under it the table has a header row in `text.status-label` with a `border.control` line, then rows 16 tall in the TM-9 category order. The category name is on the left in `text.body`; each amount is right aligned in `text.body-strong`, and negatives are `obra.red`. The category column is 136 wide and each amount column 64. "Resultado" is the last row, with a `border.control` line above it, in `text.price`: `obra.green` background with `obra.ink` text when positive, `obra.red` with `obra.paper` text when negative, `obra.paper` when zero. Categories with income and expenses show the net in the row, while the totals split them as TM-9 9.3 says.
 
 ### 6.7 Tower map window
 
-Title "Mapa de la torre". The body is a picture of the whole site, one UI pixel per column and 2 UI pixels per level: 375 x 228, with a 1 px ink border.
+Title "Mapa de la torre". The body is a picture of the whole site, one UI pixel per column and 2 UI pixels per level: 375 x 228, with a `border.control` frame around it (377 x 230). The window has `space.2` padding around the frame.
 
 | Content | Color |
 |---|---|
@@ -494,15 +549,17 @@ People are not drawn. The map redraws at most once per real second. Pressing or 
 
 Design call: the GDD lists the stars in the status panel but no way to see what the next star needs. A small window opened by clicking the stars shows it, with no new data beyond population and stars.
 
-Title "Estrellas". Rows: "Rango actual: {n} estrellas" ("Rango actual: 1 estrella" at 1 star, or "Torre"), then "Para {n+1} estrellas:" (or "Para el rango Torre:") and the requirements of the next step as plain text from 13.10, with a progress bar for population `{population} de {target}`. At the top rank the body says "La torre llegó al rango máximo."
+Title "Estrellas". Rows: "Rango actual: {n} estrellas" ("Rango actual: 1 estrella" at 1 star, or "Torre"), then "Para {n+1} estrellas:" (or "Para el rango Torre:") and the requirements of the next step as plain text from 13.10, with a progress bar for population `{population} de {target}`: 10 tall, `border.control`, `obra.field` background, filled with `obra.green` up to the share reached, with the text in `text.body-strong` under it. Requirement lines are `text.body`, one per line. At the top rank the body says "La torre llegó al rango máximo."
 
 ### 6.9 Avisos window
 
-Title "Avisos". The last 50 notices and news, newest first, each `{weekday abbr} {HH:MM}  {text}`. Notices tied to a unit have a "Ver" button that centers the view on it and opens its unit window.
+Title "Avisos". The last 50 notices and news, newest first, each `{weekday abbr} {HH:MM}  {text}`. Each row has the `{weekday abbr} {HH:MM}` stamp in a tag (`text.status-label`, `obra.ink` background, `obra.yellow` text) and the text in `text.body`; alert notices have an `obra.red` stamp with `obra.paper` text. The list is 200 tall at most and scrolls. Notices tied to a unit have a "Ver" button (a plain button, 24 wide) that centers the view on it and opens its unit window.
 
 ### 6.10 Menú
 
-A drop-down list under the Menú button:
+A drop-down list under the Menú button, drawn like the dropdown list of 6.1, 112 wide, rows 16 tall, text in `text.body-strong`. A `border.control` line separates "Empezar una torre nueva" and "Cerrar sesión" from the items above. It closes on any click outside or Esc.
+
+Items:
 
 | Item | Effect |
 |---|---|
@@ -539,22 +596,31 @@ Drawing: an overlay draws its value color over each unit it applies to as a 2 x 
 | | dirty | Sucia | `dusk` |
 | | infested | Con plaga | `cloth-red` |
 
-The legend in the bottom left of the tower view lists the 4 labels of the active overlay with their color squares, under the overlay name.
+The legend in the bottom left of the tower view is a box with `obra.paper` background, `border.window` and `shadow.window`, `space.2` padding. It has the overlay name in `text.window-subtitle`, then the 4 labels of the active overlay in `text.body`, one per row of 12, each with a 6 x 6 color square with `border.control` on its left. The box is 96 wide. The colors in the table above are the tower art colors; the legend squares use the same colors.
 
 ## 8. News line and toasts
 
 ### 8.1 News line
 
-The bottom bar shows one notice at a time: `{weekday abbr} {HH:MM}  {text}`, left aligned, cut with "..." if too long (the full text is in the tooltip and in Avisos).
+The bottom bar is 20 px tall and as wide as the screen. Its background is `obra.ink`, with a `border.window` top edge drawn inside the 20 px, so the content area is 18 px tall. It shows one notice at a time, left aligned: a stamp, then the text.
+
+- The stamp is the `{weekday abbr} {HH:MM}` part of the notice. It is a block 18 px tall, `obra.red` background, `obra.paper` text in `text.status-label`, `space.2` padding left and right, with no border of its own.
+- The text is the rest of the notice in `text.news` and `obra.yellow`, starting 6 px after the stamp, on one line and cut with "..." if too long (the full text is in the tooltip and in Avisos).
+- Alert notices have an alarm icon at 1x (16 x 16, 1 px above and below) in front of the stamp, and their text is `obra.red`.
+- After 20 real seconds without a new notice the line keeps the last one with the stamp background and the text in `obra.muted`.
+
+Rules of the queue:
 
 - New notices queue. Each one stays at least 4 real seconds. If more than 5 are waiting, the line skips to the newest and the skipped ones go only to Avisos.
-- After 20 real seconds without a new notice the line keeps the last one, drawn in `gray`.
-- Two kinds: normal (ink text) and alert (`cloth-red` text, alarm icon at the left). Alerts are: bomb, fire, negative balance, cockroaches, a blocked star check. Alerts play the notice sound; the bomb and fire alerts play their alarms instead.
-- Clicking the line opens Avisos. Clicking a notice tied to a unit also centers on it.
+- A new notice enters by sliding in from the right edge of the screen to its place in 0.25 real seconds. This is the only animation in the news line. If the browser asks for reduced motion, the notice appears at once.
+- Two kinds: normal and alert. Alerts are: bomb, fire, negative balance, cockroaches, a blocked star check. Alerts play the notice sound; the bomb and fire alerts play their alarms instead.
+- Clicking the line opens Avisos. Clicking a notice tied to a unit also centers on it. A hovered line shows `obra.yellow` in its top edge.
 
 ### 8.2 Toasts
 
 Toasts are only for rejected commands of the player. Successful actions show no toast. One toast at a time; a new one replaces the old. 3 real seconds. Not stored in Avisos.
+
+A toast has `obra.red` background, `obra.paper` text in `text.body-strong`, `border.window`, `shadow.window` and `space.3` padding. It is as wide as its text up to 480 px and wraps to a second line past that. It is placed as the layout table of section 2 says. It does not take clicks, and the mouse passes through it.
 
 ## 9. Dialogs
 
@@ -562,7 +628,7 @@ Toasts are only for rejected commands of the player. Successful actions show no 
 
 Opened by `decisionOpened`. The game keeps running.
 
-- Centered, always above every other window, draggable, with no close button.
+- Centered, always above every other window, draggable by its top stripe and title, with no close button. Decision dialogs have no scrim, so the tower stays visible and usable while the dialog is open.
 - Body text, then a line `Respondé antes de las {HH:MM}` (or `antes del {weekday} {HH:MM}` when the deadline is on another day), then one button per option. The default option is the right-most button.
 - Clicking a button sends `answerEvent` and closes the dialog. At the deadline, `decisionClosed` closes it and a notice says which option was applied.
 - If the answer is rejected with `EVENT_EXPIRED`, the dialog closes and the toast shows the message.
@@ -574,9 +640,21 @@ Opened by `decisionOpened`. The game keeps running.
 
 TM-15 may add decisions; each needs a row here.
 
+Look of all dialogs (9.1, 9.2, 9.3, 9.4): the box is 280 wide, `obra.paper` background, `border.dialog` and `shadow.dialog`. From top to bottom:
+
+| Part | Style |
+|---|---|
+| Hazard stripe | `size.hazard-stripe`: 6 tall, stripes in `obra.yellow` and `obra.ink`, with a `border.dialog` line under it |
+| Title | `text.dialog-title`, `obra.red` for decision and confirm dialogs and `obra.ink` for information dialogs, `space.3` padding at the top and `space.4` at the sides, wrapping to a second line when it does not fit |
+| Body | `text.body`, `space.2` above and `space.4` at the sides, wrapping |
+| Deadline line | Decision dialogs only: an inline block with `obra.ink` background and `obra.yellow` text in `text.body-strong`, `space.2` padding, `space.4` from the body and from the buttons |
+| Buttons | A row with a `border.dialog` line above it. Buttons share the width equally, are 28 tall, use `text.button` and are divided by a `border.dialog` line |
+
+The right-most button is the default one and is `obra.yellow` with `obra.ink` text. Another button is `obra.paper`, except the action button of a destructive confirm dialog, which is `obra.red` with `obra.paper` text. The button with keyboard focus has an inset 2 px `obra.blue` outline. A hovered button that is not disabled shows `obra.ink` background and `obra.yellow` text.
+
 ### 9.2 Information dialogs
 
-Centered, one "Aceptar" button, close button allowed. They do not stop anything.
+Centered, one "Aceptar" button as the default button, close button allowed: a 12 x 12 square with `border.control` at the top right of the title row, the x in `text.button`. They do not stop anything and have no scrim.
 
 | Trigger | Title | Body |
 |---|---|---|
@@ -588,7 +666,7 @@ Stars can only go up in the current rules; if a later spec lowers them, a notice
 
 ### 9.3 Confirm dialogs
 
-Two buttons, the safe one on the right and focused. Esc means the safe option.
+Two buttons, the safe one on the right and focused. Esc means the safe option. The action button of `demolishSoldCondo`, `demolishExpensive` and `newTower` is the red one of 9.1; the one of `changeFilm` is `obra.paper`. Confirm dialogs have an `obra.scrim` over the tower view, and clicks on the scrim do nothing.
 
 | Id | Title | Body | Buttons (action, safe) |
 |---|---|---|---|
@@ -601,14 +679,16 @@ Two buttons, the safe one on the right and focused. Esc means the safe option.
 
 | State | How it is shown | Text |
 |---|---|---|
-| Connecting after load | Centered box over the tower view | Conectando... |
-| Socket lost | Banner across the top of the tower view; input disabled; retries every 2 s | Se perdió la conexión. Reintentando... |
-| `PROTOCOL_MISMATCH` | Centered dialog, button "Recargar" reloads the page | Hay una versión nueva del juego. Recargá la página. |
-| `NOT_AUTHENTICATED` | Go to the login screen with a notice above the form | La sesión se cerró. Entrá de nuevo. |
+| Connecting after load | Centered box over the tower view: `obra.paper`, `border.dialog`, `shadow.dialog`, `space.4` padding, text in `text.dialog-title` | Conectando... |
+| Socket lost | Banner across the top of the tower view, 18 tall: `obra.red` background, `obra.paper` text in `text.button`, `border.window` under it; input disabled; retries every 2 s | Se perdió la conexión. Reintentando... |
+| `PROTOCOL_MISMATCH` | Centered information-style dialog with an `obra.scrim`, no close button; its only button "Recargar" reloads the page | Hay una versión nueva del juego. Recargá la página. |
+| `NOT_AUTHENTICATED` | Go to the login screen with a notice above the form: an `obra.red` block with `obra.paper` text in `text.body-strong` and `space.2` padding | La sesión se cerró. Entrá de nuevo. |
 
 ## 10. Login and register screens
 
-Both screens are a single centered window over a still picture of a night skyline, with the game name "Tower Magnate" above it. No status bar, toolbar or news line.
+Both screens are a single centered window, 240 wide, in the frame of 6.1, over a still picture of a night skyline, with the game name "Tower Magnate" above it in a block with `obra.ink` background, `border.window` and `shadow.window`, the text in `text.dialog-title` and `obra.yellow`, 4 px of padding above and below and 8 px at the sides. No status bar, toolbar or news line.
+
+Each field has its label above it in `text.status-label` and the field of 6.1 below, full width, 16 tall, with `space.4` between fields. The main button is a primary button, full width and 20 tall. The link under it is `text.body-strong` in `obra.blue`, underlined.
 
 Entrar (login):
 
@@ -618,10 +698,10 @@ Entrar (login):
 Crear cuenta (register):
 
 - Title "Crear cuenta". Fields "Usuario", "Contraseña", "Repetir contraseña". Button "Crear cuenta". Link: "¿Ya tenés cuenta? Entrá".
-- Under "Usuario" a hint in `gray`: "De 3 a 20 caracteres: a-z, 0-9 y _".
+- Under "Usuario" a hint in `text.body` and `obra.muted`: "De 3 a 20 caracteres: a-z, 0-9 y _".
 - Under "Contraseña": "Al menos 8 caracteres".
 
-Validation runs on submit. Messages appear under the field they belong to, in `cloth-red`; server messages without a field appear above the button. Texts are in 13.12. While a request is running the button reads "Entrando..." or "Creando...", and is disabled.
+Validation runs on submit. Messages appear under the field they belong to, in `text.body` and `obra.red`, and the field border becomes 2 px `obra.red`; server messages without a field appear above the button. Texts are in 13.12. While a request is running the button reads "Entrando..." or "Creando...", and is disabled.
 
 ## 11. Keyboard
 
