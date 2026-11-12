@@ -1,9 +1,8 @@
 .tm-float-income {
   position: fixed;
-  font-family: var(--tm-font);
-  font-size: var(--tm-font-size);
+  font: var(--text-price);
   color: var(--tm-leaf);
-  text-shadow: calc(1 * var(--tm-px)) calc(1 * var(--tm-px)) 0 var(--tm-ink);
+  text-shadow: var(--tm-outline);
   pointer-events: none;
   transform: translate(-50%, -100%);
   animation: tm-income-rise 1s steps(8) forwards;
