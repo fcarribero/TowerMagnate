@@ -24,6 +24,8 @@ export {
   sixtyFloorTower,
   spreadOf,
   timeThreeRuns,
+  timeWeekdayBench,
+  weekdayProblems,
   weekdayReport,
 } from './transport-scenario';
 export type { WeekdayRun } from './transport-scenario';
