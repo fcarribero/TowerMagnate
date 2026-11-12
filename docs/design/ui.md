@@ -205,7 +205,7 @@ The status bar holds, from left to right:
 | Stars | 5 star icons, or 5 stars plus the word "TORRE" at the top rank; click opens Estrellas | 80 or 112 | 5 slots of 14 px. A filled star is `obra.ink`. An empty star is a 1 px `obra.muted` outline with no fill. "TORRE" is in `text.status-label` on an `obra.ink` tag with `obra.yellow` text. |
 | Overlay selector | 4 buttons: Normal, Evaluación, Precios, Hotel | 4 x 24 | One button per overlay, 24 wide, divided by `border.control`. Each shows its key, `1` to `4`, in `text.button`; the name is the tooltip and the accessible name. The current button is `obra.ink` with `obra.yellow` text, the others are `obra.paper`. |
 | Zoom | buttons "-" and "+" | 2 x 16 wide, 18 tall | `obra.paper` buttons with `border.control`, the sign in `text.status-value`. Pressed: `size.press-offset`. |
-| Window buttons | Mapa, Finanzas, Seguidos, Avisos | 4 x 24 | 24 wide, 18 tall blocks with the window icon at 1x. The button of an open window is `obra.yellow`. |
+| Window buttons | Mapa, Finanzas, Seguidos, Avisos | 4 x 24 | 24 wide, 18 tall blocks with the window icon at 1x. The button of an open window is `obra.yellow`. Avisos also carries the unread badge described below the table. |
 
 Examples of the date block: "Lunes 1 de enero, año 1  00:00", "Miércoles 11 de noviembre, año 3  14:35".
 
@@ -216,7 +216,9 @@ Examples of the date block: "Lunes 1 de enero, año 1  00:00", "Miércoles 11 de
 - When the window is narrower than everything above, the window buttons drop into the Menú list first, then the zoom buttons.
 - At the minimum viewport of 1024 px the items need at most 904 px: Menú 40, date 260 at the longest ("Miércoles 30 de septiembre, año 99"), time 32, money 120, population 96, stars 112, overlays 96, zoom 32, window buttons 96, plus 2 px between the 9 blocks and 2 px at each end. The bar fits with 120 px to spare.
 
-Design calls against the reference: an empty star is a 1 px `obra.muted` outline, where the reference fills it with `#444`, so it reads as empty on `obra.paper`. The Avisos button has no count badge, and the status bar has no 3-tile status grid or meta chips, because the 18 px blocks have no room for them; the news line shows what is new.
+Design calls against the reference: an empty star is a 1 px `obra.muted` outline, where the reference fills it with `#444`, so it reads as empty on `obra.paper`. The Avisos button has a small unread badge (below), and the status bar has no 3-tile status grid or meta chips, because the 18 px blocks have no room for them; the news line shows what is new.
+
+Avisos unread badge (TM-276, PR 296): a red square on the top right corner of the Avisos window button, `obra.red` background with the count in `obra.paper` `text.status-label`. It is 8 UI px tall and at least 8 wide (1 px padding left and right, so it grows with the text), and it shows the number of unread notices from 1 to 9, and `9+` above 9. It is hidden at 0. Its accessible name is `ui.unreadNotices` (`{n} sin leer`). It sits inside the 18 px block and does not change the block size.
 
 Design call: the overlay buttons keep their 24 px width, which cannot hold "Evaluación" in `text.button`. The key digit fits, matches the shortcut of section 11, and the name stays in the tooltip.
 
@@ -363,7 +365,7 @@ Every other demolition is immediate. Design call: the game has no pause and a 1-
 
 Every window (from TM-63) is a box with `obra.paper` background, `border.window` and `shadow.window`. From top to bottom it has a title bar, a body and, for the Elevator window only, a footer.
 
-Title bar: `obra.blue` background (Finanzas uses `obra.green`), `border.control` line under it. The title is on the left in `text.window-title` with `space.3` padding, `obra.paper` text (`obra.ink` on `obra.green`), cut with "..." if it is wider than the window. The close button "x" is on the right: a square as tall as the bar, `obra.paper` background, `border.control` on its left edge, the x in `text.window-title`, `obra.ink`. A hovered close button is `obra.red` with `obra.paper` text. The bar is 20 px tall. When the window has a subtitle line above the title in `text.window-subtitle`, it is 28 px tall. Only the Unit window has one: when the unit has a custom name, the title is that name and the subtitle is `{type name} · {level label}`. Dragging the title bar moves the window.
+Title bar: `obra.blue` background (Finanzas uses `obra.green`), `border.control` line under it. The title is on the left in `text.window-title` with `space.3` padding, `obra.paper` text (`obra.ink` on `obra.green`), cut with "..." if it is wider than the window. The close button "x" is on the right: a square as tall as the bar, `obra.paper` background, `border.control` on its left edge, the x in `text.window-title`, `obra.ink`. A hovered close button is `obra.red` with `obra.paper` text. The bar is 20 px tall. When the window has a subtitle line above the title in `text.window-subtitle`, it is 28 px tall. Only the Unit window has one: when the unit has a custom name, the title is that name and the subtitle is `{type name} · {level label}`. The kit Window has an optional `subtitle` prop (TM-293, PR 298) that draws this band, so a window passes the subtitle to the frame and does not build the band in its body. The unit window (TM-279) still keeps its band in the body until a follow-up moves it to the prop. Dragging the title bar moves the window.
 
 Body: `space.3` padding, rows `space.2` apart, groups `space.4` apart. A row has its label on the left in `text.body` and its value on the right in `text.body-strong`, both on one line; a thin line in `obra.rule` separates rows of a table. Texts in a window never wrap except long body text, which wraps inside the window width.
 
@@ -867,6 +869,7 @@ Short button labels, used only on toolbar buttons:
 | `ui.newTower` | Empezar una torre nueva |
 | `ui.logout` | Cerrar sesión |
 | `ui.viewportTooSmall` | Agrandá la ventana del navegador para jugar. |
+| `ui.unreadNotices` | {n} sin leer |
 | `ui.close` | Cerrar |
 | `ui.accept` | Aceptar |
 | `ui.cancel` | Cancelar |
@@ -1270,6 +1273,8 @@ UI-09. On Saturday and Sunday the weekday name is drawn in a tag with `obra.red`
 UI-10. Money uses `.` for thousands and no decimals. The money block is `obra.yellow`; a negative balance turns it `obra.red` with `obra.paper` text and the minus sign before `$`.
 
 UI-11. Stars show 5 slots, filled up to the rating; at the top rank all 5 are filled and "TORRE" is shown.
+
+UI-11a. The Avisos button shows an unread badge: a red 8 px tall square (at least 8 wide) on its top right corner with the number of unread notices, 1 to 9 and `9+` above 9, hidden at 0, named `ui.unreadNotices` (`{n} sin leer`), inside the 18 px block without changing its size.
 
 ### Toolbar
 
