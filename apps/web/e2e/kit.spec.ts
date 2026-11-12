@@ -186,3 +186,29 @@ test('asks for a bigger window below 1024 x 640', async ({ page }) => {
   await page.setViewportSize({ width: 1000, height: 600 });
   await expect(page.getByText('Agrandá la ventana del navegador para jugar.')).toBeVisible();
 });
+
+test('loads the three Obra fonts from the app with the Spanish letters and no outside request', async ({
+  page,
+}) => {
+  const outsideRequests: string[] = [];
+  page.on('request', (request) => {
+    if (!request.url().startsWith('http://localhost')) {
+      outsideRequests.push(request.url());
+    }
+  });
+  await page.reload();
+  await launch(page, 'Botones');
+  const loaded = await page.evaluate(async () => {
+    const spanish = 'ñÑáéíóúü¿¡ÁÉÍÓÚ';
+    const faces = [
+      '400 11px "Archivo Black"',
+      '500 9px "Space Grotesk"',
+      '700 9px "Space Grotesk"',
+      '600 10px "IBM Plex Mono"',
+    ];
+    await Promise.all(faces.map((face) => document.fonts.load(face, spanish)));
+    return faces.map((face) => document.fonts.check(face, spanish));
+  });
+  expect(loaded).toEqual([true, true, true, true]);
+  expect(outsideRequests).toEqual([]);
+});

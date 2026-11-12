@@ -200,7 +200,7 @@ export function ElevatorWindow({ shaft, send, onClose, bandNow = null }: Elevato
   );
 
   return (
-    <Window id={elevatorWindowId(shaft.id)} title={title} onClose={onClose}>
+    <Window id={elevatorWindowId(shaft.id)} title={title} onClose={onClose} width={260}>
       <Tabs
         id="elevator-tabs"
         label={title}
@@ -224,33 +224,36 @@ export function ElevatorWindow({ shaft, send, onClose, bandNow = null }: Elevato
         ]}
       />
       {error === null ? null : <p role="alert">{error}</p>}
-      <Button
-        disabled={!changed || scheduleToSend === null}
-        isDefault
-        onClick={() => {
-          if (scheduleToSend !== null) {
-            void run({
-              type: 'configureShaft',
-              shaftId: shaft.id,
-              stops,
-              carHomes: homes,
-              schedule: scheduleToSend,
-            });
-          }
-        }}
-      >
-        {t('ui.apply')}
-      </Button>
-      <Button
-        disabled={!changed}
-        onClick={() => {
-          setStops([...shaft.stops]);
-          setHomes(savedHomes);
-          setSchedule(draftOf(shaft.schedule));
-        }}
-      >
-        {t('ui.shaftDiscard')}
-      </Button>
+      <div class="elevator-footer">
+        <span class="elevator-footer__primary">
+          <Button
+            disabled={!changed || scheduleToSend === null}
+            onClick={() => {
+              if (scheduleToSend !== null) {
+                void run({
+                  type: 'configureShaft',
+                  shaftId: shaft.id,
+                  stops,
+                  carHomes: homes,
+                  schedule: scheduleToSend,
+                });
+              }
+            }}
+          >
+            {t('ui.apply')}
+          </Button>
+        </span>
+        <Button
+          disabled={!changed}
+          onClick={() => {
+            setStops([...shaft.stops]);
+            setHomes(savedHomes);
+            setSchedule(draftOf(shaft.schedule));
+          }}
+        >
+          {t('ui.shaftDiscard')}
+        </Button>
+      </div>
     </Window>
   );
 }

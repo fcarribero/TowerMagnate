@@ -45,7 +45,13 @@ export interface StatusPanelProps {
   onLogout: () => void;
   /** Menu entries shown after the ones the bar could not fit. */
   extraMenuItems?: readonly MenuItem[];
+  /** Windows that are open now; their buttons are drawn pressed. */
+  openWindows?: ReadonlySet<StatusWindowId>;
+  /** Notices that arrived while Avisos was closed. */
+  unreadNotices?: number;
 }
+
+const MAX_BADGE_COUNT = 9;
 
 interface WindowButton {
   id: Exclude<StatusWindowId, 'stars'>;
@@ -76,6 +82,8 @@ function selectStatus(state: GameState): StatusValues {
   };
 }
 
+const NO_WINDOWS: ReadonlySet<StatusWindowId> = new Set();
+
 export function StatusPanel({
   store,
   offline = false,
@@ -84,6 +92,8 @@ export function StatusPanel({
   onZoom,
   onLogout,
   extraMenuItems = [],
+  openWindows = NO_WINDOWS,
+  unreadNotices = 0,
 }: StatusPanelProps) {
   const status = useStoreSelect(store, selectStatus);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -132,11 +142,21 @@ export function StatusPanel({
               <Tooltip key={button.id} text={t(button.label)}>
                 <button
                   type="button"
-                  class="status-panel__window"
+                  class={
+                    openWindows.has(button.id)
+                      ? 'status-panel__window is-open'
+                      : 'status-panel__window'
+                  }
                   aria-label={t(button.label)}
+                  aria-pressed={openWindows.has(button.id)}
                   onClick={() => onOpenWindow(button.id)}
                 >
                   <PixelIcon pattern={button.icon} class="status-panel__icon" />
+                  {button.id === 'notices' && unreadNotices > 0 && (
+                    <span class="status-panel__badge" aria-label={unreadLabel(unreadNotices)}>
+                      {unreadNotices > MAX_BADGE_COUNT ? `${MAX_BADGE_COUNT}+` : unreadNotices}
+                    </span>
+                  )}
                 </button>
               </Tooltip>
             ))}
@@ -145,6 +165,10 @@ export function StatusPanel({
       </div>
     </div>
   );
+}
+
+function unreadLabel(count: number): string {
+  return t('ui.unreadNotices', { n: count });
 }
 
 function ZoomButton({
@@ -181,14 +205,22 @@ function StatusValuesView({
   const moneyClass = money.startsWith('-')
     ? 'status-panel__money is-negative'
     : 'status-panel__money';
+  const population = formatPopulation(status.population);
+  const labelEnd = population.lastIndexOf(' ');
   return (
     <>
-      <span class={date.isWeekend ? 'status-panel__date is-weekend' : 'status-panel__date'}>
-        {date.text}
+      <span class="status-panel__date">
+        <span class={date.isWeekend ? 'status-panel__weekday is-weekend' : 'status-panel__weekday'}>
+          {date.weekday}
+        </span>
+        {date.rest}
       </span>
       <span class="status-panel__time">{formatGameTime(step)}</span>
       <span class={moneyClass}>{money}</span>
-      <span class="status-panel__population">{formatPopulation(status.population)}</span>
+      <span class="status-panel__population">
+        <span class="status-panel__label">{population.slice(0, labelEnd)}</span>
+        {population.slice(labelEnd)}
+      </span>
       <StarsButton stars={status.stars} onClick={onOpenStars} />
     </>
   );

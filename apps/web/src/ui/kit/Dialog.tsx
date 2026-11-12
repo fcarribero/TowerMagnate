@@ -48,6 +48,7 @@ function DialogFrame({
       closable={closable}
       modal={modal}
       width={width}
+      isDialog
       onClose={closable ? () => onChoose(escapeChoiceId) : undefined}
     >
       {body}

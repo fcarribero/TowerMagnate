@@ -27,6 +27,7 @@ const DEMO_WINDOWS: readonly (OpenRequest & { label: string })[] = [
   { id: 'tabs', label: 'Pestañas', position: { x: 16, y: 200 } },
   { id: 'list', label: 'Lista', position: { x: 480, y: 16 } },
   { id: 'decision', label: 'Decisión', position: { x: 300, y: 260 } },
+  { id: 'finance', label: 'Finanzas', position: { x: 520, y: 200 } },
 ];
 
 const DIALOGS = [
@@ -226,6 +227,10 @@ function DemoWindows() {
             {t('ui.cancel')}
           </Button>
         </div>
+      </Window>
+
+      <Window id="finance" title="Finanzas" tone="green" width={200}>
+        <p>Ñandú, ¿qué hacés? ¡Sí! ÁÉÍÓÚ Ü ü</p>
       </Window>
 
       {unitWindows.map((window) => (
