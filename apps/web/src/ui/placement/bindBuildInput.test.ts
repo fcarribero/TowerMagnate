@@ -150,7 +150,12 @@ describe('bindBuildInput', () => {
     t.input('down', { x: 30, level: 1 });
     t.move(40, 50);
     t.hover({ x: 30, level: 3 });
-    expect(t.labels.at(-1)).toEqual({ floors: 3, cost: 280_000, at: { x: 40, y: 50 } });
+    expect(t.labels.at(-1)).toEqual({
+      floors: 3,
+      cost: 280_000,
+      valid: true,
+      at: { x: 40, y: 50 },
+    });
     t.input('cancel', null);
     expect(t.labels.at(-1)).toBeNull();
   });

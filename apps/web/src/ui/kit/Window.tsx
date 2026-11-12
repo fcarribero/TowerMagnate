@@ -19,6 +19,8 @@ import {
 } from './windowStack';
 
 const BASE_Z_INDEX = 10;
+/** A window body stops this far short of the tower view height and scrolls. */
+const BODY_MARGIN_UI_PIXELS = 24;
 
 interface Drag {
   pointerId: number;
@@ -132,6 +134,12 @@ export function Window({
     return null;
   }
 
+  const bodyStyle =
+    manager.viewSize.height > 0
+      ? {
+          maxHeight: `calc(${manager.viewSize.height}px - ${BODY_MARGIN_UI_PIXELS} * var(--tm-px))`,
+        }
+      : undefined;
   const zIndex = BASE_Z_INDEX + 2 * manager.stack.windows.indexOf(openWindow) + 1;
   const titleId = `tm-window-title-${id}`;
 
@@ -237,7 +245,9 @@ export function Window({
             </button>
           )}
         </header>
-        <div class="tm-window__body">{children}</div>
+        <div class="tm-window__body" style={bodyStyle}>
+          {children}
+        </div>
       </section>
     </>
   );

@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { cleanup, fireEvent, render, screen } from '@testing-library/preact';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ConnectionOverlay } from './ConnectionOverlay';
@@ -7,7 +9,9 @@ afterEach(cleanup);
 describe('ConnectionOverlay', () => {
   it('shows a centered box while connecting', () => {
     render(<ConnectionOverlay status="connecting" protocolMismatch={false} onReload={vi.fn()} />);
-    expect(screen.getByRole('status').textContent).toBe('Conectando...');
+    const box = screen.getByRole('status');
+    expect(box.textContent).toBe('Conectando...');
+    expect(box.className).toBe('connection-box');
   });
 
   it('shows the banner while the socket retries', () => {
@@ -28,7 +32,16 @@ describe('ConnectionOverlay', () => {
     expect(screen.getByRole('alertdialog').textContent).toContain(
       'Hay una versión nueva del juego. Recargá la página.',
     );
-    fireEvent.click(screen.getByRole('button', { name: 'Recargar' }));
+    const button = screen.getByRole('button', { name: 'Recargar' });
+    expect(button.parentElement?.className).toBe('connection-dialog__buttons');
+    expect(screen.queryByRole('button', { name: /cerrar/i })).toBeNull();
+    fireEvent.click(button);
     expect(onReload).toHaveBeenCalledTimes(1);
+  });
+
+  it('starts the banner after the 80 px toolbar so it stays over the tower view', () => {
+    const css = readFileSync(resolve(__dirname, '../style.css'), 'utf8');
+    const banner = /\.connection-banner \{[^}]*\}/.exec(css)?.[0] ?? '';
+    expect(banner).toContain('left: calc(80 * var(--tm-px));');
   });
 });

@@ -5,7 +5,7 @@ import { formatMoney } from '../money';
 import type { ScreenPoint } from './bindBuildInput';
 
 export const TOAST_MS = 3000;
-export const FLOAT_MS = 1200;
+export const FLOAT_MS = 1000;
 
 export interface Toast {
   id: number;
@@ -42,7 +42,7 @@ export function useBuildFeedback() {
         }
         return;
       }
-      setToasts((list) => [...list, { id, text: errorText(outcome.error) }]);
+      setToasts([{ id, text: errorText(outcome.error) }]);
       setTimeout(() => setToasts((list) => list.filter((item) => item.id !== id)), TOAST_MS);
     },
     [showFloat],

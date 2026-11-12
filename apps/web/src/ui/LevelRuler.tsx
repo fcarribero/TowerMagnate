@@ -31,7 +31,7 @@ export function LevelRuler({ stage }: LevelRulerProps) {
           class={mark.level === hovered ? 'level-ruler-mark is-hovered' : 'level-ruler-mark'}
           style={{ top: `${mark.top * cssScale}px`, height: `${mark.height * cssScale}px` }}
         >
-          {mark.label}
+          <span class="level-ruler-tag">{mark.label}</span>
         </div>
       ))}
     </div>
