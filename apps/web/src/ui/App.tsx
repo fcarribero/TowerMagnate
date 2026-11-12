@@ -4,9 +4,9 @@ import { TOWER_LAYOUT, type Level } from '@tower-magnate/shared';
 import { createCommandApi } from '../api/commandApi';
 import { useSfx } from '../audio/useSfx';
 import { pageTitle } from '../index';
+import { bindTowerContent } from '../model/stateContent';
 import { TowerContentStore } from '../model/towerContent';
 import { useGameConnection } from '../net/useGameConnection';
-import { placeholderTowerContent } from '../render/placeholderTower';
 import { bindPreview, previewToolOf } from '../render/placementSource';
 import type { Stage } from '../render/stage';
 import { bindUnitClicks } from '../render/unitClick';
@@ -71,11 +71,8 @@ export function App({ onLogout, onRestartTower, onSessionLost }: AppProps) {
     protocolMismatch,
   } = useGameConnection({ onNotAuthenticated: onSessionLost });
   const connected = connectionStatus === 'live';
-  const content = useMemo(() => {
-    const store = new TowerContentStore();
-    store.applySnapshot(placeholderTowerContent());
-    return store;
-  }, []);
+  const content = useMemo(() => new TowerContentStore(), []);
+  useEffect(() => bindTowerContent(connection.store, content), [connection, content]);
   const [stage, setStage] = useState<Stage | null>(null);
   const uiScale = useViewportUiScale();
   const [mapOpen, setMapOpen] = useState(false);
