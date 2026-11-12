@@ -190,7 +190,7 @@ The original charged upkeep and paid office and shop rent once per 3-day period.
 2. Multiplying all upkeep by 7/3 would make it fair to hotels and venues but crush offices, which earn the same as before and are the main income below 3 stars.
 3. A hotel room at full occupancy earns 2.8 times the weekly return of an office ($14,000 a week on $20,000 against $10,000 on $40,000). In the original the two were close.
 
-Design call: per-unit upkeep doubles (a round factor between 1 and 7/3), lobby upkeep goes up by 1.5 because it sits mostly against office income, and two lines are added: hotel rooms and party halls. A hotel room's weekly upkeep equals one night at normal price, which is easy to remember and brings a double room or suite close to an office in return per dollar. Stairs, parking spaces and the medical center stay free, as in the GDD and the original. TM-136 raised the upkeep of the suite, the express car, the subway station and the cathedral, and the build cost of those units, to slow the 4 to 5 star and Torre steps (section 12).
+Design call: two lines are added, hotel rooms and party halls. TM-136 first doubled the per-unit lines and raised lobby upkeep by 1.5, then put the car, housekeeping, security and recycling lines back to the GDD values. TM-272 did the same for the escalator, the parking ramp and the lobby, so every line the GDD lists has the GDD value except the express car and the subway station. A hotel room's weekly upkeep equals one night at normal price, which is easy to remember and brings a double room or suite close to an office in return per dollar. Stairs, parking spaces and the medical center stay free, as in the GDD and the original. TM-136 raised the upkeep of the suite, the express car, the subway station and the cathedral, and the build cost of those units, to slow the 4 to 5 star and Torre steps (section 12).
 
 ### 8.2 Weekly upkeep table
 
@@ -198,18 +198,18 @@ Design call: per-unit upkeep doubles (a round factor between 1 and 7/3), lobby u
 |---|---|---|
 | Standard or service elevator car | $10,000 | $10,000 per car |
 | Express elevator car | $20,000 | $30,000 per car |
-| Escalator | $5,000 | $10,000 |
+| Escalator | $5,000 | $5,000 |
 | Stairs | not listed | $0 |
 | Housekeeping | $10,000 | $10,000 |
 | Security | $20,000 | $20,000 |
 | Medical center | not listed | $0 |
-| Parking ramp | $10,000 | $20,000 per ramp |
+| Parking ramp | $10,000 | $10,000 per ramp |
 | Parking space | not listed | $0 |
 | Recycling center | $50,000 | $50,000 |
 | Subway station | $100,000 | $250,000 |
 | Lobby, below 3 stars | $0 per cell | $0 per column |
-| Lobby, at 3 stars | $300 per cell | $500 per column |
-| Lobby, at 4 stars or more | $1,000 per cell | $1,500 per column |
+| Lobby, at 3 stars | $300 per cell | $300 per column |
+| Lobby, at 4 stars or more | $1,000 per cell | $1,000 per column |
 | Hotel single room | not listed | $2,000 |
 | Hotel double room | not listed | $3,000 |
 | Hotel suite | not listed | $10,000 |
@@ -302,7 +302,7 @@ Each event reads the balance left by the previous one. The order matters only fo
 | Film change $300,000 | 7.3 | Kept |
 | Party hall $20,000 a day if anyone came | 7.2 | Changed: $0 / $5,000 / $10,000 at 25 and 40 guests |
 | Upkeep every Monday 00:00 | 8.3 | Kept |
-| Upkeep table | 8.2 | Changed: GDD values for standard and service cars, housekeeping, security and recycling (TM-136 undid the doubling); express car, suite, subway station and cathedral raised (TM-136); lobby ×1.5 per column, escalator and parking ramp doubled, hotel rooms and party hall added |
+| Upkeep table | 8.2 | Changed: GDD values for standard and service cars, housekeeping, security and recycling (TM-136 undid the doubling); express car, suite, subway station and cathedral raised (TM-136); escalator, parking ramp and lobby back to the GDD values, lobby per column (TM-272); hotel rooms and party hall added |
 
 ## 12. Balance check
 
@@ -454,9 +454,9 @@ E-41. On the first day a film is 56 days old, and every 7 days after while it is
 
 E-42. Upkeep is charged at every step that is a positive multiple of 60,480 (Monday 00:00). Step 0 charges nothing. Error: none.
 
-E-43. Weekly upkeep: $10,000 per standard or service car, $30,000 per express car, $10,000 per escalator, $10,000 per housekeeping, $20,000 per security, $20,000 per parking ramp, $50,000 per recycling center, $250,000 per subway station, $2,000 per single room, $3,000 per double room, $10,000 per suite, $20,000 per party hall, $200,000 per cathedral. Everything else is $0. Error: none.
+E-43. Weekly upkeep: $10,000 per standard or service car, $30,000 per express car, $5,000 per escalator, $10,000 per housekeeping, $20,000 per security, $10,000 per parking ramp, $50,000 per recycling center, $250,000 per subway station, $2,000 per single room, $3,000 per double room, $10,000 per suite, $20,000 per party hall, $200,000 per cathedral. Everything else is $0. Error: none.
 
-E-44. Lobby upkeep is charged per lobby column (main and sky): $0 below 3 stars, $500 at 3 stars, $1,500 at 4 stars or more, using the star level at the step of the charge. Lobby height does not change it. Error: none.
+E-44. Lobby upkeep is charged per lobby column (main and sky): $0 below 3 stars, $300 at 3 stars, $1,000 at 4 stars or more, using the star level at the step of the charge. Lobby height does not change it. Error: none.
 
 E-45. Upkeep counts every object that exists at the step of the charge, whatever its state, and nothing that does not. There is no proration. Error: none.
 
