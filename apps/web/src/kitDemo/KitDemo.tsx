@@ -2,12 +2,16 @@ import { useEffect, useState } from 'preact/hooks';
 import { isShortcutBlocked } from '../input/keyboard';
 import {
   Button,
+  Checkbox,
   ConfirmDialog,
   DecisionDialog,
+  Dropdown,
   InfoDialog,
   ListBox,
   NumberInput,
+  ProgressBar,
   RadioGroup,
+  ScrollArea,
   Tabs,
   TextField,
   Tooltip,
@@ -26,6 +30,7 @@ const DEMO_WINDOWS: readonly (OpenRequest & { label: string })[] = [
   { id: 'fields', label: 'Campos', position: { x: 240, y: 16 } },
   { id: 'tabs', label: 'Pestañas', position: { x: 16, y: 200 } },
   { id: 'list', label: 'Lista', position: { x: 480, y: 16 } },
+  { id: 'progress', label: 'Barras', position: { x: 640, y: 16 } },
   { id: 'decision', label: 'Decisión', position: { x: 300, y: 260 } },
   { id: 'finance', label: 'Finanzas', position: { x: 520, y: 200 } },
 ];
@@ -44,7 +49,16 @@ const FLOORS = Array.from({ length: 12 }, (_, index) => ({
   label: t('ui.levelFloor', { n: index + 1 }),
 }));
 
+const NOTICES = Array.from({ length: 10 }, (_, index) => `Aviso ${index + 1}`);
+
 type LobbyHeight = '1' | '2' | '3';
+
+const SPEEDS = [
+  { value: 'slow', label: 'Lenta' },
+  { value: 'medium', label: 'Media' },
+  { value: 'fast', label: 'Rápida' },
+  { value: 'locked', label: 'Bloqueada', disabled: true },
+];
 
 let nextUnit = 1;
 
@@ -154,6 +168,8 @@ function DemoWindows() {
   const [tab, setTab] = useState('week');
   const [floor, setFloor] = useState<string | null>('1');
   const [clicks, setClicks] = useState(0);
+  const [speed, setSpeed] = useState('medium');
+  const [collectRent, setCollectRent] = useState(true);
 
   const unitWindows = manager.stack.windows.filter((window) => window.kind === 'unit');
 
@@ -198,6 +214,19 @@ function DemoWindows() {
           max={100}
           onChange={setRent}
         />
+        <Dropdown
+          id="demo-speed"
+          label="Velocidad"
+          value={speed}
+          options={SPEEDS}
+          onChange={setSpeed}
+        />
+        <Checkbox
+          id="demo-rent-on"
+          label="Cobrar alquiler"
+          checked={collectRent}
+          onChange={setCollectRent}
+        />
         <RadioGroup<LobbyHeight>
           name="demo-height"
           label={t('ui.lobbyHeight')}
@@ -233,6 +262,16 @@ function DemoWindows() {
           onSelect={setFloor}
         />
         <p>{floor === null ? '' : t('ui.levelFloor', { n: floor })}</p>
+      </Window>
+
+      <Window id="progress" title="Barras" width={180}>
+        <ProgressBar id="demo-stars" label="Estrellas" value={3} max={5} valueText="3 de 5" />
+        <ProgressBar id="demo-empty" label="Vacía" value={0} />
+        <ScrollArea label="Avisos de ejemplo" maxHeight={56}>
+          {NOTICES.map((notice) => (
+            <p key={notice}>{notice}</p>
+          ))}
+        </ScrollArea>
       </Window>
 
       <Window id="decision" title="Decisión" closable={false} width={220}>
