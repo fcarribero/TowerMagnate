@@ -100,6 +100,7 @@ export const SPANISH_STRINGS = {
   'ui.windowFinance': 'Finanzas',
   'ui.windowFollowed': 'Seguidos',
   'ui.windowNotices': 'Avisos',
+  'ui.unreadNotices': '{n} sin leer',
   'ui.statusBar': 'Barra de estado',
   'ui.soundOn': 'Sonido: sí',
   'ui.soundOff': 'Sonido: no',

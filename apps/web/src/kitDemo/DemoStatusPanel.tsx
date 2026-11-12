@@ -2,7 +2,9 @@ import { STEPS_PER_MINUTE, stepOfDate } from '@tower-magnate/engine/calendar';
 import type { Snapshot } from '@tower-magnate/shared';
 import { useMemo, useState } from 'preact/hooks';
 import { ClientStore } from '../model/clientStore';
+import type { OverlayId } from '../render/overlayColors';
 import { Button } from '../ui/kit';
+import { OverlaySelector } from '../ui/overlay/OverlaySelector';
 import { StatusPanel } from '../ui/status/StatusPanel';
 
 const DEMO_SNAPSHOT: Snapshot = {
@@ -32,6 +34,7 @@ export function DemoStatusPanel() {
     return demoStore;
   }, []);
   const [lastAction, setLastAction] = useState('');
+  const [overlay, setOverlay] = useState<OverlayId>('normal');
 
   const advanceMinute = (): void => {
     const latest = store.current?.latest;
@@ -50,6 +53,8 @@ export function DemoStatusPanel() {
       <div class="kit-demo__status-bar">
         <StatusPanel
           store={store}
+          overlaySlot={<OverlaySelector overlay={overlay} onSelect={setOverlay} />}
+          unreadNotices={2}
           onOpenWindow={(id) => setLastAction(`ventana ${id}`)}
           onZoom={(direction) => setLastAction(`zoom ${direction}`)}
           onLogout={() => setLastAction('salir')}
