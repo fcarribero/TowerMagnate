@@ -76,6 +76,7 @@ export const weeklyUpkeepHook: ScheduledHook = {
   run(context) {
     const balanceBefore = context.state.money;
     chargeWeeklyUpkeep(context.state);
+    context.upkeepCharged = balanceBefore - context.state.money;
     if (balanceBefore >= 0 && context.state.money < 0) {
       context.events.push(...emitNews(context.state, 'news.upkeepNegative'));
     }
