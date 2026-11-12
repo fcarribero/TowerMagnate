@@ -136,11 +136,16 @@ body,
 
 .tower-map {
   position: relative;
-  width: calc(375 * var(--tm-px));
-  height: calc(228 * var(--tm-px));
-  border: calc(1 * var(--tm-px)) solid #141218;
+  box-sizing: border-box;
+  width: calc(377 * var(--tm-px));
+  height: calc(230 * var(--tm-px));
+  border: var(--border-control);
   cursor: crosshair;
   touch-action: none;
+}
+
+.tm-window[data-window-id='map'] .tm-window__body {
+  padding: var(--space-2);
 }
 
 .tower-map canvas {

@@ -144,6 +144,7 @@ describe('button labels', () => {
     expect(toolButtonLabel('single-room')).toBe('Hab. simple');
     expect(categoryButtonLabel('offices-and-housing')).toBe('Of. y viv.');
     expect(categoryButtonLabel('commerce-and-entertainment')).toBe('Com. y entr.');
+    expect(categoryButtonLabel('services')).toBe('Servic.');
   });
 
   it('keeps names that already fit', () => {

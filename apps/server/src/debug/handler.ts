@@ -13,11 +13,11 @@ export interface DebugFramesOptions {
 function changeOf(message: DebugMessage): TowerChange {
   switch (message.t) {
     case 'debug.forceEvent':
-      return forceEvent(message.p.kind);
+      return forceEvent(message.p.kind, message.p.unitId);
     case 'debug.fastForward':
       return fastForward(message.p.steps);
     case 'debug.setClock':
-      return setClock(message.p.day, message.p.time);
+      return setClock(message.p);
     case 'debug.setMoney':
       return setMoney(message.p.amount);
     case 'debug.loadScenario':

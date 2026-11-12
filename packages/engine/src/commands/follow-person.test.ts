@@ -1,13 +1,14 @@
 import type { QueuedCommand } from '@tower-magnate/shared';
 import { describe, expect, it } from 'vitest';
-import { addPerson } from '../people';
+import { addPerson, renamePerson } from '../people';
 import { createTower } from '../state';
 import { step } from '../step';
 
 function towerWithPeople(count: number) {
   const state = createTower(3);
   for (let index = 0; index < count; index++) {
-    addPerson(state, { kind: 'resident', homeUnit: 0, level: 1, column: 0 });
+    const id = addPerson(state, { kind: 'resident', homeUnit: 0, level: 1, column: 0 });
+    renamePerson(state.people, id, `Persona ${id}`);
   }
   return state;
 }
@@ -35,6 +36,13 @@ describe('followPerson and unfollowPerson commands', () => {
     expect(result.results.every((outcome) => outcome.ok)).toBe(true);
     expect(result.state.people.followed).not.toContain(4);
     expect(result.state.people.followed).toContain(21);
+  });
+
+  it('rejects a person with no name', () => {
+    const state = towerWithPeople(1);
+    addPerson(state, { kind: 'resident', homeUnit: 0, level: 1, column: 0 });
+    const result = step(state, [follow('p2')], 0);
+    expect(result.results[0]).toMatchObject({ ok: false, error: 'INVALID_COMMAND' });
   });
 
   it('rejects unknown people and malformed ids', () => {

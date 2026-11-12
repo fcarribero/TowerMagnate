@@ -136,7 +136,7 @@ export interface Car {
 export interface Person {
   id: PersonId;
   kind: PersonKind;           // office worker, resident, guest, customer, ...
-  name: string;               // generated, shown in the person window
+  name: string | null;        // given by the player; null shows the kind
   homeUnit: UnitId | null;
   stress: number;             // average game minutes per trip
   activity: Activity;         // what the person is doing and where
@@ -223,7 +223,9 @@ export interface ElevatorBand {
 }
 ```
 
-`renameUnit` and `renamePerson` store `normalizeName(name)` from `shared`: whitespace runs become one space, control characters are dropped, the result is trimmed and cut to 24 characters (`MAX_NAME_LENGTH`, counted as characters, not UTF-16 units). A blank name stores `null`, which shows the default name again. Renaming costs nothing. An unknown unit or person id gives `UNKNOWN_ENTITY`. `answerEvent` choices are defined in the events spec (TM-15, `docs/design/events.md` section 3): `'pay' | 'refuse'` for the bomb and `'helicopter' | 'burn'` for fire.
+`renameUnit` and `renamePerson` store `normalizeName(name)` from `shared`: whitespace runs become one space, control characters are dropped, the result is trimmed and cut to 24 characters (`MAX_NAME_LENGTH`, counted as characters, not UTF-16 units). A blank name stores `null`, which shows the default name again. Renaming costs nothing. An unknown unit or person id gives `UNKNOWN_ENTITY`.
+
+A person's name is kept in `people.names`, a record from person id to name; unnamed people have no entry, and the entry goes when the person is removed. Clearing the name of a followed person also unfollows them. `followPerson` needs a named person: an unnamed one gives `INVALID_COMMAND`, a 21st followed person gives `FOLLOW_LIMIT`, an unknown id gives `UNKNOWN_ENTITY`, and following someone already followed changes nothing. `unfollowPerson` of someone not followed changes nothing. Names and the followed list are part of the saved state (schema version 36); saves from before it load with no names and an empty followed list. Neither command draws from the RNG. `answerEvent` choices are defined in the events spec (TM-15, `docs/design/events.md` section 3): `'pay' | 'refuse'` for the bomb and `'helicopter' | 'burn'` for fire.
 
 Commands from the socket are first parsed with the zod schema in `shared`. A message that fails parsing never reaches the engine and gets `INVALID_COMMAND`. The engine still checks every rule of TM-8, since a schema cannot know the tower.
 
@@ -485,7 +487,21 @@ While an `inspect` target is set, the server sends `inspect` once per second and
 | Elevator | shaft type and range, stops, cars with home levels, full weekday and weekend schedule |
 | Finances | balance, this week and last week income and expenses by `MoneyReason` |
 
-Unit targets (`{ kind: 'unit', id }`) are answered as follows. Each socket has one target: a new `inspect` replaces it, `target: null`, a socket close or a new `hello` clears it. The first answer comes right after the set, then once per second, plus one extra answer after a successful `setPrice` or `renameUnit` on the target. An answer for a unit that is demolished or unknown is `{ kind: 'unit', id, status: 'gone' }`, sent once, and the target is cleared. A found unit has `status: 'ok'`, the common fields (`name`, `type`, `level`, `from`, `to`) and `details` for its type: `lease` (office, shop), `condo`, `hotel` (rooms) or `cinema`; other types have `details: null`. Evaluation and the cinema film fields are `null` until the engine stores them. Person, shaft and finances targets are not answered yet.
+Unit targets (`{ kind: 'unit', id }`) are answered as follows. Each socket has one target: a new `inspect` replaces it, `target: null`, a socket close or a new `hello` clears it. The first answer comes right after the set, then once per second, plus one extra answer after a successful `setPrice` or `renameUnit` on the target. An answer for a unit that is demolished or unknown is `{ kind: 'unit', id, status: 'gone' }`, sent once, and the target is cleared. A found unit has `status: 'ok'`, the common fields (`name`, `type`, `level`, `from`, `to`) and `details` for its type: `lease` (office, shop), `condo`, `hotel` (rooms) or `cinema`; other types have `details: null`. Evaluation and the cinema film fields are `null` until the engine stores them. Shaft targets are answered the same way with `gone` for a removed shaft. Finances targets are not answered yet.
+
+Person targets (`{ kind: 'person', id }`) follow the same rules: they count toward the limit of 5 targets, the first answer comes right after the set, then once per second, plus one extra answer after a successful `renamePerson` on the target. A person who left the tower or never existed (including a malformed id) is answered `{ kind: 'person', id, status: 'gone' }`, sent once, and the target is cleared. A found person has `status: 'ok'` and:
+
+| Field | Value |
+|---|---|
+| `name` | The name the player gave, or `null` |
+| `personKind` | The person kind |
+| `state` | `walk`, `wait` (in a queue), `ride`, `stairs` (stairs or escalator), `inside` (at rest in the tower), `noRoute` (the trip has no route and is retried later) or `outside` (has a plan today but is not in the tower, or went out) |
+| `destination` | While on a trip: `{ kind: 'unit', unitId, level }` when the trip ends in a unit, otherwise `{ kind: 'exit' }`. `null` when the person is not on a trip |
+| `stressMinutes` | Person stress P in game minutes (the engine keeps it in steps, 6 per minute) |
+| `stress` | `normal`, `stressed` or `veryStressed`, from the same thresholds as the map |
+| `homeUnitId` | The unit the person belongs to, or `null` for visitors |
+
+The answer reads one person by id with a binary search, so it costs the same in a tower of 15,000 people as in a small one. The followed list is sent in the snapshot and, when it changes, in the delta (`followed`), with the stored name of each person.
 
 ### 8.10 Coverage of the GDD interface
 

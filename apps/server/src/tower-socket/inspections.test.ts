@@ -1,4 +1,4 @@
-import { addPerson, createTower, newUnit } from '@tower-magnate/engine';
+import { addPerson, createTower, newUnit, removePerson, renamePerson } from '@tower-magnate/engine';
 import type { TowerState } from '@tower-magnate/shared';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { ConnectionRegistry } from '../gateway';
@@ -154,10 +154,10 @@ describe('inspect targets', () => {
     h.inspections.set(h.socket, 'tower', unitTarget('u1'));
     h.state.units.u1 = { ...newUnit('u1', 'office', 4, 2), name: 'Nueva' };
 
-    h.inspections.pushChange(h.socket, 'u2');
+    h.inspections.pushChange(h.socket, 'unit', 'u2');
     expect(inspectsOf(h.socket)).toHaveLength(1);
 
-    h.inspections.pushChange(h.socket, 'u1');
+    h.inspections.pushChange(h.socket, 'unit', 'u1');
     expect(inspectsOf(h.socket)).toHaveLength(2);
     expect(inspectsOf(h.socket)[1]?.p.name).toBe('Nueva');
   });
@@ -165,7 +165,7 @@ describe('inspect targets', () => {
   it('answers a second after a change push, not at the old schedule', () => {
     h.inspections.set(h.socket, 'tower', unitTarget('u1'));
     h.clock.now += 600;
-    h.inspections.pushChange(h.socket, 'u1');
+    h.inspections.pushChange(h.socket, 'unit', 'u1');
     h.clock.now += 600;
     h.inspections.tick(h.registry);
     expect(inspectsOf(h.socket)).toHaveLength(2);
@@ -326,7 +326,7 @@ describe('inspect targets', () => {
       h.inspections.add(h.socket, 'tower', unitTarget('u2'));
       h.socket.sent.length = 0;
 
-      h.inspections.pushChange(h.socket, 'u2');
+      h.inspections.pushChange(h.socket, 'unit', 'u2');
 
       expect(idsAnswered()).toEqual(['u2']);
     });
@@ -371,5 +371,49 @@ describe('inspect targets', () => {
     h.inspections.tick(h.registry);
 
     expect(inspectsOf(h.socket).map((message) => message.p.status)).toEqual(['ok', 'gone']);
+  });
+
+  describe('people', () => {
+    it('answers a person target, again after a rename, and gone once the person is removed', () => {
+      h.inspections.set(h.socket, 'tower', { kind: 'person', id: 'p1' });
+      renamePerson(h.state.people, 1, 'Ana');
+      h.inspections.pushChange(h.socket, 'person', 'p1');
+      removePerson(h.state, 1);
+      h.clock.now += INSPECT_INTERVAL_MS;
+      h.inspections.tick(h.registry);
+      h.clock.now += INSPECT_INTERVAL_MS;
+      h.inspections.tick(h.registry);
+
+      const answers = inspectsOf(h.socket).map((message) => [message.p.status, message.p.name]);
+      expect(answers).toEqual([
+        ['ok', null],
+        ['ok', 'Ana'],
+        ['gone', undefined],
+      ]);
+    });
+
+    it('counts a person toward the limit of five targets', () => {
+      for (let count = 0; count < MAX_INSPECT_TARGETS; count += 1) {
+        addPerson(h.state, { kind: 'officeWorker', homeUnit: 1, level: 2, column: 4 });
+      }
+      for (const id of ['u1', 'u2', 'p1', 'p2']) {
+        const kind = id.startsWith('u') ? 'unit' : 'person';
+        h.inspections.add(h.socket, 'tower', { kind, id });
+      }
+
+      expect(h.inspections.add(h.socket, 'tower', { kind: 'person', id: 'p3' })).toBe('added');
+      expect(h.inspections.add(h.socket, 'tower', { kind: 'person', id: 'p4' })).toBe('limit');
+    });
+
+    it('stops answering a person after inspectRemove', () => {
+      h.inspections.add(h.socket, 'tower', { kind: 'person', id: 'p1' });
+      h.inspections.remove(h.socket, { kind: 'person', id: 'p1' });
+      h.socket.sent.length = 0;
+
+      h.clock.now += INSPECT_INTERVAL_MS;
+      h.inspections.tick(h.registry);
+
+      expect(h.socket.sent).toEqual([]);
+    });
   });
 });

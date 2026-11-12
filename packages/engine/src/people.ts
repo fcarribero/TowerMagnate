@@ -51,6 +51,8 @@ export interface PersonView {
   stress: number;
   stressBand: StressBand;
   nameSeed: number;
+  /** The name the player gave, or null while the person is unnamed. */
+  name: string | null;
   followed: boolean;
 }
 
@@ -83,6 +85,7 @@ export function createPersonPool(): PersonPool {
     facing: [],
     nameSeed: [],
     followed: [],
+    names: {},
   };
 }
 
@@ -116,6 +119,7 @@ export function clonePersonPool(pool: PersonPool): PersonPool {
     facing: pool.facing.slice(),
     nameSeed: pool.nameSeed.slice(),
     followed: pool.followed.slice(),
+    names: { ...pool.names },
   };
 }
 
@@ -288,6 +292,7 @@ function removePeopleWhere(
   if (removed.length > 0) {
     const removedIds = new Set(removed);
     pool.followed = pool.followed.filter((id) => !removedIds.has(id));
+    for (const id of removed) Reflect.deleteProperty(pool.names, id);
     for (const id of removed) Reflect.deleteProperty(parking.spaces, id);
   }
   return removed.map(personEntityId);
@@ -338,6 +343,7 @@ export function personAt(pool: PersonPool, slot: number): PersonView {
     stress: readSlot(pool.stress, slot),
     stressBand: stressBand(readSlot(pool.stress, slot)),
     nameSeed: readSlot(pool.nameSeed, slot),
+    name: nameOfPerson(pool, id),
     followed: pool.followed.includes(id),
   };
 }
@@ -379,9 +385,31 @@ export function setDueStep(pool: PersonPool, personId: number, step: number): vo
   pool.dueStep[slot] = step;
 }
 
-/** Follows a person; following someone already followed changes nothing. */
+/** The name the player gave to the person, or null. */
+export function nameOfPerson(pool: PersonPool, personId: number): string | null {
+  return Object.hasOwn(pool.names, personId) ? (pool.names[personId] ?? null) : null;
+}
+
+/** Stores the name, or clears it with null. Clearing the name of a followed person unfollows them. */
+export function renamePerson(
+  pool: PersonPool,
+  personId: number,
+  name: string | null,
+): ErrorCode | null {
+  if (slotOfPerson(pool, personId) < 0) return 'UNKNOWN_ENTITY';
+  if (name === null) {
+    Reflect.deleteProperty(pool.names, personId);
+    pool.followed = pool.followed.filter((id) => id !== personId);
+  } else {
+    pool.names[personId] = name;
+  }
+  return null;
+}
+
+/** Follows a named person; following someone already followed changes nothing. */
 export function followPerson(pool: PersonPool, personId: number): ErrorCode | null {
   if (slotOfPerson(pool, personId) < 0) return 'UNKNOWN_ENTITY';
+  if (nameOfPerson(pool, personId) === null) return 'INVALID_COMMAND';
   if (pool.followed.includes(personId)) return null;
   if (pool.followed.length >= MAX_FOLLOWED_PEOPLE) return 'FOLLOW_LIMIT';
   pool.followed.push(personId);

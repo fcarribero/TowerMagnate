@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/preact';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ClientStore } from '../../model/clientStore';
@@ -56,6 +58,51 @@ describe('FinanceWindow', () => {
     const upkeep = row('Mantenimiento').querySelectorAll('td');
     expect(upkeep[0]?.classList.contains('is-negative')).toBe(true);
     expect(row('Alquileres').querySelectorAll('td')[1]?.textContent).toBe('$35.000');
+  });
+
+  it('has the green title bar and the 280 wide frame', () => {
+    renderWindow({ thisWeek: { weekStartStep: 0, income: {}, expenses: {} }, lastWeek: null });
+    const frame = document.querySelector('.tm-window') as HTMLElement;
+    expect(frame.classList.contains('tm-window--green')).toBe(true);
+    expect(frame.style.width).toBe('calc(280 * var(--tm-px))');
+  });
+
+  it('marks a negative balance', () => {
+    renderWindow(
+      { thisWeek: { weekStartStep: 0, income: {}, expenses: {} }, lastWeek: null },
+      -500,
+    );
+    expect(document.querySelector('.finance-window__balance')?.classList).toContain('is-negative');
+  });
+
+  it('keeps the Saldo label yellow and reddens only the amount when negative', () => {
+    const css = readFileSync(resolve(__dirname, 'financeWindow.css'), 'utf8');
+    expect(css).not.toMatch(/\.finance-window__balance\.is-negative \{/);
+    expect(css).toMatch(
+      /\.finance-window__balance\.is-negative \.finance-window__balance-amount \{\s*color: var\(--obra-red\);/,
+    );
+  });
+
+  it('sets the Resultado amounts in text.price with a rule that beats the amount rule', () => {
+    const css = readFileSync(resolve(__dirname, 'financeWindow.css'), 'utf8');
+    expect(css).toMatch(
+      /\.finance-window \.finance-window__result th,\s*\.finance-window \.finance-window__result td \{\s*font: var\(--text-price\);/,
+    );
+  });
+
+  it('tones the Resultado row by sign', () => {
+    renderWindow({
+      thisWeek: { weekStartStep: 60_480, income: { rent: 5_000 }, expenses: {} },
+      lastWeek: { weekStartStep: 0, income: {}, expenses: { upkeep: -30_000 } },
+    });
+    const cells = row('Resultado').querySelectorAll('td');
+    expect(cells[0]?.classList).toContain('is-positive');
+    expect(cells[1]?.classList).toContain('is-loss');
+  });
+
+  it('shows a zero Resultado on paper', () => {
+    renderWindow({ thisWeek: { weekStartStep: 0, income: {}, expenses: {} }, lastWeek: null });
+    expect(row('Resultado').querySelector('td')?.classList).toContain('is-zero');
   });
 
   it('closes from the close button', () => {
