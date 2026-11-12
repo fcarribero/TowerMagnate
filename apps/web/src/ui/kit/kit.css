@@ -1,18 +1,6 @@
 :root {
-  --tm-ink: #141218;
-  --tm-slate: #4f4e5c;
-  --tm-gray: #7b7a86;
-  --tm-silver: #a9a8b0;
-  --tm-cloud: #d6d4d0;
-  --tm-white: #f4f1e8;
-  --tm-sky-deep: #3d6fb6;
-  --tm-lamp: #f2d36b;
-  --tm-cloth-red: #b0353a;
-  --tm-dusk: #e0875a;
-  --tm-leaf: #4f8a3e;
   --tm-ui-scale: 1;
   --tm-px: calc(var(--tm-ui-scale) * 1px);
-  --tm-font: 'Tiny5', monospace;
   --tm-font-size: calc(8 * var(--tm-px));
   --tm-line-height: calc(9 * var(--tm-px));
 }
@@ -46,7 +34,7 @@
 .tm-window__title {
   display: flex;
   align-items: center;
-  height: calc(18 * var(--tm-px));
+  height: calc(19 * var(--tm-px));
   padding: 0 var(--space-1) 0 var(--space-2);
   color: var(--obra-paper);
   background: var(--obra-blue);
@@ -105,7 +93,7 @@
 }
 
 .tm-window--subtitled > .tm-window__title {
-  height: calc(28 * var(--tm-px));
+  height: calc(27 * var(--tm-px));
 }
 
 /* Dialogs: thick border and hard shadow, hazard stripe on top, title on paper. */
@@ -157,7 +145,7 @@
 /* Buttons and other tiles: hover lifts 1 px up-left with a hard shadow, press drops 1 px. */
 .tm-button {
   min-width: calc(64 * var(--tm-px));
-  height: calc(20 * var(--tm-px));
+  height: calc(16 * var(--tm-px));
   padding: 0 var(--space-4);
   font: var(--text-button);
   color: var(--obra-ink);

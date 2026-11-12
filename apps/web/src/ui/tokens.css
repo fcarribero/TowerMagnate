@@ -11,6 +11,26 @@
   --obra-rule: #cccccc;
   --obra-scrim: rgba(17, 17, 17, 0.4);
 
+  /* Tower and sky palette for floaters, build feedback and the login backdrop. */
+  --tm-ink: #141218;
+  --tm-slate: #4f4e5c;
+  --tm-gray: #7b7a86;
+  --tm-silver: #a9a8b0;
+  --tm-cloud: #d6d4d0;
+  --tm-white: #f4f1e8;
+  --tm-sky-deep: #3d6fb6;
+  --tm-lamp: #f2d36b;
+  --tm-cloth-red: #b0353a;
+  --tm-dusk: #e0875a;
+  --tm-leaf: #4f8a3e;
+  --kit-demo-backdrop: #10183a;
+  --auth-sky-top: #0a0f2b;
+  --auth-sky-mid: #1d2a5c;
+  --auth-sky-bottom: #3a3f6e;
+  --auth-ground: #0b0f24;
+  --auth-tower-near: #151a36;
+  --auth-tower-far: #1b2142;
+
   --tm-outline:
     calc(-1 * var(--tm-px)) 0 var(--obra-ink), var(--tm-px) 0 var(--obra-ink),
     0 calc(-1 * var(--tm-px)) var(--obra-ink), 0 var(--tm-px) var(--obra-ink),

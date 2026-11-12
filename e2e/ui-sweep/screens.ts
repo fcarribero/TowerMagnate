@@ -65,6 +65,7 @@ async function onExtraPage(
     await page.goto('/');
     await waitFor(page, readySelector);
     await page.waitForTimeout(HELD_LOAD_MS);
+    await waitFor(page, readySelector);
     await context.shot(screen, page.locator('html'));
   } catch (error) {
     await context.shot(`extra-failed-${screen}`, page.locator('html')).catch(() => undefined);

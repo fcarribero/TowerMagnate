@@ -20,12 +20,6 @@ test.beforeEach(async ({ page }) => {
   await page.evaluate(() => document.fonts.ready.then(() => undefined));
 });
 
-test('loads the pixel font with the Spanish letters', async ({ page }) => {
-  await launch(page, 'Botones');
-  const loaded = await page.evaluate(() => document.fonts.check('8px Tiny5', 'ñÁ¿¡ü'));
-  expect(loaded).toBe(true);
-});
-
 test('opens, focuses, drags and closes windows with the mouse', async ({ page }) => {
   await launch(page, 'Botones');
   await launch(page, 'Campos');

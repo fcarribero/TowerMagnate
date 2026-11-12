@@ -359,11 +359,10 @@ export function groupUnitRows(rows: readonly UnitRow[]): UnitRowGroups {
   };
 }
 
-export function unitSubtitle(unit: Pick<UnitInspect, 'type' | 'level' | 'from' | 'to'>): string {
+export function unitSubtitle(unit: Pick<UnitInspect, 'type' | 'level'>): string {
   return t('window.unit.subtitle', {
     type: typeName(unit.type),
     level: levelText(unit.level),
-    columns: t('ui.columns', { x0: unit.from, x1: unit.to }),
   });
 }
 

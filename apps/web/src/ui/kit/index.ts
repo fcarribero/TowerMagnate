@@ -1,6 +1,5 @@
 import '../fonts.css';
 import '../tokens.css';
-import '@fontsource/tiny5/latin.css';
 import './kit.css';
 
 export { Button, type ButtonProps } from './Button';

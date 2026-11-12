@@ -377,9 +377,10 @@ Window widths, in UI pixels:
 
 | Window | Width |
 |---|---|
-| Unit, Person, Personas seguidas | 200 |
+| Unit, Person | 200 |
+| Personas seguidas | 240 |
 | Estrellas | 220 |
-| Elevator | 260 |
+| Elevator | 310 |
 | Finanzas, Avisos | 280 |
 | Mapa de la torre | 389 |
 
@@ -572,6 +573,7 @@ Items:
 | Item | Effect |
 |---|---|
 | Sonido: sí / Sonido: no | Toggles all sound. Stored in the browser (local storage), default sí. |
+| Volumen | A 16 tall row under the sound toggle: the label, a slider from 0 to 100 and the value, disabled while sound is off. Stored in the browser (local storage), default 70. |
 | Mapa, Finanzas, Seguidos, Avisos | Only when they dropped out of the status bar (section 4) |
 | Empezar una torre nueva | Opens confirm dialog 9.3 "Torre nueva" |
 | Cerrar sesión | Logs out at once and goes to the login screen |
