@@ -105,7 +105,9 @@ describe('buildUnit limit groups', () => {
   it.each(LIMITED)('%s: %s allows %i and rejects one more', (group, unitType, limit, level) => {
     expect(TOWER_LIMITS[group]).toBe(limit);
     const atBoundary = withStanding(wideTower(6), unitType, limit - 1);
-    const last = run(atBoundary, unit(unitType, 0, level));
+    if (unitType === 'parking-space')
+      atBoundary.units.u899 = newUnit('u899', 'parking-ramp', 0, -1);
+    const last = run(atBoundary, unit(unitType, unitType === 'parking-space' ? 16 : 0, level));
     expect(last.result.ok).toBe(true);
     expect(rejection(last.state, unit(unitType, 200, level))).toBe('LIMIT_REACHED');
   });
