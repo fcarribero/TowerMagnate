@@ -11,6 +11,7 @@ import { bindPreview, previewToolOf } from '../render/placementSource';
 import type { Stage } from '../render/stage';
 import { bindUnitClicks } from '../render/unitClick';
 import { bindShafts, carSourceOf } from '../render/elevatorSource';
+import { bindEffects, bindEvents } from '../render/eventSource';
 import { bindStructure, fullWidthTestTower, testTowerFromQuery } from '../render/structureSource';
 import { skyTimeAt, stepAtHour } from '../render/timeOfDay';
 import {
@@ -164,8 +165,12 @@ export function App({ onLogout, onRestartTower, onSessionLost }: AppProps) {
     const unbindUnits = bindUnits(connection.store, overlay, (input) => stage.showUnits(input));
     const unbindStructure = bindStructure(connection.store, (input) => stage.showStructure(input));
     const unbindShafts = bindShafts(connection.store, (shafts) => stage.showShafts(shafts));
+    const unbindEvents = bindEvents(connection.store, (input) => stage.showEvents(input));
+    const unbindEffects = bindEffects(connection.onMessage, (effect) => stage.playEffect(effect));
     stage.feedCars(carSourceOf(connection.store));
     return () => {
+      unbindEvents();
+      unbindEffects();
       unbindSky();
       unbindUnits();
       unbindStructure();
