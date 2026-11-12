@@ -119,7 +119,7 @@
 .tm-window__stripe {
   height: var(--size-hazard-stripe);
   background: var(--size-hazard-stripe-image);
-  border-bottom: var(--border-control);
+  border-bottom: var(--border-dialog);
   touch-action: none;
 }
 
