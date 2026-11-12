@@ -1,44 +1,16 @@
-import { useEffect, useRef, useState } from 'preact/hooks';
+import { useEffect } from 'preact/hooks';
 import type { CommandClient } from '../../net/commandClient';
+import { TOAST_DURATION_MS, ToastHost, showToast } from '../kit';
 import { errorText } from '../strings';
-import './toast.css';
 
-export const TOAST_DURATION_MS = 3000;
-
-interface Toast {
-  id: number;
-  text: string;
-}
+export { TOAST_DURATION_MS };
 
 interface ToastsProps {
   commands: Pick<CommandClient, 'onRejection'>;
 }
 
-/** Shows the reason for the latest rejected command for a few seconds. */
+/** Shows the reason for the latest rejected command in the toast slot. */
 export function Toasts({ commands }: ToastsProps) {
-  const [toast, setToast] = useState<Toast | null>(null);
-  const nextId = useRef(1);
-
-  useEffect(() => {
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    const stop = commands.onRejection((code) => {
-      clearTimeout(timer);
-      setToast({ id: nextId.current++, text: errorText(code) });
-      timer = setTimeout(() => setToast(null), TOAST_DURATION_MS);
-    });
-    return () => {
-      stop();
-      clearTimeout(timer);
-    };
-  }, [commands]);
-
-  return (
-    <div class="tm-toasts" role="status" aria-live="polite">
-      {toast !== null && (
-        <p key={toast.id} class="tm-toast">
-          {toast.text}
-        </p>
-      )}
-    </div>
-  );
+  useEffect(() => commands.onRejection((code) => showToast(errorText(code))), [commands]);
+  return <ToastHost />;
 }

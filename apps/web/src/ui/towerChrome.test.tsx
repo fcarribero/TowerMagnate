@@ -63,24 +63,12 @@ describe('ghost cost label', () => {
   const at = { x: 10, y: 20 };
 
   it('is a plain tag while the pre-check passes', () => {
-    render(
-      <BuildFeedback
-        toasts={[]}
-        floats={[]}
-        dragLabel={{ floors: 3, cost: 1000, valid: true, at }}
-      />,
-    );
+    render(<BuildFeedback floats={[]} dragLabel={{ floors: 3, cost: 1000, valid: true, at }} />);
     expect(document.querySelector('.tm-drag-label')?.className).toBe('tm-drag-label');
   });
 
   it('turns red when the pre-check fails', () => {
-    render(
-      <BuildFeedback
-        toasts={[]}
-        floats={[]}
-        dragLabel={{ floors: 31, cost: 1000, valid: false, at }}
-      />,
-    );
+    render(<BuildFeedback floats={[]} dragLabel={{ floors: 31, cost: 1000, valid: false, at }} />);
     expect(document.querySelector('.tm-drag-label')?.className).toBe('tm-drag-label is-failed');
     expect(rule('placement/buildFeedback.css', '.tm-drag-label.is-failed')).toContain(
       'color: var(--obra-red);',

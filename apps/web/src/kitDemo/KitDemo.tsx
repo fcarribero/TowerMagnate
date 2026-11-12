@@ -14,10 +14,12 @@ import {
   ScrollArea,
   Tabs,
   TextField,
+  ToastHost,
   Tooltip,
   Window,
   WindowLayer,
   dialogRequest,
+  showToast,
   useWindowManager,
   type OpenRequest,
 } from '../ui/kit';
@@ -175,6 +177,7 @@ function DemoWindows() {
 
   return (
     <>
+      <ToastHost />
       <Window id="buttons" title="Botones" subtitle="Acciones de ejemplo" width={200}>
         <p>Clics: {clicks}</p>
         <div class="kit-demo__row">
@@ -182,6 +185,19 @@ function DemoWindows() {
             <Button onClick={() => setClicks(clicks + 1)}>{t('ui.apply')}</Button>
           </Tooltip>
           <Button disabled>{t('ui.discard')}</Button>
+        </div>
+        <div class="kit-demo__row">
+          <Tooltip text="Este texto es largo y tiene que partirse en varias líneas dentro de 160 píxeles.">
+            <Button>Tooltip largo</Button>
+          </Tooltip>
+          <Button
+            onClick={() => {
+              showToast('No se pudo hacer.');
+              showToast('Eso ya no está en la torre.');
+            }}
+          >
+            Dos avisos
+          </Button>
         </div>
         <div class="kit-demo__row">
           <Button onClick={() => manager.close('buttons')}>{t('ui.cancel')}</Button>

@@ -1,16 +1,11 @@
 import { useCallback, useRef, useState } from 'preact/hooks';
 import type { CommandOutcome } from '../../api/commandApi';
+import { showToast } from '../kit';
 import { errorText } from '../strings';
 import { formatMoney } from '../money';
 import type { ScreenPoint } from './bindBuildInput';
 
-export const TOAST_MS = 3000;
 export const FLOAT_MS = 1000;
-
-export interface Toast {
-  id: number;
-  text: string;
-}
 
 export interface FloatingCost {
   id: number;
@@ -19,9 +14,8 @@ export interface FloatingCost {
   at: ScreenPoint;
 }
 
-/** Toasts for refused commands and floating costs for accepted ones. */
+/** Toast for refused commands and floating costs for accepted ones. */
 export function useBuildFeedback() {
-  const [toasts, setToasts] = useState<Toast[]>([]);
   const [floats, setFloats] = useState<FloatingCost[]>([]);
   const nextId = useRef(0);
 
@@ -42,11 +36,10 @@ export function useBuildFeedback() {
         }
         return;
       }
-      setToasts([{ id, text: errorText(outcome.error) }]);
-      setTimeout(() => setToasts((list) => list.filter((item) => item.id !== id)), TOAST_MS);
+      showToast(errorText(outcome.error));
     },
     [showFloat],
   );
 
-  return { toasts, floats, report };
+  return { floats, report };
 }
