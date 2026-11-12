@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/preact';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ClientStore } from '../../model/clientStore';
@@ -71,6 +73,21 @@ describe('FinanceWindow', () => {
       -500,
     );
     expect(document.querySelector('.finance-window__balance')?.classList).toContain('is-negative');
+  });
+
+  it('keeps the Saldo label yellow and reddens only the amount when negative', () => {
+    const css = readFileSync(resolve(__dirname, 'financeWindow.css'), 'utf8');
+    expect(css).not.toMatch(/\.finance-window__balance\.is-negative \{/);
+    expect(css).toMatch(
+      /\.finance-window__balance\.is-negative \.finance-window__balance-amount \{\s*color: var\(--obra-red\);/,
+    );
+  });
+
+  it('sets the Resultado amounts in text.price with a rule that beats the amount rule', () => {
+    const css = readFileSync(resolve(__dirname, 'financeWindow.css'), 'utf8');
+    expect(css).toMatch(
+      /\.finance-window \.finance-window__result th,\s*\.finance-window \.finance-window__result td \{\s*font: var\(--text-price\);/,
+    );
   });
 
   it('tones the Resultado row by sign', () => {
