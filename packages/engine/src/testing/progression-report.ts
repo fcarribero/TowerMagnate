@@ -1,5 +1,5 @@
 import type { StarRating } from '@tower-magnate/shared';
-import type { DaySample, ProgressionRun } from './progression-bot';
+import type { DaySample, ProgressionRun, StarDay } from './progression-bot';
 
 const RATINGS: readonly StarRating[] = [2, 3, 4, 5, 6];
 
@@ -47,6 +47,31 @@ function weekRow(sample: DaySample): string {
   ].join(' | ');
 }
 
+function percent(part: number, whole: number): string {
+  return whole === 0 ? '-' : `${((part / whole) * 100).toFixed(1)}%`;
+}
+
+function visitRow(entry: StarDay): string {
+  const { visits } = entry;
+  const total =
+    visits.resident + visits['office-worker'] + visits['hotel-guest'] + visits['outside-customer'];
+  return [
+    '',
+    ratingName(entry.stars),
+    String(entry.day + 1),
+    String(visits.resident),
+    String(visits['office-worker']),
+    String(visits['hotel-guest']),
+    String(visits['outside-customer']),
+    String(total),
+    entry.population.toLocaleString('en-US'),
+    percent(total, entry.population),
+    '',
+  ]
+    .join(' | ')
+    .trim();
+}
+
 /** Game days to each rating per seed, then a weekly trace of every seed. */
 export function formatProgressionReport(runs: readonly ProgressionRun[], maxDays: number): string {
   const lines: string[] = [];
@@ -64,6 +89,12 @@ export function formatProgressionReport(runs: readonly ProgressionRun[], maxDays
         lines.push(weekRow(sample).trim());
       }
     }
+    lines.push('', 'Venue visits of the previous day when each rating came.', '');
+    lines.push(
+      '| Rating | Day | Residents | Office workers | Hotel guests | Outside customers | Venues | Population | Share |',
+    );
+    lines.push('|---|---|---|---|---|---|---|---|---|');
+    for (const entry of run.starDays) lines.push(visitRow(entry));
     const failures = Object.entries(run.failedCommands).sort(([a], [b]) => a.localeCompare(b));
     if (failures.length > 0) {
       const text = failures.map(([key, count]) => `${key} ${count}`).join(', ');

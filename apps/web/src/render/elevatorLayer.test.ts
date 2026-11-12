@@ -1,5 +1,5 @@
 import type { PersonView, ShaftView } from '@tower-magnate/shared';
-import { Texture } from 'pixi.js';
+import { Texture, type Sprite } from 'pixi.js';
 import { describe, expect, it } from 'vitest';
 import type { DrawnFrame } from '../model/interpolation';
 import { car, shaft as fixtureShaft, walker } from '../testing/protocolFixtures';
@@ -147,5 +147,58 @@ describe('ElevatorLayer cars', () => {
     expect(view?.visible).toBe(false);
     layer.showOnly({ lowest: 45, highest: 55 });
     expect(view?.visible).toBe(true);
+  });
+});
+
+describe('ElevatorLayer followed riders', () => {
+  const markerCount = (view: { children: unknown[] } | undefined) =>
+    (view?.children ?? []).filter((child) => (child as Sprite).tint === 0xf2d36b).length;
+
+  it('marks a followed rider with a 3 x 2 lamp marker above the head, doors open or closed', () => {
+    const { layer } = layerWithArt();
+    layer.markFollowed(new Set(['p5']));
+    layer.showCars(frameOf(5, 'open', [rider]), shafts);
+    const view = layer.carView.children[0];
+    const marker = view?.children.find((child) => (child as Sprite).tint === 0xf2d36b) as Sprite;
+    expect(marker.visible).toBe(true);
+    expect([marker.width, marker.height]).toEqual([3, 2]);
+    const head = view?.children[1] as Sprite;
+    expect(marker.y).toBe(head.y - 4);
+
+    layer.showCars(frameOf(5, 'closed', [rider]), shafts);
+    expect(markerCount(view)).toBe(1);
+  });
+
+  it('draws no marker over unfollowed riders', () => {
+    const { layer } = layerWithArt();
+    layer.markFollowed(new Set(['p9']));
+    layer.showCars(frameOf(5, 'open', [rider]), shafts);
+    expect(markerCount(layer.carView.children[0])).toBe(0);
+  });
+
+  it('removes the marker when the person is unfollowed or leaves the car, and reuses it', () => {
+    const { layer } = layerWithArt();
+    layer.markFollowed(new Set(['p5']));
+    layer.showCars(frameOf(5, 'open', [rider]), shafts);
+    const view = layer.carView.children[0];
+    const marker = view?.children.find((child) => (child as Sprite).tint === 0xf2d36b);
+    layer.markFollowed(new Set());
+    layer.showCars(frameOf(5, 'open', [rider]), shafts);
+    expect(markerCount(view)).toBe(0);
+    layer.markFollowed(new Set(['p5']));
+    layer.showCars(frameOf(5, 'open', [rider]), shafts);
+    expect(view?.children).toContain(marker);
+    layer.showCars(frameOf(5, 'open', []), shafts);
+    expect(markerCount(view)).toBe(0);
+  });
+
+  it('marks one rider per followed person', () => {
+    const { layer } = layerWithArt();
+    layer.markFollowed(new Set(['p5', 'p6']));
+    layer.showCars(
+      frameOf(5, 'open', [rider, { ...rider, id: 'p6' }, { ...rider, id: 'p7' }]),
+      shafts,
+    );
+    expect(markerCount(layer.carView.children[0])).toBe(2);
   });
 });

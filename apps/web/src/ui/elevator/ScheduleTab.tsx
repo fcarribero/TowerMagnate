@@ -1,6 +1,6 @@
-import { ELEVATOR_MODES, type ElevatorMode } from '@tower-magnate/shared';
+import { ELEVATOR_MODES } from '@tower-magnate/shared';
 import { useState } from 'preact/hooks';
-import { Button, RadioGroup } from '../kit';
+import { Button, Dropdown, RadioGroup } from '../kit';
 import { t, type StringKey } from '../strings';
 import {
   bandRanges,
@@ -65,17 +65,17 @@ export function ScheduleTab({ shaftId, draft, inForce, onChange }: ScheduleTabPr
           ) : null}
         </th>
         <td>
-          <select
-            aria-label={`${t('window.elevator.mode')} ${rangeText}`}
+          <Dropdown
+            id={`${fieldId}-mode`}
+            label={`${t('window.elevator.mode')} ${rangeText}`}
+            isLabelHidden
             value={band.mode}
-            onChange={(event) => change(index, { mode: event.currentTarget.value as ElevatorMode })}
-          >
-            {ELEVATOR_MODES.map((mode) => (
-              <option key={mode} value={mode}>
-                {t(`value.elevatorMode.${mode}`)}
-              </option>
-            ))}
-          </select>
+            options={ELEVATOR_MODES.map((mode) => ({
+              value: mode,
+              label: t(`value.elevatorMode.${mode}`),
+            }))}
+            onChange={(mode) => change(index, { mode })}
+          />
         </td>
         <td>
           <input

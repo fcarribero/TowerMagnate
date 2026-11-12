@@ -333,6 +333,44 @@ describe('Dropdown', () => {
     fireEvent.submit(container.querySelector('form') as HTMLFormElement);
     expect((onSubmit.mock.calls[0]?.[0] as FormData).get('speed')).toBe('c');
   });
+
+  it('keeps the arrow keys away from the camera, open or closed', async () => {
+    const user = userEvent.setup();
+    const reachedWindow = vi.fn();
+    window.addEventListener('keydown', reachedWindow);
+    render(<DropdownHarness />);
+    await user.tab();
+    await user.keyboard('{ArrowDown}{ArrowDown}{ArrowUp}{Escape}{ArrowUp}');
+    window.removeEventListener('keydown', reachedWindow);
+    const arrows = reachedWindow.mock.calls.filter(([event]) =>
+      (event as KeyboardEvent).key.startsWith('Arrow'),
+    );
+    expect(arrows).toHaveLength(0);
+  });
+
+  it('jumps to the first and last enabled option with Home and End', async () => {
+    const user = userEvent.setup();
+    render(<DropdownHarness />);
+    await user.tab();
+    await user.keyboard('{Enter}{End}{Enter}');
+    expect(screen.getByRole('combobox').textContent).toBe('Rápida');
+    await user.keyboard('{Enter}{Home}{Enter}');
+    expect(screen.getByRole('combobox').textContent).toBe('Lenta');
+  });
+
+  it('puts the focus back on the field after a mouse pick', async () => {
+    const user = userEvent.setup();
+    render(<DropdownHarness />);
+    await user.click(screen.getByRole('combobox'));
+    await user.click(screen.getByRole('option', { name: 'Rápida' }));
+    expect(document.activeElement).toBe(screen.getByRole('combobox'));
+  });
+
+  it('caps the list at 8 rows and the room left in the viewport, and scrolls', () => {
+    const body = ruleBody('.tm-dropdown__list');
+    expect(body).toContain('max-height: min(calc(8 * 14 * var(--tm-px)), var(--tm-dropdown-room');
+    expect(kitCss).toMatch(/\.tm-window__body,\s*\.tm-dropdown__list,[^{]*\{\s*overflow-y: auto/);
+  });
 });
 
 function CheckboxHarness() {
