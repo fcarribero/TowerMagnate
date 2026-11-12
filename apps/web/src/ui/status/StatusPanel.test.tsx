@@ -47,7 +47,45 @@ describe('StatusPanel', () => {
     renderPanel(storeAt({ step: stepOfDate({ year: 1, month: 1, day: 6, hour: 8 }) }));
     const date = document.querySelector('.status-panel__date');
     expect(date?.textContent).toBe('Sábado 6 de enero, año 1');
-    expect(date?.classList.contains('is-weekend')).toBe(true);
+    const tag = document.querySelector('.status-panel__weekday');
+    expect(tag?.textContent).toBe('Sábado');
+    expect(tag?.classList.contains('is-weekend')).toBe(true);
+  });
+
+  it('leaves the weekday untagged on a Monday', () => {
+    renderPanel(storeAt({ step: 0 }));
+    expect(document.querySelector('.status-panel__weekday.is-weekend')).toBeNull();
+  });
+
+  it('writes the population label apart from its number', () => {
+    renderPanel(storeAt({ population: 1234 }));
+    expect(text('.status-panel__label')).toBe('Población');
+    expect(text('.status-panel__population')).toBe('Población 1.234');
+  });
+
+  it('shows the unread count on Avisos only', () => {
+    renderPanel(storeAt(), { unreadNotices: 3 });
+    expect(text('.status-panel__badge')).toBe('3');
+    expect(
+      screen.getByRole('button', { name: 'Avisos' }).querySelector('.status-panel__badge'),
+    ).not.toBeNull();
+    expect(document.querySelectorAll('.status-panel__badge')).toHaveLength(1);
+  });
+
+  it('caps the badge at 9+ and hides it at zero', () => {
+    renderPanel(storeAt(), { unreadNotices: 25 });
+    expect(text('.status-panel__badge')).toBe('9+');
+    cleanup();
+    renderPanel(storeAt(), { unreadNotices: 0 });
+    expect(document.querySelector('.status-panel__badge')).toBeNull();
+  });
+
+  it('presses the buttons of open windows', () => {
+    renderPanel(storeAt(), { openWindows: new Set(['finance']) });
+    expect(screen.getByRole('button', { name: 'Finanzas' }).getAttribute('aria-pressed')).toBe(
+      'true',
+    );
+    expect(screen.getByRole('button', { name: 'Mapa' }).getAttribute('aria-pressed')).toBe('false');
   });
 
   it('fills stars up to the rating', () => {
