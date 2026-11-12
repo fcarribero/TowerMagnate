@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { cleanup, render, screen, waitFor } from '@testing-library/preact';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { RenderStats } from '../render/stage';
@@ -54,5 +56,22 @@ describe('StageHost', () => {
     render(<StageHost />);
     await waitFor(() => expect(screen.queryByText('Cargando gráficos…')).toBeNull());
     expect(screen.queryByText(/FPS/)).toBeNull();
+  });
+});
+
+describe('page stylesheet', () => {
+  const css = readFileSync(resolve(import.meta.dirname, '../style.css'), 'utf8');
+
+  it('has no literal color', () => {
+    expect(css).not.toMatch(/#[0-9a-f]{3,8}\b|rgba?\(/i);
+  });
+
+  it('takes every font family from the tokens', () => {
+    expect(css).not.toMatch(/font-family:\s*(?!\s|var\()/);
+  });
+
+  it('keeps the FPS line 8 px above the news line', () => {
+    const start = css.indexOf('.render-stats {');
+    expect(css.slice(start, css.indexOf('}', start))).toContain('bottom: calc(28 * var(--tm-px))');
   });
 });
