@@ -83,6 +83,36 @@ describe('venue daily income', () => {
     });
   }
 
+  it.each([
+    ['fast-food', 'news.fastFoodLoss', 24, true],
+    ['fast-food', 'news.fastFoodLoss', 25, false],
+    ['restaurant', 'news.restaurantLoss', 24, true],
+    ['restaurant', 'news.restaurantLoss', 25, false],
+  ] as const)('%s with %i visits reports a loss notice: %s', (type, key, visits, reported) => {
+    const { tower, id } = towerWith(type);
+    setCounts(tower, id, visits);
+    const state = structuredClone(tower);
+    state.step = at(1, VENUE_PAYOUT_HOURS[type].pays) - 5;
+    const { events } = engine.step(state, [], 6);
+    const news = events.filter((event) => event.type === 'news');
+    expect(news.map((event) => ({ key: event.key, unitId: event.unitId }))).toEqual(
+      reported ? [{ key, unitId: id }] : [],
+    );
+  });
+
+  it('reports no notice for a venue that was not open that day, a cinema or a party hall', () => {
+    const late = towerWith('fast-food', at(1, 8, 1));
+    const state = structuredClone(late.tower);
+    state.step = at(1, 20) - 5;
+    expect(engine.step(state, [], 6).events).toEqual([]);
+    for (const type of ['cinema', 'party-hall'] as const) {
+      const { tower } = towerWith(type);
+      const quiet = structuredClone(tower);
+      quiet.step = at(1, VENUE_PAYOUT_HOURS[type].pays) - 5;
+      expect(engine.step(quiet, [], 6).events).toEqual([]);
+    }
+  });
+
   it('averages the two cinema shows and rounds down', () => {
     const { tower, id } = towerWith('cinema');
     setCounts(tower, id, 80, 79);

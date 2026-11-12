@@ -101,7 +101,7 @@ describe('strings', () => {
   });
 
   it('has an error text for every engine and socket error code in shared', () => {
-    for (const code of Object.keys(ERROR_CODES)) {
+    for (const code of Object.keys(ERROR_CODES).filter((code) => code !== 'NOT_ALLOWED')) {
       expect(hasString(`error.${code}`), code).toBe(true);
     }
   });
@@ -117,6 +117,10 @@ describe('strings', () => {
   it('falls back to the generic message for an unknown error code', () => {
     expect(errorText('CELL_OCCUPIED')).toBe('El lugar está ocupado.');
     expect(errorText('SOMETHING_NEW')).toBe('No se pudo hacer.');
+  });
+
+  it('shows the generic message for NOT_ALLOWED', () => {
+    expect(errorText('NOT_ALLOWED')).toBe('No se pudo hacer.');
   });
 
   it('keeps every text free of stray spaces and empty values', () => {

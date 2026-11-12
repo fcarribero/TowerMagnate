@@ -101,6 +101,8 @@ export interface VenueDay {
   stressTrips: number;
   /** Steps at which today's outside customers still to come appear, earliest first. */
   customers: number[];
+  /** Step of the last film change of a cinema; null while it shows its first film. */
+  filmChangedAtStep: number | null;
 }
 
 export interface HotelRoom {

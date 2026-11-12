@@ -16,10 +16,12 @@ import { createCondoSystem } from './condos';
 import { createCustomers } from './customers';
 import { createHotelSystem } from './hotel';
 import { createHotelGuests } from './hotel-guests';
+import { infestationHook } from './infestation';
 import { isLayoutCommand } from './layout-changes';
 import { createMaidSystem, maidArrivalHook, maidLeaveHook } from './housekeeping';
 import { createLeaseSystem } from './leases';
 import { parkingAssignmentHook } from './parking';
+import { balanceNegativeNews } from './news';
 import { recordNotices } from './notices';
 import { cloneState } from './state';
 import { endStepCopy, stepCopy } from './step-copy';
@@ -41,6 +43,7 @@ import {
 import { starCheckHook } from './stars';
 import { weeklyUpkeepHook } from './upkeep';
 import { weddingAttemptHook, weddingSystem } from './wedding';
+import { filmNewsHook } from './films';
 import { venuePayoutHooks } from './venues';
 
 export interface StepResult {
@@ -57,6 +60,8 @@ export interface StepContext {
   events: EngineEvent[];
   /** The graph of the tower for this step; systems that need one build it when it is missing. */
   graph?: TransportGraph;
+  /** What the weekly upkeep took in the current step; it has its own notice. */
+  upkeepCharged?: number;
 }
 
 /** What a command handler may change: only the working copy of the tower. */
@@ -174,6 +179,7 @@ export function createEngine(rules: EngineRules): Engine {
       return { id, ok: false, step: currentStep, error: outcome.error };
     }
     outcome.events.push(...rollBasementTreasure(draft.state, context.state.grid));
+    outcome.events.push(...balanceNegativeNews(draft.state, context.state.money));
     context.state = draft.state;
     for (const event of outcome.events) {
       context.events.push({ ...event, step: currentStep, commandId: id } as EngineEvent);
@@ -182,10 +188,15 @@ export function createEngine(rules: EngineRules): Engine {
   }
 
   function advanceOneStep(context: StepContext): void {
+    const balanceBefore = context.state.money;
     context.state.step += 1;
+    context.upkeepCharged = 0;
     for (const system of rules.systems) {
       system(context);
     }
+    context.events.push(
+      ...balanceNegativeNews(context.state, balanceBefore, context.upkeepCharged),
+    );
   }
 
   function step(
@@ -251,10 +262,12 @@ export const namedTowerSystems: readonly { name: string; system: SimulationSyste
   {
     name: 'scheduler (plans, rolls, payouts)',
     system: createScheduler([
+      infestationHook,
       ledgerWeekRollHook,
       nightReset,
       weeklyUpkeepHook,
       ...venuePayoutHooks,
+      filmNewsHook,
       officeRoutine.planHook,
       parkingAssignmentHook,
       residentRoutine.planHook,

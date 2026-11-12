@@ -20,13 +20,13 @@ import { unitNumber } from './units';
 import { clearUnitLedger, storeGrade } from './unit-evaluation';
 
 type RoomType = keyof typeof HOTEL_NIGHTLY_PRICE;
-type RoomUnit = Unit & { type: RoomType; hotel: NonNullable<Unit['hotel']> };
+export type RoomUnit = Unit & { type: RoomType; hotel: NonNullable<Unit['hotel']> };
 
 export type CheckInResult =
   | { checkedIn: true; nights: number; paid: number }
   | { checkedIn: false; reason: 'outsideCheckInHours' | 'roomNotClean' };
 
-function isRoom(unit: Unit): unit is RoomUnit {
+export function isRoom(unit: Unit): unit is RoomUnit {
   return unit.type in HOTEL_NIGHTLY_PRICE && unit.hotel !== null;
 }
 
@@ -61,7 +61,7 @@ function stayEndStep(checkInStep: number, nights: number): number {
   return (checkInDay + nights) * STEPS_PER_DAY + HOTEL_CHECK_OUT_HOUR * STEPS_PER_HOUR;
 }
 
-function setRoomState(context: StepContext, room: RoomUnit, state: HotelRoomState): void {
+export function setRoomState(context: StepContext, room: RoomUnit, state: HotelRoomState): void {
   room.hotel.state = state;
   context.events.push({
     type: 'roomStateChanged',

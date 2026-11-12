@@ -1,7 +1,7 @@
 import type { CarView, ShaftView, TransportView, UnitView } from '@tower-magnate/shared';
 import { describe, expect, it } from 'vitest';
 import { levelToIndex } from '../../render/levels';
-import { pickDemolition, type DemolishWorld } from './demolishPlan';
+import { combineOutcomes, pickDemolition, type DemolishWorld } from './demolishPlan';
 
 const unit = (over: Partial<UnitView>): UnitView => ({
   id: 'u1',
@@ -110,5 +110,26 @@ describe('pickDemolition', () => {
     expect(ruins?.footprint).toEqual({ x: 3, level: 2, width: 1, floors: 1 });
     expect(pickDemolition(ruined, { x: 1, level: 2 })?.run).toBe('floor');
     expect(pickDemolition(ruined, { x: 3, level: 1 })?.run).toBe('lobby');
+  });
+});
+
+describe('combineOutcomes', () => {
+  it('sums charges and refunds when every command is accepted', () => {
+    expect(
+      combineOutcomes([
+        { ok: true, cost: 0, refund: 500 },
+        { ok: true, cost: 10, refund: 700 },
+      ]),
+    ).toEqual({ ok: true, cost: 10, refund: 1200 });
+  });
+
+  it('returns a single refusal when some commands are rejected', () => {
+    expect(
+      combineOutcomes([
+        { ok: true, cost: 0, refund: 500 },
+        { ok: false, error: 'CELL_OCCUPIED' },
+        { ok: false, error: 'CELL_OCCUPIED' },
+      ]),
+    ).toEqual({ ok: false, error: 'CELL_OCCUPIED' });
   });
 });

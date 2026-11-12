@@ -11,6 +11,7 @@ import { hashState } from '../hash';
 import { createTower } from '../state';
 import { step } from '../step';
 import { buildTower, plainTowerPlan } from '../testing';
+import { newUnit } from '../units';
 
 function towerWithMainLobby(x0: number, x1: number): TowerState {
   const tower = createTower(1);
@@ -73,7 +74,7 @@ const ONE_OF_EACH: readonly [UnitType, number, Level][] = [
   ['cinema', 210, 2],
   ['party-hall', 250, 2],
   ['parking-ramp', 0, -1],
-  ['parking-space', 20, -1],
+  ['parking-space', 16, -1],
   ['recycling-center', 0, -3],
   ['subway-station', 0, -9],
   ['cathedral', 0, 101],
@@ -81,9 +82,11 @@ const ONE_OF_EACH: readonly [UnitType, number, Level][] = [
 
 describe('buildUnit', () => {
   it.each(ONE_OF_EACH)('places a %s at column %i on level %i', (unitType, x, level) => {
-    const { state, result } = run(fullSiteTower(), unit(unitType, x, level));
+    const start = fullSiteTower();
+    if (unitType === 'parking-space') start.units.u899 = newUnit('u899', 'parking-ramp', 0, -1);
+    const { state, result } = run(start, unit(unitType, x, level));
     expect(result).toEqual({ id: 'c1', ok: true, step: 0, cost: price(unitType), refund: 0 });
-    const [placed] = Object.values(state.units);
+    const placed = Object.values(state.units).find((other) => other.type === unitType);
     expect(placed).toMatchObject({ type: unitType, x, level });
   });
 
