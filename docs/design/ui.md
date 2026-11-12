@@ -1037,6 +1037,7 @@ Finance categories use the TM-9 labels under `value.ledger.{categoryId}`: Alquil
 | `value.person.resident` | Residente |
 | `value.person.hotelGuest` | Huésped |
 | `value.person.customer` | Cliente |
+| `value.person.prospect` | Interesado |
 | `value.person.audience` | Espectador |
 | `value.person.partyGuest` | Invitado a la fiesta |
 | `value.person.maid` | Mucama |

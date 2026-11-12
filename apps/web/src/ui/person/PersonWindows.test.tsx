@@ -299,6 +299,14 @@ describe('Personas seguidas', () => {
     expect(within(dialog).getByText(/^Todavía no seguís a nadie\./)).toBeTruthy();
   });
 
+  it('keeps the 20 rows inside a scroll area of 160 UI pixels', () => {
+    setupList(Array.from({ length: 20 }, (_, index) => followedView(`p${index + 100}`)));
+    const dialog = screen.getByRole('dialog', { name: 'Personas seguidas (20 de 20)' });
+    const scroll = within(dialog).getByRole('region');
+    expect(scroll.querySelectorAll('.tm-followed__row')).toHaveLength(20);
+    expect(scroll.style.maxHeight).toBe('calc(160 * var(--tm-px))');
+  });
+
   it('lists name and kind with the stress square per row', () => {
     setupList([
       followedView('p7', { name: 'Ana', stress: 'veryStressed' }),
