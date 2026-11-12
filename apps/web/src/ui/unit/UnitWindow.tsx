@@ -194,6 +194,7 @@ export function UnitWindow({ unitId, connection }: UnitWindowProps) {
         title={t('dialog.changeFilm.title')}
         body={t('dialog.changeFilm.body')}
         actionLabel={t('dialog.changeFilm.confirm')}
+        actionTone="plain"
         onConfirm={confirmFilmChange}
         onCancel={() => manager.close(filmDialogId)}
       />
