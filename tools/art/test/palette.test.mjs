@@ -2,8 +2,9 @@ import { describe, expect, it } from 'vitest';
 import { colorIndex, colorRgba, colors } from '../src/palette.mjs';
 
 describe('palette', () => {
-  it('has 32 slots with transparent at index 0', () => {
-    expect(colors).toHaveLength(32);
+  it('has the 32 tower slots and 8 obra slots, with transparent at index 0', () => {
+    expect(colors).toHaveLength(40);
+    expect(colors[32].id).toBe('obra-ink');
     expect(colors[0].id).toBe('clear');
     expect(colors[0].rgba).toEqual([0, 0, 0, 0]);
   });
