@@ -47,6 +47,10 @@ function infoText(): string {
   return document.querySelector('.tm-toolbar__info')?.textContent ?? '';
 }
 
+function noteText(): string {
+  return document.querySelector('.tm-toolbar__note')?.textContent ?? '';
+}
+
 describe('Toolbar', () => {
   it('starts with the Lupa pressed and Estructura open', () => {
     render(<Harness stars={1} />);
@@ -109,7 +113,9 @@ describe('Toolbar', () => {
     render(<Harness stars={1} />);
     openCategory('Servicios');
     fireEvent.pointerEnter(toolButton('Catedral'));
-    expect(infoText()).toBe('Catedral28 x 4 casilleros$35.000.000Se desbloquea con 5 estrellas');
+    expect(infoText()).toBe('Catedral28 x 4 casilleros$35.000.000');
+    expect(document.querySelector('.tm-toolbar__info-size')?.textContent).toBe('28 x 4 casilleros');
+    expect(document.querySelector('.tm-toolbar__info-price')?.textContent).toBe('$35.000.000');
     fireEvent.pointerLeave(toolButton('Catedral'));
     expect(infoText()).toBe('Lupa');
   });
@@ -204,12 +210,13 @@ describe('Toolbar', () => {
       render(<Harness stars={1} initialTool="lobby" lockedLobbyHeight={2} />);
       expect(lobbyHeightRadio(2).checked).toBe(true);
       expect(lobbyHeightRadio(1).matches(':disabled')).toBe(true);
-      expect(infoText()).toContain('Alto fijado por el lobby existente');
+      expect(noteText()).toBe('Alto fijado por el lobby existente');
+      expect(infoText()).not.toContain('Alto fijado');
     });
 
     it('warns that the main lobby height is final', () => {
       render(<Harness stars={1} initialTool="lobby" showMainLobbyWarning />);
-      expect(infoText()).toContain('La altura del lobby principal no se puede cambiar después.');
+      expect(noteText()).toBe('La altura del lobby principal no se puede cambiar después.');
     });
   });
 

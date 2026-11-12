@@ -72,6 +72,14 @@ describe('DecisionDialog', () => {
     expect(document.activeElement).toBe(buttons[1]);
   });
 
+  it('is 280 wide with a hazard stripe and an alert title', () => {
+    renderBomb();
+    const frame = frameOf('Amenaza de bomba');
+    expect(frame.style.width).toBe('calc(280 * var(--tm-px))');
+    expect(frame.querySelector('.tm-window__stripe')).not.toBeNull();
+    expect(frame.classList.contains('tm-window--dialog-info')).toBe(false);
+  });
+
   it('has no close button and stays open on Esc', () => {
     const onAnswer = renderBomb();
     expect(frameOf('Amenaza de bomba').querySelector('.tm-window__close')).toBeNull();
@@ -124,6 +132,36 @@ describe('ConfirmDialog', () => {
       frameOf('Torre nueva').querySelectorAll('.tm-dialog__buttons button'),
     );
     expect(buttons.map((button) => button.textContent)).toEqual(['Demoler y empezar', 'Cancelar']);
+    expect(document.activeElement).toBe(buttons[1]);
+  });
+
+  it('paints the action button red and leaves Cancelar plain', () => {
+    renderConfirm();
+    const [action, cancel] = Array.from(
+      frameOf('Torre nueva').querySelectorAll('.tm-dialog__buttons button'),
+    );
+    expect(action?.classList.contains('is-default')).toBe(true);
+    expect(cancel?.classList.contains('is-default')).toBe(false);
+  });
+
+  it('leaves the action button plain with the plain tone', () => {
+    render(
+      <Layer dialogId="changeFilm">
+        <ConfirmDialog
+          id="changeFilm"
+          title={t('dialog.changeFilm.title')}
+          body={t('dialog.changeFilm.body')}
+          actionLabel={t('dialog.changeFilm.confirm')}
+          actionTone="plain"
+          onConfirm={vi.fn()}
+          onCancel={vi.fn()}
+        />
+      </Layer>,
+    );
+    const buttons = Array.from(
+      frameOf('Cambiar película').querySelectorAll('.tm-dialog__buttons button'),
+    );
+    expect(buttons.some((button) => button.classList.contains('is-default'))).toBe(false);
     expect(document.activeElement).toBe(buttons[1]);
   });
 

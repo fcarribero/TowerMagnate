@@ -31,7 +31,7 @@ function Opener({ requests }: { requests: OpenRequest[] }) {
 
 function renderWindows(
   requests: OpenRequest[],
-  options: { closable?: boolean; withField?: boolean; uiScale?: number } = {},
+  options: { closable?: boolean; withField?: boolean; uiScale?: number; subtitle?: string } = {},
 ) {
   return render(
     <WindowLayer uiScale={options.uiScale}>
@@ -42,6 +42,7 @@ function renderWindows(
           id={request.id}
           title={`Ventana ${request.id}`}
           closable={options.closable}
+          subtitle={options.subtitle}
         >
           {options.withField && (
             <TextField id={`field-${request.id}`} label="Nombre" value="" onChange={() => {}} />
@@ -63,6 +64,14 @@ function isFront(id: string): boolean {
 }
 
 describe('Window', () => {
+  it('shows the subtitle above the title when given', () => {
+    renderWindows([{ id: 'a', ...at(10, 10) }], { subtitle: 'Oficina � Piso 3' });
+    expect(frameOf('a').querySelector('.tm-window__subtitle')?.textContent).toBe(
+      'Oficina � Piso 3',
+    );
+    expect(frameOf('a').classList.contains('tm-window--subtitled')).toBe(true);
+  });
+
   it('shows the title and closes with the close button', () => {
     renderWindows([{ id: 'a', ...at(10, 10) }]);
     fireEvent.click(screen.getByRole('button', { name: 'Cerrar' }));

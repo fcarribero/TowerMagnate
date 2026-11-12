@@ -10,6 +10,13 @@ import { Tabs } from './Tabs';
 
 afterEach(cleanup);
 
+describe('Button variants', () => {
+  it('marks a primary button', () => {
+    render(<Button isPrimary>Entrar</Button>);
+    expect(screen.getByRole('button', { name: 'Entrar' }).className).toBe('tm-button is-primary');
+  });
+});
+
 describe('Button', () => {
   it('is pressed with Enter and Space from the keyboard', async () => {
     const user = userEvent.setup();

@@ -95,14 +95,21 @@ export function Toolbar({
     />
   );
 
+  const lobbyNote =
+    lockedLobbyHeight !== undefined
+      ? t('ui.lobbyHeightLocked')
+      : showMainLobbyWarning
+        ? t('ui.mainLobbyWarning')
+        : null;
+
   return (
-    <nav class="tm-toolbar" aria-label={t('ui.toolbar')}>
+    <nav class="tm-toolbar" aria-label={t('ui.toolbar')} data-tooltip-edge>
       <div class="tm-toolbar__fixed">
         {FIXED_TOOLS.map((tool) => toolButton(tool, 'tm-tool tm-tool--fixed'))}
       </div>
       <div class="tm-toolbar__categories" role="tablist">
         {TOOLBAR_CATEGORIES.map((category) => (
-          <Tooltip key={category} text={t(`category.${category}`)}>
+          <Tooltip key={category} text={t(`category.${category}`)} side="beside">
             <button
               type="button"
               role="tab"
@@ -119,16 +126,16 @@ export function Toolbar({
       <div class="tm-toolbar__tools" role="tabpanel" aria-label={t(`category.${openCategory}`)}>
         {toolsInCategory(openCategory).map((tool) => toolButton(tool, 'tm-tool'))}
       </div>
-      <ToolInfo tool={hoveredTool ?? currentTool} stars={stars}>
+      <ToolInfo tool={hoveredTool ?? currentTool}>
         {(hoveredTool ?? currentTool) === 'lobby' && currentTool === 'lobby' && (
           <LobbyHeightPicker
             height={lockedLobbyHeight ?? lobbyHeight}
             locked={lockedLobbyHeight !== undefined}
-            showMainLobbyWarning={showMainLobbyWarning}
             onChange={onLobbyHeightChange}
           />
         )}
       </ToolInfo>
+      {currentTool === 'lobby' && lobbyNote !== null && <p class="tm-toolbar__note">{lobbyNote}</p>}
     </nav>
   );
 }
@@ -161,7 +168,7 @@ function ToolButton({
   ].filter(Boolean);
   // aria-disabled instead of disabled: a disabled button gets no pointer events, so no tooltip.
   return (
-    <Tooltip text={tooltipLines(tool, stars)}>
+    <Tooltip text={tooltipLines(tool, stars)} side="beside" alertLastLine={locked}>
       <button
         type="button"
         class={classes.join(' ')}
@@ -182,11 +189,10 @@ function ToolButton({
 
 interface ToolInfoProps {
   tool: ToolId;
-  stars: StarRating;
   children?: ComponentChildren;
 }
 
-function ToolInfo({ tool, stars, children }: ToolInfoProps) {
+function ToolInfo({ tool, children }: ToolInfoProps) {
   if (isFixedTool(tool)) {
     return (
       <div class="tm-toolbar__info" aria-live="polite">
@@ -198,9 +204,8 @@ function ToolInfo({ tool, stars, children }: ToolInfoProps) {
   return (
     <div class="tm-toolbar__info" aria-live="polite">
       <span class="tm-toolbar__info-name">{toolName(tool)}</span>
-      <span>{sizeText(unit)}</span>
-      <span>{priceText(unit)}</span>
-      {isLocked(tool, stars) && <span>{t('ui.lockedStars', { n: unit.unlockStars })}</span>}
+      <span class="tm-toolbar__info-size">{sizeText(unit)}</span>
+      <span class="tm-toolbar__info-price">{priceText(unit)}</span>
       {children}
     </div>
   );
@@ -209,16 +214,10 @@ function ToolInfo({ tool, stars, children }: ToolInfoProps) {
 interface LobbyHeightPickerProps {
   height: number;
   locked: boolean;
-  showMainLobbyWarning: boolean;
   onChange: (height: number) => void;
 }
 
-function LobbyHeightPicker({
-  height,
-  locked,
-  showMainLobbyWarning,
-  onChange,
-}: LobbyHeightPickerProps) {
+function LobbyHeightPicker({ height, locked, onChange }: LobbyHeightPickerProps) {
   const options = lobbyHeights().map((floors) => ({
     value: String(floors),
     label: String(floors),
@@ -233,10 +232,6 @@ function LobbyHeightPicker({
         disabled={locked}
         onChange={(value) => onChange(Number(value))}
       />
-      {locked && <span class="tm-toolbar__note">{t('ui.lobbyHeightLocked')}</span>}
-      {showMainLobbyWarning && !locked && (
-        <span class="tm-toolbar__note">{t('ui.mainLobbyWarning')}</span>
-      )}
     </div>
   );
 }

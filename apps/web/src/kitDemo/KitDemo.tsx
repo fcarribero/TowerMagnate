@@ -33,6 +33,7 @@ const DEMO_WINDOWS: readonly (OpenRequest & { label: string })[] = [
 const DIALOGS = [
   { id: 'bomb', label: t('dialog.bomb.title') },
   { id: 'newTower', label: t('dialog.newTower.title') },
+  { id: 'changeFilm', label: t('dialog.changeFilm.title') },
   { id: 'welcome', label: t('dialog.welcome.title') },
 ];
 
@@ -126,6 +127,15 @@ function DemoDialogs({ onAnswer }: { onAnswer: (answer: string) => void }) {
         onConfirm={() => answer('newTower', 'Respuesta: confirm')}
         onCancel={() => answer('newTower', 'Respuesta: cancel')}
       />
+      <ConfirmDialog
+        id="changeFilm"
+        title={t('dialog.changeFilm.title')}
+        body={t('dialog.changeFilm.body')}
+        actionLabel={t('dialog.changeFilm.confirm')}
+        actionTone="plain"
+        onConfirm={() => answer('changeFilm', 'Respuesta: confirm')}
+        onCancel={() => answer('changeFilm', 'Respuesta: cancel')}
+      />
       <InfoDialog
         id="welcome"
         title={t('dialog.welcome.title')}
@@ -149,7 +159,7 @@ function DemoWindows() {
 
   return (
     <>
-      <Window id="buttons" title="Botones" width={200}>
+      <Window id="buttons" title="Botones" subtitle="Acciones de ejemplo" width={200}>
         <p>Clics: {clicks}</p>
         <div class="kit-demo__row">
           <Tooltip text={[t('ui.apply'), 'Suma un clic']}>
@@ -163,6 +173,11 @@ function DemoWindows() {
             {t('ui.accept')}
           </Button>
         </div>
+        <div class="kit-demo__row">
+          <Button isPrimary onClick={() => manager.close('buttons')}>
+            Construir
+          </Button>
+        </div>
       </Window>
 
       <Window id="fields" title="Campos" width={220}>
@@ -172,6 +187,7 @@ function DemoWindows() {
           value={name}
           maxLength={24}
           hint="Hasta 24 caracteres"
+          error={name.trim() === '' ? 'Escribe un nombre' : undefined}
           onChange={setName}
         />
         <NumberInput

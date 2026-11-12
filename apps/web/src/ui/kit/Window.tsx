@@ -41,8 +41,12 @@ export interface WindowProps {
   modal?: boolean;
   /** Title bar color; green is for Finanzas. */
   tone?: 'blue' | 'green';
-  /** Dialogs get the thick border, the hazard band and a paper title bar. */
+  /** Dialogs get the thick border, the hazard stripe and a paper title. */
   isDialog?: boolean;
+  /** Dialog title color: red asks for a decision, ink only informs. */
+  dialogTone?: 'alert' | 'info';
+  /** Small line above the title, for example the type and level of a unit. */
+  subtitle?: string;
 }
 
 export function Window({
@@ -55,6 +59,8 @@ export function Window({
   modal = false,
   tone = 'blue',
   isDialog = false,
+  dialogTone = 'alert',
+  subtitle,
 }: WindowProps) {
   const manager = useWindowManager();
   const frameRef = useRef<HTMLElement>(null);
@@ -175,11 +181,19 @@ export function Window({
     'tm-window',
     tone === 'green' && 'tm-window--green',
     isDialog && 'tm-window--dialog',
+    isDialog && dialogTone === 'info' && 'tm-window--dialog-info',
+    subtitle !== undefined && 'tm-window--subtitled',
     isFront && 'is-active',
     isWaitingForPlace && 'is-placing',
   ]
     .filter(Boolean)
     .join(' ');
+  const dragHandlers = {
+    onPointerDown: onTitlePointerDown,
+    onPointerMove: onTitlePointerMove,
+    onPointerUp: onTitlePointerEnd,
+    onPointerCancel: onTitlePointerEnd,
+  };
   const widthStyle = width === undefined ? undefined : `calc(${width} * var(--tm-px))`;
 
   return (
@@ -203,15 +217,13 @@ export function Window({
         onPointerDown={() => manager.focus(id)}
         onFocusCapture={() => manager.focus(id)}
       >
-        <header
-          class="tm-window__title"
-          onPointerDown={onTitlePointerDown}
-          onPointerMove={onTitlePointerMove}
-          onPointerUp={onTitlePointerEnd}
-          onPointerCancel={onTitlePointerEnd}
-        >
-          <span id={titleId} class="tm-window__title-text">
-            {title}
+        {isDialog && <div class="tm-window__stripe" {...dragHandlers} />}
+        <header class="tm-window__title" {...dragHandlers}>
+          <span class="tm-window__heading">
+            {subtitle !== undefined && <span class="tm-window__subtitle">{subtitle}</span>}
+            <span id={titleId} class="tm-window__title-text">
+              {title}
+            </span>
           </span>
           {closable && (
             <button
