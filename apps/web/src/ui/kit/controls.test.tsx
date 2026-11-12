@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { cleanup, fireEvent, render, screen } from '@testing-library/preact';
 import userEvent from '@testing-library/user-event';
 import { useState } from 'preact/hooks';
@@ -13,6 +14,28 @@ import { ScrollArea } from './ScrollArea';
 import { Tabs } from './Tabs';
 
 afterEach(cleanup);
+
+const kitCss = readFileSync(new URL('./kit.css', import.meta.url), 'utf8');
+
+function ruleBody(selector: string): string {
+  const start = kitCss.indexOf(`${selector} {`);
+  return kitCss.slice(start, kitCss.indexOf('}', start));
+}
+
+describe('Field size', () => {
+  it('is 16 tall with 3 px side padding, and the invalid border stays inside', () => {
+    const field = ruleBody('.tm-input');
+    expect(field).toContain('box-sizing: border-box');
+    expect(field).toContain('height: calc(16 * var(--tm-px))');
+    expect(field).toContain('padding: 0 calc(3 * var(--tm-px))');
+    expect(ruleBody(".tm-input[aria-invalid='true']")).not.toContain('height');
+  });
+
+  it('makes the number field 40 wide with arrows that add up to 16', () => {
+    expect(ruleBody('.tm-number__field .tm-input')).toContain('width: calc(40 * var(--tm-px))');
+    expect(ruleBody('.tm-number__arrow')).toContain('height: calc(8 * var(--tm-px))');
+  });
+});
 
 describe('Button variants', () => {
   it('marks a primary button', () => {

@@ -203,8 +203,8 @@
 /* Text and number fields */
 .tm-input {
   box-sizing: border-box;
-  height: calc(18 * var(--tm-px));
-  padding: 0 var(--space-2);
+  height: calc(16 * var(--tm-px));
+  padding: 0 calc(3 * var(--tm-px));
   font: var(--text-body-strong);
   color: var(--obra-ink);
   background: var(--obra-field);
@@ -244,7 +244,7 @@
 }
 
 .tm-number__field .tm-input {
-  width: calc(64 * var(--tm-px));
+  width: calc(40 * var(--tm-px));
 }
 
 .tm-number__arrows {
@@ -257,7 +257,7 @@
   align-items: center;
   justify-content: center;
   width: calc(14 * var(--tm-px));
-  height: calc(9 * var(--tm-px));
+  height: calc(8 * var(--tm-px));
   padding: 0;
   line-height: 1;
   color: var(--obra-ink);

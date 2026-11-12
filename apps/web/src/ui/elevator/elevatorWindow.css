@@ -14,10 +14,6 @@
   white-space: nowrap;
 }
 
-.elevator-schedule .tm-input {
-  width: calc(36 * var(--tm-px));
-}
-
 .elevator-schedule tr.is-now {
   color: var(--obra-ink);
   background: var(--obra-yellow);
