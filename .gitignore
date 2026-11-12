@@ -24,3 +24,4 @@ assets/sprites/
 docs/art/*.png
 apps/web/src/render/atlasManifest.ts
 apps/web/src/render/stressPalette.ts
+ui-sweep-out/

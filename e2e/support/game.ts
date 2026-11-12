@@ -10,7 +10,7 @@ export async function openGame(page: Page): Promise<TestUser> {
 }
 
 /** Sends one frame over a second socket of the page's session and resolves with the server's commandResult. */
-async function sendFrame(
+export async function sendFrame(
   page: Page,
   type: string,
   payload: Record<string, unknown>,

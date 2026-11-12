@@ -26,6 +26,7 @@
     "art:build": "pnpm --filter @tower-magnate/art build",
     "stack": "tsx scripts/stack.ts",
     "e2e": "playwright test -c e2e",
+    "ui:sweep": "tsx e2e/ui-sweep/run.ts",
     "bench:transport": "tsx scripts/bench-transport.ts",
     "bench:people": "node --expose-gc --import tsx scripts/bench-person-pool.ts",
     "bench:person-snapshot": "tsx scripts/bench-person-snapshot.ts",

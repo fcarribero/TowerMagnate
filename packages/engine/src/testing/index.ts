@@ -14,6 +14,7 @@ export type {
   TowerPlan,
 } from './tower-builder';
 export { addFlight, hundredFloorTower } from './hundred-floor-tower';
+export { eventShowcaseTower } from './event-showcase-tower';
 export { fastestRunMillis, medianOf, medianRunMillis } from './fastest-run';
 export {
   MAX_AVERAGE_MS,

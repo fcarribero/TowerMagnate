@@ -67,6 +67,10 @@ By default the run starts its own compose stack (project `tm-e2e`, ports from `P
 
 `e2e/support` has helpers: `uniqueUser()` and `registerUser(request)` create fresh accounts, and `openGame(page)` loads the client and waits for the canvas. Failed tests keep a trace in `e2e/test-results`; open it with `pnpm exec playwright show-trace <path>/trace.zip`. CI runs the suite on pull requests to `develop` and uploads the traces as the `e2e-traces` artifact when it fails.
 
+## UI sweep
+
+`pnpm ui:sweep` starts the dev stack (project `tm-e2e`, port block 4310 unless `PORT_BASE` is set), logs in, reaches every screen and state of `docs/design/ui.md`, and saves one PNG per screen at UI scale 1, 2 and 3, with the fonts allowed and with `*.woff2` blocked. Files are named `<screen>-<scale>-<fonts|nofonts>.png` and go to `ui-sweep-out/<commit>/` with a `manifest.json` listing screen, state, scale and font mode. It then prints every literal color, font family and pixel font name in `apps/web/src` outside the token files and the tower art, with counts and file:line. It is run on demand and is not part of CI. When a state cannot be reached the run stops and names the screen. Set `BASE_URL` to use a running dev stack, `SWEEP_OUT` to choose the folder, and `SWEEP_SCALES` or `SWEEP_FONTS` (for example `1,2` and `nofonts`) to run part of it.
+
 ## Local stack
 
 `docker compose --profile dev up` starts `postgres` (16, data in a named volume), `server` (`pnpm dev` in `apps/server`, restarts on change) and `web` (`pnpm dev` in `apps/web`, called with `--host 0.0.0.0 --port 5173 --strictPort`). The containers mount the repository and keep their own `node_modules` in named volumes, so the host install is never touched.
