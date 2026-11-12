@@ -20,6 +20,7 @@ import { isLayoutCommand } from './layout-changes';
 import { createMaidSystem, maidArrivalHook, maidLeaveHook } from './housekeeping';
 import { createLeaseSystem } from './leases';
 import { parkingAssignmentHook } from './parking';
+import { balanceNegativeNews } from './news';
 import { recordNotices } from './notices';
 import { cloneState } from './state';
 import { endStepCopy, stepCopy } from './step-copy';
@@ -58,6 +59,8 @@ export interface StepContext {
   events: EngineEvent[];
   /** The graph of the tower for this step; systems that need one build it when it is missing. */
   graph?: TransportGraph;
+  /** What the weekly upkeep took in the current step; it has its own notice. */
+  upkeepCharged?: number;
 }
 
 /** What a command handler may change: only the working copy of the tower. */
@@ -175,6 +178,7 @@ export function createEngine(rules: EngineRules): Engine {
       return { id, ok: false, step: currentStep, error: outcome.error };
     }
     outcome.events.push(...rollBasementTreasure(draft.state, context.state.grid));
+    outcome.events.push(...balanceNegativeNews(draft.state, context.state.money));
     context.state = draft.state;
     for (const event of outcome.events) {
       context.events.push({ ...event, step: currentStep, commandId: id } as EngineEvent);
@@ -183,10 +187,15 @@ export function createEngine(rules: EngineRules): Engine {
   }
 
   function advanceOneStep(context: StepContext): void {
+    const balanceBefore = context.state.money;
     context.state.step += 1;
+    context.upkeepCharged = 0;
     for (const system of rules.systems) {
       system(context);
     }
+    context.events.push(
+      ...balanceNegativeNews(context.state, balanceBefore, context.upkeepCharged),
+    );
   }
 
   function step(

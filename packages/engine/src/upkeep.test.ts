@@ -107,6 +107,7 @@ describe('weekly upkeep', () => {
         params: {},
       },
     ]);
+    expect(news.some((event) => event.key === 'news.balanceNegative')).toBe(false);
   });
 
   it('ends at -$38,000 from $40,000 and records the whole week', () => {
