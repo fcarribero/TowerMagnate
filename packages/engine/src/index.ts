@@ -50,7 +50,14 @@ export {
 export { hashState } from './hash';
 export { migrateState, StateMigrationError } from './migrations';
 export { createCondoSystem, sellCondo } from './condos';
-export { bookingChance, checkIn, createHotelSystem, drawStayNights, rollBooking } from './hotel';
+export {
+  bookingChance,
+  checkIn,
+  createHotelSystem,
+  drawStayNights,
+  isRoom,
+  rollBooking,
+} from './hotel';
 export type { CheckInResult } from './hotel';
 export { housekeepingSummary, maidTaskAt } from './housekeeping';
 export type { HousekeepingSummary, MaidPhase, MaidTask } from './housekeeping';
@@ -145,7 +152,8 @@ export { cinemaShowCap, filmAgeDays, filmNewsHook } from './films';
 export { countVenueVisit, recordVenueVisit, rollVenueDay, venuePayoutHooks } from './venues';
 export { createCustomers, outsideCustomerCount } from './customers';
 export type { CustomerSystems, OutsideCustomerFactors } from './customers';
-export { startWeddingAttempt, weddingAttemptHook, weddingSystem } from './wedding';
+export { startWeddingAttempt, startWeddingNow, weddingAttemptHook, weddingSystem } from './wedding';
+export { infestDirtyRoomNow } from './infestation';
 export { newUnit } from './units';
 export type {
   CommandContext,
