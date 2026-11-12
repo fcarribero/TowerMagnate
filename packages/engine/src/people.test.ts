@@ -9,6 +9,8 @@ import {
   createPeopleSystem,
   findPerson,
   followPerson,
+  nameOfPerson,
+  renamePerson,
   listPeople,
   NOTHING_DUE,
   peopleCount,
@@ -158,9 +160,11 @@ describe('removal', () => {
   it('drops a removed person from the followed list', () => {
     const { state, unitId } = towerWithUnit('condo');
     addPeopleForUnit(state, unitId);
+    renamePerson(state.people, 2, 'Ana');
     followPerson(state.people, 2);
     removePeopleOfUnit(state, unitId);
     expect(state.people.followed).toEqual([]);
+    expect(state.people.names).toEqual({});
   });
 
   it('removes a single person and reports an unknown one', () => {
@@ -178,6 +182,7 @@ describe('following', () => {
   it('follows up to 20 people and rejects the 21st', () => {
     const state = createTower(1);
     for (let index = 0; index < 21; index++) visitor(state);
+    for (let id = 1; id <= 21; id++) renamePerson(state.people, id, `Persona ${id}`);
     for (let id = 1; id <= 20; id++) {
       expect(followPerson(state.people, id)).toBeNull();
     }
@@ -188,6 +193,37 @@ describe('following', () => {
 
   it('rejects an unknown person', () => {
     expect(followPerson(createTower(1).people, 3)).toBe('UNKNOWN_ENTITY');
+  });
+
+  it('rejects a person with no name', () => {
+    const state = createTower(1);
+    visitor(state);
+    expect(followPerson(state.people, 1)).toBe('INVALID_COMMAND');
+    expect(state.people.followed).toEqual([]);
+  });
+
+  it('unfollows a person whose name is cleared', () => {
+    const state = createTower(1);
+    visitor(state);
+    renamePerson(state.people, 1, 'Ana');
+    followPerson(state.people, 1);
+    expect(renamePerson(state.people, 1, null)).toBeNull();
+    expect(state.people.followed).toEqual([]);
+    expect(personAt(state.people, 0).name).toBeNull();
+  });
+});
+
+describe('naming', () => {
+  it('stores a name on the person and reads it back', () => {
+    const state = createTower(1);
+    visitor(state);
+    expect(renamePerson(state.people, 1, 'Ana')).toBeNull();
+    expect(personAt(state.people, 0).name).toBe('Ana');
+    expect(nameOfPerson(state.people, 1)).toBe('Ana');
+  });
+
+  it('rejects an unknown person', () => {
+    expect(renamePerson(createTower(1).people, 3, 'Ana')).toBe('UNKNOWN_ENTITY');
   });
 });
 
