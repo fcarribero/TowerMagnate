@@ -1,5 +1,6 @@
 import { isShortcutBlocked, isSpaceHeld, trackSpaceKey } from '../input/keyboard';
 import { nextZoom, panCamera, zoomCamera, type Camera } from './camera';
+import { FLOOR_HEIGHT, TILE_WIDTH } from './metrics';
 
 export type CameraChange = (camera: Camera) => Camera;
 
@@ -12,7 +13,7 @@ interface Drag {
 
 const WHEEL_LINE_PIXELS = 16;
 const WHEEL_ZOOM_THRESHOLD = 100;
-const KEY_SCROLL_CSS_PIXELS = 48;
+const KEY_SCROLL_COLUMNS = 8;
 
 /**
  * Drag (or Space + drag) to scroll, wheel, arrows and W A S D to scroll,
@@ -88,8 +89,10 @@ export function attachCameraInput(
     }
     const scroll = scrollKeyDirection(event.key);
     if (scroll !== null) {
-      const step = toDevicePixels(KEY_SCROLL_CSS_PIXELS);
-      update((camera) => panCamera(camera, scroll.x * step, scroll.y * step));
+      update((camera) => {
+        const { dx, dy } = keyScrollPixels(camera.zoom, scroll);
+        return panCamera(camera, dx, dy);
+      });
       event.preventDefault();
       return;
     }
@@ -134,6 +137,17 @@ export function zoomKeyDirection(key: string): 1 | -1 | null {
     return -1;
   }
   return null;
+}
+
+/** Device pixels the content moves per key press: one level up or down, 8 columns sideways. */
+export function keyScrollPixels(
+  zoom: number,
+  direction: { x: number; y: number },
+): { dx: number; dy: number } {
+  return {
+    dx: direction.x * KEY_SCROLL_COLUMNS * TILE_WIDTH * zoom,
+    dy: direction.y * FLOOR_HEIGHT * zoom,
+  };
 }
 
 /** Direction the content moves when the view scrolls with this key. */

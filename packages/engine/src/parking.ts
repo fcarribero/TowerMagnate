@@ -27,7 +27,7 @@ const HOLDER_BY_KIND: Record<number, Holder | undefined> = {
   [PERSON_KINDS.indexOf('hotelGuest')]: 'suite',
 };
 
-function touches(a: Unit, b: Unit): boolean {
+export function touches(a: Unit, b: Unit): boolean {
   return (
     a.level === b.level &&
     (a.x + UNIT_CATALOG[a.type].width === b.x || b.x + UNIT_CATALOG[b.type].width === a.x)

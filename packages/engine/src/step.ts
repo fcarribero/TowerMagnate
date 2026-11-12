@@ -41,6 +41,7 @@ import {
 import { starCheckHook } from './stars';
 import { weeklyUpkeepHook } from './upkeep';
 import { weddingAttemptHook, weddingSystem } from './wedding';
+import { filmNewsHook } from './films';
 import { venuePayoutHooks } from './venues';
 
 export interface StepResult {
@@ -255,6 +256,7 @@ export const namedTowerSystems: readonly { name: string; system: SimulationSyste
       nightReset,
       weeklyUpkeepHook,
       ...venuePayoutHooks,
+      filmNewsHook,
       officeRoutine.planHook,
       parkingAssignmentHook,
       residentRoutine.planHook,
