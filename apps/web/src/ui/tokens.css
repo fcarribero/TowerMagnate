@@ -1,0 +1,58 @@
+:root {
+  --obra-ink: #111111;
+  --obra-paper: #fffaf0;
+  --obra-paper-shade: #e6e1d4;
+  --obra-field: #ffffff;
+  --obra-yellow: #ffd400;
+  --obra-red: #ff3b2f;
+  --obra-blue: #2f6bff;
+  --obra-green: #18c46a;
+  --obra-muted: #777777;
+  --obra-rule: #cccccc;
+  --obra-scrim: rgba(17, 17, 17, 0.4);
+
+  --border-control: calc(1 * var(--tm-px)) solid var(--obra-ink);
+  --border-window: calc(2 * var(--tm-px)) solid var(--obra-ink);
+  --border-dialog: calc(3 * var(--tm-px)) solid var(--obra-ink);
+
+  --shadow-control: calc(1 * var(--tm-px)) calc(1 * var(--tm-px)) 0 var(--obra-ink);
+  --shadow-window: calc(3 * var(--tm-px)) calc(3 * var(--tm-px)) 0 var(--obra-ink);
+  --shadow-dialog: calc(5 * var(--tm-px)) calc(5 * var(--tm-px)) 0 var(--obra-ink);
+
+  --space-1: calc(2 * var(--tm-px));
+  --space-2: calc(4 * var(--tm-px));
+  --space-3: calc(6 * var(--tm-px));
+  --space-4: calc(8 * var(--tm-px));
+
+  --size-hazard-stripe: calc(6 * var(--tm-px));
+  --size-hazard-stripe-image: repeating-linear-gradient(
+    -45deg,
+    var(--obra-yellow) 0 calc(6 * var(--tm-px)),
+    var(--obra-ink) calc(6 * var(--tm-px)) calc(12 * var(--tm-px))
+  );
+  --size-lock-stripe: repeating-linear-gradient(
+    -45deg,
+    var(--obra-paper) 0 calc(4 * var(--tm-px)),
+    var(--obra-paper-shade) calc(4 * var(--tm-px)) calc(8 * var(--tm-px))
+  );
+  --size-press-offset: calc(1 * var(--tm-px));
+
+  --motion-hover: 0.08s;
+
+  --font-display: 'Archivo Black', Impact, sans-serif;
+  --font-text: 'Space Grotesk', system-ui, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
+
+  --text-status-value: 400 calc(11 * var(--tm-px)) / calc(12 * var(--tm-px)) var(--font-display);
+  --text-status-label: 700 calc(8 * var(--tm-px)) / calc(10 * var(--tm-px)) var(--font-text);
+  --text-news: 600 calc(10 * var(--tm-px)) / calc(12 * var(--tm-px)) var(--font-mono);
+  --text-window-title: 400 calc(12 * var(--tm-px)) / calc(14 * var(--tm-px)) var(--font-display);
+  --text-window-subtitle: 700 calc(8 * var(--tm-px)) / calc(10 * var(--tm-px)) var(--font-text);
+  --text-dialog-title: 400 calc(16 * var(--tm-px)) / calc(18 * var(--tm-px)) var(--font-display);
+  --text-body: 500 calc(9 * var(--tm-px)) / calc(12 * var(--tm-px)) var(--font-text);
+  --text-body-strong: 700 calc(9 * var(--tm-px)) / calc(12 * var(--tm-px)) var(--font-text);
+  --text-button: 700 calc(9 * var(--tm-px)) / calc(12 * var(--tm-px)) var(--font-text);
+  --text-tile-label: 700 calc(8 * var(--tm-px)) / calc(10 * var(--tm-px)) var(--font-text);
+  --text-price: 400 calc(8 * var(--tm-px)) / calc(10 * var(--tm-px)) var(--font-display);
+  --text-number-large: 400 calc(14 * var(--tm-px)) / calc(16 * var(--tm-px)) var(--font-display);
+}
