@@ -9,6 +9,8 @@ import type { SpriteRegistry } from './spriteRegistry';
 /** Row of a floor tile where a person's feet are. */
 const FEET_ROW = 28;
 const PERSON_HEIGHT = 16;
+const GUEST_TINT = 0xffe9a8;
+const NO_TINT = 0xffffff;
 
 interface DrawnWalker {
   sprite: Sprite;
@@ -31,6 +33,7 @@ export class PeopleLayer {
   private readonly spare: Sprite[] = [];
   private range: LevelRange | null = null;
   private frameNumber = 0;
+  private guests: ReadonlySet<string> = new Set();
 
   constructor(private readonly sprites: SpriteRegistry) {}
 
@@ -46,6 +49,11 @@ export class PeopleLayer {
   /** All sprites the layer made, shown or spare. */
   get spriteCount(): number {
     return this.view.children.length;
+  }
+
+  /** People on the wedding guest list are drawn with a warm tint on their way to the cathedral. */
+  markGuests(guests: ReadonlySet<string>): void {
+    this.guests = guests;
   }
 
   show(frame: DrawnFrame): void {
@@ -75,6 +83,7 @@ export class PeopleLayer {
         walker.state = look.state;
         walker.frame = look.frame;
       }
+      sprite.tint = this.guests.has(person.id) ? GUEST_TINT : NO_TINT;
       sprite.scale.x = person.facing === 'left' ? -1 : 1;
       sprite.position.set(Math.round(x * TILE_WIDTH + sprite.texture.width / 2), top);
     }

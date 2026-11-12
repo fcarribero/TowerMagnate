@@ -1,4 +1,4 @@
-import type { Level, ShaftView } from '@tower-magnate/shared';
+import type { FireSpan, Level, ShaftView } from '@tower-magnate/shared';
 import { Application, Container, TextureSource } from 'pixi.js';
 import type { DrawnFrame } from '../model/interpolation';
 import 'pixi.js/unsafe-eval';
@@ -23,6 +23,8 @@ import { GhostLayer, type Footprint, type GhostInput, type RunInput } from './gh
 import { levelAtCanvasY } from './levelRuler';
 import type { Zoom } from './metrics';
 import { ElevatorLayer } from './elevatorLayer';
+import { EventLayer } from './eventLayer';
+import type { EffectDrawing, TransientEffect } from './eventPlan';
 import { PeopleLayer } from './peopleLayer';
 import { SKY_BACKGROUND, createSkyRows, setSkyTime, showSkyRows } from './skyRows';
 import type { SkyTime } from './timeOfDay';
@@ -38,6 +40,15 @@ export interface RenderStats {
   fps: number;
   zoom: Zoom;
   floorsDrawn: number;
+}
+
+/** What the active events draw: looping sprites, the fire they hold and the people to tint. */
+export interface EventsInput {
+  drawings: readonly EffectDrawing[];
+  fire: readonly FireSpan[];
+  guests: ReadonlySet<string>;
+  /** Highest built level; the helicopter and Papa Noel fly above it. */
+  towerTopLevel: number;
 }
 
 export interface StageOptions {
@@ -99,6 +110,10 @@ export interface Stage {
    * null while there is nothing to draw, and `shafts` says where each car runs.
    */
   feedCars(source: CarSource | null): void;
+  /** Draws the flames, roaches, wedding bell and guest tint; later calls change only what differs. */
+  showEvents(input: EventsInput): void;
+  /** Starts a blast, the helicopter or Papa Noel, once. */
+  playEffect(effect: TransientEffect): void;
   destroy(): void;
 }
 
@@ -133,6 +148,8 @@ export async function mountStage(host: HTMLElement, options: StageOptions = {}):
   world.addChild(elevators.carView);
   const people = new PeopleLayer(sprites);
   world.addChild(people.view);
+  const events = new EventLayer(sprites);
+  world.addChild(events.view);
   const ghost = new GhostLayer(sprites);
   world.addChild(ghost.view);
   app.stage.addChild(world);
@@ -187,6 +204,7 @@ export async function mountStage(host: HTMLElement, options: StageOptions = {}):
     units.showOnly(onScreen);
     elevators.showOnly(onScreen);
     people.showOnly(onScreen);
+    events.showOnly(onScreen);
     for (const listener of cameraListeners) {
       listener(camera);
     }
@@ -265,6 +283,8 @@ export async function mountStage(host: HTMLElement, options: StageOptions = {}):
     }
   };
   app.ticker.add(drawCars);
+  const drawEvents = (): void => events.tick(performance.now());
+  app.ticker.add(drawEvents);
   const statsTimer = window.setInterval(() => {
     options.onStats?.({
       fps: Math.round(app.ticker.FPS),
@@ -343,8 +363,17 @@ export async function mountStage(host: HTMLElement, options: StageOptions = {}):
     feedCars(source) {
       carSource = source;
     },
+    showEvents(input) {
+      people.markGuests(input.guests);
+      events.setTowerTop(input.towerTopLevel);
+      events.showLooping(input.drawings, input.fire);
+    },
+    playEffect(effect) {
+      events.start(effect, performance.now());
+    },
     destroy() {
       app.ticker.remove(drawCars);
+      app.ticker.remove(drawEvents);
       cameraListeners.clear();
       hoverListeners.clear();
       hoverCellListeners.clear();
