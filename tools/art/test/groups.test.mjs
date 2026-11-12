@@ -300,15 +300,27 @@ describe('ui group', () => {
     expect(sprites['ui/ruler-plate'].get(0, 0)).toBe(colorIndex('ink'));
   });
 
-  it('draws every icon at 16 x 16, with an ink outline except the empty star', () => {
+  it('draws every icon at 16 x 16 with an ink stroke, except the lock badge and the empty star', () => {
     const icons = Object.entries(sprites).filter(([id]) => !id.startsWith('ui/ruler'));
     const outlined = icons.filter(([id]) => id !== 'ui/star-empty');
     expect(icons.length).toBeGreaterThan(0);
     for (const [id, icon] of icons) {
-      expect([icon.width, icon.height], id).toEqual([16, 16]);
+      const expectedSize = id === 'ui/lock' ? [8, 8] : [16, 16];
+      expect([icon.width, icon.height], id).toEqual(expectedSize);
     }
     for (const [id, icon] of outlined) {
-      expect(icon.pixels.includes(colorIndex('ink')), id).toBe(true);
+      expect(icon.pixels.includes(colorIndex('obra-ink')), id).toBe(true);
+    }
+  });
+
+  it('keeps tower palette colors out of every icon', () => {
+    const towerSlots = 32;
+    const icons = Object.entries(sprites).filter(([id]) => !id.startsWith('ui/ruler'));
+    for (const [id, icon] of icons) {
+      expect(
+        icon.pixels.every((index) => index === 0 || index >= towerSlots),
+        id,
+      ).toBe(true);
     }
   });
 
@@ -327,16 +339,19 @@ describe('ui group', () => {
       'ui/star-empty',
       'ui/money',
       'ui/population',
+      'ui/alarm',
+      'ui/lock',
+      ...['map', 'finances', 'followed', 'news'].map((window) => `ui/window-${window}`),
     ];
     for (const id of expected) {
       expect(sprites[id], id).toBeDefined();
     }
   });
 
-  it('draws a filled star in lamp and an empty star in slate with a clear middle', () => {
-    expect(sprites['ui/star-full'].get(8, 8)).toBe(colorIndex('lamp'));
+  it('draws a filled star in ink and an empty star in muted with a clear middle', () => {
+    expect(sprites['ui/star-full'].get(8, 8)).toBe(colorIndex('obra-ink'));
     expect(sprites['ui/star-empty'].get(8, 8)).toBe(0);
-    expect(sprites['ui/star-empty'].pixels.includes(colorIndex('slate'))).toBe(true);
+    expect(sprites['ui/star-empty'].pixels.includes(colorIndex('obra-muted'))).toBe(true);
   });
 
   it('draws an icon for each of the 25 catalog units', () => {

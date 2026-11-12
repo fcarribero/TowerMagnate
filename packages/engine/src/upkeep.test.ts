@@ -97,7 +97,9 @@ describe('weekly upkeep', () => {
     const tower = upkeepTower(3, 40_000);
     const result = runToStep(tower, 2 * FIRST_MONDAY);
     expect(result.state.money).toBe(40_000 - 156_000);
-    const news = result.events.filter((event) => event.type === 'news');
+    const news = result.events
+      .filter((event) => event.type === 'news')
+      .filter((event) => event.key !== 'news.vipNoSuite');
     expect(news).toEqual([
       {
         type: 'news',

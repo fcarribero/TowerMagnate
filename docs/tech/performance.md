@@ -72,6 +72,18 @@ TM-245 replaced the JSON comparison with a structural comparison of plain data (
 
 The next saving is the state clone. The runner owns its states, so it could step them in place and skip `structuredClone`, but a snapshot or a save that holds a reference to the state would then see it change. That needs its own task with tests for those references.
 
+## Transport step benchmark (TM-288)
+
+`pnpm bench:transport` (`scripts/bench-transport.ts`) times one weekday of the 60-floor tower three times. It runs in the `Lint, typecheck and test` job on every pull request, so a failure from runner noise blocks PRs that do not touch the engine. On 2027-02-16 and 2027-02-18 PRs 278 and 280 failed this way. The p99 step time varied from 1.35 to 1.59 ms between runs while the average stayed between 0.257 and 0.265 ms.
+
+The rule is now:
+
+- The 15% spread check between runs applies to the average step time only. The p99 varies too much on shared runners to compare between runs.
+- The budgets are hard limits: a median average step over 1 ms or a median p99 over 5 ms fails the job. People still on the move at 03:00 also fail it.
+- When a result fails for any reason, the whole benchmark (three runs) is run once more and the second result decides. A budget that is missed on the retry still fails.
+
+The check is `weekdayProblems` and the retry is `timeWeekdayBench`, both in `packages/engine/src/testing/transport-scenario.ts`.
+
 ## Release acceptance (TM-137)
 
 TM-137 checks the TM-114 and TM-124 targets on the release build. The `Performance acceptance` workflow (`.github/workflows/perf-acceptance.yml`) runs every check on GitHub Actions `ubuntu-latest` (4 vCPU, 16 GB) with Node 22. It runs on demand and on pull requests that change the workflow file. Each result is the median of 3 runs.
@@ -155,6 +167,14 @@ Every change leads to a walk to a shaft whose queue had room at that moment. The
 Two things are true at once. The people do alternate between full queues without progress, as routing.md 8.3 allows: the surcharge makes every full shaft cost the same, so each recheck sends the person to whichever queue looks open, and that queue is full again when they arrive. That is what GD saw. The same counts show the bench tower is too small for 15,000 people. Every worker starts at the level 1 lobby, and the ground bank of six standard elevators boards between 666 and 813 people per shaft in the window, 4,541 in total, with 254 to 1,005 boardings per hour in the whole tower. The busiest shafts of the upper banks board 329 people at level 26 and 156 at level 51. About 7,400 people are still trying to leave the lobby at 14:00.
 
 The churn does not cost throughput. The queues stay full and the cars take people as fast as they can, with or without the swapping. The cost is the walking and the rechecks, which are part of the trek system time in the step bench. Whether to change the 8.3 rule (for example letting a person keep waiting beside the same shaft for a few rechecks before switching) is a design question for GD and TL and is not part of TM-258. The bench tower itself is a stress case for the step budget and is not a layout a player could run: a tower with this many workers needs more than one bank at the ground lobby.
+
+#### Ground bank of the bench tower (TM-286)
+
+GD decided in TM-286 that the bench tower needs more ground capacity, and the 8.3 rule change (routing.md) does not replace it. In the TM-258 window the six ground shafts, with one car each, boarded 4,541 people at level 1, which is 757 per car in 8 hours (a car carries 21 riders). The tower sends all 15,000 people through level 1. The target is 14,250 boardings at level 1 (95%), which at 757 per car needs 19 cars.
+
+Decision: the ground bank keeps its 6 standard shafts and each shaft gets 4 cars, 24 cars in all. At 757 boardings per car that is about 18,200 boardings in the window, 28% above the 14,250 target. Shafts hold up to 8 cars (construction 5.3), so this is a change to the bench layout (`scripts/bench-full-tower.ts`) and needs no new rule. The upper banks stay at one car per shaft, because the TM-258 counts show them boarding far fewer people (329 at level 26, 156 at level 51) than the ground bank. The bench stays a stress case for the step budget and is not a layout a player could run.
+
+If TM-287 meets the 8.3 targets for ride changes and flips but fewer than 14,250 people board at level 1, the next step is 6 cars per shaft (36 cars, about 27,200 boardings) before the rule values change. The step budget gate is re-run with the new layout, since more cars add work to the elevator system.
 
 ### Client results
 

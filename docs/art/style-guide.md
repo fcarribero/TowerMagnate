@@ -6,7 +6,7 @@ The tower is shown as a side-view cross-section in the style of early 1990s simu
 
 ## Palette
 
-The palette has 32 slots. Slot 0 is transparent. Every sprite uses only these colors, and scripts refer to them by id, never by raw hex. The source of truth is `tools/art/palette.json`, and `tools/art/src/palette.mjs` loads it. `docs/art/palette-swatch.png` shows the colors in index order, eight per row (`pnpm art:build` regenerates it).
+The palette has 40 slots: slot 0 is transparent, slots 1 to 31 are the tower colors and slots 32 to 39 are the `obra-*` colors of the UI icons. Every sprite uses only these colors, and scripts refer to them by id, never by raw hex. The source of truth is `tools/art/palette.json`, and `tools/art/src/palette.mjs` loads it. `docs/art/palette-swatch.png` shows the colors in index order, eight per row (`pnpm art:build` regenerates it).
 
 | Index | Id | Hex | Use |
 |---|---|---|---|
@@ -84,7 +84,7 @@ The client zooms only by whole numbers (1x to 4x) with nearest-neighbour scaling
 - Neighbouring units share no outline pixel. Each unit draws its own frame inside its own rectangle.
 - People have no outline. At 5 px wide an outline would eat the whole figure.
 - Elevator cars get an ink outline. Shafts use slate walls with no outline.
-- UI icons get a 1 px ink outline around the shape, inside the 16 x 16 cell.
+- UI icons use the `obra-*` colors (`obra-ink` `#111111`, `obra-paper`, `obra-paper-shade`, `obra-yellow`, `obra-red`, `obra-blue`, `obra-green`, `obra-muted`) and a 2 px `obra-ink` outline, so they read on both `obra.paper` and `obra.yellow` blocks. Tower art never uses the `obra-*` colors.
 
 ## Shading
 
@@ -297,7 +297,7 @@ Event sprites are in `tools/art/src/groups/events.mjs`, in the `events` atlas, a
 
 ## UI icons
 
-Icons are in `tools/art/src/icons`, drawn from 16 x 16 character maps. Ids are `ui/tool-{inspect,bulldozer,car}`, `ui/unit-{unitId}`, `ui/cat-{categoryId}`, `ui/star-full`, `ui/star-empty`, `ui/money` and `ui/population`. The empty star is a slate outline with no ink, as the HUD spec asks. `pnpm art:build` writes `docs/art/ui-icons-preview.png` (4x) with every icon.
+Icons are in `tools/art/src/icons`, drawn from 16 x 16 character maps. Ids are `ui/tool-{inspect,bulldozer,car}`, `ui/unit-{unitId}`, `ui/cat-{categoryId}`, `ui/star-full`, `ui/star-empty`, `ui/money`, `ui/population`, `ui/window-{map,finances,followed,news}`, `ui/alarm` and `ui/lock`. The tool, category, unit, money and population maps are drawn in the tower palette and `toObra` in `tools/art/src/icons/obra.mjs` recolors them with the `obra-*` colors and thickens the outline to 2 px. The window icons, the alarm and the lock are drawn directly in `tools/art/src/icons/windows.mjs`. The filled star is solid `obra-ink` and the empty star is a 1 px `obra-muted` outline, as the status bar spec says. `ui/alarm` is 16 x 16, the news line shows it at 1x. `ui/lock` is the 8 x 8 badge for locked tools: a yellow lock on an ink square. `pnpm art:build` writes `docs/art/ui-icons-preview.png` (4x) with every icon.
 
 ## Event effects
 

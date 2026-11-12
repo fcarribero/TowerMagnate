@@ -47,6 +47,7 @@ import {
   readNewsSent,
   readNotices,
   readTreasureLevels,
+  readVipDryDays,
   readVipVisit,
 } from './events';
 import { readGrid } from './grid';
@@ -94,6 +95,7 @@ const MIGRATIONS: readonly Migration[] = [
   addRoomDirtyChecks,
   dropOrphanLedgerEntries,
   addFilmChangeStep,
+  addVipDryDays,
 ];
 
 /** Version 2 records each unit's price level, what was paid for it and when it was placed. */
@@ -506,6 +508,11 @@ function dropOrphanLedgerEntries(raw: Record<string, unknown>): Record<string, u
   return { ...raw, schemaVersion: 33, unitLedger: Object.fromEntries(kept) };
 }
 
+/** Version 35 counts the VIP rolls since the last VIP day; an older tower starts at 0. */
+function addVipDryDays(raw: Record<string, unknown>): Record<string, unknown> {
+  return { vipDryDays: 0, ...raw, schemaVersion: 35 };
+}
+
 /** Version 34 keeps when a cinema's film last changed; a saved cinema still shows its first film. */
 function addFilmChangeStep(raw: Record<string, unknown>): Record<string, unknown> {
   if (!isRecord(raw.units)) {
@@ -903,6 +910,7 @@ function assertCurrentShape(raw: Record<string, unknown>): TowerState {
     treasureLevels: readTreasureLevels(raw.treasureLevels),
     ...readStarState(raw),
     vipVisit: readVipVisit(raw.vipVisit),
+    vipDryDays: readVipDryDays(raw.vipDryDays),
     medicalDay: readMedicalDay(raw.medicalDay),
     parking: readParking(raw.parking),
     wedding: readWedding(raw.wedding),
