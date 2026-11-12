@@ -20,11 +20,24 @@ function categoryLabel(category: LedgerCategory): string {
   return t(`window.finance.category.${category}` as StringKey);
 }
 
-function Amount({ value, bold = false }: { value: number; bold?: boolean }) {
-  const classes = ['finance-window__amount', value < 0 && 'is-negative', bold && 'is-bold']
-    .filter(Boolean)
-    .join(' ');
+function Amount({ value }: { value: number }) {
+  const classes = ['finance-window__amount', value < 0 && 'is-negative'].filter(Boolean).join(' ');
   return <td class={classes}>{formatMoney(value)}</td>;
+}
+
+function resultTone(value: number): string {
+  if (value > 0) {
+    return 'is-positive';
+  }
+  return value < 0 ? 'is-loss' : 'is-zero';
+}
+
+function ResultCell({ value }: { value: number }) {
+  return (
+    <td class={`finance-window__amount finance-window__result-cell ${resultTone(value)}`}>
+      {formatMoney(value)}
+    </td>
+  );
 }
 
 export interface FinanceWindowProps {
@@ -46,21 +59,34 @@ export function FinanceWindow({ store, onClose }: FinanceWindowProps) {
   const week = dateOfStep(selected.finances.thisWeek.weekStartStep);
   const { thisWeek, lastWeek } = table;
   return (
-    <Window id={FINANCE_WINDOW_ID} title={t('window.finance.title')} width={260} onClose={onClose}>
+    <Window
+      id={FINANCE_WINDOW_ID}
+      title={t('window.finance.title')}
+      width={280}
+      tone="green"
+      onClose={onClose}
+    >
       <div class="finance-window">
-        <p class="finance-window__balance">
-          <span>{t('window.finance.balance')}</span>
-          <span class={selected.money < 0 ? 'is-negative' : undefined}>
-            {formatMoney(selected.money)}
-          </span>
-        </p>
         <p class="finance-window__week">
           {t('window.finance.weekOf', {
             day: week.day,
             month: t(`calendar.month.${week.month}` as StringKey),
           })}
         </p>
+        <p
+          class={
+            selected.money < 0 ? 'finance-window__balance is-negative' : 'finance-window__balance'
+          }
+        >
+          <span>{t('window.finance.balance')}</span>
+          <span class="finance-window__balance-amount">{formatMoney(selected.money)}</span>
+        </p>
         <table>
+          <colgroup>
+            <col class="finance-window__category-column" />
+            <col class="finance-window__amount-column" />
+            <col class="finance-window__amount-column" />
+          </colgroup>
           <thead>
             <tr>
               <th />
@@ -88,10 +114,12 @@ export function FinanceWindow({ store, onClose }: FinanceWindowProps) {
               <Amount value={thisWeek.totalExpenses} />
               <Amount value={lastWeek.totalExpenses} />
             </tr>
-            <tr>
-              <th scope="row">{t('window.finance.result')}</th>
-              <Amount value={thisWeek.result} bold />
-              <Amount value={lastWeek.result} bold />
+            <tr class="finance-window__result">
+              <th scope="row" class={resultTone(thisWeek.result)}>
+                {t('window.finance.result')}
+              </th>
+              <ResultCell value={thisWeek.result} />
+              <ResultCell value={lastWeek.result} />
             </tr>
           </tfoot>
         </table>

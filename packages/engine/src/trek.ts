@@ -1,5 +1,8 @@
 import {
   ESCALATOR_FLIGHT_STEPS,
+  FULL_QUEUE_MAX_SWITCHES_PER_TRIP,
+  FULL_QUEUE_STAY_RECHECKS,
+  FULL_QUEUE_SWITCH_MARGIN,
   LAST_COLUMN,
   LOWEST_LEVEL,
   MAX_ESCALATOR_FLOORS_PER_TRIP,
@@ -14,6 +17,7 @@ import {
   type Level,
   type PersonPool,
   type Shaft,
+  type TowerState,
 } from '@tower-magnate/shared';
 import { isQueueFull, joinQueue, nextQueueCheckStep } from './elevator-queues';
 import {
@@ -37,6 +41,7 @@ import {
   TripPlanner,
   type FirstLeg,
   type RoutePlan,
+  type RecheckPlan,
   type TripBudget,
 } from './routing';
 import type { SimulationSystem, StepContext } from './step';
@@ -128,12 +133,16 @@ function directionBetween(from: Level, to: Level): HallDirection {
 function planFrom(context: StepContext, slot: number): RoutePlan | null {
   const pool = context.state.people;
   const userClass = pool.kind[slot] === MAID_KIND ? 'maid' : 'other';
-  return plannerFor(graphOf(context)).plan(context.state, {
-    from: { level: pool.level[slot] as Level, x: pool.column[slot] as number },
-    to: { level: pool.trekLevel[slot] as Level, x: pool.trekColumn[slot] as number },
-    userClass,
-    budget: unpackBudget(pool.trekBudget[slot] as number),
-  });
+  return plannerFor(graphOf(context)).plan(
+    context.state,
+    {
+      from: { level: pool.level[slot] as Level, x: pool.column[slot] as number },
+      to: { level: pool.trekLevel[slot] as Level, x: pool.trekColumn[slot] as number },
+      userClass,
+      budget: unpackBudget(pool.trekBudget[slot] as number),
+    },
+    leftShaftsOf(pool, slot),
+  );
 }
 
 /** The queue a ride starts from and where it goes. */
@@ -144,9 +153,9 @@ interface Ride {
   level: number;
 }
 
-/** A plan made for a recheck, and the ride its first leg takes when it starts with one. */
-interface RecheckPlan {
-  plan: RoutePlan | null;
+/** What a recheck found, and the ride the alternative route starts with when it is a ride. */
+interface RecheckResult {
+  found: RecheckPlan | null;
   ride: Ride | null;
 }
 
@@ -161,7 +170,7 @@ interface TrekPass {
   planner: TripPlanner;
   /** Lobby height by `placeKey`; the grid does not change during a trek pass. */
   lobbyHeights: Map<number, number | null>;
-  plans: Map<number, Map<number, RecheckPlan>>;
+  plans: Map<number, Map<number, RecheckResult>>;
 }
 
 const trekPasses = new WeakMap<StepContext, TrekPass>();
@@ -197,13 +206,40 @@ function rideOf(context: StepContext, plan: RoutePlan | null): Ride | null {
   };
 }
 
-function recheckPlanFor(context: StepContext, slot: number, pass: TrekPass): RecheckPlan {
+function recheckFrom(
+  context: StepContext,
+  slot: number,
+  leftShafts: readonly number[],
+): RecheckResult {
   const pool = context.state.people;
+  const userClass = pool.kind[slot] === MAID_KIND ? 'maid' : 'other';
+  const found = plannerFor(graphOf(context)).planRecheck(
+    context.state,
+    {
+      from: { level: pool.level[slot] as Level, x: pool.column[slot] as number },
+      to: { level: pool.trekLevel[slot] as Level, x: pool.trekColumn[slot] as number },
+      userClass,
+      budget: unpackBudget(pool.trekBudget[slot] as number),
+    },
+    {
+      via: pool.legVia[slot] as number,
+      toLevel: pool.legLevel[slot] as Level,
+      column: pool.column[slot] as number,
+    },
+    leftShafts,
+  );
+  return { found, ride: rideOf(context, found?.alternative ?? null) };
+}
+
+/**
+ * People who left no shaft and wait for the same ride from the same place with the same budget
+ * find the same thing, so they share one search. The others search for themselves.
+ */
+function recheckFor(context: StepContext, slot: number, pass: TrekPass): RecheckResult {
+  const pool = context.state.people;
+  const leftShafts = leftShaftsOf(pool, slot);
   const group = destinationGroupOf(pass, pool, slot);
-  if (group === null) {
-    const plan = planFrom(context, slot);
-    return { plan, ride: rideOf(context, plan) };
-  }
+  if (group === null || leftShafts.length > 0) return recheckFrom(context, slot, leftShafts);
   let byStart = pass.plans.get(group);
   if (!byStart) {
     byStart = new Map();
@@ -212,11 +248,37 @@ function recheckPlanFor(context: StepContext, slot: number, pass: TrekPass): Rec
   const start = recheckStart(pool, slot);
   let known = byStart.get(start);
   if (!known) {
-    const plan = planFrom(context, slot);
-    known = { plan, ride: rideOf(context, plan) };
+    known = recheckFrom(context, slot, leftShafts);
     byStart.set(start, known);
   }
   return known;
+}
+
+const SHAFT_NUMBER_RANGE = 1 << 20;
+
+function leftShaftsOf(pool: PersonPool, slot: number): number[] {
+  const packed = pool.leftShafts[slot] as number;
+  const first = packed % SHAFT_NUMBER_RANGE;
+  const second = Math.floor(packed / SHAFT_NUMBER_RANGE);
+  return [first, second].filter((via) => via > 0);
+}
+
+function addLeftShaft(pool: PersonPool, slot: number, via: number): void {
+  const [first = 0] = leftShaftsOf(pool, slot);
+  pool.leftShafts[slot] = first === 0 ? via : first + via * SHAFT_NUMBER_RANGE;
+}
+
+function shaftStillRuns(state: TowerState, shaftNumber: number): boolean {
+  const shaft = state.shafts[shaftKey(shaftNumber)];
+  return shaft !== undefined && shaft.cars.length > 0;
+}
+
+/** Routing 8.4: a re-plan keeps the switch count and the left shafts that still run, and drops the rest. */
+function dropGoneLeftShafts(state: TowerState, slot: number): void {
+  const pool = state.people;
+  const kept = leftShaftsOf(pool, slot).filter((via) => shaftStillRuns(state, via));
+  pool.leftShafts[slot] = 0;
+  for (const via of kept) addLeftShaft(pool, slot, via);
 }
 
 /** Height of the lobby a person stands in, or null outside a lobby. */
@@ -493,6 +555,9 @@ function clearTrek(pool: PersonPool, slot: number): void {
   pool.legLevel[slot] = 0;
   pool.legColumn[slot] = 0;
   pool.legStep[slot] = 0;
+  pool.tripSwitches[slot] = 0;
+  pool.queueRechecks[slot] = 0;
+  pool.leftShafts[slot] = 0;
 }
 
 function arrive(context: StepContext, slot: number): void {
@@ -534,6 +599,7 @@ function enterQueueOrWait(context: StepContext, slot: number): void {
   const pool = state.people;
   const shaft = state.shafts[shaftKey(pool.legVia[slot] as number)];
   if (!shaft) {
+    dropGoneLeftShafts(state, slot);
     replan(context, slot);
     return;
   }
@@ -542,6 +608,7 @@ function enterQueueOrWait(context: StepContext, slot: number): void {
   const direction = directionBetween(level, destination);
   if (isQueueFull(shaft, level, direction)) {
     pool.trek[slot] = WAITING_BESIDE_QUEUE;
+    pool.queueRechecks[slot] = 0;
     pool.legStep[slot] = nextQueueCheckStep(state.step);
     startWait(state, slot, direction, lobbyHeightHere(context, level, shaft.x));
     addFullQueueEvent(pool, slot);
@@ -552,42 +619,71 @@ function enterQueueOrWait(context: StepContext, slot: number): void {
   pool.trek[slot] = QUEUED;
 }
 
-function isSameRideFromHere(pool: PersonPool, slot: number, ride: Ride | null): boolean {
-  return (
-    ride !== null &&
-    ride.via === pool.legVia[slot] &&
-    ride.level === pool.legLevel[slot] &&
-    ride.fromColumn === pool.column[slot]
-  );
-}
-
-function joinFromBesideQueue(context: StepContext, slot: number): void {
+function joinFromBesideQueue(context: StepContext, slot: number): boolean {
   const { state } = context;
   const pool = state.people;
   const shaft = state.shafts[shaftKey(pool.legVia[slot] as number)];
   const level = pool.level[slot] as Level;
-  const destination = pool.legLevel[slot] as Level;
-  const direction = directionBetween(level, destination);
-  if (!shaft || isQueueFull(shaft, level, direction)) {
-    pool.legStep[slot] = nextQueueCheckStep(state.step);
-    return;
-  }
+  const direction = directionBetween(level, pool.legLevel[slot] as Level);
+  if (!shaft || isQueueFull(shaft, level, direction)) return false;
   joinQueueAt(context, slot, shaft, direction);
   pool.trek[slot] = QUEUED;
+  return true;
+}
+
+function queueOfRideHasRoom(context: StepContext, ride: Ride): boolean {
+  const shaft = context.state.shafts[shaftKey(ride.via)];
+  if (!shaft) return false;
+  const level = ride.fromLevel as Level;
+  return !isQueueFull(shaft, level, directionBetween(level, ride.level as Level));
+}
+
+/** The route to switch to, or null when a condition of routing 8.3 step 3 fails. */
+function switchTarget(context: StepContext, slot: number, pass: TrekPass): RoutePlan | null {
+  const { found, ride } = recheckFor(context, slot, pass);
+  const alternative = found?.alternative;
+  if (!found || !alternative) return null;
+  if (alternative.cost > found.stayCost - FULL_QUEUE_SWITCH_MARGIN) return null;
+  if (ride && !queueOfRideHasRoom(context, ride)) return null;
+  return alternative;
+}
+
+function mayLookForAnotherRide(pool: PersonPool, slot: number): boolean {
+  return (
+    (pool.queueRechecks[slot] as number) >= FULL_QUEUE_STAY_RECHECKS &&
+    (pool.tripSwitches[slot] as number) < FULL_QUEUE_MAX_SWITCHES_PER_TRIP
+  );
+}
+
+function switchRide(context: StepContext, slot: number, target: RoutePlan): void {
+  const pool = context.state.people;
+  addLeftShaft(pool, slot, pool.legVia[slot] as number);
+  pool.tripSwitches[slot] = (pool.tripSwitches[slot] as number) + 1;
+  settlePartUnderWay(context.state, slot, 'queued');
+  replan(context, slot, target);
 }
 
 /**
- * A person beside a full queue looks again (routing 8.3). While the same ride wins they stay on
- * the same wait and join once there is room. Otherwise the wait so far counts and they move on.
+ * A person beside a full queue looks again once a game minute (routing 8.3). They join when
+ * there is room. After three rechecks at the same shaft they may switch to a clearly cheaper ride
+ * at a shaft they did not leave, at most twice in a trip; otherwise they keep waiting.
  */
 function recheckFullQueue(context: StepContext, slot: number, pass: TrekPass): void {
-  const { plan, ride } = recheckPlanFor(context, slot, pass);
-  if (isSameRideFromHere(context.state.people, slot, ride)) {
-    joinFromBesideQueue(context, slot);
+  const { state } = context;
+  const pool = state.people;
+  if (!state.shafts[shaftKey(pool.legVia[slot] as number)]) {
+    dropGoneLeftShafts(state, slot);
+    replan(context, slot);
     return;
   }
-  settlePartUnderWay(context.state, slot, 'queued');
-  replan(context, slot, plan);
+  if (joinFromBesideQueue(context, slot)) return;
+  pool.queueRechecks[slot] = Math.min(
+    (pool.queueRechecks[slot] as number) + 1,
+    FULL_QUEUE_STAY_RECHECKS,
+  );
+  const target = mayLookForAnotherRide(pool, slot) ? switchTarget(context, slot, pass) : null;
+  if (target) switchRide(context, slot, target);
+  else pool.legStep[slot] = nextQueueCheckStep(state.step);
 }
 
 /** The person is standing where their current leg begins. */
@@ -597,8 +693,10 @@ function reachLegStart(context: StepContext, slot: number): void {
     arrive(context, slot);
   } else if (phase === WALKING_TO_STAIRS || phase === WALKING_TO_ESCALATOR) {
     const onStairs = phase === WALKING_TO_STAIRS;
-    if (!flightExists(context, slot)) replan(context, slot);
-    else if (onStairs) startFlight(context, slot, ON_STAIRS, STAIR_FLIGHT_STEPS);
+    if (!flightExists(context, slot)) {
+      dropGoneLeftShafts(context.state, slot);
+      replan(context, slot);
+    } else if (onStairs) startFlight(context, slot, ON_STAIRS, STAIR_FLIGHT_STEPS);
     else startFlight(context, slot, ON_ESCALATOR, ESCALATOR_FLIGHT_STEPS);
   } else {
     enterQueueOrWait(context, slot);
@@ -700,6 +798,7 @@ function replanBrokenLegs(context: StepContext): void {
     if (phase === ON_STAIRS || phase === ON_ESCALATOR) {
       pool.level[slot] = pool.legLevel[slot] as number;
     }
+    dropGoneLeftShafts(context.state, slot);
     replan(context, slot);
   }
 }
