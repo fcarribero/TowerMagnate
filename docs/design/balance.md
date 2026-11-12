@@ -186,3 +186,26 @@ Seeds 1 to 5, `pnpm balance:progression --seeds N --days 45`, one process per se
 | 3 stars | 19 | 19 | 22 | 19 | 19 | 19 | 14 to 21 |
 
 Cash at the end of game day 7, after the first Monday charge: $118,500, $98,500, $112,500, $99,000 and $118,000. The 3-star days are the same as before the change on every seed. The runs stop at day 45, so 4 stars, 5 stars and Torre were not rerun; a 100-day run of five seeds did not finish within the working day. The change removes $16,000 a week at 3 stars and $76,000 at 4 stars from a tower of 152 lobby columns, against weekly income of several million at 4 stars, so 4 stars at day 67 is expected to move by a day or two and stay inside 54 to 72. A 200-day rerun is open for the next balance pass.
+
+## 8. Venue population share and medical check (TM-273)
+
+### 8.1 Medical sufficiency
+
+The scenario with 918 leased offices and 9 medical centers shows no medical failure. No constant changed for it, and the shared and medical tests pass.
+
+### 8.2 Venue share of population
+
+The share is venues divided by total population, read with `populationOf` on the progression bot of section 1, seed 1 and seed 3. Venues count the previous-day visits of fast food, restaurants and shops (stars.md 3.1).
+
+| Rating | Seed | Game day | Venues | Total | Share |
+|---|---|---|---|---|---|
+| 3 stars | 1 | 19 | 432 | 1,091 | 39.6% |
+| 3 stars | 3 | 22 | 485 | 1,258 | 38.6% |
+| 4 stars | 1 | 65 | 2,794 | 5,530 | 50.5% |
+| 5 stars | 1 | 89 | 5,614 | 10,277 | 54.6% |
+
+The 5-star share is 54.6%, against the target of 30% to 36%. Seed 3 did not reach 5 stars within the working day.
+
+### 8.3 Constants changed
+
+None. A trial that halved `OUTSIDE_CUSTOMER_BASE` gave a 3-star share of 39.2% on seed 1, the same as before, so outside customers are not what drives the share. The trial did not reach 4 or 5 stars and was reverted. The acceptance for the 5-star share is not met and stays open. The next step is to split venue visits by source (workers, residents, hotel guests, outside customers) at 5 stars before choosing a constant.
