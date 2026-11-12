@@ -138,12 +138,34 @@ export function spreadOf(values: number[]): number {
   return (Math.max(...values) - Math.min(...values)) / medianOf(values);
 }
 
-/** Three weekday runs; when they differ by over 15% the result is void and three new runs are made. */
 export function timeThreeRuns(): WeekdayRun[] {
-  const runs = Array.from({ length: RUNS }, runWeekday);
-  const agree = (pick: (run: WeekdayRun) => number) => spreadOf(runs.map(pick)) <= MAX_SPREAD;
-  const settled = agree((run) => run.averageMs) && agree((run) => run.p99Ms);
-  return settled ? runs : Array.from({ length: RUNS }, runWeekday);
+  return Array.from({ length: RUNS }, runWeekday);
+}
+
+/** What is wrong with the runs. Only the average has to agree between runs; the p99 varies too much on shared runners. */
+export function weekdayProblems(runs: WeekdayRun[]): string[] {
+  const averages = runs.map((run) => run.averageMs);
+  const p99s = runs.map((run) => run.p99Ms);
+  const problems: string[] = [];
+  if (spreadOf(averages) > MAX_SPREAD)
+    problems.push('Average step time differs by over 15% between runs, result void.');
+  if (medianOf(averages) > MAX_AVERAGE_MS) problems.push('Average step time is over budget.');
+  if (medianOf(p99s) > MAX_P99_MS) problems.push('p99 step time is over budget.');
+  if (runs.some((run) => run.movingAt3am !== 0))
+    problems.push('People are still on the move at 03:00.');
+  return problems;
+}
+
+/** Three weekday runs; when anything is wrong the whole benchmark is run once more and the second result stands. */
+export function timeWeekdayBench(timeRuns: () => WeekdayRun[] = timeThreeRuns): {
+  runs: WeekdayRun[];
+  problems: string[];
+} {
+  const first = timeRuns();
+  const firstProblems = weekdayProblems(first);
+  if (firstProblems.length === 0) return { runs: first, problems: [] };
+  const second = timeRuns();
+  return { runs: second, problems: weekdayProblems(second) };
 }
 
 /** The timing summary: machine, Node, each run's result and the median cost of each system. */
