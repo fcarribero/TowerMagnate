@@ -263,3 +263,27 @@ No linked fix task is created and no constant changed. Seed 3 reaches 4 stars on
 ### 8.5.4 Next step
 
 BE re-runs seed 3 for TM-296 (D2) from clean develop before and after the lunch-chance change, and records the 3, 4 and 5 star days. If seed 3 stalls again after a constant change, the star check log of 8.5.1 shows which requirement fails; the first suspect is recycling, since `recyclingAction` sizes the centers from population at the moment it builds and population can pass 2,500 per center faster than the bot adds them.
+
+### 8.6 ecision: venue share target against milestone pace (TM-315, 9 March 2027)
+
+### 8.6.1 Choice
+
+Option (a): the venue share target is relaxed. The milestone days and the star population thresholds stay as they are.
+
+Old target: venue share of 30% to 36% at 5 stars. New target: 45% to 55% at 5 stars, and 35% to 55% at 3 and 4 stars. The target is a measurement on the progression bot's tower, not a rule the engine enforces.
+
+### 8.6.2 Reasons
+
+The 30% to 36% figure came from stars.md 3.4, which assumed about 100 venues at 35 to 50 visits a day in a hand-built 15,000 tower. It was never a GDD requirement: the GDD (line 59) only says that shops count the previous day's customers. The bot's tower at 5 stars has 5,498 venue visits in 10,065 people (balance.md 8.4), and 2,775 of those are outside customers, who come from the street and need no office or condo.
+
+Both trials of 8.4 show that every cut in venue visits delays the star steps, because the same visits are counted in the population the steps need: halving `OUTSIDE_CUSTOMER_BASE` moved 4 stars from day 65 to day 73 and lost 5 stars within 100 days, and lunch chance 0.5 moved 4 stars from day 65 to day 82. Meeting 30% to 36% by constants would break the 15% milestone guard on seed 1. Option (c), higher thresholds to compensate, would make the 5,000 and 10,000 thresholds of stars.md 5 mean something different from the GDD star table. Option (d), a structural change, has no evidence behind it yet.
+
+The share at 3 stars on seed 1 is 39.9% and on seed 3 is 28.8% (8.4), so 35% to 55% is the range both seeds sit in or near at 3 stars. The new 5-star range holds the measured 54.6% with 0.4 points of margin. Seed 3 reaches 5 stars on day 93 (8.5.2) but its venue share at that rating has not been measured.
+
+### 8.6.3 What changes
+
+No constant changes and no engine code changes. `scripts/balance-progression.ts` and `progression-report.ts` hold no share or milestone thresholds (the report prints measurements only), so nothing changes there. stars.md 3.4 is reworded. The TM-144 acceptance line on venue share now reads 45% to 55% at 5 stars. The TM-296 acceptance on the 30% to 36% share closes with this decision; its split table and instrumentation stay.
+
+### 8.6.4 For TM-144
+
+Seed 1 reaches 3 stars on day 19 and 5 stars on day 89, inside 15% of 21 and 84 (18 to 24 and 71 to 97). Seed 1 reaches 4 stars on day 65 and seed 3 on day 67 (8.5.2), against 49 in the TM-144 acceptance, which allows 42 to 56. The economy.md 12 range for 4 stars is days 54 to 72, which both seeds meet. The two documents disagree, so TM-144 must first say which of 49 or 54 to 72 is the target. If 49 stays, the 4-star step needs 16 days less, and the likely lever is the 5,000 population threshold's pace (offices built per day at 3 stars), not the venue constants.
