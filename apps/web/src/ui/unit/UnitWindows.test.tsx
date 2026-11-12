@@ -99,6 +99,20 @@ describe('unit windows', () => {
     });
   });
 
+  it('shows the subtitle, stat tiles and contract chip in the window', () => {
+    const { open, show } = setup([unitView('u1')]);
+    open('u1');
+    show(inspectOf('u1', { details: leaseDetails({ nextPaymentStep: 0 }) }));
+    const dialog = screen.getByRole('dialog', { name: 'Oficina · Piso 3' });
+    expect(within(dialog).getByText('Oficina · Piso 3 · casilleros 10 a 18')).toBeTruthy();
+    const status = within(dialog).getByText('Ocupada').parentElement;
+    expect(status?.className).toContain('is-good');
+    const evaluation = within(dialog).getByText('Buena').parentElement;
+    expect(evaluation?.className).toContain('is-good');
+    expect(within(dialog).getByText('Contrato · Semana 1 de 4')).toBeTruthy();
+    expect(within(dialog).getByText(/^Próximo pago · /)).toBeTruthy();
+  });
+
   it('inspects every open unit window and stops only the closed one', () => {
     const { open, show, sent } = setup([unitView('u1'), unitView('u2'), unitView('u3')]);
     for (const id of ['u1', 'u2', 'u3']) {
