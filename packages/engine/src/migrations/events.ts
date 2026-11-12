@@ -220,6 +220,11 @@ function isUnitId(value: unknown): value is string {
   return typeof value === 'string' && /^u[1-9][0-9]*$/.test(value);
 }
 
+export function readVipDryDays(raw: unknown): number {
+  if (typeof raw === 'number' && Number.isInteger(raw) && raw >= 0) return raw;
+  throw new StateMigrationError('State vipDryDays must be a whole number of rolls');
+}
+
 export function readVipVisit(raw: unknown): VipVisit | null {
   if (raw === null) return null;
   const valid =
