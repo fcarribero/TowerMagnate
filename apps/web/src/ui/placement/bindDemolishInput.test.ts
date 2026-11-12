@@ -5,7 +5,9 @@ import type { CellInput } from '../../render/stage';
 import { bindDemolishInput } from './bindDemolishInput';
 import type { Confirmation, DemolishWorld } from './demolishPlan';
 
-function setup(units: DemolishWorld['units'] = []) {
+function setup(units: DemolishWorld['units'] = [], ruinsRow = '..rrr.rr..') {
+  let clock = 0;
+  const sentAt: number[] = [];
   let onInput: (input: CellInput) => void = () => {};
   let onHover: (cell: Cell | null) => void = () => {};
   const sent: Command[] = [];
@@ -29,13 +31,14 @@ function setup(units: DemolishWorld['units'] = []) {
     api: {
       send: (command) => {
         sent.push(command);
+        sentAt.push(clock);
         return Promise.resolve({ ok: true, cost: 0, refund: 500 });
       },
     },
     world: () => ({
       structure: new Map([
         [2, 'f'.repeat(40)],
-        [3, '..rrr.rr..'],
+        [3, ruinsRow],
       ]),
       units,
       transports: [],
@@ -47,6 +50,10 @@ function setup(units: DemolishWorld['units'] = []) {
       answers.push(proceed);
     },
     onOutcome: (outcome) => void outcomes.push(outcome),
+    pause: (ms) => {
+      clock += ms;
+      return Promise.resolve();
+    },
     keyTarget: keys as unknown as Window,
   });
   return {
@@ -55,12 +62,19 @@ function setup(units: DemolishWorld['units'] = []) {
     hover: (cell: Cell | null) => onHover(cell),
     escape: () => keys.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' })),
     sent,
+    sentAt,
     asked,
     answers,
     frames,
     outcomes,
   };
 }
+
+const flush = async (): Promise<void> => {
+  for (let i = 0; i < 20; i++) {
+    await Promise.resolve();
+  }
+};
 
 const cinema = {
   id: 'u9',
@@ -120,9 +134,22 @@ describe('bindDemolishInput', () => {
     t.input('down', { x: 7, level: 3 });
     t.hover({ x: 2, level: 3 });
     t.input('up', { x: 2, level: 3 });
-    await Promise.resolve();
-    await Promise.resolve();
+    await flush();
     expect(t.outcomes).toEqual([{ ok: true, cost: 0, refund: 2500 }]);
+  });
+
+  it('paces a 40 cell run under the server limit and reports it once', async () => {
+    const t = setup([], 'r'.repeat(40));
+    t.input('down', { x: 0, level: 3 });
+    t.hover({ x: 39, level: 3 });
+    t.input('up', { x: 39, level: 3 });
+    await flush();
+    expect(t.sent).toHaveLength(40);
+    for (const start of t.sentAt) {
+      const inWindow = t.sentAt.filter((at) => at >= start && at < start + 1000);
+      expect(inWindow.length).toBeLessThanOrEqual(30);
+    }
+    expect(t.outcomes).toEqual([{ ok: true, cost: 0, refund: 20000 }]);
   });
 
   it('sends nothing when Esc drops the drag', () => {

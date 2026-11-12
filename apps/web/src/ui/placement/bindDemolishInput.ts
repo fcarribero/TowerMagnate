@@ -17,6 +17,12 @@ import {
 
 export const DEMOLISH_COLOR = 0xb0353a;
 
+/** Under the server limit of 30 messages per second, leaving room for other commands. */
+export const RUN_CHUNK_SIZE = 20;
+export const RUN_CHUNK_INTERVAL_MS = 1000;
+
+const waitMs = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
+
 export interface DemolishStage {
   onCellInput(listener: (input: CellInput) => void): () => void;
   onHoverCell(listener: (cell: Cell | null) => void): () => void;
@@ -33,6 +39,8 @@ export interface DemolishInputOptions {
   /** Called when a demolition needs a yes; `proceed` sends the command. */
   confirm: (confirmation: Confirmation, proceed: () => void) => void;
   onOutcome(outcome: CommandOutcome, command: Command, at: ScreenPoint): void;
+  /** Waits between chunks of a long run; replaceable in tests. */
+  pause?: (ms: number) => Promise<void>;
   keyTarget?: Pick<Window, 'addEventListener' | 'removeEventListener'>;
 }
 
@@ -49,6 +57,7 @@ interface RunDrag {
  */
 export function bindDemolishInput(options: DemolishInputOptions): () => void {
   const { stage, api, world, confirm, onOutcome } = options;
+  const pause = options.pause ?? waitMs;
   const keyTarget = options.keyTarget ?? window;
   let hovered: Cell | null = null;
   let drag: RunDrag | null = null;
@@ -60,6 +69,18 @@ export function bindDemolishInput(options: DemolishInputOptions): () => void {
 
   const send = (command: Command, at: ScreenPoint): void => {
     void api.send(command).then((outcome) => onOutcome(outcome, command, at));
+  };
+
+  const sendPaced = async (commands: readonly Command[]): Promise<CommandOutcome[]> => {
+    const outcomes: CommandOutcome[] = [];
+    for (let start = 0; start < commands.length; start += RUN_CHUNK_SIZE) {
+      if (start > 0) {
+        await pause(RUN_CHUNK_INTERVAL_MS);
+      }
+      const chunk = commands.slice(start, start + RUN_CHUNK_SIZE);
+      outcomes.push(...(await Promise.all(chunk.map((command) => api.send(command)))));
+    }
+    return outcomes;
   };
 
   const frame = (): void => {
@@ -106,7 +127,7 @@ export function bindDemolishInput(options: DemolishInputOptions): () => void {
       send(first, at);
       return;
     }
-    void Promise.all([first, ...rest].map((command) => api.send(command))).then((outcomes) =>
+    void sendPaced([first, ...rest]).then((outcomes) =>
       onOutcome(combineOutcomes(outcomes), first, at),
     );
   };
