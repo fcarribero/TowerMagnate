@@ -2,7 +2,7 @@ import { act, cleanup, fireEvent, render, screen } from '@testing-library/preact
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { Button } from './Button';
-import { TOOLTIP_DELAY_MS, Tooltip, placeBelow } from './Tooltip';
+import { TOOLTIP_DELAY_MS, Tooltip, placeBelow, placeBeside } from './Tooltip';
 
 afterEach(cleanup);
 
@@ -113,5 +113,17 @@ describe('placeBelow', () => {
   it('flips above near the bottom and stays inside on the right', () => {
     const anchor = new DOMRect(1000, 620, 24, 16);
     expect(placeBelow(anchor, tipOfSize(80, 12), 1)).toEqual({ left: 944, top: 604 });
+  });
+
+  it('goes right of the edge, level with the anchor, and stays inside the viewport', () => {
+    const edge = new DOMRect(0, 24, 80, 500);
+    expect(placeBeside(new DOMRect(40, 100, 36, 36), edge, tipOfSize(80, 12), 2)).toEqual({
+      left: 88,
+      top: 100,
+    });
+    expect(placeBeside(new DOMRect(40, 635, 36, 36), edge, tipOfSize(80, 12), 1)).toEqual({
+      left: 84,
+      top: 628,
+    });
   });
 });
