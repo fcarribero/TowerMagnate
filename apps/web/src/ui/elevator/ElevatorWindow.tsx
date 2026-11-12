@@ -9,7 +9,7 @@ import {
 import { useState } from 'preact/hooks';
 import type { CommandOutcome } from '../../api/commandApi';
 import { elevatorWindowId } from '../inspectTarget';
-import { Button, Tabs, Window } from '../kit';
+import { Button, Checkbox, Dropdown, Tabs, Window } from '../kit';
 import { formatMoney } from '../money';
 import { errorText, t, type StringKey } from '../strings';
 import {
@@ -50,25 +50,20 @@ const LOWEST_LEVEL = -10;
 const HIGHEST_LEVEL = 100;
 
 function LevelSelect(props: {
+  id: string;
   label: string;
   value: Level;
   levels: readonly Level[];
   onChange: (level: Level) => void;
 }) {
   return (
-    <label>
-      {props.label}
-      <select
-        value={props.value}
-        onChange={(event) => props.onChange(Number(event.currentTarget.value))}
-      >
-        {props.levels.map((level) => (
-          <option key={level} value={level}>
-            {levelLabel(level)}
-          </option>
-        ))}
-      </select>
-    </label>
+    <Dropdown
+      id={props.id}
+      label={props.label}
+      value={String(props.value)}
+      options={props.levels.map((level) => ({ value: String(level), label: levelLabel(level) }))}
+      onChange={(value) => props.onChange(Number(value))}
+    />
   );
 }
 
@@ -134,8 +129,20 @@ export function ElevatorWindow({ shaft, send, onClose, bandNow = null }: Elevato
 
   const routeTab = (
     <div>
-      <LevelSelect label={t('ui.shaftFrom')} value={from} levels={endpoints} onChange={setFrom} />
-      <LevelSelect label={t('ui.shaftTo')} value={to} levels={endpoints} onChange={setTo} />
+      <LevelSelect
+        id={`${shaft.id}-from`}
+        label={t('ui.shaftFrom')}
+        value={from}
+        levels={endpoints}
+        onChange={setFrom}
+      />
+      <LevelSelect
+        id={`${shaft.id}-to`}
+        label={t('ui.shaftTo')}
+        value={to}
+        levels={endpoints}
+        onChange={setTo}
+      />
       <Button
         onClick={() => void run({ type: 'resizeShaft', shaftId: shaft.id, bottom: from, top: to })}
       >
@@ -148,14 +155,13 @@ export function ElevatorWindow({ shaft, send, onClose, bandNow = null }: Elevato
         </Button>
         <Button onClick={() => changeStops([])}>{t('ui.shaftNoStops')}</Button>
         {levels.map((level) => (
-          <label key={level}>
-            <input
-              type="checkbox"
-              checked={stops.includes(level)}
-              onChange={() => changeStops(toggleStop(stops, level))}
-            />
-            {t('ui.shaftStopAt', { level: levelLabel(level) })}
-          </label>
+          <Checkbox
+            key={level}
+            id={`${shaft.id}-stop-${level}`}
+            label={t('ui.shaftStopAt', { level: levelLabel(level) })}
+            checked={stops.includes(level)}
+            onChange={() => changeStops(toggleStop(stops, level))}
+          />
         ))}
       </fieldset>
     </div>
@@ -168,6 +174,7 @@ export function ElevatorWindow({ shaft, send, onClose, bandNow = null }: Elevato
         <div key={car.index}>
           <span>{t('ui.shaftCar', { k: position + 1 })}</span>
           <LevelSelect
+            id={`${shaft.id}-car-${car.index}-home`}
             label={t('ui.shaftCarHome')}
             value={homes[position] ?? shaft.bottom}
             levels={stopsTopDown}

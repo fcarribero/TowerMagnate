@@ -531,6 +531,15 @@
   margin-bottom: var(--space-3);
 }
 
+.tm-dropdown__label--hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
 .tm-dropdown__field {
   box-sizing: border-box;
   display: flex;

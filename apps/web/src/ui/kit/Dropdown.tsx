@@ -16,6 +16,8 @@ export interface DropdownProps<T extends string> {
   /** Submitted with a surrounding form under this name. */
   name?: string;
   disabled?: boolean;
+  /** Keeps the label for screen readers only, when the row already names the field. */
+  isLabelHidden?: boolean;
 }
 
 /** Viewport position of the open list, so a scrolling window body does not clip it. */
@@ -34,6 +36,7 @@ export function Dropdown<T extends string>({
   onChange,
   name,
   disabled = false,
+  isLabelHidden = false,
 }: DropdownProps<T>) {
   const [isOpen, setIsOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
@@ -108,7 +111,12 @@ export function Dropdown<T extends string>({
 
   return (
     <div class="tm-dropdown" ref={root}>
-      <span id={`${id}-label`} class="tm-dropdown__label">
+      <span
+        id={`${id}-label`}
+        class={
+          isLabelHidden ? 'tm-dropdown__label tm-dropdown__label--hidden' : 'tm-dropdown__label'
+        }
+      >
         {label}
       </span>
       <div class="tm-dropdown__anchor">
