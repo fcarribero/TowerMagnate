@@ -13,9 +13,14 @@ const BUILDS = {
   short: { headTop: 3, belly: true },
 };
 
-function layout(build) {
+function layout(build, dip = 0) {
   const { headTop, belly } = BUILDS[build];
-  return { headTop, torsoTop: headTop + 4, handRow: LOWER_BODY_TOP - 1, belly };
+  return {
+    headTop: headTop + dip,
+    torsoTop: headTop + dip + 4,
+    handRow: LOWER_BODY_TOP - 1,
+    belly,
+  };
 }
 
 // Lower bodies from row 11 down to the feet on row 15, facing right.
@@ -38,7 +43,9 @@ const LOWER_BODIES = {
   },
 };
 
-const POSES = ['walk_01', 'walk_02', 'stand'];
+// idle_01 and idle_02 loop while a person stands: the second frame lowers the head and shoulders by
+// one pixel, a slow breath.
+const POSES = ['walk_01', 'walk_02', 'stand', 'idle_01', 'idle_02'];
 const TINTS = [
   { suffix: '', color: null },
   { suffix: '-pink', color: 'stress-pink' },
@@ -137,9 +144,9 @@ const DETAILS = {
 function drawPerson(type, variant, pose, tint) {
   const outfit = type.outfits[variant.outfit];
   const look = tinted({ ...outfit, ...variant }, tint);
-  const parts = layout(variant.build);
+  const parts = layout(variant.build, pose === 'idle_02' ? 1 : 0);
   const person = new PixelCanvas(frameWidth, frameHeight);
-  drawLowerBody(person, look, pose);
+  drawLowerBody(person, look, pose.startsWith('idle') ? 'stand' : pose);
   drawTorso(person, parts, look);
   drawHead(person, parts, look);
   for (const detail of outfit.details ?? type.details ?? []) {

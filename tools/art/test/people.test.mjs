@@ -38,15 +38,17 @@ describe('people group', () => {
     expect(PERSON_VARIANTS).toEqual(['a', 'b', 'c', 'd']);
   });
 
-  it('draws two walk frames and a standing pose in calm, pink and red', () => {
+  it('draws two walk frames, a standing pose and two idle frames in calm, pink and red', () => {
     for (const subject of subjects) {
       for (const tint of ['', '-pink', '-red']) {
         expect(byId[`people/${subject}/walk${tint}_01`], subject).toBeDefined();
         expect(byId[`people/${subject}/walk${tint}_02`], subject).toBeDefined();
         expect(byId[`people/${subject}/stand${tint}`], subject).toBeDefined();
+        expect(byId[`people/${subject}/idle${tint}_01`], subject).toBeDefined();
+        expect(byId[`people/${subject}/idle${tint}_02`], subject).toBeDefined();
       }
     }
-    expect(sprites).toHaveLength(subjects.length * 9);
+    expect(sprites).toHaveLength(subjects.length * 15);
   });
 
   it('uses the person frame and keeps the feet on the bottom row', () => {

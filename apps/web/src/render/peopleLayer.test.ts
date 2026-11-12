@@ -29,9 +29,10 @@ describe('PeopleLayer', () => {
     layer.show(frameOf(person('p1', { mode: 'wait', stress: 'normal' })));
     layer.show(frameOf(person('p1', { mode: 'wait', stress: 'stressed' })));
     expect(layer.count).toBe(1);
-    expect(layer.view.children[0]).toMatchObject({
-      texture: textures['people/worker-b/stand-pink'],
-    });
+    expect([
+      textures['people/worker-b/idle-pink_01'],
+      textures['people/worker-b/idle-pink_02'],
+    ]).toContain((layer.view.children[0] as Sprite).texture);
   });
 
   it('shows the lamp marker only over followed people', () => {
@@ -127,7 +128,9 @@ describe('PeopleLayer', () => {
     expect(layer.view.children).toHaveLength(2);
     const shown = layer.view.children.filter((sprite) => sprite.visible) as Sprite[];
     expect(shown).toHaveLength(1);
-    expect(shown[0]?.texture).toBe(textures['people/worker-b/stand']);
+    expect([textures['people/worker-b/idle_01'], textures['people/worker-b/idle_02']]).toContain(
+      shown[0]?.texture,
+    );
   });
 
   it('gives a person who comes into view the right look and place', () => {
@@ -137,7 +140,10 @@ describe('PeopleLayer', () => {
     layer.showOnly({ lowest: 0, highest: 5 });
     layer.show(frameOf(person('p1', { mode: 'wait', stress: 'stressed', x: 10 })));
     const sprite = layer.view.children[0];
-    expect(sprite).toMatchObject({ texture: textures['people/worker-b/stand-pink'] });
+    expect([
+      textures['people/worker-b/idle-pink_01'],
+      textures['people/worker-b/idle-pink_02'],
+    ]).toContain((sprite as Sprite).texture);
     expect(sprite?.x).toBeGreaterThan(80);
   });
 
@@ -157,5 +163,27 @@ describe('PeopleLayer', () => {
     layer.show(towerCrowdFrame(3000, 0, 100));
     expect(layer.count).toBe(1020);
     expect(layer.spriteCount).toBe(1020);
+  });
+});
+
+describe('PeopleLayer idle animation', () => {
+  it('alternates the two idle frames of a person who stands', () => {
+    const { layer } = layerWithArt();
+    const seen = new Set<unknown>();
+    for (let tick = 0; tick < 100; tick += 1) {
+      layer.show(frameOf(person('p1', { mode: 'wait', stress: 'normal' })));
+      seen.add((layer.view.children[0] as Sprite).texture);
+    }
+    expect(seen.size).toBe(2);
+  });
+
+  it('keeps one frame while a person walks in place', () => {
+    const { layer } = layerWithArt();
+    const seen = new Set<unknown>();
+    for (let tick = 0; tick < 100; tick += 1) {
+      layer.show(frameOf(person('p1', { mode: 'walk', x: 10 })));
+      seen.add((layer.view.children[0] as Sprite).texture);
+    }
+    expect(seen.size).toBe(1);
   });
 });
