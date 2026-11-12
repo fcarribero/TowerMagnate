@@ -18,27 +18,27 @@ body,
   left: 0;
   display: flex;
   flex-wrap: wrap;
-  gap: calc(4 * var(--tm-px));
+  gap: var(--space-2);
   align-items: center;
-  padding: calc(4 * var(--tm-px));
-  background: var(--tm-cloud);
-  border-top: calc(1 * var(--tm-px)) solid var(--tm-ink);
+  padding: var(--space-2);
+  background: var(--obra-paper);
+  border-top: var(--border-window);
 }
 
 .kit-demo__zoom {
   margin-left: auto;
-  padding: 0 calc(6 * var(--tm-px));
+  padding: 0 var(--space-3);
 }
 
 .kit-demo__row {
   display: flex;
-  gap: calc(4 * var(--tm-px));
+  gap: var(--space-2);
   justify-content: flex-end;
-  margin-top: calc(4 * var(--tm-px));
+  margin-top: var(--space-2);
 }
 
 .kit-demo__answer {
-  padding: 0 calc(6 * var(--tm-px));
+  padding: 0 var(--space-3);
 }
 
 .kit-demo__too-small {
