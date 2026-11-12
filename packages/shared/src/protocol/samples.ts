@@ -236,12 +236,14 @@ export const sampleServerMessages: ServerMessage[] = [
   },
   { v, t: 'inspect', p: { kind: 'unit', id: 'u13', status: 'gone' } },
   { v, t: 'inspect', p: { kind: 'shaft', id: 's9', status: 'gone' } },
+  { v, t: 'inspect', p: { kind: 'person', id: 'p77', status: 'gone' } },
   {
     v,
     t: 'inspect',
     p: {
       kind: 'person',
       id: 'p3401',
+      status: 'ok',
       name: null,
       personKind: 'hotelGuest',
       state: 'noRoute',

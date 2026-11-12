@@ -11,6 +11,7 @@ import { bindPreview, previewToolOf } from '../render/placementSource';
 import type { Stage } from '../render/stage';
 import { bindUnitClicks } from '../render/unitClick';
 import { bindShafts, carSourceOf } from '../render/elevatorSource';
+import { bindFollowed } from '../render/followedSource';
 import { bindEffects, bindEvents } from '../render/eventSource';
 import { bindStructure, fullWidthTestTower, testTowerFromQuery } from '../render/structureSource';
 import { skyTimeAt, stepAtHour } from '../render/timeOfDay';
@@ -57,6 +58,8 @@ import { useNotices } from './notices/useNotices';
 import { useUnreadCount } from './notices/useUnreadCount';
 import { Toasts } from './toast/Toasts';
 import { ElevatorWindows } from './elevator/ElevatorWindows';
+import { FollowedWindow } from './person/FollowedWindow';
+import { PersonWindows } from './person/PersonWindows';
 import { UnitWindows } from './unit/UnitWindows';
 
 export interface AppProps {
@@ -81,6 +84,7 @@ export function App({ onLogout, onRestartTower, onSessionLost }: AppProps) {
   const [financeOpen, setFinanceOpen] = useState(false);
   const [avisosOpen, setAvisosOpen] = useState(false);
   const [starsOpen, setStarsOpen] = useState(false);
+  const [followedOpen, setFollowedOpen] = useState(false);
   const [restartStep, setRestartStep] = useState<RestartStep | null>(null);
   const [overlay, setOverlay] = useState<OverlayId>('normal');
   const [tool, setTool] = useState<ToolId>(DEFAULT_TOOL);
@@ -99,6 +103,9 @@ export function App({ onLogout, onRestartTower, onSessionLost }: AppProps) {
     }
     if (id === 'stars') {
       setStarsOpen((open) => !open);
+    }
+    if (id === 'followed') {
+      setFollowedOpen((open) => !open);
     }
   };
   const { playTrigger, director } = useSfx();
@@ -126,6 +133,7 @@ export function App({ onLogout, onRestartTower, onSessionLost }: AppProps) {
       ['finance', financeOpen],
       ['notices', avisosOpen],
       ['stars', starsOpen],
+      ['followed', followedOpen],
     ];
     for (const [id, isOpen] of flags) {
       if (isOpen) {
@@ -133,7 +141,7 @@ export function App({ onLogout, onRestartTower, onSessionLost }: AppProps) {
       }
     }
     return open;
-  }, [mapOpen, financeOpen, avisosOpen, starsOpen]);
+  }, [mapOpen, financeOpen, avisosOpen, starsOpen, followedOpen]);
   const incomeFloats = useIncomeFloaters(stage, connection);
   const [pendingDemolition, setPendingDemolition] = useState<{
     confirmation: Confirmation;
@@ -148,6 +156,11 @@ export function App({ onLogout, onRestartTower, onSessionLost }: AppProps) {
       playTrigger('ui.click');
     }
   };
+
+  const centerView = useCallback(
+    (point: { x: number; y: number }): void => stage?.centerOn(point.x, point.y),
+    [stage],
+  );
 
   const restartTower = (): void => {
     setRestartStep(null);
@@ -182,10 +195,14 @@ export function App({ onLogout, onRestartTower, onSessionLost }: AppProps) {
     const unbindUnits = bindUnits(connection.store, overlay, (input) => stage.showUnits(input));
     const unbindStructure = bindStructure(connection.store, (input) => stage.showStructure(input));
     const unbindShafts = bindShafts(connection.store, (shafts) => stage.showShafts(shafts));
+    const unbindFollowed = bindFollowed(connection.store, (followed) =>
+      stage.showFollowed(followed),
+    );
     const unbindEvents = bindEvents(connection.store, (input) => stage.showEvents(input));
     const unbindEffects = bindEffects(connection.onMessage, (effect) => stage.playEffect(effect));
     stage.feedCars(carSourceOf(connection.store));
     return () => {
+      unbindFollowed();
       unbindEvents();
       unbindEffects();
       unbindSky();
@@ -219,6 +236,7 @@ export function App({ onLogout, onRestartTower, onSessionLost }: AppProps) {
       return;
     }
     return bindUnitClicks(stage, connection.store, {
+      person: (personId) => connection.inspect.requestPersonWindow(personId),
       unit: (unitId) => connection.inspect.requestUnitWindow(unitId),
       shaft: (shaftId) => connection.inspect.requestShaftWindow(shaftId),
     });
@@ -336,7 +354,12 @@ export function App({ onLogout, onRestartTower, onSessionLost }: AppProps) {
           onZoom={(direction) => stage?.zoomStep(direction)}
           onLogout={onLogout}
           extraMenuItems={[
-            { id: 'newTower', label: t('ui.newTower'), onSelect: () => setRestartStep('first') },
+            {
+              id: 'newTower',
+              label: t('ui.newTower'),
+              separated: true,
+              onSelect: () => setRestartStep('first'),
+            },
           ]}
         />
         <OverlayLegend overlay={overlay} />
@@ -358,7 +381,11 @@ export function App({ onLogout, onRestartTower, onSessionLost }: AppProps) {
           onReload={() => location.reload()}
         />
         <Toasts commands={connection.commands} />
-        <NewsLine subscribe={notices.subscribeLine} onOpenAvisos={() => setAvisosOpen(true)} />
+        <NewsLine
+          subscribe={notices.subscribeLine}
+          onOpenAvisos={() => setAvisosOpen(true)}
+          onSeeUnit={(unitId) => stage?.centerOnUnit(unitId)}
+        />
         <WindowLayer class="ui-windows" uiScale={uiScale}>
           {mapOpen && stage && (
             <TowerMapWindow content={content} stage={stage} onClose={() => setMapOpen(false)} />
@@ -387,7 +414,15 @@ export function App({ onLogout, onRestartTower, onSessionLost }: AppProps) {
           {starsOpen && (
             <StarsWindow store={connection.store} onClose={() => setStarsOpen(false)} />
           )}
+          {followedOpen && (
+            <FollowedWindow
+              connection={connection}
+              onCenter={centerView}
+              onClose={() => setFollowedOpen(false)}
+            />
+          )}
           <UnitWindows connection={connection} />
+          <PersonWindows connection={connection} onCenter={centerView} />
           <InfoDialogs subscribe={connection.onMessage} />
           <DecisionDialogs
             store={connection.store}

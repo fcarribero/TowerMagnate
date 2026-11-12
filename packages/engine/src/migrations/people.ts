@@ -1,4 +1,9 @@
-import { MAX_FOLLOWED_PEOPLE, PERSON_KINDS, type PersonPool } from '@tower-magnate/shared';
+import {
+  MAX_FOLLOWED_PEOPLE,
+  MAX_NAME_LENGTH,
+  PERSON_KINDS,
+  type PersonPool,
+} from '@tower-magnate/shared';
 import { createPersonPool } from '../people';
 import { isRecord, StateMigrationError } from './errors';
 
@@ -55,6 +60,23 @@ function readFollowed(raw: unknown, ids: number[]): number[] {
   return raw.slice();
 }
 
+function readNames(raw: unknown, ids: number[]): Record<number, string> {
+  if (!isRecord(raw)) fail('names must be a record');
+  const known = new Set(ids);
+  const names: Record<number, string> = {};
+  for (const [key, name] of Object.entries(raw)) {
+    const personId = Number(key);
+    const valid =
+      known.has(personId) &&
+      typeof name === 'string' &&
+      name.trim() !== '' &&
+      Array.from(name).length <= MAX_NAME_LENGTH;
+    if (!valid) fail(`name of ${key} is malformed`);
+    names[personId] = name as string;
+  }
+  return names;
+}
+
 /** Saves from before facing was kept have everyone facing right. */
 function readFacing(raw: unknown, count: number): number[] {
   if (raw === undefined) return Array<number>(count).fill(0);
@@ -62,6 +84,20 @@ function readFacing(raw: unknown, count: number): number[] {
     fail('facing must hold 0 or 1 per person');
   }
   return raw.slice();
+}
+
+/** Saves from before the full-queue rule have no switches, rechecks or left shafts. */
+function readFullQueueTrip(raw: Record<string, unknown>, pool: PersonPool): void {
+  for (const field of ['tripSwitches', 'queueRechecks', 'leftShafts'] as const) {
+    const values = raw[field];
+    if (values === undefined) {
+      pool[field] = Array<number>(pool.id.length).fill(0);
+    } else if (isIntegerArray(values) && values.length === pool.id.length) {
+      pool[field] = values.slice();
+    } else {
+      fail(`${field} must hold one integer per person`);
+    }
+  }
 }
 
 const TRIP_FIELDS = ['tripSum', 'tripSlowFloors', 'tripPartStep', 'tripPartCut'] as const;
@@ -111,7 +147,12 @@ export function readPeople(raw: unknown): PersonPool {
     }
     pool[field] = values.slice();
   }
+  readFullQueueTrip(raw, pool);
   pool.facing = readFacing(raw.facing, id.length);
+  pool.names = readNames(raw.names, id);
   pool.followed = readFollowed(raw.followed, id);
+  if (!pool.followed.every((personId) => Object.hasOwn(pool.names, personId))) {
+    fail('follow someone with no name');
+  }
   return pool;
 }

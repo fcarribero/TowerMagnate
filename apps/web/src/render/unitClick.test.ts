@@ -25,12 +25,26 @@ const shaft = {
   stops: [1, 5],
 };
 
+const walker = {
+  id: 'p1',
+  kind: 'officeWorker' as const,
+  x: 14.4,
+  level: 3,
+  facing: 'right' as const,
+  mode: 'walk' as const,
+  carRef: null,
+  stress: 'normal' as const,
+};
+
+const rider = { ...walker, id: 'p2', x: 30, level: 4, mode: 'ride' as const };
+
 function setup() {
   const store = new ClientStore({ requestResync: () => undefined, now: () => 0 });
-  store.applySnapshot({ ...snapshot, units: [office], shafts: [shaft] });
+  store.applySnapshot({ ...snapshot, units: [office], shafts: [shaft], people: [walker, rider] });
   let input: (event: CellInput) => void = () => undefined;
   const opened: string[] = [];
   bindUnitClicks({ onCellInput: (listener) => ((input = listener), () => undefined) }, store, {
+    person: (id) => opened.push(`person:${id}`),
     unit: (id) => opened.push(id),
     shaft: (id) => opened.push(`shaft:${id}`),
   });
@@ -46,6 +60,20 @@ describe('bindUnitClicks', () => {
     const { click, opened } = setup();
     click({ x: 10, level: 3 });
     expect(opened).toEqual(['u1']);
+  });
+
+  it('opens the window of the person before the unit behind them', () => {
+    const { click, opened } = setup();
+    click({ x: 14, level: 3 });
+    click({ x: 15, level: 3 });
+    click({ x: 16, level: 3 });
+    expect(opened).toEqual(['person:p1', 'person:p1', 'u1']);
+  });
+
+  it('does not pick a rider', () => {
+    const { click, opened } = setup();
+    click({ x: 30, level: 4 });
+    expect(opened).toEqual(['shaft:s2']);
   });
 
   it('opens the window of the shaft under the click', () => {

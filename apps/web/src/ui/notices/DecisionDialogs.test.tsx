@@ -20,6 +20,15 @@ const bomb: EventView = {
   ransom: 300_000,
 };
 
+const fire: EventView = {
+  kind: 'decision',
+  id: 'e5',
+  decision: 'fire',
+  deadlineStep: snapshot.step + 200,
+  options: ['helicopter', 'burn'],
+  level: 12,
+};
+
 function renderDialogs(activeEvents: EventView[] = [], closedIds: ReadonlySet<string> = new Set()) {
   const store = new ClientStore({ requestResync: () => undefined });
   store.applySnapshot({ ...snapshot, activeEvents });
@@ -52,6 +61,40 @@ describe('DecisionDialogs', () => {
   it('reopens a decision that is still open in the snapshot', () => {
     renderDialogs([bomb]);
     expect(screen.getByText('Amenaza de bomba')).toBeTruthy();
+  });
+
+  it('has a hazard stripe, no close button and no scrim', () => {
+    renderDialogs([bomb]);
+
+    expect(document.querySelector('.tm-window__stripe')).not.toBeNull();
+    expect(screen.queryByRole('button', { name: 'Cerrar' })).toBeNull();
+    expect(document.querySelector('.tm-modal-backdrop')).toBeNull();
+  });
+
+  it('shows the fire as an alert dialog with the default option last', () => {
+    renderDialogs([fire]);
+
+    const frame = screen.getByText('Incendio').closest('section') as HTMLElement;
+    expect(frame.classList.contains('tm-window--dialog')).toBe(true);
+    expect(frame.classList.contains('tm-window--dialog-info')).toBe(false);
+    expect(frame.querySelector('.tm-window__stripe')).not.toBeNull();
+    expect(frame.querySelector('.tm-window__close')).toBeNull();
+    expect(frame.querySelector('.tm-dialog__deadline')?.textContent).toMatch(/^Respondé antes de/);
+    const buttons = Array.from(frame.querySelectorAll('.tm-dialog__buttons button'));
+    expect(buttons.map((button) => button.textContent)).toEqual([
+      'Llamar al helicóptero ($500.000)',
+      'No llamar',
+    ]);
+    expect(buttons[1]?.classList.contains('is-default')).toBe(true);
+    expect(document.querySelector('.tm-modal-backdrop')).toBeNull();
+  });
+
+  it('answers the fire before the deadline', () => {
+    const { onAnswer } = renderDialogs([fire]);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Llamar al helicóptero ($500.000)' }));
+
+    expect(onAnswer).toHaveBeenCalledWith('e5', 'helicopter');
   });
 
   it('sends the answer and closes the dialog', () => {

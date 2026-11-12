@@ -355,6 +355,13 @@ const InspectedUnitGoneSchema = z.object({
   status: z.literal('gone'),
 });
 
+/** A person who left the tower or never existed: sent once, then the server drops the target. */
+const InspectedPersonGoneSchema = z.object({
+  kind: z.literal('person'),
+  id: PersonEntityIdSchema,
+  status: z.literal('gone'),
+});
+
 const InspectedUnitFoundSchema = z.object({
   kind: z.literal('unit'),
   id: UnitEntityIdSchema,
@@ -378,9 +385,11 @@ const InspectedShaftGoneSchema = z.object({
 export const InspectDataSchema = z.union([
   InspectedUnitFoundSchema,
   InspectedUnitGoneSchema,
+  InspectedPersonGoneSchema,
   z.object({
     kind: z.literal('person'),
     id: PersonEntityIdSchema,
+    status: z.literal('ok'),
     name: DisplayNameSchema.nullable(),
     personKind: PersonKindSchema,
     state: z.enum(['walk', 'wait', 'ride', 'stairs', 'inside', 'noRoute', 'outside']),

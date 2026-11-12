@@ -3,7 +3,11 @@ import {
   createTower,
   defaultSchedule,
   newUnit,
+  removePerson,
+  renamePerson,
+  setStructure,
   STEPS_PER_DAY,
+  STEPS_PER_MINUTE,
 } from '@tower-magnate/engine';
 import {
   ServerMessageSchema,
@@ -12,7 +16,7 @@ import {
   type Unit,
 } from '@tower-magnate/shared';
 import { describe, expect, it } from 'vitest';
-import { inspectShaft, inspectUnit } from './inspect';
+import { inspectPerson, inspectShaft, inspectUnit } from './inspect';
 
 const STEPS_PER_WEEK = 7 * STEPS_PER_DAY;
 
@@ -347,5 +351,122 @@ describe('inspecting a shaft', () => {
     }
 
     expect((performance.now() - started) / 100).toBeLessThan(0.5);
+  });
+});
+
+describe('inspecting a person', () => {
+  const TREK_WALKING_TO_DESTINATION = 1;
+  const TREK_ON_STAIRS = 5;
+  const TREK_QUEUED = 7;
+  const TREK_RIDING = 9;
+  const TREK_NO_ROUTE = 10;
+
+  function towerWithWorker(): { state: TowerState; id: string } {
+    const { state } = towerWith('office');
+    addPerson(state, { kind: 'officeWorker', homeUnit: 7, level: 4, column: 12 });
+    return { state, id: 'p1' };
+  }
+
+  it('answers a person at rest with the name, kind and home unit', () => {
+    const { state, id } = towerWithWorker();
+    renamePerson(state.people, 1, 'Ana');
+
+    const data = inspectPerson(state, id);
+
+    expect(throughTheWire(data)).toBe(true);
+    expect(data).toEqual({
+      kind: 'person',
+      id: 'p1',
+      status: 'ok',
+      name: 'Ana',
+      personKind: 'officeWorker',
+      state: 'inside',
+      destination: null,
+      stressMinutes: 0,
+      stress: 'normal',
+      homeUnitId: 'u7',
+    });
+  });
+
+  it('has no name and no home unit for an unnamed visitor', () => {
+    const state = createTower(3);
+    addPerson(state, { kind: 'customer', homeUnit: 0, level: 1, column: 5 });
+
+    expect(inspectPerson(state, 'p1')).toMatchObject({ name: null, homeUnitId: null });
+  });
+
+  it('gives the stress in minutes and its level', () => {
+    const { state, id } = towerWithWorker();
+    state.people.stress[0] = 20 * STEPS_PER_MINUTE;
+
+    expect(inspectPerson(state, id)).toMatchObject({ stressMinutes: 20, stress: 'stressed' });
+    state.people.stress[0] = 40 * STEPS_PER_MINUTE;
+    expect(inspectPerson(state, id)).toMatchObject({ stressMinutes: 40, stress: 'veryStressed' });
+    state.people.stress[0] = 5 * STEPS_PER_MINUTE;
+    expect(inspectPerson(state, id)).toMatchObject({ stressMinutes: 5, stress: 'normal' });
+  });
+
+  it.each([
+    [TREK_WALKING_TO_DESTINATION, 'walk'],
+    [TREK_ON_STAIRS, 'stairs'],
+    [TREK_QUEUED, 'wait'],
+    [TREK_RIDING, 'ride'],
+    [TREK_NO_ROUTE, 'noRoute'],
+  ])('reports the trip phase %i as %s', (phase, expected) => {
+    const { state, id } = towerWithWorker();
+    state.people.trek[0] = phase;
+
+    expect(inspectPerson(state, id)).toMatchObject({ state: expected });
+  });
+
+  it('names the unit a trip ends in and the exit when it ends anywhere else', () => {
+    const { state, id } = towerWithWorker();
+    state.units.u8 = newUnit('u8', 'office', 30, 6);
+    setStructure(state.grid, 6, 30, 38, 'floor');
+    state.grid.levels[6]?.occupants.push({ x0: 30, x1: 38, occupant: { kind: 'unit', id: 'u8' } });
+    state.people.trek[0] = TREK_WALKING_TO_DESTINATION;
+    state.people.trekLevel[0] = 6;
+    state.people.trekColumn[0] = 33;
+
+    const toUnit = inspectPerson(state, id);
+
+    expect(throughTheWire(toUnit)).toBe(true);
+    expect(toUnit).toMatchObject({ destination: { kind: 'unit', unitId: 'u8', level: 6 } });
+
+    state.people.trekLevel[0] = 1;
+    state.people.trekColumn[0] = 0;
+    expect(inspectPerson(state, id)).toMatchObject({ destination: { kind: 'exit' } });
+  });
+
+  it('reports a worker who has not arrived yet as outside', () => {
+    const { state, id } = towerWithWorker();
+    state.people.trip[0] = 1;
+
+    expect(inspectPerson(state, id)).toMatchObject({ state: 'outside', destination: null });
+  });
+
+  it('answers gone for a person who was removed, never existed or has a bad id', () => {
+    const { state } = towerWithWorker();
+    removePerson(state, 1);
+
+    for (const id of ['p1', 'p99', 'u1', 'p0', 'nonsense']) {
+      const data = inspectPerson(state, id);
+      expect(data).toEqual({ kind: 'person', id, status: 'gone' });
+    }
+    expect(throughTheWire(inspectPerson(state, 'p1'))).toBe(true);
+  });
+
+  it('answers in under a millisecond in a tower of 15,000 people', () => {
+    const state = createTower(3);
+    for (let index = 0; index < 15_000; index += 1) {
+      addPerson(state, { kind: 'officeWorker', homeUnit: 0, level: 2, column: index % 300 });
+    }
+    renamePerson(state.people, 14_000, 'Ana');
+    const started = performance.now();
+    for (let run = 0; run < 1000; run += 1) {
+      inspectPerson(state, `p${1 + ((run * 15) % 15_000)}`);
+    }
+
+    expect((performance.now() - started) / 1000).toBeLessThan(1);
   });
 });

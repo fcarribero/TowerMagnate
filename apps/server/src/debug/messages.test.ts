@@ -9,6 +9,11 @@ describe('debug messages', () => {
     expect(parse('debug.forceEvent', { kind: 'bomb' }).data?.p.id).toBe('debug');
     expect(parse('debug.fastForward', { steps: MAX_FAST_FORWARD_STEPS }).success).toBe(true);
     expect(parse('debug.setClock', { day: 0, time: '09:00' }).success).toBe(true);
+    expect(parse('debug.forceEvent', { kind: 'wedding' }).success).toBe(true);
+    expect(parse('debug.forceEvent', { kind: 'infestation', unitId: 'u3' }).success).toBe(true);
+    expect(parse('debug.setClock', { year: 1, month: 12, day: 24, time: '10:00' }).success).toBe(
+      true,
+    );
     expect(parse('debug.setMoney', { amount: -500 }).success).toBe(true);
     expect(parse('debug.loadScenario', { name: 'verticalSlice' }).success).toBe(true);
   });
@@ -19,6 +24,14 @@ describe('debug messages', () => {
     expect(parse('debug.fastForward', { steps: 0 }).success).toBe(false);
     expect(parse('debug.setClock', { day: 7, time: '09:00' }).success).toBe(false);
     expect(parse('debug.setClock', { day: 1, time: '24:00' }).success).toBe(false);
+    expect(parse('debug.setClock', { day: 24, time: '10:00' }).success).toBe(false);
+    expect(parse('debug.setClock', { year: 1, day: 24, time: '10:00' }).success).toBe(false);
+    expect(parse('debug.setClock', { year: 1, month: 13, day: 1, time: '10:00' }).success).toBe(
+      false,
+    );
+    expect(parse('debug.setClock', { year: 1, month: 12, day: 0, time: '10:00' }).success).toBe(
+      false,
+    );
     expect(parse('debug.setMoney', { amount: 1.5 }).success).toBe(false);
     expect(parse('debug.loadScenario', { name: 'castle' }).success).toBe(false);
   });

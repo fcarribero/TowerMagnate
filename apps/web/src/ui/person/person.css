@@ -1,0 +1,120 @@
+.tm-person__gone {
+  margin: 0 0 var(--space-3);
+  padding: var(--space-1) var(--space-2);
+  font: var(--text-body-strong);
+  color: var(--obra-paper);
+  background: var(--obra-red);
+  border: var(--border-control);
+}
+
+.tm-person__rows {
+  margin: 0 0 var(--space-3);
+}
+
+.tm-person__row {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-1) 0;
+  border-bottom: var(--size-press-offset) solid var(--obra-rule);
+}
+
+.tm-person__row dt {
+  font: var(--text-body);
+}
+
+.tm-person__row dd {
+  margin: 0;
+  font: var(--text-body-strong);
+  text-align: right;
+}
+
+.tm-person__buttons {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.tm-person__buttons > *,
+.tm-person__buttons > .tm-tooltip-anchor {
+  flex: 1 1 auto;
+}
+
+.tm-person__buttons .tm-button {
+  width: 100%;
+}
+
+.tm-followed__empty {
+  margin: 0;
+  font: var(--text-body);
+}
+
+.tm-followed__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tm-followed__row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  height: calc(16 * var(--tm-px));
+}
+
+.tm-followed__row:hover {
+  background: var(--obra-yellow);
+}
+
+.tm-followed__open {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+  height: 100%;
+  padding: 0 var(--space-1);
+  color: var(--obra-ink);
+  text-align: left;
+  cursor: pointer;
+  background: none;
+  border: 0;
+}
+
+.tm-followed__stress {
+  flex: none;
+  width: calc(6 * var(--tm-px));
+  height: calc(6 * var(--tm-px));
+  border: var(--border-control);
+}
+
+.tm-followed__name {
+  overflow: hidden;
+  font: var(--text-body-strong);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tm-followed__kind {
+  flex: none;
+  font: var(--text-body);
+  color: var(--obra-muted);
+}
+
+.tm-followed__stop {
+  flex: none;
+  box-sizing: border-box;
+  width: calc(12 * var(--tm-px));
+  height: calc(12 * var(--tm-px));
+  padding: 0;
+  font: var(--text-body-strong);
+  line-height: 1;
+  color: var(--obra-ink);
+  cursor: pointer;
+  background: var(--obra-paper);
+  border: var(--border-control);
+}
+
+.tm-followed__stop:hover {
+  color: var(--obra-paper);
+  background: var(--obra-red);
+}

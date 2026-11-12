@@ -70,6 +70,26 @@ export function outlineOf(pattern: PixelPattern): PixelPattern {
   );
 }
 
+/** Alarm light, 16 x 16 pixels, for alert notices on the news line. */
+export const ALARM_ICON: PixelPattern = [
+  '................',
+  '.......##.......',
+  '.....######.....',
+  '....########....',
+  '...##########...',
+  '...##########...',
+  '...##########...',
+  '...##########...',
+  '...##########...',
+  '..############..',
+  '..############..',
+  '.##############.',
+  '.##############.',
+  '.##############.',
+  '................',
+  '................',
+];
+
 /** Each pixel becomes a square of `factor` pixels. */
 export function enlarge(pattern: PixelPattern, factor: number): PixelPattern {
   return pattern.flatMap((line) => {

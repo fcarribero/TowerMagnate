@@ -19,6 +19,8 @@ import {
 } from './windowStack';
 
 const BASE_Z_INDEX = 10;
+/** A window body stops this far short of the tower view height and scrolls. */
+const BODY_MARGIN_UI_PIXELS = 24;
 
 interface Drag {
   pointerId: number;
@@ -35,6 +37,8 @@ export interface WindowProps {
   onClose?: () => void;
   /** Decision dialogs have no close button and ignore Esc. */
   closable?: boolean;
+  /** False keeps Esc but hides the close button, as confirm dialogs do. */
+  showCloseButton?: boolean;
   /** Width in UI pixels. */
   width?: number;
   /** Blocks the rest of the UI, keeps Tab inside and gives focus back when it closes. */
@@ -55,6 +59,7 @@ export function Window({
   children,
   onClose,
   closable = true,
+  showCloseButton = true,
   width,
   modal = false,
   tone = 'blue',
@@ -132,6 +137,12 @@ export function Window({
     return null;
   }
 
+  const bodyStyle =
+    manager.viewSize.height > 0
+      ? {
+          maxHeight: `calc(${manager.viewSize.height}px - ${BODY_MARGIN_UI_PIXELS} * var(--tm-px))`,
+        }
+      : undefined;
   const zIndex = BASE_Z_INDEX + 2 * manager.stack.windows.indexOf(openWindow) + 1;
   const titleId = `tm-window-title-${id}`;
 
@@ -225,7 +236,7 @@ export function Window({
               {title}
             </span>
           </span>
-          {closable && (
+          {closable && showCloseButton && (
             <button
               type="button"
               class="tm-window__close"
@@ -237,7 +248,9 @@ export function Window({
             </button>
           )}
         </header>
-        <div class="tm-window__body">{children}</div>
+        <div class="tm-window__body" style={bodyStyle}>
+          {children}
+        </div>
       </section>
     </>
   );

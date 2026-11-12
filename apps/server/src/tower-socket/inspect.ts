@@ -2,7 +2,15 @@ import {
   countPeopleOfUnit,
   filmAgeDays as engineFilmAgeDays,
   housekeepingSummary,
+  isOutsideTower,
+  NO_TRIP,
+  occupantAt,
+  parsePersonId,
+  personAt,
+  slotOfPerson,
+  STEPS_PER_MINUTE,
   STEPS_PER_WEEK,
+  trekPhaseAt,
 } from '@tower-magnate/engine';
 import {
   LEASE_CONTRACT_WEEKS,
@@ -12,6 +20,9 @@ import {
   type Unit,
 } from '@tower-magnate/shared';
 
+import { modeOfPhase, stressLevel } from './snapshot';
+
+type PersonInspection = Extract<InspectData, { kind: 'person'; status: 'ok' }>;
 type ShaftInspection = Extract<InspectData, { kind: 'shaft'; status: 'ok' }>;
 type UnitInspection = Extract<InspectData, { kind: 'unit'; status: 'ok' }>;
 type UnitDetails = UnitInspection['details'];
@@ -57,6 +68,54 @@ export function inspectShaft(state: TowerState, shaftId: string): InspectData {
     schedule: shaft.schedule,
   };
   return result;
+}
+
+/** What the person window shows for one person, or a `gone` answer when the person is not in the tower. */
+export function inspectPerson(state: TowerState, personId: string): InspectData {
+  const pool = state.people;
+  const number = parsePersonId(personId);
+  const slot = number === null ? -1 : slotOfPerson(pool, number);
+  if (slot < 0) {
+    return { kind: 'person', id: personId, status: 'gone' };
+  }
+  const person = personAt(pool, slot);
+  const phase = trekPhaseAt(pool, slot);
+  const result: PersonInspection = {
+    kind: 'person',
+    id: person.id,
+    status: 'ok',
+    name: person.name,
+    personKind: person.kind,
+    state: personState(state, slot, phase, person.trip),
+    destination: phase === 'idle' ? null : destinationOf(state, slot),
+    stressMinutes: person.stress / STEPS_PER_MINUTE,
+    stress: stressLevel(person.stress),
+    homeUnitId: person.homeUnit,
+  };
+  return result;
+}
+
+function personState(
+  state: TowerState,
+  slot: number,
+  phase: ReturnType<typeof trekPhaseAt>,
+  trip: number,
+): PersonInspection['state'] {
+  if (isOutsideTower(state.people, slot)) {
+    return 'outside';
+  }
+  return phase === 'noRoute' ? 'noRoute' : modeOfPhase(phase, trip === NO_TRIP);
+}
+
+/** The unit the person's trip ends in, or the exit when it ends anywhere else. */
+function destinationOf(state: TowerState, slot: number): PersonInspection['destination'] {
+  const level = state.people.trekLevel[slot] ?? 0;
+  const column = state.people.trekColumn[slot] ?? 0;
+  const occupant = occupantAt(state.grid, level, column);
+  if (occupant?.kind === 'unit') {
+    return { kind: 'unit', unitId: occupant.id, level };
+  }
+  return { kind: 'exit' };
 }
 
 function unitDetails(state: TowerState, unit: Unit): UnitDetails {

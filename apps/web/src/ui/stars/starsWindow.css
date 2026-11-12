@@ -1,19 +1,22 @@
 .stars-window p {
-  margin: 0 0 calc(4 * var(--tm-px));
+  margin: 0 0 var(--space-2);
+  font: var(--text-body);
 }
 
 .stars-window__bar {
-  height: calc(8 * var(--tm-px));
-  background: var(--tm-white);
-  border: calc(1 * var(--tm-px)) solid var(--tm-ink);
-  box-shadow: inset calc(1 * var(--tm-px)) calc(1 * var(--tm-px)) 0 var(--tm-slate);
+  box-sizing: border-box;
+  height: calc(10 * var(--tm-px));
+  overflow: hidden;
+  background: var(--obra-field);
+  border: var(--border-control);
 }
 
 .stars-window__fill {
   height: 100%;
-  background: var(--tm-lamp);
+  background: var(--obra-green);
 }
 
 .stars-window .stars-window__population {
-  margin: calc(2 * var(--tm-px)) 0 0;
+  margin: var(--space-1) 0 0;
+  font: var(--text-body-strong);
 }
