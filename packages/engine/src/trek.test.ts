@@ -2,6 +2,7 @@ import {
   ELEVATOR_QUEUE_CAPACITY,
   ESCALATOR_FLIGHT_STEPS,
   FULL_QUEUE_RECHECK_STEPS,
+  FULL_QUEUE_STAY_RECHECKS,
   ROUTE_RETRY_STEPS,
   STAIR_FLIGHT_STEPS,
   type Level,
@@ -305,6 +306,65 @@ describe('elevator queues', () => {
     const id = addWalker(state, 1, 10, 'maid');
     sendTo(state, id, { level: 3, column: 10 });
     expect(view(state, id).phase).toBe('walkingToStairs');
+  });
+});
+
+describe('full queue recheck rule (routing 8.3)', () => {
+  const shafts: PlannedShaft[] = [
+    { type: 'standard', x: 60, bottom: 1, top: 4 },
+    { type: 'standard', x: 70, bottom: 1, top: 4 },
+    { type: 'standard', x: 80, bottom: 1, top: 4 },
+  ];
+  const columns = [62, 72, 82];
+
+  function setQueue(state: TowerState, shaftIndex: number, length: number): void {
+    const built = Object.values(state.shafts)[shaftIndex] as Shaft;
+    const up = Array.from({ length }, (_, index) => ({
+      person: `p${5000 + shaftIndex * 100 + index}`,
+      destination: 4 as Level,
+      joinedStep: 0,
+    }));
+    built.queues['1'] = { up, down: [] };
+  }
+
+  function waiterAtFirstShaft() {
+    const state = buildTestTower({ floors: 4, shafts });
+    setQueue(state, 0, ELEVATOR_QUEUE_CAPACITY);
+    setQueue(state, 1, 0);
+    setQueue(state, 2, ELEVATOR_QUEUE_CAPACITY);
+    const id = addWalker(state, 1, columns[0] as number);
+    sendTo(state, id, { level: 3, column: 30 });
+    return { state, id };
+  }
+
+  it('stays beside the shaft for the first rechecks even when another has room', () => {
+    const { state, id } = waiterAtFirstShaft();
+    const stay = FULL_QUEUE_STAY_RECHECKS * FULL_QUEUE_RECHECK_STEPS - 1;
+    expect(view(runSteps(state, stay), id)).toMatchObject({
+      column: columns[0],
+      phase: 'waitingBesideQueue',
+    });
+  });
+
+  it('never goes back to a shaft it left in the same trip', () => {
+    const { state, id } = waiterAtFirstShaft();
+    setQueue(state, 2, 0);
+    let now = state;
+    const visited: number[] = [];
+    let leftFirst = false;
+    for (let step = 0; step < 300; step++) {
+      const column = view(now, id).column;
+      const standingAt = column < 67 ? 0 : 1;
+      setQueue(now, standingAt, ELEVATOR_QUEUE_CAPACITY);
+      setQueue(now, 1 - standingAt, 0);
+      setQueue(now, 2, ELEVATOR_QUEUE_CAPACITY);
+      now = runSteps(now, 1);
+      const here = view(now, id);
+      if (here.phase === 'queued') break;
+      if (here.column !== columns[0]) leftFirst = true;
+      if (leftFirst && here.column === columns[0]) visited.push(step);
+    }
+    expect(visited).toEqual([]);
   });
 });
 
