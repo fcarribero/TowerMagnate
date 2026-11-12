@@ -39,21 +39,9 @@ interface Run {
   to: number;
 }
 
-/** Unbuilt soil subject for a basement level, from the art guide. */
+/** Unbuilt soil subject for a basement level: one picture per level, S1 to S9, that blends into the next. */
 export function soilSubject(level: Level): StructureSubject {
-  if (level === -1) {
-    return 'ground';
-  }
-  if (level >= -3) {
-    return 'dirt';
-  }
-  if (level >= -6) {
-    return 'clay';
-  }
-  if (level >= -8) {
-    return 'dirt-deep';
-  }
-  return 'bedrock';
+  return `soil-${Math.min(Math.max(-level, 1), 9)}`;
 }
 
 /** Everything drawn in one level row. Level 0 does not exist and gets nothing. */

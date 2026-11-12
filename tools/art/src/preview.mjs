@@ -11,17 +11,7 @@ const FIRST_BASEMENT_ROW = 7;
 const TUNNEL_LAMP_EVERY = 4;
 
 // Soil subject for basement levels S1 to S9; S10 is the subway tunnel.
-const SOIL_BY_BASEMENT = [
-  'ground',
-  'dirt',
-  'dirt',
-  'clay',
-  'clay',
-  'clay',
-  'dirt-deep',
-  'dirt-deep',
-  'bedrock',
-];
+const SOIL_BY_BASEMENT = Array.from({ length: 9 }, (_, index) => `soil-${index + 1}`);
 const GAP = 4;
 const RULER_PLATE = { x: 1, y: 9 };
 const RULER_TILES = 3;
