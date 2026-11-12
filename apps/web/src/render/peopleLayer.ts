@@ -1,4 +1,4 @@
-import { Container, Sprite } from 'pixi.js';
+import { Container, Sprite, Texture } from 'pixi.js';
 import type { DrawnFrame } from '../model/interpolation';
 import type { LevelRange } from './camera';
 import { floorSprite } from './elevatorPlan';
@@ -11,6 +11,10 @@ const FEET_ROW = 28;
 const PERSON_HEIGHT = 16;
 const GUEST_TINT = 0xffe9a8;
 const NO_TINT = 0xffffff;
+const FOLLOWED_MARKER_COLOR = 0xf2d36b;
+const FOLLOWED_MARKER_WIDTH = 3;
+const FOLLOWED_MARKER_HEIGHT = 2;
+const FOLLOWED_MARKER_GAP = 2;
 
 interface DrawnWalker {
   sprite: Sprite;
@@ -34,6 +38,8 @@ export class PeopleLayer {
   private range: LevelRange | null = null;
   private frameNumber = 0;
   private guests: ReadonlySet<string> = new Set();
+  private followed: ReadonlySet<string> = new Set();
+  private readonly markers = new WeakMap<Sprite, Sprite>();
 
   constructor(private readonly sprites: SpriteRegistry) {}
 
@@ -54,6 +60,11 @@ export class PeopleLayer {
   /** People on the wedding guest list are drawn with a warm tint on their way to the cathedral. */
   markGuests(guests: ReadonlySet<string>): void {
     this.guests = guests;
+  }
+
+  /** Followed people carry a small lamp marker above the head. */
+  markFollowed(followed: ReadonlySet<string>): void {
+    this.followed = followed;
   }
 
   show(frame: DrawnFrame): void {
@@ -84,6 +95,10 @@ export class PeopleLayer {
         walker.frame = look.frame;
       }
       sprite.tint = this.guests.has(person.id) ? GUEST_TINT : NO_TINT;
+      const marker = this.markers.get(sprite);
+      if (marker !== undefined) {
+        marker.visible = this.followed.has(person.id);
+      }
       sprite.scale.x = person.facing === 'left' ? -1 : 1;
       sprite.position.set(Math.round(x * TILE_WIDTH + sprite.texture.width / 2), top);
     }
@@ -111,8 +126,22 @@ export class PeopleLayer {
   private newSprite(): Sprite {
     const sprite = new Sprite();
     sprite.anchor.set(0.5, 0);
+    const marker = this.newMarker();
+    sprite.addChild(marker);
+    this.markers.set(sprite, marker);
     this.view.addChild(sprite);
     return sprite;
+  }
+
+  private newMarker(): Sprite {
+    const marker = new Sprite(Texture.WHITE);
+    marker.width = FOLLOWED_MARKER_WIDTH;
+    marker.height = FOLLOWED_MARKER_HEIGHT;
+    marker.tint = FOLLOWED_MARKER_COLOR;
+    marker.anchor.set(0.5, 0);
+    marker.position.set(0, -(FOLLOWED_MARKER_HEIGHT + FOLLOWED_MARKER_GAP));
+    marker.visible = false;
+    return marker;
   }
 
   private releaseMissing(): void {

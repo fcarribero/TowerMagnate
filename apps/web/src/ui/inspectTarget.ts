@@ -2,6 +2,8 @@ import type { InspectTarget } from '@tower-magnate/shared';
 
 export const UNIT_WINDOW_KIND = 'unit';
 export const ELEVATOR_WINDOW_KIND = 'elevator';
+export const PERSON_WINDOW_KIND = 'person';
+export const FOLLOWED_WINDOW_ID = 'followed';
 
 export function unitWindowId(unitId: string): string {
   return `${UNIT_WINDOW_KIND}:${unitId}`;
@@ -9,6 +11,10 @@ export function unitWindowId(unitId: string): string {
 
 export function elevatorWindowId(shaftId: string): string {
   return `${ELEVATOR_WINDOW_KIND}:${shaftId}`;
+}
+
+export function personWindowId(personId: string): string {
+  return `${PERSON_WINDOW_KIND}:${personId}`;
 }
 
 export function entityOfWindow(windowId: string): string {
@@ -28,10 +34,13 @@ function targetOfWindow(window: { id: string; kind: string }): InspectTarget | n
   if (window.kind === ELEVATOR_WINDOW_KIND) {
     return { kind: 'shaft', id: entityOfWindow(window.id) };
   }
+  if (window.kind === PERSON_WINDOW_KIND) {
+    return { kind: 'person', id: entityOfWindow(window.id) };
+  }
   return null;
 }
 
-/** Every unit and elevator window is inspected. Past the server limit, the windows in front win. */
+/** Every unit, person and elevator window is inspected. Past the server limit, the windows in front win. */
 export function openInspectTargets(
   windows: readonly { id: string; kind: string }[],
 ): InspectTarget[] {
