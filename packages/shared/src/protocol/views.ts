@@ -114,6 +114,14 @@ export const FollowedViewSchema = z.object({
   stress: StressLevelSchema,
 });
 
+export const FireSpanSchema = z.object({
+  level: LevelSchema,
+  x0: ColumnSchema,
+  x1: ColumnSchema,
+  /** True once both fronts of the level are out. */
+  out: z.boolean(),
+});
+
 const OptionsSchema = z.array(z.string().min(1)).min(1);
 
 export const EventViewSchema = z.discriminatedUnion('kind', [
@@ -127,12 +135,16 @@ export const EventViewSchema = z.discriminatedUnion('kind', [
     ransom: MoneySchema.optional(),
     /** Only for a fire: the floor it burns on. */
     level: LevelSchema.optional(),
+    /** Only for a fire: the burned span of every level that has burned. */
+    spans: z.array(FireSpanSchema).optional(),
   }),
   z.object({
     kind: z.literal('disaster'),
     id: EventIdSchema,
     disaster: DecisionKindSchema,
     cells: z.array(CellRangeSchema),
+    /** Only for a fire: the burned span of every level that has burned. */
+    spans: z.array(FireSpanSchema).optional(),
   }),
 ]);
 
@@ -391,6 +403,7 @@ export type ShaftView = z.infer<typeof ShaftViewSchema>;
 export type CarView = z.infer<typeof CarViewSchema>;
 export type PersonView = z.infer<typeof PersonViewSchema>;
 export type FollowedView = z.infer<typeof FollowedViewSchema>;
+export type FireSpan = z.infer<typeof FireSpanSchema>;
 export type EventView = z.infer<typeof EventViewSchema>;
 export type NoticeView = z.infer<typeof NoticeViewSchema>;
 export type OverlayData = z.infer<typeof OverlayDataSchema>;

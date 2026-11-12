@@ -371,6 +371,10 @@ export interface Snapshot {
   finances: FinanceSummary;   // this week and last week
 }
 
+// A fire's EventView (decision or disaster) carries `spans: { level, x0, x1, out }[]`, one per level
+// that has burned, in increasing level. x0 and x1 are the left and right fronts; `out` is true when
+// both fronts are out. The fire's view disappears the step the fire ends.
+
 export interface UnitView {
   id: UnitId;
   type: UnitType;
