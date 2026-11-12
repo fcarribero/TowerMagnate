@@ -186,12 +186,12 @@ The cross-section of the whole site: 375 columns and levels from S10 up to four 
 ### 3.4 Hover and cursor
 
 - The cell under the cursor is outlined with a 1 px white frame when a building tool is active.
-- A level ruler on the left edge of the tower view shows the label of every visible level ("12", "S3"). The hovered level label is drawn in `lamp`.
+- A level ruler on the left edge of the tower view shows the label of every visible level ("12", "S3"). Level labels are in `text.status-label` on a `obra.paper` tag with `border.control` and the text in `obra.ink`; the hovered level label is `obra.yellow` with `obra.ink` text. The ruler sits over the tower view, so its tags use the `obra` tokens as the other chrome does.
 - With the Lupa, hovering over a person, car or unit shows a tooltip with its name after 0.5 s.
 
 ## 4. Status panel
 
-The status bar is 24 px tall and as wide as the screen, with a `border.window` bottom edge drawn inside the 24 px. Its background is `obra.ink`. Every item is a block 20 px tall, placed 2 px from the top and 2 px from the bottom (`space.1`), with `space.1` between blocks. A block has `border.control`, `obra.paper` as background unless the table says otherwise, and `space.2` padding on the left and right. Block text is on one line.
+The status bar is 24 px tall and as wide as the screen, with a `border.window` bottom edge drawn inside the 24 px. Its background is `obra.ink`. Every item is a block 18 px tall, placed 2 px from the top (`space.1`) and 2 px above the bottom edge line, so the blocks never touch the 2 px `border.window` (2 + 18 + 2 + 2 = 24), with `space.1` between blocks. A block has `border.control`, `obra.paper` as background unless the table says otherwise, and `space.2` padding on the left and right. Block text is on one line.
 
 The status bar holds, from left to right:
 
@@ -200,12 +200,12 @@ The status bar holds, from left to right:
 | Menú button | text "Menú" | 40 | `obra.ink` background, `obra.yellow` text in `text.button`. Open: `obra.yellow` background, `obra.ink` text. |
 | Date | `{weekday} {day} de {month}, año {year}` | fits text | `text.status-value`. Saturday and Sunday put the weekday name in a tag: `obra.red` background, `obra.paper` text, 2 px padding left and right. |
 | Time | `HH:MM` | 32 | `text.status-value` |
-| Money | balance in money format | 72 | `obra.yellow` background, `obra.ink` text in `text.status-value`. Negative: `obra.red` background, `obra.paper` text. |
+| Money | balance in money format | 72 minimum, 120 maximum | `obra.yellow` background, `obra.ink` text in `text.status-value`. Negative: `obra.red` background, `obra.paper` text. The block grows with its text between 72 and 120 px, so "$2.000.000" and "-$1.500.000" fit in `text.status-value`; the items to its right move over. |
 | Population | `Población {n}` | fits text | the word "Población" in `text.status-label`, then `{n}` in `text.status-value` |
 | Stars | 5 star icons, or 5 stars plus the word "TORRE" at the top rank; click opens Estrellas | 80 or 112 | 5 slots of 14 px. A filled star is `obra.ink`. An empty star is a 1 px `obra.muted` outline with no fill. "TORRE" is in `text.status-label` on an `obra.ink` tag with `obra.yellow` text. |
 | Overlay selector | 4 buttons: Normal, Evaluación, Precios, Hotel | 4 x 24 | One button per overlay, 24 wide, divided by `border.control`. Each shows its key, `1` to `4`, in `text.button`; the name is the tooltip and the accessible name. The current button is `obra.ink` with `obra.yellow` text, the others are `obra.paper`. |
-| Zoom | buttons "-" and "+" | 2 x 16 | `obra.paper` buttons with `border.control`, the sign in `text.status-value`. Pressed: `size.press-offset`. |
-| Window buttons | Mapa, Finanzas, Seguidos, Avisos | 4 x 24 | 24 x 20 square blocks with the window icon at 1x. The button of an open window is `obra.yellow`. |
+| Zoom | buttons "-" and "+" | 2 x 16 wide, 18 tall | `obra.paper` buttons with `border.control`, the sign in `text.status-value`. Pressed: `size.press-offset`. |
+| Window buttons | Mapa, Finanzas, Seguidos, Avisos | 4 x 24 | 24 wide, 18 tall blocks with the window icon at 1x. The button of an open window is `obra.yellow`. |
 
 Examples of the date block: "Lunes 1 de enero, año 1  00:00", "Miércoles 11 de noviembre, año 3  14:35".
 
@@ -214,7 +214,9 @@ Examples of the date block: "Lunes 1 de enero, año 1  00:00", "Miércoles 11 de
 - Money and population update with every delta.
 - Block text never wraps. If the text of a block is wider than the block, the block grows (items marked "fits text"), and the items to its right keep their order; they do not shrink.
 - When the window is narrower than everything above, the window buttons drop into the Menú list first, then the zoom buttons.
-- At the minimum viewport of 1024 px the items need at most 856 px: Menú 40, date 260 at the longest ("Miércoles 30 de septiembre, año 99"), time 32, money 72, population 96, stars 112, overlays 96, zoom 32, window buttons 96, plus 2 px between the 9 blocks and 2 px at each end. The bar fits with 168 px to spare.
+- At the minimum viewport of 1024 px the items need at most 904 px: Menú 40, date 260 at the longest ("Miércoles 30 de septiembre, año 99"), time 32, money 120, population 96, stars 112, overlays 96, zoom 32, window buttons 96, plus 2 px between the 9 blocks and 2 px at each end. The bar fits with 120 px to spare.
+
+Design calls against the reference: an empty star is a 1 px `obra.muted` outline, where the reference fills it with `#444`, so it reads as empty on `obra.paper`. The Avisos button has no count badge, and the status bar has no 3-tile status grid or meta chips, because the 18 px blocks have no room for them; the news line shows what is new.
 
 Design call: the overlay buttons keep their 24 px width, which cannot hold "Evaluación" in `text.button`. The key digit fits, matches the shortcut of section 11, and the name stays in the tooltip.
 
@@ -317,7 +319,7 @@ Tool icons use the key `ui/unit-{unitId}`. Category icons use `ui/cat-{categoryI
 Common behaviour for every building tool:
 
 - A ghost of what would be built follows the cursor, snapped to cells. Its bottom-left cell is the hovered cell (units, stairs, escalators), or it spans the drag (floor, lobby, shafts).
-- The ghost has a 1 px `leaf` outline when the client's pre-check passes and a `cloth-red` outline when it fails. Next to the cursor a label shows the total cost (`$40.000`) or, when the pre-check fails, the Spanish message of the error code.
+- The ghost has a 1 px `leaf` outline when the client's pre-check passes and a `cloth-red` outline when it fails. Next to the cursor a label shows the total cost (`$40.000`) or, when the pre-check fails, the Spanish message of the error code. The label is a tag with `border.control`, `obra.paper` background and `text.price` in `obra.ink`; with a failed pre-check the text is `obra.red`. It has no shadow.
 - The pre-check is a convenience. The client may check bounds, stars, money, occupied cells and zone. The server decides; a server rejection always shows its message.
 - After a placement the tool stays selected, so the player can place the same thing again.
 - Right click or Esc cancels a drag in progress. Esc with no drag in progress returns to the Lupa.
@@ -350,7 +352,7 @@ Every other demolition is immediate. Design call: the game has no pause and a 1-
 
 ### 5.5 Feedback after a command
 
-- Accepted construction: the construction sound plays at the spot, and a floating amount in `cloth-red` (`-$40.000`) rises 16 px over 1 real second from the top center of the new object.
+- Accepted construction: the construction sound plays at the spot, and a floating amount in `cloth-red` (`-$40.000`, in `text.price` with a 1 px `obra.ink` outline so it reads over any tile) rises 16 px over 1 real second from the top center of the new object.
 - Accepted demolition with a refund: the demolition sound, and a floating amount in `leaf` (`+$40.000`) if the refund is above $0.
 - Rejected command: a toast shows the code's message for 3 real seconds, and the error sound plays. Rejections are not written to the news line.
 - Income events (`moneyChanged` with a positive amount tied to a unit) show a floating `leaf` amount over that unit if it is on screen, and play the cash register sound at most once per real second.
@@ -650,7 +652,7 @@ Look of all dialogs (9.1, 9.2, 9.3, 9.4): the box is 280 wide, `obra.paper` back
 | Deadline line | Decision dialogs only: an inline block with `obra.ink` background and `obra.yellow` text in `text.body-strong`, `space.2` padding, `space.4` from the body and from the buttons |
 | Buttons | A row with a `border.dialog` line above it. Buttons share the width equally, are 28 tall, use `text.button` and are divided by a `border.dialog` line |
 
-The right-most button is the default one and is `obra.yellow` with `obra.ink` text. Another button is `obra.paper`, except the action button of a destructive confirm dialog, which is `obra.red` with `obra.paper` text. The button with keyboard focus has an inset 2 px `obra.blue` outline. A hovered button that is not disabled shows `obra.ink` background and `obra.yellow` text.
+The right-most button is the default one and is `obra.red` with `obra.paper` text, as in reference C. Another button is `obra.paper`. The action button of a destructive confirm dialog is the default button, so it is red too. The button with keyboard focus has an inset 2 px `obra.blue` outline. A hovered button that is not disabled shows `obra.ink` background and `obra.yellow` text.
 
 ### 9.2 Information dialogs
 
@@ -1361,7 +1363,7 @@ UI-50. Fonts are Archivo Black (`font.display`), Space Grotesk 500 and 700 (`fon
 
 UI-51. Font sizes are the whole numbers of the section 1 text styles, multiplied by the UI scale, with fixed line heights. The smallest size is 8 UI px.
 
-UI-52. The status bar is `obra.ink` with `border.window` on its bottom edge. Each item is a 20 px block with `border.control`, 2 px from the top and bottom of the bar. No block is taller than 20 px at any UI scale or with the fallback fonts.
+UI-52. The status bar is `obra.ink` with `border.window` on its bottom edge. Each item is an 18 px block with `border.control`, 2 px from the top and 2 px above the bottom border line. The money block is 72 to 120 px wide and grows with its text. No block is taller than 18 px at any UI scale or with the fallback fonts.
 
 UI-53. The toolbar is `obra.yellow` with `border.window` on its right edge and stays 80 px wide. The current tool is `obra.ink` with `obra.yellow` text, and a tool locked by stars has the `size.lock-stripe` background and cannot be selected.
 
@@ -1369,22 +1371,24 @@ UI-54. The news line is `obra.ink` with `border.window` on its top edge and stay
 
 UI-55. Every window has `obra.paper` background, `border.window`, `shadow.window` and an `obra.blue` title bar (`obra.green` for Finanzas), with the close button on the right of the bar.
 
-UI-56. Decision, information and confirm dialogs have `border.dialog`, `shadow.dialog` and the `size.hazard-stripe` band on top. The default button is `obra.yellow` and is the right-most one. A confirm dialog also has an `obra.scrim` layer behind it.
+UI-56. Decision, information and confirm dialogs have `border.dialog`, `shadow.dialog` and the `size.hazard-stripe` band on top. The default button is `obra.red` with `obra.paper` text, as in the reference, and is the right-most one. A confirm dialog also has an `obra.scrim` layer behind it.
 
 UI-57. Shadows have no blur. A hovered tile shows `shadow.control` and moves 1 px up and left in 0.08 real seconds. A pressed tile moves `size.press-offset`. The only other animation is the news line slide of section 8.1, and it is off when the browser asks for reduced motion.
 
 UI-58. Drawing over or about the tower (overlays, legend, tower map, floating amounts, ghosts, stress colors, followed marker) keeps the tower palette of the style guide, not the `obra` tokens.
 
+UI-59. The level ruler tags, the ghost cost label and the floating amounts use `text.status-label` or `text.price`, never the pixel font.
+
 ## 15. Notes for TL and FU (TM-274 buildability check)
 
 Questions written by GD for the buildability check. Answers go under each question.
 
-TL-1. Fonts: is loading three web fonts (Archivo Black, Space Grotesk 500 and 700, IBM Plex Mono 600) from files in the repo acceptable for the bundle, and is the fallback list in section 1 enough while they load? Answer:
+TL-1. Fonts: is loading three web fonts (Archivo Black, Space Grotesk 500 and 700, IBM Plex Mono 600) from files in the repo acceptable for the bundle, and is the fallback list in section 1 enough while they load? Answer: Yes. Self-host the fonts from files in the repo with `font-display: swap`. The fallbacks in section 1 are enough while they load.
 
-TL-2. Tokens: are the CSS custom properties of 1.1 enough for the UI kit (TM-63), or does the renderer need the same values as constants in `packages/shared`? Answer:
+TL-2. Tokens: are the CSS custom properties of 1.1 enough for the UI kit (TM-63), or does the renderer need the same values as constants in `packages/shared`? Answer: CSS custom properties alone are enough for the UI kit (TM-63). Add shared constants only if the canvas draws these colors.
 
-FU-1. Hard shadows and the hazard and lock stripes: can they be done with `box-shadow` offsets and `repeating-linear-gradient` at whole-pixel sizes at UI scale 1 to 3 without blur? Answer:
+FU-1. Hard shadows and the hazard and lock stripes: can they be done with `box-shadow` offsets and `repeating-linear-gradient` at whole-pixel sizes at UI scale 1 to 3 without blur? Answer: Yes, at whole-pixel sizes at UI scale 1 to 3.
 
-FU-2. Fixed bars: with the line heights of section 1, do the 24 px status bar and 20 px news line hold at every UI scale with the fallback fonts? Answer:
+FU-2. Fixed bars: with the line heights of section 1, do the 24 px status bar and 20 px news line hold at every UI scale with the fallback fonts? Answer: Untested. Fixed line heights are expected to hold. FU measures with the fallback fonts during TM-275.
 
-FU-3. Overlay selector shows digits 1 to 4 with the name in the tooltip (section 4 design call): is that acceptable? Answer:
+FU-3. Overlay selector shows digits 1 to 4 with the name in the tooltip (section 4 design call): is that acceptable? Answer: Acceptable.
