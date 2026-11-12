@@ -96,6 +96,7 @@ const MIGRATIONS: readonly Migration[] = [
   dropOrphanLedgerEntries,
   addFilmChangeStep,
   addVipDryDays,
+  addPersonNames,
 ];
 
 /** Version 2 records each unit's price level, what was paid for it and when it was placed. */
@@ -506,6 +507,14 @@ function dropOrphanLedgerEntries(raw: Record<string, unknown>): Record<string, u
   }
   const kept = Object.entries(unitLedger).filter(([unitId]) => Object.hasOwn(units, unitId));
   return { ...raw, schemaVersion: 33, unitLedger: Object.fromEntries(kept) };
+}
+
+/** Version 36 stores person names. Names are needed to follow, so earlier follows are dropped. */
+function addPersonNames(raw: Record<string, unknown>): Record<string, unknown> {
+  if (!isRecord(raw.people)) {
+    return { ...raw, schemaVersion: 36 };
+  }
+  return { ...raw, schemaVersion: 36, people: { ...raw.people, names: {}, followed: [] } };
 }
 
 /** Version 35 counts the VIP rolls since the last VIP day; an older tower starts at 0. */

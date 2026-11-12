@@ -16,6 +16,7 @@ export { noRouteOutcome, TripPlanner, spendBudget } from './route-planner';
 export type {
   FirstLeg,
   NoRouteOutcome,
+  RecheckPlan,
   RoutePlan,
   RoutePoint,
   RouteRequest,
@@ -24,4 +25,5 @@ export type {
   TripKind,
   TripPlan,
   TripRequest,
+  WaitedRide,
 } from './route-planner';
