@@ -588,7 +588,7 @@ function arriveAtFastFood(worker: Worker, routes: RoutePlanner): void {
     isFastFoodOpen(minuteOfDay(worker)) &&
     inside < FAST_FOOD_CAPACITY;
   if (canEnter) {
-    countVenueVisit(state, venue, stressOfTripEndedNow(state, worker.slot));
+    countVenueVisit(state, venue, stressOfTripEndedNow(state, worker.slot), 'office-worker');
     routine.phase = 'atLunch';
     changeDiners(state, routine.venue, 1);
     save(worker, state.step + FAST_FOOD_LUNCH_MINUTES * STEPS_PER_MINUTE);

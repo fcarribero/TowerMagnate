@@ -28,6 +28,17 @@ type VenueUnit = Unit & { type: VenueType; venue: VenueDay };
 
 const VENUE_TYPES = Object.keys(VENUE_PAYOUT_HOURS) as VenueType[];
 
+export type VisitSource = 'resident' | 'office-worker' | 'hotel-guest' | 'outside-customer';
+
+type VisitObserver = (source: VisitSource, type: UnitType) => void;
+
+let visitObserver: VisitObserver | null = null;
+
+/** Reports every counted visit to `observer` until called with null; for balance scripts. */
+export function observeVenueVisits(observer: VisitObserver | null): void {
+  visitObserver = observer;
+}
+
 function isVenue(unit: Unit): unit is VenueUnit {
   return isVenueType(unit.type) && unit.venue !== null;
 }
@@ -83,6 +94,7 @@ export function countVenueVisit(
   state: TowerState,
   counted: Unit,
   tripStress: number | null = null,
+  source: VisitSource = 'outside-customer',
 ): boolean {
   const stepOfDay = state.step % STEPS_PER_DAY;
   if (!counted.venue || !countsVisitsNow(counted, stepOfDay)) return false;
@@ -93,6 +105,7 @@ export function countVenueVisit(
   unit.used = true;
   venue.countToday += 1;
   recordShopVisit(state, unit);
+  visitObserver?.(source, unit.type);
   if (tripStress !== null) {
     venue.stressSum += tripStress;
     venue.stressTrips += 1;
