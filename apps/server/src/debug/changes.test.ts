@@ -199,13 +199,19 @@ describe('debug changes on a running tower', () => {
     ]);
   });
 
-  it('refuses an infestation without a unit, with a missing unit, or on a room that is not dirty', async () => {
-    const { tower, clean, office } = towerWithRooms();
-    await start(2, tower);
+  it('refuses an infestation without a unit when no room is dirty', async () => {
+    await start();
+    await runner.change('1', loadScenario('verticalSlice'));
 
     await expect(runner.change('1', forceEvent('infestation'))).rejects.toEqual(
       new DebugRefusal('UNKNOWN_ENTITY'),
     );
+  });
+
+  it('refuses an infestation with a missing unit or on a room that is not dirty', async () => {
+    const { tower, clean, office } = towerWithRooms();
+    await start(2, tower);
+
     await expect(runner.change('1', forceEvent('infestation', 'u999'))).rejects.toEqual(
       new DebugRefusal('UNKNOWN_ENTITY'),
     );
@@ -294,6 +300,19 @@ describe('debug changes on a running tower', () => {
     expect(Object.keys(loaded.transports)).toHaveLength(9);
     expect(loaded.step).toBe(0);
     expect(state()).toBe(loaded);
+  });
+
+  it('loads a tower where a wedding and an infestation can be forced', async () => {
+    await start();
+    await runner.change('1', loadScenario('eventShowcase'));
+
+    await runner.change('1', forceEvent('wedding'));
+    expect(state().wedding).not.toBeNull();
+    await runner.change('1', forceEvent('infestation'));
+    const infested = Object.values(state().units).filter(
+      (unit) => unit.hotel?.state === 'infested',
+    );
+    expect(infested).toHaveLength(1);
   });
 
   it('sets the clock to the next matching time, never backwards', async () => {

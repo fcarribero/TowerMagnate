@@ -15,7 +15,7 @@ export const DEBUG_EVENT_KINDS = [
 ] as const;
 export type DebugEventKind = (typeof DEBUG_EVENT_KINDS)[number];
 
-export const DEBUG_SCENARIOS = ['verticalSlice'] as const;
+export const DEBUG_SCENARIOS = ['verticalSlice', 'eventShowcase'] as const;
 export type DebugScenario = (typeof DEBUG_SCENARIOS)[number];
 
 const DEFAULT_REPLY_ID = 'debug';

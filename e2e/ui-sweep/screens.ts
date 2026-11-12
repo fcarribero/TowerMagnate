@@ -20,6 +20,10 @@ const PERSON_SEARCH_STEPS = 60;
 const NEXT_FRAME_MS = 300;
 const HELD_LOAD_MS = 600;
 const WAIT_MS = 10_000;
+const PAN_SETTLE_MS = 500;
+const CATHEDRAL_SCROLL_UP = 100;
+const CATHEDRAL_SCROLL_RIGHT = 14;
+const WEDDING_STEPS = 300;
 const DIALOG = '.tm-window--dialog, [role=alertdialog]';
 
 async function waitFor(page: Page, selector: string): Promise<void> {
@@ -95,6 +99,24 @@ async function findPerson(context: SweepContext): Promise<void> {
     await context.closeWindows();
   }
   throw new Error('could not open the window of a walking person');
+}
+
+/** Presses a camera key many times in one go; real key presses are slow on a large canvas. */
+async function scrollCamera(context: SweepContext, key: string, times: number): Promise<void> {
+  await context.page.evaluate(
+    ({ pressed, count }) => {
+      for (let press = 0; press < count; press++) {
+        window.dispatchEvent(new KeyboardEvent('keydown', { key: pressed }));
+      }
+    },
+    { pressed: key, count: times },
+  );
+  await context.page.waitForTimeout(PAN_SETTLE_MS);
+}
+
+async function loadShowcase(context: SweepContext): Promise<void> {
+  await context.debug('debug.loadScenario', { name: 'eventShowcase' });
+  await context.debug('debug.setClock', { day: 0, time: '10:00' });
 }
 
 async function eventDialog(
@@ -331,6 +353,25 @@ export const SCREENS: Screen[] = [
     id: 'event-santa',
     state: 'forced Santa visit, 30 steps later',
     run: (context) => eventVisual(context, 'event-santa', 'santa'),
+  },
+  {
+    id: 'event-infestation',
+    state: 'event showcase tower, forced infestation in the dirty hotel room, 30 steps later',
+    async run(context) {
+      await loadShowcase(context);
+      await eventVisual(context, 'event-infestation', 'infestation');
+    },
+  },
+  {
+    id: 'event-wedding',
+    state: 'event showcase tower, forced wedding, camera on the cathedral, 300 steps later',
+    async run(context) {
+      await context.debug('debug.forceEvent', { kind: 'wedding' });
+      await context.debug('debug.fastForward', { steps: WEDDING_STEPS });
+      await scrollCamera(context, 'w', CATHEDRAL_SCROLL_UP);
+      await scrollCamera(context, 'd', CATHEDRAL_SCROLL_RIGHT);
+      await context.shot('event-wedding');
+    },
   },
   {
     id: 'dialog-change-film',

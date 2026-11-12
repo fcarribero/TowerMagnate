@@ -17,7 +17,7 @@ import {
   weekdayOfDay,
   type StepContext,
 } from '@tower-magnate/engine';
-import { verticalSliceTower } from '@tower-magnate/engine/testing';
+import { eventShowcaseTower, verticalSliceTower } from '@tower-magnate/engine/testing';
 import type { ErrorCode, TowerState, UnitId } from '@tower-magnate/shared';
 import type { TowerChange } from '../runner';
 import { MAX_CLOCK_JUMP_DAYS, type DebugEventKind, type DebugScenario } from './messages';
@@ -65,10 +65,13 @@ const forceWedding: TowerChange = (state) => {
   return { state: forced, events: [] };
 };
 
-/** Infests the given dirty hotel room now, without waiting for the third dirty check. */
+/** Infests the given dirty hotel room, or the first dirty one, now, without waiting for the third dirty check. */
 function forceInfestation(unitId: string | undefined): TowerChange {
   return (state) => {
-    const room = unitId === undefined ? undefined : state.units[unitId as UnitId];
+    const room =
+      unitId === undefined
+        ? Object.values(state.units).find((unit) => isRoom(unit) && unit.hotel.state === 'dirty')
+        : state.units[unitId as UnitId];
     if (!room) throw new DebugRefusal('UNKNOWN_ENTITY');
     if (!isRoom(room) || room.hotel.state !== 'dirty') throw new DebugRefusal('INVALID_COMMAND');
     const context: StepContext = { state: structuredClone(state), events: [] };
@@ -164,6 +167,7 @@ export function setMoney(amount: number): TowerChange {
 
 const SCENARIO_TOWERS: Readonly<Record<DebugScenario, () => TowerState>> = {
   verticalSlice: verticalSliceTower,
+  eventShowcase: eventShowcaseTower,
 };
 
 /** Replaces the tower with a fresh copy of a test scenario's starting tower. */
