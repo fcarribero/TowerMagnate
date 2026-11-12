@@ -8,6 +8,7 @@ import {
   createPersonPool,
   followPerson,
   personAt,
+  renamePerson,
   removePerson,
   setDueStep,
 } from '../people';
@@ -48,7 +49,8 @@ describe('reading the person pool', () => {
     expect(people.nextId).toBe(4);
     expect(personAt(people, 1)).toMatchObject({ id: 'p3', kind: 'hotelGuest', level: 5 });
     expect(people.stress).toEqual([0, 12.5]);
-    expect(people.followed).toEqual([3]);
+    expect(people.followed).toEqual([]);
+    expect(people.names).toEqual({});
   });
 
   it('gives every person of an older save an idle trip', () => {
@@ -85,6 +87,8 @@ describe('reading the person pool', () => {
   it('restores 1,000 people with their follow flags and id counter', () => {
     const tower = towerWithPeople(1000);
     removePerson(tower, 500);
+    renamePerson(tower.people, 7, 'Ana');
+    renamePerson(tower.people, 999, 'Beto');
     followPerson(tower.people, 7);
     followPerson(tower.people, 999);
 
@@ -102,6 +106,14 @@ describe('reading the person pool', () => {
     ['an id at or past nextId', (people: Record<string, unknown>) => (people.nextId = 3)],
     ['an unknown kind', (people: Record<string, unknown>) => ((people.kind as number[])[0] = 99)],
     ['a follow of nobody', (people: Record<string, unknown>) => (people.followed = [42])],
+    ['a follow without a name', (people: Record<string, unknown>) => (people.followed = [1])],
+    ['a name of nobody', (people: Record<string, unknown>) => (people.names = { 42: 'Ana' })],
+    ['a blank name', (people: Record<string, unknown>) => (people.names = { 1: '  ' })],
+    [
+      'a name over 24 characters',
+      (people: Record<string, unknown>) => (people.names = { 1: 'x'.repeat(25) }),
+    ],
+    ['missing names', (people: Record<string, unknown>) => delete people.names],
   ])('refuses a pool with %s', (_case, corrupt) => {
     const saved = savedPeople();
     corrupt(saved.people as Record<string, unknown>);

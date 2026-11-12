@@ -245,7 +245,7 @@ function ridePlaces(state: TowerState): Map<string, RidePlace> {
   return places;
 }
 
-function modeOfPhase(phase: TrekPhase, atHome: boolean): PersonView['mode'] {
+export function modeOfPhase(phase: TrekPhase, atHome: boolean): PersonView['mode'] {
   switch (phase) {
     case 'idle':
       return atHome ? 'inside' : 'walk';
@@ -308,7 +308,7 @@ function personView(
   };
 }
 
-function stressLevel(steps: number): PersonView['stress'] {
+export function stressLevel(steps: number): PersonView['stress'] {
   if (steps >= STRESS_MUY_ALTO_FROM) {
     return 'veryStressed';
   }
@@ -325,7 +325,7 @@ function followedPeople(state: TowerState): FollowedView[] {
     if (person) {
       followed.push({
         id: person.id,
-        name: person.id,
+        name: person.name ?? person.id,
         kind: person.kind,
         level: person.level,
         x: person.column,

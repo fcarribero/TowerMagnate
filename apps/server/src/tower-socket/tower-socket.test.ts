@@ -1,4 +1,11 @@
-import { newUnit, setStructure, structureAt } from '@tower-magnate/engine';
+import {
+  addPerson,
+  newUnit,
+  removePerson,
+  renamePerson,
+  setStructure,
+  structureAt,
+} from '@tower-magnate/engine';
 import {
   clientMessage,
   ServerMessageSchema,
@@ -372,6 +379,97 @@ describe('tower socket against postgres', () => {
       const result = await client.next('commandResult');
 
       expect(result.p).toMatchObject({ id: 'c2', ok: false, error: 'NO_SUPPORT' });
+    });
+  });
+
+  describe('people', () => {
+    function sendCommand(client: TestSocketClient, id: string, command: object): void {
+      client.sendRaw(JSON.stringify(clientMessage('command', { id, command } as never)));
+    }
+
+    async function connectWithPeople(count: number): Promise<TestSocketClient> {
+      const client = await connect(player.cookie);
+      client.hello();
+      await client.next('snapshot');
+      const state = app.towerRunner.stateOf(player.towerId);
+      if (!state) throw new Error('Tower is not running');
+      for (let index = 0; index < count; index += 1) {
+        addPerson(state, { kind: 'officeWorker', homeUnit: 0, level: 1, column: 12 });
+      }
+      return client;
+    }
+
+    async function resultOf(client: TestSocketClient, id: string, command: object) {
+      sendCommand(client, id, command);
+      return (await client.next('commandResult')).p;
+    }
+
+    it('inspects a person, answers again after a rename and then says gone', async () => {
+      const client = await connectWithPeople(1);
+
+      client.sendRaw(
+        JSON.stringify(clientMessage('inspect', { target: { kind: 'person', id: 'p1' } })),
+      );
+      const first = await client.next('inspect');
+      const renamed = await resultOf(client, 'r1', {
+        type: 'renamePerson',
+        personId: 'p1',
+        name: 'Ana',
+      });
+      const second = await client.next('inspect');
+      const state = app.towerRunner.stateOf(player.towerId);
+      if (state) removePerson(state, 1);
+      const gone = await client.next('inspect');
+
+      expect(first.p).toMatchObject({ kind: 'person', id: 'p1', status: 'ok', name: null });
+      expect(renamed).toMatchObject({ id: 'r1', ok: true });
+      expect(second.p).toMatchObject({ id: 'p1', status: 'ok', name: 'Ana' });
+      expect(gone.p).toEqual({ kind: 'person', id: 'p1', status: 'gone' });
+    });
+
+    it('follows 20 named people, refuses the 21st and the unnamed, and unfollows', async () => {
+      const client = await connectWithPeople(22);
+      const state = app.towerRunner.stateOf(player.towerId);
+      if (!state) throw new Error('Tower is not running');
+      for (let id = 1; id <= 21; id += 1) renamePerson(state.people, id, `Persona ${id}`);
+
+      const unnamed = await resultOf(client, 'f22', { type: 'followPerson', personId: 'p22' });
+      for (let id = 1; id <= 20; id += 1) {
+        const followed = await resultOf(client, `f${id}`, {
+          type: 'followPerson',
+          personId: `p${id}`,
+        });
+        expect(followed.ok).toBe(true);
+      }
+      const twentyFirst = await resultOf(client, 'f21', { type: 'followPerson', personId: 'p21' });
+      const unfollowed = await resultOf(client, 'u3', { type: 'unfollowPerson', personId: 'p3' });
+      const afterUnfollow = await resultOf(client, 'f21b', {
+        type: 'followPerson',
+        personId: 'p21',
+      });
+
+      expect(unnamed).toMatchObject({ ok: false, error: 'INVALID_COMMAND' });
+      expect(twentyFirst).toMatchObject({ ok: false, error: 'FOLLOW_LIMIT' });
+      expect(unfollowed.ok).toBe(true);
+      expect(afterUnfollow.ok).toBe(true);
+    });
+
+    it('sends the followed list with names and saves it with the tower', async () => {
+      const client = await connectWithPeople(2);
+      await resultOf(client, 'n1', { type: 'renamePerson', personId: 'p1', name: 'Ana' });
+      await resultOf(client, 'f1', { type: 'followPerson', personId: 'p1' });
+
+      const named = await client.next('delta');
+      const snapshots = createSnapshotRepository(pool);
+      let saved = await snapshots.loadLatest(player.towerId);
+      for (let attempt = 0; attempt < 300 && !saved?.state.people.followed.length; attempt += 1) {
+        await new Promise((resolve) => setTimeout(resolve, 10));
+        saved = await snapshots.loadLatest(player.towerId);
+      }
+
+      expect(named.p.followed).toEqual([expect.objectContaining({ id: 'p1', name: 'Ana' })]);
+      expect(saved?.state.people.names).toEqual({ 1: 'Ana' });
+      expect(saved?.state.people.followed).toEqual([1]);
     });
   });
 });

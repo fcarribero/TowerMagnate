@@ -1,7 +1,12 @@
-import { serverMessage, type InspectTarget } from '@tower-magnate/shared';
+import {
+  serverMessage,
+  type InspectData,
+  type InspectTarget,
+  type TowerState,
+} from '@tower-magnate/shared';
 import { sendMessage, type ConnectionRegistry, type GatewaySocket } from '../gateway';
 import type { TowerRunner } from '../runner';
-import { inspectShaft, inspectUnit } from './inspect';
+import { inspectPerson, inspectShaft, inspectUnit } from './inspect';
 
 export const INSPECT_INTERVAL_MS = 1000;
 export const MAX_INSPECT_TARGETS = 5;
@@ -9,9 +14,15 @@ const CHECK_INTERVAL_MS = 250;
 
 interface Target {
   towerId: string;
-  kind: 'unit' | 'shaft';
+  kind: InspectableKind;
   id: string;
   sentAt: number;
+}
+
+type InspectableKind = 'unit' | 'shaft' | 'person';
+
+function isInspectable(kind: InspectTarget['kind']): kind is InspectableKind {
+  return kind === 'unit' || kind === 'shaft' || kind === 'person';
 }
 
 function targetKey(kind: string, id: string): string {
@@ -26,7 +37,7 @@ export interface InspectionsOptions {
 }
 
 /**
- * The units and shafts each socket has open in inspection windows, up to MAX_INSPECT_TARGETS.
+ * The units, shafts and people each socket has open in inspection windows, up to MAX_INSPECT_TARGETS.
  * Each target is answered right away, again once per second, and again after a change to a unit.
  */
 export class Inspections {
@@ -48,7 +59,7 @@ export class Inspections {
 
   /** Adds a target and answers it at once. Adding a target the socket already has answers it again. */
   add(socket: GatewaySocket, towerId: string, target: InspectTarget): AddResult {
-    if (target.kind !== 'unit' && target.kind !== 'shaft') {
+    if (!isInspectable(target.kind)) {
       return 'unsupported';
     }
     const key = targetKey(target.kind, target.id);
@@ -64,7 +75,7 @@ export class Inspections {
   }
 
   remove(socket: GatewaySocket, target: InspectTarget): void {
-    if (target.kind === 'unit' || target.kind === 'shaft') {
+    if (isInspectable(target.kind)) {
       this.targets.get(socket)?.delete(targetKey(target.kind, target.id));
     }
   }
@@ -73,9 +84,9 @@ export class Inspections {
     this.targets.delete(socket);
   }
 
-  /** Answers again right away when the socket has this unit open. */
-  pushChange(socket: GatewaySocket, unitId: string): void {
-    const target = this.targets.get(socket)?.get(targetKey('unit', unitId));
+  /** Answers again right away when the socket has this unit or person open. */
+  pushChange(socket: GatewaySocket, kind: 'unit' | 'person', id: string): void {
+    const target = this.targets.get(socket)?.get(targetKey(kind, id));
     if (target) {
       this.send(socket, target);
     }
@@ -104,13 +115,23 @@ export class Inspections {
     if (!state) {
       return;
     }
-    const data =
-      target.kind === 'shaft' ? inspectShaft(state, target.id) : inspectUnit(state, target.id);
+    const data = inspectionOf(state, target);
     sendMessage(socket, serverMessage('inspect', data));
     if ('status' in data && data.status === 'gone') {
       this.targets.get(socket)?.delete(targetKey(target.kind, target.id));
     } else {
       target.sentAt = this.now();
     }
+  }
+}
+
+function inspectionOf(state: TowerState, target: Target): InspectData {
+  switch (target.kind) {
+    case 'shaft':
+      return inspectShaft(state, target.id);
+    case 'person':
+      return inspectPerson(state, target.id);
+    case 'unit':
+      return inspectUnit(state, target.id);
   }
 }
