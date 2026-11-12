@@ -588,6 +588,7 @@
   box-sizing: border-box;
   margin: 0;
   padding: 0;
+  max-height: min(calc(8 * 14 * var(--tm-px)), var(--tm-dropdown-room, 100vh));
   list-style: none;
   background: var(--obra-paper);
   border: var(--border-window);
@@ -615,18 +616,21 @@
 /* Scroll bar: 6 wide, paper-shade track with a control border on its left, ink thumb. */
 .tm-scroll,
 .tm-window__body,
+.tm-dropdown__list,
 .tm-list__items {
   overflow-y: auto;
 }
 
 .tm-scroll::-webkit-scrollbar,
 .tm-window__body::-webkit-scrollbar,
+.tm-dropdown__list::-webkit-scrollbar,
 .tm-list__items::-webkit-scrollbar {
   width: calc(6 * var(--tm-px));
 }
 
 .tm-scroll::-webkit-scrollbar-track,
 .tm-window__body::-webkit-scrollbar-track,
+.tm-dropdown__list::-webkit-scrollbar-track,
 .tm-list__items::-webkit-scrollbar-track {
   background: var(--obra-paper-shade);
   border-left: var(--border-control);
@@ -634,6 +638,7 @@
 
 .tm-scroll::-webkit-scrollbar-thumb,
 .tm-window__body::-webkit-scrollbar-thumb,
+.tm-dropdown__list::-webkit-scrollbar-thumb,
 .tm-list__items::-webkit-scrollbar-thumb {
   background: var(--obra-ink);
 }
@@ -641,6 +646,7 @@
 @supports not selector(::-webkit-scrollbar) {
   .tm-scroll,
   .tm-window__body,
+  .tm-dropdown__list,
   .tm-list__items {
     scrollbar-color: var(--obra-ink) var(--obra-paper-shade);
     scrollbar-width: thin;
