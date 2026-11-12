@@ -526,7 +526,6 @@ export const BOMB_BLAST_LEVELS_BELOW = 2;
 export const BOMB_BLAST_LEVELS_ABOVE = 3;
 /** A VIP visit is rolled at 00:00 only at exactly this rating. */
 export const VIP_STARS = 3;
-export const VIP_DAILY_ODDS = 9;
 /** Chance in percent of the first roll after a VIP day. */
 export const VIP_BASE_PERCENT = 8;
 export const VIP_STEP_PERCENT = 4;

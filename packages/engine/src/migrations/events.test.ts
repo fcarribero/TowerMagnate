@@ -172,6 +172,24 @@ describe('migrateState events', () => {
   });
 });
 
+describe('migrateState VIP dry days', () => {
+  it('gives a version 34 save a counter of 0 and keeps a saved one', () => {
+    const old = roundTrip(createTower(4)) as Record<string, unknown>;
+    delete old.vipDryDays;
+    old.schemaVersion = 34;
+    expect(migrateState(old).vipDryDays).toBe(0);
+    const saved = roundTrip({ ...createTower(4), vipDryDays: 6 });
+    expect(migrateState(saved).vipDryDays).toBe(6);
+  });
+
+  it('refuses a counter that is not a whole number', () => {
+    const saved = roundTrip(createTower(4)) as Record<string, unknown>;
+    for (const vipDryDays of [-1, 1.5, '3', undefined]) {
+      expect(() => migrateState({ ...saved, vipDryDays })).toThrow(StateMigrationError);
+    }
+  });
+});
+
 describe('migrateState VIP visit', () => {
   it('gives a version 30 save no VIP visit', () => {
     const old = roundTrip(createTower(4)) as Record<string, unknown>;

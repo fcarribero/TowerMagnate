@@ -15,9 +15,17 @@ import { slotOfPerson } from '../people';
 import { populationOf } from '../population';
 import { createScheduler } from '../scheduler';
 import { createEngine, step, type StepContext } from '../step';
+import { createTower } from '../state';
 import { addFlight, buildTower, plainTowerPlan } from '../testing';
 import { eventsPhase } from './index';
-import { endVipVisit, openVipVisit, openVipVisitNow, vipBookingHook, vipLeftTower } from './vip';
+import {
+  endVipVisit,
+  openVipVisit,
+  openVipVisitNow,
+  vipBookingHook,
+  vipLeftTower,
+  vipRollPercent,
+} from './vip';
 
 const TUESDAY = 1;
 
@@ -95,10 +103,73 @@ describe('VIP roll', () => {
     expect(midnightRolls(stars, 50)).toBe(0);
   });
 
-  it('opens about one visit every 9 days at 3 stars over 900 days', () => {
+  it('opens about one visit every 5 days at 3 stars over 900 days', () => {
     const visits = midnightRolls(3, 900);
-    expect(visits).toBeGreaterThanOrEqual(75);
-    expect(visits).toBeLessThanOrEqual(125);
+    expect(visits).toBeGreaterThanOrEqual(150);
+    expect(visits).toBeLessThanOrEqual(210);
+  });
+
+  it('has chances of 8, 12 ... 84 percent for rolls 1 to 20 and 100 on roll 21', () => {
+    const chances = Array.from({ length: 21 }, (_, dryDays) => vipRollPercent(dryDays));
+    expect(chances.slice(0, 20)).toEqual(Array.from({ length: 20 }, (_, i) => 8 + 4 * i));
+    expect(chances[20]).toBe(100);
+  });
+
+  it('waits 5.16 days on average and visits every tower by day 21 over 1,000 towers', () => {
+    let totalWait = 0;
+    const waits: number[] = [];
+    for (let seed = 1; seed <= 1000; seed++) {
+      const { state } = vipTower();
+      state.rng = createTower(seed).rng;
+      let wait = 0;
+      while (state.vipVisit === null) {
+        wait += 1;
+        state.step = at(TUESDAY + wait, 0) - 1;
+        Object.assign(state, eventsOnly.step(state, [], 1).state);
+      }
+      waits[wait] = (waits[wait] ?? 0) + 1;
+      totalWait += wait;
+      expect(wait).toBeLessThanOrEqual(21);
+    }
+    console.log('VIP wait distribution (day: towers)', JSON.stringify(waits));
+    expect(totalWait / 1000).toBeGreaterThan(4.86);
+    expect(totalWait / 1000).toBeLessThan(5.46);
+  });
+
+  it('counts failed rolls and resets the counter on a VIP day', () => {
+    const { state } = vipTower();
+    state.vipDryDays = 20;
+    state.step = at(TUESDAY, 0) - 1;
+    const after = eventsOnly.step(state, [], 1).state;
+    expect(after.vipVisit).not.toBeNull();
+    expect(after.vipDryDays).toBe(0);
+    const { state: dry } = vipTower();
+    dry.step = at(TUESDAY, 0) - 1;
+    dry.vipDryDays = 0;
+    let rolled = dry;
+    for (let day = 0; day < 40 && rolled.vipVisit === null; day++) {
+      const before = rolled.vipDryDays;
+      rolled.step = at(TUESDAY + day, 0) - 1;
+      rolled = eventsOnly.step(rolled, [], 1).state;
+      if (rolled.vipVisit === null) expect(rolled.vipDryDays).toBe(before + 1);
+    }
+    expect(rolled.vipDryDays).toBe(0);
+  });
+
+  it('keeps the counter when the rating is not 3 stars', () => {
+    const { state } = vipTower({ stars: 2 });
+    state.vipDryDays = 7;
+    state.step = at(TUESDAY, 0) - 1;
+    expect(eventsOnly.step(state, [], 1).state.vipDryDays).toBe(7);
+  });
+
+  it('is the same for the same seed', () => {
+    const run = () => {
+      const { state } = vipTower();
+      state.step = at(TUESDAY, 0) - 1;
+      return eventsOnly.step(state, [], 1).state;
+    };
+    expect(run()).toEqual(run());
   });
 
   it('does not roll while a visit is in progress', () => {
@@ -108,6 +179,7 @@ describe('VIP roll', () => {
     const rngBefore = { ...state.rng };
     const after = eventsOnly.step(state, [], 1).state;
     expect(after.rng).toEqual(rngBefore);
+    expect(after.vipDryDays).toBe(0);
     expect(openVipVisit(after, TUESDAY + 1)).toBeNull();
     expect(visit?.startedAtStars).toBe(3);
   });
