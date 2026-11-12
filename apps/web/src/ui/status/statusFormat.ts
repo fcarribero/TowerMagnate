@@ -4,6 +4,9 @@ import { t, type StringKey } from '../strings';
 
 export interface StatusDate {
   text: string;
+  weekday: string;
+  /** The date after the weekday name, starting with the space. */
+  rest: string;
   isWeekend: boolean;
 }
 
@@ -21,13 +24,14 @@ export function stepOfGameMinute(minute: number): number {
 
 export function formatGameDate(step: number): StatusDate {
   const date = dateOfStep(step);
+  const weekday = t(`calendar.weekday.${date.weekday}` as StringKey);
   const text = t('ui.date', {
-    weekday: t(`calendar.weekday.${date.weekday}` as StringKey),
+    weekday,
     day: date.day,
     month: t(`calendar.month.${date.month}` as StringKey),
     year: date.year,
   });
-  return { text, isWeekend: date.isWeekend };
+  return { text, weekday, rest: text.slice(weekday.length), isWeekend: date.isWeekend };
 }
 
 export function formatGameTime(step: number): string {

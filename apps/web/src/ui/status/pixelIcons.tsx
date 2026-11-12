@@ -70,7 +70,16 @@ export function outlineOf(pattern: PixelPattern): PixelPattern {
   );
 }
 
-export const STAR_OUTLINE: PixelPattern = outlineOf(STAR_FILLED);
+/** Each pixel becomes a square of `factor` pixels. */
+export function enlarge(pattern: PixelPattern, factor: number): PixelPattern {
+  return pattern.flatMap((line) => {
+    const wide = [...line].map((pixel) => pixel.repeat(factor)).join('');
+    return Array.from({ length: factor }, () => wide);
+  });
+}
+
+/** The star at 14 x 14 pixels, so its outline is 1 pixel wide on a 14 px slot. */
+export const STAR_OUTLINE: PixelPattern = outlineOf(enlarge(STAR_FILLED, 2));
 
 interface PixelIconProps {
   pattern: PixelPattern;

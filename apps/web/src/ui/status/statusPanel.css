@@ -5,109 +5,188 @@
   left: 0;
   box-sizing: border-box;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   height: calc(24 * var(--tm-px));
-  padding: 0 calc(4 * var(--tm-px));
-  font-family: var(--tm-font);
-  font-size: var(--tm-font-size);
-  line-height: var(--tm-line-height);
-  color: var(--tm-ink);
-  background: var(--tm-cloud);
-  border: 2px solid;
-  border-color: var(--tm-white) var(--tm-slate) var(--tm-slate) var(--tm-white);
-}
-
-.status-button {
-  min-width: calc(40 * var(--tm-px));
+  padding: var(--space-1);
+  color: var(--obra-ink);
+  background: var(--obra-ink);
+  border-bottom: var(--border-window);
 }
 
 .status-panel__row {
   display: flex;
   align-items: center;
-  gap: calc(6 * var(--tm-px));
+  gap: var(--space-1);
   width: max-content;
-  height: 100%;
+  height: calc(18 * var(--tm-px));
   white-space: nowrap;
-}
-
-.status-panel__date.is-weekend {
-  color: var(--tm-dusk);
-}
-
-.status-panel__time {
-  min-width: calc(32 * var(--tm-px));
-}
-
-.status-panel__money {
-  min-width: calc(72 * var(--tm-px));
-}
-
-.status-panel__money.is-negative,
-.status-panel__offline {
-  color: var(--tm-cloth-red);
 }
 
 .status-panel__group {
   display: flex;
   align-items: center;
+  gap: var(--space-1);
 }
 
-.status-panel button {
+/* Every item of the bar is one 18 px block. */
+.status-panel__date,
+.status-panel__time,
+.status-panel__money,
+.status-panel__population,
+.status-panel__offline,
+.status-panel__stars,
+.status-panel__zoom,
+.status-panel__window,
+.status-button {
   box-sizing: border-box;
+  display: flex;
+  flex: none;
+  align-items: center;
   height: calc(18 * var(--tm-px));
-  padding: 0 calc(2 * var(--tm-px));
-  font: inherit;
-  color: var(--tm-ink);
-  background: var(--tm-cloud);
-  border: calc(1 * var(--tm-px)) solid var(--tm-ink);
-  box-shadow:
-    inset calc(1 * var(--tm-px)) calc(1 * var(--tm-px)) 0 var(--tm-white),
-    inset calc(-1 * var(--tm-px)) calc(-1 * var(--tm-px)) 0 var(--tm-slate);
-  cursor: pointer;
+  padding: 0 var(--space-2);
+  margin: 0;
+  overflow: hidden;
+  font: var(--text-status-value);
+  color: var(--obra-ink);
+  background: var(--obra-paper);
+  border: var(--border-control);
 }
 
-.status-panel button:active {
-  box-shadow: inset calc(1 * var(--tm-px)) calc(1 * var(--tm-px)) 0 var(--tm-slate);
+.status-panel__date,
+.status-panel__time,
+.status-panel__money,
+.status-panel__population {
+  gap: var(--space-1);
+}
+
+.status-panel__weekday.is-weekend {
+  padding: 0 var(--space-1);
+  color: var(--obra-paper);
+  background: var(--obra-red);
+}
+
+.status-panel__time {
+  justify-content: center;
+  width: calc(32 * var(--tm-px));
+  padding: 0;
+}
+
+.status-panel__money {
+  justify-content: center;
+  width: max-content;
+  min-width: calc(72 * var(--tm-px));
+  max-width: calc(120 * var(--tm-px));
+  background: var(--obra-yellow);
+}
+
+.status-panel__money.is-negative {
+  color: var(--obra-paper);
+  background: var(--obra-red);
+}
+
+.status-panel__label {
+  font: var(--text-status-label);
+}
+
+.status-panel__offline {
+  font: var(--text-status-label);
+  color: var(--obra-paper);
+  background: var(--obra-red);
+}
+
+.status-panel .status-button {
+  justify-content: center;
+  width: calc(40 * var(--tm-px));
+  padding: 0;
+  font: var(--text-button);
+  color: var(--obra-yellow);
+  cursor: pointer;
+  background: var(--obra-ink);
+}
+
+.status-panel .status-button[aria-expanded='true'] {
+  color: var(--obra-ink);
+  background: var(--obra-yellow);
 }
 
 .status-panel .status-panel__zoom {
+  justify-content: center;
   width: calc(16 * var(--tm-px));
   padding: 0;
+  cursor: pointer;
 }
 
 .status-panel .status-panel__window {
-  display: flex;
-  align-items: center;
+  position: relative;
   justify-content: center;
   width: calc(24 * var(--tm-px));
   padding: 0;
+  cursor: pointer;
+}
+
+.status-panel .status-panel__window.is-open {
+  background: var(--obra-yellow);
+}
+
+.status-panel .status-button:active,
+.status-panel .status-panel__zoom:active,
+.status-panel .status-panel__window:active {
+  transform: translate(var(--size-press-offset), var(--size-press-offset));
+}
+
+.status-panel button:focus-visible {
+  outline: var(--border-control);
+  outline-color: var(--obra-blue);
+  outline-offset: 0;
 }
 
 .status-panel__icon {
   width: calc(8 * var(--tm-px));
   height: calc(8 * var(--tm-px));
-  fill: var(--tm-ink);
+  fill: var(--obra-ink);
+}
+
+.status-panel__badge {
+  position: absolute;
+  top: 0;
+  right: 0;
+  box-sizing: border-box;
+  min-width: calc(8 * var(--tm-px));
+  height: calc(8 * var(--tm-px));
+  padding: 0 calc(1 * var(--tm-px));
+  font: var(--text-status-label);
+  line-height: calc(8 * var(--tm-px));
+  color: var(--obra-paper);
+  text-align: center;
+  background: var(--obra-red);
 }
 
 .status-panel .status-panel__stars {
-  display: flex;
-  align-items: center;
-  gap: calc(2 * var(--tm-px));
-  background: transparent;
-  border: none;
-  box-shadow: none;
+  gap: var(--space-1);
+  width: calc(80 * var(--tm-px));
+  padding: 0;
+  cursor: pointer;
+}
+
+.status-panel .status-panel__stars:has(.status-panel__tower) {
+  width: calc(112 * var(--tm-px));
 }
 
 .status-panel__star {
+  flex: none;
   width: calc(14 * var(--tm-px));
   height: calc(14 * var(--tm-px));
-  fill: var(--tm-slate);
+  fill: var(--obra-muted);
 }
 
 .status-panel__star.is-filled {
-  fill: var(--tm-lamp);
+  fill: var(--obra-ink);
 }
 
 .status-panel__tower {
-  margin-left: calc(2 * var(--tm-px));
+  margin-left: var(--space-1);
+  padding: 0 var(--space-1);
+  font: var(--text-status-label);
+  color: var(--obra-yellow);
+  background: var(--obra-ink);
 }
