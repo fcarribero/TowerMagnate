@@ -16,6 +16,7 @@ import { createCondoSystem } from './condos';
 import { createCustomers } from './customers';
 import { createHotelSystem } from './hotel';
 import { createHotelGuests } from './hotel-guests';
+import { infestationHook } from './infestation';
 import { isLayoutCommand } from './layout-changes';
 import { createMaidSystem, maidArrivalHook, maidLeaveHook } from './housekeeping';
 import { createLeaseSystem } from './leases';
@@ -252,6 +253,7 @@ export const namedTowerSystems: readonly { name: string; system: SimulationSyste
   {
     name: 'scheduler (plans, rolls, payouts)',
     system: createScheduler([
+      infestationHook,
       ledgerWeekRollHook,
       nightReset,
       weeklyUpkeepHook,
