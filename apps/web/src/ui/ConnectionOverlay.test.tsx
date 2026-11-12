@@ -1,4 +1,5 @@
 import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { cleanup, fireEvent, render, screen } from '@testing-library/preact';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ConnectionOverlay } from './ConnectionOverlay';
@@ -39,7 +40,7 @@ describe('ConnectionOverlay', () => {
   });
 
   it('starts the banner after the 80 px toolbar so it stays over the tower view', () => {
-    const css = readFileSync('src/style.css', 'utf8');
+    const css = readFileSync(resolve(__dirname, '../style.css'), 'utf8');
     const banner = /\.connection-banner \{[^}]*\}/.exec(css)?.[0] ?? '';
     expect(banner).toContain('left: calc(80 * var(--tm-px));');
   });
