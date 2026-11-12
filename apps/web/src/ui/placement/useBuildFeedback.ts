@@ -5,7 +5,7 @@ import { formatMoney } from '../money';
 import type { ScreenPoint } from './bindBuildInput';
 
 export const TOAST_MS = 3000;
-export const FLOAT_MS = 1200;
+export const FLOAT_MS = 1000;
 
 export interface Toast {
   id: number;

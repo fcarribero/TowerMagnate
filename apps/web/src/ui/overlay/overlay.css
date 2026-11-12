@@ -38,28 +38,33 @@
   position: absolute;
   bottom: calc(24 * var(--tm-px));
   left: calc(84 * var(--tm-px));
-  padding: calc(3 * var(--tm-px));
-  color: var(--tm-ink);
-  background: var(--tm-cloud);
-  border: calc(1 * var(--tm-px)) solid var(--tm-ink);
-  box-shadow:
-    inset calc(1 * var(--tm-px)) calc(1 * var(--tm-px)) 0 var(--tm-white),
-    inset calc(-1 * var(--tm-px)) calc(-1 * var(--tm-px)) 0 var(--tm-slate);
+  box-sizing: border-box;
+  width: calc(96 * var(--tm-px));
+  padding: var(--space-2);
+  color: var(--obra-ink);
+  background: var(--obra-paper);
+  border: var(--border-window);
+  box-shadow: var(--shadow-window);
   pointer-events: none;
 }
 
 .overlay-legend__title {
-  margin-bottom: calc(2 * var(--tm-px));
+  margin-bottom: var(--space-1);
+  font: var(--text-window-subtitle);
 }
 
 .overlay-legend__row {
   display: flex;
+  gap: var(--space-2);
   align-items: center;
-  gap: calc(3 * var(--tm-px));
+  height: calc(12 * var(--tm-px));
+  font: var(--text-body);
 }
 
 .overlay-legend__swatch {
+  flex: none;
+  box-sizing: border-box;
   width: calc(6 * var(--tm-px));
   height: calc(6 * var(--tm-px));
-  border: calc(1 * var(--tm-px)) solid var(--tm-ink);
+  border: var(--border-control);
 }

@@ -50,6 +50,7 @@ export interface BuildInputOptions {
 export interface DragLabel {
   floors: number;
   cost: number;
+  valid: boolean;
   at: ScreenPoint;
 }
 
@@ -100,7 +101,7 @@ export function bindBuildInput(options: BuildInputOptions): () => void {
     const valid = maxFloors === null || floors <= maxFloors;
     const width = UNIT_CATALOG[SHAFT_UNIT_TYPES[type]].width;
     stage.showRun({ x: current.press.x, level: bottom, width, floors, valid });
-    onDragLabel?.({ floors, cost: shaftCost(type), at: pointer });
+    onDragLabel?.({ floors, cost: shaftCost(type), valid, at: pointer });
   };
 
   const cancelDrag = (): void => {

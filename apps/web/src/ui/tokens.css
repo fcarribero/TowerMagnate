@@ -11,6 +11,12 @@
   --obra-rule: #cccccc;
   --obra-scrim: rgba(17, 17, 17, 0.4);
 
+  --tm-outline:
+    calc(-1 * var(--tm-px)) 0 var(--obra-ink), var(--tm-px) 0 var(--obra-ink),
+    0 calc(-1 * var(--tm-px)) var(--obra-ink), 0 var(--tm-px) var(--obra-ink),
+    calc(-1 * var(--tm-px)) calc(-1 * var(--tm-px)) var(--obra-ink),
+    var(--tm-px) calc(-1 * var(--tm-px)) var(--obra-ink),
+    calc(-1 * var(--tm-px)) var(--tm-px) var(--obra-ink), var(--tm-px) var(--tm-px) var(--obra-ink);
   --border-control: calc(1 * var(--tm-px)) solid var(--obra-ink);
   --border-window: calc(2 * var(--tm-px)) solid var(--obra-ink);
   --border-dialog: calc(3 * var(--tm-px)) solid var(--obra-ink);
