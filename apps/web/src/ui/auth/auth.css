@@ -59,7 +59,10 @@
 
 .auth-screen__notice {
   margin: 0 0 calc(6 * var(--tm-px));
-  color: var(--tm-sky-deep);
+  padding: var(--space-2);
+  font: var(--text-body-strong);
+  color: var(--obra-paper);
+  background: var(--obra-red);
 }
 
 .auth-screen__error {
