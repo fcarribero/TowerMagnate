@@ -22,7 +22,7 @@ export function BuildFeedback({ toasts, floats, dragLabel = null }: BuildFeedbac
       </div>
       {dragLabel !== null && (
         <div
-          class="tm-drag-label"
+          class={dragLabel.valid ? 'tm-drag-label' : 'tm-drag-label is-failed'}
           style={{ left: `${dragLabel.at.x}px`, top: `${dragLabel.at.y}px` }}
         >
           {t('ui.shaftSpan', { n: dragLabel.floors })} - {formatMoney(dragLabel.cost)}

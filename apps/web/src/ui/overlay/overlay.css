@@ -1,43 +1,70 @@
+/* The buttons share the block's outer border and are divided by one control border. */
 .overlay-selector {
+  box-sizing: border-box;
   display: flex;
-  align-items: center;
+  flex: none;
+  align-items: stretch;
+  width: calc(96 * var(--tm-px));
+  height: calc(18 * var(--tm-px));
+  overflow: hidden;
+  border: var(--border-control);
 }
 
 .status-panel .overlay-selector__button {
-  width: calc(24 * var(--tm-px));
+  flex: 1;
+  height: auto;
+  padding: 0;
+  font: var(--text-button);
+  color: var(--obra-ink);
+  cursor: pointer;
+  background: var(--obra-paper);
+  border: none;
+}
+
+.status-panel .overlay-selector__button + .overlay-selector__button {
+  border-left: var(--border-control);
 }
 
 .status-panel .overlay-selector__button.is-on {
-  background: var(--tm-lamp);
-  box-shadow: inset calc(1 * var(--tm-px)) calc(1 * var(--tm-px)) 0 var(--tm-slate);
+  color: var(--obra-yellow);
+  background: var(--obra-ink);
+}
+
+.status-panel .overlay-selector__button:active {
+  transform: translate(var(--size-press-offset), var(--size-press-offset));
 }
 
 .overlay-legend {
   position: absolute;
   bottom: calc(24 * var(--tm-px));
   left: calc(84 * var(--tm-px));
-  padding: calc(3 * var(--tm-px));
-  color: var(--tm-ink);
-  background: var(--tm-cloud);
-  border: calc(1 * var(--tm-px)) solid var(--tm-ink);
-  box-shadow:
-    inset calc(1 * var(--tm-px)) calc(1 * var(--tm-px)) 0 var(--tm-white),
-    inset calc(-1 * var(--tm-px)) calc(-1 * var(--tm-px)) 0 var(--tm-slate);
+  box-sizing: border-box;
+  width: calc(96 * var(--tm-px));
+  padding: var(--space-2);
+  color: var(--obra-ink);
+  background: var(--obra-paper);
+  border: var(--border-window);
+  box-shadow: var(--shadow-window);
   pointer-events: none;
 }
 
 .overlay-legend__title {
-  margin-bottom: calc(2 * var(--tm-px));
+  margin-bottom: var(--space-1);
+  font: var(--text-window-subtitle);
 }
 
 .overlay-legend__row {
   display: flex;
+  gap: var(--space-2);
   align-items: center;
-  gap: calc(3 * var(--tm-px));
+  height: calc(12 * var(--tm-px));
+  font: var(--text-body);
 }
 
 .overlay-legend__swatch {
+  flex: none;
+  box-sizing: border-box;
   width: calc(6 * var(--tm-px));
   height: calc(6 * var(--tm-px));
-  border: calc(1 * var(--tm-px)) solid var(--tm-ink);
+  border: var(--border-control);
 }

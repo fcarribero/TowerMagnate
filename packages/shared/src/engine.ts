@@ -308,6 +308,8 @@ export interface TowerState {
   vipApproved: boolean;
   /** The VIP visit from its 00:00 roll until the VIP's stay ends; null when there is none. */
   vipVisit: VipVisit | null;
+  /** VIP rolls made since the last VIP day. */
+  vipDryDays: number;
   /** Step of the last medical visit that failed; null if none yet. */
   lastMedicalFailureStep: number | null;
   /** Step of the last parking failure; null if none yet. */

@@ -1,9 +1,11 @@
 import {
   HOTEL_BOOKING_ROLL_MINUTE,
   VIP_ARRIVAL,
-  VIP_DAILY_ODDS,
+  VIP_BASE_PERCENT,
+  VIP_GUARANTEE_DAY,
   VIP_MAX_STRESS_STEPS,
   VIP_STARS,
+  VIP_STEP_PERCENT,
   type TowerState,
   type Unit,
   type UnitId,
@@ -56,12 +58,25 @@ export function openVipVisitNow(state: TowerState): VipVisit | null {
   return openVipVisit(state, minute < HOTEL_BOOKING_ROLL_MINUTE ? today : today + 1);
 }
 
-/** Events spec 6.1: at 00:00, at exactly 3 stars with no visit in progress, roll 1 in 9. */
+/** Events spec 6.1: the chance in percent of the next roll, 100 on the guarantee day. */
+export function vipRollPercent(dryDays: number): number {
+  if (dryDays + 1 >= VIP_GUARANTEE_DAY) return 100;
+  return VIP_BASE_PERCENT + VIP_STEP_PERCENT * dryDays;
+}
+
+/**
+ * Events spec 6.1: at 00:00, at exactly 3 stars with no visit in progress, roll with a chance that
+ * rises with each roll since the last VIP day.
+ */
 export function rollVipVisit(context: StepContext): void {
   const { state } = context;
   if (state.step % STEPS_PER_DAY !== 0) return;
   if (state.stars !== VIP_STARS || state.vipVisit !== null) return;
-  if (nextInt(state.rng, 0, VIP_DAILY_ODDS - 1) !== 0) return;
+  if (nextInt(state.rng, 0, 99) >= vipRollPercent(state.vipDryDays)) {
+    state.vipDryDays += 1;
+    return;
+  }
+  state.vipDryDays = 0;
   openVipVisit(state, dayOf(state.step));
 }
 

@@ -32,6 +32,14 @@
     { "id": "cloth-red", "hex": "#b0353a", "use": "clothing, signage, alarms" },
     { "id": "cloth-blue", "hex": "#2f4f9a", "use": "clothing, uniforms" },
     { "id": "stress-pink", "hex": "#f07aa8", "use": "stressed people only" },
-    { "id": "stress-red", "hex": "#d81e2a", "use": "very stressed people only" }
+    { "id": "stress-red", "hex": "#d81e2a", "use": "very stressed people only" },
+    { "id": "obra-ink", "hex": "#111111", "use": "UI icon strokes and dark fills" },
+    { "id": "obra-paper", "hex": "#fffaf0", "use": "UI icon light fill" },
+    { "id": "obra-paper-shade", "hex": "#e6e1d4", "use": "UI icon shade" },
+    { "id": "obra-yellow", "hex": "#ffd400", "use": "UI icon accent" },
+    { "id": "obra-red", "hex": "#ff3b2f", "use": "UI icon alert" },
+    { "id": "obra-blue", "hex": "#2f6bff", "use": "UI icon blue parts" },
+    { "id": "obra-green", "hex": "#18c46a", "use": "UI icon green parts" },
+    { "id": "obra-muted", "hex": "#777777", "use": "UI icon gray parts" }
   ]
 }

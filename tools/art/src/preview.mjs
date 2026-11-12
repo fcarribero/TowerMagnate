@@ -187,7 +187,7 @@ const ICON_COLUMNS = 8;
 // Every UI icon on the sky color, in the order the group draws them.
 export function drawIconSheet(sprites) {
   const icons = Object.entries(sprites)
-    .filter(([id]) => /^ui\/(tool|cat|unit|star|money|population)/.test(id))
+    .filter(([id]) => /^ui\/(tool|cat|unit|star|money|population|window|alarm|lock)/.test(id))
     .map(([, canvas]) => canvas);
   const rows = Math.ceil(icons.length / ICON_COLUMNS);
   const sheet = new PixelCanvas(ICON_COLUMNS * ICON_CELL, rows * ICON_CELL);

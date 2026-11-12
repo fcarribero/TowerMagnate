@@ -9,6 +9,8 @@ export function dialogRequest(id: string): OpenRequest {
   return { id, onTop: true };
 }
 
+const DIALOG_WIDTH = 280;
+
 export interface DialogChoice {
   id: string;
   label: string;
@@ -20,13 +22,15 @@ interface DialogFrameProps {
   body: ComponentChildren;
   /** Left to right. */
   choices: readonly DialogChoice[];
-  /** Drawn as the default button and focused when the dialog opens. */
-  defaultChoiceId: string;
+  /** Drawn red, as the default button. */
+  redChoiceId?: string;
+  /** Focused when the dialog opens. */
+  focusedChoiceId: string;
   onChoose: (choiceId: string) => void;
   /** The choice Esc and the close button make; without one the dialog has no close button. */
   escapeChoiceId?: string;
   modal?: boolean;
-  width?: number;
+  tone?: 'alert' | 'info';
 }
 
 function DialogFrame({
@@ -34,11 +38,12 @@ function DialogFrame({
   title,
   body,
   choices,
-  defaultChoiceId,
+  redChoiceId,
+  focusedChoiceId,
   onChoose,
   escapeChoiceId,
   modal,
-  width,
+  tone = 'alert',
 }: DialogFrameProps) {
   const closable = escapeChoiceId !== undefined;
   return (
@@ -47,18 +52,19 @@ function DialogFrame({
       title={title}
       closable={closable}
       modal={modal}
-      width={width}
+      width={DIALOG_WIDTH}
+      isDialog
+      dialogTone={tone}
       onClose={closable ? () => onChoose(escapeChoiceId) : undefined}
     >
       {body}
       <div class="tm-dialog__buttons">
         {choices.map((choice) => {
-          const isDefault = choice.id === defaultChoiceId;
           return (
             <Button
               key={choice.id}
-              isDefault={isDefault}
-              autoFocus={isDefault}
+              isDefault={choice.id === redChoiceId}
+              autoFocus={choice.id === focusedChoiceId}
               onClick={() => onChoose(choice.id)}
             >
               {choice.label}
@@ -102,7 +108,8 @@ export function DecisionDialog({
         </>
       }
       choices={options}
-      defaultChoiceId={defaultOption?.id ?? ''}
+      redChoiceId={defaultOption?.id}
+      focusedChoiceId={defaultOption?.id ?? ''}
       onChoose={onAnswer}
     />
   );
@@ -113,6 +120,8 @@ export interface ConfirmDialogProps {
   title: string;
   body: string;
   actionLabel: string;
+  /** Red for destructive actions; plain for an ordinary purchase. */
+  actionTone?: 'danger' | 'plain';
   onConfirm: () => void;
   onCancel: () => void;
 }
@@ -126,6 +135,7 @@ export function ConfirmDialog({
   title,
   body,
   actionLabel,
+  actionTone = 'danger',
   onConfirm,
   onCancel,
 }: ConfirmDialogProps) {
@@ -138,7 +148,8 @@ export function ConfirmDialog({
         { id: CONFIRM, label: actionLabel },
         { id: CANCEL, label: t('ui.cancel') },
       ]}
-      defaultChoiceId={CANCEL}
+      redChoiceId={actionTone === 'danger' ? CONFIRM : undefined}
+      focusedChoiceId={CANCEL}
       escapeChoiceId={CANCEL}
       onChoose={(choice) => (choice === CONFIRM ? onConfirm() : onCancel())}
       modal
@@ -176,10 +187,12 @@ export function InfoDialog({
       title={title}
       body={<p class="tm-dialog__body">{body}</p>}
       choices={[{ id: ACCEPT, label: buttonLabel ?? t('ui.accept') }]}
-      defaultChoiceId={ACCEPT}
+      redChoiceId={ACCEPT}
+      focusedChoiceId={ACCEPT}
       escapeChoiceId={closable ? ACCEPT : undefined}
       onChoose={onClose}
       modal={modal}
+      tone="info"
     />
   );
 }

@@ -22,6 +22,11 @@ describe('OverlaySelector', () => {
     );
   });
 
+  it('shows the keys 1 to 4', () => {
+    render(<OverlaySelector overlay="normal" onSelect={() => undefined} />);
+    expect(screen.getAllByRole('button').map((b) => b.textContent)).toEqual(['1', '2', '3', '4']);
+  });
+
   it('reports the clicked overlay', () => {
     const onSelect = vi.fn();
     render(<OverlaySelector overlay="normal" onSelect={onSelect} />);

@@ -5,28 +5,44 @@
 .game-menu-list {
   position: absolute;
   top: 100%;
-  left: 8px;
+  left: 0;
   z-index: 500;
+  box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  min-width: 160px;
-  padding: 4px;
-  color: #141218;
-  background: #d6d4d0;
-  border: 2px solid;
-  border-color: #f4f1e8 #4f4e5c #4f4e5c #f4f1e8;
+  width: calc(120 * var(--tm-px));
+  margin-top: var(--space-1);
+  font: var(--text-body-strong);
+  color: var(--obra-ink);
+  background: var(--obra-paper);
+  border: var(--border-window);
+  box-shadow: var(--shadow-window);
 }
 
-.game-menu-list button {
-  font: inherit;
+.status-panel .game-menu-list button {
+  box-sizing: border-box;
+  display: block;
+  width: 100%;
+  height: calc(16 * var(--tm-px));
+  padding: 0 var(--space-2);
+  font: var(--text-body-strong);
+  color: var(--obra-ink);
   text-align: left;
+  white-space: nowrap;
+  cursor: pointer;
+  background: var(--obra-paper);
+  border: none;
+}
+
+.status-panel .game-menu-list button:hover {
+  background: var(--obra-yellow);
 }
 
 .game-menu-volume {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-2);
+  padding: 0 var(--space-2);
 }
 
 .game-menu-volume input {
