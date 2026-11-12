@@ -39,6 +39,10 @@ export interface WindowProps {
   width?: number;
   /** Blocks the rest of the UI, keeps Tab inside and gives focus back when it closes. */
   modal?: boolean;
+  /** Title bar color; green is for Finanzas. */
+  tone?: 'blue' | 'green';
+  /** Dialogs get the thick border, the hazard band and a paper title bar. */
+  isDialog?: boolean;
 }
 
 export function Window({
@@ -49,6 +53,8 @@ export function Window({
   closable = true,
   width,
   modal = false,
+  tone = 'blue',
+  isDialog = false,
 }: WindowProps) {
   const manager = useWindowManager();
   const frameRef = useRef<HTMLElement>(null);
@@ -165,7 +171,13 @@ export function Window({
     }
   };
 
-  const classes = ['tm-window', isFront && 'is-active', isWaitingForPlace && 'is-placing']
+  const classes = [
+    'tm-window',
+    tone === 'green' && 'tm-window--green',
+    isDialog && 'tm-window--dialog',
+    isFront && 'is-active',
+    isWaitingForPlace && 'is-placing',
+  ]
     .filter(Boolean)
     .join(' ');
   const widthStyle = width === undefined ? undefined : `calc(${width} * var(--tm-px))`;
