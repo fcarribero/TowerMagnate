@@ -455,7 +455,8 @@
 .tm-tooltip {
   position: fixed;
   z-index: 1000;
-  max-width: calc(200 * var(--tm-px));
+  box-sizing: border-box;
+  max-width: calc(160 * var(--tm-px));
   padding: var(--size-press-offset) var(--space-2);
   font: var(--text-body);
   color: var(--obra-ink);
@@ -466,7 +467,7 @@
 
 .tm-tooltip__line {
   display: block;
-  white-space: nowrap;
+  overflow-wrap: break-word;
 }
 
 .tm-tooltip__line.is-alert {
@@ -661,4 +662,29 @@
 
 .tm-progress__value {
   font: var(--text-body);
+}
+
+/* Toast: the one slot, above the tower. */
+.tm-toasts {
+  position: absolute;
+  bottom: calc(24 * var(--tm-px));
+  left: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.tm-toast {
+  box-sizing: border-box;
+  max-width: calc(480 * var(--tm-px));
+  margin: 0;
+  padding: var(--space-3);
+  font: var(--text-body-strong);
+  color: var(--obra-paper);
+  background: var(--obra-red);
+  border: var(--border-window);
+  box-shadow: var(--shadow-window);
+  pointer-events: none;
 }

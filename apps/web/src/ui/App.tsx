@@ -120,7 +120,7 @@ export function App({ onLogout, onRestartTower, onSessionLost }: AppProps) {
     });
     return api;
   }, [connection, director]);
-  const { toasts, floats, report } = useBuildFeedback();
+  const { floats, report } = useBuildFeedback();
   const notices = useNotices(
     connection,
     useCallback((error: string) => report({ ok: false, error }, { x: 0, y: 0 }), [report]),
@@ -373,7 +373,7 @@ export function App({ onLogout, onRestartTower, onSessionLost }: AppProps) {
           showMainLobbyWarning={onMainLobbyLevel && mainLobbyHeight === null}
           disabled={!connected}
         />
-        <BuildFeedback toasts={toasts} floats={floats} dragLabel={dragLabel} />
+        <BuildFeedback floats={floats} dragLabel={dragLabel} />
         <IncomeFloaters floaters={incomeFloats} />
         <ConnectionOverlay
           status={connectionStatus}

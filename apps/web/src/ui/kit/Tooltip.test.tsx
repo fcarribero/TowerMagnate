@@ -1,5 +1,7 @@
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/preact';
 import userEvent from '@testing-library/user-event';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { Button } from './Button';
 import { TOOLTIP_DELAY_MS, Tooltip, placeBelow, placeBeside } from './Tooltip';
@@ -125,5 +127,29 @@ describe('placeBelow', () => {
       left: 84,
       top: 628,
     });
+  });
+});
+
+describe('Tooltip width', () => {
+  const css = readFileSync(resolve(__dirname, 'kit.css'), 'utf8');
+  const rule = css.slice(
+    css.indexOf('.tm-tooltip {'),
+    css.indexOf('}', css.indexOf('.tm-tooltip {')),
+  );
+  const lineRule = css.slice(
+    css.indexOf('.tm-tooltip__line {'),
+    css.indexOf('}', css.indexOf('.tm-tooltip__line {')),
+  );
+
+  it('is at most 160 wide, border box, with the window border and no shadow', () => {
+    expect(rule).toContain('max-width: calc(160 * var(--tm-px))');
+    expect(rule).toContain('box-sizing: border-box');
+    expect(rule).toContain('border: var(--border-window)');
+    expect(rule).not.toContain('shadow');
+  });
+
+  it('wraps lines at word breaks instead of keeping them on one line', () => {
+    expect(lineRule).not.toContain('nowrap');
+    expect(lineRule).toContain('overflow-wrap: break-word');
   });
 });
