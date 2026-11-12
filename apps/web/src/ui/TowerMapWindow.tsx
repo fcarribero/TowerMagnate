@@ -31,7 +31,7 @@ export function TowerMapWindow({ content, stage, onClose }: TowerMapWindowProps)
     return () => manager.close(MAP_WINDOW_ID);
   }, []);
   return (
-    <Window id={MAP_WINDOW_ID} title={t('window.map.title')} onClose={onClose}>
+    <Window id={MAP_WINDOW_ID} title={t('window.map.title')} width={389} onClose={onClose}>
       <TowerMap content={content} stage={stage} />
     </Window>
   );

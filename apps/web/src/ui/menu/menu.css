@@ -38,8 +38,14 @@
   background: var(--obra-yellow);
 }
 
+.status-panel .game-menu-list .is-separated {
+  border-top: var(--border-control);
+}
+
 .game-menu-volume {
   display: flex;
+  box-sizing: border-box;
+  height: calc(16 * var(--tm-px));
   align-items: center;
   gap: var(--space-2);
   padding: 0 var(--space-2);
