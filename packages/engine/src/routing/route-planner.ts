@@ -336,8 +336,15 @@ export class TripPlanner {
 
   constructor(private readonly graph: TransportGraph) {}
 
-  /** The cheapest valid route, or null when there is none (routing 7.1, 7.2). */
-  plan(state: TowerState, request: RouteRequest): RoutePlan | null {
+  /**
+   * The cheapest valid route, or null when there is none (routing 7.1, 7.2). A route may not
+   * start at a shaft of `avoidShafts` (the shafts a person left in this trip, routing 8.4).
+   */
+  plan(
+    state: TowerState,
+    request: RouteRequest,
+    avoidShafts: readonly number[] = NO_SHAFTS,
+  ): RoutePlan | null {
     this.dropStaleCaches();
     const startRun = this.graph.runAtCell(request.from.level, request.from.x);
     const goalRun = this.graph.runAtCell(request.to.level, request.to.x);
@@ -351,7 +358,7 @@ export class TripPlanner {
     const counters = countersOf(request);
     const { table, extraColumns } = this.tableFor(request.to, goalRun.id, request.userClass);
     const options = this.optionsFor(table, extraColumns, request, startRun.id, counters);
-    const chosen = this.pickWithQueues(state, options, NO_SHAFTS);
+    const chosen = this.pickWithQueues(state, options, avoidShafts);
     if (!chosen) return null;
     return this.describe(table, request, chosen, counters, state);
   }

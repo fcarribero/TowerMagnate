@@ -17,6 +17,7 @@ import {
   type Level,
   type PersonPool,
   type Shaft,
+  type TowerState,
 } from '@tower-magnate/shared';
 import { isQueueFull, joinQueue, nextQueueCheckStep } from './elevator-queues';
 import {
@@ -132,12 +133,16 @@ function directionBetween(from: Level, to: Level): HallDirection {
 function planFrom(context: StepContext, slot: number): RoutePlan | null {
   const pool = context.state.people;
   const userClass = pool.kind[slot] === MAID_KIND ? 'maid' : 'other';
-  return plannerFor(graphOf(context)).plan(context.state, {
-    from: { level: pool.level[slot] as Level, x: pool.column[slot] as number },
-    to: { level: pool.trekLevel[slot] as Level, x: pool.trekColumn[slot] as number },
-    userClass,
-    budget: unpackBudget(pool.trekBudget[slot] as number),
-  });
+  return plannerFor(graphOf(context)).plan(
+    context.state,
+    {
+      from: { level: pool.level[slot] as Level, x: pool.column[slot] as number },
+      to: { level: pool.trekLevel[slot] as Level, x: pool.trekColumn[slot] as number },
+      userClass,
+      budget: unpackBudget(pool.trekBudget[slot] as number),
+    },
+    leftShaftsOf(pool, slot),
+  );
 }
 
 /** The queue a ride starts from and where it goes. */
@@ -263,9 +268,17 @@ function addLeftShaft(pool: PersonPool, slot: number, via: number): void {
   pool.leftShafts[slot] = first === 0 ? via : first + via * SHAFT_NUMBER_RANGE;
 }
 
-/** Routing 8.4: a re-plan keeps the switch count and forgets the shafts the person left. */
-function forgetLeftShafts(pool: PersonPool, slot: number): void {
+function shaftStillRuns(state: TowerState, shaftNumber: number): boolean {
+  const shaft = state.shafts[shaftKey(shaftNumber)];
+  return shaft !== undefined && shaft.cars.length > 0;
+}
+
+/** Routing 8.4: a re-plan keeps the switch count and the left shafts that still run, and drops the rest. */
+function dropGoneLeftShafts(state: TowerState, slot: number): void {
+  const pool = state.people;
+  const kept = leftShaftsOf(pool, slot).filter((via) => shaftStillRuns(state, via));
   pool.leftShafts[slot] = 0;
+  for (const via of kept) addLeftShaft(pool, slot, via);
 }
 
 /** Height of the lobby a person stands in, or null outside a lobby. */
@@ -586,7 +599,7 @@ function enterQueueOrWait(context: StepContext, slot: number): void {
   const pool = state.people;
   const shaft = state.shafts[shaftKey(pool.legVia[slot] as number)];
   if (!shaft) {
-    forgetLeftShafts(pool, slot);
+    dropGoneLeftShafts(state, slot);
     replan(context, slot);
     return;
   }
@@ -659,7 +672,7 @@ function recheckFullQueue(context: StepContext, slot: number, pass: TrekPass): v
   const { state } = context;
   const pool = state.people;
   if (!state.shafts[shaftKey(pool.legVia[slot] as number)]) {
-    forgetLeftShafts(pool, slot);
+    dropGoneLeftShafts(state, slot);
     replan(context, slot);
     return;
   }
@@ -681,7 +694,7 @@ function reachLegStart(context: StepContext, slot: number): void {
   } else if (phase === WALKING_TO_STAIRS || phase === WALKING_TO_ESCALATOR) {
     const onStairs = phase === WALKING_TO_STAIRS;
     if (!flightExists(context, slot)) {
-      forgetLeftShafts(context.state.people, slot);
+      dropGoneLeftShafts(context.state, slot);
       replan(context, slot);
     } else if (onStairs) startFlight(context, slot, ON_STAIRS, STAIR_FLIGHT_STEPS);
     else startFlight(context, slot, ON_ESCALATOR, ESCALATOR_FLIGHT_STEPS);
@@ -785,7 +798,7 @@ function replanBrokenLegs(context: StepContext): void {
     if (phase === ON_STAIRS || phase === ON_ESCALATOR) {
       pool.level[slot] = pool.legLevel[slot] as number;
     }
-    forgetLeftShafts(pool, slot);
+    dropGoneLeftShafts(context.state, slot);
     replan(context, slot);
   }
 }

@@ -414,21 +414,36 @@ describe('full queue recheck rule (routing 8.3)', () => {
     expect(view(runSteps(waited, FULL_QUEUE_RECHECK_STEPS), id).phase).toBe('queued');
   });
 
-  it('forgets the left shafts but keeps the switch count when the trip re-plans', () => {
+  it('keeps the switch count and the left shafts that still run when the trip re-plans', () => {
     const { state, id } = waiterWalkingToFirstShaft();
     const walking = runUntilHeadingTo(state, id, second);
     fillOnly(walking, 1);
     const arrived = runSteps(walking, second - first);
     expect(view(arrived, id).phase).toBe('waitingBesideQueue');
+    const leftBefore = pool(arrived, id).leftShafts;
+    expect(leftBefore).not.toBe(0);
+
+    const waitedAt = Object.values(arrived.shafts)[1] as Shaft;
+    Reflect.deleteProperty(arrived.shafts, waitedAt.id);
+    const replanned = runSteps(arrived, 1);
+    expect(pool(replanned, id)).toMatchObject({ switches: 1, leftShafts: leftBefore });
+  });
+
+  it('drops a left shaft that was demolished when the trip re-plans', () => {
+    const { state, id } = waiterWalkingToFirstShaft();
+    const walking = runUntilHeadingTo(state, id, second);
+    fillOnly(walking, 1);
+    const arrived = runSteps(walking, second - first);
     expect(pool(arrived, id).leftShafts).not.toBe(0);
 
-    const second_ = Object.values(arrived.shafts)[1] as Shaft;
-    Reflect.deleteProperty(arrived.shafts, second_.id);
+    const [leftShaft, waitedAt] = Object.values(arrived.shafts) as Shaft[];
+    Reflect.deleteProperty(arrived.shafts, (leftShaft as Shaft).id);
+    Reflect.deleteProperty(arrived.shafts, (waitedAt as Shaft).id);
     const replanned = runSteps(arrived, 1);
     expect(pool(replanned, id)).toMatchObject({ switches: 1, leftShafts: 0 });
   });
 
-  it('may head back to a shaft it left once a re-plan has emptied the list', () => {
+  it('does not head back to a shaft it left after a re-plan', () => {
     const { state, id } = waiterWalkingToFirstShaft();
     const walking = runUntilHeadingTo(state, id, second);
     fillOnly(walking, 1);
@@ -439,7 +454,7 @@ describe('full queue recheck rule (routing 8.3)', () => {
     Reflect.deleteProperty(arrived.shafts, waitedAt.id);
     fillOnly(arrived);
     const replanned = runSteps(arrived, 1);
-    expect(pool(replanned, id)).toMatchObject({ switches: 1, leftShafts: 0, headingTo: first });
+    expect(pool(replanned, id).headingTo).not.toBe(first);
   });
 
   it('counts switches again in a second trip of the same person', () => {
