@@ -1,5 +1,7 @@
 import { cleanup, render, screen, waitFor } from '@testing-library/preact';
 import userEvent from '@testing-library/user-event';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { useEffect } from 'preact/hooks';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { CommandOutcome } from '../../api/commandApi';
@@ -269,5 +271,13 @@ describe('ElevatorWindow', () => {
     expect(send).toHaveBeenCalledWith(
       expect.objectContaining({ type: 'configureShaft', stops: [2, 3], carHomes: [2, 3] }),
     );
+  });
+});
+
+describe('Schedule field width', () => {
+  it('keeps the dwell and response fields 40 wide so the table fits the window', () => {
+    const css = readFileSync(resolve(__dirname, 'elevatorWindow.css'), 'utf8');
+    const start = css.indexOf('.elevator-schedule .tm-input {');
+    expect(css.slice(start, css.indexOf('}', start))).toContain('width: calc(40 * var(--tm-px))');
   });
 });

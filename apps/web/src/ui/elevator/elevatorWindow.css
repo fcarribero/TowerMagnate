@@ -35,6 +35,15 @@
   border-bottom: var(--border-control);
 }
 
+.elevator-schedule .tm-input {
+  width: calc(40 * var(--tm-px));
+}
+
+.elevator-schedule select {
+  width: calc(60 * var(--tm-px));
+  font: var(--text-body-strong);
+}
+
 .elevator-schedule td {
   height: calc(16 * var(--tm-px));
   border-bottom: var(--size-press-offset) solid var(--obra-rule);
