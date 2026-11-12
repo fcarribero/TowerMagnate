@@ -38,6 +38,7 @@
   --size-press-offset: calc(1 * var(--tm-px));
 
   --motion-hover: 0.08s;
+  --motion-hover-offset: calc(-1 * var(--tm-px));
 
   --font-display: 'Archivo Black', Impact, sans-serif;
   --font-text: 'Space Grotesk', system-ui, sans-serif;
