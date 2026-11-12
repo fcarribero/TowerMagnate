@@ -1,8 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 
-const DUSK = 'rgb(224, 135, 90)';
-const CLOTH_RED = 'rgb(176, 53, 58)';
-const PANEL_PADDING_AND_BORDER = 2 * 4 + 2 * 2;
+const RED = 'rgb(255, 59, 47)';
+const PANEL_PADDING_AND_BORDER = 2 * 2 + 2;
 
 function statusBar(page: Page) {
   return page.getByRole('toolbar', { name: 'Barra de estado' });
@@ -26,16 +25,16 @@ test.beforeEach(async ({ page }) => {
   await page.evaluate(() => document.fonts.ready.then(() => undefined));
 });
 
-test('draws a Saturday in dusk and a negative balance in red', async ({ page }) => {
+test('tags a Saturday in red and draws a negative balance on red', async ({ page }) => {
   const bar = statusBar(page);
   const date = bar.locator('.status-panel__date');
   await expect(date).toHaveText('Sábado 6 de enero, año 1');
-  await expect(date).toHaveCSS('color', DUSK);
+  await expect(bar.locator('.status-panel__weekday')).toHaveCSS('background-color', RED);
   await expect(bar.locator('.status-panel__time')).toHaveText('23:59');
 
   const money = bar.locator('.status-panel__money');
   await expect(money).toHaveText('-$12.500');
-  await expect(money).toHaveCSS('color', CLOTH_RED);
+  await expect(money).toHaveCSS('background-color', RED);
 
   await expect(bar.locator('.status-panel__population')).toHaveText('Población 1.234');
   await expect(bar.locator('.status-panel__star.is-filled')).toHaveCount(5);
@@ -49,12 +48,20 @@ test('moves to Sunday and a positive balance a game minute later', async ({ page
   await expect(bar.locator('.status-panel__time')).toHaveText('00:00');
   const money = bar.locator('.status-panel__money');
   await expect(money).toHaveText('$87.500');
-  await expect(money).not.toHaveCSS('color', CLOTH_RED);
+  await expect(money).not.toHaveCSS('background-color', RED);
+  await expect(bar.locator('.status-panel__weekday.is-weekend')).toHaveCount(1);
 });
 
-test('is 24 UI pixels tall', async ({ page }) => {
+test('is 24 UI pixels tall and no block is taller than 18', async ({ page }) => {
   const box = await page.locator('.status-panel').boundingBox();
   expect(box?.height).toBe(24);
+  const heights = await page
+    .locator(
+      '.status-panel__date, .status-panel__time, .status-panel__money, .status-panel__population, .status-panel__stars, .status-panel__zoom, .status-panel__window, .overlay-selector, .status-button',
+    )
+    .evaluateAll((blocks) => blocks.map((block) => block.getBoundingClientRect().height));
+  expect(heights.length).toBeGreaterThan(8);
+  expect(Math.max(...heights)).toBe(18);
 });
 
 test('moves window buttons into the menu first, then the zoom buttons', async ({ page }) => {

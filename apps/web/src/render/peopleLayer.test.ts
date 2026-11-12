@@ -34,6 +34,17 @@ describe('PeopleLayer', () => {
     });
   });
 
+  it('tints wedding guests and clears the tint when the wedding is over', () => {
+    const { layer } = layerWithArt();
+    layer.markGuests(new Set(['p1']));
+    layer.show(frameOf(person('p1', {}), person('p2', {})));
+    const tints = () => layer.view.children.map((child) => (child as Sprite).tint);
+    expect(tints()[0]).not.toBe(tints()[1]);
+    layer.markGuests(new Set());
+    layer.show(frameOf(person('p1', {}), person('p2', {})));
+    expect(tints()[0]).toBe(tints()[1]);
+  });
+
   it('removes people missing from the frame', () => {
     const { layer } = layerWithArt();
     layer.show(frameOf(person('p1', {}), person('p2', {})));

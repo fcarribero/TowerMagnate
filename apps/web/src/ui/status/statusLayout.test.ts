@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { outlineOf, STAR_FILLED, STAR_OUTLINE } from './pixelIcons';
+import { enlarge, outlineOf, STAR_FILLED, STAR_OUTLINE } from './pixelIcons';
 import { statusCollapse } from './statusLayout';
 
 const widths = { fixed: 700, zoom: 40, windows: 110 };
@@ -22,9 +22,9 @@ describe('statusCollapse', () => {
 });
 
 describe('star outline', () => {
-  it('keeps the edge of the filled star and empties its middle', () => {
-    expect(STAR_OUTLINE).toEqual(outlineOf(STAR_FILLED));
-    expect(STAR_OUTLINE[3]).toBe('.#...#.');
-    expect(STAR_OUTLINE[0]).toBe(STAR_FILLED[0]);
+  it('keeps the edge of the enlarged star and empties its middle', () => {
+    expect(STAR_OUTLINE).toEqual(outlineOf(enlarge(STAR_FILLED, 2)));
+    expect(STAR_OUTLINE).toHaveLength(14);
+    expect(STAR_OUTLINE[5]).toBe('##..........##');
   });
 });

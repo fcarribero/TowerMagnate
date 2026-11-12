@@ -35,7 +35,7 @@ body,
   position: absolute;
   top: calc(24 * var(--tm-px));
   right: 0;
-  left: 0;
+  left: calc(80 * var(--tm-px));
   box-sizing: border-box;
   height: calc(18 * var(--tm-px));
   padding: 0 var(--space-2);

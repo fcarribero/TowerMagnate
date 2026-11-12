@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { cleanup, fireEvent, render, screen } from '@testing-library/preact';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ConnectionOverlay } from './ConnectionOverlay';
@@ -35,5 +36,11 @@ describe('ConnectionOverlay', () => {
     expect(screen.queryByRole('button', { name: /cerrar/i })).toBeNull();
     fireEvent.click(button);
     expect(onReload).toHaveBeenCalledTimes(1);
+  });
+
+  it('starts the banner after the 80 px toolbar so it stays over the tower view', () => {
+    const css = readFileSync('src/style.css', 'utf8');
+    const banner = /\.connection-banner \{[^}]*\}/.exec(css)?.[0] ?? '';
+    expect(banner).toContain('left: calc(80 * var(--tm-px));');
   });
 });
