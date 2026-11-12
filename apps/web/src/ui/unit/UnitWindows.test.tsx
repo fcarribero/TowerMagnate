@@ -104,7 +104,10 @@ describe('unit windows', () => {
     open('u1');
     show(inspectOf('u1', { details: leaseDetails({ nextPaymentStep: 0 }) }));
     const dialog = screen.getByRole('dialog', { name: 'Oficina · Piso 3' });
-    expect(within(dialog).getByText('Oficina · Piso 3 · casilleros 10 a 18')).toBeTruthy();
+    const subtitle = within(dialog).getByText('Oficina · Piso 3 · casilleros 10 a 18');
+    expect(subtitle.className).toBe('tm-window__subtitle');
+    expect(dialog.className).toContain('tm-window--subtitled');
+    expect(subtitle.closest('.tm-window__title')).toBeTruthy();
     const status = within(dialog).getByText('Ocupada').parentElement;
     expect(status?.className).toContain('is-good');
     const evaluation = within(dialog).getByText('Buena').parentElement;

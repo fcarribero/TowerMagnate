@@ -116,8 +116,13 @@ export function UnitWindow({ unitId, connection }: UnitWindowProps) {
 
   return (
     <>
-      <Window id={windowId} title={title} onClose={close} width={200}>
-        {found !== undefined && <p class="tm-unit__subtitle">{unitSubtitle(found)}</p>}
+      <Window
+        id={windowId}
+        title={title}
+        subtitle={found === undefined ? undefined : unitSubtitle(found)}
+        onClose={close}
+        width={200}
+      >
         {gone && <p class="tm-unit__gone">{t('ui.goneFromTower')}</p>}
         <div class="tm-field">
           <label class="tm-field__label" for={`${windowId}-name`}>

@@ -58,10 +58,37 @@ function show(
   return send;
 }
 
+async function pick(label: string, option: string): Promise<void> {
+  await userEvent.click(screen.getByRole('combobox', { name: label }));
+  await userEvent.click(screen.getByRole('option', { name: option }));
+}
+
 describe('ElevatorWindow', () => {
   it('lists only express levels on an express shaft', () => {
     show(shaft({ type: 'express', bottom: -1, top: 16, stops: [-1, 1, 15] }));
     expect(screen.getAllByRole('checkbox')).toHaveLength(3);
+  });
+
+  it('draws every choice with the kit dropdown instead of a native select', async () => {
+    const { container } = render(
+      <WindowLayer>
+        <Open shaft={shaft()} send={vi.fn()} onClose={() => undefined} />
+      </WindowLayer>,
+    );
+    expect(container.querySelector('select')).toBeNull();
+    expect(screen.getAllByRole('combobox')).toHaveLength(2);
+    await userEvent.click(screen.getByRole('tab', { name: 'Cabinas' }));
+    expect(container.querySelector('select')).toBeNull();
+    expect(screen.getAllByRole('combobox')).toHaveLength(1);
+  });
+
+  it('changes a car base with the keyboard', async () => {
+    const send = show(shaft());
+    await userEvent.click(screen.getByRole('tab', { name: 'Cabinas' }));
+    screen.getByRole('combobox', { name: 'Base:' }).focus();
+    await userEvent.keyboard('{ArrowDown}{ArrowUp}{Enter}');
+    await userEvent.click(screen.getByRole('button', { name: 'Aplicar' }));
+    expect(send).toHaveBeenCalledWith(expect.objectContaining({ carHomes: [2] }));
   });
 
   it('applies toggled stops with configureShaft', async () => {
@@ -129,10 +156,7 @@ describe('ElevatorWindow', () => {
     it('sends the edited band with configureShaft and leaves the weekend alone', async () => {
       const send = show(shaft());
       await openSchedule();
-      await userEvent.selectOptions(
-        screen.getByLabelText('Modo 07:00 a 10:00'),
-        'Expreso hacia arriba',
-      );
+      await pick('Modo 07:00 a 10:00', 'Expreso hacia arriba');
       await userEvent.clear(field('Espera 07:00 a 10:00'));
       await userEvent.type(field('Espera 07:00 a 10:00'), '20');
       await userEvent.clear(field('Respuesta 07:00 a 10:00'));
@@ -171,10 +195,7 @@ describe('ElevatorWindow', () => {
       const send = show(shaft());
       await openSchedule();
       await userEvent.click(screen.getByLabelText('Fin de semana'));
-      await userEvent.selectOptions(
-        screen.getByLabelText('Modo 00:00 a 07:00'),
-        'Expreso hacia abajo',
-      );
+      await pick('Modo 00:00 a 07:00', 'Expreso hacia abajo');
       await userEvent.click(screen.getByRole('button', { name: 'Copiar a días hábiles' }));
       await userEvent.click(applyButton());
       const sent = vi.mocked(send).mock.calls[0]?.[0];
@@ -206,10 +227,7 @@ describe('ElevatorWindow', () => {
         vi.fn(async (): Promise<CommandOutcome> => ({ ok: false, error: 'INVALID_SCHEDULE' })),
       );
       await openSchedule();
-      await userEvent.selectOptions(
-        screen.getByLabelText('Modo 00:00 a 07:00'),
-        'Expreso hacia arriba',
-      );
+      await pick('Modo 00:00 a 07:00', 'Expreso hacia arriba');
       await userEvent.click(applyButton());
       await waitFor(() =>
         expect(screen.getByRole('alert').textContent).toBe(
@@ -279,5 +297,30 @@ describe('Schedule field width', () => {
     const css = readFileSync(resolve(__dirname, 'elevatorWindow.css'), 'utf8');
     const start = css.indexOf('.elevator-schedule .tm-input {');
     expect(css.slice(start, css.indexOf('}', start))).toContain('width: calc(40 * var(--tm-px))');
+  });
+});
+
+describe('Schedule Modo column width', () => {
+  const css = readFileSync(resolve(__dirname, 'elevatorWindow.css'), 'utf8');
+
+  it('fixes the Modo dropdown at 112 wide, enough for Expreso hacia abajo', () => {
+    const start = css.indexOf('.elevator-schedule .tm-dropdown {');
+    expect(css.slice(start, css.indexOf('}', start))).toContain('width: calc(112 * var(--tm-px))');
+  });
+
+  it('opens a window wide enough for the whole table', () => {
+    show(shaft());
+    const frame = screen.getByRole('dialog');
+    expect(frame.style.width).toBe('calc(310 * var(--tm-px))');
+  });
+
+  it('keeps the Modo cell markup unchanged after choosing Expreso hacia abajo', async () => {
+    show(shaft());
+    await userEvent.click(screen.getByRole('tab', { name: 'Horarios' }));
+    const modeCell = () => screen.getAllByRole('combobox')[0]?.closest('td');
+    const before = modeCell()?.className;
+    await pick('Modo 00:00 a 07:00', 'Expreso hacia abajo');
+    expect(modeCell()?.className).toBe(before);
+    expect(modeCell()?.querySelector('.tm-dropdown')).not.toBeNull();
   });
 });
