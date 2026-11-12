@@ -34,6 +34,18 @@ describe('PeopleLayer', () => {
     });
   });
 
+  it('shows the lamp marker only over followed people', () => {
+    const { layer } = layerWithArt();
+    layer.markFollowed(new Set(['p1']));
+    layer.show(frameOf(person('p1', {}), person('p2', {})));
+    const [first, second] = layer.view.children as Sprite[];
+    expect(first?.children[0]?.visible).toBe(true);
+    expect(second?.children[0]?.visible).toBe(false);
+    layer.markFollowed(new Set());
+    layer.show(frameOf(person('p1', {}), person('p2', {})));
+    expect(first?.children[0]?.visible).toBe(false);
+  });
+
   it('tints wedding guests and clears the tint when the wedding is over', () => {
     const { layer } = layerWithArt();
     layer.markGuests(new Set(['p1']));

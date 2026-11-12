@@ -1,4 +1,9 @@
-import { SHAFT_UNIT_TYPES, UNIT_CATALOG, type ShaftView } from '@tower-magnate/shared';
+import {
+  SHAFT_UNIT_TYPES,
+  UNIT_CATALOG,
+  type PersonView,
+  type ShaftView,
+} from '@tower-magnate/shared';
 import type { ClientStore } from '../model/clientStore';
 import type { Cell } from './cellAtPoint';
 import { unitAt } from './placementCheck';
@@ -18,6 +23,7 @@ export interface ClickStage {
 const CLICK_MOVE_LIMIT = 4;
 
 export interface InspectWindowOpeners {
+  person: (personId: string) => void;
   unit: (unitId: string) => void;
   shaft: (shaftId: string) => void;
 }
@@ -33,7 +39,29 @@ function shaftAt(shafts: Iterable<ShaftView>, cell: Cell): ShaftView | null {
   return null;
 }
 
-/** With the inspect tool, a click on a unit or an elevator shaft asks for its window. */
+/** Walking, waiting and stair people are drawn on the floor; riders and people inside are not. */
+function isDrawnOnFloor(person: PersonView): boolean {
+  return person.mode !== 'ride' && person.mode !== 'inside';
+}
+
+/** The person drawn on the cell, the nearest one when several overlap it. */
+export function personAt(people: Iterable<PersonView>, cell: Cell): PersonView | null {
+  let nearest: PersonView | null = null;
+  let nearestDistance = 1;
+  for (const person of people) {
+    if (person.level !== cell.level || !isDrawnOnFloor(person)) {
+      continue;
+    }
+    const distance = Math.abs(person.x - cell.x);
+    if (distance < nearestDistance) {
+      nearest = person;
+      nearestDistance = distance;
+    }
+  }
+  return nearest;
+}
+
+/** With the inspect tool, a click on a person, a unit or an elevator shaft asks for its window. */
 export function bindUnitClicks(
   stage: ClickStage,
   store: ClientStore,
@@ -56,6 +84,11 @@ export function bindUnitClicks(
     }
     const latest = store.current?.latest;
     if (latest === undefined) {
+      return;
+    }
+    const person = personAt(latest.people.values(), input.cell);
+    if (person !== null) {
+      open.person(person.id);
       return;
     }
     const unit = unitAt(latest.units.values(), input.cell.x, input.cell.level);
