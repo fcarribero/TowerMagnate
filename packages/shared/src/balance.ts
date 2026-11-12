@@ -650,6 +650,12 @@ export const ELEVATOR_QUEUE_CAPACITY = 40;
 export const FULL_QUEUE_RECHECK_STEPS = 6;
 /** Added to the route cost of a ride whose queue is full. */
 export const FULL_QUEUE_ROUTE_COST = 1_000;
+/** Rechecks a person waits beside a full queue before they may switch to another ride. */
+export const FULL_QUEUE_STAY_RECHECKS = 3;
+/** Cost points the new ride must save against the current ride, with its full-queue surcharge. */
+export const FULL_QUEUE_SWITCH_MARGIN = 500;
+/** Switches a person may make beside full queues in one trip. */
+export const FULL_QUEUE_MAX_SWITCHES_PER_TRIP = 2;
 
 /** Route costs per routing.md section 6, in cost points. */
 export const ROUTE_FLOOR_COST = 8;
