@@ -4,7 +4,7 @@ import type { PersonInspect } from '../../model/inspectStore';
 import type { GameConnection } from '../../net/gameConnection';
 import { personWorldPoint } from '../../render/personPoint';
 import { unitAt } from '../../render/placementCheck';
-import { Button, Tooltip, Window, useWindowManager } from '../kit';
+import { Button, TextField, Tooltip, Window, useWindowManager } from '../kit';
 import { personWindowId } from '../inspectTarget';
 import { t } from '../strings';
 import { NAME_MAX_LENGTH } from '../unit/unitWindowModel';
@@ -152,27 +152,17 @@ export function PersonWindow({ personId, connection, onCenter }: PersonWindowPro
   return (
     <Window id={windowId} title={title} onClose={close} width={200}>
       {gone && <p class="tm-person__gone">{t('ui.goneFromTower')}</p>}
-      <div class="tm-field">
-        <label class="tm-field__label" for={`${windowId}-name`}>
-          {t('window.unit.name')}
-        </label>
-        <input
-          id={`${windowId}-name`}
-          class="tm-input"
-          type="text"
-          value={shownName}
-          maxLength={NAME_MAX_LENGTH}
-          placeholder={known === undefined ? undefined : kindName(known.personKind)}
-          disabled={gone || known === undefined}
-          onInput={(event) => setDraft(event.currentTarget.value)}
-          onBlur={commitName}
-          onKeyDown={(event) => {
-            if (event.key === 'Enter') {
-              commitName();
-            }
-          }}
-        />
-      </div>
+      <TextField
+        id={`${windowId}-name`}
+        label={t('window.unit.name')}
+        value={shownName}
+        maxLength={NAME_MAX_LENGTH}
+        placeholder={known === undefined ? undefined : kindName(known.personKind)}
+        disabled={gone || known === undefined}
+        onChange={setDraft}
+        onBlur={commitName}
+        onEnter={commitName}
+      />
       {found !== undefined && stress !== null && (
         <dl class="tm-person__rows">
           <Row label={t('window.person.type')} value={kindName(found.personKind)} />
