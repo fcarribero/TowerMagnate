@@ -468,3 +468,7 @@
   display: block;
   white-space: nowrap;
 }
+
+.tm-tooltip__line.is-alert {
+  color: var(--obra-red);
+}
