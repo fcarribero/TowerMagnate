@@ -19,10 +19,11 @@ interface Target {
   sentAt: number;
 }
 
-type InspectableKind = 'unit' | 'shaft' | 'person';
+type InspectableTarget = Exclude<InspectTarget, { kind: 'finances' }>;
+type InspectableKind = InspectableTarget['kind'];
 
-function isInspectable(kind: InspectTarget['kind']): kind is InspectableKind {
-  return kind === 'unit' || kind === 'shaft' || kind === 'person';
+function isInspectable(target: InspectTarget): target is InspectableTarget {
+  return target.kind !== 'finances';
 }
 
 function targetKey(kind: string, id: string): string {
@@ -59,7 +60,7 @@ export class Inspections {
 
   /** Adds a target and answers it at once. Adding a target the socket already has answers it again. */
   add(socket: GatewaySocket, towerId: string, target: InspectTarget): AddResult {
-    if (!isInspectable(target.kind)) {
+    if (!isInspectable(target)) {
       return 'unsupported';
     }
     const key = targetKey(target.kind, target.id);
@@ -75,7 +76,7 @@ export class Inspections {
   }
 
   remove(socket: GatewaySocket, target: InspectTarget): void {
-    if (isInspectable(target.kind)) {
+    if (isInspectable(target)) {
       this.targets.get(socket)?.delete(targetKey(target.kind, target.id));
     }
   }
