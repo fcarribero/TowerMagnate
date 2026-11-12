@@ -62,20 +62,35 @@ function drawArrivals(state: TowerState, day: number): number[] {
   return arrivals.sort((a, b) => a - b);
 }
 
+function openWedding(state: TowerState, cathedral: Unit, day: number): void {
+  state.wedding = {
+    day,
+    cathedral: cathedral.id,
+    arrivals: drawArrivals(state, day),
+    inside: 0,
+    outcome: 'pending',
+  };
+  state.lastWeddingDay = day;
+}
+
 /** Stars spec 7.1: at 00:00 on a weekend day, after the counts roll, an attempt may be due. */
 export function startWeddingAttempt(context: StepContext, occurrence: HookOccurrence): void {
   const { state } = context;
   if (!isWeekendDay(occurrence.weekday) || state.stars !== 5) return;
   const cathedral = findCathedral(state);
   if (!cathedral || populationOf(state).total < WEDDING_POPULATION) return;
-  state.wedding = {
-    day: occurrence.dayNumber,
-    cathedral: cathedral.id,
-    arrivals: drawArrivals(state, occurrence.dayNumber),
-    inside: 0,
-    outcome: 'pending',
-  };
-  state.lastWeddingDay = occurrence.dayNumber;
+  openWedding(state, cathedral, occurrence.dayNumber);
+}
+
+/**
+ * Starts today's attempt on the built cathedral without the weekend, star and population checks.
+ * Returns null when there is no cathedral or an attempt is already running.
+ */
+export function startWeddingNow(state: TowerState): WeddingAttempt | null {
+  const cathedral = findCathedral(state);
+  if (!cathedral || state.wedding) return null;
+  openWedding(state, cathedral, Math.floor(state.step / STEPS_PER_DAY));
+  return state.wedding;
 }
 
 export const weddingAttemptHook: ScheduledHook = {
