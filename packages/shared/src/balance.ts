@@ -475,6 +475,19 @@ export const CINEMA_SHOW_LENGTH_HOURS = 2;
 
 export const CINEMA_MOVIE_CHANGE_COST = 300_000;
 
+/** Economy 7.3: the show cap from this film age in days on. Sorted by age. */
+export const CINEMA_SHOW_CAPS: readonly { fromAgeDays: number; cap: number }[] = [
+  { fromAgeDays: 0, cap: 120 },
+  { fromAgeDays: 14, cap: 100 },
+  { fromAgeDays: 28, cap: 85 },
+  { fromAgeDays: 42, cap: 65 },
+  { fromAgeDays: 56, cap: 35 },
+];
+
+/** From this film age the cinema asks for a new film, then again every CINEMA_CHANGE_FILM_REPEAT_DAYS. */
+export const CINEMA_CHANGE_FILM_FROM_AGE_DAYS = 56;
+export const CINEMA_CHANGE_FILM_REPEAT_DAYS = 7;
+
 /** People spec sections 16 and 17. */
 export const MEDICAL_VISIT_CHANCE = 0.1;
 export const MEDICAL_VISIT_MINUTES = 60;
