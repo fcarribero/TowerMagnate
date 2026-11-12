@@ -4,6 +4,8 @@ import { DEBUG_TAG } from './support/target';
 import { canvasBox, CENTER_COLUMN, tilePoint } from './support/towerCanvas';
 
 const STEPS_PER_GAME_DAY = 8_640;
+const MAX_DAYS_FOR_TENANT = 10;
+const TEST_TIMEOUT_MS = 90_000;
 const LOBBY_FIRST = CENTER_COLUMN - 16;
 const LOBBY_LAST = CENTER_COLUMN + 15;
 const OFFICE_COLUMN = LOBBY_FIRST;
@@ -19,6 +21,33 @@ function parseMoney(text: string): number {
   return text.includes('-') ? -amount : amount;
 }
 
+async function dismissWelcome(page: Page): Promise<void> {
+  const accept = page.getByRole('button', { name: 'Aceptar' });
+  await accept.click();
+  await expect(accept).toHaveCount(0);
+}
+
+/**
+ * A prospect shows up by chance (20% per hourly roll on a vacant office), so a given day can pass
+ * without a tenant. Runs the tower one day at a time until the population shows the tenant.
+ */
+async function waitForTenant(page: Page): Promise<void> {
+  const population = page.locator('.status-panel__population');
+  for (let day = 0; day < MAX_DAYS_FOR_TENANT; day++) {
+    await fastForward(page, STEPS_PER_GAME_DAY);
+    const arrived = await expect(population)
+      .toHaveText(/Población 6$/, { timeout: 3_000 })
+      .then(
+        () => true,
+        () => false,
+      );
+    if (arrived) {
+      return;
+    }
+  }
+  await expect(population).toHaveText(/Población 6$/);
+}
+
 async function chooseTool(page: Page, category: number, tool: string): Promise<void> {
   await page.getByRole('tab').nth(category).click();
   await page.locator(`[data-tool="${tool}"]`).click();
@@ -30,13 +59,36 @@ async function pointAt(page: Page, column: number, level: number): Promise<void>
   await page.mouse.move(box.x + point.x, box.y + point.y);
 }
 
+/** Starts recording the text of the next float label; the label lives 1 s, too short to read after the fact. */
+async function watchNextFloat(page: Page): Promise<void> {
+  await page.evaluate(() => {
+    const seen = window as unknown as { nextFloatText: Promise<string> };
+    seen.nextFloatText = new Promise<string>((resolve) => {
+      const observer = new MutationObserver(() => {
+        const label = document.querySelector('.tm-float-cost');
+        if (label?.textContent) {
+          observer.disconnect();
+          resolve(label.textContent);
+        }
+      });
+      observer.observe(document.body, { childList: true, subtree: true, characterData: true });
+    });
+  });
+}
+
+function recordedFloatText(page: Page): Promise<string> {
+  return page.evaluate(
+    () => (window as unknown as { nextFloatText: Promise<string> }).nextFloatText,
+  );
+}
+
 /** Runs the build gesture and returns the cost the game floated next to the pointer. */
 async function floatedCost(page: Page, gesture: () => Promise<void>): Promise<number> {
+  await expect(page.locator('.tm-float-cost')).toHaveCount(0);
   const before = await moneyOf(page);
+  await watchNextFloat(page);
   await gesture();
-  const label = page.locator('.tm-float-cost').last();
-  await expect(label).toBeVisible();
-  const cost = -parseMoney(await label.innerText());
+  const cost = -parseMoney(await recordedFloatText(page));
   expect(cost).toBeGreaterThan(0);
   await expect.poll(() => moneyOf(page)).toBe(before - cost);
   return cost;
@@ -59,7 +111,9 @@ test(
   'building from the toolbar charges the cost on the label and a tenant fills the office',
   { tag: DEBUG_TAG },
   async ({ page }) => {
+    test.setTimeout(TEST_TIMEOUT_MS);
     await openGame(page);
+    await dismissWelcome(page);
     await expect(page.getByRole('navigation')).toBeVisible();
     await expect(page.locator('.status-panel__population')).toHaveText(/Población 0$/);
 
@@ -91,7 +145,6 @@ test(
     expect(shownCost).toBe(280_000);
     await expect.poll(() => moneyOf(page)).toBe(before - shownCost);
 
-    await fastForward(page, STEPS_PER_GAME_DAY);
-    await expect(page.locator('.status-panel__population')).toHaveText(/Población 6$/);
+    await waitForTenant(page);
   },
 );
