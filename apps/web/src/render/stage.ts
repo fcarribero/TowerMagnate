@@ -361,6 +361,7 @@ export async function mountStage(host: HTMLElement, options: StageOptions = {}):
     },
     showFollowed(followed) {
       people.markFollowed(followed);
+      elevators.markFollowed(followed);
     },
     showShafts(shafts) {
       elevators.showShafts(shafts);

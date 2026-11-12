@@ -455,7 +455,8 @@
 .tm-tooltip {
   position: fixed;
   z-index: 1000;
-  max-width: calc(200 * var(--tm-px));
+  box-sizing: border-box;
+  max-width: calc(160 * var(--tm-px));
   padding: var(--size-press-offset) var(--space-2);
   font: var(--text-body);
   color: var(--obra-ink);
@@ -466,7 +467,7 @@
 
 .tm-tooltip__line {
   display: block;
-  white-space: nowrap;
+  overflow-wrap: break-word;
 }
 
 .tm-tooltip__line.is-alert {
@@ -531,6 +532,15 @@
   margin-bottom: var(--space-3);
 }
 
+.tm-dropdown__label--hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
 .tm-dropdown__field {
   box-sizing: border-box;
   display: flex;
@@ -579,6 +589,7 @@
   box-sizing: border-box;
   margin: 0;
   padding: 0;
+  max-height: min(calc(8 * 14 * var(--tm-px)), var(--tm-dropdown-room, 100vh));
   list-style: none;
   background: var(--obra-paper);
   border: var(--border-window);
@@ -606,18 +617,21 @@
 /* Scroll bar: 6 wide, paper-shade track with a control border on its left, ink thumb. */
 .tm-scroll,
 .tm-window__body,
+.tm-dropdown__list,
 .tm-list__items {
   overflow-y: auto;
 }
 
 .tm-scroll::-webkit-scrollbar,
 .tm-window__body::-webkit-scrollbar,
+.tm-dropdown__list::-webkit-scrollbar,
 .tm-list__items::-webkit-scrollbar {
   width: calc(6 * var(--tm-px));
 }
 
 .tm-scroll::-webkit-scrollbar-track,
 .tm-window__body::-webkit-scrollbar-track,
+.tm-dropdown__list::-webkit-scrollbar-track,
 .tm-list__items::-webkit-scrollbar-track {
   background: var(--obra-paper-shade);
   border-left: var(--border-control);
@@ -625,6 +639,7 @@
 
 .tm-scroll::-webkit-scrollbar-thumb,
 .tm-window__body::-webkit-scrollbar-thumb,
+.tm-dropdown__list::-webkit-scrollbar-thumb,
 .tm-list__items::-webkit-scrollbar-thumb {
   background: var(--obra-ink);
 }
@@ -632,6 +647,7 @@
 @supports not selector(::-webkit-scrollbar) {
   .tm-scroll,
   .tm-window__body,
+  .tm-dropdown__list,
   .tm-list__items {
     scrollbar-color: var(--obra-ink) var(--obra-paper-shade);
     scrollbar-width: thin;
@@ -661,4 +677,29 @@
 
 .tm-progress__value {
   font: var(--text-body);
+}
+
+/* Toast: the one slot, above the tower. */
+.tm-toasts {
+  position: absolute;
+  bottom: calc(24 * var(--tm-px));
+  left: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.tm-toast {
+  box-sizing: border-box;
+  max-width: calc(480 * var(--tm-px));
+  margin: 0;
+  padding: var(--space-3);
+  font: var(--text-body-strong);
+  color: var(--obra-paper);
+  background: var(--obra-red);
+  border: var(--border-window);
+  box-shadow: var(--shadow-window);
+  pointer-events: none;
 }

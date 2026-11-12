@@ -39,9 +39,8 @@
   width: calc(40 * var(--tm-px));
 }
 
-.elevator-schedule select {
-  width: calc(60 * var(--tm-px));
-  font: var(--text-body-strong);
+.elevator-schedule .tm-dropdown {
+  width: calc(112 * var(--tm-px));
 }
 
 .elevator-schedule td {

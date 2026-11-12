@@ -1,9 +1,11 @@
 import { act, cleanup, render, screen } from '@testing-library/preact';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { CommandClient } from '../../net/commandClient';
+import { clearToast } from '../kit';
 import { Toasts, TOAST_DURATION_MS } from './Toasts';
 
 afterEach(() => {
+  act(() => clearToast());
   cleanup();
   vi.useRealTimers();
 });

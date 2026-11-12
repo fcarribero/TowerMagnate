@@ -450,7 +450,7 @@ function arriveAtVenue(resident: Resident): void {
     return;
   }
   arriveAt(resident, unitPlace(venue));
-  countVenueVisit(state, venue, stressOfTripEndedNow(state, resident.slot));
+  countVenueVisit(state, venue, stressOfTripEndedNow(state, resident.slot), 'resident');
   routine.phase = 'atVenue';
   save(resident, state.step + VENUE_VISIT_MINUTES[type] * STEPS_PER_MINUTE);
 }
