@@ -68,10 +68,6 @@
   font: var(--text-body);
 }
 
-.auth-screen .tm-input[aria-invalid='true'] {
-  border-width: var(--space-1);
-}
-
 .auth-screen__notice {
   margin: 0 0 var(--space-4);
   padding: var(--space-2);
