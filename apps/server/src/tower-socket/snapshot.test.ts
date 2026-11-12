@@ -6,6 +6,7 @@ import {
   defaultSchedule,
   encodeRoutine,
   followPerson,
+  renamePerson,
   newUnit,
   openBombThreat,
   openFire,
@@ -411,12 +412,13 @@ describe('snapshot from tower state', () => {
 
   it('sends followed people wherever they are', () => {
     const state = towerWithPeople();
+    renamePerson(state.people, 3, 'Ana');
     followPerson(state.people, 3);
 
     const snapshot = buildSnapshot(state, LOBBY_VIEW);
 
     expect(snapshot.followed).toEqual([
-      { id: 'p3', name: 'p3', kind: 'maid', level: 30, x: 4, stress: 'normal' },
+      { id: 'p3', name: 'Ana', kind: 'maid', level: 30, x: 4, stress: 'normal' },
     ]);
   });
 

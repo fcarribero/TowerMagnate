@@ -58,13 +58,22 @@ describe('debug messages over the tower socket', () => {
     client.sendRaw(debugFrame('debug.fastForward', { id: 'f', steps: 100 }));
     client.sendRaw(debugFrame('debug.setClock', { id: 'c', day: 3, time: '12:00' }));
 
-    await waitFor(() => results(client).length === 4);
-    // A new tower has no unit a fire can start in, so the engine refuses the event.
+    client.sendRaw(
+      debugFrame('debug.setClock', { id: 'd', year: 1, month: 12, day: 24, time: '10:00' }),
+    );
+    client.sendRaw(debugFrame('debug.forceEvent', { id: 'w', kind: 'wedding' }));
+    client.sendRaw(debugFrame('debug.forceEvent', { id: 'i', kind: 'infestation', unitId: 'u1' }));
+
+    await waitFor(() => results(client).length === 7);
+    // A new tower has no fire spot, cathedral or hotel room, so the engine refuses those events.
     expect(results(client).map((result) => [result.id, result.ok])).toEqual([
       ['m', true],
       ['e', false],
       ['f', true],
       ['c', true],
+      ['d', true],
+      ['w', false],
+      ['i', false],
     ]);
   });
 
@@ -76,9 +85,12 @@ describe('debug messages over the tower socket', () => {
     client.sendRaw(debugFrame('debug.fastForward', { steps: 10 }));
     client.sendRaw(debugFrame('debug.setClock', { day: 1, time: '10:00' }));
     client.sendRaw(debugFrame('debug.forceEvent', { kind: 'santa' }));
+    client.sendRaw(debugFrame('debug.forceEvent', { kind: 'wedding' }));
+    client.sendRaw(debugFrame('debug.forceEvent', { kind: 'infestation', unitId: 'u1' }));
+    client.sendRaw(debugFrame('debug.setClock', { year: 1, month: 12, day: 24, time: '10:00' }));
 
-    await waitFor(() => errors(client).length === 5);
-    expect(errors(client).map((error) => error.p.code)).toEqual(Array(5).fill('NOT_ALLOWED'));
+    await waitFor(() => errors(client).length === 8);
+    expect(errors(client).map((error) => error.p.code)).toEqual(Array(8).fill('NOT_ALLOWED'));
     expect(results(client)).toEqual([]);
   });
 

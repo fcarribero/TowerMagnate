@@ -67,8 +67,9 @@
 
 .status-panel__time {
   justify-content: center;
-  width: calc(32 * var(--tm-px));
-  padding: 0;
+  width: max-content;
+  min-width: calc(32 * var(--tm-px));
+  padding: 0 var(--space-1);
 }
 
 .status-panel__money {
