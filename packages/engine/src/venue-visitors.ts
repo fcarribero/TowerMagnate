@@ -3,6 +3,17 @@ import { NO_TRIP } from './people';
 
 export const CUSTOMER_KIND = PERSON_KINDS.indexOf('customer');
 
+/** Visitors from outside who share one trip encoding: customers, cinema audience and party guests. */
+const VISITOR_KINDS: readonly number[] = [
+  CUSTOMER_KIND,
+  PERSON_KINDS.indexOf('audience'),
+  PERSON_KINDS.indexOf('partyGuest'),
+];
+
+export function isOutsideVisitor(pool: PersonPool, slot: number): boolean {
+  return VISITOR_KINDS.includes(pool.kind[slot] as number);
+}
+
 export type CustomerPhase = 'toVenue' | 'atVenue' | 'leaving';
 
 const CUSTOMER_PHASES: readonly CustomerPhase[] = ['toVenue', 'atVenue', 'leaving'];
@@ -37,7 +48,7 @@ export function encodeCustomerTrip(trip: CustomerTrip): number {
 }
 
 export function customerTripAt(pool: PersonPool, slot: number): CustomerTrip | null {
-  if (pool.kind[slot] !== CUSTOMER_KIND) return null;
+  if (!isOutsideVisitor(pool, slot)) return null;
   const packed = pool.trip[slot] ?? NO_TRIP;
   if (packed === NO_TRIP) return null;
   const phase = CUSTOMER_PHASES[(packed - 1) % CUSTOMER_PHASES.length];
@@ -63,7 +74,7 @@ function countInside(pool: PersonPool): Map<number, number> {
   return byVenue;
 }
 
-/** Outside customers inside each venue right now, built once per step and kept up to date. */
+/** Outside visitors inside each venue right now, built once per step and kept up to date. */
 function customersInside(state: TowerState): Map<number, number> {
   const cached = insideCounts.get(state.people);
   if (cached && cached.step === state.step) return cached.byVenue;

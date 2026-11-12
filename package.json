@@ -28,6 +28,7 @@
     "e2e": "playwright test -c e2e",
     "bench:transport": "tsx scripts/bench-transport.ts",
     "bench:people": "node --expose-gc --import tsx scripts/bench-person-pool.ts",
+    "bench:person-snapshot": "tsx scripts/bench-person-snapshot.ts",
     "bench:trek": "tsx scripts/bench-trek.ts",
     "bench:office-week": "tsx scripts/bench-office-week.ts",
     "bench:vertical-slice": "tsx scripts/bench-vertical-slice.ts",
