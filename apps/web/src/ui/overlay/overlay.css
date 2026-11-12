@@ -1,15 +1,37 @@
+/* The buttons share the block's outer border and are divided by one control border. */
 .overlay-selector {
+  box-sizing: border-box;
   display: flex;
-  align-items: center;
+  flex: none;
+  align-items: stretch;
+  width: calc(96 * var(--tm-px));
+  height: calc(18 * var(--tm-px));
+  overflow: hidden;
+  border: var(--border-control);
 }
 
 .status-panel .overlay-selector__button {
-  width: calc(24 * var(--tm-px));
+  flex: 1;
+  height: auto;
+  padding: 0;
+  font: var(--text-button);
+  color: var(--obra-ink);
+  cursor: pointer;
+  background: var(--obra-paper);
+  border: none;
+}
+
+.status-panel .overlay-selector__button + .overlay-selector__button {
+  border-left: var(--border-control);
 }
 
 .status-panel .overlay-selector__button.is-on {
-  background: var(--tm-lamp);
-  box-shadow: inset calc(1 * var(--tm-px)) calc(1 * var(--tm-px)) 0 var(--tm-slate);
+  color: var(--obra-yellow);
+  background: var(--obra-ink);
+}
+
+.status-panel .overlay-selector__button:active {
+  transform: translate(var(--size-press-offset), var(--size-press-offset));
 }
 
 .overlay-legend {
