@@ -1,6 +1,6 @@
 # Balance pass 1: simulated progression
 
-Version 0.2 (draft), 5 February 2027. Owner: Game Designer. Task TM-136.
+Version 0.3 (draft), 16 February 2027. Owner: Game Designer. Tasks TM-136 and TM-272.
 
 This report measures how many game days a careful player needs to reach each rating, from an empty tower with the starting money and no debug money. The player is a scripted bot in `packages/engine/src/testing/progression-bot.ts` that sends real commands to the engine and plays every step with the real rules. Targets come from economy.md section 12: 2 stars by day 7, 3 stars on days 14 to 21, 4 stars on days 54 to 72, 5 stars on days 89 to 121 and the Torre rank on days 126 to 168, as medians over 5 seeds. No seed may reach 5 stars before day 84.
 
@@ -141,3 +141,48 @@ The bot priced a new shaft at a fixed $550,000 or $280,000. It now reads the fir
 | Torre | 146 | 146 | 146 | 146 | 146 | 146 | 126 to 168 |
 
 Every median is inside its range and no seed reaches 5 stars before day 84. Seed 3 reaches 3 stars on day 22 and 4 stars on day 71, which is the slowest seed; the medians are what the targets apply to. A rerun of seed 4 gave a byte-identical report.
+
+## 7. First week cash and upkeep (16 February 2027, TM-272)
+
+### 7.1 What the bot shows
+
+The first Monday charge is step 60,480, the end of game day 7. The bot at seeds 1 and 3, constants of section 6, ended the first week with these ledger totals:
+
+| Line | Seed 1 | Seed 3 |
+|---|---|---|
+| Rent | $530,000 | $530,000 |
+| Hotel | $412,000 | $444,000 |
+| Condo sales | $7,000,000 | $7,000,000 |
+| Venues | $56,000 | $59,000 |
+| Construction | -$9,661,500 | -$9,701,500 |
+| First Monday upkeep | -$200,000 | -$204,000 |
+
+Rent alone covers the first Monday upkeep 2.6 times, and rent with hotel takes it to 4.7 times. The bot never lacks money for the charge: cash after the Monday charge is $118,500 on seed 1 and $112,500 on seed 3, and the starting funds of $2,000,000 stay as they are. The bot's tower is built from condo sales, so the margin is larger than a player's; the figures in the task description (upkeep $268,000 against rent $440,000) are also covered by rent.
+
+Two things in the task description no longer hold. The doubled upkeep for cars, security and housekeeping was undone by TM-136 (section 3), and the table already had those lines at the GDD values. The lobby line is the one that still differed, along with the escalator and the parking ramp.
+
+### 7.2 Constants changed
+
+Three upkeep lines in `WEEKLY_UPKEEP` go back to the GDD table, with economy.md 8.2, E-43 and E-44 and the engine and shared tests:
+
+| Constant | Before | After | Reason |
+|---|---|---|---|
+| Lobby upkeep per column at 3 stars | $500 | $300 | GDD value; 152 columns cost $76,000 a week at 3 stars and now cost $45,600 |
+| Lobby upkeep per column at 4 stars or more | $1,500 | $1,000 | GDD value; 152 columns cost $228,000 and now $152,000 |
+| Escalator weekly upkeep | $10,000 | $5,000 | GDD value |
+| Parking ramp weekly upkeep | $20,000 | $10,000 | GDD value |
+
+The lobby upkeep starts at 3 stars, when the bot has to run main lobby out to the edge of the site to reach 1,000 people (section 2.3), so it lands in weeks when cash is short. Escalators and parking ramps are few, so their change is small.
+
+Lines that still differ from the GDD table, each on purpose and measured in an earlier section: express car $30,000 (GDD $20,000) and subway station $250,000 (GDD $100,000), both from the late-cost retune of section 6. The suite, hotel rooms, party hall and cathedral are not in the GDD table.
+
+### 7.3 Results
+
+Seeds 1 to 5, `pnpm balance:progression --seeds N --days 45`, one process per seed. Game day each rating came, with the same bot as section 6.
+
+| Rating | Seed 1 | Seed 2 | Seed 3 | Seed 4 | Seed 5 | Median | Target |
+|---|---|---|---|---|---|---|---|
+| 2 stars | 2 | 2 | 2 | 2 | 2 | 2 | by 7 |
+| 3 stars | 19 | 19 | 22 | 19 | 19 | 19 | 14 to 21 |
+
+Cash at the end of game day 7, after the first Monday charge: $118,500, $98,500, $112,500, $99,000 and $118,000. The 3-star days are the same as before the change on every seed. The runs stop at day 45, so 4 stars, 5 stars and Torre were not rerun; a 100-day run of five seeds did not finish within the working day. The change removes $16,000 a week at 3 stars and $76,000 at 4 stars from a tower of 152 lobby columns, against weekly income of several million at 4 stars, so 4 stars at day 67 is expected to move by a day or two and stay inside 54 to 72. A 200-day rerun is open for the next balance pass.
