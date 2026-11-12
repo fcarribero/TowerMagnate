@@ -12,6 +12,7 @@ function setup(units: DemolishWorld['units'] = []) {
   const asked: Confirmation[] = [];
   const answers: Array<() => void> = [];
   const frames: unknown[] = [];
+  const outcomes: unknown[] = [];
   const keys = new EventTarget();
   bindDemolishInput({
     stage: {
@@ -45,7 +46,7 @@ function setup(units: DemolishWorld['units'] = []) {
       asked.push(confirmation);
       answers.push(proceed);
     },
-    onOutcome: () => {},
+    onOutcome: (outcome) => void outcomes.push(outcome),
     keyTarget: keys as unknown as Window,
   });
   return {
@@ -57,6 +58,7 @@ function setup(units: DemolishWorld['units'] = []) {
     asked,
     answers,
     frames,
+    outcomes,
   };
 }
 
@@ -111,6 +113,16 @@ describe('bindDemolishInput', () => {
       { kind: 'ruins', level: 3, x: 6 },
       { kind: 'ruins', level: 3, x: 7 },
     ]);
+  });
+
+  it('reports a ruins run once, with the summed refund', async () => {
+    const t = setup();
+    t.input('down', { x: 7, level: 3 });
+    t.hover({ x: 2, level: 3 });
+    t.input('up', { x: 2, level: 3 });
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(t.outcomes).toEqual([{ ok: true, cost: 0, refund: 2500 }]);
   });
 
   it('sends nothing when Esc drops the drag', () => {

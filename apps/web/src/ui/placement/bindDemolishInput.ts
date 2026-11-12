@@ -5,6 +5,7 @@ import type { Footprint } from '../../render/ghostLayer';
 import type { CellInput } from '../../render/stage';
 import type { ScreenPoint } from './bindBuildInput';
 import {
+  combineOutcomes,
   pickDemolition,
   runCommands,
   runFootprint,
@@ -97,9 +98,17 @@ export function bindDemolishInput(options: DemolishInputOptions): () => void {
     const { kind, press: start, currentX } = drag;
     cancelDrag();
     const row = world()?.structure.get(start.level) ?? '';
-    for (const command of runCommands(kind, start.level, row, start.x, cell?.x ?? currentX)) {
-      send(command, at);
+    const [first, ...rest] = runCommands(kind, start.level, row, start.x, cell?.x ?? currentX);
+    if (first === undefined) {
+      return;
     }
+    if (rest.length === 0) {
+      send(first, at);
+      return;
+    }
+    void Promise.all([first, ...rest].map((command) => api.send(command))).then((outcomes) =>
+      onOutcome(combineOutcomes(outcomes), first, at),
+    );
   };
 
   const onInput = (input: CellInput): void => {

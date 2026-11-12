@@ -10,6 +10,7 @@ import {
   type UnitType,
   type UnitView,
 } from '@tower-magnate/shared';
+import type { CommandOutcome } from '../../api/commandApi';
 import type { Cell } from '../../render/cellAtPoint';
 import type { Footprint } from '../../render/ghostLayer';
 import { levelToIndex } from '../../render/levels';
@@ -192,6 +193,23 @@ export function runCommands(
     }
   }
   return commands;
+}
+
+/** One outcome for a batch: the first refusal, or the sum of what was charged and paid back. */
+export function combineOutcomes(outcomes: readonly CommandOutcome[]): CommandOutcome {
+  const refused = outcomes.find((outcome) => !outcome.ok);
+  if (refused !== undefined) {
+    return refused;
+  }
+  let cost = 0;
+  let refund = 0;
+  for (const outcome of outcomes) {
+    if (outcome.ok) {
+      cost += outcome.cost;
+      refund += outcome.refund;
+    }
+  }
+  return { ok: true, cost, refund };
 }
 
 function clearRuins(level: Level, x: number): Command {
