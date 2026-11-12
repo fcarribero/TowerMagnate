@@ -47,7 +47,7 @@ The status panel shows population at every delta (ui.md 4). The star check (sect
 
 ### 3.4 Expected share
 
-For balance planning, a 15,000 tower in the economy spec's mix (about 1,200 offices, 800 condos and 150 suites) gets about 7,200 from offices, 2,400 from condos, 600 to 900 from hotel rooms and 4,000 to 5,000 from about 100 venues at 35 to 50 visits a day. Commercial counts make up roughly a third, so a tower with poor transport loses population through its shops even when every office is leased.
+For balance planning, a 15,000 tower in the economy spec's mix (about 1,200 offices, 800 condos and 150 suites) gets about 7,200 from offices, 2,400 from condos, 600 to 900 from hotel rooms and 4,000 to 5,000 from about 100 venues at 35 to 50 visits a day. Commercial counts make up about a third in a hand-built tower. The progression bot's towers measure 40% at 3 stars and 51% to 55% at 4 and 5 stars (balance.md 8.4), and balance.md 8.6 sets the 5-star target at 45% to 55%. A tower with poor transport loses population through its shops even when every office is leased.
 
 ## 4. The star check
 
