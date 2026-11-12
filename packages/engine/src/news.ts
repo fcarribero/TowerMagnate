@@ -20,3 +20,16 @@ export function emitNews(state: TowerState, key: NewsId, target: NewsTarget = {}
     },
   ];
 }
+
+/**
+ * The balance notice for a change that took the balance from `balanceBefore` below zero.
+ * A charge with its own notice, such as the weekly upkeep, is passed as `ignoredCharge`.
+ */
+export function balanceNegativeNews(
+  state: TowerState,
+  balanceBefore: number,
+  ignoredCharge = 0,
+): NewsEvent[] {
+  if (balanceBefore < 0 || state.money + ignoredCharge >= 0) return [];
+  return emitNews(state, 'news.balanceNegative');
+}
