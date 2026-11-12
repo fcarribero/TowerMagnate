@@ -57,6 +57,16 @@ describe('StatusPanel', () => {
     expect(screen.queryByText('TORRE')).toBeNull();
   });
 
+  it('words the star button title and label in singular at 1 star and plural at 2', () => {
+    renderPanel(storeAt({ stars: 1 }));
+    const single = screen.getByRole('button', { name: 'Rango actual: 1 estrella' });
+    expect(single.getAttribute('title')).toBe('Rango actual: 1 estrella');
+    cleanup();
+    renderPanel(storeAt({ stars: 2 }));
+    const plural = screen.getByRole('button', { name: 'Rango actual: 2 estrellas' });
+    expect(plural.getAttribute('title')).toBe('Rango actual: 2 estrellas');
+  });
+
   it('shows 5 filled stars and TORRE at rank 6', () => {
     renderPanel(storeAt({ stars: 6 }));
     expect(document.querySelectorAll('.status-panel__star.is-filled')).toHaveLength(5);
