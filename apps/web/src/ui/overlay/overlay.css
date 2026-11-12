@@ -14,7 +14,7 @@
 
 .overlay-legend {
   position: absolute;
-  bottom: calc(4 * var(--tm-px));
+  bottom: calc(24 * var(--tm-px));
   left: calc(84 * var(--tm-px));
   padding: calc(3 * var(--tm-px));
   color: var(--tm-ink);
