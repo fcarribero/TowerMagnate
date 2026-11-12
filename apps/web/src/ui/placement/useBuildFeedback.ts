@@ -42,7 +42,7 @@ export function useBuildFeedback() {
         }
         return;
       }
-      setToasts((list) => [...list, { id, text: errorText(outcome.error) }]);
+      setToasts([{ id, text: errorText(outcome.error) }]);
       setTimeout(() => setToasts((list) => list.filter((item) => item.id !== id)), TOAST_MS);
     },
     [showFloat],
