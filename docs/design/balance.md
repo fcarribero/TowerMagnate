@@ -209,3 +209,18 @@ The 5-star share is 54.6%, against the target of 30% to 36%. Seed 3 did not reac
 ### 8.3 Constants changed
 
 None. A trial that halved `OUTSIDE_CUSTOMER_BASE` gave a 3-star share of 39.2% on seed 1, the same as before, so outside customers are not what drives the share. The trial did not reach 4 or 5 stars and was reverted. The acceptance for the 5-star share is not met and stays open. The next step is to split venue visits by source (workers, residents, hotel guests, outside customers) at 5 stars before choosing a constant.
+
+### 8.4 Visits by source (TM-296, work in progress)
+
+`pnpm balance:progression` now prints the previous day's counted venue visits by source when each rating comes. Baseline, 100 days, develop of 3 March 2027.
+
+| Rating | Seed | Day | Residents | Office workers | Hotel guests | Outside customers | Venues | Population | Share |
+|---|---|---|---|---|---|---|---|---|---|
+| 3 stars | 1 | 19 | 9 | 296 | 3 | 117 | 425 | 1,064 | 39.9% |
+| 4 stars | 1 | 65 | 177 | 1,301 | 17 | 1,253 | 2,748 | 5,423 | 50.7% |
+| 5 stars | 1 | 89 | 283 | 2,424 | 16 | 2,775 | 5,498 | 10,065 | 54.6% |
+| 3 stars | 3 | 22 | 82 | 0 | 5 | 208 | 295 | 1,026 | 28.8% |
+
+Seed 3 stays at 3 stars through day 100 (population 17,482), so it has no 4-star or 5-star rows. The cause is a 4-star requirement besides population and is not a venue constant.
+
+Office workers and outside customers are about equal at 5 stars. Trial with `OUTSIDE_CUSTOMER_BASE` at 40% of its value on seed 1: share 35.6% at 3 stars and 44.9% at 4 stars, but 3 stars came on day 23 (19 before), 4 stars on day 73 (65 before) and 5 stars did not come in 100 days. Reverted. Cutting venue visits lowers the population that the star steps count, so the share cannot reach 30 to 36% at 5 stars by lowering visits alone. No constant is changed yet.
