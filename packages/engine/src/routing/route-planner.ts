@@ -46,6 +46,21 @@ export interface RouteRequest {
   budget?: TripBudget;
 }
 
+/** The ride a person waits for beside a full queue, as the first option of their route. */
+export interface WaitedRide {
+  via: number;
+  toLevel: Level;
+  column: number;
+}
+
+/** What a person beside a full queue can compare (routing 8.3). */
+export interface RecheckPlan {
+  /** Cost of the ride they wait for, with the full-queue surcharge. */
+  stayCost: number;
+  /** The best route that does not start with the waited shaft or any shaft in `avoidShafts`. */
+  alternative: RoutePlan | null;
+}
+
 export interface RouteStep {
   kind: LinkKind;
   via: EntityId;
@@ -162,6 +177,21 @@ function firstLegRank(kind: LinkKind): number {
 
 function idNumber(id: EntityId): number {
   return Number(id.slice(1));
+}
+
+const NO_SHAFTS: readonly number[] = [];
+
+function isRide(kind: LinkKind): boolean {
+  return kind !== 'stairs' && kind !== 'escalator';
+}
+
+function countersOf(request: RouteRequest): Counters {
+  const budget = request.budget ?? NO_BUDGET_USED;
+  return {
+    stairs: budget.stairFloors,
+    escalator: budget.escalatorFloors,
+    rides: budget.rides,
+  };
 }
 
 interface Counters {
@@ -318,17 +348,49 @@ export class TripPlanner {
       return { cost: 0, transportLegs: 0, columnsWalked: walk, firstLeg: null };
     }
 
-    const budget = request.budget ?? NO_BUDGET_USED;
-    const counters = {
-      stairs: budget.stairFloors,
-      escalator: budget.escalatorFloors,
-      rides: budget.rides,
-    };
+    const counters = countersOf(request);
     const { table, extraColumns } = this.tableFor(request.to, goalRun.id, request.userClass);
     const options = this.optionsFor(table, extraColumns, request, startRun.id, counters);
-    const chosen = this.pickWithQueues(state, options);
+    const chosen = this.pickWithQueues(state, options, NO_SHAFTS);
     if (!chosen) return null;
     return this.describe(table, request, chosen, counters, state);
+  }
+
+  /**
+   * Routing 8.3 for a person beside a full queue: what waiting for `waited` costs and the best
+   * route that starts at none of `avoidShafts`. Null when the waited ride is not among the
+   * options of the start run, or the person is already on the destination's run.
+   */
+  planRecheck(
+    state: TowerState,
+    request: RouteRequest,
+    waited: WaitedRide,
+    avoidShafts: readonly number[],
+  ): RecheckPlan | null {
+    this.dropStaleCaches();
+    const startRun = this.graph.runAtCell(request.from.level, request.from.x);
+    const goalRun = this.graph.runAtCell(request.to.level, request.to.x);
+    if (!startRun || !goalRun || startRun.id === goalRun.id) return null;
+
+    const counters = countersOf(request);
+    const { table, extraColumns } = this.tableFor(request.to, goalRun.id, request.userClass);
+    const options = this.optionsFor(table, extraColumns, request, startRun.id, counters);
+    const waitedOption = options.find((option) => this.isWaitedRide(option, waited));
+    if (!waitedOption) return null;
+    const stayCost = costOf(waitedOption.value) + this.queueSurcharge(state, waitedOption);
+    const chosen = this.pickWithQueues(state, options, [waited.via, ...avoidShafts]);
+    const alternative = chosen && this.describe(table, request, chosen, counters, state);
+    return { stayCost, alternative };
+  }
+
+  private isWaitedRide(option: FirstOption, waited: WaitedRide): boolean {
+    const link = option.link as Link;
+    return (
+      isRide(link.kind) &&
+      option.viaNumber === waited.via &&
+      option.entry.x === waited.column &&
+      this.graph.node(link.to).level === waited.toLevel
+    );
   }
 
   /** Route cost for choosing a venue: a new trip, so every counter is zero (routing 7.3). */
@@ -518,10 +580,15 @@ export class TripPlanner {
   }
 
   /** The best option once full queues on the start run add their surcharge (routing R-12). */
-  private pickWithQueues(state: TowerState, options: FirstOption[]): FirstOption | null {
+  private pickWithQueues(
+    state: TowerState,
+    options: FirstOption[],
+    avoidShafts: readonly number[],
+  ): FirstOption | null {
     let best: FirstOption | null = null;
     let bestPrefix = Infinity;
     for (const option of options) {
+      if (avoidShafts.length > 0 && this.startsAtShaft(option, avoidShafts)) continue;
       const base = prefixOf(option.value);
       if (best && base > bestPrefix) break;
       const adjusted = base + this.queueSurcharge(state, option) * COST_UNIT_IN_PREFIX;
@@ -531,6 +598,10 @@ export class TripPlanner {
       }
     }
     return best;
+  }
+
+  private startsAtShaft(option: FirstOption, shafts: readonly number[]): boolean {
+    return isRide((option.link as Link).kind) && shafts.includes(option.viaNumber);
   }
 
   private queueSurcharge(state: TowerState, option: FirstOption): number {

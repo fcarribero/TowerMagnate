@@ -315,7 +315,9 @@ describe('full queue recheck rule (routing 8.3)', () => {
     { type: 'standard', x: 70, bottom: 1, top: 4 },
     { type: 'standard', x: 80, bottom: 1, top: 4 },
   ];
-  const columns = [62, 72, 82];
+  const [first, second, third] = [62, 72, 82];
+  const arrivalStep = 7;
+  const thirdRecheckStep = arrivalStep + FULL_QUEUE_STAY_RECHECKS * FULL_QUEUE_RECHECK_STEPS;
 
   function setQueue(state: TowerState, shaftIndex: number, length: number): void {
     const built = Object.values(state.shafts)[shaftIndex] as Shaft;
@@ -327,44 +329,109 @@ describe('full queue recheck rule (routing 8.3)', () => {
     built.queues['1'] = { up, down: [] };
   }
 
-  function waiterAtFirstShaft() {
-    const state = buildTestTower({ floors: 4, shafts });
-    setQueue(state, 0, ELEVATOR_QUEUE_CAPACITY);
-    setQueue(state, 1, 0);
-    setQueue(state, 2, ELEVATOR_QUEUE_CAPACITY);
-    const id = addWalker(state, 1, columns[0] as number);
+  /** Only the shafts at these indexes have a full queue. */
+  function fillOnly(state: TowerState, ...full: number[]): void {
+    for (const index of Object.keys(state.shafts).keys()) {
+      setQueue(state, index, full.includes(index) ? ELEVATOR_QUEUE_CAPACITY : 0);
+    }
+  }
+
+  /** The person plans for the first shaft, whose queue then fills up while they walk to it. */
+  function waiterWalkingToFirstShaft(setup: Partial<Setup> = {}) {
+    const state = buildTestTower({ floors: 4, shafts, ...setup });
+    const id = addWalker(state, 1, first - arrivalStep);
     sendTo(state, id, { level: 3, column: 30 });
+    fillOnly(state, 0);
     return { state, id };
   }
 
-  it('stays beside the shaft for the first rechecks even when another has room', () => {
-    const { state, id } = waiterAtFirstShaft();
-    const stay = FULL_QUEUE_STAY_RECHECKS * FULL_QUEUE_RECHECK_STEPS - 1;
-    expect(view(runSteps(state, stay), id)).toMatchObject({
-      column: columns[0],
-      phase: 'waitingBesideQueue',
-    });
+  function pool(state: TowerState, id: number) {
+    const people = state.people;
+    const slot = slotOfPerson(people, id);
+    return {
+      switches: people.tripSwitches[slot] as number,
+      leftShafts: people.leftShafts[slot] as number,
+      headingTo: people.legColumn[slot] as number,
+    };
+  }
+
+  function runUntilHeadingTo(state: TowerState, id: number, column: number, limit = 80) {
+    let now = state;
+    for (let count = 0; count < limit && pool(now, id).headingTo !== column; count++) {
+      now = runSteps(now, 1);
+    }
+    return now;
+  }
+
+  it('only looks at its own queue for the first two rechecks', () => {
+    const { state, id } = waiterWalkingToFirstShaft();
+    const beforeThird = runSteps(state, thirdRecheckStep - 1);
+    expect(view(beforeThird, id)).toMatchObject({ column: first, phase: 'waitingBesideQueue' });
+    expect(pool(beforeThird, id)).toMatchObject({ switches: 0, headingTo: first });
   });
 
-  it('never goes back to a shaft it left in the same trip', () => {
-    const { state, id } = waiterAtFirstShaft();
-    setQueue(state, 2, 0);
-    let now = state;
-    const visited: number[] = [];
-    let leftFirst = false;
-    for (let step = 0; step < 300; step++) {
-      const column = view(now, id).column;
-      const standingAt = column < 67 ? 0 : 1;
-      setQueue(now, standingAt, ELEVATOR_QUEUE_CAPACITY);
-      setQueue(now, 1 - standingAt, 0);
-      setQueue(now, 2, ELEVATOR_QUEUE_CAPACITY);
-      now = runSteps(now, 1);
-      const here = view(now, id);
-      if (here.phase === 'queued') break;
-      if (here.column !== columns[0]) leftFirst = true;
-      if (leftFirst && here.column === columns[0]) visited.push(step);
-    }
-    expect(visited).toEqual([]);
+  it('switches at the third recheck to a ride that costs 500 less than waiting', () => {
+    const { state, id } = waiterWalkingToFirstShaft();
+    const switched = runSteps(state, thirdRecheckStep);
+    expect(view(switched, id).phase).toBe('walkingToShaft');
+    expect(pool(switched, id)).toMatchObject({ switches: 1, headingTo: second });
+  });
+
+  it('joins at once when the queue has room at the first recheck', () => {
+    const { state, id } = waiterWalkingToFirstShaft();
+    const arrived = runSteps(state, arrivalStep);
+    setQueue(arrived, 0, ELEVATOR_QUEUE_CAPACITY - 1);
+    const joined = runSteps(arrived, FULL_QUEUE_RECHECK_STEPS);
+    expect(view(joined, id).phase).toBe('queued');
+    expect(pool(joined, id).switches).toBe(0);
+  });
+
+  it('keeps waiting when the other way costs less than 500 under waiting', () => {
+    const { state, id } = waiterWalkingToFirstShaft({
+      shafts: [shafts[0] as PlannedShaft, { type: 'standard', x: 70, bottom: 1, top: 2 }],
+      flights: [{ type: 'stairs', from: 2, to: 3 }],
+    });
+    const waited = runSteps(state, thirdRecheckStep + 5 * FULL_QUEUE_RECHECK_STEPS);
+    expect(view(waited, id)).toMatchObject({ column: first, phase: 'waitingBesideQueue' });
+    expect(pool(waited, id).switches).toBe(0);
+  });
+
+  it('never goes back to a shaft it left, and stops switching after two', () => {
+    const { state, id } = waiterWalkingToFirstShaft();
+    let now = runUntilHeadingTo(state, id, second);
+    fillOnly(now, 1);
+    now = runUntilHeadingTo(now, id, third);
+    expect(pool(now, id)).toMatchObject({ switches: 2, headingTo: third });
+
+    fillOnly(now, 2);
+    const waited = runSteps(now, 20 * FULL_QUEUE_RECHECK_STEPS);
+    expect(view(waited, id)).toMatchObject({ column: third, phase: 'waitingBesideQueue' });
+    expect(pool(waited, id).switches).toBe(2);
+
+    setQueue(waited, 2, ELEVATOR_QUEUE_CAPACITY - 1);
+    expect(view(runSteps(waited, FULL_QUEUE_RECHECK_STEPS), id).phase).toBe('queued');
+  });
+
+  it('forgets the left shafts but keeps the switch count when the trip re-plans', () => {
+    const { state, id } = waiterWalkingToFirstShaft();
+    const walking = runUntilHeadingTo(state, id, second);
+    fillOnly(walking, 1);
+    const arrived = runSteps(walking, second - first);
+    expect(view(arrived, id).phase).toBe('waitingBesideQueue');
+    expect(pool(arrived, id).leftShafts).not.toBe(0);
+
+    const second_ = Object.values(arrived.shafts)[1] as Shaft;
+    Reflect.deleteProperty(arrived.shafts, second_.id);
+    const replanned = runSteps(arrived, 1);
+    expect(pool(replanned, id)).toMatchObject({ switches: 1, leftShafts: 0 });
+  });
+
+  it('starts every trip with no switches and no left shafts', () => {
+    const { state, id } = waiterWalkingToFirstShaft();
+    const walking = runUntilHeadingTo(state, id, second);
+    expect(pool(walking, id).switches).toBe(1);
+    cancelTrek(contextOf(walking), slotOfPerson(walking.people, id));
+    expect(pool(walking, id)).toMatchObject({ switches: 0, leftShafts: 0 });
   });
 });
 

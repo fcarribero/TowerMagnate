@@ -58,6 +58,18 @@ describe('reading the person pool', () => {
     expect(people.legStep).toEqual([0, 0]);
   });
 
+  it('gives every person of a save before the full-queue rule no switches and no left shafts', () => {
+    const raw = savedPeople(towerWithPeople(3));
+    const people = raw.people as Record<string, unknown>;
+    for (const field of ['tripSwitches', 'queueRechecks', 'leftShafts']) {
+      Reflect.deleteProperty(people, field);
+    }
+    const loaded = migrateState(raw).people;
+    expect(loaded.tripSwitches).toEqual([0, 0, 0]);
+    expect(loaded.queueRechecks).toEqual([0, 0, 0]);
+    expect(loaded.leftShafts).toEqual([0, 0, 0]);
+  });
+
   it('keeps the trip of a person who is walking when the tower is saved', () => {
     const tower = towerWithPeople(2);
     tower.people.trek[1] = 2;

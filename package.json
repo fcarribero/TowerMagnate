@@ -36,7 +36,8 @@
     "bench:customers": "tsx scripts/bench-customers.ts",
     "bench:subway": "tsx scripts/bench-subway-customers.ts",
     "bench:evaluation": "tsx scripts/bench-unit-evaluation.ts",
-    "bench:full-tower": "tsx scripts/bench-full-tower.ts"
+    "bench:full-tower": "tsx scripts/bench-full-tower.ts",
+    "count:full-queue": "tsx scripts/count-full-queue.ts"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.5",
