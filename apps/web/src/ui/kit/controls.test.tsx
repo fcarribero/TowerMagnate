@@ -7,7 +7,9 @@ import { Checkbox } from './Checkbox';
 import { Dropdown } from './Dropdown';
 import { ListBox } from './ListBox';
 import { NumberInput, clampToStep } from './NumberInput';
+import { ProgressBar } from './ProgressBar';
 import { RadioGroup } from './RadioGroup';
+import { ScrollArea } from './ScrollArea';
 import { Tabs } from './Tabs';
 
 afterEach(cleanup);
@@ -339,5 +341,52 @@ describe('Checkbox', () => {
     render(<Checkbox id="d" label="Fija" checked={false} onChange={onChange} disabled />);
     await user.click(screen.getByText('Fija'));
     expect(onChange).not.toHaveBeenCalled();
+  });
+});
+
+describe('ScrollArea', () => {
+  it('is a labelled, focusable region that limits its height', () => {
+    render(
+      <ScrollArea label="Avisos" maxHeight={80}>
+        <p>Uno</p>
+      </ScrollArea>,
+    );
+    const region = screen.getByRole('region', { name: 'Avisos' });
+    expect(region.className).toBe('tm-scroll');
+    expect(region.tabIndex).toBe(0);
+    expect(region.style.maxHeight).toBe('calc(80 * var(--tm-px))');
+  });
+
+  it('has no height limit by default', () => {
+    render(<ScrollArea label="Libre">x</ScrollArea>);
+    expect(screen.getByRole('region').style.maxHeight).toBe('');
+  });
+});
+
+describe('ProgressBar', () => {
+  it('reports its value and shows the text under the bar', () => {
+    render(<ProgressBar id="p" label="Estrellas" value={3} max={5} valueText="3 de 5" />);
+    const bar = screen.getByRole('progressbar', { name: 'Estrellas' });
+    expect(bar.getAttribute('aria-valuenow')).toBe('3');
+    expect(bar.getAttribute('aria-valuemax')).toBe('5');
+    expect(bar.getAttribute('aria-valuetext')).toBe('3 de 5');
+    expect(screen.getByText('3 de 5')).toBeTruthy();
+    expect((bar.firstElementChild as HTMLElement).style.width).toBe('60%');
+  });
+
+  it('clamps values outside the range', () => {
+    const { rerender } = render(<ProgressBar id="p" label="A" value={9} max={5} />);
+    expect((screen.getByRole('progressbar').firstElementChild as HTMLElement).style.width).toBe(
+      '100%',
+    );
+    rerender(<ProgressBar id="p" label="A" value={-2} max={5} />);
+    expect((screen.getByRole('progressbar').firstElementChild as HTMLElement).style.width).toBe(
+      '0%',
+    );
+  });
+
+  it('omits the value text slot when there is no text', () => {
+    const { container } = render(<ProgressBar id="p" label="A" value={1} />);
+    expect(container.querySelector('.tm-progress__value')).toBeNull();
   });
 });

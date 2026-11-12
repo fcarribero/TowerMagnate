@@ -531,10 +531,6 @@
   margin-bottom: var(--space-3);
 }
 
-.tm-dropdown__anchor {
-  position: relative;
-}
-
 .tm-dropdown__field {
   box-sizing: border-box;
   display: flex;
@@ -578,11 +574,8 @@
 }
 
 .tm-dropdown__list {
-  position: absolute;
-  top: 100%;
-  right: 0;
-  left: 0;
-  z-index: 10;
+  position: fixed;
+  z-index: 1000;
   box-sizing: border-box;
   margin: 0;
   padding: 0;
@@ -608,4 +601,64 @@
 .tm-dropdown__option[aria-disabled='true'] {
   color: var(--obra-muted);
   cursor: default;
+}
+
+/* Scroll bar: 6 wide, paper-shade track with a control border on its left, ink thumb. */
+.tm-scroll,
+.tm-window__body,
+.tm-list__items {
+  overflow-y: auto;
+}
+
+.tm-scroll::-webkit-scrollbar,
+.tm-window__body::-webkit-scrollbar,
+.tm-list__items::-webkit-scrollbar {
+  width: calc(6 * var(--tm-px));
+}
+
+.tm-scroll::-webkit-scrollbar-track,
+.tm-window__body::-webkit-scrollbar-track,
+.tm-list__items::-webkit-scrollbar-track {
+  background: var(--obra-paper-shade);
+  border-left: var(--border-control);
+}
+
+.tm-scroll::-webkit-scrollbar-thumb,
+.tm-window__body::-webkit-scrollbar-thumb,
+.tm-list__items::-webkit-scrollbar-thumb {
+  background: var(--obra-ink);
+}
+
+@supports not selector(::-webkit-scrollbar) {
+  .tm-scroll,
+  .tm-window__body,
+  .tm-list__items {
+    scrollbar-color: var(--obra-ink) var(--obra-paper-shade);
+    scrollbar-width: thin;
+  }
+}
+
+/* Progress bar */
+.tm-progress {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin-bottom: var(--space-3);
+}
+
+.tm-progress__bar {
+  box-sizing: border-box;
+  height: calc(10 * var(--tm-px));
+  overflow: hidden;
+  background: var(--obra-field);
+  border: var(--border-control);
+}
+
+.tm-progress__fill {
+  height: 100%;
+  background: var(--obra-green);
+}
+
+.tm-progress__value {
+  font: var(--text-body);
 }

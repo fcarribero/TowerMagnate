@@ -18,6 +18,13 @@ export interface DropdownProps<T extends string> {
   disabled?: boolean;
 }
 
+/** Viewport position of the open list, so a scrolling window body does not clip it. */
+interface ListPlace {
+  top: number;
+  left: number;
+  width: number;
+}
+
 /** A select drawn with the kit: Up, Down, Enter and Esc work on the focused field. */
 export function Dropdown<T extends string>({
   id,
@@ -30,7 +37,9 @@ export function Dropdown<T extends string>({
 }: DropdownProps<T>) {
   const [isOpen, setIsOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
+  const [listBox, setListBox] = useState<ListPlace | null>(null);
   const root = useRef<HTMLDivElement>(null);
+  const field = useRef<HTMLButtonElement>(null);
   const selectedIndex = options.findIndex((option) => option.value === value);
   const optionId = (index: number) => `${id}-option-${index}`;
 
@@ -48,6 +57,8 @@ export function Dropdown<T extends string>({
   }, [isOpen]);
 
   const open = (): void => {
+    const rect = field.current?.getBoundingClientRect();
+    setListBox(rect ? { top: rect.bottom, left: rect.left, width: rect.width } : null);
     setActiveIndex(Math.max(selectedIndex, 0));
     setIsOpen(true);
   };
@@ -102,6 +113,7 @@ export function Dropdown<T extends string>({
       </span>
       <div class="tm-dropdown__anchor">
         <button
+          ref={field}
           id={id}
           type="button"
           class="tm-dropdown__field"
@@ -125,6 +137,7 @@ export function Dropdown<T extends string>({
             id={`${id}-list`}
             class="tm-dropdown__list"
             role="listbox"
+            style={listBox === null ? undefined : { ...listBox }}
             aria-labelledby={`${id}-label`}
           >
             {options.map((option, index) => (

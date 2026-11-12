@@ -9,7 +9,9 @@ import {
   InfoDialog,
   ListBox,
   NumberInput,
+  ProgressBar,
   RadioGroup,
+  ScrollArea,
   Tabs,
   TextField,
   Tooltip,
@@ -28,6 +30,7 @@ const DEMO_WINDOWS: readonly (OpenRequest & { label: string })[] = [
   { id: 'fields', label: 'Campos', position: { x: 240, y: 16 } },
   { id: 'tabs', label: 'Pestañas', position: { x: 16, y: 200 } },
   { id: 'list', label: 'Lista', position: { x: 480, y: 16 } },
+  { id: 'progress', label: 'Barras', position: { x: 640, y: 16 } },
   { id: 'decision', label: 'Decisión', position: { x: 300, y: 260 } },
   { id: 'finance', label: 'Finanzas', position: { x: 520, y: 200 } },
 ];
@@ -45,6 +48,8 @@ const FLOORS = Array.from({ length: 12 }, (_, index) => ({
   id: String(index + 1),
   label: t('ui.levelFloor', { n: index + 1 }),
 }));
+
+const NOTICES = Array.from({ length: 10 }, (_, index) => `Aviso ${index + 1}`);
 
 type LobbyHeight = '1' | '2' | '3';
 
@@ -257,6 +262,16 @@ function DemoWindows() {
           onSelect={setFloor}
         />
         <p>{floor === null ? '' : t('ui.levelFloor', { n: floor })}</p>
+      </Window>
+
+      <Window id="progress" title="Barras" width={180}>
+        <ProgressBar id="demo-stars" label="Estrellas" value={3} max={5} valueText="3 de 5" />
+        <ProgressBar id="demo-empty" label="Vacía" value={0} />
+        <ScrollArea label="Avisos de ejemplo" maxHeight={56}>
+          {NOTICES.map((notice) => (
+            <p key={notice}>{notice}</p>
+          ))}
+        </ScrollArea>
       </Window>
 
       <Window id="decision" title="Decisión" closable={false} width={220}>
