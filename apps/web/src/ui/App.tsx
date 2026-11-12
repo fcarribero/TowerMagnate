@@ -354,7 +354,12 @@ export function App({ onLogout, onRestartTower, onSessionLost }: AppProps) {
           onZoom={(direction) => stage?.zoomStep(direction)}
           onLogout={onLogout}
           extraMenuItems={[
-            { id: 'newTower', label: t('ui.newTower'), onSelect: () => setRestartStep('first') },
+            {
+              id: 'newTower',
+              label: t('ui.newTower'),
+              separated: true,
+              onSelect: () => setRestartStep('first'),
+            },
           ]}
         />
         <OverlayLegend overlay={overlay} />

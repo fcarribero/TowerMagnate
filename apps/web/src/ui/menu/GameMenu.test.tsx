@@ -5,7 +5,7 @@ import { SfxPlayer } from '../../audio/sfxPlayer';
 import { browserSettingsStore, type SettingsStore } from '../../audio/soundSettings';
 import { SfxProvider, useSfx } from '../../audio/useSfx';
 import { FakeAudioContext } from '../../testing/fakeAudio';
-import { GameMenu } from './GameMenu';
+import { GameMenu, type MenuItem } from './GameMenu';
 
 afterEach(cleanup);
 
@@ -44,7 +44,11 @@ function memoryStore(): SettingsStore {
   };
 }
 
-async function renderGame(store: SettingsStore) {
+async function renderGame(
+  store: SettingsStore,
+  items: readonly MenuItem[] = [],
+  onLogout?: () => void,
+) {
   const context = new FakeAudioContext();
   const player = new SfxPlayer({
     baseUrl: '/sfx/',
@@ -56,7 +60,7 @@ async function renderGame(store: SettingsStore) {
   await player.unlock();
   const view = render(
     <SfxProvider player={player} settingsStore={store}>
-      <GameMenu />
+      <GameMenu items={items} onLogout={onLogout} />
       <BuildButton />
     </SfxProvider>,
   );
@@ -131,5 +135,41 @@ describe('GameMenu sound settings', () => {
     await renderGame(memoryStore());
     fireEvent.keyDown(window, { key: 'Escape' });
     expect(screen.queryByRole('menu')).toBeNull();
+  });
+
+  it('closes on a click outside the list', async () => {
+    await renderGame(memoryStore());
+    fireEvent.pointerDown(screen.getByRole('button', { name: 'Construir' }));
+    expect(screen.queryByRole('menu')).toBeNull();
+  });
+
+  it('stays open on a click inside the list', async () => {
+    await renderGame(memoryStore());
+    fireEvent.pointerDown(screen.getByRole('menu'));
+    expect(screen.queryByRole('menu')).not.toBeNull();
+  });
+
+  it('draws a line before the new tower item and before logout only', async () => {
+    const newTower: MenuItem = {
+      id: 'newTower',
+      label: 'Empezar una torre nueva',
+      separated: true,
+      onSelect: () => undefined,
+    };
+    const stars: MenuItem = { id: 'stars', label: 'Avisos', onSelect: () => undefined };
+    await renderGame(memoryStore(), [stars, newTower], () => undefined);
+    const separated = screen
+      .getAllByRole('menuitem')
+      .filter((item) => item.classList.contains('is-separated'))
+      .map((item) => item.textContent);
+    expect(separated).toEqual(['Empezar una torre nueva', 'Cerrar sesión']);
+  });
+
+  it('moves focus between rows with the arrow keys', async () => {
+    await renderGame(memoryStore(), [], () => undefined);
+    const [first] = screen.getAllByRole('menuitem');
+    (first as HTMLElement).focus();
+    fireEvent.keyDown(screen.getByRole('menu'), { key: 'ArrowDown' });
+    expect(document.activeElement).toBe(screen.getByRole('menuitem', { name: 'Cerrar sesión' }));
   });
 });

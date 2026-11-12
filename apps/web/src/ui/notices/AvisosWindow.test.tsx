@@ -10,7 +10,7 @@ import { AvisosWindow } from './AvisosWindow';
 import { AVISOS_KEPT, avisosFromSnapshot, type Notice } from './noticeModel';
 import { useNotices } from './useNotices';
 
-useFakeLayoutSizes({ clientWidth: 800, clientHeight: 600, offsetWidth: 360, offsetHeight: 200 });
+useFakeLayoutSizes({ clientWidth: 800, clientHeight: 600, offsetWidth: 280, offsetHeight: 200 });
 
 afterEach(cleanup);
 
@@ -54,6 +54,16 @@ describe('AvisosWindow', () => {
     expect(buttons).toHaveLength(1);
     fireEvent.click(buttons[0] as HTMLElement);
     expect(onSeeUnit).toHaveBeenCalledWith('unit-7');
+  });
+
+  it('marks alert stamps and scrolls the list inside the window', () => {
+    renderAvisos([{ ...notice(1), alert: true }, notice(2)]);
+    const items = document.querySelectorAll('.tm-avisos__item');
+    expect(items[0]?.classList).toContain('is-alert');
+    expect(items[1]?.classList).not.toContain('is-alert');
+    const list = document.querySelector('.tm-scroll') as HTMLElement;
+    expect(list.style.maxHeight).toBe('calc(200 * var(--tm-px))');
+    expect(list.contains(items[0] as Element)).toBe(true);
   });
 
   it('says there are no notices on a new tower', () => {
