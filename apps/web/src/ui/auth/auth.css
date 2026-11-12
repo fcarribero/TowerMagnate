@@ -87,6 +87,7 @@
 
 .auth-screen__actions .tm-button {
   width: 100%;
+  height: calc(20 * var(--tm-px));
 }
 
 .auth-screen__actions .tm-button.is-default {
