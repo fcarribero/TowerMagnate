@@ -33,6 +33,7 @@ const DEMO_WINDOWS: readonly (OpenRequest & { label: string })[] = [
 const DIALOGS = [
   { id: 'bomb', label: t('dialog.bomb.title') },
   { id: 'newTower', label: t('dialog.newTower.title') },
+  { id: 'changeFilm', label: t('dialog.changeFilm.title') },
   { id: 'welcome', label: t('dialog.welcome.title') },
 ];
 
@@ -125,6 +126,15 @@ function DemoDialogs({ onAnswer }: { onAnswer: (answer: string) => void }) {
         actionLabel={t('dialog.newTower.confirm')}
         onConfirm={() => answer('newTower', 'Respuesta: confirm')}
         onCancel={() => answer('newTower', 'Respuesta: cancel')}
+      />
+      <ConfirmDialog
+        id="changeFilm"
+        title={t('dialog.changeFilm.title')}
+        body={t('dialog.changeFilm.body')}
+        actionLabel={t('dialog.changeFilm.confirm')}
+        actionTone="plain"
+        onConfirm={() => answer('changeFilm', 'Respuesta: confirm')}
+        onCancel={() => answer('changeFilm', 'Respuesta: cancel')}
       />
       <InfoDialog
         id="welcome"
