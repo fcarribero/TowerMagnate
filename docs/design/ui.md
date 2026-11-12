@@ -379,7 +379,7 @@ Window widths, in UI pixels:
 |---|---|
 | Unit, Person, Personas seguidas | 200 |
 | Estrellas | 220 |
-| Elevator | 260 |
+| Elevator | 310 |
 | Finanzas, Avisos | 280 |
 | Mapa de la torre | 389 |
 

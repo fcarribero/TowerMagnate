@@ -9,20 +9,25 @@
   font: var(--text-body);
   color: var(--obra-ink);
   background:
-    linear-gradient(to top, #0b0f24 0 18%, transparent 18%),
+    linear-gradient(to top, var(--auth-ground) 0 18%, transparent 18%),
     linear-gradient(
       to right,
       transparent 0 6%,
-      #151a36 6% 14%,
+      var(--auth-tower-near) 6% 14%,
       transparent 14% 20%,
-      #1b2142 20% 27%,
+      var(--auth-tower-far) 20% 27%,
       transparent 27% 63%,
-      #151a36 63% 70%,
+      var(--auth-tower-near) 63% 70%,
       transparent 70% 78%,
-      #1b2142 78% 88%,
+      var(--auth-tower-far) 78% 88%,
       transparent 88%
     ),
-    linear-gradient(to bottom, #0a0f2b 0%, #1d2a5c 70%, #3a3f6e 100%);
+    linear-gradient(
+      to bottom,
+      var(--auth-sky-top) 0%,
+      var(--auth-sky-mid) 70%,
+      var(--auth-sky-bottom) 100%
+    );
   background-size:
     100% 100%,
     100% 40%,

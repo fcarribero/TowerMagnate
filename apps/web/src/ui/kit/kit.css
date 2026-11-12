@@ -1,18 +1,6 @@
 :root {
-  --tm-ink: #141218;
-  --tm-slate: #4f4e5c;
-  --tm-gray: #7b7a86;
-  --tm-silver: #a9a8b0;
-  --tm-cloud: #d6d4d0;
-  --tm-white: #f4f1e8;
-  --tm-sky-deep: #3d6fb6;
-  --tm-lamp: #f2d36b;
-  --tm-cloth-red: #b0353a;
-  --tm-dusk: #e0875a;
-  --tm-leaf: #4f8a3e;
   --tm-ui-scale: 1;
   --tm-px: calc(var(--tm-ui-scale) * 1px);
-  --tm-font: 'Tiny5', monospace;
   --tm-font-size: calc(8 * var(--tm-px));
   --tm-line-height: calc(9 * var(--tm-px));
 }
