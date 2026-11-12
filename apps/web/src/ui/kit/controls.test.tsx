@@ -3,6 +3,8 @@ import userEvent from '@testing-library/user-event';
 import { useState } from 'preact/hooks';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { Button } from './Button';
+import { Checkbox } from './Checkbox';
+import { Dropdown } from './Dropdown';
 import { ListBox } from './ListBox';
 import { NumberInput, clampToStep } from './NumberInput';
 import { RadioGroup } from './RadioGroup';
@@ -199,5 +201,143 @@ describe('ListBox', () => {
     fireEvent.keyDown(list, { key: 'Home' });
     expect(selectedLabel()).toBe('Piso 1');
     expect(list.getAttribute('aria-activedescendant')).toBe('l-option-1');
+  });
+});
+
+function DropdownHarness({ onSubmit }: { onSubmit?: (data: FormData) => void }) {
+  const [value, setValue] = useState('a');
+  return (
+    <form
+      onSubmit={(event) => {
+        event.preventDefault();
+        onSubmit?.(new FormData(event.currentTarget));
+      }}
+    >
+      <Dropdown
+        id="d"
+        name="speed"
+        label="Velocidad"
+        value={value}
+        onChange={setValue}
+        options={[
+          { value: 'a', label: 'Lenta' },
+          { value: 'b', label: 'Media', disabled: true },
+          { value: 'c', label: 'Rápida' },
+        ]}
+      />
+      <output>{value}</output>
+    </form>
+  );
+}
+
+describe('Dropdown', () => {
+  it('shows the selected label and a closed list', () => {
+    render(<DropdownHarness />);
+    const field = screen.getByRole('combobox', { name: 'Velocidad' });
+    expect(field.textContent).toBe('Lenta');
+    expect(field.getAttribute('aria-expanded')).toBe('false');
+    expect(screen.queryByRole('listbox')).toBeNull();
+  });
+
+  it('opens, picks with the mouse and closes', async () => {
+    const user = userEvent.setup();
+    render(<DropdownHarness />);
+    await user.click(screen.getByRole('combobox'));
+    expect(screen.getAllByRole('option')).toHaveLength(3);
+    await user.click(screen.getByRole('option', { name: 'Rápida' }));
+    expect(screen.queryByRole('listbox')).toBeNull();
+    expect(screen.getByRole('combobox').textContent).toBe('Rápida');
+  });
+
+  it('opens with Down, skips a disabled row, picks with Enter', async () => {
+    const user = userEvent.setup();
+    render(<DropdownHarness />);
+    await user.tab();
+    await user.keyboard('{ArrowDown}');
+    expect(screen.getByRole('listbox')).toBeTruthy();
+    await user.keyboard('{ArrowDown}{Enter}');
+    expect(screen.getByRole('combobox').textContent).toBe('Rápida');
+    expect(screen.queryByRole('listbox')).toBeNull();
+  });
+
+  it('closes with Esc without changing the value', async () => {
+    const user = userEvent.setup();
+    render(<DropdownHarness />);
+    await user.tab();
+    await user.keyboard('{Enter}{ArrowDown}{Escape}');
+    expect(screen.queryByRole('listbox')).toBeNull();
+    expect(screen.getByRole('combobox').textContent).toBe('Lenta');
+  });
+
+  it('closes on a press outside', async () => {
+    const user = userEvent.setup();
+    render(<DropdownHarness />);
+    await user.click(screen.getByRole('combobox'));
+    await user.click(document.body);
+    expect(screen.queryByRole('listbox')).toBeNull();
+  });
+
+  it('ignores a disabled option and a disabled field', async () => {
+    const user = userEvent.setup();
+    render(<DropdownHarness />);
+    await user.click(screen.getByRole('combobox'));
+    await user.click(screen.getByRole('option', { name: 'Media' }));
+    expect(screen.getByRole('combobox').textContent).toBe('Lenta');
+    cleanup();
+    render(
+      <Dropdown
+        id="x"
+        label="X"
+        value="a"
+        options={[{ value: 'a', label: 'A' }]}
+        onChange={vi.fn()}
+        disabled
+      />,
+    );
+    await user.click(screen.getByRole('combobox'));
+    expect(screen.queryByRole('listbox')).toBeNull();
+  });
+
+  it('submits its value with a form', async () => {
+    const user = userEvent.setup();
+    const onSubmit = vi.fn();
+    const { container } = render(<DropdownHarness onSubmit={onSubmit} />);
+    await user.click(screen.getByRole('combobox'));
+    await user.click(screen.getByRole('option', { name: 'Rápida' }));
+    fireEvent.submit(container.querySelector('form') as HTMLFormElement);
+    expect((onSubmit.mock.calls[0]?.[0] as FormData).get('speed')).toBe('c');
+  });
+});
+
+function CheckboxHarness() {
+  const [checked, setChecked] = useState(false);
+  return <Checkbox id="c" label="Cobrar alquiler" checked={checked} onChange={setChecked} />;
+}
+
+describe('Checkbox', () => {
+  it('is named by its label and toggles with Space', async () => {
+    const user = userEvent.setup();
+    render(<CheckboxHarness />);
+    const box = screen.getByRole('checkbox', { name: 'Cobrar alquiler' }) as HTMLInputElement;
+    await user.tab();
+    await user.keyboard(' ');
+    expect(box.checked).toBe(true);
+    await user.keyboard(' ');
+    expect(box.checked).toBe(false);
+  });
+
+  it('toggles when its label is clicked', async () => {
+    const user = userEvent.setup();
+    render(<CheckboxHarness />);
+    await user.click(screen.getByText('Cobrar alquiler'));
+    expect((screen.getByRole('checkbox') as HTMLInputElement).checked).toBe(true);
+  });
+
+  it('stays unchanged while disabled', async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+    render(<Checkbox id="d" label="Fija" checked={false} onChange={onChange} disabled />);
+    await user.click(screen.getByText('Fija'));
+    expect(onChange).not.toHaveBeenCalled();
   });
 });

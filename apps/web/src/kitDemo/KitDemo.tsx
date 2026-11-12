@@ -2,8 +2,10 @@ import { useEffect, useState } from 'preact/hooks';
 import { isShortcutBlocked } from '../input/keyboard';
 import {
   Button,
+  Checkbox,
   ConfirmDialog,
   DecisionDialog,
+  Dropdown,
   InfoDialog,
   ListBox,
   NumberInput,
@@ -45,6 +47,13 @@ const FLOORS = Array.from({ length: 12 }, (_, index) => ({
 }));
 
 type LobbyHeight = '1' | '2' | '3';
+
+const SPEEDS = [
+  { value: 'slow', label: 'Lenta' },
+  { value: 'medium', label: 'Media' },
+  { value: 'fast', label: 'Rápida' },
+  { value: 'locked', label: 'Bloqueada', disabled: true },
+];
 
 let nextUnit = 1;
 
@@ -154,6 +163,8 @@ function DemoWindows() {
   const [tab, setTab] = useState('week');
   const [floor, setFloor] = useState<string | null>('1');
   const [clicks, setClicks] = useState(0);
+  const [speed, setSpeed] = useState('medium');
+  const [collectRent, setCollectRent] = useState(true);
 
   const unitWindows = manager.stack.windows.filter((window) => window.kind === 'unit');
 
@@ -197,6 +208,19 @@ function DemoWindows() {
           min={0}
           max={100}
           onChange={setRent}
+        />
+        <Dropdown
+          id="demo-speed"
+          label="Velocidad"
+          value={speed}
+          options={SPEEDS}
+          onChange={setSpeed}
+        />
+        <Checkbox
+          id="demo-rent-on"
+          label="Cobrar alquiler"
+          checked={collectRent}
+          onChange={setCollectRent}
         />
         <RadioGroup<LobbyHeight>
           name="demo-height"

@@ -14,6 +14,8 @@ export {
   type DialogChoice,
   type InfoDialogProps,
 } from './Dialog';
+export { Checkbox, type CheckboxProps } from './Checkbox';
+export { Dropdown, type DropdownOption, type DropdownProps } from './Dropdown';
 export { ListBox, type ListBoxProps, type ListItem } from './ListBox';
 export { NumberInput, clampToStep, type NumberInputProps } from './NumberInput';
 export { RadioGroup, type RadioGroupProps, type RadioOption } from './RadioGroup';
