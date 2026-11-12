@@ -207,7 +207,7 @@ export function ElevatorWindow({ shaft, send, onClose, bandNow = null }: Elevato
   );
 
   return (
-    <Window id={elevatorWindowId(shaft.id)} title={title} onClose={onClose} width={260}>
+    <Window id={elevatorWindowId(shaft.id)} title={title} onClose={onClose} width={310}>
       <Tabs
         id="elevator-tabs"
         label={title}

@@ -39,6 +39,10 @@
   width: calc(40 * var(--tm-px));
 }
 
+.elevator-schedule .tm-dropdown {
+  width: calc(112 * var(--tm-px));
+}
+
 .elevator-schedule td {
   height: calc(16 * var(--tm-px));
   border-bottom: var(--size-press-offset) solid var(--obra-rule);

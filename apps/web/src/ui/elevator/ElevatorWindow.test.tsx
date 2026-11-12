@@ -299,3 +299,28 @@ describe('Schedule field width', () => {
     expect(css.slice(start, css.indexOf('}', start))).toContain('width: calc(40 * var(--tm-px))');
   });
 });
+
+describe('Schedule Modo column width', () => {
+  const css = readFileSync(resolve(__dirname, 'elevatorWindow.css'), 'utf8');
+
+  it('fixes the Modo dropdown at 112 wide, enough for Expreso hacia abajo', () => {
+    const start = css.indexOf('.elevator-schedule .tm-dropdown {');
+    expect(css.slice(start, css.indexOf('}', start))).toContain('width: calc(112 * var(--tm-px))');
+  });
+
+  it('opens a window wide enough for the whole table', () => {
+    show(shaft());
+    const frame = screen.getByRole('dialog');
+    expect(frame.style.width).toBe('calc(310 * var(--tm-px))');
+  });
+
+  it('keeps the Modo cell markup unchanged after choosing Expreso hacia abajo', async () => {
+    show(shaft());
+    await userEvent.click(screen.getByRole('tab', { name: 'Horarios' }));
+    const modeCell = () => screen.getAllByRole('combobox')[0]?.closest('td');
+    const before = modeCell()?.className;
+    await pick('Modo 00:00 a 07:00', 'Expreso hacia abajo');
+    expect(modeCell()?.className).toBe(before);
+    expect(modeCell()?.querySelector('.tm-dropdown')).not.toBeNull();
+  });
+});
