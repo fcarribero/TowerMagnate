@@ -34,7 +34,7 @@
 .tm-window__title {
   display: flex;
   align-items: center;
-  height: calc(18 * var(--tm-px));
+  height: calc(19 * var(--tm-px));
   padding: 0 var(--space-1) 0 var(--space-2);
   color: var(--obra-paper);
   background: var(--obra-blue);
@@ -93,7 +93,7 @@
 }
 
 .tm-window--subtitled > .tm-window__title {
-  height: calc(28 * var(--tm-px));
+  height: calc(27 * var(--tm-px));
 }
 
 /* Dialogs: thick border and hard shadow, hazard stripe on top, title on paper. */
@@ -145,7 +145,7 @@
 /* Buttons and other tiles: hover lifts 1 px up-left with a hard shadow, press drops 1 px. */
 .tm-button {
   min-width: calc(64 * var(--tm-px));
-  height: calc(20 * var(--tm-px));
+  height: calc(16 * var(--tm-px));
   padding: 0 var(--space-4);
   font: var(--text-button);
   color: var(--obra-ink);

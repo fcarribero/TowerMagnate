@@ -99,12 +99,21 @@ describe('unit windows', () => {
     });
   });
 
+  it('shows no subtitle for a unit without a custom name', () => {
+    const { open, show } = setup([unitView('u1')]);
+    open('u1');
+    show(inspectOf('u1'));
+    const dialog = screen.getByRole('dialog', { name: 'Oficina · Piso 3' });
+    expect(dialog.className).not.toContain('tm-window--subtitled');
+    expect(dialog.querySelector('.tm-window__subtitle')).toBeNull();
+  });
+
   it('shows the subtitle, stat tiles and contract chip in the window', () => {
     const { open, show } = setup([unitView('u1')]);
     open('u1');
-    show(inspectOf('u1', { details: leaseDetails({ nextPaymentStep: 0 }) }));
-    const dialog = screen.getByRole('dialog', { name: 'Oficina · Piso 3' });
-    const subtitle = within(dialog).getByText('Oficina · Piso 3 · casilleros 10 a 18');
+    show(inspectOf('u1', { name: 'Mi estudio', details: leaseDetails({ nextPaymentStep: 0 }) }));
+    const dialog = screen.getByRole('dialog', { name: 'Mi estudio' });
+    const subtitle = within(dialog).getByText('Oficina · Piso 3');
     expect(subtitle.className).toBe('tm-window__subtitle');
     expect(dialog.className).toContain('tm-window--subtitled');
     expect(subtitle.closest('.tm-window__title')).toBeTruthy();

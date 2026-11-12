@@ -194,7 +194,7 @@ export const SPANISH_STRINGS = {
   'window.unit.lastWedding': 'Último intento de boda',
   'window.unit.none': 'Ninguno',
   'window.unit.title': '{type} · {level}',
-  'window.unit.subtitle': '{type} · {level} · {columns}',
+  'window.unit.subtitle': '{type} · {level}',
   'window.unit.locationValue': '{level}, {columns}',
   'window.unit.countOf': '{n} de {max}',
   'window.unit.nextEvaluationValue': '{weekday} {day} de {month}',

@@ -200,8 +200,8 @@ describe('unit window model', () => {
     expect(priceOptions('office')[0]).toMatchObject({ name: 'Alto', amount: '$15.000' });
   });
 
-  it('writes the type, level and cells in the subtitle', () => {
-    expect(unitSubtitle(office)).toBe('Oficina · Piso 12 · casilleros 40 a 48');
+  it('writes the type and level in the subtitle', () => {
+    expect(unitSubtitle(office)).toBe('Oficina · Piso 12');
   });
 
   it('groups state, occupancy and evaluation as tiles and contract and payment as chips', () => {

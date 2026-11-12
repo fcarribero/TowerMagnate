@@ -119,7 +119,7 @@ export function UnitWindow({ unitId, connection }: UnitWindowProps) {
       <Window
         id={windowId}
         title={title}
-        subtitle={found === undefined ? undefined : unitSubtitle(found)}
+        subtitle={found?.name == null ? undefined : unitSubtitle(found)}
         onClose={close}
         width={200}
       >
