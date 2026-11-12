@@ -1,4 +1,5 @@
 import {
+  EventViewSchema,
   WEDDING_GUESTS,
   type EngineEvent,
   type StarRating,
@@ -6,6 +7,8 @@ import {
 } from '@tower-magnate/shared';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { STEPS_PER_MINUTE } from './calendar';
+import { buildEventViews } from './events/view';
+import { deserializeState, serializeState } from './serialization';
 import { STEPS_PER_DAY } from './clock';
 import { addPerson, countPeopleByKind, listPeople } from './people';
 import { populationOf } from './population';
@@ -262,5 +265,45 @@ describe('demolishing the cathedral during the attempt', () => {
     expect(guestCount(state)).toBe(0);
     expect(state.wedding).toBeNull();
     expect(state.stars).toBe(5);
+  });
+});
+
+describe('wedding event view', () => {
+  function weddingViews(state: TowerState) {
+    return buildEventViews(state).filter((view) => view.kind === 'wedding');
+  }
+
+  it('shows the cathedral from the start of the attempt and every guest once they are in', () => {
+    const start = runMidnight(cathedralTower({ reachable: true }), SATURDAY).state;
+    expect(weddingViews(start)).toEqual([
+      { kind: 'wedding', cathedral: cathedralId(start), guests: [] },
+    ]);
+
+    const arrived = runUntil(start, at(SATURDAY, 10, 30)).state;
+    const [view] = weddingViews(arrived);
+    expect(view).toMatchObject({ kind: 'wedding', cathedral: cathedralId(arrived) });
+    expect(view?.kind === 'wedding' ? view.guests : []).toHaveLength(WEDDING_GUESTS);
+    expect(EventViewSchema.safeParse(view).success).toBe(true);
+  });
+
+  it('disappears when the wedding completes', () => {
+    const start = runMidnight(cathedralTower({ reachable: true }), SATURDAY).state;
+    const done = runUntil(start, at(SATURDAY, 12, 30)).state;
+    expect(done.wedding?.outcome).toBe('completed');
+    expect(weddingViews(done)).toEqual([]);
+  });
+
+  it('disappears when the wedding fails', () => {
+    const start = runMidnight(cathedralTower({ reachable: false }), SATURDAY).state;
+    expect(weddingViews(runUntil(start, at(SATURDAY, 12, 29)).state)).toHaveLength(1);
+    expect(weddingViews(runUntil(start, at(SATURDAY, 12, 30)).state)).toEqual([]);
+  });
+
+  it('is the same after saving and loading mid-wedding', () => {
+    const start = runMidnight(cathedralTower({ reachable: true }), SATURDAY).state;
+    const midMorning = runUntil(start, at(SATURDAY, 9, 30)).state;
+    const reloaded = deserializeState(serializeState(midMorning));
+    expect(weddingViews(reloaded)).toEqual(weddingViews(midMorning));
+    expect(weddingViews(reloaded)).toHaveLength(1);
   });
 });
