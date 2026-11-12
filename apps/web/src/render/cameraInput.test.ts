@@ -1,5 +1,10 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { attachCameraInput, keyScrollPixels, scrollKeyDirection, zoomKeyDirection } from './cameraInput';
+import {
+  attachCameraInput,
+  keyScrollPixels,
+  scrollKeyDirection,
+  zoomKeyDirection,
+} from './cameraInput';
 import type { Camera } from './camera';
 
 describe('zoomKeyDirection', () => {
