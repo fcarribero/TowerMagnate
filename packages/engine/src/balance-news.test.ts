@@ -1,3 +1,4 @@
+import type { QueuedCommand } from '@tower-magnate/shared';
 import { describe, expect, it } from 'vitest';
 import { hashState } from './hash';
 import { chargeMoney } from './money';
@@ -18,7 +19,7 @@ const engine = createEngine({
   systems: [],
 });
 
-const ransom = (id: string) => ({
+const ransom = (id: string): QueuedCommand => ({
   id,
   command: { type: 'answerEvent', eventId: 'e1', choice: 'pay' },
 });
