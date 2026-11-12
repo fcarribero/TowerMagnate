@@ -73,6 +73,17 @@ describe('account menu', () => {
     expect(screen.queryByText('¿Estás seguro?')).toBeNull();
   });
 
+  it('dims the tower behind the confirmation and ignores clicks on the scrim', () => {
+    const restart = vi.fn(async () => true);
+    render(<Harness restart={restart} onLogout={() => {}} />);
+    openRestartDialog();
+    const scrim = document.querySelector('.tm-modal-backdrop') as HTMLElement;
+    expect(scrim).not.toBeNull();
+    fireEvent.click(scrim);
+    expect(screen.getByText('Torre nueva')).toBeTruthy();
+    expect(restart).not.toHaveBeenCalled();
+  });
+
   it('keeps the tower when the first confirmation is cancelled', () => {
     const restart = vi.fn(async () => true);
     render(<Harness restart={restart} onLogout={() => {}} />);

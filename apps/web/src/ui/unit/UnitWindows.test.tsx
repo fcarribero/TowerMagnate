@@ -259,6 +259,31 @@ describe('unit windows', () => {
       expect(commandsSent()).toEqual([{ type: 'changeFilm', unitId: 'u1' }]);
     });
 
+    it('asks with a plain action, a scrim and Cancelar focused', () => {
+      const { open, show, commandsSent } = setup([unitView('u1', 'cinema')]);
+      open('u1');
+      show(cinema());
+      fireEvent.click(screen.getByRole('button', { name: 'Cambiar película ($300.000)' }));
+
+      const title = screen.getByText('Cambiar película', { selector: '.tm-window__title-text' });
+      const frame = title.closest('section') as HTMLElement;
+      expect(frame.classList.contains('tm-window--dialog-info')).toBe(false);
+      expect(frame.querySelector('.tm-window__stripe')).not.toBeNull();
+      expect(frame.querySelector('.tm-dialog__body')?.textContent).toBe(
+        'La película nueva cuesta $300.000.',
+      );
+      const buttons = Array.from(frame.querySelectorAll('.tm-dialog__buttons button'));
+      expect(buttons.map((button) => button.textContent)).toEqual(['Cambiar', 'Cancelar']);
+      expect(buttons.some((button) => button.classList.contains('is-default'))).toBe(false);
+      expect(document.activeElement).toBe(buttons[1]);
+
+      fireEvent.click(document.querySelector('.tm-modal-backdrop') as HTMLElement);
+      expect(screen.getByRole('button', { name: 'Cambiar' })).toBeTruthy();
+      fireEvent.keyDown(window, { key: 'Escape' });
+      expect(screen.queryByRole('button', { name: 'Cambiar' })).toBeNull();
+      expect(commandsSent()).toEqual([]);
+    });
+
     it('disables the film change under $300.000', () => {
       const { open, show } = setup([unitView('u1', 'cinema')], 299_999);
       open('u1');

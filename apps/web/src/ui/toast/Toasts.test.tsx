@@ -61,4 +61,29 @@ describe('Toasts', () => {
     });
     expect(screen.queryByText('Eso ya no está en la torre.')).toBeNull();
   });
+
+  it('lasts 3 seconds', () => {
+    expect(TOAST_DURATION_MS).toBe(3000);
+  });
+
+  it('shows one toast at a time and the new one replaces the old', () => {
+    vi.useFakeTimers();
+    const commands = setup();
+    reject(commands, 'UNKNOWN_ENTITY');
+    act(() => {
+      vi.advanceTimersByTime(2000);
+    });
+    reject(commands, 'PRICE_LOCKED');
+    expect(document.querySelectorAll('.tm-toast').length).toBe(1);
+    expect(screen.queryByText('Eso ya no est� en la torre.')).toBeNull();
+
+    act(() => {
+      vi.advanceTimersByTime(2000);
+    });
+    expect(document.querySelectorAll('.tm-toast').length).toBe(1);
+    act(() => {
+      vi.advanceTimersByTime(1000);
+    });
+    expect(document.querySelectorAll('.tm-toast').length).toBe(0);
+  });
 });
