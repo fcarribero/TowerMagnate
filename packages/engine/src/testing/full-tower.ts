@@ -13,7 +13,7 @@ const FLOORS = 100;
 const TOWER_X1 = 374;
 const ZONE_FLOORS = 25;
 const SHAFTS_PER_ZONE = 6;
-const GROUND_BANK_CARS = 4;
+const CARS_PER_SHAFT_BY_ZONE = [4, 4, 4, 4];
 const SHAFT_SPACING = 4;
 const ZONE_SPACING = 30;
 const STAIRS_X = 124;
@@ -42,7 +42,7 @@ export function fullTower(): TowerState {
     const bottom = zone * ZONE_FLOORS + 1;
     for (let index = 0; index < SHAFTS_PER_ZONE; index++) {
       const x = SHAFT_SPACING + zone * ZONE_SPACING + index * SHAFT_SPACING;
-      const cars = zone === 0 ? GROUND_BANK_CARS : 1;
+      const cars = CARS_PER_SHAFT_BY_ZONE[zone] as number;
       shafts.push({ type: 'standard', x, bottom, top: bottom + ZONE_FLOORS - 1, cars });
     }
   }

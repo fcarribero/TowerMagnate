@@ -17,6 +17,8 @@ import { TransportGraph } from './routing';
 import { createEngine, type StepContext } from './step';
 import { addFlight, buildTower, plainTowerPlan, trekCrowd, type PlannedShaft } from './testing';
 import {
+  alightRider,
+  boardRider,
   cancelTrek,
   createTrekSystem,
   isOnTrek,
@@ -424,6 +426,48 @@ describe('full queue recheck rule (routing 8.3)', () => {
     Reflect.deleteProperty(arrived.shafts, second_.id);
     const replanned = runSteps(arrived, 1);
     expect(pool(replanned, id)).toMatchObject({ switches: 1, leftShafts: 0 });
+  });
+
+  it('may head back to a shaft it left once a re-plan has emptied the list', () => {
+    const { state, id } = waiterWalkingToFirstShaft();
+    const walking = runUntilHeadingTo(state, id, second);
+    fillOnly(walking, 1);
+    const arrived = runSteps(walking, second - first);
+    expect(pool(arrived, id).leftShafts).not.toBe(0);
+
+    const waitedAt = Object.values(arrived.shafts)[1] as Shaft;
+    Reflect.deleteProperty(arrived.shafts, waitedAt.id);
+    fillOnly(arrived);
+    const replanned = runSteps(arrived, 1);
+    expect(pool(replanned, id)).toMatchObject({ switches: 1, leftShafts: 0, headingTo: first });
+  });
+
+  it('counts switches again in a second trip of the same person', () => {
+    const { state, id } = waiterWalkingToFirstShaft();
+    const walking = runUntilHeadingTo(state, id, second);
+    expect(pool(walking, id).switches).toBe(1);
+
+    fillOnly(walking);
+    let now = walking;
+    for (let count = 0; count < 100 && view(now, id).phase !== 'queued'; count++) {
+      now = runSteps(now, 1);
+    }
+    boardRider(contextOf(now), personEntityId(id));
+    alightRider(contextOf(now), personEntityId(id), 3);
+    now = runSteps(now, 80);
+    expect(view(now, id)).toMatchObject({ level: 3, column: 30 });
+    expect(pool(now, id)).toMatchObject({ switches: 0, leftShafts: 0 });
+
+    expect(sendTo(now, id, { level: 1, column: 30 })).toBe(true);
+    const firstShaft = Object.values(now.shafts)[0] as Shaft;
+    const crowd = Array.from({ length: ELEVATOR_QUEUE_CAPACITY }, (_, index) => ({
+      person: `p${7000 + index}`,
+      destination: 1 as Level,
+      joinedStep: 0,
+    }));
+    firstShaft.queues['3'] = { up: [], down: crowd };
+    const again = runUntilHeadingTo(now, id, second, 120);
+    expect(pool(again, id)).toMatchObject({ switches: 1, headingTo: second });
   });
 
   it('starts every trip with no switches and no left shafts', () => {

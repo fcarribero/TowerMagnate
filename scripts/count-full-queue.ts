@@ -11,6 +11,9 @@ const QUEUED = TREK_PHASES.indexOf('queued');
 const WAITING_BESIDE_QUEUE = TREK_PHASES.indexOf('waitingBesideQueue');
 const RIDING = TREK_PHASES.indexOf('riding');
 const LOBBY = 1;
+const UPPER_BANK_LEVELS = [26, 51];
+const GROUND_BANK_CARS = 24;
+const MAX_SWITCHES = 2;
 
 const FROM = STEPS_PER_DAY + 6 * STEPS_PER_HOUR;
 const STEPS = 8 * STEPS_PER_HOUR;
@@ -23,6 +26,8 @@ interface Person {
   chosen: number[];
   wentBack: boolean;
   flipped: boolean;
+  /** Step at which the current wait beside a full queue began, or -1. */
+  waitSince: number;
 }
 
 const people = new Map<number, Person>();
@@ -37,6 +42,7 @@ function personOf(id: number): Person {
       chosen: [],
       wentBack: false,
       flipped: false,
+      waitSince: -1,
     };
     people.set(id, person);
   }
@@ -49,6 +55,19 @@ let boardingsAtLobby = 0;
 let boardings = 0;
 let flipTimes = 0;
 let joinsFromBeside = 0;
+const waits: number[] = [];
+const upperBoardings = new Map<number, number>(UPPER_BANK_LEVELS.map((level) => [level, 0]));
+const upperFullQueueEvents = new Map<number, number>(UPPER_BANK_LEVELS.map((level) => [level, 0]));
+
+function endWait(person: Person, index: number): void {
+  if (person.waitSince >= 0) waits.push(index - person.waitSince);
+  person.waitSince = -1;
+}
+
+function percentile(values: number[], share: number): number {
+  const sorted = values.slice().sort((a, b) => a - b);
+  return sorted[Math.min(sorted.length - 1, Math.floor(sorted.length * share))] ?? 0;
+}
 
 for (let index = 0; index < STEPS; index++) {
   const before = state.people;
@@ -64,6 +83,15 @@ for (let index = 0; index < STEPS; index++) {
       const fresh = personOf(id);
       fresh.switchesInTrip = 0;
       fresh.chosen = [];
+    }
+    if (was !== WAITING_BESIDE_QUEUE && now === WAITING_BESIDE_QUEUE) {
+      personOf(id).waitSince = index;
+      const level = pool.level[slot] as number;
+      if (upperFullQueueEvents.has(level)) {
+        upperFullQueueEvents.set(level, (upperFullQueueEvents.get(level) as number) + 1);
+      }
+    } else if (was === WAITING_BESIDE_QUEUE && now !== WAITING_BESIDE_QUEUE) {
+      endWait(personOf(id), index);
     }
     if (was === WAITING_BESIDE_QUEUE && now === WALKING_TO_SHAFT) {
       const person = personOf(id);
@@ -88,6 +116,10 @@ for (let index = 0; index < STEPS; index++) {
       boardings++;
       personOf(id).boarded = true;
       if (before.level[slot] === LOBBY) boardingsAtLobby++;
+      const level = before.level[slot] as number;
+      if (upperBoardings.has(level)) {
+        upperBoardings.set(level, (upperBoardings.get(level) as number) + 1);
+      }
     }
     if (now === WALKING_TO_SHAFT && was !== WALKING_TO_SHAFT && was !== WAITING_BESIDE_QUEUE) {
       const person = personOf(id);
@@ -98,6 +130,10 @@ for (let index = 0; index < STEPS; index++) {
 
 const all = [...people.values()];
 const count = (test: (person: Person) => boolean) => all.filter(test).length;
+const stillWaitingBesideQueue = [...people.entries()].filter(([, person]) => person.waitSince >= 0);
+const stillWaitingAtCap = stillWaitingBesideQueue.filter(
+  ([, person]) => person.switchesInTrip >= MAX_SWITCHES,
+).length;
 const stillInLobby = Array.from(state.people.trek).filter(
   (phase, slot) =>
     (phase === WALKING_TO_SHAFT || phase === QUEUED || phase === WAITING_BESIDE_QUEUE) &&
@@ -116,7 +152,13 @@ console.log(
     `People with changes who never boarded: ${count((person) => person.mostSwitchesInTrip > 0 && !person.boarded)}`,
     `Joins from beside a full queue: ${joinsFromBeside}`,
     `Boardings in the whole tower: ${boardings}`,
-    `Boardings at level 1: ${boardingsAtLobby}`,
+    `Boardings at level 1: ${boardingsAtLobby} (${(boardingsAtLobby / GROUND_BANK_CARS).toFixed(1)} per car, ${GROUND_BANK_CARS} cars)`,
+    ...UPPER_BANK_LEVELS.map(
+      (level) =>
+        `Level ${level}: ${upperBoardings.get(level)} boardings, ${upperFullQueueEvents.get(level)} full-queue events`,
+    ),
+    `Waits beside a full queue that ended: ${waits.length}, max ${Math.max(0, ...waits)} steps, p99 ${percentile(waits, 0.99)} steps`,
+    `Still waiting beside a full queue at 14:00: ${stillWaitingBesideQueue.length}, of them with ${MAX_SWITCHES} switches: ${stillWaitingAtCap}`,
     `People still going to a shaft or queueing at level 1 at 14:00: ${stillInLobby}`,
   ].join('\n'),
 );
