@@ -53,6 +53,7 @@ import { DecisionDialogs } from './notices/DecisionDialogs';
 import { InfoDialogs } from './notices/InfoDialogs';
 import { NewsLine } from './notices/NewsLine';
 import { useNotices } from './notices/useNotices';
+import { useUnreadCount } from './notices/useUnreadCount';
 import { Toasts } from './toast/Toasts';
 import { ElevatorWindows } from './elevator/ElevatorWindows';
 import { UnitWindows } from './unit/UnitWindows';
@@ -116,6 +117,22 @@ export function App({ onLogout, onRestartTower, onSessionLost }: AppProps) {
     connection,
     useCallback((error: string) => report({ ok: false, error }, { x: 0, y: 0 }), [report]),
   );
+  const unreadNotices = useUnreadCount(notices.subscribeLine, avisosOpen);
+  const openWindows = useMemo(() => {
+    const open = new Set<StatusWindowId>();
+    const flags: [StatusWindowId, boolean][] = [
+      ['map', mapOpen],
+      ['finance', financeOpen],
+      ['notices', avisosOpen],
+      ['stars', starsOpen],
+    ];
+    for (const [id, isOpen] of flags) {
+      if (isOpen) {
+        open.add(id);
+      }
+    }
+    return open;
+  }, [mapOpen, financeOpen, avisosOpen, starsOpen]);
   const incomeFloats = useIncomeFloaters(stage, connection);
   const [pendingDemolition, setPendingDemolition] = useState<{
     confirmation: Confirmation;
@@ -308,6 +325,8 @@ export function App({ onLogout, onRestartTower, onSessionLost }: AppProps) {
           store={connection.store}
           offline={connectionStatus !== 'live'}
           onOpenWindow={onOpenWindow}
+          openWindows={openWindows}
+          unreadNotices={unreadNotices}
           overlaySlot={<OverlaySelector overlay={overlay} onSelect={setOverlay} />}
           onZoom={(direction) => stage?.zoomStep(direction)}
           onLogout={onLogout}
