@@ -1,17 +1,21 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { NEWS_GRAY_AFTER_MS, NewsQueue, type Notice } from './noticeModel';
-import { noticeLine } from './noticeText';
+import { noticeBody, noticeStamp } from './noticeText';
+import { Tooltip } from '../kit';
+import { ALARM_ICON, PixelIcon } from '../status/pixelIcons';
 import './notices.css';
 
 export interface NewsLineProps {
   subscribe: (listener: (notice: Notice) => void) => () => void;
   onOpenAvisos: () => void;
+  /** Called on click for a notice tied to a unit. */
+  onSeeUnit?: (unitId: string) => void;
   /** Real clock in ms; tests pass their own. */
   now?: () => number;
 }
 
-/** The bottom line: one notice at a time, gray after 20 real seconds, alerts in red. */
-export function NewsLine({ subscribe, onOpenAvisos, now = Date.now }: NewsLineProps) {
+/** The bottom line: one notice at a time, muted after 20 real seconds, alerts in red. */
+export function NewsLine({ subscribe, onOpenAvisos, onSeeUnit, now = Date.now }: NewsLineProps) {
   const queue = useRef(new NewsQueue());
   const [, redraw] = useState(0);
   useEffect(() => {
@@ -43,13 +47,30 @@ export function NewsLine({ subscribe, onOpenAvisos, now = Date.now }: NewsLinePr
   if (current === null) {
     return <div class="tm-news" />;
   }
-  const classes = ['tm-news', current.alert && 'is-alert', queue.current.isGray(now()) && 'is-gray']
+  const classes = [
+    'tm-news',
+    current.alert && 'is-alert',
+    queue.current.isGray(now()) && 'is-muted',
+  ]
     .filter(Boolean)
     .join(' ');
+  const open = (): void => {
+    onOpenAvisos();
+    if (current.unitId !== null) {
+      onSeeUnit?.(current.unitId);
+    }
+  };
   return (
-    <button type="button" class={classes} onClick={onOpenAvisos}>
-      {current.alert && <span class="tm-news__icon" aria-hidden="true" />}
-      <span class="tm-news__text">{noticeLine(current)}</span>
-    </button>
+    <div class={classes}>
+      <Tooltip text={noticeBody(current)}>
+        <button type="button" class="tm-news__button" onClick={open}>
+          <span key={current.id} class="tm-news__notice">
+            {current.alert && <PixelIcon class="tm-news__icon" pattern={ALARM_ICON} />}
+            <span class="tm-news__stamp">{noticeStamp(current.step)}</span>
+            <span class="tm-news__text">{noticeBody(current)}</span>
+          </span>
+        </button>
+      </Tooltip>
+    </div>
   );
 }

@@ -3,8 +3,7 @@ import type { CommandClient } from '../../net/commandClient';
 import { errorText } from '../strings';
 import './toast.css';
 
-export const TOAST_DURATION_MS = 4000;
-const MAX_TOASTS = 3;
+export const TOAST_DURATION_MS = 3000;
 
 interface Toast {
   id: number;
@@ -15,37 +14,31 @@ interface ToastsProps {
   commands: Pick<CommandClient, 'onRejection'>;
 }
 
-/** Shows the reason for every rejected command for a few seconds. */
+/** Shows the reason for the latest rejected command for a few seconds. */
 export function Toasts({ commands }: ToastsProps) {
-  const [toasts, setToasts] = useState<Toast[]>([]);
+  const [toast, setToast] = useState<Toast | null>(null);
   const nextId = useRef(1);
 
   useEffect(() => {
-    const timers = new Set<ReturnType<typeof setTimeout>>();
+    let timer: ReturnType<typeof setTimeout> | undefined;
     const stop = commands.onRejection((code) => {
-      const toast = { id: nextId.current++, text: errorText(code) };
-      setToasts((current) => [...current, toast].slice(-MAX_TOASTS));
-      const timer = setTimeout(() => {
-        timers.delete(timer);
-        setToasts((current) => current.filter((other) => other.id !== toast.id));
-      }, TOAST_DURATION_MS);
-      timers.add(timer);
+      clearTimeout(timer);
+      setToast({ id: nextId.current++, text: errorText(code) });
+      timer = setTimeout(() => setToast(null), TOAST_DURATION_MS);
     });
     return () => {
       stop();
-      for (const timer of timers) {
-        clearTimeout(timer);
-      }
+      clearTimeout(timer);
     };
   }, [commands]);
 
   return (
     <div class="tm-toasts" role="status" aria-live="polite">
-      {toasts.map((toast) => (
+      {toast !== null && (
         <p key={toast.id} class="tm-toast">
           {toast.text}
         </p>
-      ))}
+      )}
     </div>
   );
 }

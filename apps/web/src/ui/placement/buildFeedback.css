@@ -1,25 +1,3 @@
-.tm-toasts {
-  position: absolute;
-  top: calc(28 * var(--tm-px));
-  left: 50%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: calc(2 * var(--tm-px));
-  transform: translateX(-50%);
-  pointer-events: none;
-}
-
-.tm-toast {
-  padding: calc(2 * var(--tm-px)) calc(6 * var(--tm-px));
-  font-family: var(--tm-font);
-  font-size: var(--tm-font-size);
-  line-height: var(--tm-line-height);
-  color: var(--tm-white);
-  background: var(--tm-cloth-red);
-  border: calc(1 * var(--tm-px)) solid var(--tm-ink);
-}
-
 .tm-float-cost {
   position: fixed;
   font: var(--text-price);
