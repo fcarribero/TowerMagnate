@@ -72,6 +72,14 @@ describe('DecisionDialog', () => {
     expect(document.activeElement).toBe(buttons[1]);
   });
 
+  it('is 280 wide with a hazard stripe and an alert title', () => {
+    renderBomb();
+    const frame = frameOf('Amenaza de bomba');
+    expect(frame.style.width).toBe('calc(280 * var(--tm-px))');
+    expect(frame.querySelector('.tm-window__stripe')).not.toBeNull();
+    expect(frame.classList.contains('tm-window--dialog-info')).toBe(false);
+  });
+
   it('has no close button and stays open on Esc', () => {
     const onAnswer = renderBomb();
     expect(frameOf('Amenaza de bomba').querySelector('.tm-window__close')).toBeNull();

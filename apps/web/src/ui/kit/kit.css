@@ -88,29 +88,70 @@
   user-select: text;
 }
 
-/* Dialogs: thicker border and shadow, hazard band on top, paper title bar. */
+/* Window title bar with a subtitle line above the title. */
+.tm-window__heading {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.tm-window__subtitle {
+  overflow: hidden;
+  font: var(--text-window-subtitle);
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.tm-window--subtitled > .tm-window__title {
+  height: calc(28 * var(--tm-px));
+}
+
+/* Dialogs: thick border and hard shadow, hazard stripe on top, title on paper. */
 .tm-window--dialog {
+  box-sizing: border-box;
+  background: var(--obra-paper);
   border: var(--border-dialog);
   box-shadow: var(--shadow-dialog);
 }
 
-.tm-window--dialog::before {
-  display: block;
+.tm-window__stripe {
   height: var(--size-hazard-stripe);
-  content: '';
   background: var(--size-hazard-stripe-image);
   border-bottom: var(--border-control);
+  touch-action: none;
 }
 
 .tm-window--dialog > .tm-window__title {
-  height: calc(22 * var(--tm-px));
+  align-items: flex-start;
+  height: auto;
+  padding: var(--space-3) var(--space-4) 0;
+  color: var(--obra-red);
+  background: none;
+  border-bottom: none;
+}
+
+.tm-window--dialog-info > .tm-window__title {
   color: var(--obra-ink);
-  background: var(--obra-paper);
 }
 
 .tm-window--dialog .tm-window__title-text {
+  overflow: visible;
   font: var(--text-dialog-title);
   text-transform: uppercase;
+  white-space: normal;
+}
+
+.tm-window--dialog .tm-window__close {
+  box-sizing: border-box;
+  flex-shrink: 0;
+  width: calc(12 * var(--tm-px));
+  height: calc(12 * var(--tm-px));
+}
+
+.tm-window--dialog > .tm-window__body {
+  padding: 0;
 }
 
 /* Buttons and other tiles: hover lifts 1 px up-left with a hard shadow, press drops 1 px. */
@@ -150,6 +191,10 @@
   background: var(--obra-red);
 }
 
+.tm-button.is-primary {
+  background: var(--obra-yellow);
+}
+
 .tm-button:disabled {
   color: var(--obra-muted);
   cursor: default;
@@ -173,7 +218,7 @@
 }
 
 .tm-input[aria-invalid='true'] {
-  border-color: var(--obra-red);
+  border: var(--space-1) solid var(--obra-red);
 }
 
 .tm-field,
@@ -358,22 +403,48 @@
 
 /* Dialog contents */
 .tm-dialog__body {
-  max-width: calc(240 * var(--tm-px));
-  margin: 0 0 var(--space-2);
+  margin: 0;
+  padding: var(--space-2) var(--space-4) 0;
   white-space: pre-line;
 }
 
 .tm-dialog__deadline {
-  margin: 0 0 var(--space-2);
-  color: var(--obra-muted);
+  display: inline-block;
+  margin: var(--space-4) var(--space-4) 0;
+  padding: var(--space-2);
+  font: var(--text-body-strong);
+  color: var(--obra-yellow);
+  background: var(--obra-ink);
 }
 
 .tm-dialog__buttons {
   display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-2);
-  justify-content: flex-end;
-  margin-top: var(--space-3);
+  margin-top: var(--space-4);
+  border-top: var(--border-dialog);
+}
+
+.tm-dialog__buttons .tm-button {
+  flex: 1;
+  min-width: 0;
+  height: calc(28 * var(--tm-px));
+  border: none;
+  border-left: var(--border-dialog);
+}
+
+.tm-dialog__buttons .tm-button:first-child {
+  border-left: none;
+}
+
+.tm-dialog__buttons .tm-button:hover:not(:disabled) {
+  color: var(--obra-yellow);
+  background: var(--obra-ink);
+  box-shadow: none;
+  transform: none;
+}
+
+.tm-dialog__buttons .tm-button:focus-visible {
+  outline: var(--space-1) solid var(--obra-blue);
+  outline-offset: calc(-2 * var(--tm-px));
 }
 
 /* Tooltip: window border on paper, placed by script in viewport pixels. */
