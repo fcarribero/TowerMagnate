@@ -163,6 +163,7 @@ function DemoDialogs({ onAnswer }: { onAnswer: (answer: string) => void }) {
 function DemoWindows() {
   const manager = useWindowManager();
   const [name, setName] = useState('');
+  const [nameEvent, setNameEvent] = useState('');
   const [rent, setRent] = useState(10);
   const [height, setHeight] = useState<LobbyHeight>('1');
   const [tab, setTab] = useState('week');
@@ -205,7 +206,12 @@ function DemoWindows() {
           hint="Hasta 24 caracteres"
           error={name.trim() === '' ? 'Escribe un nombre' : undefined}
           onChange={setName}
+          onEnter={(value) => setNameEvent(`Enter: ${value}`)}
+          onBlur={(value) => setNameEvent(`Blur: ${value}`)}
         />
+        <output class="kit-demo__answer" aria-live="polite">
+          {nameEvent}
+        </output>
         <NumberInput
           id="demo-rent"
           label="Alquiler (miles)"
