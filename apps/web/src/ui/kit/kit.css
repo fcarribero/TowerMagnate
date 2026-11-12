@@ -472,3 +472,193 @@
 .tm-tooltip__line.is-alert {
   color: var(--obra-red);
 }
+
+/* Checkbox */
+.tm-checkbox {
+  position: relative;
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  padding: var(--size-press-offset) 0;
+}
+
+.tm-checkbox input {
+  position: absolute;
+  opacity: 0;
+}
+
+.tm-checkbox__mark {
+  box-sizing: border-box;
+  position: relative;
+  flex-shrink: 0;
+  width: calc(10 * var(--tm-px));
+  height: calc(10 * var(--tm-px));
+  background: var(--obra-field);
+  border: var(--border-control);
+}
+
+.tm-checkbox input:checked + .tm-checkbox__mark {
+  background: var(--obra-ink);
+}
+
+.tm-checkbox input:checked + .tm-checkbox__mark::after {
+  position: absolute;
+  top: calc(1 * var(--tm-px));
+  left: calc(2 * var(--tm-px));
+  box-sizing: border-box;
+  width: calc(4 * var(--tm-px));
+  height: calc(5 * var(--tm-px));
+  content: '';
+  border: solid var(--obra-yellow);
+  border-width: 0 var(--tm-px) var(--tm-px) 0;
+  transform: rotate(45deg);
+}
+
+.tm-checkbox input:focus-visible + .tm-checkbox__mark {
+  outline: var(--space-1) solid var(--obra-blue);
+  outline-offset: var(--size-press-offset);
+}
+
+.tm-checkbox input:disabled ~ span {
+  color: var(--obra-muted);
+}
+
+/* Dropdown */
+.tm-dropdown {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin-bottom: var(--space-3);
+}
+
+.tm-dropdown__field {
+  box-sizing: border-box;
+  display: flex;
+  align-items: stretch;
+  width: 100%;
+  height: calc(16 * var(--tm-px));
+  padding: 0;
+  font: var(--text-body-strong);
+  color: var(--obra-ink);
+  text-align: left;
+  cursor: pointer;
+  background: var(--obra-field);
+  border: var(--border-control);
+  border-radius: 0;
+}
+
+.tm-dropdown__field:disabled {
+  color: var(--obra-muted);
+  cursor: default;
+  background: var(--obra-paper-shade);
+}
+
+.tm-dropdown__text {
+  flex: 1;
+  min-width: 0;
+  padding: 0 var(--space-2);
+  overflow: hidden;
+  line-height: calc(14 * var(--tm-px));
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tm-dropdown__arrow {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  width: calc(12 * var(--tm-px));
+  border-left: var(--border-control);
+}
+
+.tm-dropdown__list {
+  position: fixed;
+  z-index: 1000;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  background: var(--obra-paper);
+  border: var(--border-window);
+  box-shadow: var(--shadow-window);
+}
+
+.tm-dropdown__option {
+  box-sizing: border-box;
+  height: calc(14 * var(--tm-px));
+  padding: 0 var(--space-2);
+  line-height: calc(14 * var(--tm-px));
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.tm-dropdown__option.is-active {
+  background: var(--obra-yellow);
+}
+
+.tm-dropdown__option[aria-disabled='true'] {
+  color: var(--obra-muted);
+  cursor: default;
+}
+
+/* Scroll bar: 6 wide, paper-shade track with a control border on its left, ink thumb. */
+.tm-scroll,
+.tm-window__body,
+.tm-list__items {
+  overflow-y: auto;
+}
+
+.tm-scroll::-webkit-scrollbar,
+.tm-window__body::-webkit-scrollbar,
+.tm-list__items::-webkit-scrollbar {
+  width: calc(6 * var(--tm-px));
+}
+
+.tm-scroll::-webkit-scrollbar-track,
+.tm-window__body::-webkit-scrollbar-track,
+.tm-list__items::-webkit-scrollbar-track {
+  background: var(--obra-paper-shade);
+  border-left: var(--border-control);
+}
+
+.tm-scroll::-webkit-scrollbar-thumb,
+.tm-window__body::-webkit-scrollbar-thumb,
+.tm-list__items::-webkit-scrollbar-thumb {
+  background: var(--obra-ink);
+}
+
+@supports not selector(::-webkit-scrollbar) {
+  .tm-scroll,
+  .tm-window__body,
+  .tm-list__items {
+    scrollbar-color: var(--obra-ink) var(--obra-paper-shade);
+    scrollbar-width: thin;
+  }
+}
+
+/* Progress bar */
+.tm-progress {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin-bottom: var(--space-3);
+}
+
+.tm-progress__bar {
+  box-sizing: border-box;
+  height: calc(10 * var(--tm-px));
+  overflow: hidden;
+  background: var(--obra-field);
+  border: var(--border-control);
+}
+
+.tm-progress__fill {
+  height: 100%;
+  background: var(--obra-green);
+}
+
+.tm-progress__value {
+  font: var(--text-body);
+}
