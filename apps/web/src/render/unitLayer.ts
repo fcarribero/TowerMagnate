@@ -1,5 +1,12 @@
 import type { OverlayData } from '@tower-magnate/shared';
-import { Container, Sprite, TilingSprite } from 'pixi.js';
+import { Container, Graphics, Sprite, TilingSprite } from 'pixi.js';
+import {
+  BUILD_EDGE_COLOR,
+  BUILD_EDGE_HEIGHT,
+  BUILD_MS,
+  buildProgress,
+  revealedHeight,
+} from './constructionReveal';
 import { CulledRows } from './culledRows';
 import type { LevelRange, WorldRect } from './camera';
 import { levelTop } from './levels';
@@ -29,11 +36,23 @@ export interface UnitsInput {
 /** The tallest footprint is 4 floors, so a unit can show while its bottom level is just off screen. */
 const MAX_FOOTPRINT_FLOORS = 4;
 
+/** A unit rising from the floor: the sprite is cut by a mask that grows, with a bright edge on top. */
+interface Construction {
+  startedAt: number;
+  mask: Graphics;
+  edge: Graphics;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
 interface DrawnUnit {
   sprite: Sprite;
   container: Container;
   textureId: string;
   checker: TilingSprite | null;
+  construction: Construction | null;
 }
 
 /**
@@ -47,8 +66,13 @@ export class UnitLayer {
   private readonly containers = new Map<number, Container>();
   private readonly drawn = new Map<string, DrawnUnit>();
   private readonly rects = new Map<string, WorldRect>();
+  /** The first update draws what is already built; only units that arrive later are built on screen. */
+  private populated = false;
 
-  constructor(private readonly sprites: SpriteRegistry) {}
+  constructor(
+    private readonly sprites: SpriteRegistry,
+    private readonly now: () => number = () => performance.now(),
+  ) {}
 
   update(input: UnitsInput): void {
     const drawings: UnitDrawing[] = [];
@@ -69,6 +93,28 @@ export class UnitLayer {
       this.show(drawing);
       this.rects.set(drawing.id, worldRectOf(drawing));
     }
+    this.populated = true;
+  }
+
+  /** Moves the units that are being built one step; call it on every frame. */
+  animate(): void {
+    const now = this.now();
+    for (const entry of this.drawn.values()) {
+      if (entry.construction !== null) {
+        this.growConstruction(entry, entry.construction, now);
+      }
+    }
+  }
+
+  /** Units still rising from the floor. */
+  get buildingCount(): number {
+    let count = 0;
+    for (const entry of this.drawn.values()) {
+      if (entry.construction !== null) {
+        count += 1;
+      }
+    }
+    return count;
   }
 
   /** Where a unit or transport is drawn in the world, or undefined when it is not drawn. */
@@ -90,6 +136,7 @@ export class UnitLayer {
   private removeMissing(keep: ReadonlySet<string>): void {
     for (const [id, entry] of this.drawn) {
       if (!keep.has(id)) {
+        this.endConstruction(entry);
         entry.sprite.destroy();
         entry.checker?.destroy();
         this.drawn.delete(id);
@@ -122,9 +169,52 @@ export class UnitLayer {
     const container = this.containerFor(drawing.bottomIndex);
     container.addChild(sprite);
     this.place(sprite, drawing);
-    const entry: DrawnUnit = { sprite, container, textureId, checker: null };
+    const entry: DrawnUnit = { sprite, container, textureId, checker: null, construction: null };
     this.showChecker(entry, drawing);
+    if (this.populated) {
+      this.beginConstruction(entry, drawing);
+    }
     return entry;
+  }
+
+  private beginConstruction(entry: DrawnUnit, drawing: UnitDrawing): void {
+    const mask = new Graphics();
+    const edge = new Graphics();
+    entry.container.addChild(mask, edge);
+    entry.sprite.mask = mask;
+    entry.construction = {
+      startedAt: this.now(),
+      mask,
+      edge,
+      x: drawing.x,
+      y: drawing.y,
+      width: drawing.width,
+      height: drawing.height,
+    };
+    this.growConstruction(entry, entry.construction, entry.construction.startedAt);
+  }
+
+  private growConstruction(entry: DrawnUnit, build: Construction, now: number): void {
+    const elapsed = now - build.startedAt;
+    if (elapsed >= BUILD_MS) {
+      this.endConstruction(entry);
+      return;
+    }
+    const shown = revealedHeight(build.height, buildProgress(elapsed));
+    const top = build.y + build.height - shown;
+    build.mask.clear().rect(build.x, top, build.width, shown).fill(0xffffff);
+    build.edge.clear().rect(build.x, top, build.width, BUILD_EDGE_HEIGHT).fill(BUILD_EDGE_COLOR);
+  }
+
+  private endConstruction(entry: DrawnUnit): void {
+    const build = entry.construction;
+    if (build === null) {
+      return;
+    }
+    entry.sprite.mask = null;
+    build.mask.destroy();
+    build.edge.destroy();
+    entry.construction = null;
   }
 
   /** The checker sits right above its sprite, so it is culled with it. */

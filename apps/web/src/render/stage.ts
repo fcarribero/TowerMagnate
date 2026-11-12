@@ -287,6 +287,11 @@ export async function mountStage(host: HTMLElement, options: StageOptions = {}):
   app.ticker.add(drawCars);
   const drawEvents = (): void => events.tick(performance.now());
   app.ticker.add(drawEvents);
+  const growBuildings = (): void => {
+    structure.animate();
+    units.animate();
+  };
+  app.ticker.add(growBuildings);
   const statsTimer = window.setInterval(() => {
     options.onStats?.({
       fps: Math.round(app.ticker.FPS),
@@ -380,6 +385,7 @@ export async function mountStage(host: HTMLElement, options: StageOptions = {}):
     destroy() {
       app.ticker.remove(drawCars);
       app.ticker.remove(drawEvents);
+      app.ticker.remove(growBuildings);
       cameraListeners.clear();
       hoverListeners.clear();
       hoverCellListeners.clear();
