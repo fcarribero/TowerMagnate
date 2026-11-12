@@ -1,7 +1,8 @@
-import { Container, Sprite, Texture } from 'pixi.js';
+import { Container, Sprite } from 'pixi.js';
 import type { DrawnFrame } from '../model/interpolation';
 import type { LevelRange } from './camera';
 import { floorSprite } from './elevatorPlan';
+import { newFollowedMarker } from './followedMarker';
 import { levelTop } from './levels';
 import { FLOOR_HEIGHT, TILE_WIDTH } from './metrics';
 import type { SpriteRegistry } from './spriteRegistry';
@@ -11,10 +12,6 @@ const FEET_ROW = 28;
 const PERSON_HEIGHT = 16;
 const GUEST_TINT = 0xffe9a8;
 const NO_TINT = 0xffffff;
-const FOLLOWED_MARKER_COLOR = 0xf2d36b;
-const FOLLOWED_MARKER_WIDTH = 3;
-const FOLLOWED_MARKER_HEIGHT = 2;
-const FOLLOWED_MARKER_GAP = 2;
 
 interface DrawnWalker {
   sprite: Sprite;
@@ -126,22 +123,11 @@ export class PeopleLayer {
   private newSprite(): Sprite {
     const sprite = new Sprite();
     sprite.anchor.set(0.5, 0);
-    const marker = this.newMarker();
+    const marker = newFollowedMarker();
     sprite.addChild(marker);
     this.markers.set(sprite, marker);
     this.view.addChild(sprite);
     return sprite;
-  }
-
-  private newMarker(): Sprite {
-    const marker = new Sprite(Texture.WHITE);
-    marker.width = FOLLOWED_MARKER_WIDTH;
-    marker.height = FOLLOWED_MARKER_HEIGHT;
-    marker.tint = FOLLOWED_MARKER_COLOR;
-    marker.anchor.set(0.5, 0);
-    marker.position.set(0, -(FOLLOWED_MARKER_HEIGHT + FOLLOWED_MARKER_GAP));
-    marker.visible = false;
-    return marker;
   }
 
   private releaseMissing(): void {
