@@ -29,6 +29,8 @@ export interface UnitsInput {
 }
 
 const NO_ACCESS_STICKER = 'effects/no-access/sticker';
+/** The art is drawn at 24x24; the sign is shown at half that size. */
+const NO_ACCESS_STICKER_SCALE = 0.5;
 
 /** The tallest footprint is 4 floors, so a unit can show while its bottom level is just off screen. */
 const MAX_FOOTPRINT_FLOORS = 4;
@@ -266,6 +268,7 @@ export class UnitLayer {
     }
     const sticker = entry.sticker ?? new Sprite(this.sprites.texture(NO_ACCESS_STICKER));
     entry.sticker = sticker;
+    sticker.scale.set(NO_ACCESS_STICKER_SCALE);
     sticker.position.set(
       drawing.x + Math.round((drawing.width - sticker.width) / 2),
       drawing.y + Math.round((drawing.height - SLAB_HEIGHT - sticker.height) / 2),
