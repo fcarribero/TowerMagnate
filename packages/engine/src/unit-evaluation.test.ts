@@ -216,6 +216,13 @@ describe('daily grade at 00:00', () => {
     expect(office.evaluation).toBe('poor');
   });
 
+  it('grades a tenant who has no trips yet from a base of 0, so it is never unevaluated', () => {
+    const { state, office } = leasedOffice();
+    expect(office.evaluation).toBeNull();
+    storeDailyGrade(state, office);
+    expect(office.evaluation).toBe('good');
+  });
+
   it('clears the grade of a unit with no tenant', () => {
     const { state, office } = leasedOffice();
     office.lease = null;

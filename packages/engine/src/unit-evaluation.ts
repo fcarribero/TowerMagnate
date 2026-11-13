@@ -117,7 +117,8 @@ function hasOccupants(unit: Unit): boolean {
 
 /**
  * The daily 00:00 grade of offices, shops and condos (SE-20). A unit with no tenant or owners
- * has no grade; one with no trips in its window keeps the grade it had.
+ * has no grade; one with no trips in its window keeps the grade it had, or gets one from a base
+ * of 0 if it has none.
  */
 export function storeDailyGrade(state: TowerState, unit: Unit, noisy = isNoisy(state, unit)): void {
   if (!isEvaluatedUnit(unit) || isHotelRoom(unit)) return;
@@ -125,7 +126,9 @@ export function storeDailyGrade(state: TowerState, unit: Unit, noisy = isNoisy(s
     if (unit.evaluation !== null) writableUnit(state, unit).evaluation = null;
     return;
   }
-  if (tripsInWindow(state, unit, state.step).count === 0) return;
+  // With no trips in the window the unit keeps its grade, but an occupied unit that has none yet
+  // gets one from a base of 0, so it never shows "Sin evaluar" while someone lives or works there.
+  if (tripsInWindow(state, unit, state.step).count === 0 && unit.evaluation !== null) return;
   storeGrade(state, unit, noisy);
 }
 

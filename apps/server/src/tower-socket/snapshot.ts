@@ -90,7 +90,7 @@ export function buildSnapshot(
       unitView(
         state,
         unit,
-        homes.has(unit.id),
+        homes.has(unit.id) || isTaken(unit),
         disconnected.has(unit.id),
         inside.has(unit.id),
         sleeping.has(unit.id),
@@ -147,6 +147,11 @@ function hotelOverlay(state: TowerState): Snapshot['overlays']['hotel'] {
 }
 
 type TowerUnit = TowerState['units'][string];
+
+/** A unit with a tenant, owners or a guest is taken even before anyone of its household is in the tower. */
+function isTaken(unit: TowerUnit): boolean {
+  return unit.lease !== null || unit.sale !== null || unit.hotel?.state === 'occupied';
+}
 
 function unitVariant(
   unit: TowerUnit,

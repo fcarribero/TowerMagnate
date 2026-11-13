@@ -251,6 +251,17 @@ describe('snapshot from tower state', () => {
     expect(snapshot.grid.levels['2']?.structure).toBe('f'.repeat(20) + '.'.repeat(355));
   });
 
+  it('marks a leased or sold unit as occupied even with nobody of it in the tower yet', () => {
+    const state = towerWithPeople();
+    const empty = state.units['u6'];
+    if (!empty) throw new Error('u6 is part of the fixture');
+    state.units['u6'] = { ...empty, lease: { anchorStep: 0, nextDueStep: 100, weekVisits: 0 } };
+    const snapshot = buildSnapshot(state, null);
+    expect(snapshot.units).toContainEqual(
+      expect.objectContaining({ id: 'u6', occupied: true, variant: 'occupied' }),
+    );
+  });
+
   it('marks units with tenants as occupied', () => {
     const snapshot = buildSnapshot(towerWithPeople(), null);
 
