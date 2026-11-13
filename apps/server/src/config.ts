@@ -13,6 +13,8 @@ export interface ServerConfig {
   allowedOrigins: string[];
   /** Dev-only debug socket messages. Never on when NODE_ENV is production. */
   debugCommands: boolean;
+  /** Usernames that get the developer menu. Empty when debug commands are off. */
+  developerUsernames: string[];
   /** Login and register attempts per client and minute. Unset keeps the server default. */
   authAttemptsPerMinute?: number;
 }
@@ -46,8 +48,17 @@ export function readConfig(env: NodeJS.ProcessEnv): ServerConfig {
     secureCookies: readSecureCookies(env.SECURE_COOKIES, env.NODE_ENV),
     allowedOrigins: readAllowedOrigins(env.ALLOWED_ORIGINS, env.NODE_ENV),
     debugCommands: env.NODE_ENV !== 'production',
+    developerUsernames:
+      env.NODE_ENV === 'production' ? [] : readList(env.DEVELOPER_USERNAMES),
     authAttemptsPerMinute: readAuthAttemptsPerMinute(env.AUTH_ATTEMPTS_PER_MINUTE),
   };
+}
+
+function readList(value: string | undefined): string[] {
+  return (value ?? '')
+    .split(',')
+    .map((name) => name.trim())
+    .filter((name) => name !== '');
 }
 
 function readPort(value: string | undefined): number {

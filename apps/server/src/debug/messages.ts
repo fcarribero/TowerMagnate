@@ -4,6 +4,7 @@ import { z } from 'zod';
 export const DEBUG_MESSAGE_PREFIX = 'debug.';
 export const MAX_FAST_FORWARD_STEPS = 8_640;
 export const MAX_CLOCK_JUMP_DAYS = 400;
+export const MAX_GAME_SPEED = 20;
 
 export const DEBUG_EVENT_KINDS = [
   'bomb',
@@ -57,6 +58,8 @@ export const DebugMessageSchema = z.discriminatedUnion('t', [
     'Give a weekday, or a year, month and day of the month',
   ),
   debugMessage('setMoney', { amount: z.int().min(-MONEY_CAP).max(MONEY_CAP) }),
+  debugMessage('setInfiniteMoney', { enabled: z.boolean() }),
+  debugMessage('setSpeed', { speed: z.int().min(1).max(MAX_GAME_SPEED) }),
   debugMessage('loadScenario', { name: z.enum(DEBUG_SCENARIOS) }),
 ]);
 

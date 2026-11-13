@@ -37,6 +37,8 @@ export interface AppOptions {
   snapshotIntervalMs?: number;
   /** Dev-only debug messages. Off unless asked for, and always off in production. */
   debugCommands?: boolean;
+  /** Accounts that get the developer menu: infinite money and game speed. Needs debug commands. */
+  developerUsernames?: string[];
 }
 
 declare module 'fastify' {
@@ -57,7 +59,12 @@ export function buildApp(options: AppOptions): FastifyInstance {
   registerOriginCheck(app, { allowedOrigins: options.allowedOrigins });
   registerAuthRateLimit(app, { limitPerMinute: options.authAttemptsPerMinute });
   app.register(cookie);
-  app.register(authRoutes, { pool, secureCookies: options.secureCookies ?? false });
+  const developerUsernames = options.debugCommands ? (options.developerUsernames ?? []) : [];
+  app.register(authRoutes, {
+    pool,
+    secureCookies: options.secureCookies ?? false,
+    developerUsernames,
+  });
   const runner = new TowerRunner({
     store: createTowerStore(pool, createSnapshotRepository(pool)),
     onTickError: (towerId, error) => app.log.error({ err: error, towerId }, 'Tower tick failed'),
@@ -79,7 +86,18 @@ export function buildApp(options: AppOptions): FastifyInstance {
   const gateway = registerGateway(app, {
     resolveIdentity: options.resolveSocketIdentity ?? sessionIdentityResolver(pool),
     handlers: towerSocketHandlers({ runner, viewports, broadcaster, inspections }),
-    debugFrames: createDebugFrames({ runner, enabled: options.debugCommands ?? false }),
+    debugFrames: createDebugFrames({
+      runner,
+      enabled: options.debugCommands ?? false,
+      isDeveloper: async (userId) => {
+        const result = await pool.query<{ username: string }>(
+          'select username from users where id = $1',
+          [userId],
+        );
+        const username = result.rows[0]?.username;
+        return username !== undefined && developerUsernames.includes(username);
+      },
+    }),
     heartbeatIntervalMs: options.heartbeatIntervalMs,
     helloTimeoutMs: options.helloTimeoutMs,
   });

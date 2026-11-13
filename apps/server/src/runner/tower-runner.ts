@@ -1,5 +1,11 @@
 import { isLayoutCommand, isLayoutEvent, step } from '@tower-magnate/engine';
-import type { CommandResult, EngineEvent, QueuedCommand, TowerState } from '@tower-magnate/shared';
+import {
+  MONEY_CAP,
+  type CommandResult,
+  type EngineEvent,
+  type QueuedCommand,
+  type TowerState,
+} from '@tower-magnate/shared';
 import type { TowerId } from '../snapshots';
 import { stepsForElapsed } from './real-time';
 import type { TowerStore } from './tower-store';
@@ -41,6 +47,10 @@ interface RunningTower {
   events: EngineEvent[];
   /** Changes whenever the layout or the transport may have changed. Unique across towers and loads. */
   layoutVersion: number;
+  /** Developer setting: how many times faster than real time the tower runs. */
+  speed: number;
+  /** Developer setting: money is kept at the cap. */
+  infiniteMoney: boolean;
 }
 
 export class UnknownTowerError extends Error {
@@ -167,6 +177,39 @@ export class TowerRunner {
     });
   }
 
+  /** Developer setting: runs the tower `speed` times faster than real time, from now on. */
+  setSpeed(towerId: TowerId, speed: number): Promise<void> {
+    return this.inOrder(towerId, async () => {
+      const tower = this.running.get(towerId);
+      if (!tower) {
+        throw new UnknownTowerError(towerId);
+      }
+      this.applyPending(tower);
+      this.catchUp(tower);
+      tower.speed = speed;
+      tower.startedAt = this.now();
+      tower.startStep = tower.state.step;
+    });
+  }
+
+  /** Developer setting: keeps the tower's money at the cap while on. */
+  setInfiniteMoney(towerId: TowerId, enabled: boolean): Promise<void> {
+    return this.inOrder(towerId, async () => {
+      const tower = this.running.get(towerId);
+      if (!tower) {
+        throw new UnknownTowerError(towerId);
+      }
+      tower.infiniteMoney = enabled;
+      this.topUpMoney(tower);
+    });
+  }
+
+  private topUpMoney(tower: RunningTower): void {
+    if (tower.infiniteMoney && tower.state.money < MONEY_CAP) {
+      tower.state = { ...tower.state, money: MONEY_CAP };
+    }
+  }
+
   /** The events since the last call, oldest first. */
   takeEvents(towerId: TowerId): EngineEvent[] {
     const tower = this.running.get(towerId);
@@ -218,6 +261,8 @@ export class TowerRunner {
       pending: [],
       events: [],
       layoutVersion: this.nextLayoutVersion(),
+      speed: 1,
+      infiniteMoney: false,
     });
   }
 
@@ -253,6 +298,7 @@ export class TowerRunner {
       0,
     );
     tower.state = state;
+    this.topUpMoney(tower);
     tower.events.push(...events);
     const changedLayout = results.some(
       (result, index) => result.ok && isLayoutCommand(pending[index]?.queued.command.type ?? ''),
@@ -265,11 +311,13 @@ export class TowerRunner {
   }
 
   private catchUp(tower: RunningTower): void {
-    const targetStep = tower.startStep + stepsForElapsed(this.now() - tower.startedAt);
+    const targetStep =
+      tower.startStep + stepsForElapsed((this.now() - tower.startedAt) * tower.speed);
     const due = targetStep - tower.state.step;
     if (due > 0) {
       const advanced = this.advance(tower.state, due);
       tower.state = advanced.state;
+      this.topUpMoney(tower);
       tower.events.push(...advanced.events);
       if (advanced.events.some(isLayoutEvent)) {
         tower.layoutVersion = this.nextLayoutVersion();

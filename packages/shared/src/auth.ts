@@ -41,6 +41,8 @@ export type Credentials = z.infer<typeof credentialsSchema>;
 export interface AuthUser {
   id: number;
   username: string;
+  /** True for the accounts that get the developer menu. Only set by the auth routes. */
+  developer?: boolean;
 }
 
 export interface AuthErrorBody {

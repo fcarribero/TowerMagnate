@@ -90,6 +90,18 @@ export class GameSocket {
     this.sayHello();
   }
 
+  /**
+   * Sends a dev-only message. The shared protocol does not know them, so they are built here;
+   * the server refuses them unless the account is a developer.
+   */
+  sendDebug(type: string, payload: Record<string, unknown>): boolean {
+    if (this.socket === null || this.socket.readyState !== OPEN) {
+      return false;
+    }
+    this.socket.send(JSON.stringify({ v: PROTOCOL_VERSION, t: `debug.${type}`, p: payload }));
+    return true;
+  }
+
   send(message: ClientMessage): boolean {
     if (this.socket === null || this.socket.readyState !== OPEN) {
       return false;

@@ -8,9 +8,13 @@ export interface DebugFramesOptions {
   runner: TowerRunner;
   /** False in production: every debug message is answered with NOT_ALLOWED and does nothing. */
   enabled: boolean;
+  /** Whether the user may use the developer-only messages, infinite money and game speed. */
+  isDeveloper?: (userId: string) => Promise<boolean>;
 }
 
-function changeOf(message: DebugMessage): TowerChange {
+function changeOf(
+  message: Exclude<DebugMessage, { t: 'debug.setInfiniteMoney' | 'debug.setSpeed' }>,
+): TowerChange {
   switch (message.t) {
     case 'debug.forceEvent':
       return forceEvent(message.p.kind, message.p.unitId);
@@ -30,7 +34,11 @@ function parseFrame(rawData: unknown): DebugMessage | null {
   return result.success ? result.data : null;
 }
 
-export function createDebugFrames({ runner, enabled }: DebugFramesOptions): DebugFrames {
+export function createDebugFrames({
+  runner,
+  enabled,
+  isDeveloper = async () => false,
+}: DebugFramesOptions): DebugFrames {
   return {
     typeOf: debugTypeOf,
     async handle(rawData, { socket, identity }) {
@@ -46,7 +54,19 @@ export function createDebugFrames({ runner, enabled }: DebugFramesOptions): Debu
       const { id } = message.p;
       let result: CommandResult;
       try {
-        await runner.change(identity.towerId, changeOf(message));
+        if (message.t === 'debug.setInfiniteMoney' || message.t === 'debug.setSpeed') {
+          if (!(await isDeveloper(identity.userId))) {
+            sendError(socket, 'NOT_ALLOWED', 'Only developer accounts can do this');
+            return;
+          }
+          if (message.t === 'debug.setSpeed') {
+            await runner.setSpeed(identity.towerId, message.p.speed);
+          } else {
+            await runner.setInfiniteMoney(identity.towerId, message.p.enabled);
+          }
+        } else {
+          await runner.change(identity.towerId, changeOf(message));
+        }
         const step = runner.stateOf(identity.towerId)?.step ?? 0;
         result = { id, ok: true, step, cost: 0, refund: 0 };
       } catch (error) {

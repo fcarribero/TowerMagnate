@@ -15,6 +15,7 @@ describe('readConfig', () => {
       secureCookies: false,
       allowedOrigins: ['http://localhost:5173'],
       debugCommands: true,
+      developerUsernames: [],
     });
   });
 
@@ -28,6 +29,7 @@ describe('readConfig', () => {
       secureCookies: false,
       allowedOrigins: ['http://localhost:5173'],
       debugCommands: true,
+      developerUsernames: [],
     });
   });
 

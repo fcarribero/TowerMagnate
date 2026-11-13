@@ -1,5 +1,5 @@
 import { createTower, setStructure, STEPS_PER_DAY, structureAt } from '@tower-magnate/engine';
-import type { QueuedCommand, TowerState } from '@tower-magnate/shared';
+import { MONEY_CAP, type QueuedCommand, type TowerState } from '@tower-magnate/shared';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { REAL_MS_PER_GAME_DAY } from './real-time';
 import { TowerRunner, UnknownTowerError, type AdvanceTower } from './tower-runner';
@@ -281,6 +281,27 @@ describe('tower runner', () => {
     passTime(10 * SECOND);
 
     expect(stepOf('1')).toBe(96);
+  });
+
+  it('runs faster once the developer speed is set, without making up the past', async () => {
+    await runner.resume('1');
+    passTime(REAL_MS_PER_GAME_DAY / 2);
+    const before = stepOf('1') ?? 0;
+
+    await runner.setSpeed('1', 10);
+    expect(stepOf('1')).toBe(before);
+    passTime(REAL_MS_PER_GAME_DAY / 10);
+
+    expect(stepOf('1')).toBe(before + STEPS_PER_DAY);
+  });
+
+  it('keeps the money at the cap while infinite money is on', async () => {
+    await runner.resume('1');
+    await runner.setInfiniteMoney('1', true);
+    expect(runner.stateOf('1')?.money).toBe(MONEY_CAP);
+
+    runner.tick();
+    expect(runner.stateOf('1')?.money).toBe(MONEY_CAP);
   });
 });
 

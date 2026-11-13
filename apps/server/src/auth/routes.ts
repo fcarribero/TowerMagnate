@@ -1,4 +1,9 @@
-import { credentialsSchema, type AuthErrorBody, type Credentials } from '@tower-magnate/shared';
+import {
+  credentialsSchema,
+  type AuthErrorBody,
+  type AuthUser,
+  type Credentials,
+} from '@tower-magnate/shared';
 import type { FastifyPluginAsync, FastifyReply, FastifyRequest } from 'fastify';
 import type pg from 'pg';
 import { hashPassword, verifyAgainstUnknownUser, verifyPassword } from './passwords';
@@ -19,11 +24,16 @@ const MESSAGES = {
 export interface AuthRoutesOptions {
   pool: pg.Pool;
   secureCookies: boolean;
+  /** Usernames that are flagged as developers in the answers of login and me. */
+  developerUsernames?: string[];
 }
 
 // Expects @fastify/cookie to be registered on the parent instance.
 export const authRoutes: FastifyPluginAsync<AuthRoutesOptions> = async (app, options) => {
   const { pool, secureCookies } = options;
+  const developers = options.developerUsernames ?? [];
+  const withDeveloperFlag = (user: AuthUser): AuthUser =>
+    developers.includes(user.username) ? { ...user, developer: true } : user;
 
   async function startSession(reply: FastifyReply, userId: number): Promise<void> {
     const token = await createSession(pool, userId);
@@ -67,7 +77,9 @@ export const authRoutes: FastifyPluginAsync<AuthRoutesOptions> = async (app, opt
       return sendError(reply, 401, MESSAGES.wrongCredentials);
     }
     await startSession(reply, stored.id);
-    return reply.send({ user: { id: stored.id, username: stored.username } });
+    return reply.send({
+      user: withDeveloperFlag({ id: stored.id, username: stored.username }),
+    });
   });
 
   app.post('/api/auth/logout', async (request, reply) => {
@@ -84,7 +96,7 @@ export const authRoutes: FastifyPluginAsync<AuthRoutesOptions> = async (app, opt
     if (!user) {
       return sendError(reply, 401, MESSAGES.notLoggedIn);
     }
-    return reply.send({ user });
+    return reply.send({ user: withDeveloperFlag(user) });
   });
 };
 

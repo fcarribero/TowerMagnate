@@ -29,6 +29,7 @@ import { overlayForKey } from './overlay/overlayModel';
 import { FinanceWindow } from './finance/FinanceWindow';
 import { isFinanceToggleKey, isMapToggleKey, isPlainShortcut } from './keys';
 import { ConnectionOverlay } from './ConnectionOverlay';
+import { useDeveloperMenu } from './developer/useDeveloperMenu';
 import { BuildFeedback } from './placement/BuildFeedback';
 import { bindBuildInput, type DragLabel } from './placement/bindBuildInput';
 import { bindDemolishInput } from './placement/bindDemolishInput';
@@ -62,13 +63,15 @@ import { PersonWindows } from './person/PersonWindows';
 import { UnitWindows } from './unit/UnitWindows';
 
 export interface AppProps {
+  /** Shows the developer entries of the game menu. */
+  developer?: boolean;
   onLogout: () => void;
   /** Resolves true when the server started a new tower. */
   onRestartTower: () => Promise<boolean>;
   onSessionLost: () => void;
 }
 
-export function App({ onLogout, onRestartTower, onSessionLost }: AppProps) {
+export function App({ developer = false, onLogout, onRestartTower, onSessionLost }: AppProps) {
   const {
     connection,
     status: connectionStatus,
@@ -338,6 +341,12 @@ export function App({ onLogout, onRestartTower, onSessionLost }: AppProps) {
     return () => window.removeEventListener('keydown', onKeyDown);
   }, []);
 
+  const { items: developerMenuItems } = useDeveloperMenu(
+    developer,
+    connectionStatus === 'live',
+    (type, payload) => connection.socket.sendDebug(type, payload),
+  );
+
   return (
     <>
       <StageHost onStage={setStage} />
@@ -356,6 +365,7 @@ export function App({ onLogout, onRestartTower, onSessionLost }: AppProps) {
               separated: true,
               onSelect: () => setRestartStep('first'),
             },
+            ...developerMenuItems,
           ]}
         />
         <OverlayLegend overlay={overlay} />
