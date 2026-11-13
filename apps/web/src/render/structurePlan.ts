@@ -1,11 +1,16 @@
 import { TOWER_LAYOUT, type Level } from '@tower-magnate/shared';
 import { LOWEST_LEVEL, WORLD_WIDTH } from './levels';
 import { FLOOR_HEIGHT, TILE_WIDTH, TOWER_WIDTH_TILES } from './metrics';
+import {
+  LOBBY_KINDS,
+  MAIN_LOBBY_END_MARGIN_TILES,
+  planLobbyProps,
+} from './lobbyPlan';
 import { planRooftopProps } from './rooftopPlan';
 
 export type TimeOfDay = 'day' | 'night';
 
-/** A structure sprite id without its time, such as `floor` or `lobby-2-column`. */
+/** A structure sprite id without its time, such as `floor` or `lobby-2-wall`. */
 export type StructureSubject = string;
 
 /**
@@ -23,6 +28,9 @@ export interface StructurePiece {
 
 /** Subjects with this prefix are sprites of the rooftop atlas, not the structure atlas. */
 export const ROOFTOP_SUBJECT_PREFIX = 'rooftop/';
+
+/** Subjects with this prefix are sprites of the lobby atlas, not the structure atlas. */
+export const LOBBY_SUBJECT_PREFIX = 'lobby/';
 
 export type LobbyHeight = 1 | 2 | 3;
 
@@ -173,14 +181,33 @@ function lobbyRun(level: Level, run: Run, source: StructureSource): StructurePie
   if (level === MAIN_LOBBY_LEVEL) {
     const height = source.mainLobbyHeight ?? 1;
     return [
-      ...withColumns(`lobby-${height}`, run, FLOOR_HEIGHT - height * FLOOR_HEIGHT, true),
+      ...sparseWindowRuns(`lobby-${height}`, run, FLOOR_HEIGHT - height * FLOOR_HEIGHT),
       ...lobbyDoors(run),
+      ...lobbyProps(level, run, MAIN_LOBBY_END_MARGIN_TILES),
     ];
   }
   if (SKY_LOBBY_LEVELS.includes(level)) {
-    return withColumns('sky-lobby', run, 0);
+    return [
+      tiledRun('sky-lobby', run),
+      ...lobbyProps(level, run, undefined, LOBBY_KINDS.filter((kind) => kind.sky === true)),
+    ];
   }
-  return withColumns('lobby-1', run, 0, true);
+  return [...sparseWindowRuns('lobby-1', run, 0), ...lobbyProps(level, run)];
+}
+
+/** Props stand on the floor line of the bottom row, where the doors stand. */
+function lobbyProps(
+  level: Level,
+  run: Run,
+  endMargin?: number,
+  kinds?: typeof LOBBY_KINDS,
+): StructurePiece[] {
+  return planLobbyProps(level, run, { endMargin, kinds }).map((prop) => ({
+    subject: `${LOBBY_SUBJECT_PREFIX}${prop.kind}`,
+    x: prop.column * TILE_WIDTH,
+    y: FLOOR_HEIGHT - SLAB_HEIGHT,
+    anchorBottom: true,
+  }));
 }
 
 /** Lobby walls are solid except for a two-tile pane of windows every 8 tiles. */
@@ -198,23 +225,6 @@ function lobbyDoors(run: Run): StructurePiece[] {
     { subject: 'lobby-door', x: run.from * TILE_WIDTH, y, anchorBottom: true },
     { subject: 'lobby-door', x: (run.to + 1 - DOOR_TILES) * TILE_WIDTH, y, anchorBottom: true },
   ];
-}
-
-function withColumns(
-  subject: StructureSubject,
-  run: Run,
-  y: number,
-  windowsSparse = false,
-): StructurePiece[] {
-  const pieces: StructurePiece[] = windowsSparse
-    ? sparseWindowRuns(subject, run, y)
-    : [tiledRun(subject, run, y)];
-  for (let column = run.from; column <= run.to; column += 1) {
-    if (column % COLUMN_EVERY_TILES === 0) {
-      pieces.push({ subject: `${subject}-column`, x: column * TILE_WIDTH, y });
-    }
-  }
-  return pieces;
 }
 
 /** The wall sprite along a lobby run, with the window sprite over the window tiles. */

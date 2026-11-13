@@ -117,17 +117,14 @@ describe('planStructureRow', () => {
     expect(pieces.some((piece) => piece.subject.startsWith('rooftop/'))).toBe(false);
   });
 
-  it('draws the main lobby as one tall sprite from level 1 with a column every 4 tiles', () => {
+  it('draws the main lobby as one tall sprite from level 1', () => {
     const lobby = row(span(8, 15, 'l'));
     const rows = { 1: lobby, 2: lobby, 3: lobby };
     const pieces = planStructureRow(1, source(rows, 3));
     expect(pieces).toContainEqual({ subject: 'lobby-3-wall', x: 64, y: -64, width: 16 });
     expect(pieces).toContainEqual({ subject: 'lobby-3', x: 80, y: -64, width: 16 });
     expect(pieces).toContainEqual({ subject: 'lobby-3-wall', x: 96, y: -64, width: 32 });
-    expect(pieces.filter((piece) => piece.subject === 'lobby-3-column')).toEqual([
-      { subject: 'lobby-3-column', x: 64, y: -64 },
-      { subject: 'lobby-3-column', x: 96, y: -64 },
-    ]);
+    expect(subjects(pieces).some((subject) => subject.endsWith('-column'))).toBe(false);
     expect(pieces).toContainEqual({ subject: 'roof', x: 64, y: -68, width: 64 });
   });
 
@@ -154,7 +151,43 @@ describe('planStructureRow', () => {
   it('draws sky lobbies with the sky lobby sprite', () => {
     const pieces = planStructureRow(15, source({ 15: row(span(4, 7, 'l')) }));
     expect(subjects(pieces)).toContain('sky-lobby');
-    expect(subjects(pieces)).toContain('sky-lobby-column');
+    expect(subjects(pieces).some((subject) => subject.endsWith('-column'))).toBe(false);
+  });
+
+  const lobbyProps = (pieces: StructurePiece[]): StructurePiece[] =>
+    pieces.filter((piece) => piece.subject.startsWith('lobby/'));
+
+  it('puts props on the floor line of the main lobby, clear of the door zones', () => {
+    const lobby = row(span(8, 47, 'l'));
+    const rows = { 1: lobby, 2: lobby, 3: lobby };
+    const props = lobbyProps(planStructureRow(1, source(rows, 3)));
+    expect(props.length).toBeGreaterThan(0);
+    for (const piece of props) {
+      expect(piece.y).toBe(29);
+      expect(piece.anchorBottom).toBe(true);
+      expect(piece.width).toBeUndefined();
+      expect(piece.x).toBeGreaterThanOrEqual((8 + 3) * 8);
+      expect(piece.x).toBeLessThan((48 - 3) * 8);
+    }
+  });
+
+  it('draws no props above the bottom row of a tall lobby or on floors', () => {
+    const lobby = row(span(8, 47, 'l'));
+    const rows = { 1: lobby, 2: lobby, 3: lobby, 4: row(span(8, 47, 'f')) };
+    expect(planStructureRow(2, source(rows, 3))).toEqual([]);
+    expect(lobbyProps(planStructureRow(4, source(rows, 3)))).toEqual([]);
+    expect(lobbyProps(planStructureRow(1, source({ 1: row(span(8, 47, 'f')) })))).toEqual([]);
+  });
+
+  it('puts props in one-floor lobbies of other levels and only plants and benches in sky lobbies', () => {
+    const wide = row(span(4, 67, 'l'));
+    const other = lobbyProps(planStructureRow(6, source({ 6: wide })));
+    expect(other.length).toBeGreaterThan(0);
+    const sky = lobbyProps(planStructureRow(15, source({ 15: wide })));
+    expect(sky.length).toBeGreaterThan(0);
+    for (const piece of sky) {
+      expect(piece.subject).toMatch(/^lobby\/(plant-small|plant-tall|bench)$/);
+    }
   });
 
   it('draws soil under a basement run with retaining walls', () => {

@@ -11,7 +11,12 @@ import { CulledRows } from './culledRows';
 import { levelToIndex, levelTop, WORLD_WIDTH } from './levels';
 import { FLOOR_HEIGHT, TILE_WIDTH } from './metrics';
 import { StructureRows, type StructureInput } from './structureRows';
-import { ROOFTOP_SUBJECT_PREFIX, type StructurePiece, type TimeOfDay } from './structurePlan';
+import {
+  LOBBY_SUBJECT_PREFIX,
+  ROOFTOP_SUBJECT_PREFIX,
+  type StructurePiece,
+  type TimeOfDay,
+} from './structurePlan';
 import type { SpriteRegistry } from './spriteRegistry';
 
 /** A lobby row can be up to three floors tall and stands on the row's bottom edge. */
@@ -161,7 +166,10 @@ export class StructureLayer {
   }
 
   private texture(subject: string): Texture {
-    const id = subject.startsWith(ROOFTOP_SUBJECT_PREFIX) ? subject : `structure/${subject}`;
+    const id =
+      subject.startsWith(ROOFTOP_SUBJECT_PREFIX) || subject.startsWith(LOBBY_SUBJECT_PREFIX)
+        ? subject
+        : `structure/${subject}`;
     return this.sprites.variant(id, { time: this.time });
   }
 }

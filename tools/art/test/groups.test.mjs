@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { drawGroups } from '../src/build.mjs';
 import { colorIndex } from '../src/palette.mjs';
+import { lobbyGroup } from '../src/groups/lobby.mjs';
 import { rooftopGroup } from '../src/groups/rooftop.mjs';
 import { skyGroup } from '../src/groups/sky.mjs';
 import { structureGroup } from '../src/groups/structure.mjs';
@@ -44,7 +45,7 @@ describe('structure group', () => {
     expect(sprites['structure/floor/day'].width).toBe(metrics.tileWidth);
     expect(sprites['structure/floor/day'].height).toBe(metrics.floorHeight);
     for (const floors of [1, 2, 3]) {
-      for (const subject of [`lobby-${floors}`, `lobby-${floors}-wall`, `lobby-${floors}-column`]) {
+      for (const subject of [`lobby-${floors}`, `lobby-${floors}-wall`]) {
         expect(sprites[`structure/${subject}/day`].width).toBe(metrics.tileWidth);
         expect(sprites[`structure/${subject}/day`].height).toBe(floors * metrics.floorHeight);
       }
@@ -444,5 +445,46 @@ describe('rooftop group', () => {
     }
     expect(sprites['rooftop/antenna/night'].get(4, 0)).toBe(colorIndex('lamp'));
     expect(sprites['rooftop/antenna/day'].get(4, 0)).not.toBe(colorIndex('lamp'));
+  });
+});
+
+describe('lobby group', () => {
+  const sprites = spritesById(lobbyGroup);
+  // Lobby floor to ceiling, above the slab.
+  const lobbyHeight = metrics.floorHeight - metrics.slabHeight;
+
+  it('draws every prop for day and night, a whole number of tiles wide and under the lobby ceiling', () => {
+    const ids = Object.keys(sprites);
+    expect(ids.length).toBeGreaterThanOrEqual(24);
+    for (const id of ids) {
+      expect(id).toMatch(/^lobby\/[a-z-]+\/(day|night)$/);
+      expect(sprites[id].width % metrics.tileWidth).toBe(0);
+      expect(sprites[id].height).toBeLessThan(lobbyHeight - 6);
+      if (id.endsWith('/day')) {
+        expect(ids).toContain(id.replace('/day', '/night'));
+      }
+    }
+  });
+
+  it('rests every prop on its bottom row and lights the lamps at night', () => {
+    for (const [id, canvas] of Object.entries(sprites)) {
+      let filled = 0;
+      for (let x = 0; x < canvas.width; x++) {
+        filled += canvas.get(x, canvas.height - 1) === 0 ? 0 : 1;
+      }
+      expect(filled, id).toBeGreaterThan(0);
+    }
+    for (const lamp of ['side-table', 'floor-lamp']) {
+      const night = sprites[`lobby/${lamp}/night`];
+      const day = sprites[`lobby/${lamp}/day`];
+      let lit = 0;
+      for (let y = 0; y < 4; y++) {
+        for (let x = 0; x < night.width; x++) {
+          lit += night.get(x, y) === colorIndex('lamp-glow') ? 1 : 0;
+          expect(day.get(x, y)).not.toBe(colorIndex('lamp-glow'));
+        }
+      }
+      expect(lit, lamp).toBeGreaterThan(0);
+    }
   });
 });

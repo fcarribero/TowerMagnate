@@ -183,8 +183,7 @@ Structure sprites are in `tools/art/src/groups/structure.mjs`. Each one has a `d
 |---|---|---|
 | `floor` | 8 x 32 | a built floor with nothing on it |
 | `lobby-1`, `lobby-2`, `lobby-3` | 8 x 32, 64 or 96 | one lobby column for a lobby 1, 2 or 3 floors tall |
-| `lobby-1-column` and the other `-column` lobbies | same as the lobby | the same column with a marble column; place one every 4 tiles |
-| `sky-lobby`, `sky-lobby-column` | 8 x 32 | sky lobby with a glass band, handrail and parquet |
+| `sky-lobby` | 8 x 32 | sky lobby with a glass band, handrail and parquet |
 | `basement` | 8 x 32 | an excavated basement level with nothing on it |
 | `ground` | 32 x 32 | the soil level just under level 1, grass on top |
 | `dirt` | 32 x 32 | unbuilt soil below that |
@@ -200,6 +199,10 @@ Structure sprites are in `tools/art/src/groups/structure.mjs`. Each one has a `d
 ### Rooftop props
 
 The `rooftop` atlas has 8 props with `day` and `night` sprites: `vent` (8 x 6), `antenna` (8 x 18), `stack` (8 x 11), `air-conditioner` (16 x 9), `dish` (16 x 11), `water-tank` (16 x 16), `air-conditioner-bank` (24 x 9) and `penthouse` (24 x 13). Widths are whole tiles and the bottom row rests on the parapet. The client draws them on every roof span that has nothing built above it, chosen from the level and column (`rooftopPlan.ts`), so they are the same on every frame and reload. They are decoration only: no cost, no grid space, not clickable, and they disappear when something is built above. The night versions use `toNight`, and the antenna tip lights up in lamp colors.
+
+### Lobby props
+
+The `lobby` atlas has 14 interior props with `day` and `night` sprites: `side-table` (8 x 14, with a lamp), `coffee-table` (16 x 7), `armchair` (8 x 10), `loveseat` (16 x 10), `sofa` (24 x 10), `plant-small` (8 x 11), `plant-tall` (8 x 20), `flower-vase` (8 x 14), `flower-pot` (8 x 11), `reception-desk` (24 x 13), `bench` (16 x 8), `floor-lamp` (8 x 20), `notice-board` (8 x 18) and `umbrella-stand` (8 x 12). Widths are whole tiles, every prop is lower than the lobby ceiling and its bottom row rests on the lobby floor. The client places them on the bottom row of every lobby run, chosen from the level and column (`lobbyPlan.ts`): about one prop per 4 to 6 tiles, never overlapping, and never in the 3 tiles at each end of a main lobby where the glass doors stand. Sky lobbies get only plants and benches. They are decoration only: no cost, no grid space, not clickable. The night versions use `toNight`, and the two lamps light up in lamp colors. Lobbies have no columns.
 
 Unbuilt soil uses one subject per basement level:
 

@@ -8,6 +8,7 @@ const GROUP_NAMES = [
   'transport',
   'people',
   'structure',
+  'lobby',
   'rooftop',
   'sky',
   'ui',
