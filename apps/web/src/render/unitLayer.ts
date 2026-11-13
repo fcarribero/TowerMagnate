@@ -2,8 +2,10 @@ import type { OverlayData } from '@tower-magnate/shared';
 import { Container, Graphics, Sprite, TilingSprite } from 'pixi.js';
 import { buildStageFor, siteRects } from './constructionStages';
 import { CulledRows } from './culledRows';
-import type { LevelRange, WorldRect } from './camera';
+import type { Camera, LevelRange, WorldRect } from './camera';
 import { levelTop } from './levels';
+import { altitudeAtWorldY } from './skyRows';
+import { DepthRoom, MAX_DEPTH_X, MAX_DEPTH_Y, depthOffset, type DepthTextures } from './unitDepth';
 import { checkerTexture } from './overlayChecker';
 import { overlayColorOf, transportOverlayColor, type OverlayId } from './overlayColors';
 import type { SpriteRegistry } from './spriteRegistry';
@@ -48,6 +50,8 @@ interface DrawnUnit {
   textureId: string;
   checker: TilingSprite | null;
   construction: Construction | null;
+  /** The box behind the frame sprite, once the unit has depth layers. */
+  depth: DepthRoom | null;
 }
 
 /**
@@ -61,6 +65,7 @@ export class UnitLayer {
   private readonly containers = new Map<number, Container>();
   private readonly drawn = new Map<string, DrawnUnit>();
   private readonly rects = new Map<string, WorldRect>();
+  private camera: Camera | null = null;
 
   constructor(private readonly sprites: SpriteRegistry) {}
 
@@ -112,11 +117,93 @@ export class UnitLayer {
     return this.drawn.size;
   }
 
+  /** Slides the back of every room on screen against its frame, so rooms look like boxes. */
+  setCamera(camera: Camera): void {
+    this.camera = camera;
+    for (const [id, entry] of this.drawn) {
+      if (entry.depth !== null && entry.container.visible) {
+        this.shiftDepth(entry, this.rects.get(id));
+      }
+    }
+  }
+
+  private shiftDepth(entry: DrawnUnit, rect: WorldRect | undefined): void {
+    const camera = this.camera;
+    if (entry.depth === null || camera === null || rect === undefined) {
+      return;
+    }
+    const cameraX = (camera.left + camera.viewWidth / 2) / camera.zoom;
+    const cameraY = (camera.top + camera.viewHeight / 2) / camera.zoom;
+    entry.depth.setShift(
+      depthOffset(
+        rect.x + rect.width / 2,
+        cameraX,
+        camera.viewWidth / camera.zoom / 2,
+        MAX_DEPTH_X,
+      ),
+      depthOffset(
+        rect.y + rect.height / 2,
+        cameraY,
+        camera.viewHeight / camera.zoom / 2,
+        MAX_DEPTH_Y,
+      ),
+    );
+  }
+
+  /** The layers of a finished room, or null when it has none and is drawn flat. */
+  private depthTextures(drawing: UnitDrawing): DepthTextures | null {
+    const { variant, subject } = drawing;
+    if (
+      drawing.construction !== undefined ||
+      drawing.overlay !== null ||
+      variant.state === undefined ||
+      variant.time === undefined
+    ) {
+      return null;
+    }
+    const time = variant.time;
+    const back = this.sprites.idOf(subject, { state: `back-${variant.state}`, time });
+    if (!this.sprites.has(back)) {
+      return null;
+    }
+    const layer = (state: string) => this.sprites.variant(subject, { state, time });
+    return {
+      back: this.sprites.variant(subject, { state: `back-${variant.state}`, time }),
+      front: this.sprites.variant(subject, { state: `front-${variant.state}`, time }),
+      side: layer('side'),
+      ceiling: layer('ceiling'),
+      floor: layer('floor'),
+    };
+  }
+
+  /** Shows the frame over a box when the room has layers, and the flat picture otherwise. */
+  private applyTextures(entry: DrawnUnit, drawing: UnitDrawing): void {
+    const layers = this.depthTextures(drawing);
+    if (layers === null) {
+      entry.sprite.texture = this.sprites.variant(drawing.subject, drawing.variant);
+      entry.depth?.destroy();
+      entry.depth = null;
+      return;
+    }
+    entry.sprite.texture = layers.front;
+    if (entry.depth === null) {
+      entry.depth = new DepthRoom(layers, drawing.width, drawing.height);
+      entry.container.addChildAt(entry.depth.view, entry.container.getChildIndex(entry.sprite));
+    } else {
+      entry.depth.setTextures(layers);
+    }
+    entry.depth.view.position.set(drawing.x, drawing.y);
+    const worldY = levelTop(drawing.bottomIndex) + drawing.y + drawing.height / 2;
+    entry.depth.setSky(altitudeAtWorldY(worldY), drawing.variant.time ?? 'day');
+    this.shiftDepth(entry, this.rects.get(drawing.id) ?? worldRectOf(drawing));
+  }
+
   private removeMissing(keep: ReadonlySet<string>): void {
     for (const [id, entry] of this.drawn) {
       if (!keep.has(id)) {
         this.endConstruction(entry);
         entry.sprite.destroy();
+        entry.depth?.destroy();
         entry.checker?.destroy();
         this.drawn.delete(id);
       }
@@ -135,13 +222,17 @@ export class UnitLayer {
     if (existing.container !== container) {
       container.addChild(existing.sprite);
       existing.container = container;
+      if (existing.depth !== null) {
+        container.addChildAt(existing.depth.view, container.getChildIndex(existing.sprite));
+      }
     }
     this.place(existing.sprite, drawing);
     this.showChecker(existing, drawing);
     this.bringToFront(existing, drawing);
-    if (existing.textureId !== textureId) {
-      existing.sprite.texture = this.sprites.variant(drawing.subject, drawing.variant);
-      existing.textureId = textureId;
+    const key = this.textureKey(drawing, textureId);
+    if (existing.textureId !== key) {
+      this.applyTextures(existing, drawing);
+      existing.textureId = key;
     }
   }
 
@@ -150,10 +241,18 @@ export class UnitLayer {
     const container = this.containerFor(drawing.bottomIndex);
     container.addChild(sprite);
     this.place(sprite, drawing);
-    const entry: DrawnUnit = { sprite, container, textureId, checker: null, construction: null };
+    const entry: DrawnUnit = {
+      sprite,
+      container,
+      textureId: this.textureKey(drawing, textureId),
+      checker: null,
+      construction: null,
+      depth: null,
+    };
     this.showChecker(entry, drawing);
     this.showConstruction(entry, drawing);
     this.bringToFront(entry, drawing);
+    this.applyTextures(entry, drawing);
     return entry;
   }
 
@@ -242,6 +341,11 @@ export class UnitLayer {
     checker.height = drawing.height;
     entry.container.addChild(checker);
     entry.container.setChildIndex(checker, entry.container.children.length - 1);
+  }
+
+  /** Changes when the picture or its depth layers do, so textures are swapped only then. */
+  private textureKey(drawing: UnitDrawing, textureId: string): string {
+    return `${textureId}|${this.depthTextures(drawing) === null ? 'flat' : 'depth'}|${drawing.x},${drawing.y}`;
   }
 
   /** Placeholders are one tile big, so every sprite is sized to the footprint. */

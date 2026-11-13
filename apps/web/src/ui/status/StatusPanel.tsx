@@ -37,6 +37,8 @@ export interface StatusPanelProps {
   openWindows?: ReadonlySet<StatusWindowId>;
   /** Notices that arrived while Avisos was closed. */
   unreadNotices?: number;
+  /** Developer setting: shows an infinity sign instead of the money. */
+  infiniteMoney?: boolean;
 }
 
 const MAX_BADGE_COUNT = 9;
@@ -80,6 +82,7 @@ export function StatusPanel({
   extraMenuItems = [],
   openWindows = NO_WINDOWS,
   unreadNotices = 0,
+  infiniteMoney = false,
 }: StatusPanelProps) {
   const status = useStoreSelect(store, selectStatus);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -104,7 +107,11 @@ export function StatusPanel({
       <div class="status-panel__row" ref={rowRef}>
         <GameMenu items={menuItems} onLogout={onLogout} />
         {status !== null && (
-          <StatusValuesView status={status} onOpenStars={() => onOpenWindow('stars')} />
+          <StatusValuesView
+            status={status}
+            infiniteMoney={infiniteMoney}
+            onOpenStars={() => onOpenWindow('stars')}
+          />
         )}
         <span class="status-panel__spacer" />
         {overlaySlot !== undefined && <div class="status-panel__overlay">{overlaySlot}</div>}
@@ -145,14 +152,16 @@ function unreadLabel(count: number): string {
 
 function StatusValuesView({
   status,
+  infiniteMoney,
   onOpenStars,
 }: {
   status: StatusValues;
+  infiniteMoney: boolean;
   onOpenStars: () => void;
 }) {
   const step = stepOfGameMinute(status.minute);
   const date = formatGameDate(step);
-  const money = formatMoney(status.money);
+  const money = infiniteMoney ? '∞' : formatMoney(status.money);
   const moneyClass = money.startsWith('-')
     ? 'status-panel__money is-negative'
     : 'status-panel__money';

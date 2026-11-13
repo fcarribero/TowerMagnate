@@ -341,7 +341,7 @@ export function App({ developer = false, onLogout, onRestartTower, onSessionLost
     return () => window.removeEventListener('keydown', onKeyDown);
   }, []);
 
-  const { items: developerMenuItems } = useDeveloperMenu(
+  const { items: developerMenuItems, settings: developerSettings } = useDeveloperMenu(
     developer,
     connectionStatus === 'live',
     (type, payload) => connection.socket.sendDebug(type, payload),
@@ -358,6 +358,7 @@ export function App({ developer = false, onLogout, onRestartTower, onSessionLost
           unreadNotices={unreadNotices}
           overlaySlot={<OverlaySelector overlay={overlay} onSelect={setOverlay} />}
           onLogout={onLogout}
+          infiniteMoney={developer && developerSettings.infiniteMoney}
           extraMenuItems={[
             {
               id: 'newTower',
