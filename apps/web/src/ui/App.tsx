@@ -4,8 +4,10 @@ import { TOWER_LAYOUT, type Level } from '@tower-magnate/shared';
 import { createCommandApi } from '../api/commandApi';
 import { useSfx } from '../audio/useSfx';
 import { pageTitle } from '../index';
+import type { GameState } from '../model/gameState';
 import { bindTowerContent } from '../model/stateContent';
 import { TowerContentStore } from '../model/towerContent';
+import { useStoreSelect } from '../model/useStoreSelect';
 import { useGameConnection } from '../net/useGameConnection';
 import { bindPreview, previewToolOf, worldOf } from '../render/placementSource';
 import type { Stage } from '../render/stage';
@@ -74,6 +76,8 @@ export interface AppProps {
   onSessionLost: () => void;
 }
 
+const selectStars = (state: GameState): StarRating => state.stars;
+
 export function App({ developer = false, onLogout, onRestartTower, onSessionLost }: AppProps) {
   const {
     connection,
@@ -95,8 +99,10 @@ export function App({ developer = false, onLogout, onRestartTower, onSessionLost
   const [overlay, setOverlay] = useState<OverlayId>('normal');
   const [tool, setTool] = useState<ToolId>(DEFAULT_TOOL);
   const [lobbyHeight, setLobbyHeight] = useState(DEFAULT_LOBBY_HEIGHT);
-  // Replaced by the tower's rating once the game state reaches the client.
-  const stars: StarRating = (import.meta.env.DEV && debugStarsFromQuery(location.search)) || 1;
+  // The tower's rating from the game state; 1 until the first snapshot. A dev build can force one.
+  const towerStars = useStoreSelect(connection.store, selectStars);
+  const stars: StarRating =
+    (import.meta.env.DEV && debugStarsFromQuery(location.search)) || towerStars || 1;
   const onOpenWindow = (id: StatusWindowId): void => {
     if (id === 'map') {
       setMapOpen((open) => !open);
