@@ -40,19 +40,6 @@ function vent() {
   return tile;
 }
 
-// A short stretch of wall for each roof corner: a bit under half a floor high.
-function cornerWall() {
-  const tile = new PixelCanvas(2 * tileWidth, 12);
-  box(tile, 0, 0, 16, 12, concrete);
-  tile.hline(1, 1, 14, 'concrete-light');
-  tile.hline(1, 2, 14, 'concrete');
-  tile.hline(1, 6, 14, 'concrete-dark');
-  tile.vline(5, 3, 3, 'concrete-dark');
-  tile.vline(11, 3, 3, 'concrete-dark');
-  tile.vline(8, 7, 4, 'concrete-dark');
-  return tile;
-}
-
 function antenna() {
   const tile = new PixelCanvas(tileWidth, 18);
   tile.vline(3, 0, 18, 'gray');
@@ -173,7 +160,6 @@ export const rooftopProps = [
   { subject: 'water-tank', draw: waterTank },
   { subject: 'air-conditioner-bank', draw: airConditionerBank },
   { subject: 'penthouse', draw: penthouse },
-  { subject: 'corner-wall', draw: cornerWall },
 ];
 
 export const rooftopGroup = {

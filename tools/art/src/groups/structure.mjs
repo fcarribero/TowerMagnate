@@ -341,6 +341,21 @@ function roofCorner(side) {
   return tile;
 }
 
+// The exterior wall carried up to about a person's waist above the top roof, as a railing.
+const PARAPET_HEIGHT = 8;
+
+function parapet(side) {
+  const tile = new PixelCanvas(EDGE_WIDTH, PARAPET_HEIGHT);
+  const outer = side === 'left' ? 0 : EDGE_WIDTH - 1;
+  const inner = side === 'left' ? EDGE_WIDTH - 1 : 0;
+  tile.fillRect(0, 0, EDGE_WIDTH, PARAPET_HEIGHT, 'concrete');
+  tile.vline(inner, 1, PARAPET_HEIGHT - 1, 'concrete-light');
+  tile.hline(0, 0, EDGE_WIDTH, 'ink');
+  tile.hline(0, 1, EDGE_WIDTH, 'concrete-light');
+  tile.vline(outer, 0, PARAPET_HEIGHT, 'ink');
+  return tile;
+}
+
 // Each entry draws the day sprite; night is the same drawing one ramp step darker,
 // with the lights switched on by `lightUp`.
 const subjects = [
@@ -397,6 +412,8 @@ const subjects = [
   { subject: 'roof', draw: roof },
   { subject: 'roof-left', draw: () => roofCorner('left') },
   { subject: 'roof-right', draw: () => roofCorner('right') },
+  { subject: 'parapet-left', draw: () => parapet('left') },
+  { subject: 'parapet-right', draw: () => parapet('right') },
 ];
 
 function nightVersion(dayCanvas, lightUp) {

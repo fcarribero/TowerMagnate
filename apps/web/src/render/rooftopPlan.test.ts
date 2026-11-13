@@ -1,26 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import {
-  CORNER_WALL_TILES,
-  planRooftopProps,
-  planRooftopWalls,
-  ROOFTOP_KINDS,
-} from './rooftopPlan';
+import { planRooftopProps, ROOFTOP_KINDS } from './rooftopPlan';
 
 const widthOf = (kind: string): number =>
   ROOFTOP_KINDS.find((entry) => entry.kind === kind)?.widthTiles ?? 0;
-
-describe('planRooftopWalls', () => {
-  it('puts a short wall at each end of a roof span', () => {
-    expect(planRooftopWalls({ from: 10, to: 30 })).toEqual([
-      { kind: 'corner-wall', column: 10, widthTiles: CORNER_WALL_TILES },
-      { kind: 'corner-wall', column: 30 - CORNER_WALL_TILES + 1, widthTiles: CORNER_WALL_TILES },
-    ]);
-  });
-
-  it('puts none on a span too short for two walls', () => {
-    expect(planRooftopWalls({ from: 4, to: 6 })).toEqual([]);
-  });
-});
 
 describe('planRooftopProps', () => {
   it('gives the same props for the same level and span', () => {
@@ -36,11 +18,11 @@ describe('planRooftopProps', () => {
   it('stays inside the span, off the end columns, and never overlaps', () => {
     for (let level = -3; level < 40; level += 1) {
       const span = { from: 5, to: 5 + (level + 10) * 3 };
-      let nextFree = span.from + CORNER_WALL_TILES;
+      let nextFree = span.from + 1;
       for (const prop of planRooftopProps(level, span)) {
         expect(prop.widthTiles).toBe(widthOf(prop.kind));
         expect(prop.column).toBeGreaterThanOrEqual(nextFree);
-        expect(prop.column + prop.widthTiles - 1).toBeLessThanOrEqual(span.to - CORNER_WALL_TILES);
+        expect(prop.column + prop.widthTiles - 1).toBeLessThanOrEqual(span.to - 1);
         nextFree = prop.column + prop.widthTiles + 1;
       }
     }

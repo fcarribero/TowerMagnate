@@ -1,7 +1,7 @@
 import { TOWER_LAYOUT, type Level } from '@tower-magnate/shared';
 import { LOWEST_LEVEL, WORLD_WIDTH } from './levels';
 import { FLOOR_HEIGHT, TILE_WIDTH, TOWER_WIDTH_TILES } from './metrics';
-import { planRooftopProps, planRooftopWalls } from './rooftopPlan';
+import { planRooftopProps } from './rooftopPlan';
 
 export type TimeOfDay = 'day' | 'night';
 
@@ -35,6 +35,8 @@ export interface StructureSource {
 
 const EDGE_WIDTH = 3;
 const ROOF_HEIGHT = 4;
+/** How far the exterior wall rises above the roof, about the waist of a person. */
+const PARAPET_HEIGHT = 8;
 const COLUMN_EVERY_TILES = 4;
 const LOBBY_WINDOW_EVERY_TILES = 8;
 const MAX_LOBBY_HEIGHT = 3;
@@ -254,19 +256,34 @@ function roofs(level: Level, row: string, source: StructureSource): StructurePie
     pieces.push(tiledRun('roof', run, y));
     pieces.push({ subject: 'roof-left', x: run.from * TILE_WIDTH - EDGE_WIDTH, y });
     pieces.push({ subject: 'roof-right', x: (run.to + 1) * TILE_WIDTH, y });
+    // Only an outer wall rises: where the row goes on past the run, a taller part stands there.
+    if (!isBuilt(row[run.from - 1] ?? '.')) {
+      pieces.push({
+        subject: 'parapet-left',
+        x: run.from * TILE_WIDTH - EDGE_WIDTH,
+        y: y - PARAPET_HEIGHT,
+      });
+    }
+    if (!isBuilt(row[run.to + 1] ?? '.')) {
+      pieces.push({
+        subject: 'parapet-right',
+        x: (run.to + 1) * TILE_WIDTH,
+        y: y - PARAPET_HEIGHT,
+      });
+    }
   }
   pieces.push(...rooftopProps(level, row, above, y));
   return pieces;
 }
 
-/** A short wall at each corner and props stand on the parapet of every free roof span; ruins get none. */
+/** Props stand on the parapet of every free roof span; ruins get none. */
 function rooftopProps(level: Level, row: string, above: string, roofY: number): StructurePiece[] {
   const free = [...row].map(
     (cell, column) => isBuilt(cell) && cell !== 'r' && !isBuilt(above[column] ?? '.'),
   );
   const pieces: StructurePiece[] = [];
   for (const run of runsWhere(free)) {
-    for (const prop of [...planRooftopWalls(run), ...planRooftopProps(level, run)]) {
+    for (const prop of planRooftopProps(level, run)) {
       pieces.push({
         subject: `${ROOFTOP_SUBJECT_PREFIX}${prop.kind}`,
         x: prop.column * TILE_WIDTH,
