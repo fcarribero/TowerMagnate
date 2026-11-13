@@ -6,6 +6,8 @@ import { car, shaft as fixtureShaft, walker } from '../testing/protocolFixtures'
 import { ElevatorLayer } from './elevatorLayer';
 import { levelToIndex } from './levels';
 import { SpriteRegistry } from './spriteRegistry';
+import { personLook } from './personLook';
+import { PEOPLE_SPRITE_IDS } from '../testing/peopleLayerFixtures';
 
 const SPRITES = [
   'transport/standard-shaft/body',
@@ -16,8 +18,7 @@ const SPRITES = [
   'transport/standard-shaft/landing',
   'transport/standard-car/open',
   'transport/standard-car/closed',
-  'people/worker-b/stand',
-  'people/worker-b/stand-pink',
+  ...PEOPLE_SPRITE_IDS,
 ];
 
 function layerWithArt(now?: () => number) {
@@ -142,7 +143,10 @@ describe('ElevatorLayer cars', () => {
     layer.showCars(frameOf(5, 'open', [rider]), shafts);
     const view = layer.carView.children[0];
     expect(view?.children.length).toBe(4);
-    expect(view?.children[3]).toMatchObject({ texture: textures['people/worker-b/stand'] });
+    expect(view?.children[3]).toMatchObject({
+      texture: textures[`${personLook('p5', 'officeWorker').subjects.pants}/stand`],
+    });
+    expect(view?.children[3]?.children).toHaveLength(4);
 
     layer.showCars(frameOf(5, 'closed', [rider]), shafts);
     expect(view?.children.length).toBe(4);
@@ -173,11 +177,22 @@ describe('ElevatorLayer cars', () => {
     expect(view?.children.length).toBe(4);
   });
 
-  it('does not tint a stressed rider', () => {
+  it('does not change a rider when its stress changes', () => {
     const { layer, textures } = layerWithArt();
     layer.showCars(frameOf(5, 'open', [{ ...rider, stress: 'stressed' }]), shafts);
     const view = layer.carView.children[0];
-    expect(view?.children[3]).toMatchObject({ texture: textures['people/worker-b/stand'] });
+    expect(view?.children[3]).toMatchObject({
+      texture: textures[`${personLook('p5', 'officeWorker').subjects.pants}/stand`],
+      tint: personLook('p5', 'officeWorker').pants,
+    });
+  });
+
+  it('plants every rider on the car floor whatever the height', () => {
+    const { layer } = layerWithArt();
+    const riders = ['p5', 'p6', 'p7', 'p8'].map((id) => ({ ...rider, id }));
+    layer.showCars(frameOf(5, 'open', riders), shafts);
+    const feet = new Set(layer.carView.children[0]?.children.slice(3, 7).map((child) => child.y));
+    expect(feet.size).toBe(1);
   });
 
   it('hides cars outside the visible levels', () => {
@@ -203,8 +218,8 @@ describe('ElevatorLayer followed riders', () => {
     const marker = view?.children.find((child) => (child as Sprite).tint === 0xf2d36b) as Sprite;
     expect(marker.visible).toBe(true);
     expect([marker.width, marker.height]).toEqual([3, 2]);
-    const head = view?.children[3] as Sprite;
-    expect(marker.y).toBe(head.y - 4);
+    const feet = view?.children[3] as Sprite;
+    expect(marker.y).toBe(feet.y - 16 * personLook('p5', 'officeWorker').scaleY - 4);
 
     layer.showCars(frameOf(5, 'closed', [rider]), shafts);
     expect(markerCount(view)).toBe(1);

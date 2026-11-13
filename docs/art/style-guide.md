@@ -51,7 +51,7 @@ The stress bands of the stress evaluation spec (3.2) use three of these colors:
 | high | 90 to 179 | `stress-pink` | #f07aa8 |
 | very high | 180 or more | `stress-red` | #d81e2a |
 
-`pnpm art:build` writes `apps/web/src/render/stressPalette.ts` with `STRESS_INK`, `STRESS_PINK`, `STRESS_RED` and `STRESS_BANDS` (name, hex, first step and sprite suffix of each band). The file is not committed. A calm person's sprite has no suffix, so the client picks `people/<subject>/<pose>` plus the band's `spriteSuffix`.
+`pnpm art:build` writes `apps/web/src/render/stressPalette.ts` with `STRESS_INK`, `STRESS_PINK`, `STRESS_RED` and `STRESS_BANDS` (name, hex, first step and sprite suffix of each band). The file is not committed. People sprites no longer have stress variants: the client always draws a person in their own colors.
 
 Materials use three-step ramps: dark, base and light. The ramps are gray (slate, gray, silver), concrete (concrete-dark, concrete, concrete-light), wood (wood-dark, wood, wood-light), day sky (sky-deep, sky, sky-light) and skin (skin-dark, skin-mid, skin-light). Stress-pink and stress-red are reserved for people, so the stress colors are never confused with furniture or signs.
 
@@ -116,35 +116,37 @@ The cinema (31 x 2) has `empty` and `show`: the screen is dark when empty and sh
 
 ## People
 
-- Each person type has at least two body variants (build and skin tone) and two clothing variants.
-- People are small and flat: a head of 3 x 3 skin pixels, a body in one clothing color and legs in a darker color.
-- Calm people wear dark clothing (ink, charcoal, cloth-blue), which reads as the "black is normal" color in the GDD.
-- Stressed people have their body and legs recolored with stress-pink, and very stressed people with stress-red. The head keeps its skin tone. The stress tints are separate sprites, not a runtime filter.
-- Uniforms: maids wear cloud with a cloth-blue apron, security wears cloth-blue with a lamp badge pixel.
-- Walking uses 2 frames. Standing in a queue uses 1 frame.
+- There is one man model and one woman model. Everyone is drawn from them, and the client varies each person from a hash of the person id: skin tone, hair color, shirt, trousers or skirt, height and build. No other body variants are drawn.
+- People are small and flat: a head of 3 x 3 skin pixels, a torso and legs.
+- The recolorable regions (skin, hair, shirt, trousers or skirt) are separate layers drawn in white with cloud as the single shade. The client multiplies each layer by its color with a sprite tint, so the palette-only rule applies to the layers and the runtime colors come from `apps/web/src/render/personLook.ts`.
+- Shoes, uniform parts (caps, apron, badge, tie, vest stripe) and carried things are drawn in their own palette colors in a fixed layer per type and model.
+- Uniform types keep fixed clothes colors (maid, security, builder, staff, vip) and still vary in skin, hair, height and build. The other types take clothes from a broad free palette.
+- Stress has no sprites: stressed people look like everyone else.
+- Walking uses 2 frames. Standing uses `stand` plus two looping idle frames.
 
 People sprites are in `tools/art/src/groups/people.mjs`. Every person faces right; the client mirrors the sprite for people walking left. The frame is 8 x 16 and the feet are on the bottom row, so the frame's bottom sits on row 28 of the floor.
 
-| Type | Clothes | Carries |
+| Type | Fixed parts | Carries |
 |---|---|---|
-| `worker` | charcoal or cloth-blue suit, collar and tie | briefcase |
-| `resident` | leaf-dark or slate top, dark trousers | nothing |
-| `guest` | wood-dark or night coat | suitcase |
-| `customer` | cloth-blue or slate top, skirt | paper shopping bag |
-| `maid` | cloud dress and cap, cloth-blue or night apron | nothing |
-| `security` | cloth-blue uniform, ink cap, lamp badge, belt | nothing |
-| `vip` | ink or night-deep suit, sunglasses, lamp lapel pin | nothing |
-| `wedding-guest` | suit (night-deep, white shirt front, lapel pin) or red dress with a white corsage | none |
-| `bride` | white or cloud gown and veil | bouquet |
-| `groom` | ink or charcoal suit, white flower | nothing |
+| `worker` | collar and tie | briefcase |
+| `resident` | none | nothing |
+| `guest` | none | suitcase |
+| `customer` | none | paper shopping bag |
+| `maid` (woman only) | cloth-blue apron, cloud cap | nothing |
+| `security` | ink cap, lamp badge, belt | nothing |
+| `vip` | white shirt front, sunglasses, lamp lapel pin | nothing |
+| `wedding-guest` | man: white shirt front, lapel pin; woman: white corsage | nothing |
+| `bride` (woman, gown) | veil | bouquet |
+| `groom` (man) | white shirt front and flower | nothing |
+| `builder` | lamp hard hat and vest stripe | nothing |
+| `staff` | wood apron, red cap | nothing |
+| `staffbag` | the same as `staff` | black garbage bag |
 
-Each type has 4 variants, `a` to `d`. Variants `a` and `c` are the tall build (14 px). Variants `b` and `d` are the short build (13 px) with a belly pixel. `a` and `d` wear the first outfit and `b` and `c` the second, and each variant has its own skin tone and hair (`d` has gray hair). Office workers in the engine use `worker`, hotel guests `guest`, guards `security`, and wedding guests `wedding-guest`. For `wedding-guest`, variants `a` and `d` wear the suit and `b` and `c` the dress. Audience, party guests and prospects use `customer` or `resident` until they get their own sprites.
+The man wears trousers and has short hair; the woman wears a skirt and has long hair. Each layer has `walk_01`, `walk_02`, `stand`, `idle_01` and `idle_02`. Layer sprites are `people/pants-trousers`, `people/pants-skirt` and `people/pants-gown`, and `people/shirt-<model>`, `people/skin-<model>` and `people/hair-<model>` for `man` and `woman`. The fixed layer is `people/fixed-<type>-<model>`.
 
-Each variant has `walk_01`, `walk_02` and `stand`, calm and with the `-pink` and `-red` tints, 9 sprites per variant. The tint recolors the top, the trousers or skirt and the clothing details. Skin, hair, shoes, badges, glasses and carried things keep their colors.
+At runtime the client picks the model, colors, height and build from the person id (the same on every frame and in a car or on a floor). Height is 14 to 18 px (-12% to +12%) and width is 7 to 10 px (-12% to +25%), always whole pixels so the pixels stay crisp; the feet stay on the floor line. Skin has 9 tones, hair 14 colors, shirts 30 colors and trousers 15 colors (skirts 22).
 
-`pnpm art:build` writes `docs/art/people-preview.png`, a 4x sheet with one row per type and every variant in each pose, and `docs/art/people-tint-preview.png` (3x) and `docs/art/people-tint-1x.png` (1x), which show every type calm, pink and red on a bare floor and in a lit hotel room, by day and by night.
-
-`pnpm art:build` also writes `docs/art/people-tint-variants.png` (4x) and `docs/art/people-tint-variants-1x.png` (1x). Each row is a person type and each group of three is a variant calm, pink and red, on the day sky on the left and the night sky on the right, so all 36 variants in 3 bands are on one sheet.
+`pnpm art:build` writes `docs/art/people-preview.png`, a 4x sheet with one row per type and the man and the woman in each pose, in sample colors.
 
 ## Sprite ids
 
@@ -160,7 +162,7 @@ Groups: `units`, `transport`, `people`, `structure`, `sky`, `ui`, `events`.
 | `units/office/burnt` | burnt office, same at any hour |
 | `transport/standard-car/open` | standard elevator car, doors open |
 | `transport/stairs/day` | stairs, daytime |
-| `people/worker-a/walk-pink_02` | worker body A, walking, stressed, frame 2 |
+| `people/skin-woman/walk_02` | skin layer of the woman model, walking, frame 2 |
 | `structure/floor/day` | bare floor tile |
 | `sky/day/top` | day sky tile, upper band |
 | `ui/tool-bulldozer` | bulldozer tool icon |
@@ -171,7 +173,7 @@ Frame numbers have two digits and start at `01`. Ids in the atlas JSON are exact
 
 The full list of unit states, in the order scripts generate them: `empty`, `occupied`, `dirty`, `infested`, `burnt`, `wedding`. Times: `day`, `night`.
 
-For people the variant is the action (`walk`, `stand`), a hyphen and the stress tint (`pink` or `red`), then the frame. Calm is the default and is left out, so `people/worker-a/walk_01` is a calm worker and `people/worker-a/walk-red_01` a very stressed one.
+For people the subject is a layer and the variant is the action (`walk`, `stand`, `idle`) and the frame, so `people/shirt-man/walk_01` is the shirt layer of the man model.
 
 ## Structure and sky
 
@@ -323,4 +325,4 @@ Effects are in `tools/art/src/groups/effects.mjs` and form the `effects` atlas. 
 
 `pnpm art:build` also writes `docs/art/effects-preview.png` (4x), one row per effect.
 
-`events/wedding-couple/walk_01` and `_02` (16 x 16) are the bride and groom walking side by side, and `events/wedding-couple/stand` is the pair standing. They face right like every person and are drawn from the `bride-a` and `groom-c` sprites, so the feet are on the bottom row. The couple has no stress tint.
+`events/wedding-couple/walk_01` and `_02` (16 x 16) are the bride and groom walking side by side, and `events/wedding-couple/stand` is the pair standing. They face right like every person and are drawn with the bride and groom layers stacked in fixed colors, so the feet are on the bottom row.

@@ -120,8 +120,8 @@ const GROOM_LEFT = 7;
 function weddingCouple(pose) {
   const frameHeight = metrics.person.frameHeight;
   const canvas = new PixelCanvas(COUPLE_WIDTH, frameHeight);
-  canvas.stamp(drawCalmPerson('bride', 'a', pose), 0, 0);
-  canvas.stamp(drawCalmPerson('groom', 'c', pose), GROOM_LEFT, 0);
+  canvas.stamp(drawCalmPerson('bride', pose), 0, 0);
+  canvas.stamp(drawCalmPerson('groom', pose), GROOM_LEFT, 0);
   return canvas;
 }
 

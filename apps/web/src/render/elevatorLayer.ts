@@ -17,12 +17,13 @@ import {
   stepOpenness,
 } from './elevatorPlan';
 import { FOLLOWED_MARKER_LIFT, newFollowedMarker } from './followedMarker';
+import { FRAME_HEIGHT, FRAME_WIDTH } from './personLook';
+import { PersonRig } from './personRig';
 import { levelTop } from './levels';
 import type { SpriteRegistry } from './spriteRegistry';
 
 interface DrawnRider {
-  sprite: Sprite;
-  textureId: string;
+  rig: PersonRig;
 }
 
 interface DrawnShaftCar {
@@ -61,7 +62,7 @@ export class ElevatorLayer {
   private readonly backdrops = new Map<string, string>();
   private readonly cars = new Map<string, DrawnShaftCar>();
   /** Rider sprites no car is using, kept so doors opening and closing do not create new ones. */
-  private readonly spareRiders: Sprite[] = [];
+  private readonly spareRiders: PersonRig[] = [];
   private readonly spareMarkers: Sprite[] = [];
   private followed: ReadonlySet<string> = new Set();
   private range: LevelRange | null = null;
@@ -231,8 +232,8 @@ export class ElevatorLayer {
     if (car.riders.size === 0) return;
     for (const [id, rider] of car.riders) {
       if (riders.some((drawn) => drawn.person.id === id)) continue;
-      rider.sprite.removeFromParent();
-      this.spareRiders.push(rider.sprite);
+      rider.rig.root.removeFromParent();
+      this.spareRiders.push(rider.rig);
       car.riders.delete(id);
     }
   }
@@ -259,34 +260,31 @@ export class ElevatorLayer {
         car.view.addChild(marker);
         car.markers.set(person.id, marker);
       }
-      const look = riderSprite(person);
+      const pose = riderSprite(person);
       const place = riderPlace(shaft.type, n);
-      const width = this.sprites.variant(look.subject, { state: look.state }).width;
-      marker.position.set(place.x + width / 2, place.y - FOLLOWED_MARKER_LIFT);
+      marker.position.set(
+        place.x + FRAME_WIDTH / 2,
+        place.y + FRAME_HEIGHT - FRAME_HEIGHT * pose.look.scaleY - FOLLOWED_MARKER_LIFT,
+      );
     });
   }
 
-  private takeRiderSprite(): Sprite {
-    return this.spareRiders.pop() ?? new Sprite();
+  private takeRider(): PersonRig {
+    return this.spareRiders.pop() ?? new PersonRig();
   }
 
   private placeRiders(car: DrawnShaftCar, shaft: ShaftView, riders: readonly DrawnPerson[]): void {
     this.releaseRiders(car, riders);
     riders.forEach(({ person }, n) => {
-      const look = riderSprite(person);
-      const textureId = this.sprites.idOf(look.subject, { state: look.state });
       let rider = car.riders.get(person.id);
       if (rider === undefined) {
-        rider = { sprite: this.takeRiderSprite(), textureId: '' };
-        car.view.addChildAt(rider.sprite, car.view.getChildIndex(car.leaves[1]) + 1);
+        rider = { rig: this.takeRider() };
+        car.view.addChildAt(rider.rig.root, car.view.getChildIndex(car.leaves[1]) + 1);
         car.riders.set(person.id, rider);
       }
-      if (rider.textureId !== textureId) {
-        rider.sprite.texture = this.sprites.variant(look.subject, { state: look.state });
-        rider.textureId = textureId;
-      }
+      rider.rig.setPose(this.sprites, riderSprite(person));
       const place = riderPlace(shaft.type, n);
-      rider.sprite.position.set(place.x, place.y);
+      rider.rig.place(place.x + FRAME_WIDTH / 2, place.y + FRAME_HEIGHT, 'right');
     });
   }
 }

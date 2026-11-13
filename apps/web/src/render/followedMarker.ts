@@ -19,3 +19,20 @@ export function newFollowedMarker(): Sprite {
   marker.visible = false;
   return marker;
 }
+
+/**
+ * Fits a marker that is a child of a stretched person sprite: counter-scales it so it stays 3 x 2
+ * pixels and puts it above the top of the head, whose local row is `-frameHeight` from the feet.
+ */
+export function fitFollowedMarker(
+  marker: Sprite,
+  rootScale: { x: number; y: number },
+  frameHeight: number,
+): void {
+  const scaleX = Math.abs(rootScale.x);
+  marker.scale.set(
+    WIDTH / (marker.texture.width * scaleX),
+    HEIGHT / (marker.texture.height * rootScale.y),
+  );
+  marker.position.set(0, -frameHeight - FOLLOWED_MARKER_LIFT / rootScale.y);
+}

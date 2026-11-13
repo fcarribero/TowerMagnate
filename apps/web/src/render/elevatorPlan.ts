@@ -1,4 +1,6 @@
-import type { Level, PersonKind, PersonView, ShaftType, ShaftView } from '@tower-magnate/shared';
+import type { Level, PersonView, ShaftType, ShaftView } from '@tower-magnate/shared';
+import { personLook } from './personLook';
+import type { PersonPose } from './personRig';
 import { indexToLevel, levelToIndex, levelTop } from './levels';
 import { FLOOR_HEIGHT, TILE_WIDTH } from './metrics';
 
@@ -134,42 +136,16 @@ export function riderPlace(type: ShaftType, n: number): { x: number; y: number }
   return { x: CAR_WALL + slot * RIDER_SPACING, y: CAR_FLOOR_ROW - RIDER_HEIGHT };
 }
 
-const SPRITE_NAME_OF_KIND: Record<PersonKind, string> = {
-  officeWorker: 'worker',
-  resident: 'resident',
-  hotelGuest: 'guest',
-  customer: 'customer',
-  audience: 'guest',
-  partyGuest: 'guest',
-  maid: 'maid',
-  guard: 'security',
-  vip: 'vip',
-  weddingGuest: 'guest',
-  prospect: 'customer',
-  builder: 'builder',
-  staff: 'staff',
-};
-
-const LOOKS = ['a', 'b', 'c', 'd'];
-function personSubject(person: PersonView): string {
-  const look = LOOKS[Number(person.id.slice(1)) % LOOKS.length] ?? 'a';
-  const name = person.carrying === true ? 'staffbag' : SPRITE_NAME_OF_KIND[person.kind];
-  return `people/${name}-${look}`;
+/** A person standing, with the look worked out from their id. */
+export function riderSprite(person: PersonView): PersonPose {
+  return { look: personLook(person.id, person.kind, person.carrying === true), state: 'stand' };
 }
 
-/** Sprite subject and state of a person standing, with the look picked from the id. */
-export function riderSprite(person: PersonView): { subject: string; state: string } {
-  return { subject: personSubject(person), state: 'stand' };
-}
-
-/** Sprite of a person on a floor: standing while waiting, otherwise one of two walk frames. */
-export function floorSprite(
-  person: PersonView,
-  column: number,
-): { subject: string; state: string; frame?: number } {
-  const subject = personSubject(person);
+/** A person on a floor: standing while waiting, otherwise one of two walk frames. */
+export function floorSprite(person: PersonView, column: number): PersonPose {
+  const look = personLook(person.id, person.kind, person.carrying === true);
   if (person.mode === 'wait') {
-    return { subject, state: 'stand' };
+    return { look, state: 'stand' };
   }
-  return { subject, state: 'walk', frame: (Math.floor(column * 2) % 2) + 1 };
+  return { look, state: 'walk', frame: (Math.floor(column * 2) % 2) + 1 };
 }

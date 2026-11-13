@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { drawGroups } from '../src/build.mjs';
 import { groups } from '../src/groups/index.mjs';
 import { encodePng } from '../src/png.mjs';
-import { PERSON_TYPES, PERSON_VARIANTS } from '../src/groups/people.mjs';
+import { PERSON_MODELS, PERSON_TYPES, modelsOfType } from '../src/groups/people.mjs';
 import {
   drawEventSheet,
   drawEffectsSheet,
@@ -12,8 +12,6 @@ import {
   drawPeopleSheet,
   drawServiceSheet,
   drawStructurePreview,
-  drawTintSheet,
-  drawTintVariantSheet,
   drawTransportPreview,
   drawUnitSheet,
   drawWalkwayPreview,
@@ -65,19 +63,7 @@ writePreview('services-preview.png', drawServiceSheet(sprites, SERVICE_SUBJECTS)
 writePreview('transport-preview.png', drawTransportPreview(sprites), TRANSPORT_ZOOM);
 writePreview(
   'people-preview.png',
-  drawPeopleSheet(sprites, PERSON_TYPES, PERSON_VARIANTS),
-  PEOPLE_ZOOM,
-);
-writePreview('people-tint-1x.png', drawTintSheet(sprites, PERSON_TYPES), 1);
-writePreview('people-tint-preview.png', drawTintSheet(sprites, PERSON_TYPES), TRANSPORT_ZOOM);
-writePreview(
-  'people-tint-variants-1x.png',
-  drawTintVariantSheet(sprites, PERSON_TYPES, PERSON_VARIANTS),
-  1,
-);
-writePreview(
-  'people-tint-variants.png',
-  drawTintVariantSheet(sprites, PERSON_TYPES, PERSON_VARIANTS),
+  drawPeopleSheet(PERSON_TYPES, PERSON_MODELS, modelsOfType),
   PEOPLE_ZOOM,
 );
 writePreview('ui-icons-preview.png', drawIconSheet(sprites), PEOPLE_ZOOM);

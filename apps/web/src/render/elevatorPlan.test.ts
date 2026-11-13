@@ -1,4 +1,5 @@
 import type { ShaftView } from '@tower-magnate/shared';
+import { personLook } from './personLook';
 import { describe, expect, it } from 'vitest';
 import { walker } from '../testing/protocolFixtures';
 import {
@@ -134,24 +135,29 @@ describe('riders', () => {
   });
 
   it('picks the look from the person id and ignores stress', () => {
-    expect(riderSprite({ ...walker, id: 'p6', stress: 'normal' })).toEqual({
-      subject: 'people/worker-c',
-      state: 'stand',
-    });
-    expect(riderSprite({ ...walker, id: 'p4', kind: 'guard', stress: 'veryStressed' })).toEqual({
-      subject: 'people/security-a',
-      state: 'stand',
-    });
+    const calm = riderSprite({ ...walker, id: 'p6', stress: 'normal' });
+    expect(calm.state).toBe('stand');
+    expect(riderSprite({ ...walker, id: 'p6', stress: 'veryStressed' })).toEqual(calm);
+    expect(calm.look).toBe(personLook('p6', 'officeWorker'));
   });
 
-  it('draws staff with their own look and with a garbage bag while they carry one', () => {
+  it('draws a guard with the uniform sprites and a free-clothes worker with the worker ones', () => {
+    expect(riderSprite({ ...walker, id: 'p4', kind: 'guard' }).look.subjects.fixed).toMatch(
+      /^people\/fixed-security-(man|woman)$/,
+    );
+    expect(riderSprite({ ...walker, id: 'p4' }).look.subjects.fixed).toMatch(
+      /^people\/fixed-worker-(man|woman)$/,
+    );
+  });
+
+  it('draws staff with a garbage bag while they carry one', () => {
     const staff = { ...walker, id: 'p4', kind: 'staff', stress: 'normal' } as const;
-    expect(riderSprite(staff).subject).toBe('people/staff-a');
-    expect(riderSprite({ ...staff, carrying: true }).subject).toBe('people/staffbag-a');
-    expect(floorSprite({ ...staff, carrying: true, mode: 'walk' }, 3)).toEqual({
-      subject: 'people/staffbag-a',
-      state: 'walk',
-      frame: 1,
-    });
+    expect(riderSprite(staff).look.subjects.fixed).toMatch(/^people\/fixed-staff-/);
+    expect(riderSprite({ ...staff, carrying: true }).look.subjects.fixed).toMatch(
+      /^people\/fixed-staffbag-/,
+    );
+    const walking = floorSprite({ ...staff, carrying: true, mode: 'walk' }, 3);
+    expect(walking.state).toBe('walk');
+    expect(walking.frame).toBe(1);
   });
 });

@@ -1,4 +1,4 @@
-import type { Sprite } from 'pixi.js';
+import type { Sprite, Texture } from 'pixi.js';
 import { describe, expect, it } from 'vitest';
 import {
   crowdFrame,
@@ -8,13 +8,21 @@ import {
   towerCrowdFrame,
 } from '../testing/peopleLayerFixtures';
 import { floorSprite } from './elevatorPlan';
+import { personLook } from './personLook';
+
+/** The two idle textures of the root layer (the trousers or skirt) of a worker with this id. */
+function idleTextures(textures: Record<string, Texture>, id: string): Texture[] {
+  const subject = personLook(id, 'officeWorker').subjects.pants;
+  return [textures[`${subject}/idle_01`] as Texture, textures[`${subject}/idle_02`] as Texture];
+}
 
 describe('floorSprite', () => {
   it('keeps the same sprite whatever the stress level', () => {
-    const states = (['normal', 'stressed', 'veryStressed'] as const).map(
-      (stress) => floorSprite(person('p1', { mode: 'wait', stress }), 0).state,
+    const poses = (['normal', 'stressed', 'veryStressed'] as const).map((stress) =>
+      floorSprite(person('p1', { mode: 'wait', stress }), 0),
     );
-    expect(states).toEqual(['stand', 'stand', 'stand']);
+    expect(poses.map((pose) => pose.state)).toEqual(['stand', 'stand', 'stand']);
+    expect(new Set(poses.map((pose) => pose.look)).size).toBe(1);
   });
 
   it('alternates walk frames every half column', () => {
@@ -29,10 +37,7 @@ describe('PeopleLayer', () => {
     layer.show(frameOf(person('p1', { mode: 'wait', stress: 'normal' })));
     layer.show(frameOf(person('p1', { mode: 'wait', stress: 'stressed' })));
     expect(layer.count).toBe(1);
-    expect([
-      textures['people/worker-b/idle_01'],
-      textures['people/worker-b/idle_02'],
-    ]).toContain((layer.view.children[0] as Sprite).texture);
+    expect(idleTextures(textures, 'p1')).toContain((layer.view.children[0] as Sprite).texture);
   });
 
   it('shows the lamp marker only over followed people', () => {
@@ -51,11 +56,14 @@ describe('PeopleLayer', () => {
     const { layer } = layerWithArt();
     layer.markGuests(new Set(['p1']));
     layer.show(frameOf(person('p1', {}), person('p2', {})));
-    const tints = () => layer.view.children.map((child) => (child as Sprite).tint);
-    expect(tints()[0]).not.toBe(tints()[1]);
+    const fixedTints = () =>
+      layer.view.children.map(
+        (child) => (child.children[child.children.length - 1] as Sprite).tint,
+      );
+    expect(fixedTints()[0]).not.toBe(fixedTints()[1]);
     layer.markGuests(new Set());
     layer.show(frameOf(person('p1', {}), person('p2', {})));
-    expect(tints()[0]).toBe(tints()[1]);
+    expect(fixedTints()[0]).toBe(fixedTints()[1]);
   });
 
   it('removes people missing from the frame', () => {
@@ -96,7 +104,9 @@ describe('PeopleLayer', () => {
   it('mirrors a person facing left', () => {
     const { layer } = layerWithArt();
     layer.show(frameOf(person('p1', { facing: 'left' })));
-    expect(layer.view.children[0]?.scale.x).toBe(-1);
+    const look = personLook('p1', 'officeWorker');
+    expect(layer.view.children[0]?.scale.x).toBe(-look.scaleX);
+    expect(layer.view.children[0]?.scale.y).toBe(look.scaleY);
   });
 
   it('keeps one sprite per person across frames of 2,000 people', () => {
@@ -128,9 +138,7 @@ describe('PeopleLayer', () => {
     expect(layer.view.children).toHaveLength(2);
     const shown = layer.view.children.filter((sprite) => sprite.visible) as Sprite[];
     expect(shown).toHaveLength(1);
-    expect([textures['people/worker-b/idle_01'], textures['people/worker-b/idle_02']]).toContain(
-      shown[0]?.texture,
-    );
+    expect(idleTextures(textures, 'p5')).toContain(shown[0]?.texture);
   });
 
   it('gives a person who comes into view the right look and place', () => {
@@ -140,10 +148,7 @@ describe('PeopleLayer', () => {
     layer.showOnly({ lowest: 0, highest: 5 });
     layer.show(frameOf(person('p1', { mode: 'wait', stress: 'stressed', x: 10 })));
     const sprite = layer.view.children[0];
-    expect([
-      textures['people/worker-b/idle_01'],
-      textures['people/worker-b/idle_02'],
-    ]).toContain((sprite as Sprite).texture);
+    expect(idleTextures(textures, 'p1')).toContain((sprite as Sprite).texture);
     expect(sprite?.x).toBeGreaterThan(80);
   });
 
@@ -220,5 +225,41 @@ describe('PeopleLayer people inside units', () => {
       xs.add((layer.view.children[0] as Sprite).x);
     }
     expect(xs.size).toBeGreaterThan(3);
+  });
+});
+
+describe('PeopleLayer look', () => {
+  it('draws five layers per person, colored and stretched from the id', () => {
+    const { layer } = layerWithArt();
+    layer.show(frameOf(person('p1', {})));
+    const root = layer.view.children[0] as Sprite;
+    const look = personLook('p1', 'officeWorker');
+    expect(root.children).toHaveLength(5);
+    const [, shirt, skin, hair] = root.children as Sprite[];
+    expect([root.tint, shirt?.tint, skin?.tint, hair?.tint]).toEqual([
+      look.pants,
+      look.shirt,
+      look.skin,
+      look.hair,
+    ]);
+  });
+
+  it('keeps the feet on the floor line whatever the height', () => {
+    const { layer } = layerWithArt();
+    const ids = Array.from({ length: 40 }, (_, index) => `p${index}`);
+    layer.show(frameOf(...ids.map((id) => person(id, { mode: 'wait' }))));
+    const feet = new Set(layer.view.children.map((child) => child.y));
+    expect(feet.size).toBe(1);
+    const heights = new Set(layer.view.children.map((child) => child.scale.y));
+    expect(heights.size).toBeGreaterThan(2);
+  });
+
+  it('gives the same look to a person in the same id after a reuse', () => {
+    const { layer } = layerWithArt();
+    layer.show(frameOf(person('p1', {})));
+    const first = (layer.view.children[0] as Sprite).tint;
+    layer.show(frameOf());
+    layer.show(frameOf(person('p1', {})));
+    expect((layer.view.children[0] as Sprite).tint).toBe(first);
   });
 });

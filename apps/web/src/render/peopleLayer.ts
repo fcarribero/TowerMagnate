@@ -10,20 +10,22 @@ import { Container, Sprite } from 'pixi.js';
 import type { DrawnFrame } from '../model/interpolation';
 import type { LevelRange } from './camera';
 import { floorSprite } from './elevatorPlan';
-import { newFollowedMarker } from './followedMarker';
+import { fitFollowedMarker, newFollowedMarker } from './followedMarker';
 import { animationNow, isAnimationPaused } from './animationClock';
 import { insideLook, type UnitSpan } from './insideMotion';
 import { levelTop } from './levels';
 import { FLOOR_HEIGHT, TILE_WIDTH } from './metrics';
+import { FRAME_HEIGHT, FRAME_WIDTH } from './personLook';
+import { PersonRig, type PersonPose } from './personRig';
 import type { SpriteRegistry } from './spriteRegistry';
 
 /** Row of a floor tile where a person's feet are. */
 const FEET_ROW = 28;
-const PERSON_HEIGHT = 16;
 /** Columns a person takes, so the ones inside a unit stay within its walls. */
 const INSIDE_PERSON_COLUMNS = 2;
 const GUEST_TINT = 0xffe9a8;
 const NO_TINT = 0xffffff;
+const PERSON_HEIGHT = FRAME_HEIGHT;
 /** Render frames each idle frame is shown for, about half a second at 60 frames a second. */
 const IDLE_FRAME_LENGTH = 30;
 
@@ -47,9 +49,9 @@ interface FlightSpan {
 
 interface DrawnWalker {
   sprite: Sprite;
-  subject: string;
-  state: string;
-  frame: number | undefined;
+  rig: PersonRig;
+  /** Row of the sprite top a person of average height has, the one used to cull by floor. */
+  top: number;
   /** Number of the last frame this person was in. */
   seenIn: number;
 }
@@ -63,14 +65,13 @@ interface DrawnWalker {
 export class PeopleLayer {
   readonly view = new Container();
   private readonly drawn = new Map<string, DrawnWalker>();
-  private readonly spare: Sprite[] = [];
+  private readonly spare: DrawnWalker[] = [];
   private range: LevelRange | null = null;
   private frameNumber = 0;
   /** Counts the frames drawn while the game runs; idle animations follow it. */
   private idleFrames = 0;
   private guests: ReadonlySet<string> = new Set();
   private followed: ReadonlySet<string> = new Set();
-  private readonly markers = new WeakMap<Sprite, Sprite>();
 
   /** Units by level, which is where the people inside move around. */
   private unitsByLevel = new Map<number, UnitSpan[]>();
@@ -207,7 +208,7 @@ export class PeopleLayer {
     person: PersonView,
     x: number,
     position: number,
-    placed: { subject: string; state: string; frame?: number },
+    placed: PersonPose,
     facing: PersonView['facing'],
   ): void {
     const top = levelTop(position) + FEET_ROW - PERSON_HEIGHT;
@@ -216,73 +217,52 @@ export class PeopleLayer {
     }
     const walker = this.drawn.get(person.id) ?? this.create(person.id);
     walker.seenIn = this.frameNumber;
-    const sprite = walker.sprite;
-    const look = this.animated(placed, person.id);
-    if (
-      look.subject !== walker.subject ||
-      look.state !== walker.state ||
-      look.frame !== walker.frame
-    ) {
-      sprite.texture = this.sprites.variant(look.subject, {
-        state: look.state,
-        frame: look.frame,
-      });
-      walker.subject = look.subject;
-      walker.state = look.state;
-      walker.frame = look.frame;
-    }
-    sprite.tint = this.guests.has(person.id) ? GUEST_TINT : NO_TINT;
-    const marker = this.markers.get(sprite);
-    if (marker !== undefined) {
-      marker.visible = this.followed.has(person.id);
-    }
-    sprite.scale.x = facing === 'left' ? -1 : 1;
+    walker.top = top;
+    const { rig, sprite } = walker;
+    rig.setPose(this.sprites, this.animated(placed, person.id));
+    rig.setTint(this.guests.has(person.id) ? GUEST_TINT : NO_TINT);
     const crewShift = person.kind === 'builder' ? ((idlePhase(person.id) % 5) - 2) * 0.3 : 0;
-    sprite.position.set(Math.round((x + crewShift) * TILE_WIDTH + sprite.texture.width / 2), top);
+    rig.place((x + crewShift) * TILE_WIDTH + FRAME_WIDTH / 2, top + PERSON_HEIGHT, facing);
+    const marker = sprite.children[0] as Sprite;
+    marker.visible = this.followed.has(person.id);
+    if (marker.visible) {
+      fitFollowedMarker(marker, sprite.scale, PERSON_HEIGHT);
+    }
   }
 
   /** A standing person alternates two idle frames; a walking one keeps the walk frame. */
-  private animated(
-    look: { subject: string; state: string; frame?: number },
-    id: string,
-  ): { subject: string; state: string; frame?: number } {
-    if (!look.state.startsWith('stand')) {
+  private animated(look: PersonPose, id: string): PersonPose {
+    if (look.state !== 'stand') {
       return look;
     }
     const tick = Math.floor(this.idleFrames / IDLE_FRAME_LENGTH) + idlePhase(id);
-    return {
-      subject: look.subject,
-      state: look.state.replace('stand', 'idle'),
-      frame: (tick % 2) + 1,
-    };
+    return { look: look.look, state: 'idle', frame: (tick % 2) + 1 };
   }
 
   /** People who come into the range get their sprite on the next frame. */
   showOnly(range: LevelRange): void {
     this.range = range;
     for (const [id, walker] of this.drawn) {
-      if (!this.isOnScreen(walker.sprite.y)) {
+      if (!this.isOnScreen(walker.top)) {
         this.release(id, walker);
       }
     }
   }
 
   private create(id: string): DrawnWalker {
-    const sprite = this.spare.pop() ?? this.newSprite();
-    sprite.visible = true;
-    const walker: DrawnWalker = { sprite, subject: '', state: '', frame: undefined, seenIn: 0 };
+    const walker = this.spare.pop() ?? this.newWalker();
+    walker.sprite.visible = true;
+    walker.seenIn = 0;
     this.drawn.set(id, walker);
     return walker;
   }
 
-  private newSprite(): Sprite {
-    const sprite = new Sprite();
-    sprite.anchor.set(0.5, 0);
+  private newWalker(): DrawnWalker {
+    const rig = new PersonRig();
     const marker = newFollowedMarker();
-    sprite.addChild(marker);
-    this.markers.set(sprite, marker);
-    this.view.addChild(sprite);
-    return sprite;
+    rig.root.addChildAt(marker, 0);
+    this.view.addChild(rig.root);
+    return { sprite: rig.root, rig, top: 0, seenIn: 0 };
   }
 
   private releaseMissing(): void {
@@ -295,7 +275,7 @@ export class PeopleLayer {
 
   private release(id: string, walker: DrawnWalker): void {
     walker.sprite.visible = false;
-    this.spare.push(walker.sprite);
+    this.spare.push(walker);
     this.drawn.delete(id);
   }
 

@@ -5,27 +5,47 @@ import { PeopleLayer } from '../render/peopleLayer';
 import { SpriteRegistry } from '../render/spriteRegistry';
 import { walker } from './protocolFixtures';
 
-const IDS = [
-  'people/worker-b/stand',
-  'people/worker-b/stand-pink',
-  'people/worker-b/stand-red',
-  'people/worker-b/idle_01',
-  'people/worker-b/idle_02',
-  'people/worker-b/idle-pink_01',
-  'people/worker-b/idle-pink_02',
-  'people/worker-b/idle-red_01',
-  'people/worker-b/idle-red_02',
-  'people/worker-b/walk_01',
-  'people/worker-b/walk_02',
-  'people/worker-b/walk-pink_01',
-  'people/worker-b/walk-red_02',
+const MODELS = ['man', 'woman'];
+const KINDS = [
+  'worker',
+  'resident',
+  'guest',
+  'customer',
+  'maid',
+  'security',
+  'vip',
+  'builder',
+  'staff',
+  'staffbag',
 ];
+const LAYERS = [
+  'pants-trousers',
+  'pants-skirt',
+  'shirt-man',
+  'shirt-woman',
+  'skin-man',
+  'skin-woman',
+  'hair-man',
+  'hair-woman',
+];
+const POSES = ['stand', 'idle_01', 'idle_02', 'walk_01', 'walk_02'];
 
-export function layerWithArt(now?: () => number) {
+/** Every layer sprite of the one man and one woman model, plus each kind's fixed layer. */
+export const PEOPLE_SPRITE_IDS = [
+  ...LAYERS,
+  ...KINDS.flatMap((kind) => MODELS.map((model) => `fixed-${kind}-${model}`)),
+].flatMap((subject) => POSES.map((pose) => `people/${subject}/${pose}`));
+
+export function peopleTextures(): Record<string, Texture> {
   const textures: Record<string, Texture> = {};
-  for (const id of IDS) {
+  for (const id of PEOPLE_SPRITE_IDS) {
     textures[id] = new Texture();
   }
+  return textures;
+}
+
+export function layerWithArt(now?: () => number) {
+  const textures = peopleTextures();
   const registry = new SpriteRegistry(new Texture(), () => undefined);
   registry.addSheet(textures);
   return { layer: new PeopleLayer(registry, now), textures };

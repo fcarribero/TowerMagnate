@@ -1,4 +1,5 @@
 import { PixelCanvas } from './canvas.mjs';
+import { drawStyledPerson } from './groups/people.mjs';
 import { metrics } from './metrics.mjs';
 import { CALL_PANEL_TOP } from './groups/transport.mjs';
 import { STAIRS_TOP_MARGIN } from './transport/walkways.mjs';
@@ -243,96 +244,51 @@ export function drawTransportPreview(sprites) {
 const PEOPLE_POSES = ['walk_01', 'walk_02', 'stand'];
 const PERSON_GAP = 2;
 
-// One row per person type: every variant in each pose, calm, on a light background so dark suits show.
-export function drawPeopleSheet(sprites, types, variants) {
+// Sample clothes and looks for the preview, as [base, shade] palette ids. The game picks colors per
+// person at runtime, so the sheet only shows the shapes on two skin and hair combinations.
+const SAMPLE_LOOKS = [
+  { skin: ['skin-light', 'skin-mid'], hair: ['wood-dark', 'wood-dark'] },
+  { skin: ['skin-dark', 'wood-dark'], hair: ['ink', 'ink'] },
+];
+const SAMPLE_CLOTHES = {
+  worker: { shirt: ['sky', 'sky-deep'], pants: ['charcoal', 'ink'] },
+  resident: { shirt: ['leaf', 'leaf-dark'], pants: ['wood-dark', 'wood-dark'] },
+  guest: { shirt: ['dusk', 'wood-light'], pants: ['night', 'night-deep'] },
+  customer: { shirt: ['cloth-red', 'wood-dark'], pants: ['cloth-blue', 'night'] },
+  maid: { shirt: ['cloud', 'silver'], pants: ['cloud', 'silver'] },
+  security: { shirt: ['cloth-blue', 'night'], pants: ['ink', 'ink'] },
+  vip: { shirt: ['ink', 'ink'], pants: ['ink', 'ink'] },
+  bride: { shirt: ['white', 'cloud'], pants: ['white', 'cloud'] },
+  'wedding-guest': { shirt: ['night-deep', 'ink'], pants: ['night-deep', 'ink'] },
+  groom: { shirt: ['charcoal', 'ink'], pants: ['ink', 'ink'] },
+  builder: { shirt: ['dusk', 'wood-light'], pants: ['concrete-dark', 'wood-dark'] },
+  staff: { shirt: ['slate', 'charcoal'], pants: ['ink', 'ink'] },
+  staffbag: { shirt: ['slate', 'charcoal'], pants: ['ink', 'ink'] },
+};
+
+// One row per person type: the man and the woman in each pose, on a light background so dark suits
+// show. `models` says which models each type can wear.
+export function drawPeopleSheet(types, models, modelsOfType) {
   const { frameWidth, frameHeight } = metrics.person;
-  const columns = variants.length * PEOPLE_POSES.length;
-  const width = GAP + columns * (frameWidth + PERSON_GAP) + (variants.length - 1) * GAP;
+  const columns = models.length * PEOPLE_POSES.length;
+  const width = GAP + columns * (frameWidth + PERSON_GAP) + (models.length - 1) * GAP;
   const height = GAP + types.length * (frameHeight + GAP);
   const sheet = new PixelCanvas(width, height);
   sheet.fillRect(0, 0, width, height, 'concrete-light');
   types.forEach((type, row) => {
     let left = GAP;
-    for (const variant of variants) {
-      for (const pose of PEOPLE_POSES) {
-        sheet.stamp(
-          sprites[`people/${type}-${variant}/${pose}`],
-          left,
-          GAP + row * (frameHeight + GAP),
-        );
-        left += frameWidth + PERSON_GAP;
+    models.forEach((model, index) => {
+      if (modelsOfType(type).includes(model)) {
+        for (const [step, pose] of PEOPLE_POSES.entries()) {
+          const colors = { ...SAMPLE_LOOKS[index % SAMPLE_LOOKS.length], ...SAMPLE_CLOTHES[type] };
+          sheet.stamp(
+            drawStyledPerson(type, model, pose, colors),
+            left + step * (frameWidth + PERSON_GAP),
+            GAP + row * (frameHeight + GAP),
+          );
+        }
       }
-      left += GAP;
-    }
-  });
-  return sheet;
-}
-
-const TINT_STATES = ['walk', 'walk-pink', 'walk-red'];
-
-function personOnFloor(scene, person, left, floorTop) {
-  const feetRow = metrics.floorHeight - metrics.slabHeight - 1;
-  scene.stamp(person, left, floorTop + feetRow - person.height + 1);
-}
-
-// Each person type calm, stressed and very stressed, standing on real floors:
-// a bare floor and a lit hotel room, by day and by night.
-export function drawTintSheet(sprites, types) {
-  const floor = metrics.floorHeight;
-  const backgrounds = [
-    (time) => sprites[`structure/floor/${time}`],
-    (time) => sprites[`units/single-room/occupied_${time}`],
-  ];
-  const groupWidth = TINT_STATES.length * metrics.person.frameWidth + metrics.tileWidth;
-  const width = types.length * groupWidth + metrics.tileWidth;
-  const rows = ['day', 'night'].flatMap((time) =>
-    backgrounds.map((background) => ({ time, background })),
-  );
-  const sheet = new PixelCanvas(width, rows.length * floor);
-  rows.forEach(({ time, background }, row) => {
-    const tile = background(time);
-    for (let x = 0; x < width; x += tile.width) {
-      sheet.stamp(tile, x, row * floor);
-    }
-    types.forEach((type, index) => {
-      TINT_STATES.forEach((state, step) => {
-        const variant = index % 2 === 0 ? 'a' : 'b';
-        const left = metrics.tileWidth + index * groupWidth + step * metrics.person.frameWidth;
-        personOnFloor(sheet, sprites[`people/${type}-${variant}/${state}_01`], left, row * floor);
-      });
-    });
-  });
-  return sheet;
-}
-
-const BAND_GAP = 1;
-
-// Every variant of every type calm, stressed and very stressed, standing on the day sky and
-// the night sky. One row per type, variants left to right, three bands per variant.
-export function drawTintVariantSheet(sprites, types, variants) {
-  const { frameWidth, frameHeight } = metrics.person;
-  const variantWidth = TINT_STATES.length * (frameWidth + BAND_GAP) + metrics.tileWidth;
-  const halfWidth = variants.length * variantWidth + metrics.tileWidth;
-  const rowHeight = frameHeight + 2 * BAND_GAP * 2;
-  const sheet = new PixelCanvas(2 * halfWidth, types.length * rowHeight);
-  ['day', 'night'].forEach((time, half) => {
-    const sky = sprites[`sky/${time}/middle`];
-    for (let y = 0; y < sheet.height; y += sky.height) {
-      for (let x = 0; x < halfWidth; x += sky.width) {
-        sheet.stamp(sky, half * halfWidth + x, y);
-      }
-    }
-    types.forEach((type, row) => {
-      variants.forEach((variant, column) => {
-        TINT_STATES.forEach((state, step) => {
-          const left =
-            half * halfWidth +
-            metrics.tileWidth +
-            column * variantWidth +
-            step * (frameWidth + BAND_GAP);
-          sheet.stamp(sprites[`people/${type}-${variant}/${state}_01`], left, row * rowHeight + 2);
-        });
-      });
+      left += PEOPLE_POSES.length * (frameWidth + PERSON_GAP) + GAP;
     });
   });
   return sheet;
