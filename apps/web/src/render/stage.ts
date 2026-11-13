@@ -26,7 +26,7 @@ import { ElevatorLayer } from './elevatorLayer';
 import { EventLayer } from './eventLayer';
 import type { EffectDrawing, TransientEffect } from './eventPlan';
 import { PeopleLayer } from './peopleLayer';
-import { SKY_BACKGROUND, createSky, setSkyTime } from './skyRows';
+import { SKY_BACKGROUND, createSky, driftClouds, setSkyTime } from './skyRows';
 import type { SkyTime } from './timeOfDay';
 import type { SpriteRegistry } from './spriteRegistry';
 import { StructureLayer } from './structureLayer';
@@ -287,6 +287,7 @@ export async function mountStage(host: HTMLElement, options: StageOptions = {}):
   const growBuildings = (): void => {
     structure.animate();
     units.animate();
+    driftClouds(sky, app.ticker.deltaMS / 1000);
   };
   app.ticker.add(growBuildings);
   const statsTimer = window.setInterval(() => {

@@ -279,6 +279,21 @@ function buildClouds(sky: Sky): void {
   }
 }
 
+/** Pixels per second a cloud drifts at scale 1; bigger clouds drift a little slower. */
+const CLOUD_SPEED = 3;
+
+/** Moves the clouds slowly to the right, wrapping around the edges of the world. */
+export function driftClouds(sky: Sky, seconds: number): void {
+  const margin = 200;
+  for (const child of sky.cloudLayer.children) {
+    const size = Math.abs(child.scale.x);
+    child.x += (CLOUD_SPEED / size) * seconds * (0.6 + child.alpha);
+    if (child.x > WORLD_WIDTH + margin) {
+      child.x = -margin;
+    }
+  }
+}
+
 function tintClouds(sky: Sky): void {
   for (const child of sky.cloudLayer.children) {
     (child as Sprite).tint = CLOUD_TINT[sky.time];
