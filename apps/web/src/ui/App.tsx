@@ -38,7 +38,6 @@ import { buildMode, shaftIdAt } from './placement/buildPlan';
 import { IncomeFloaters } from './income/IncomeFloaters';
 import { useIncomeFloaters } from './income/useIncomeFloaters';
 import { useBuildFeedback } from './placement/useBuildFeedback';
-import { LevelRuler } from './LevelRuler';
 import { StageHost } from './StageHost';
 import { WindowLayer } from './kit';
 import { RestartTowerDialogs, type RestartStep } from './menu/RestartTowerDialogs';
@@ -343,7 +342,6 @@ export function App({ onLogout, onRestartTower, onSessionLost }: AppProps) {
     <>
       <StageHost onStage={setStage} />
       <div class="ui-layer" onClick={onUiClick}>
-        {stage && <LevelRuler stage={stage} />}
         <StatusPanel
           store={connection.store}
           offline={connectionStatus !== 'live'}

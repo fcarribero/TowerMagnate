@@ -12,21 +12,6 @@ function rule(file: string, selector: string): string {
   return start < 0 ? '' : css.slice(start, css.indexOf('}', start) + 1);
 }
 
-describe('level ruler tag', () => {
-  it('is a paper tag with a control border in text.status-label', () => {
-    const tag = rule('../style.css', '.level-ruler-tag');
-    expect(tag).toContain('font: var(--text-status-label);');
-    expect(tag).toContain('background: var(--obra-paper);');
-    expect(tag).toContain('border: var(--border-control);');
-    expect(tag).toContain('color: var(--obra-ink);');
-  });
-
-  it('turns yellow on the hovered level', () => {
-    const hovered = rule('../style.css', '.level-ruler-mark.is-hovered .level-ruler-tag');
-    expect(hovered).toContain('background: var(--obra-yellow);');
-  });
-});
-
 describe('overlay legend look', () => {
   it('is a 96 wide window box with 12 tall rows', () => {
     const box = rule('overlay/overlay.css', '.overlay-legend');

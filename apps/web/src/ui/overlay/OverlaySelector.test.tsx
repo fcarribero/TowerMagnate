@@ -56,9 +56,10 @@ describe('OverlayLegend', () => {
 });
 
 describe('OverlayLegend layout', () => {
-  it('sits one gap above the build bar', () => {
+  it('sits at the top right, below the top bar', () => {
     const css = readFileSync(resolve(__dirname, 'overlay.css'), 'utf8');
     const legendRule = css.match(/\.overlay-legend \{[^}]*\}/)?.[0] ?? '';
-    expect(legendRule).toContain('bottom: calc(var(--chrome-bottom-edge) + var(--chrome-gap));');
+    expect(legendRule).toContain('top: calc(var(--chrome-top-height) + 2 * var(--chrome-gap));');
+    expect(legendRule).toContain('right: var(--chrome-gap);');
   });
 });

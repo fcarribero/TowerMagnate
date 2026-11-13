@@ -32,8 +32,8 @@
 
 .overlay-legend {
   position: absolute;
-  bottom: calc(var(--chrome-bottom-edge) + var(--chrome-gap));
-  left: var(--chrome-gap);
+  top: calc(var(--chrome-top-height) + 2 * var(--chrome-gap));
+  right: var(--chrome-gap);
   box-sizing: border-box;
   width: calc(96 * var(--tm-px));
   padding: var(--space-2);
