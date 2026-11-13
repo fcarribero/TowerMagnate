@@ -23,6 +23,16 @@ describe('planPreview', () => {
     expect(ghost).toMatchObject({ x: 20, level: 3, valid: true, floors: 1 });
   });
 
+  it('frames stairs over two levels while they still occupy one', () => {
+    const { ghost } = planPreview(
+      { kind: 'build', type: 'stairs' },
+      { x: 20, level: 3 },
+      world,
+      'day',
+    );
+    expect(ghost).toMatchObject({ floors: 1, frameFloors: 2 });
+  });
+
   it('marks the ghost invalid over a unit and over a missing floor', () => {
     const tool = { kind: 'build', type: 'office' } as const;
     expect(planPreview(tool, { x: 12, level: 3 }, world, 'day').ghost?.valid).toBe(false);

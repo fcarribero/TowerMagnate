@@ -20,6 +20,9 @@ export interface Preview {
   highlight: Footprint | null;
 }
 
+/** The ghost frame of stairs spans two levels, though the stairs only occupy one. */
+const STAIRS_FRAME_FLOORS = 2;
+
 const EMPTY_PREVIEW: Preview = { ghost: null, highlight: null };
 
 /**
@@ -60,6 +63,7 @@ function planGhost(
     level: cell.level,
     width: footprintWidth(type),
     floors: footprintFloors(type),
+    frameFloors: type === 'stairs' ? STAIRS_FRAME_FLOORS : footprintFloors(type),
     valid: check.problem === null,
     time,
   };
