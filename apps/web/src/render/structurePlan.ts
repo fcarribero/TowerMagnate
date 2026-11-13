@@ -4,6 +4,7 @@ import { FLOOR_HEIGHT, TILE_WIDTH, TOWER_WIDTH_TILES } from './metrics';
 import {
   LOBBY_KINDS,
   MAIN_LOBBY_END_MARGIN_TILES,
+  planLobbyPictures,
   planLobbyProps,
 } from './lobbyPlan';
 import { planRooftopProps } from './rooftopPlan';
@@ -43,6 +44,8 @@ export interface StructureSource {
 
 const EDGE_WIDTH = 3;
 const SLAB_HEIGHT = 3;
+/** Height of the bottom edge of a wall picture over the lobby floor, above the wainscot. */
+const PICTURE_BOTTOM_ABOVE_FLOOR = 10;
 /** Width in tiles of the door sprite at each end of the main lobby. */
 const DOOR_TILES = 2;
 const ROOF_HEIGHT = 4;
@@ -183,6 +186,7 @@ function lobbyRun(level: Level, run: Run, source: StructureSource): StructurePie
       ...wallRun(`lobby-${height}`, run, FLOOR_HEIGHT - height * FLOOR_HEIGHT),
       ...lobbyDoors(run),
       ...lobbyProps(level, run, MAIN_LOBBY_END_MARGIN_TILES),
+      ...lobbyPictures(level, run, MAIN_LOBBY_END_MARGIN_TILES),
     ];
   }
   if (SKY_LOBBY_LEVELS.includes(level)) {
@@ -191,7 +195,11 @@ function lobbyRun(level: Level, run: Run, source: StructureSource): StructurePie
       ...lobbyProps(level, run, undefined, LOBBY_KINDS.filter((kind) => kind.sky === true)),
     ];
   }
-  return [...wallRun('lobby-1', run, 0), ...lobbyProps(level, run)];
+  return [
+    ...wallRun('lobby-1', run, 0),
+    ...lobbyProps(level, run),
+    ...lobbyPictures(level, run),
+  ];
 }
 
 /** Props stand on the floor line of the bottom row, where the doors stand. */
@@ -205,6 +213,16 @@ function lobbyProps(
     subject: `${LOBBY_SUBJECT_PREFIX}${prop.kind}`,
     x: prop.column * TILE_WIDTH,
     y: FLOOR_HEIGHT - SLAB_HEIGHT,
+    anchorBottom: true,
+  }));
+}
+
+/** Pictures hang on the wall with their bottom edge above the wainscot. */
+function lobbyPictures(level: Level, run: Run, endMargin?: number): StructurePiece[] {
+  return planLobbyPictures(level, run, { endMargin }).map((picture) => ({
+    subject: `${LOBBY_SUBJECT_PREFIX}${picture.kind}`,
+    x: picture.column * TILE_WIDTH,
+    y: FLOOR_HEIGHT - SLAB_HEIGHT - PICTURE_BOTTOM_ABOVE_FLOOR,
     anchorBottom: true,
   }));
 }

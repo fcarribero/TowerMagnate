@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { LOBBY_KINDS, MAIN_LOBBY_END_MARGIN_TILES, planLobbyProps } from './lobbyPlan';
+import {
+  LOBBY_KINDS,
+  LOBBY_PICTURES,
+  MAIN_LOBBY_END_MARGIN_TILES,
+  planLobbyPictures,
+  planLobbyProps,
+} from './lobbyPlan';
 
 const widthOf = (kind: string): number =>
   LOBBY_KINDS.find((entry) => entry.kind === kind)?.widthTiles ?? 0;
@@ -59,6 +65,24 @@ describe('planLobbyProps', () => {
     expect(props.length).toBeGreaterThan(0);
     for (const prop of props) {
       expect(sky.map((kind) => kind.kind)).toContain(prop.kind);
+    }
+  });
+});
+
+describe('planLobbyPictures', () => {
+  it('is stable, stays clear of the door zone and never overlaps', () => {
+    const span = { from: 20, to: 120 };
+    const options = { endMargin: MAIN_LOBBY_END_MARGIN_TILES };
+    const pictures = planLobbyPictures(1, span, options);
+    expect(pictures).toEqual(planLobbyPictures(1, span, options));
+    expect(pictures.length).toBeGreaterThan(3);
+    let nextFree = span.from + MAIN_LOBBY_END_MARGIN_TILES;
+    for (const picture of pictures) {
+      const width = LOBBY_PICTURES.find((kind) => kind.kind === picture.kind)?.widthTiles;
+      expect(picture.widthTiles).toBe(width);
+      expect(picture.column).toBeGreaterThanOrEqual(nextFree);
+      expect(picture.column + picture.widthTiles - 1).toBeLessThanOrEqual(span.to - 3);
+      nextFree = picture.column + picture.widthTiles + 1;
     }
   });
 });

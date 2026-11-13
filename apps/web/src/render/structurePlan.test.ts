@@ -154,7 +154,23 @@ describe('planStructureRow', () => {
   });
 
   const lobbyProps = (pieces: StructurePiece[]): StructurePiece[] =>
-    pieces.filter((piece) => piece.subject.startsWith('lobby/'));
+    pieces.filter(
+      (piece) => piece.subject.startsWith('lobby/') && !piece.subject.startsWith('lobby/picture-'),
+    );
+  const pictures = (pieces: StructurePiece[]): StructurePiece[] =>
+    pieces.filter((piece) => piece.subject.startsWith('lobby/picture-'));
+
+  it('hangs pictures on the wall above the wainscot, clear of the door zones', () => {
+    const lobby = row(span(8, 47, 'l'));
+    const found = pictures(planStructureRow(1, source({ 1: lobby }, 1)));
+    expect(found.length).toBeGreaterThan(0);
+    for (const piece of found) {
+      expect(piece.y).toBe(19);
+      expect(piece.anchorBottom).toBe(true);
+      expect(piece.x).toBeGreaterThanOrEqual((8 + 3) * 8);
+      expect(piece.x).toBeLessThan((48 - 3) * 8);
+    }
+  });
 
   it('puts props on the floor line of the main lobby, clear of the door zones', () => {
     const lobby = row(span(8, 47, 'l'));

@@ -27,6 +27,17 @@ export const LOBBY_KINDS: readonly LobbyKind[] = [
   { kind: 'reception-desk', widthTiles: 3, weight: 1 },
 ];
 
+/** Pictures hung on the lobby wall, above the furniture; the sprite is `lobby/<kind>`. */
+export const LOBBY_PICTURES: readonly LobbyKind[] = [
+  { kind: 'picture-hills', widthTiles: 2, weight: 2 },
+  { kind: 'picture-sea', widthTiles: 2, weight: 2 },
+  { kind: 'picture-portrait', widthTiles: 1, weight: 3 },
+  { kind: 'picture-abstract', widthTiles: 1, weight: 2 },
+  { kind: 'picture-vase', widthTiles: 1, weight: 2 },
+  { kind: 'picture-mountains', widthTiles: 3, weight: 1 },
+  { kind: 'picture-pair', widthTiles: 2, weight: 1 },
+];
+
 export interface LobbyProp {
   kind: string;
   /** First tile column the prop covers. */
@@ -82,6 +93,46 @@ export function planLobbyProps(
     column += choice.widthTiles + GAP_TILES;
   }
   return props;
+}
+
+/** Salt offset for the pictures, apart from the furniture choices. */
+const PICTURE_SALT = 60;
+/** Chance that a free wall tile is left bare instead of starting a picture. */
+const PICTURE_BARE_CHANCE = 0.55;
+/** Tiles of bare wall between two pictures. */
+const PICTURE_GAP_TILES = 2;
+
+/**
+ * Pictures for one lobby run, planned like the furniture but on their own noise, so a picture
+ * can hang over a chair. They keep the same end margin and never repeat the kind before them.
+ */
+export function planLobbyPictures(
+  level: number,
+  span: { from: number; to: number },
+  options: Pick<LobbyPlanOptions, 'endMargin'> = {},
+): LobbyProp[] {
+  const margin = options.endMargin ?? DEFAULT_END_MARGIN_TILES;
+  const pictures: LobbyProp[] = [];
+  const last = span.to - margin;
+  let column = span.from + margin;
+  let previous = '';
+  while (column <= last) {
+    const room = last - column + 1;
+    const fitting = LOBBY_PICTURES.filter((kind) => kind.widthTiles <= room);
+    if (fitting.length === 0 || rooftopNoise(level, column, PICTURE_SALT) < PICTURE_BARE_CHANCE) {
+      column += 1;
+      continue;
+    }
+    const others = fitting.filter((kind) => kind.kind !== previous);
+    const choice = pick(
+      others.length > 0 ? others : fitting,
+      rooftopNoise(level, column, PICTURE_SALT + 1),
+    );
+    pictures.push({ kind: choice.kind, column, widthTiles: choice.widthTiles });
+    previous = choice.kind;
+    column += choice.widthTiles + PICTURE_GAP_TILES;
+  }
+  return pictures;
 }
 
 function pick(kinds: readonly LobbyKind[], roll: number): LobbyKind {

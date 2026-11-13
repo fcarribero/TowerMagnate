@@ -310,6 +310,116 @@ function umbrellaStand() {
   return tile;
 }
 
+// Framed pictures that hang on the lobby wall, between the wainscot and the ceiling. The
+// canvas is a whole number of tiles wide with the frame centered, and the frame fills the
+// bottom row. The client hangs them (see lobbyPlan.ts).
+function frame(width, height, canvasTiles, scene) {
+  const tile = new PixelCanvas(canvasTiles * tileWidth, height);
+  const left = Math.floor((canvasTiles * tileWidth - width) / 2);
+  tile.fillRect(left, 0, width, height, 'wood');
+  tile.strokeRect(left, 0, width, height, 'ink');
+  tile.hline(left + 1, 1, width - 2, 'wood-light');
+  tile.vline(left + width - 2, 2, height - 3, 'wood-dark');
+  const inner = { x: left + 2, y: 2, width: width - 4, height: height - 4 };
+  tile.fillRect(inner.x, inner.y, inner.width, inner.height, 'cloud');
+  scene(tile, inner);
+  return tile;
+}
+
+function pictureHills() {
+  return frame(14, 10, 2, (tile, r) => {
+    tile.fillRect(r.x, r.y, r.width, r.height, 'sky-light');
+    tile.set(r.x + r.width - 3, r.y + 1, 'lamp');
+    tile.set(r.x + r.width - 4, r.y + 1, 'lamp');
+    tile.fillRect(r.x, r.y + 4, r.width, r.height - 4, 'leaf');
+    tile.fillRect(r.x + 1, r.y + 3, 5, 2, 'leaf-dark');
+    tile.hline(r.x, r.y + r.height - 1, r.width, 'leaf-dark');
+  });
+}
+
+function pictureSea() {
+  return frame(14, 10, 2, (tile, r) => {
+    tile.fillRect(r.x, r.y, r.width, 3, 'sky-light');
+    tile.fillRect(r.x, r.y + 3, r.width, r.height - 3, 'sky');
+    tile.hline(r.x + 1, r.y + 5, 4, 'sky-light');
+    tile.hline(r.x + 7, r.y + 6, 4, 'sky-light');
+    tile.vline(r.x + 6, r.y + 1, 4, 'wood-dark');
+    tile.fillRect(r.x + 7, r.y + 1, 2, 3, 'white');
+    tile.hline(r.x + 4, r.y + 5, 6, 'wood-dark');
+  });
+}
+
+function picturePortrait() {
+  return frame(8, 11, 1, (tile, r) => {
+    tile.fillRect(r.x, r.y, r.width, r.height, 'concrete-light');
+    tile.fillRect(r.x + 1, r.y + 1, 2, 2, 'skin-light');
+    tile.set(r.x + 1, r.y, 'wood-dark');
+    tile.set(r.x + 2, r.y, 'wood-dark');
+    tile.fillRect(r.x, r.y + 3, 4, r.height - 3, 'cloth-blue');
+    tile.vline(r.x + 3, r.y + 3, r.height - 3, 'ink');
+  });
+}
+
+function pictureAbstract() {
+  return frame(8, 9, 1, (tile, r) => {
+    tile.fillRect(r.x, r.y, r.width, r.height, 'white');
+    tile.fillRect(r.x, r.y, 2, 3, 'cloth-red');
+    tile.fillRect(r.x + 2, r.y + 2, 2, 3, 'cloth-blue');
+    tile.fillRect(r.x, r.y + 4, 2, 1, 'lamp');
+    tile.hline(r.x + 2, r.y + 1, 2, 'ink');
+  });
+}
+
+function pictureVase() {
+  return frame(8, 11, 1, (tile, r) => {
+    tile.fillRect(r.x, r.y, r.width, r.height, 'concrete-light');
+    tile.fillRect(r.x + 1, r.y + 4, 2, 4, 'cloth-red');
+    tile.set(r.x + 1, r.y + 3, 'cloth-red');
+    tile.set(r.x + 2, r.y + 3, 'cloth-red');
+    tile.set(r.x + 1, r.y + 1, 'leaf');
+    tile.set(r.x + 2, r.y + 2, 'leaf');
+    tile.vline(r.x + 1, r.y + 2, 2, 'leaf-dark');
+    tile.hline(r.x, r.y + r.height - 1, r.width, 'wood-light');
+  });
+}
+
+function pictureMountains() {
+  return frame(22, 11, 3, (tile, r) => {
+    tile.fillRect(r.x, r.y, r.width, r.height, 'sky-light');
+    tile.fillRect(r.x + 2, r.y + 3, 6, r.height - 3, 'slate');
+    tile.fillRect(r.x + 4, r.y + 1, 2, 2, 'white');
+    tile.fillRect(r.x + 10, r.y + 4, 8, r.height - 4, 'gray');
+    tile.fillRect(r.x + 13, r.y + 2, 2, 2, 'white');
+    tile.fillRect(r.x, r.y + r.height - 2, r.width, 2, 'leaf-dark');
+    tile.set(r.x + r.width - 3, r.y + 1, 'lamp');
+  });
+}
+
+function picturePair() {
+  const tile = new PixelCanvas(2 * tileWidth, 8);
+  for (const [left, color] of [
+    [1, 'cloth-blue'],
+    [9, 'leaf'],
+  ]) {
+    tile.fillRect(left, 0, 6, 8, 'wood');
+    tile.strokeRect(left, 0, 6, 8, 'ink');
+    tile.fillRect(left + 1, 1, 4, 6, 'cloud');
+    tile.fillRect(left + 1, 3, 4, 4, color);
+    tile.hline(left + 1, 1, 4, 'sky-light');
+  }
+  return tile;
+}
+
+export const lobbyPictures = [
+  { subject: 'picture-hills', draw: pictureHills },
+  { subject: 'picture-sea', draw: pictureSea },
+  { subject: 'picture-portrait', draw: picturePortrait },
+  { subject: 'picture-abstract', draw: pictureAbstract },
+  { subject: 'picture-vase', draw: pictureVase },
+  { subject: 'picture-mountains', draw: pictureMountains },
+  { subject: 'picture-pair', draw: picturePair },
+];
+
 export const lobbyProps = [
   { subject: 'side-table', draw: sideTable, lightUp: lightSideTable },
   { subject: 'coffee-table', draw: coffeeTable },
@@ -330,7 +440,7 @@ export const lobbyProps = [
 export const lobbyGroup = {
   name: 'lobby',
   draw() {
-    return lobbyProps.flatMap(({ subject, draw, lightUp }) => {
+    return [...lobbyProps, ...lobbyPictures].flatMap(({ subject, draw, lightUp }) => {
       const day = draw();
       const night = toNight(day);
       lightUp?.(night);
