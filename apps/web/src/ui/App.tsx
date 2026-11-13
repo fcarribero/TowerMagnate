@@ -155,9 +155,14 @@ export function App({ developer = false, onLogout, onRestartTower, onSessionLost
   const [pointerLevel, setPointerLevel] = useState<Level | null>(null);
   const onMainLobbyLevel = pointerLevel === TOWER_LAYOUT.mainLobbyFloor;
   const onUiClick = (event: MouseEvent): void => {
-    if (event.target instanceof Element && event.target.closest('button') !== null) {
-      playTrigger('ui.click');
+    if (!(event.target instanceof Element) || event.target.closest('button') === null) {
+      return;
     }
+    // Switching a tab and closing a window are not selections.
+    if (event.target.closest('[role="tab"], .tm-window__close') !== null) {
+      return;
+    }
+    playTrigger('ui.click');
   };
 
   const centerView = useCallback(
