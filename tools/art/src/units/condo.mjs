@@ -166,8 +166,11 @@ function drawCondo(occupied) {
   const room = roomShell(WIDTH_TILES, look);
   WINDOWS.forEach((window) => drawWindow(room, window));
   drawPartition(room);
-  drawLivingRoom(room, occupied);
-  drawBedroom(room, occupied);
+  // A vacant condo is a bare room; the furniture arrives with the owner.
+  if (occupied) {
+    drawLivingRoom(room, occupied);
+    drawBedroom(room, occupied);
+  }
   drawDoor(room, DOOR, { open: occupied, sign: !occupied });
   return room;
 }

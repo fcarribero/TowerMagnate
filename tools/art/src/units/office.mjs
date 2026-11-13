@@ -85,9 +85,12 @@ function drawDesk(room, left, occupied) {
 function drawOffice(occupied) {
   const room = roomShell(WIDTH_TILES, look);
   WINDOWS.forEach((window) => drawWindow(room, window));
-  DESKS.forEach((left) => drawDesk(room, left, occupied));
-  room.drawMap(55, FLOOR_ROW - cabinet.length + 1, cabinet, legend);
-  room.drawMap(27, FLOOR_ROW - plant.length + 1, plant, legend);
+  // A vacant office is a bare room; the furniture arrives with the tenant.
+  if (occupied) {
+    DESKS.forEach((left) => drawDesk(room, left, occupied));
+    room.drawMap(55, FLOOR_ROW - cabinet.length + 1, cabinet, legend);
+    room.drawMap(27, FLOOR_ROW - plant.length + 1, plant, legend);
+  }
   drawDoor(room, DOOR, { open: occupied, sign: !occupied });
   return room;
 }
