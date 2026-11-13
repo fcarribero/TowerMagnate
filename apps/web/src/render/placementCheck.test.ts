@@ -93,6 +93,16 @@ describe('checkPlacement', () => {
     expect(checkPlacement('office', 12, 3, world({ transports: [stairs] })).problem).toBeNull();
   });
 
+  it('rejects building over ruins', () => {
+    const ruined = new Map([
+      [1, row({ 10: 'l'.repeat(30) })],
+      [2, row({ 10: 'f'.repeat(5) + 'rr' + 'f'.repeat(23) })],
+    ]);
+    expect(checkPlacement('office', 14, 2, world({ structure: ruined })).problem).toBe(
+      'CELL_OCCUPIED',
+    );
+  });
+
   it('rejects building over lobby cells', () => {
     const lobby = new Map([
       [1, row({ 10: 'l'.repeat(30) })],

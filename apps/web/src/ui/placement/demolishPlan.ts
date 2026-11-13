@@ -121,7 +121,7 @@ function pickCar(world: DemolishWorld, cell: Cell): DemolishPick | null {
   return null;
 }
 
-function pickBuilt(world: DemolishWorld, cell: Cell): DemolishPick | null {
+function pickUnit(world: DemolishWorld, cell: Cell): DemolishPick | null {
   for (const unit of world.units) {
     const footprint = footprintOfThing(unit);
     if (coversCell(footprint, cell)) {
@@ -130,6 +130,11 @@ function pickBuilt(world: DemolishWorld, cell: Cell): DemolishPick | null {
       return targetPick({ kind: 'unit', id: unit.id }, footprint, confirmation);
     }
   }
+  return null;
+}
+
+/** Stairs, escalators and shafts stand in the front layer, over whatever the back layer holds. */
+function pickFrontLayer(world: DemolishWorld, cell: Cell): DemolishPick | null {
   for (const transport of world.transports) {
     const footprint = footprintOfThing(transport);
     if (coversCell(footprint, cell)) {
@@ -165,11 +170,16 @@ function pickStructure(world: DemolishWorld, cell: Cell): DemolishPick | null {
 }
 
 /**
- * Ui section 5.4 and UI-20, first match wins: car, then unit, transport or
- * shaft, then ruins, then lobby, then floor.
+ * Ui section 5.4 and UI-20, first match wins: car, then unit, then ruins, then transport or
+ * shaft, then lobby, then floor. Ruins come before a transport or shaft because they can lie
+ * behind one, where nothing else shows them, and they must be cleared to build or walk there.
  */
 export function pickDemolition(world: DemolishWorld, cell: Cell): DemolishPick | null {
-  return pickCar(world, cell) ?? pickBuilt(world, cell) ?? pickStructure(world, cell);
+  const structure = pickStructure(world, cell);
+  if (structure?.run === 'ruins') {
+    return pickCar(world, cell) ?? pickUnit(world, cell) ?? structure;
+  }
+  return pickCar(world, cell) ?? pickUnit(world, cell) ?? pickFrontLayer(world, cell) ?? structure;
 }
 
 /**

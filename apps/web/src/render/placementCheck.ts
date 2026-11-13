@@ -254,7 +254,11 @@ class BuiltCells {
         if (this.transportAt(level, x)) {
           return true;
         }
-      } else if (this.structureAt(level, x) === 'l' || this.unitOnlyAt(level, x)) {
+      } else if (
+        this.structureAt(level, x) === 'l' ||
+        this.structureAt(level, x) === 'r' ||
+        this.unitOnlyAt(level, x)
+      ) {
         return true;
       }
     }
