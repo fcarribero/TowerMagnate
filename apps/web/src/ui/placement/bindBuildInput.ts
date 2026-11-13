@@ -8,6 +8,12 @@ import type { CommandApi, CommandOutcome } from '../../api/commandApi';
 import type { Cell } from '../../render/cellAtPoint';
 import type { CellInput } from '../../render/stage';
 import type { RunInput } from '../../render/ghostLayer';
+import {
+  checkFloor,
+  checkLobby,
+  checkShaft,
+  type PlacementWorld,
+} from '../../render/placementCheck';
 import type { ToolId } from '../toolbar/toolbarModel';
 import {
   buildMode,
@@ -43,7 +49,11 @@ export interface BuildInputOptions {
   shaftAt?: (cell: Cell) => GrabbedShaft | null;
   /** The height already fixed on that level, if a lobby stands there. */
   lobbyHeightAt?: (level: Cell['level']) => number | null;
+  /** The tower as the client knows it; with it a drag shows green only when the server would build it. */
+  worldAt?: () => PlacementWorld | null;
   onOutcome(outcome: CommandOutcome, command: Command, at: ScreenPoint): void;
+  /** A right click: the drag in progress is dropped and the player is done with this structure. */
+  onCancelTool?: () => void;
   /** Floors and cost that follow the pointer while a shaft is dragged; null when there is no drag. */
   onDragLabel?: (label: DragLabel | null) => void;
   keyTarget?: Pick<Window, 'addEventListener' | 'removeEventListener'>;
@@ -52,8 +62,6 @@ export interface BuildInputOptions {
 export interface DragLabel {
   floors: number;
   cost: number;
-  /** A right click: the drag in progress is dropped and the player is done with this structure. */
-  onCancelTool?: () => void;
   valid: boolean;
   at: ScreenPoint;
 }
@@ -70,7 +78,7 @@ interface Drag {
  */
 export function bindBuildInput(options: BuildInputOptions): () => void {
   const { stage, api, tool, lobbyHeight, onOutcome } = options;
-  const { shaftAt, lobbyHeightAt, onDragLabel } = options;
+  const { shaftAt, lobbyHeightAt, worldAt, onDragLabel } = options;
   const keyTarget = options.keyTarget ?? window;
   const mode = buildMode(tool);
   const shaftType = shaftTypeOfTool(tool);
@@ -101,13 +109,25 @@ export function bindBuildInput(options: BuildInputOptions): () => void {
     }
     const x0 = Math.min(drag.press.x, drag.currentX);
     const x1 = Math.max(drag.press.x, drag.currentX);
-    stage.showRun({ x: x0, level: drag.press.level, width: x1 - x0 + 1, floors: 1, valid: true });
+    const world = worldAt?.() ?? null;
+    const level = drag.press.level;
+    const problem =
+      world === null
+        ? null
+        : tool === 'lobby'
+          ? checkLobby(level, x0, x1, lobbyHeightAt?.(level) ?? lobbyHeight, world)
+          : checkFloor(level, x0, x1, world);
+    stage.showRun({ x: x0, level, width: x1 - x0 + 1, floors: 1, valid: problem === null });
   };
 
   const showShaftDrag = (current: Drag, type: ShaftType): void => {
-    const { bottom, floors } = shaftSpan(current.press.level, current.currentLevel);
+    const { bottom, top, floors } = shaftSpan(current.press.level, current.currentLevel);
     const maxFloors = shaftMaxFloors(type);
-    const valid = maxFloors === null || floors <= maxFloors;
+    const world = worldAt?.() ?? null;
+    const valid =
+      world === null
+        ? maxFloors === null || floors <= maxFloors
+        : checkShaft(type, current.press.x, bottom, top, world) === null;
     const width = UNIT_CATALOG[SHAFT_UNIT_TYPES[type]].width;
     stage.showRun({ x: current.press.x, level: bottom, width, floors, valid });
     onDragLabel?.({ floors, cost: shaftCost(type), valid, at: pointer });
@@ -118,7 +138,12 @@ export function bindBuildInput(options: BuildInputOptions): () => void {
     const span = resizedSpan(shaft, level);
     const maxFloors = shaftMaxFloors(shaft.type);
     const shown = span ?? shaftSpan(shaft.bottom, shaft.top);
-    const valid = span !== null && (maxFloors === null || span.floors <= maxFloors);
+    const world = worldAt?.() ?? null;
+    const valid =
+      span !== null &&
+      (world === null
+        ? maxFloors === null || span.floors <= maxFloors
+        : checkShaft(shaft.type, shaft.x, span.bottom, span.top, world, shaft.id) === null);
     const width = UNIT_CATALOG[SHAFT_UNIT_TYPES[shaft.type]].width;
     stage.showRun({ x: shaft.x, level: shown.bottom, width, floors: shown.floors, valid });
   };
@@ -133,6 +158,7 @@ export function bindBuildInput(options: BuildInputOptions): () => void {
     const at = { x: input.clientX, y: input.clientY };
     if (input.kind === 'cancel') {
       cancelDrag();
+      options.onCancelTool?.();
     } else if (input.kind === 'down' && input.cell !== null) {
       pointer = at;
       if (mode === 'drag' || mode === 'shaft') {
@@ -158,7 +184,6 @@ export function bindBuildInput(options: BuildInputOptions): () => void {
             : commandForResize(hand, input.cell?.level ?? currentLevel)
           : mode === 'shaft'
             ? commandForShaftDrag(tool, press, input.cell?.level ?? currentLevel)
-      options.onCancelTool?.();
             : commandForDrag(
                 tool,
                 lobbyHeightAt?.(press.level) ?? lobbyHeight,

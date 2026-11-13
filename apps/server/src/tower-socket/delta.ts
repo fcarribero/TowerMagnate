@@ -76,6 +76,10 @@ export function diffSnapshots(before: Snapshot, after: Snapshot): DeltaResult {
     set('mainLobbyHeight', after.grid.mainLobbyHeight);
   }
 
+  if (!sameData(before.grid.skyLobbyHeights, after.grid.skyLobbyHeights)) {
+    set('skyLobbyHeights', after.grid.skyLobbyHeights ?? {});
+  }
+
   const structure = changedStructure(before, after);
   if (structure?.length) set('structure', structure);
 

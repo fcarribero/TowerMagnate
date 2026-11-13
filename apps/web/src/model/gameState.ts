@@ -27,6 +27,8 @@ export interface GameState {
   /** The next star step's requirements besides population; empty at Torre. */
   readonly starRequirements: readonly StarRequirementView[];
   readonly mainLobbyHeight: 1 | 2 | 3 | null;
+  /** Heights fixed on sky lobby levels, by level; absent in states made before the server sent them. */
+  readonly skyLobbyHeights?: Readonly<Record<string, 1 | 2 | 3>>;
   readonly structure: ReadonlyMap<Level, string>;
   readonly units: ReadonlyMap<string, UnitView>;
   readonly transports: ReadonlyMap<string, TransportView>;
@@ -64,6 +66,7 @@ export function stateFromSnapshot(snapshot: Snapshot): GameState {
     population: snapshot.population,
     starRequirements: snapshot.starRequirements,
     mainLobbyHeight: snapshot.grid.mainLobbyHeight,
+    ...(snapshot.grid.skyLobbyHeights ? { skyLobbyHeights: snapshot.grid.skyLobbyHeights } : {}),
     structure,
     units: byId(snapshot.units),
     transports: byId(snapshot.transports),
@@ -115,6 +118,12 @@ function withRows(
  * Applies one delta on top of `state`. Optional fields replace what they name;
  * cars and people are complete for their scope, so anyone missing is dropped.
  */
+/** Keeps the field out of the state until the server has sent a sky lobby height. */
+function withSkyHeights(state: GameState, delta: Delta): Pick<GameState, 'skyLobbyHeights'> {
+  const heights = delta.skyLobbyHeights ?? state.skyLobbyHeights;
+  return heights === undefined ? {} : { skyLobbyHeights: heights };
+}
+
 export function applyDelta(state: GameState, delta: Delta): GameState {
   return {
     step: delta.step,
@@ -123,6 +132,7 @@ export function applyDelta(state: GameState, delta: Delta): GameState {
     population: delta.population ?? state.population,
     starRequirements: delta.starRequirements ?? state.starRequirements,
     mainLobbyHeight: delta.mainLobbyHeight ?? state.mainLobbyHeight,
+    ...withSkyHeights(state, delta),
     structure: withRows(state.structure, delta.structure),
     units: upsertAndRemove(state.units, delta.unitsUpserted, delta.unitsRemoved),
     transports: upsertAndRemove(

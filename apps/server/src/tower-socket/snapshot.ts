@@ -103,6 +103,9 @@ export function buildSnapshot(
     grid: {
       levels: structureRows(state),
       mainLobbyHeight: state.grid.mainLobbyHeight,
+      ...(Object.keys(state.grid.skyLobbyHeights).length > 0
+        ? { skyLobbyHeights: { ...state.grid.skyLobbyHeights } }
+        : {}),
     },
     units,
     transports: Object.values(state.transports).map(transportView),

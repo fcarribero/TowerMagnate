@@ -105,23 +105,23 @@ describe('checkPlacement', () => {
 
   it('rejects building over lobby cells', () => {
     const lobby = new Map([
-      [1, row({ 10: 'l'.repeat(30) })],
-      [2, row({ 10: 'f'.repeat(30) })],
+      [1, row({ 10: 'f'.repeat(30) })],
+      [2, row({ 10: 'l'.repeat(30) })],
     ]);
-    expect(checkPlacement('office', 10, 1, world({ structure: lobby })).problem).toBe(
+    expect(checkPlacement('office', 10, 2, world({ structure: lobby })).problem).toBe(
       'CELL_OCCUPIED',
     );
   });
 
-  it('lets level 1 rest on the ground', () => {
+  it('keeps units off the main lobby level, as the server does', () => {
     const empty = world({ structure: new Map() });
-    expect(checkPlacement('office', 10, 1, empty).problem).toBeNull();
+    expect(checkPlacement('office', 10, 1, empty).problem).toBe('LOBBY_LEVEL_ONLY');
   });
 
   it('hangs a basement unit from the row above', () => {
     const above = new Map([[-1, row({ 10: 'f'.repeat(30) })]]);
-    expect(checkPlacement('office', 10, -2, world({ structure: above })).problem).toBeNull();
-    expect(checkPlacement('office', 10, -3, world({ structure: above })).problem).toBe(
+    expect(checkPlacement('housekeeping', 10, -2, world({ structure: above })).problem).toBeNull();
+    expect(checkPlacement('housekeeping', 10, -3, world({ structure: above })).problem).toBe(
       'NO_SUPPORT',
     );
   });

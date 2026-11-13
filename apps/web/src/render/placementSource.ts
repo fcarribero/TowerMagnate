@@ -20,6 +20,15 @@ export function worldOf(state: GameState): PlacementWorld {
     transports: state.transports.values(),
     shafts: state.shafts.values(),
     money: state.money,
+    stars: state.stars,
+    bombActive: state.activeEvents.some(
+      (event) =>
+        (event.kind === 'decision' && event.decision === 'bomb') ||
+        (event.kind === 'disaster' && event.disaster === 'bomb'),
+    ),
+    mainLobbyHeight: state.mainLobbyHeight,
+    skyLobbyHeights: state.skyLobbyHeights,
+    cars: state.cars.values(),
   };
 }
 
@@ -69,6 +78,10 @@ export function bindPreview(
       transports: state.transports,
       shafts: state.shafts,
       money: state.money,
+      stars: state.stars,
+      activeEvents: state.activeEvents,
+      mainLobbyHeight: state.mainLobbyHeight,
+      skyLobbyHeights: state.skyLobbyHeights,
     }),
     redraw,
   );

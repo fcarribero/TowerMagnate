@@ -7,7 +7,7 @@ import { pageTitle } from '../index';
 import { bindTowerContent } from '../model/stateContent';
 import { TowerContentStore } from '../model/towerContent';
 import { useGameConnection } from '../net/useGameConnection';
-import { bindPreview, previewToolOf } from '../render/placementSource';
+import { bindPreview, previewToolOf, worldOf } from '../render/placementSource';
 import type { Stage } from '../render/stage';
 import { bindUnitClicks } from '../render/unitClick';
 import { bindShafts, carSourceOf } from '../render/elevatorSource';
@@ -318,6 +318,10 @@ export function App({ developer = false, onLogout, onRestartTower, onSessionLost
   }, [stage, connection, commandApi, tool, lobbyHeight, report]);
 
   useEffect(() => {
+      worldAt: () => {
+        const state = connection.store.current?.latest;
+        return state === undefined ? null : worldOf(state);
+      },
     if (stage === null) {
       return;
     }

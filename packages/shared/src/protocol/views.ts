@@ -216,6 +216,8 @@ export const SnapshotSchema = z.object({
   grid: z.object({
     levels: z.record(LevelKeySchema, z.object({ structure: StructureRowSchema })),
     mainLobbyHeight: LobbyHeightSchema.nullable(),
+    /** The height fixed on each sky lobby level that was ever built; left out when none was. */
+    skyLobbyHeights: z.record(LevelKeySchema, LobbyHeightSchema).optional(),
   }),
   units: z.array(UnitViewSchema),
   transports: z.array(TransportViewSchema),
@@ -236,6 +238,8 @@ export const DeltaSchema = z.object({
   population: z.int().nonnegative().optional(),
   starRequirements: z.array(StarRequirementViewSchema).optional(),
   mainLobbyHeight: LobbyHeightSchema.optional(),
+  /** Complete map of the sky lobby heights, sent when it changes. */
+  skyLobbyHeights: z.record(LevelKeySchema, LobbyHeightSchema).optional(),
   structure: z.array(z.object({ level: LevelSchema, structure: StructureRowSchema })).optional(),
   unitsUpserted: z.array(UnitViewSchema).optional(),
   unitsRemoved: z.array(UnitEntityIdSchema).optional(),
