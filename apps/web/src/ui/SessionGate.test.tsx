@@ -66,14 +66,20 @@ describe('SessionGate', () => {
     expect(api.ensureTower).toHaveBeenCalledTimes(1);
   });
 
-  it('stays out of the game with a notice when the tower cannot be set up', async () => {
+  it('keeps connecting, without the login form, until the tower can be set up', async () => {
     const api = fakeApi({ status: 'signedIn', user });
-    api.ensureTower = vi.fn(async () => false);
-    renderGate(api);
-    expect((await screen.findByRole('status')).textContent).toBe(
-      'No se pudo conectar. Probá de nuevo.',
+    api.ensureTower = vi
+      .fn<() => Promise<boolean>>()
+      .mockResolvedValueOnce(false)
+      .mockResolvedValue(true);
+    render(
+      <SessionGate api={api} retryMs={5}>
+        {({ user: signedIn }) => <p>Juego de {signedIn.username}</p>}
+      </SessionGate>,
     );
-    expect(screen.queryByText('Juego de ana_42')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Entrar' })).toBeNull();
+    await screen.findByText('Juego de ana_42');
+    expect(api.ensureTower).toHaveBeenCalledTimes(2);
   });
 
   it('logs out and returns to the login screen', async () => {
@@ -87,10 +93,36 @@ describe('SessionGate', () => {
     expect(await screen.findByRole('button', { name: 'Entrar' })).toBeTruthy();
   });
 
-  it('explains on the login screen when the server cannot be reached', async () => {
-    renderGate(fakeApi({ status: 'unreachable' }));
-    const notice = await screen.findByRole('status');
-    expect(notice.textContent).toBe('No se pudo conectar. Probá de nuevo.');
+  it('shows no login form while the server cannot be reached, then enters the game', async () => {
+    const api = fakeApi({ status: 'signedIn', user });
+    api.currentUser = vi
+      .fn<AuthApi['currentUser']>()
+      .mockResolvedValueOnce({ status: 'unreachable' })
+      .mockResolvedValueOnce({ status: 'unreachable' })
+      .mockResolvedValue({ status: 'signedIn', user });
+    render(
+      <SessionGate api={api} retryMs={5}>
+        {({ user: signedIn }) => <p>Juego de {signedIn.username}</p>}
+      </SessionGate>,
+    );
+    expect(screen.getByText('Conectando...')).toBeTruthy();
+    expect(screen.queryByLabelText(/usuario/i)).toBeNull();
+    await screen.findByText('Juego de ana_42');
+    expect(api.currentUser).toHaveBeenCalledTimes(3);
+  });
+
+  it('shows the login form once the server says a login is needed', async () => {
+    const api = fakeApi({ status: 'signedOut' });
+    api.currentUser = vi
+      .fn<AuthApi['currentUser']>()
+      .mockResolvedValueOnce({ status: 'unreachable' })
+      .mockResolvedValue({ status: 'signedOut' });
+    render(
+      <SessionGate api={api} retryMs={5}>
+        {() => <p>Juego</p>}
+      </SessionGate>,
+    );
+    expect(await screen.findByLabelText(/usuario/i)).toBeTruthy();
   });
 
   it('returns to the login screen with a notice when the server drops the session', async () => {
