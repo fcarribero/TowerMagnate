@@ -31,7 +31,7 @@ type UnitDetails = UnitInspection['details'];
 export function inspectUnit(state: TowerState, unitId: string): InspectData {
   const unit = Object.hasOwn(state.units, unitId) ? state.units[unitId] : undefined;
   if (!unit) {
-    return { kind: 'unit', id: unitId, status: 'gone' };
+    return inspectSite(state, unitId);
   }
   return {
     kind: 'unit',
@@ -43,6 +43,25 @@ export function inspectUnit(state: TowerState, unitId: string): InspectData {
     from: unit.x,
     to: unit.x + UNIT_CATALOG[unit.type].width - 1,
     details: unitDetails(state, unit),
+  };
+}
+
+/** A unit still being built shows its name, place and that it is under construction. */
+function inspectSite(state: TowerState, siteId: string): InspectData {
+  const site = Object.hasOwn(state.sites, siteId) ? state.sites[siteId] : undefined;
+  if (!site) {
+    return { kind: 'unit', id: siteId, status: 'gone' };
+  }
+  return {
+    kind: 'unit',
+    id: site.id,
+    status: 'ok',
+    name: null,
+    type: site.type,
+    level: site.level,
+    from: site.x,
+    to: site.x + UNIT_CATALOG[site.type].width - 1,
+    details: { group: 'construction' },
   };
 }
 

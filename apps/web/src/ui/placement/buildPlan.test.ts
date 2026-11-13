@@ -17,7 +17,7 @@ describe('buildMode', () => {
     expect(buildMode('inspect')).toBe('none');
     expect(buildMode('bulldozer')).toBe('demolish');
     expect(buildMode('standard-elevator')).toBe('shaft');
-    expect(buildMode('car')).toBe('car');
+    expect(buildMode('hand')).toBe('hand');
   });
 });
 

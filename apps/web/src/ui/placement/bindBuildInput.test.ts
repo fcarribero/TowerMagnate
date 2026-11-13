@@ -4,12 +4,13 @@ import type { Cell } from '../../render/cellAtPoint';
 import type { CellInput } from '../../render/stage';
 import type { ToolId } from '../toolbar/toolbarModel';
 import { bindBuildInput } from './bindBuildInput';
+import type { GrabbedShaft } from './buildPlan';
 
 function setup(
   tool: ToolId,
   lobbyHeight = 1,
   extra: {
-    shaftAt?: (cell: Cell) => string | null;
+    shaftAt?: (cell: Cell) => GrabbedShaft | null;
     lobbyHeightAt?: (level: number) => number | null;
   } = {},
 ) {
@@ -168,16 +169,57 @@ describe('bindBuildInput', () => {
     expect(t.sent).toEqual([]);
   });
 
-  it('sends addCar for a click on a shaft at its home level', () => {
-    const t = setup('car', 1, { shaftAt: () => 's4' });
-    t.input('down', { x: 31, level: 7 });
-    expect(t.sent).toEqual([{ type: 'addCar', shaftId: 's4', homeLevel: 7 }]);
-  });
+  describe('hand tool', () => {
+    const shaft = (end: 'top' | 'bottom'): GrabbedShaft => ({
+      id: 's4',
+      type: 'standard',
+      x: 30,
+      bottom: 1,
+      top: 10,
+      end,
+    });
 
-  it('sends nothing for a car click outside a shaft', () => {
-    const t = setup('car', 1, { shaftAt: () => null });
-    t.input('down', { x: 31, level: 7 });
-    expect(t.sent).toEqual([]);
+    it('stretches the top of a shaft to the level where the hand lets go', () => {
+      const t = setup('hand', 1, { shaftAt: () => shaft('top') });
+      t.input('down', { x: 30, level: 10 });
+      t.input('up', { x: 30, level: 14 });
+      expect(t.sent).toEqual([{ type: 'resizeShaft', shaftId: 's4', bottom: 1, top: 14 }]);
+    });
+
+    it('moves the bottom of a shaft when that end was grabbed', () => {
+      const t = setup('hand', 1, { shaftAt: () => shaft('bottom') });
+      t.input('down', { x: 30, level: 1 });
+      t.input('up', { x: 30, level: 3 });
+      expect(t.sent).toEqual([{ type: 'resizeShaft', shaftId: 's4', bottom: 3, top: 10 }]);
+    });
+
+    it('shows the new shaft while dragging, and sends nothing on Esc', () => {
+      const t = setup('hand', 1, { shaftAt: () => shaft('top') });
+      t.input('down', { x: 30, level: 10 });
+      t.hover({ x: 30, level: 12 });
+      expect(t.runs.at(-1)).toMatchObject({ x: 30, level: 1, floors: 12, valid: true });
+      t.pressEscape();
+      t.input('up', { x: 30, level: 12 });
+      expect(t.sent).toEqual([]);
+    });
+
+    it('sends nothing when the shaft keeps its levels or the end crosses the other one', () => {
+      const same = setup('hand', 1, { shaftAt: () => shaft('top') });
+      same.input('down', { x: 30, level: 10 });
+      same.input('up', { x: 30, level: 10 });
+      expect(same.sent).toEqual([]);
+      const crossed = setup('hand', 1, { shaftAt: () => shaft('top') });
+      crossed.input('down', { x: 30, level: 10 });
+      crossed.input('up', { x: 30, level: -2 });
+      expect(crossed.sent).toEqual([]);
+    });
+
+    it('sends nothing for a press outside a shaft', () => {
+      const t = setup('hand', 1, { shaftAt: () => null });
+      t.input('down', { x: 31, level: 7 });
+      t.input('up', { x: 31, level: 9 });
+      expect(t.sent).toEqual([]);
+    });
   });
 
   it('builds a lobby at the height already fixed on that level', () => {

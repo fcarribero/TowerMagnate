@@ -35,7 +35,7 @@ import { bindBuildInput, type DragLabel } from './placement/bindBuildInput';
 import { bindDemolishInput } from './placement/bindDemolishInput';
 import { DemolishConfirm } from './placement/DemolishConfirm';
 import type { Confirmation } from './placement/demolishPlan';
-import { buildMode, shaftIdAt } from './placement/buildPlan';
+import { buildMode, grabShaft } from './placement/buildPlan';
 import { IncomeFloaters } from './income/IncomeFloaters';
 import { useIncomeFloaters } from './income/useIncomeFloaters';
 import { useBuildFeedback } from './placement/useBuildFeedback';
@@ -293,7 +293,7 @@ export function App({ developer = false, onLogout, onRestartTower, onSessionLost
         level === TOWER_LAYOUT.mainLobbyFloor
           ? (connection.store.current?.latest.mainLobbyHeight ?? null)
           : null,
-      shaftAt: (cell) => shaftIdAt(connection.store.current?.latest.shafts.values(), cell),
+      shaftAt: (cell) => grabShaft(connection.store.current?.latest.shafts.values(), cell),
       onDragLabel: setDragLabel,
       onOutcome: (outcome, _command, at) => report(outcome, at),
     });

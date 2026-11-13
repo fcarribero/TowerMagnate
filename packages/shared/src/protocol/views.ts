@@ -341,6 +341,8 @@ const InspectedUnitDetailsSchema = z.discriminatedUnion('group', [
     filmAgeDays: z.int().nonnegative().nullable(),
     price: PriceLevelSchema,
   }),
+  /** A unit the crew has not finished; the points it needs are never sent. */
+  z.object({ group: z.literal('construction') }),
   z.object({
     group: z.literal('housekeeping'),
     maidsWorking: z.int().nonnegative(),

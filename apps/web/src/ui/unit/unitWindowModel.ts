@@ -306,6 +306,17 @@ function housekeepingRows(housekeeping: Details<'housekeeping'>): UnitRow[] {
   ];
 }
 
+function constructionRows(): UnitRow[] {
+  return [
+    {
+      id: 'status',
+      label: t('window.unit.status'),
+      value: t('value.construction.inProgress'),
+      tone: 'plain',
+    },
+  ];
+}
+
 function inServiceRows(): UnitRow[] {
   return [
     {
@@ -329,6 +340,8 @@ function detailRows(details: InspectedUnitDetails): UnitRow[] {
       return cinemaRows(details);
     case 'housekeeping':
       return housekeepingRows(details);
+    case 'construction':
+      return constructionRows();
   }
 }
 

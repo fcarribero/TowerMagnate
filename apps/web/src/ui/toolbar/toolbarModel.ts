@@ -9,7 +9,7 @@ import {
 import { formatMoney } from '../money';
 import { hasString, t } from '../strings';
 
-export const FIXED_TOOLS = ['inspect', 'bulldozer', 'car'] as const;
+export const FIXED_TOOLS = ['inspect', 'bulldozer', 'hand'] as const;
 export type FixedTool = (typeof FIXED_TOOLS)[number];
 export type ToolId = FixedTool | UnitType;
 
@@ -31,7 +31,7 @@ export const DEFAULT_LOBBY_HEIGHT = 1;
 const FIXED_TOOL_SHORTCUTS: Readonly<Record<string, FixedTool>> = {
   l: 'inspect',
   t: 'bulldozer',
-  c: 'car',
+  h: 'hand',
 };
 
 export function isFixedTool(tool: ToolId): tool is FixedTool {

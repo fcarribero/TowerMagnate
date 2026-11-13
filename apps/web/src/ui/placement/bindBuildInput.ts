@@ -11,10 +11,12 @@ import type { RunInput } from '../../render/ghostLayer';
 import type { ToolId } from '../toolbar/toolbarModel';
 import {
   buildMode,
-  commandForCar,
+  commandForResize,
   commandForClick,
   commandForDrag,
   commandForShaftDrag,
+  resizedSpan,
+  type GrabbedShaft,
   shaftCost,
   shaftMaxFloors,
   shaftSpan,
@@ -37,8 +39,8 @@ export interface BuildInputOptions {
   api: Pick<CommandApi, 'send'>;
   tool: ToolId;
   lobbyHeight: number;
-  /** The id of the shaft covering the cell, if any. */
-  shaftAt?: (cell: Cell) => string | null;
+  /** The shaft covering the cell and the end of it nearest the cell, if any. */
+  shaftAt?: (cell: Cell) => GrabbedShaft | null;
   /** The height already fixed on that level, if a lobby stands there. */
   lobbyHeightAt?: (level: Cell['level']) => number | null;
   onOutcome(outcome: CommandOutcome, command: Command, at: ScreenPoint): void;
@@ -71,6 +73,7 @@ export function bindBuildInput(options: BuildInputOptions): () => void {
   const mode = buildMode(tool);
   const shaftType = shaftTypeOfTool(tool);
   let drag: Drag | null = null;
+  let grabbed: GrabbedShaft | null = null;
   let pointer: ScreenPoint = { x: 0, y: 0 };
 
   const send = (command: Command | null, at: ScreenPoint): void => {
@@ -81,6 +84,10 @@ export function bindBuildInput(options: BuildInputOptions): () => void {
   };
 
   const showDrag = (): void => {
+    if (grabbed !== null && drag !== null) {
+      showHandDrag(grabbed, drag.currentLevel);
+      return;
+    }
     if (drag === null) {
       stage.showRun(null);
       onDragLabel?.(null);
@@ -104,8 +111,19 @@ export function bindBuildInput(options: BuildInputOptions): () => void {
     onDragLabel?.({ floors, cost: shaftCost(type), valid, at: pointer });
   };
 
+  /** The shaft as it would be with the grabbed end let go here; red when it is too tall or flipped. */
+  const showHandDrag = (shaft: GrabbedShaft, level: Cell['level']): void => {
+    const span = resizedSpan(shaft, level);
+    const maxFloors = shaftMaxFloors(shaft.type);
+    const shown = span ?? shaftSpan(shaft.bottom, shaft.top);
+    const valid = span !== null && (maxFloors === null || span.floors <= maxFloors);
+    const width = UNIT_CATALOG[SHAFT_UNIT_TYPES[shaft.type]].width;
+    stage.showRun({ x: shaft.x, level: shown.bottom, width, floors: shown.floors, valid });
+  };
+
   const cancelDrag = (): void => {
     drag = null;
+    grabbed = null;
     showDrag();
   };
 
@@ -118,23 +136,32 @@ export function bindBuildInput(options: BuildInputOptions): () => void {
       if (mode === 'drag' || mode === 'shaft') {
         drag = { press: input.cell, currentX: input.cell.x, currentLevel: input.cell.level };
         showDrag();
-      } else if (mode === 'car') {
-        send(commandForCar(shaftAt?.(input.cell) ?? null, input.cell), at);
+      } else if (mode === 'hand') {
+        grabbed = shaftAt?.(input.cell) ?? null;
+        if (grabbed !== null) {
+          drag = { press: input.cell, currentX: input.cell.x, currentLevel: input.cell.level };
+          showDrag();
+        }
       } else if (mode === 'click') {
         send(commandForClick(tool, input.cell), at);
       }
     } else if (input.kind === 'up' && drag !== null) {
       const { press, currentX, currentLevel } = drag;
+      const hand = grabbed;
       cancelDrag();
       const command =
-        mode === 'shaft'
-          ? commandForShaftDrag(tool, press, input.cell?.level ?? currentLevel)
-          : commandForDrag(
-              tool,
-              lobbyHeightAt?.(press.level) ?? lobbyHeight,
-              press,
-              input.cell?.x ?? currentX,
-            );
+        mode === 'hand'
+          ? hand === null
+            ? null
+            : commandForResize(hand, input.cell?.level ?? currentLevel)
+          : mode === 'shaft'
+            ? commandForShaftDrag(tool, press, input.cell?.level ?? currentLevel)
+            : commandForDrag(
+                tool,
+                lobbyHeightAt?.(press.level) ?? lobbyHeight,
+                press,
+                input.cell?.x ?? currentX,
+              );
       send(command, at);
     }
   };

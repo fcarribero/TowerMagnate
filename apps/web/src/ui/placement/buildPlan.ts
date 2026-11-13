@@ -13,7 +13,7 @@ import type { ToolId } from '../toolbar/toolbarModel';
 type PlaceableUnit = Extract<Command, { type: 'buildUnit' }>['unitType'];
 type LobbyHeight = Extract<Command, { type: 'buildLobby' }>['height'];
 
-export type BuildMode = 'drag' | 'shaft' | 'car' | 'click' | 'demolish' | 'none';
+export type BuildMode = 'drag' | 'shaft' | 'hand' | 'click' | 'demolish' | 'none';
 
 const TRANSPORT_TOOLS: readonly string[] = ['stairs', 'escalator'];
 export function shaftTypeOfTool(tool: ToolId): ShaftType | null {
@@ -29,8 +29,8 @@ export function buildMode(tool: ToolId): BuildMode {
   if (shaftTypeOfTool(tool) !== null) {
     return 'shaft';
   }
-  if (tool === 'car') {
-    return 'car';
+  if (tool === 'hand') {
+    return 'hand';
   }
   if (tool === 'bulldozer') {
     return 'demolish';
@@ -116,8 +116,50 @@ export function commandForShaftDrag(
   return { type: 'buildShaft', shaftType, x: press.x, bottom, top };
 }
 
-export function commandForCar(shaftId: string | null, cell: Cell): Command | null {
-  return shaftId === null ? null : { type: 'addCar', shaftId, homeLevel: cell.level };
+export interface GrabbedShaft {
+  id: string;
+  type: ShaftType;
+  x: number;
+  bottom: Cell['level'];
+  top: Cell['level'];
+  /** The end the hand took hold of: the one closer to where it pressed. */
+  end: 'top' | 'bottom';
+}
+
+/** The shaft under the cell and the end of it nearest the cell, which is the end that is dragged. */
+export function grabShaft(
+  shafts: Iterable<Pick<ShaftView, 'id' | 'type' | 'x' | 'bottom' | 'top'>> | undefined,
+  cell: Cell,
+): GrabbedShaft | null {
+  const id = shaftIdAt(shafts, cell);
+  const shaft = id === null ? undefined : [...(shafts ?? [])].find((other) => other.id === id);
+  if (shaft === undefined) {
+    return null;
+  }
+  const index = levelToIndex(cell.level);
+  const toTop = levelToIndex(shaft.top) - index;
+  const toBottom = index - levelToIndex(shaft.bottom);
+  return { ...shaft, end: toTop <= toBottom ? 'top' : 'bottom' };
+}
+
+/** The levels a shaft would serve if its grabbed end were let go at `releaseLevel`; null if that flips it. */
+export function resizedSpan(grabbed: GrabbedShaft, releaseLevel: Cell['level']): ShaftSpan | null {
+  const bottom = grabbed.end === 'bottom' ? releaseLevel : grabbed.bottom;
+  const top = grabbed.end === 'top' ? releaseLevel : grabbed.top;
+  const floors = levelToIndex(top) - levelToIndex(bottom) + 1;
+  return floors < 1 ? null : { bottom, top, floors };
+}
+
+/** A resize that serves the new levels, or null when nothing changes. */
+export function commandForResize(
+  grabbed: GrabbedShaft,
+  releaseLevel: Cell['level'],
+): Command | null {
+  const span = resizedSpan(grabbed, releaseLevel);
+  if (span === null || (span.bottom === grabbed.bottom && span.top === grabbed.top)) {
+    return null;
+  }
+  return { type: 'resizeShaft', shaftId: grabbed.id, bottom: span.bottom, top: span.top };
 }
 
 /** The shaft whose columns and levels include the cell. */

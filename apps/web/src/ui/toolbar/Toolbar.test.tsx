@@ -119,12 +119,12 @@ describe('Toolbar', () => {
     expect(infoText()).toBe('Lupa');
   });
 
-  it('switches fixed tools with L, T and C', () => {
+  it('switches fixed tools with L, T and H', () => {
     render(<Harness stars={1} />);
     fireEvent.keyDown(window, { key: 't' });
     expect(toolButton('Topadora').getAttribute('aria-pressed')).toBe('true');
-    fireEvent.keyDown(window, { key: 'C' });
-    expect(toolButton('Cabina').getAttribute('aria-pressed')).toBe('true');
+    fireEvent.keyDown(window, { key: 'H' });
+    expect(toolButton('Manito').getAttribute('aria-pressed')).toBe('true');
     fireEvent.keyDown(window, { key: 'l' });
     expect(toolButton('Lupa').getAttribute('aria-pressed')).toBe('true');
   });

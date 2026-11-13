@@ -4,6 +4,7 @@ import './obraIcon.css';
 export const OBRA_ICON_PATHS = {
   lupa: '<circle cx="10" cy="10" r="6"/><path d="M15 15l5 5"/>',
   topa: '<path d="M3 17h11v-5H8l-2 5"/><path d="M14 13h3l2 4"/><circle cx="7" cy="18" r="2"/><circle cx="14" cy="18" r="2"/><path d="M19 9v9h2"/>',
+  mano: '<path d="M9 12V5.5a1.5 1.5 0 0 1 3 0V11M12 10V8.5a1.5 1.5 0 0 1 3 0V11M15 10.5a1.5 1.5 0 0 1 3 0V16a5 5 0 0 1-5 5h-1.5a5 5 0 0 1-4-2l-3-4.5a1.5 1.5 0 0 1 2.4-1.8L9 15"/>',
   cab: '<rect x="6" y="5" width="12" height="15" rx="1"/><path d="M12 5v15M12 2v3"/>',
   structure: '<path d="M3 20h18M5 20V9h14v11M5 14h14M9 9V5h6v4"/>',
   transport:

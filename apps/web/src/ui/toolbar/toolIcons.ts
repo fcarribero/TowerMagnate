@@ -5,7 +5,7 @@ import type { ToolId } from './toolbarModel';
 const TOOL_ICONS: Readonly<Record<ToolId, ObraIconName>> = {
   inspect: 'lupa',
   bulldozer: 'topa',
-  car: 'cab',
+  hand: 'mano',
   floor: 'structure',
   lobby: 'structure',
   stairs: 'stairs',

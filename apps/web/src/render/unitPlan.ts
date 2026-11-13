@@ -23,6 +23,8 @@ export interface UnitDrawing {
   overlay: OverlayColor | null;
   /** Percent built while the unit is a construction site; undefined once it is built. */
   construction?: number;
+  /** Drawn in front of the units on its level, as stairs and escalators are. */
+  front?: boolean;
 }
 
 export interface TransportSource {
@@ -102,7 +104,14 @@ export function planTransport(
   overlay: OverlayColor | null = null,
 ): UnitDrawing {
   const variant: SpriteVariant = transport.type === 'escalator' ? { time, frame: 1 } : { time };
-  return footprint(transport.id, `transport/${transport.type}`, transport, variant, overlay);
+  const drawing = footprint(
+    transport.id,
+    `transport/${transport.type}`,
+    transport,
+    variant,
+    overlay,
+  );
+  return { ...drawing, front: true };
 }
 
 function footprint(

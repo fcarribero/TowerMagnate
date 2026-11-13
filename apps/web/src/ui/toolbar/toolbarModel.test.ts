@@ -115,15 +115,16 @@ describe('isLocked', () => {
 
   it('never locks fixed tools', () => {
     expect(isLocked('inspect', 1)).toBe(false);
-    expect(isLocked('car', 1)).toBe(false);
+    expect(isLocked('hand', 1)).toBe(false);
   });
 });
 
 describe('fixedToolForKey', () => {
-  it('maps L, T and C in either case', () => {
+  it('maps L, T and H in either case', () => {
     expect(fixedToolForKey('l')).toBe('inspect');
     expect(fixedToolForKey('T')).toBe('bulldozer');
-    expect(fixedToolForKey('c')).toBe('car');
+    expect(fixedToolForKey('h')).toBe('hand');
+    expect(fixedToolForKey('c')).toBeNull();
     expect(fixedToolForKey('x')).toBeNull();
   });
 

@@ -218,6 +218,22 @@ describe('inspecting a unit', () => {
     expect(data).toMatchObject({ status: 'ok', type: 'security', details: null });
   });
 
+  it('shows a construction site as a unit that is being built, with no points', () => {
+    const state = createTower(3);
+    state.sites.u8 = { id: 'u8', type: 'office', x: 10, level: 4, paid: 100, placedAtStep: 0, points: 5 };
+    expect(inspectUnit(state, 'u8')).toEqual({
+      kind: 'unit',
+      id: 'u8',
+      status: 'ok',
+      name: null,
+      type: 'office',
+      level: 4,
+      from: 10,
+      to: 18,
+      details: { group: 'construction' },
+    });
+  });
+
   it('answers gone for an unknown unit', () => {
     const state = createTower(3);
 

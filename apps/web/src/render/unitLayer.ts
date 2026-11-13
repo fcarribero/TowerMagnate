@@ -138,6 +138,7 @@ export class UnitLayer {
     }
     this.place(existing.sprite, drawing);
     this.showChecker(existing, drawing);
+    this.bringToFront(existing, drawing);
     if (existing.textureId !== textureId) {
       existing.sprite.texture = this.sprites.variant(drawing.subject, drawing.variant);
       existing.textureId = textureId;
@@ -152,6 +153,7 @@ export class UnitLayer {
     const entry: DrawnUnit = { sprite, container, textureId, checker: null, construction: null };
     this.showChecker(entry, drawing);
     this.showConstruction(entry, drawing);
+    this.bringToFront(entry, drawing);
     return entry;
   }
 
@@ -209,6 +211,18 @@ export class UnitLayer {
     build.mask.destroy();
     build.site.destroy();
     entry.construction = null;
+  }
+
+  /** Stairs and escalators are drawn over the units beside them; their checker stays right above them. */
+  private bringToFront(entry: DrawnUnit, drawing: UnitDrawing): void {
+    if (drawing.front !== true) {
+      return;
+    }
+    const { container, sprite, checker } = entry;
+    container.setChildIndex(sprite, container.children.length - 1);
+    if (checker !== null) {
+      container.setChildIndex(checker, container.children.length - 1);
+    }
   }
 
   /** The checker sits right above its sprite, so it is culled with it. */
