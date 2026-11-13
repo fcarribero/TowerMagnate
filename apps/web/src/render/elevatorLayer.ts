@@ -1,10 +1,20 @@
 import type { ShaftView } from '@tower-magnate/shared';
-import { Container, Sprite } from 'pixi.js';
+import { Container, Sprite, Texture } from 'pixi.js';
 import type { DrawnCar, DrawnFrame, DrawnPerson } from '../model/interpolation';
 import { carKey } from '../model/gameState';
 import type { LevelRange } from './camera';
 import { CulledRows } from './culledRows';
-import { carInRange, carOrigin, planShaft, riderPlace, riderSprite } from './elevatorPlan';
+import {
+  carInRange,
+  carOrigin,
+  carSize,
+  doorLeafWidth,
+  doorOpeningOf,
+  planShaft,
+  riderPlace,
+  riderSprite,
+  stepOpenness,
+} from './elevatorPlan';
 import { FOLLOWED_MARKER_LIFT, newFollowedMarker } from './followedMarker';
 import { levelTop } from './levels';
 import type { SpriteRegistry } from './spriteRegistry';
@@ -24,7 +34,17 @@ interface DrawnShaftCar {
   markers: Map<string, Sprite>;
   /** Dense level index the car was last drawn at. */
   position: number;
+  /** The two door leaves, drawn over the riders. */
+  leaves: [Sprite, Sprite];
+  /** How open the doors are drawn, 0 closed to 1 open, moving toward the doors the server reports. */
+  openness: number;
 }
+
+const DOOR_COLOR = 0xa9a8b0;
+/** Milliseconds the doors take to go from closed to open or back. */
+const DOOR_MS = 450;
+/** Closed leaves are see-through so the riders show while the car moves. */
+const CLOSED_ALPHA = 0.55;
 
 /**
  * Draws elevator shafts, which change only when the tower does, and their cars,
@@ -45,7 +65,12 @@ export class ElevatorLayer {
   private followed: ReadonlySet<string> = new Set();
   private range: LevelRange | null = null;
 
-  constructor(private readonly sprites: SpriteRegistry) {}
+  private lastShown = 0;
+
+  constructor(
+    private readonly sprites: SpriteRegistry,
+    private readonly now: () => number = () => performance.now(),
+  ) {}
 
   get shaftCount(): number {
     return this.shaftsDrawn.size;
@@ -79,6 +104,9 @@ export class ElevatorLayer {
 
   showCars(frame: DrawnFrame, shafts: ReadonlyMap<string, ShaftView>): void {
     const ridersByCar = groupRiders(frame.people);
+    const nowMs = this.now();
+    const dt = this.lastShown === 0 ? 0 : nowMs - this.lastShown;
+    this.lastShown = nowMs;
     for (const key of [...this.cars.keys()]) {
       const car = this.cars.get(key);
       if (car !== undefined && !frame.cars.has(key)) {
@@ -91,7 +119,7 @@ export class ElevatorLayer {
     for (const drawn of frame.cars.values()) {
       const shaft = shafts.get(drawn.car.shaftId);
       if (shaft !== undefined) {
-        this.placeCar(drawn, shaft, ridersByCar.get(drawn.key) ?? []);
+        this.placeCar(drawn, shaft, ridersByCar.get(drawn.key) ?? [], dt);
       }
     }
   }
@@ -137,28 +165,48 @@ export class ElevatorLayer {
     return container;
   }
 
-  private placeCar(drawn: DrawnCar, shaft: ShaftView, riders: DrawnPerson[]): void {
-    const car = this.cars.get(drawn.key) ?? this.createCar(drawn.key);
+  private placeCar(drawn: DrawnCar, shaft: ShaftView, riders: DrawnPerson[], dt: number): void {
+    const car = this.cars.get(drawn.key) ?? this.createCar(drawn.key, drawn.car.doors === 'open');
     const origin = carOrigin(shaft, drawn.position);
     car.position = drawn.position;
     car.view.position.set(origin.x, origin.y);
+    // The body is always the open car, so the riders show inside; the leaves close over it.
     const subject = `transport/${shaft.type}-car`;
-    const bodyTextureId = this.sprites.idOf(subject, { state: drawn.car.doors });
+    const bodyTextureId = this.sprites.idOf(subject, { state: 'open' });
     if (car.bodyTextureId !== bodyTextureId) {
-      car.body.texture = this.sprites.variant(subject, { state: drawn.car.doors });
+      car.body.texture = this.sprites.variant(subject, { state: 'open' });
       car.bodyTextureId = bodyTextureId;
     }
+    car.openness = stepOpenness(car.openness, drawn.car.doors === 'open', dt / DOOR_MS);
+    this.placeLeaves(car, shaft);
     car.view.visible = this.range === null || carInRange(drawn.position, this.range);
     if (car.view.visible) {
-      this.placeRiders(car, shaft, drawn.car.doors === 'open' ? riders : NO_RIDERS);
+      this.placeRiders(car, shaft, riders);
       this.placeMarkers(car, shaft, riders);
     }
   }
 
-  private createCar(key: string): DrawnShaftCar {
+  private placeLeaves(car: DrawnShaftCar, shaft: ShaftView): void {
+    const opening = doorOpeningOf(carSize(shaft.type));
+    const width = doorLeafWidth(shaft.type, car.openness);
+    const [left, right] = car.leaves;
+    const alpha = CLOSED_ALPHA + (1 - CLOSED_ALPHA) * car.openness;
+    left.position.set(opening.left, opening.top);
+    left.width = width;
+    left.height = opening.height;
+    right.position.set(opening.left + opening.width - width, opening.top);
+    right.width = width;
+    right.height = opening.height;
+    left.alpha = alpha;
+    right.alpha = alpha;
+  }
+
+  private createCar(key: string, open: boolean): DrawnShaftCar {
     const body = new Sprite();
     const view = new Container();
     view.addChild(body);
+    const leaves: [Sprite, Sprite] = [newLeaf(), newLeaf()];
+    view.addChild(leaves[0], leaves[1]);
     this.carView.addChild(view);
     const car = {
       view,
@@ -167,6 +215,8 @@ export class ElevatorLayer {
       riders: new Map<string, DrawnRider>(),
       markers: new Map<string, Sprite>(),
       position: 0,
+      leaves,
+      openness: open ? 1 : 0,
     };
     this.cars.set(key, car);
     return car;
@@ -223,7 +273,7 @@ export class ElevatorLayer {
       let rider = car.riders.get(person.id);
       if (rider === undefined) {
         rider = { sprite: this.takeRiderSprite(), textureId: '' };
-        car.view.addChild(rider.sprite);
+        car.view.addChildAt(rider.sprite, car.view.getChildIndex(car.leaves[0]));
         car.riders.set(person.id, rider);
       }
       if (rider.textureId !== textureId) {
@@ -237,6 +287,12 @@ export class ElevatorLayer {
 }
 
 const NO_RIDERS: readonly DrawnPerson[] = [];
+
+function newLeaf(): Sprite {
+  const leaf = new Sprite(Texture.WHITE);
+  leaf.tint = DOOR_COLOR;
+  return leaf;
+}
 
 function groupRiders(people: readonly DrawnPerson[]): Map<string, DrawnPerson[]> {
   const grouped = new Map<string, DrawnPerson[]>();

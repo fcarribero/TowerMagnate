@@ -68,6 +68,38 @@ export function carInRange(position: number, range: { lowest: number; highest: n
   return position > range.lowest - 1 && position < range.highest + 1;
 }
 
+/** Door opening inside the car sprite, as the art tool draws it. */
+const DOOR_INSET = 3;
+const DOOR_TOP = 4;
+const DOOR_BOTTOM = 23;
+/** Width of a door leaf that is fully open, which the open car sprite already draws. */
+const OPEN_LEAF = 2;
+
+export function doorOpeningOf(size: { width: number; height: number }): {
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+} {
+  return {
+    left: DOOR_INSET,
+    top: DOOR_TOP,
+    width: size.width - 2 * DOOR_INSET,
+    height: DOOR_BOTTOM - DOOR_TOP + 1,
+  };
+}
+
+/** Pixel width of each door leaf with the doors `openness` open, 0 closed to 1 open. */
+export function doorLeafWidth(type: ShaftType, openness: number): number {
+  const closed = doorOpeningOf(CAR_SIZE[type]).width / 2;
+  return Math.round(OPEN_LEAF + (closed - OPEN_LEAF) * (1 - openness));
+}
+
+/** Moves `openness` toward fully open or closed by `amount`, staying within 0 to 1. */
+export function stepOpenness(openness: number, open: boolean, amount: number): number {
+  return open ? Math.min(1, openness + amount) : Math.max(0, openness - amount);
+}
+
 export function riderSlotCount(type: ShaftType): number {
   return Math.floor((CAR_SIZE[type].width - 2 * CAR_WALL) / RIDER_SPACING);
 }

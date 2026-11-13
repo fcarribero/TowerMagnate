@@ -18,7 +18,7 @@ const SPRITES = [
   'people/worker-b/stand-pink',
 ];
 
-function layerWithArt() {
+function layerWithArt(now?: () => number) {
   const textures: Record<string, Texture> = {};
   for (const id of SPRITES) {
     textures[id] = new Texture();
@@ -26,7 +26,7 @@ function layerWithArt() {
   const missing: string[] = [];
   const registry = new SpriteRegistry(new Texture(), (id) => missing.push(id));
   registry.addSheet(textures);
-  return { layer: new ElevatorLayer(registry), textures, missing };
+  return { layer: new ElevatorLayer(registry, now), textures, missing };
 }
 
 const shaft: ShaftView = { ...fixtureShaft, bottom: 1, top: 3, stops: [1, 3] };
@@ -84,6 +84,24 @@ describe('ElevatorLayer cars', () => {
     expect(view?.children[0]).toMatchObject({ texture: textures['transport/standard-car/open'] });
   });
 
+  it('closes and opens the door leaves over time', () => {
+    let t = 1000;
+    const { layer } = layerWithArt(() => t);
+    layer.showCars(frameOf(5, 'open'), shafts);
+    const leaf = layer.carView.children[0]?.children[1] as Sprite;
+    expect(leaf.width).toBe(2);
+    t += 225;
+    layer.showCars(frameOf(5, 'closed'), shafts);
+    expect(leaf.width).toBeGreaterThan(2);
+    expect(leaf.width).toBeLessThan(9);
+    t += 400;
+    layer.showCars(frameOf(5, 'closed'), shafts);
+    expect(leaf.width).toBe(9);
+    t += 450;
+    layer.showCars(frameOf(5, 'open'), shafts);
+    expect(leaf.width).toBe(2);
+  });
+
   it('removes a car that is no longer in the frame', () => {
     const { layer } = layerWithArt();
     layer.showCars(frameOf(5, 'closed'), shafts);
@@ -98,23 +116,25 @@ describe('ElevatorLayer cars', () => {
     expect(layer.carCount).toBe(0);
   });
 
-  it('draws riders inside an open car and hides them behind closed doors', () => {
+  it('draws riders inside the car under the door leaves, doors open or closed', () => {
     const { layer, textures } = layerWithArt();
     layer.showCars(frameOf(5, 'open', [rider]), shafts);
     const view = layer.carView.children[0];
-    expect(view?.children.length).toBe(2);
+    expect(view?.children.length).toBe(4);
     expect(view?.children[1]).toMatchObject({ texture: textures['people/worker-b/stand'] });
 
     layer.showCars(frameOf(5, 'closed', [rider]), shafts);
-    expect(view?.children.length).toBe(1);
+    expect(view?.children.length).toBe(4);
+    layer.showCars(frameOf(5, 'closed', []), shafts);
+    expect(view?.children.length).toBe(3);
   });
 
-  it('reuses the rider sprite when the doors close and open again', () => {
+  it('reuses the rider sprite when a rider leaves and another boards', () => {
     const { layer } = layerWithArt();
     layer.showCars(frameOf(5, 'open', [rider]), shafts);
     const view = layer.carView.children[0];
     const sprite = view?.children[1];
-    layer.showCars(frameOf(5, 'closed', [rider]), shafts);
+    layer.showCars(frameOf(5, 'closed', []), shafts);
     layer.showCars(frameOf(5, 'open', [{ ...rider, id: 'p6' }]), shafts);
     expect(view?.children[1]).toBe(sprite);
     expect(sprite?.destroyed).toBe(false);
@@ -126,10 +146,10 @@ describe('ElevatorLayer cars', () => {
     layer.showCars(frameOf(50, 'open', [rider]), shafts);
     const view = layer.carView.children[0];
     expect(view?.visible).toBe(false);
-    expect(view?.children.length).toBe(1);
+    expect(view?.children.length).toBe(3);
     layer.showOnly({ lowest: 45, highest: 55 });
     layer.showCars(frameOf(50, 'open', [rider]), shafts);
-    expect(view?.children.length).toBe(2);
+    expect(view?.children.length).toBe(4);
   });
 
   it('tints a stressed rider', () => {
