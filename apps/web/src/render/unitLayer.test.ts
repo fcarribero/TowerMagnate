@@ -180,29 +180,15 @@ describe('UnitLayer construction', () => {
   });
 });
 
-describe('UnitLayer depth', () => {
-  const flat = ['units/office/empty_day'];
-  const layers = [
-    'units/office/back-empty_day',
-    'units/office/front-empty_day',
-    'units/office/side_day',
-    'units/office/ceiling_day',
-    'units/office/floor_day',
-  ];
-
-  it('draws the frame over a box when the room has depth layers', () => {
-    const { layer, textures } = layerWith([...flat, ...layers]);
+describe('UnitLayer flat sprite', () => {
+  it('draws one flat picture even when depth layers exist', () => {
+    const { layer, textures } = layerWith([
+      'units/office/empty_day',
+      'units/office/back-empty_day',
+      'units/office/front-empty_day',
+    ]);
     layer.update({ units: [office], transports: [], time: 'day', openVenues: ALL_VENUES_OPEN });
-    const container = layer.view.children[0];
-    expect(container?.children).toHaveLength(2);
-    expect(container?.children[1]).toMatchObject({
-      texture: textures['units/office/front-empty_day'],
-    });
-  });
-
-  it('draws the flat picture when the layers are missing', () => {
-    const { layer, textures } = layerWith(flat);
-    layer.update({ units: [office], transports: [], time: 'day', openVenues: ALL_VENUES_OPEN });
+    expect(layer.view.children[0]?.children).toHaveLength(1);
     expect(spriteOf(layer)).toMatchObject({ texture: textures['units/office/empty_day'] });
   });
 });

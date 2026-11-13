@@ -4,8 +4,6 @@ import { buildStageFor, siteRects } from './constructionStages';
 import { CulledRows } from './culledRows';
 import type { LevelRange, WorldRect } from './camera';
 import { levelTop } from './levels';
-import { altitudeAtWorldY } from './skyRows';
-import { DepthRoom, type DepthTextures } from './unitDepth';
 import { checkerTexture } from './overlayChecker';
 import { overlayColorOf, transportOverlayColor, type OverlayId } from './overlayColors';
 import type { SpriteRegistry } from './spriteRegistry';
@@ -50,8 +48,6 @@ interface DrawnUnit {
   textureId: string;
   checker: TilingSprite | null;
   construction: Construction | null;
-  /** The box behind the frame sprite, once the unit has depth layers. */
-  depth: DepthRoom | null;
 }
 
 /**
@@ -122,52 +118,8 @@ export class UnitLayer {
     return this.drawn.size;
   }
 
-  /** The layers of a finished room, or null when it has none and is drawn flat. */
-  private depthTextures(drawing: UnitDrawing): DepthTextures | null {
-    const { variant, subject } = drawing;
-    if (
-      drawing.construction !== undefined ||
-      drawing.overlay !== null ||
-      variant.state === undefined ||
-      variant.time === undefined
-    ) {
-      return null;
-    }
-    const time = variant.time;
-    const back = this.sprites.idOf(subject, { state: `back-${variant.state}`, time });
-    if (!this.sprites.has(back)) {
-      return null;
-    }
-    const layer = (state: string) => this.sprites.variant(subject, { state, time });
-    return {
-      back: this.sprites.variant(subject, { state: `back-${variant.state}`, time }),
-      front: this.sprites.variant(subject, { state: `front-${variant.state}`, time }),
-      side: layer('side'),
-      ceiling: layer('ceiling'),
-      floor: layer('floor'),
-    };
-  }
-
-  /** Shows the frame over a box when the room has layers, and the flat picture otherwise. */
   private applyTextures(entry: DrawnUnit, drawing: UnitDrawing): void {
-    const layers = this.depthTextures(drawing);
-    if (layers === null) {
-      entry.sprite.texture = this.sprites.variant(drawing.subject, drawing.variant);
-      entry.depth?.destroy();
-      entry.depth = null;
-      return;
-    }
-    entry.sprite.texture = layers.front;
-    if (entry.depth === null) {
-      entry.depth = new DepthRoom(layers, drawing.width, drawing.height);
-      entry.container.addChildAt(entry.depth.view, entry.container.getChildIndex(entry.sprite));
-    } else {
-      entry.depth.setTextures(layers);
-    }
-    entry.depth.view.position.set(drawing.x, drawing.y);
-    const worldY = levelTop(drawing.bottomIndex) + drawing.y + drawing.height / 2;
-    entry.depth.setSky(altitudeAtWorldY(worldY), drawing.variant.time ?? 'day');
-    entry.depth.setShift(0, 0);
+    entry.sprite.texture = this.sprites.variant(drawing.subject, drawing.variant);
   }
 
   private removeMissing(keep: ReadonlySet<string>): void {
@@ -175,7 +127,6 @@ export class UnitLayer {
       if (!keep.has(id)) {
         this.endConstruction(entry);
         entry.sprite.destroy();
-        entry.depth?.destroy();
         entry.checker?.destroy();
         this.drawn.delete(id);
       }
@@ -194,9 +145,6 @@ export class UnitLayer {
     if (existing.container !== container) {
       container.addChild(existing.sprite);
       existing.container = container;
-      if (existing.depth !== null) {
-        container.addChildAt(existing.depth.view, container.getChildIndex(existing.sprite));
-      }
     }
     this.place(existing.sprite, drawing);
     this.showChecker(existing, drawing);
@@ -218,7 +166,6 @@ export class UnitLayer {
       textureId: this.textureKey(drawing, textureId),
       checker: null,
       construction: null,
-      depth: null,
     };
     this.showChecker(entry, drawing);
     this.showConstruction(entry, drawing);
@@ -301,9 +248,9 @@ export class UnitLayer {
     entry.container.setChildIndex(checker, entry.container.children.length - 1);
   }
 
-  /** Changes when the picture or its depth layers do, so textures are swapped only then. */
+  /** Changes when the picture does, so textures are swapped only then. */
   private textureKey(drawing: UnitDrawing, textureId: string): string {
-    return `${textureId}|${this.depthTextures(drawing) === null ? 'flat' : 'depth'}|${drawing.x},${drawing.y}`;
+    return `${textureId}|${drawing.x},${drawing.y}`;
   }
 
   /** Placeholders are one tile big, so every sprite is sized to the footprint. */

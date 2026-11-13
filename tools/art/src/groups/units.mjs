@@ -1,4 +1,3 @@
-import { depthSprites } from '../units/depth.mjs';
 import { cathedralSprites } from '../units/cathedral.mjs';
 import { condoSprites } from '../units/condo.mjs';
 import { doubleRoomSprites, singleRoomSprites, suiteSprites } from '../units/hotel.mjs';
@@ -19,7 +18,7 @@ import {
 export const unitsGroup = {
   name: 'units',
   draw() {
-    return depthSprites([
+    return [
       ...officeSprites(),
       ...condoSprites(),
       ...singleRoomSprites(),
@@ -38,6 +37,6 @@ export const unitsGroup = {
       ...cathedralSprites(),
       ...cinemaSprites(),
       ...partyHallSprites(),
-    ]);
+    ];
   },
 };
