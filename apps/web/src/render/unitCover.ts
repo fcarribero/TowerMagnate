@@ -13,11 +13,12 @@ export const COVERED = 'u';
  * unit sprite brings its own floor and slab and its windows are transparent.
  */
 export function coveredRows(
-  units: Iterable<Pick<UnitView, 'type' | 'x' | 'level'>>,
+  units: Iterable<Pick<UnitView, 'type' | 'x' | 'level' | 'construction'>>,
 ): Map<Level, string> {
   const rows = new Map<Level, string[]>();
   for (const unit of units) {
-    if (!isPlacedUnit(unit.type)) {
+    // A construction site is not a finished room yet, so the floor stays under it.
+    if (!isPlacedUnit(unit.type) || unit.construction !== undefined) {
       continue;
     }
     const definition = UNIT_CATALOG[unit.type];

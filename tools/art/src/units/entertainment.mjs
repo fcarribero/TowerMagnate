@@ -1,5 +1,5 @@
 import { metrics } from '../metrics.mjs';
-import { toNight } from '../night.mjs';
+import { lightsOff, toNight } from '../night.mjs';
 import { FLOOR_ROW, drawWindow, nightVersion, roomShell } from './shell.mjs';
 
 const { floorHeight, slabHeight, tileWidth } = metrics;
@@ -180,7 +180,7 @@ function drawCinema(showing) {
 export function cinemaSprites() {
   return stateSprites('cinema', 'show', {
     drawDay: drawCinema,
-    drawNight: (day) => toNight(day),
+    drawNight: (day, showing) => (showing ? toNight(day) : lightsOff(toNight(day))),
   });
 }
 

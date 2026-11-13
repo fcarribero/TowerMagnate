@@ -21,3 +21,8 @@ const oneStepDarker = {
 export function toNight(dayCanvas) {
   return dayCanvas.recolor(oneStepDarker);
 }
+
+// A unit with nobody inside has its lamps off: the bulbs turn to dull metal and the glow goes.
+export function lightsOff(canvas) {
+  return canvas.recolor({ lamp: 'gray', 'lamp-glow': 'slate' });
+}

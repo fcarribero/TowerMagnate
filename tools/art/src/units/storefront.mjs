@@ -93,16 +93,17 @@ function drawShutter(room) {
   room.fillRect(room.width / 2 - 2, top + height - 3, 4, 2, 'charcoal');
 }
 
-function drawCeilingLamps(room, lamps) {
+function drawCeilingLamps(room, lamps, lit) {
   lamps.forEach((x) => {
     room.vline(x, FRONT_TOP + 1, 2, 'gray');
-    room.hline(x - 1, FRONT_TOP + 3, 3, 'lamp');
+    room.hline(x - 1, FRONT_TOP + 3, 3, lit ? 'lamp' : 'gray');
   });
 }
 
 // One shop front: sign, striped awning, then either the shutter (closed) or the
 // interior with its lamps (open, busy). `look.drawInterior` places the furniture.
-function drawShop(widthTiles, look, state) {
+// `lampsOn` is false for an empty shop at night.
+function drawShop(widthTiles, look, state, lampsOn = true) {
   const room = roomShell(widthTiles, look.shell);
   drawSign(room, look, state !== 'closed');
   drawAwning(room, look.awning);
@@ -111,7 +112,7 @@ function drawShop(widthTiles, look, state) {
     return room;
   }
   look.drawInterior(room);
-  drawCeilingLamps(room, look.lamps);
+  drawCeilingLamps(room, look.lamps, lampsOn);
   if (state === 'busy') {
     placeCustomers(room, look.customers);
   }
@@ -124,7 +125,8 @@ export function shopSprites(subject, widthTiles, look) {
   for (const state of SHOP_STATES) {
     const day = drawShop(widthTiles, look, state);
     for (const time of TIMES) {
-      const canvas = time === 'day' ? day : toNight(day);
+      const canvas =
+        time === 'day' ? day : toNight(drawShop(widthTiles, look, state, state !== 'open'));
       sprites.push({ id: `units/${subject}/${state}_${time}`, canvas });
     }
   }

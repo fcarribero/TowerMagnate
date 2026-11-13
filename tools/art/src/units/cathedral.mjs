@@ -1,6 +1,6 @@
 import { PixelCanvas } from '../canvas.mjs';
 import { metrics } from '../metrics.mjs';
-import { toNight } from '../night.mjs';
+import { lightsOff, toNight } from '../night.mjs';
 
 const WIDTH_TILES = 28;
 const FLOORS = 4;
@@ -378,7 +378,8 @@ function drawCathedral(wedding, lit) {
 // Stained glass is only drawn in color while light comes through it: by day from
 // outside, and at night only during a wedding, when the nave is lit.
 function nightCathedral(wedding) {
-  return toNight(drawCathedral(wedding, wedding));
+  const night = toNight(drawCathedral(wedding, wedding));
+  return wedding ? night : lightsOff(night);
 }
 
 export const CATHEDRAL_STATES = ['empty', 'wedding'];

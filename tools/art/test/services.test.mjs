@@ -63,7 +63,7 @@ describe('service facility sprites', () => {
     }
   });
 
-  it('lights the windows at night only when occupied', () => {
+  it('keeps the glass clear and lights it at night only when occupied', () => {
     const windowCentres = {
       security: [9, 8],
       'medical-center': [13, 8],
@@ -71,8 +71,8 @@ describe('service facility sprites', () => {
       'subway-station': [24, 8],
     };
     for (const [subject, [x, y]] of Object.entries(windowCentres)) {
-      expect(byId[`units/${subject}/empty_day`].get(x, y)).toBe(colorIndex('glass'));
-      expect(byId[`units/${subject}/empty_night`].get(x, y)).toBe(colorIndex('night-deep'));
+      expect(byId[`units/${subject}/empty_day`].get(x, y)).toBe(0);
+      expect(byId[`units/${subject}/empty_night`].get(x, y)).toBe(0);
       expect(byId[`units/${subject}/occupied_night`].get(x, y)).toBe(colorIndex('lamp-glow'));
     }
   });
@@ -104,7 +104,7 @@ describe('burnt overlay', () => {
   it('leaves some embers and breaks the windows', () => {
     const burnt = byId['units/security/burnt'];
     expect(countColor(burnt, 'dusk')).toBeGreaterThan(0);
-    expect(burnt.get(9, 8)).toBe(colorIndex('ink'));
+    expect(burnt.get(9, 8)).toBe(0);
   });
 
   it('works on any sprite and never changes clear pixels', () => {

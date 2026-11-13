@@ -22,7 +22,7 @@ function isSlabRow(canvas, y) {
 
 function breakWindow(canvas, { left, top, width, height }) {
   canvas.fillRect(left - 1, top - 1, width + 2, height + 2, 'charcoal');
-  canvas.fillRect(left, top, width, height, 'ink');
+  canvas.fillRect(left, top, width, height, 0);
   canvas.set(left - 1, top - 1, 'ink');
   canvas.set(left + width, top + height, 'ink');
   for (let x = left; x < left + width; x += 3) {

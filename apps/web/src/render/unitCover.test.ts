@@ -12,6 +12,10 @@ describe('coveredRows', () => {
     expect(covered.get(5)?.slice(9, 20)).toBe('.' + 'u'.repeat(9) + '.');
   });
 
+  it('leaves construction sites uncovered so the floor stays under them', () => {
+    expect(coveredRows([{ type: 'office', x: 10, level: 5, construction: 40 }]).size).toBe(0);
+  });
+
   it('ignores stairs-like transports and structure', () => {
     expect(coveredRows([{ type: 'floor', x: 10, level: 5 }]).size).toBe(0);
   });
