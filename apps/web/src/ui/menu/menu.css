@@ -55,3 +55,12 @@
   flex: 1;
   min-width: 0;
 }
+
+.game-menu-children {
+  border-top: var(--border-control);
+  background: var(--obra-paper-shade);
+}
+
+.game-menu-check input {
+  flex: none;
+}

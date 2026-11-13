@@ -1,3 +1,4 @@
+import type { ComponentChildren } from 'preact';
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { useSoundSettings } from '../../audio/useSfx';
 import { t } from '../strings';
@@ -9,6 +10,8 @@ export interface MenuItem {
   onSelect: () => void;
   /** Draws a line above the item. */
   separated?: boolean;
+  /** Entries shown under the item when it is clicked; the menu stays open. */
+  children?: ComponentChildren;
 }
 
 export interface GameMenuProps {
@@ -19,6 +22,7 @@ export interface GameMenuProps {
 
 export function GameMenu({ items = [], onLogout }: GameMenuProps) {
   const [open, setOpen] = useState(false);
+  const [expanded, setExpanded] = useState<string | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);
   const choose = (action: () => void): void => {
     setOpen(false);
@@ -76,15 +80,13 @@ export function GameMenu({ items = [], onLogout }: GameMenuProps) {
         <div class="game-menu-list" role="menu" onKeyDown={onListKeyDown}>
           <SoundItems />
           {items.map((item) => (
-            <button
+            <MenuEntry
               key={item.id}
-              type="button"
-              role="menuitem"
-              class={item.separated ? 'is-separated' : undefined}
-              onClick={() => choose(item.onSelect)}
-            >
-              {item.label}
-            </button>
+              item={item}
+              expanded={expanded === item.id}
+              onToggle={() => setExpanded((current) => (current === item.id ? null : item.id))}
+              onChoose={() => choose(item.onSelect)}
+            />
           ))}
           {onLogout && (
             <button
@@ -99,6 +101,43 @@ export function GameMenu({ items = [], onLogout }: GameMenuProps) {
         </div>
       )}
     </div>
+  );
+}
+
+interface MenuEntryProps {
+  item: MenuItem;
+  expanded: boolean;
+  onToggle: () => void;
+  onChoose: () => void;
+}
+
+function MenuEntry({ item, expanded, onToggle, onChoose }: MenuEntryProps) {
+  if (item.children === undefined) {
+    return (
+      <button
+        type="button"
+        role="menuitem"
+        class={item.separated ? 'is-separated' : undefined}
+        onClick={onChoose}
+      >
+        {item.label}
+      </button>
+    );
+  }
+  return (
+    <>
+      <button
+        type="button"
+        role="menuitem"
+        aria-haspopup="true"
+        aria-expanded={expanded}
+        class={item.separated ? 'is-separated' : undefined}
+        onClick={onToggle}
+      >
+        {item.label} {expanded ? '▾' : '▸'}
+      </button>
+      {expanded && <div class="game-menu-children">{item.children}</div>}
+    </>
   );
 }
 

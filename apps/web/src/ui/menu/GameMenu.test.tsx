@@ -173,3 +173,24 @@ describe('GameMenu sound settings', () => {
     expect(document.activeElement).toBe(screen.getByRole('menuitem', { name: 'Cerrar sesión' }));
   });
 });
+
+describe('GameMenu entries with children', () => {
+  const debug: MenuItem = {
+    id: 'debug',
+    label: 'Debug',
+    onSelect: () => undefined,
+    children: <input type="checkbox" aria-label="Dinero infinito" />,
+  };
+
+  it('shows the child entries only after the item is clicked, and keeps the menu open', () => {
+    render(<GameMenu items={[debug]} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Menú' }));
+    expect(screen.queryByLabelText('Dinero infinito')).toBeNull();
+    fireEvent.click(screen.getByRole('menuitem', { name: /Debug/ }));
+    expect(screen.getByLabelText('Dinero infinito')).toBeTruthy();
+    fireEvent.click(screen.getByLabelText('Dinero infinito'));
+    expect(screen.getByRole('menu')).toBeTruthy();
+    fireEvent.click(screen.getByRole('menuitem', { name: /Debug/ }));
+    expect(screen.queryByLabelText('Dinero infinito')).toBeNull();
+  });
+});
