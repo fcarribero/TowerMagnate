@@ -24,6 +24,18 @@ const selectStep = (state: GameState): { step: number } => ({
   step: Math.floor(state.step / STEPS_PER_HOUR) * STEPS_PER_HOUR,
 });
 
+/** Gap in UI pixels between the weather indicator and the panel under it. */
+const INDICATOR_GAP = 4;
+
+/** Where the panel opens: under the weather indicator, in UI pixels; null when there is none on screen. */
+export function positionBelowIndicator(uiScale: number): { x: number; y: number } | null {
+  const rect = document.querySelector('.status-panel__weather')?.getBoundingClientRect();
+  if (rect === undefined) {
+    return null;
+  }
+  return { x: rect.left / uiScale, y: rect.bottom / uiScale + INDICATOR_GAP };
+}
+
 export interface WeatherWindowProps {
   store: ClientStore;
   onClose: () => void;
@@ -33,7 +45,12 @@ export function WeatherWindow({ store, onClose }: WeatherWindowProps) {
   const manager = useWindowManager();
   const values = useStoreSelect(store, selectStep);
   useEffect(() => {
-    manager.open({ id: WEATHER_WINDOW_ID, corner: 'topLeft' });
+    const below = positionBelowIndicator(manager.uiScale);
+    manager.open(
+      below === null
+        ? { id: WEATHER_WINDOW_ID, corner: 'topLeft' }
+        : { id: WEATHER_WINDOW_ID, position: below },
+    );
     return () => manager.close(WEATHER_WINDOW_ID);
   }, []);
   if (values === null) {
@@ -42,7 +59,13 @@ export function WeatherWindow({ store, onClose }: WeatherWindowProps) {
   const now = currentWeather(values.step);
   const rows = forecastRows(values.step);
   return (
-    <Window id={WEATHER_WINDOW_ID} title={t('window.weather.title')} width={240} onClose={onClose}>
+    <Window
+      id={WEATHER_WINDOW_ID}
+      title={t('window.weather.title')}
+      width={240}
+      draggable={false}
+      onClose={onClose}
+    >
       <div class="weather-window">
         <p class="weather-window__today">
           <ObraIcon name={weatherIcon(now.condition, now.isNight)} class="weather-window__icon" />
