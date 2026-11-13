@@ -691,3 +691,76 @@
   box-shadow: var(--shadow-window);
   pointer-events: none;
 }
+
+/* Two-thumb range: two native range inputs stacked on one track. */
+.tm-range {
+  position: relative;
+  height: calc(16 * var(--tm-px));
+  min-width: 0;
+}
+
+.tm-range__track {
+  position: absolute;
+  top: 50%;
+  right: calc(6 * var(--tm-px));
+  left: calc(6 * var(--tm-px));
+  height: calc(4 * var(--tm-px));
+  transform: translateY(-50%);
+  background: var(--obra-paper-shade);
+  border: var(--border-control);
+}
+
+.tm-range__fill {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background: var(--obra-blue);
+}
+
+.tm-range__input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  pointer-events: none;
+  background: transparent;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.tm-range__input::-webkit-slider-runnable-track {
+  background: transparent;
+  -webkit-appearance: none;
+}
+
+.tm-range__input::-moz-range-track {
+  background: transparent;
+}
+
+.tm-range__input::-webkit-slider-thumb {
+  width: calc(10 * var(--tm-px));
+  height: calc(14 * var(--tm-px));
+  pointer-events: auto;
+  cursor: pointer;
+  background: var(--obra-yellow);
+  border: var(--border-control);
+  border-radius: 0;
+  -webkit-appearance: none;
+}
+
+.tm-range__input::-moz-range-thumb {
+  box-sizing: border-box;
+  width: calc(10 * var(--tm-px));
+  height: calc(14 * var(--tm-px));
+  pointer-events: auto;
+  cursor: pointer;
+  background: var(--obra-yellow);
+  border: var(--border-control);
+  border-radius: 0;
+}
+
+.tm-range__input:disabled::-webkit-slider-thumb {
+  cursor: default;
+  background: var(--obra-paper-shade);
+}

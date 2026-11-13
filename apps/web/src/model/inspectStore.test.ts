@@ -109,3 +109,33 @@ describe('inspect store with person windows', () => {
     expect(requested).toHaveBeenCalledWith('p1');
   });
 });
+
+describe('anchored person', () => {
+  it('anchors one person and notifies', () => {
+    const store = new InspectStore();
+    const listener = vi.fn();
+    store.onAnchorChange(listener);
+    store.anchorPerson('p1');
+    store.anchorPerson('p1');
+    expect(store.anchoredPerson()).toBe('p1');
+    expect(listener).toHaveBeenCalledTimes(1);
+  });
+
+  it('replaces an anchored unit and is replaced by one', () => {
+    const store = new InspectStore();
+    store.anchorUnit('u1');
+    store.anchorPerson('p1');
+    expect(store.anchoredUnit()).toBeNull();
+    expect(store.anchoredPerson()).toBe('p1');
+    store.anchorUnit('u2');
+    expect(store.anchoredPerson()).toBeNull();
+    expect(store.anchoredUnit()).toBe('u2');
+  });
+
+  it('clears either anchor with clearAnchor', () => {
+    const store = new InspectStore();
+    store.anchorPerson('p1');
+    store.clearAnchor();
+    expect(store.anchoredPerson()).toBeNull();
+  });
+});

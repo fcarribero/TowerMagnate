@@ -67,6 +67,7 @@ export class GhostLayer {
   private highlightColor = HOVER_COLOR;
   private selection: Area[] = [];
   private readonly selectionFrame = new Graphics();
+  private personSelection: Area | null = null;
 
   constructor() {
     this.view.addChild(this.runShape, this.ghostFrame, this.selectionFrame, this.hoverFrame);
@@ -101,12 +102,35 @@ export class GhostLayer {
     this.drawFrames();
   }
 
+  /** Frames the person whose panel is open, in world pixels; null removes the frame. */
+  showPersonSelection(area: Area | null): void {
+    const same =
+      area === this.personSelection ||
+      (area !== null &&
+        this.personSelection !== null &&
+        area.x === this.personSelection.x &&
+        area.y === this.personSelection.y &&
+        area.width === this.personSelection.width &&
+        area.height === this.personSelection.height);
+    if (!same) {
+      this.personSelection = area;
+      this.drawFrames();
+    }
+  }
+
   private drawFrames(): void {
     this.ghostFrame.clear();
     this.hoverFrame.clear();
     this.runShape.clear();
     this.selectionFrame.clear();
     for (const area of this.selection) {
+      this.selectionFrame
+        .rect(area.x, area.y, area.width, area.height)
+        .fill({ color: SELECTION_COLOR, alpha: SELECTION_FILL_ALPHA });
+      outline(this.selectionFrame, area, SELECTION_COLOR, this.zoom, SELECTION_LINE);
+    }
+    if (this.personSelection !== null) {
+      const area = this.personSelection;
       this.selectionFrame
         .rect(area.x, area.y, area.width, area.height)
         .fill({ color: SELECTION_COLOR, alpha: SELECTION_FILL_ALPHA });

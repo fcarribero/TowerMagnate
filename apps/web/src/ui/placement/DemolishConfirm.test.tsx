@@ -12,12 +12,14 @@ afterEach(cleanup);
 const soldCondo: Confirmation = { kind: 'soldCondo', unitType: 'condo', price: 80_000 };
 const expensive: Confirmation = { kind: 'expensive', unitType: 'cinema', price: 500_000 };
 
-function renderConfirm(confirmation: Confirmation) {
+function renderConfirm(confirmation: Confirmation, onKeepContract?: () => void) {
   const onConfirm = vi.fn();
   const onCancel = vi.fn();
   render(
     <WindowLayer>
-      <DemolishConfirm confirmation={confirmation} onConfirm={onConfirm} onCancel={onCancel} />
+      <DemolishConfirm confirmation={confirmation} onConfirm={onConfirm} onCancel={onCancel}
+        onKeepContract={onKeepContract}
+      />
     </WindowLayer>,
   );
   return { onConfirm, onCancel };
@@ -75,5 +77,28 @@ describe('demolish dialog texts', () => {
   it('names the price of an expensive unit', () => {
     renderConfirm(expensive);
     expect(screen.getByText(/Costó \$500\.000/)).toBeTruthy();
+  });
+});
+
+describe('rented dialog', () => {
+  const rented: Confirmation = {
+    kind: 'rented',
+    unitType: 'office',
+    price: 10_000,
+    indemnity: 12_000,
+    unlistIds: ['u1'],
+  };
+
+  it('names the indemnity and offers the three answers', () => {
+    const keep = vi.fn();
+    const { onConfirm } = renderConfirm(rented, keep);
+    expect(screen.getByText(/pagás \$12\.000 de indemnización/)).toBeTruthy();
+    const labels = Array.from(document.querySelectorAll('.tm-dialog__buttons button')).map(
+      (button) => button.textContent,
+    );
+    expect(labels).toEqual(['Demoler de todas formas', 'No renovar el contrato', 'Cancelar']);
+    fireEvent.click(screen.getByRole('button', { name: 'No renovar el contrato' }));
+    expect(keep).toHaveBeenCalledTimes(1);
+    expect(onConfirm).not.toHaveBeenCalled();
   });
 });

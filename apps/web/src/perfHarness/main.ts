@@ -54,7 +54,7 @@ function offices(floors: number): UnitView[] {
         x,
         level,
         name: null,
-        price: 'normal',
+        price: 0,
         occupied: true,
         variant: 'occupied',
       });

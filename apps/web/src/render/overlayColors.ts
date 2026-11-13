@@ -2,7 +2,7 @@ import type {
   Evaluation,
   HotelRoomState,
   OverlayData,
-  PriceLevel,
+  PriceBand,
   UnitView,
 } from '@tower-magnate/shared';
 
@@ -32,11 +32,10 @@ const EVALUATION_COLORS: Record<Evaluation, OverlayColor> = {
   poor: 'cloth-red',
 };
 
-const PRICE_COLORS: Record<PriceLevel, OverlayColor> = {
+const PRICE_COLORS: Record<PriceBand, OverlayColor> = {
   high: 'cloth-red',
   normal: 'leaf',
   low: 'sky-deep',
-  minimum: 'lamp',
 };
 
 const HOTEL_COLORS: Record<HotelRoomState, OverlayColor> = {
@@ -63,7 +62,7 @@ function valueColor(overlay: OverlayId, unit: OverlayUnit, data: OverlayData): O
     return evaluation ? EVALUATION_COLORS[evaluation] : 'gray';
   }
   if (overlay === 'price') {
-    return PRICE_COLORS[data.price[unit.id] ?? unit.price];
+    return PRICE_COLORS[data.price[unit.id] ?? 'normal'];
   }
   return HOTEL_COLORS[data.hotel[unit.id] ?? (unit.occupied ? 'occupied' : 'clean')];
 }

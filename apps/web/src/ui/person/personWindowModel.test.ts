@@ -2,7 +2,7 @@ import type { UnitView } from '@tower-magnate/shared';
 import { describe, expect, it } from 'vitest';
 import {
   destinationText,
-  followButton,
+  followStar,
   followedTitle,
   homeRow,
   kindName,
@@ -91,44 +91,44 @@ describe('person window text', () => {
   });
 });
 
-describe('follow button', () => {
-  it('is a primary Seguir for a named person with room in the list', () => {
-    expect(followButton(true, false, 5, false)).toEqual({
+describe('follow star', () => {
+  it('is an outlined Seguir star for a named person with room in the list', () => {
+    expect(followStar(true, false, 5, false)).toEqual({
       label: 'Seguir',
-      isPrimary: true,
+      active: false,
       disabled: false,
-      tooltip: undefined,
+      reason: undefined,
     });
   });
 
-  it('is disabled with a tooltip for an unnamed person', () => {
-    expect(followButton(false, false, 0, false)).toMatchObject({
+  it('is disabled with a reason for an unnamed person', () => {
+    expect(followStar(false, false, 0, false)).toMatchObject({
       disabled: true,
-      tooltip: 'Poné un nombre para seguir a esta persona.',
+      reason: 'Poné un nombre para seguir a esta persona.',
     });
   });
 
   it('is disabled with the limit message at 20 followed', () => {
-    expect(followButton(true, false, 20, false)).toMatchObject({
+    expect(followStar(true, false, 20, false)).toMatchObject({
       disabled: true,
-      tooltip: 'Ya seguís a 20 personas.',
+      reason: 'Ya seguís a 20 personas.',
     });
   });
 
-  it('is a plain Dejar de seguir for a followed person, even with 20 followed', () => {
-    expect(followButton(true, true, 20, false)).toEqual({
+  it('is a filled Dejar de seguir star for a followed person, even with 20 followed', () => {
+    expect(followStar(true, true, 20, false)).toEqual({
       label: 'Dejar de seguir',
-      isPrimary: false,
+      active: true,
       disabled: false,
-      tooltip: undefined,
+      reason: undefined,
     });
   });
 
-  it('is disabled without a tooltip once the person is gone', () => {
-    expect(followButton(true, false, 3, true)).toMatchObject({
+  it('is disabled without a reason once the person is gone', () => {
+    expect(followStar(true, false, 3, true)).toMatchObject({
       disabled: true,
-      tooltip: undefined,
+      reason: undefined,
     });
-    expect(followButton(true, true, 3, true)).toMatchObject({ disabled: true });
+    expect(followStar(true, true, 3, true)).toMatchObject({ disabled: true });
   });
 });

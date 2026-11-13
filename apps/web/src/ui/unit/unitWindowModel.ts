@@ -1,15 +1,11 @@
 import { dateOfStep } from '@tower-magnate/engine/calendar';
-import {
-  CONDO_SALE_PRICE,
-  HOTEL_NIGHTLY_PRICE,
-  PRICE_LEVELS,
-  WEEKLY_RENT,
-  type Evaluation,
-  type InspectedUnitDetails,
-  type Level,
-  type PriceLevel,
-  type PriceTable,
-  type UnitType,
+import type {
+  Evaluation,
+  InspectedUnitDetails,
+  Level,
+  PersonKind,
+  PriceBand,
+  UnitType,
 } from '@tower-magnate/shared';
 import type { UnitInspect } from '../../model/inspectStore';
 import { formatMoney } from '../money';
@@ -37,42 +33,9 @@ export function unitTitle(unit: Pick<UnitInspect, 'name' | 'type' | 'level'>): s
   );
 }
 
-export function locationText(unit: Pick<UnitInspect, 'level' | 'from' | 'to'>): string {
-  return t('window.unit.locationValue', {
-    level: levelText(unit.level),
-    columns: t('ui.columns', { x0: unit.from, x1: unit.to }),
-  });
-}
-
-export interface PriceOption {
-  value: PriceLevel;
-  /** Level name and amount together, the accessible name of the tile. */
-  label: string;
-  name: string;
-  amount: string;
-}
-
-/** The price table a unit type charges from, or null when the type has no price choice. */
-function priceTableOf(type: UnitType): PriceTable | null {
-  if (type === 'office' || type === 'retail-shop') {
-    return WEEKLY_RENT[type];
-  }
-  if (type === 'single-room' || type === 'double-room' || type === 'suite') {
-    return HOTEL_NIGHTLY_PRICE[type];
-  }
-  return type === 'condo' ? CONDO_SALE_PRICE : null;
-}
-
-export function priceOptions(type: UnitType): PriceOption[] {
-  const table = priceTableOf(type);
-  if (table === null) {
-    return [];
-  }
-  return PRICE_LEVELS.map((value) => {
-    const name = t(`value.price.${value}` as StringKey);
-    const amount = formatMoney(table[value]);
-    return { value, label: `${name} ${amount}`, name, amount };
-  });
+/** Where the unit is: the floor only, never the columns it covers. */
+export function locationText(unit: Pick<UnitInspect, 'level'>): string {
+  return levelText(unit.level);
 }
 
 export function priceLabelKey(type: UnitType): StringKey | null {
@@ -89,13 +52,142 @@ export function isSoldCondo(unit: Pick<UnitInspect, 'details'>): boolean {
   return unit.details?.group === 'condo' && unit.details.state === 'sold';
 }
 
-/** The price level the server last sent, for the types that have a price choice. */
-export function priceOf(unit: Pick<UnitInspect, 'details'>): PriceLevel | null {
+type Details<G extends InspectedUnitDetails['group']> = Extract<InspectedUnitDetails, { group: G }>;
+
+export interface PriceControl {
+  price: number;
+  appraisal: number;
+  band: PriceBand;
+  min: number;
+  max: number;
+  step: number;
+}
+
+/** The price the player can change, or null for a unit with no price and for a sold condo. */
+export function priceControlOf(unit: Pick<UnitInspect, 'details'>): PriceControl | null {
   const { details } = unit;
-  if (details === null || !('price' in details)) {
+  if (details === null || !('priceMin' in details) || isSoldCondo(unit)) {
     return null;
   }
-  return details.price;
+  return {
+    price: details.price,
+    appraisal: details.appraisal,
+    band: details.priceBand,
+    min: details.priceMin,
+    max: details.priceMax,
+    step: details.priceStep,
+  };
+}
+
+/** A typed or dragged price, rounded to the step and kept inside the limits. */
+export function clampPrice(value: number, min: number, max: number, step: number): number {
+  const stepped = min + Math.round((value - min) / step) * step;
+  return Math.min(Math.max(stepped, min), max);
+}
+
+/** Where the appraisal sits along the price bar, 0 to 100. */
+export function appraisalPercent(appraisal: number, min: number, max: number): number {
+  if (max <= min) {
+    return 0;
+  }
+  return Math.min(100, Math.max(0, ((appraisal - min) / (max - min)) * 100));
+}
+
+export function priceBandLabel(band: PriceBand): string {
+  return t(`value.price.${band}` as StringKey);
+}
+
+/** Whether the unit is on the market: for sale or for rent. Null for units with no such switch. */
+export function listedOf(unit: Pick<UnitInspect, 'details'>): boolean | null {
+  const { details } = unit;
+  return details?.group === 'lease' || details?.group === 'condo' ? details.listed : null;
+}
+
+export interface PeopleGroup {
+  id: 'residents' | 'workers' | 'staff' | 'customers' | 'tenants';
+  label: string;
+  /** Person ids, in the order the server sent them. */
+  people: readonly string[];
+  /** Used to draw each person when the tower view does not know them. */
+  kind: PersonKind;
+}
+
+/** The people blocks of a unit window: who lives, works, stays or is inside as a customer. */
+export function peopleGroups(unit: Pick<UnitInspect, 'type' | 'details'>): PeopleGroup[] {
+  const { details } = unit;
+  if (details === null) {
+    return [];
+  }
+  switch (details.group) {
+    case 'condo':
+      return [
+        {
+          id: 'residents',
+          label: t('window.unit.residents'),
+          people: details.residents,
+          kind: 'resident',
+        },
+      ];
+    case 'hotel':
+      return [
+        {
+          id: 'tenants',
+          label: t('window.unit.peopleTenants'),
+          people: details.tenants,
+          kind: 'hotelGuest',
+        },
+      ];
+    case 'lease': {
+      const office = unit.type === 'office';
+      const groups: PeopleGroup[] = [
+        {
+          id: office ? 'workers' : 'staff',
+          label: t(office ? 'window.unit.peopleWorkers' : 'window.unit.peopleStaff'),
+          people: details.workers,
+          kind: office ? 'officeWorker' : 'staff',
+        },
+      ];
+      if (!office) {
+        groups.push({
+          id: 'customers',
+          label: t('window.unit.peopleCustomers'),
+          people: details.customers,
+          kind: 'customer',
+        });
+      }
+      return groups;
+    }
+    case 'venue':
+      return [
+        { id: 'staff', label: t('window.unit.peopleStaff'), people: details.workers, kind: 'staff' },
+        {
+          id: 'customers',
+          label: t('window.unit.peopleCustomers'),
+          people: details.customers,
+          kind: 'customer',
+        },
+      ];
+    default:
+      return [];
+  }
+}
+
+/** Opening and closing hour after one of them moved: the close stays at least an hour after the open. */
+export function clampHours(open: number, close: number, moved: 'open' | 'close'): { open: number; close: number } {
+  let nextOpen = Math.min(23, Math.max(0, Math.round(open)));
+  let nextClose = Math.min(24, Math.max(1, Math.round(close)));
+  if (nextClose <= nextOpen) {
+    if (moved === 'open') {
+      nextOpen = nextClose - 1;
+    } else {
+      nextClose = nextOpen + 1;
+    }
+  }
+  return { open: nextOpen, close: nextClose };
+}
+
+export function hourText(hour: number): string {
+  return `${String(hour).padStart(2, '0')}:00`;
 }
 
 export type EvaluationColor = 'sky-deep' | 'lamp' | 'cloth-red' | 'gray';
@@ -143,19 +235,6 @@ function weekdayAndTime(step: number): string {
   });
 }
 
-function weekdayAndDay(step: number): string {
-  const date = dateOfStep(step);
-  return t('window.unit.nextEvaluationValue', {
-    weekday: weekdayName(date.weekday),
-    day: date.day,
-    month: t(`calendar.month.${date.month}` as StringKey),
-  });
-}
-
-function countOf(n: number, max: number): string {
-  return t('window.unit.countOf', { n, max });
-}
-
 const EVALUATION_TONES: Readonly<Record<EvaluationColor, RowTone>> = {
   'sky-deep': 'good',
   lamp: 'warn',
@@ -173,7 +252,18 @@ function evaluationRow(evaluation: Evaluation | null): UnitRow {
   };
 }
 
-type Details<G extends InspectedUnitDetails['group']> = Extract<InspectedUnitDetails, { group: G }>;
+function appraisalRow(appraisal: number): UnitRow[] {
+  return appraisal > 0
+    ? [
+        {
+          id: 'appraisal',
+          label: t('window.unit.appraisal'),
+          value: formatMoney(appraisal),
+          tone: 'plain',
+        },
+      ]
+    : [];
+}
 
 function leaseRows(lease: Details<'lease'>): UnitRow[] {
   const leased = lease.state === 'occupied';
@@ -187,7 +277,7 @@ function leaseRows(lease: Details<'lease'>): UnitRow[] {
     {
       id: 'people',
       label: t('window.unit.people'),
-      value: countOf(lease.persons, lease.capacity),
+      value: String(lease.persons),
       tone: 'plain',
     },
     evaluationRow(lease.evaluation),
@@ -209,35 +299,28 @@ function leaseRows(lease: Details<'lease'>): UnitRow[] {
       tone: 'plain',
     });
   }
-  return rows;
-}
-
-function condoRows(condo: Details<'condo'>): UnitRow[] {
-  const sold = condo.state === 'sold';
-  const rows: UnitRow[] = [
-    {
-      id: 'status',
-      label: t('window.unit.status'),
-      value: t(sold ? 'value.condo.sold' : 'value.condo.forSale'),
-      tone: sold ? 'good' : 'plain',
-    },
-    {
-      id: 'residents',
-      label: t('window.unit.residents'),
-      value: countOf(condo.residents, condo.capacity),
-      tone: 'plain',
-    },
-    evaluationRow(condo.evaluation),
-  ];
-  if (sold && condo.nextEvaluationStep !== null) {
+  if (lease.weeklyRent !== null) {
     rows.push({
-      id: 'nextEvaluation',
-      label: t('window.unit.nextEvaluation'),
-      value: weekdayAndDay(condo.nextEvaluationStep),
+      id: 'weeklyRent',
+      label: t('window.unit.weeklyRent'),
+      value: formatMoney(lease.weeklyRent),
       tone: 'plain',
     });
   }
-  return rows;
+  return [...rows, ...appraisalRow(lease.appraisal)];
+}
+
+function condoRows(condo: Details<'condo'>): UnitRow[] {
+  return [
+    {
+      id: 'residents',
+      label: t('window.unit.residents'),
+      value: String(condo.residentCount),
+      tone: 'plain',
+    },
+    evaluationRow(condo.evaluation),
+    ...appraisalRow(condo.appraisal),
+  ];
 }
 
 const ROOM_STATE_KEYS: Readonly<Record<Details<'hotel'>['state'], StringKey>> = {
@@ -265,7 +348,7 @@ function hotelRows(hotel: Details<'hotel'>): UnitRow[] {
     {
       id: 'guests',
       label: t('window.unit.guests'),
-      value: countOf(hotel.guests, hotel.capacity),
+      value: String(hotel.guests),
       tone: 'plain',
     },
     evaluationRow(hotel.evaluation),
@@ -278,7 +361,7 @@ function hotelRows(hotel: Details<'hotel'>): UnitRow[] {
       tone: 'plain',
     });
   }
-  return rows;
+  return [...rows, ...appraisalRow(hotel.appraisal)];
 }
 
 function cinemaRows(cinema: Details<'cinema'>): UnitRow[] {
@@ -294,7 +377,7 @@ function housekeepingRows(housekeeping: Details<'housekeeping'>): UnitRow[] {
     {
       id: 'maidsWorking',
       label: t('window.unit.maidsWorking'),
-      value: countOf(housekeeping.maidsWorking, housekeeping.maids),
+      value: String(housekeeping.maidsWorking),
       tone: 'plain',
     },
     {
@@ -304,10 +387,6 @@ function housekeepingRows(housekeeping: Details<'housekeeping'>): UnitRow[] {
       tone: 'plain',
     },
   ];
-}
-
-function twoDigits(n: number): string {
-  return String(n).padStart(2, '0');
 }
 
 function venueRows(venue: Details<'venue'>): UnitRow[] {
@@ -324,8 +403,8 @@ function venueRows(venue: Details<'venue'>): UnitRow[] {
       id: 'hours',
       label: t('window.unit.hours'),
       value: t('window.unit.hoursValue', {
-        from: `${twoDigits(venue.opens)}:00`,
-        to: `${twoDigits(venue.closes)}:00`,
+        from: hourText(venue.opens),
+        to: hourText(venue.closes),
       }),
       tone: 'plain',
     },
@@ -368,8 +447,8 @@ export function venueChart(venue: Details<'venue'>): VenueChart {
     height: CHART_HEIGHT,
     today: linePoints(venue.today, hours, max),
     average: linePoints(venue.average, hours, max),
-    from: `${twoDigits(venue.opens)}:00`,
-    to: `${twoDigits(venue.closes)}:00`,
+    from: hourText(venue.opens),
+    to: hourText(venue.closes),
     max,
   };
 }
@@ -418,7 +497,9 @@ function detailRows(details: InspectedUnitDetails): UnitRow[] {
 /** Rows below Nombre and Ubicacion. Types without details have none, or an in-service row. */
 export function unitRows(unit: UnitInspect): UnitRow[] {
   if (unit.details !== null) {
-    return detailRows(unit.details);
+    const rows = detailRows(unit.details);
+    // A fast food has the hours slider, so the plain hours row would say it twice.
+    return unit.type === 'fast-food' ? rows.filter((row) => row.id !== 'hours') : rows;
   }
   return unit.type === 'security' || unit.type === 'subway-station' ? inServiceRows() : [];
 }

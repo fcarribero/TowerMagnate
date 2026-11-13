@@ -1,7 +1,7 @@
 import { UNIT_CATALOG, levelToIndex, type PersonView, type UnitType } from '@tower-magnate/shared';
 import { Container, Sprite } from 'pixi.js';
 import type { DrawnFlight, DrawnFrame } from '../model/interpolation';
-import type { LevelRange } from './camera';
+import type { LevelRange, WorldRect } from './camera';
 import { floorSprite } from './elevatorPlan';
 import { fitFollowedMarker, newFollowedMarker } from './followedMarker';
 import { animationNow, isAnimationPaused } from './animationClock';
@@ -114,6 +114,17 @@ export class PeopleLayer {
   /** Followed people carry a small lamp marker above the head. */
   markFollowed(followed: ReadonlySet<string>): void {
     this.followed = followed;
+  }
+
+  /** Where a person is drawn now, in world pixels, or undefined when no sprite holds them. */
+  rectOf(id: string): WorldRect | undefined {
+    const root = this.drawn.get(id)?.sprite;
+    if (root === undefined || !root.visible) {
+      return undefined;
+    }
+    const width = FRAME_WIDTH * Math.abs(root.scale.x);
+    const height = FRAME_HEIGHT * root.scale.y;
+    return { x: root.position.x - width / 2, y: root.position.y - height, width, height };
   }
 
   show(frame: DrawnFrame): void {

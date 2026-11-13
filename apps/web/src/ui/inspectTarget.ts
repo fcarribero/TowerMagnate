@@ -3,6 +3,8 @@ import type { InspectTarget } from '@tower-magnate/shared';
 export const UNIT_WINDOW_KIND = 'unit';
 /** The fixed unit panel the Lupa shows; one at a time, apart from the unit windows. */
 export const UNIT_PANEL_KIND = 'unitPanel';
+/** The fixed person panel shown next to the selected person. */
+export const PERSON_PANEL_KIND = 'personPanel';
 export const ELEVATOR_WINDOW_KIND = 'elevator';
 export const PERSON_WINDOW_KIND = 'person';
 export const FOLLOWED_WINDOW_ID = 'followed';
@@ -23,6 +25,10 @@ export function personWindowId(personId: string): string {
   return `${PERSON_WINDOW_KIND}:${personId}`;
 }
 
+export function personPanelId(personId: string): string {
+  return `${PERSON_PANEL_KIND}:${personId}`;
+}
+
 export function entityOfWindow(windowId: string): string {
   return windowId.slice(windowId.indexOf(':') + 1);
 }
@@ -40,7 +46,7 @@ function targetOfWindow(window: { id: string; kind: string }): InspectTarget | n
   if (window.kind === ELEVATOR_WINDOW_KIND) {
     return { kind: 'shaft', id: entityOfWindow(window.id) };
   }
-  if (window.kind === PERSON_WINDOW_KIND) {
+  if (window.kind === PERSON_WINDOW_KIND || window.kind === PERSON_PANEL_KIND) {
     return { kind: 'person', id: entityOfWindow(window.id) };
   }
   return null;

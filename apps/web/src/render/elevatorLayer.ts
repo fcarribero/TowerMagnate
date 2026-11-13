@@ -2,7 +2,7 @@ import type { Level, ShaftView } from '@tower-magnate/shared';
 import { Container, Sprite, Texture } from 'pixi.js';
 import type { DrawnCar, DrawnFrame, DrawnPerson } from '../model/interpolation';
 import { carKey } from '../model/gameState';
-import type { LevelRange } from './camera';
+import type { LevelRange, WorldRect } from './camera';
 import { CulledRows } from './culledRows';
 import {
   carInRange,
@@ -85,6 +85,24 @@ export class ElevatorLayer {
   /** Followed people carry a lamp marker over the head, also inside a car. */
   markFollowed(followed: ReadonlySet<string>): void {
     this.followed = followed;
+  }
+
+  /** Where a rider is drawn now, in world pixels, or undefined when no car holds them. */
+  rectOf(id: string): WorldRect | undefined {
+    for (const car of this.cars.values()) {
+      const root = car.riders.get(id)?.rig.root;
+      if (root !== undefined && car.view.visible) {
+        const width = FRAME_WIDTH * Math.abs(root.scale.x);
+        const height = FRAME_HEIGHT * root.scale.y;
+        return {
+          x: car.view.position.x + root.position.x - width / 2,
+          y: car.view.position.y + root.position.y - height,
+          width,
+          height,
+        };
+      }
+    }
+    return undefined;
   }
 
   /** A shaft is redrawn when it changes or when structure is built or lost behind it. */

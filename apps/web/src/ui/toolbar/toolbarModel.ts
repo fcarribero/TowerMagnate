@@ -95,16 +95,16 @@ export function priceText(unit: UnitDefinition): string {
       return t('ui.pricePerCell', { price: formatMoney(cost.amount) });
     case 'shaft':
       return t('ui.priceShaft', {
-        shaft: formatMoney(cost.shaftAmount),
+        total: formatMoney(cost.shaftAmount + cost.perCarAmount),
         car: formatMoney(cost.perCarAmount),
       });
   }
 }
 
-/** The price as drawn on a tool tile: the amount of one unit, one cell or the shaft. */
+/** The price as drawn on a tool tile: one unit, one cell, or a shaft with its first car. */
 export function priceTileText(unit: UnitDefinition): string {
   const { cost } = unit;
-  return formatMoney(cost.kind === 'shaft' ? cost.shaftAmount : cost.amount);
+  return formatMoney(cost.kind === 'shaft' ? cost.shaftAmount + cost.perCarAmount : cost.amount);
 }
 
 /** Line 1 name and price, line 2 size, line 3 the unlock stars when locked. */

@@ -11,7 +11,7 @@ const office = {
   x: 10,
   level: 3,
   name: null,
-  price: 'normal' as const,
+  price: 1,
   occupied: true,
   variant: 'occupied' as const,
 };

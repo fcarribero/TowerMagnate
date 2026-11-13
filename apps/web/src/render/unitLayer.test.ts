@@ -28,7 +28,7 @@ const office: UnitSource = {
   x: 4,
   level: 3,
   occupied: false,
-  price: 'normal',
+  price: 1,
   variant: 'empty',
 };
 
@@ -207,7 +207,7 @@ describe('UnitLayer garbage pile', () => {
     x: 4,
     level: 3,
     occupied: false,
-    price: 'normal',
+    price: 1,
     variant: 'empty',
     leased: true,
   };

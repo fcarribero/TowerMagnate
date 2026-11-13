@@ -17,7 +17,7 @@ import { snapshot } from '../../testing/protocolFixtures';
 import { WindowLayer } from '../kit';
 import { UnitWindows } from '../unit/UnitWindows';
 import { FollowedWindow } from './FollowedWindow';
-import { PersonWindows } from './PersonWindows';
+import { PersonWindows, type PersonPanelStage } from './PersonWindows';
 
 useFakeLayoutSizes({ clientWidth: 800, clientHeight: 600, offsetWidth: 150, offsetHeight: 100 });
 
@@ -80,7 +80,30 @@ function found(id: string, patch: Partial<Found> = {}): Found {
 
 type Point = { x: number; y: number };
 
-function setup(people: PersonView[] = [personView('p1')], followed: FollowedView[] = []) {
+function fakePersonStage(rects: Record<string, { x: number; y: number; width: number; height: number }>) {
+  const listeners = new Set<(camera: unknown) => void>();
+  const selected: (string | null)[] = [];
+  return {
+    rects,
+    selected,
+    personScreenRect: (id: string) => rects[id] ?? null,
+    showPersonSelection: (id: string | null) => {
+      selected.push(id);
+    },
+    cssPerDevicePixel: () => 1,
+    onCameraChange: (listener: (camera: unknown) => void) => {
+      listeners.add(listener);
+      return () => listeners.delete(listener);
+    },
+    pan: () => listeners.forEach((listener) => listener({})),
+  };
+}
+
+function setup(
+  people: PersonView[] = [personView('p1')],
+  followed: FollowedView[] = [],
+  stage: PersonPanelStage | null = null,
+) {
   const sent: ClientMessage[] = [];
   const store = new ClientStore({ requestResync: () => undefined, now: () => 0 });
   store.applySnapshot({ ...snapshot, units: [office], people, followed });
@@ -99,7 +122,7 @@ function setup(people: PersonView[] = [personView('p1')], followed: FollowedView
   const view = render(
     <WindowLayer>
       <UnitWindows connection={connection} />
-      <PersonWindows connection={connection} onCenter={onCenter} />
+      <PersonWindows connection={connection} onCenter={onCenter} stage={stage} />
     </WindowLayer>,
   );
   const show = (data: InspectData): void => {
@@ -175,7 +198,6 @@ describe('person windows', () => {
     show(found('p1'));
     const button = screen.getByRole('button', { name: 'Seguir' }) as HTMLButtonElement;
     expect(button.disabled).toBe(true);
-    expect(button.className).toContain('is-primary');
     await userEvent.click(button);
     expect(commandsSent()).toEqual([]);
   });
@@ -337,5 +359,91 @@ describe('Personas seguidas', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Dejar de seguir' }));
     expect(commandsSent()).toEqual([{ type: 'unfollowPerson', personId: 'p7' }]);
     expect(centered).toEqual([]);
+  });
+});
+
+describe('person panel', () => {
+  const rect = { x: 100, y: 120, width: 10, height: 20 };
+
+  it('opens next to the anchored person without a close button, and inspects them', () => {
+    const stage = fakePersonStage({ p1: rect });
+    const { connection, show, sent } = setup([personView('p1')], [], stage);
+    act(() => connection.inspect.anchorPerson('p1'));
+    show(found('p1'));
+    const panel = screen.getByRole('dialog', { name: 'Oficinista' });
+    expect(within(panel).queryByRole('button', { name: 'Cerrar' })).toBeNull();
+    expect(panel.querySelector('canvas.tm-unit__portrait')).not.toBeNull();
+    expect(stage.selected.at(-1)).toBe('p1');
+    expect(sent.at(-1)).toMatchObject({
+      t: 'inspectAdd',
+      p: { target: { kind: 'person', id: 'p1' } },
+    });
+  });
+
+  it('hides the panel and the frame when the anchor is cleared', () => {
+    const stage = fakePersonStage({ p1: rect });
+    const { connection, show } = setup([personView('p1')], [], stage);
+    act(() => connection.inspect.anchorPerson('p1'));
+    show(found('p1'));
+    act(() => connection.inspect.clearAnchor());
+    expect(screen.queryByRole('dialog', { name: 'Oficinista' })).toBeNull();
+    expect(stage.selected.at(-1)).toBeNull();
+  });
+
+  it('closes on a pointer press outside the panel but not on the canvas or inside it', () => {
+    const stage = fakePersonStage({ p1: rect });
+    const { connection, show } = setup([personView('p1')], [], stage);
+    const canvas = document.createElement('canvas');
+    document.body.appendChild(canvas);
+    act(() => connection.inspect.anchorPerson('p1'));
+    show(found('p1'));
+    const panel = screen.getByRole('dialog', { name: 'Oficinista' });
+    fireEvent.pointerDown(panel);
+    fireEvent.pointerDown(canvas);
+    expect(connection.inspect.anchoredPerson()).toBe('p1');
+    fireEvent.pointerDown(document.body);
+    expect(connection.inspect.anchoredPerson()).toBeNull();
+    expect(screen.queryByRole('dialog', { name: 'Oficinista' })).toBeNull();
+    canvas.remove();
+  });
+
+  it('follows with a star and unfollows with the same star', () => {
+    const stage = fakePersonStage({ p1: rect });
+    const { connection, show, store, commandsSent } = setup(
+      [personView('p1')],
+      [],
+      stage,
+    );
+    act(() => connection.inspect.anchorPerson('p1'));
+    show(found('p1', { name: 'Ana' }));
+    const star = screen.getByRole('button', { name: 'Seguir' });
+    expect(star.getAttribute('aria-pressed')).toBe('false');
+    fireEvent.click(star);
+    act(() =>
+      store.applySnapshot({
+        ...snapshot,
+        units: [office],
+        people: [personView('p1')],
+        followed: [followedView('p1', { name: 'Ana' })],
+      }),
+    );
+    const active = screen.getByRole('button', { name: 'Dejar de seguir' });
+    expect(active.getAttribute('aria-pressed')).toBe('true');
+    fireEvent.click(active);
+    expect(commandsSent()).toEqual([
+      { type: 'followPerson', personId: 'p1' },
+      { type: 'unfollowPerson', personId: 'p1' },
+    ]);
+  });
+
+  it('asks for the panel when the person is on screen and for a window when they are not', () => {
+    const stage = fakePersonStage({ p1: rect });
+    const { connection, open, show } = setup([personView('p1'), personView('p2')], [], stage);
+    open('p1');
+    expect(connection.inspect.anchoredPerson()).toBe('p1');
+    open('p2');
+    show(found('p2'));
+    expect(connection.inspect.anchoredPerson()).toBe('p1');
+    expect(screen.getAllByRole('dialog')).toHaveLength(2);
   });
 });

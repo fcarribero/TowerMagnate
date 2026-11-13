@@ -13,7 +13,7 @@ const base = {
   level: 5,
   occupied: false,
   variant: 'empty',
-  price: 'normal',
+  price: 1,
 } as const;
 
 describe('planUnit', () => {
@@ -207,13 +207,28 @@ describe('planTransport', () => {
 });
 
 describe('availability tape', () => {
-  it('marks untaken offices, hotel rooms and shops for rent and condos for sale', () => {
-    const rent = ['office', 'suite', 'single-room', 'double-room'] as const;
-    for (const type of rent) {
-      expect(planUnit({ ...base, type }, 'day')?.availability).toBe('rent');
-    }
+  it('marks untaken offices and shops for rent and condos for sale, never hotel rooms', () => {
+    expect(planUnit({ ...base, type: 'office' }, 'day')?.availability).toBe('rent');
     expect(planUnit({ ...base, type: 'retail-shop' }, 'day')?.availability).toBe('rent');
     expect(planUnit({ ...base, type: 'condo' }, 'day')?.availability).toBe('sale');
+    for (const type of ['suite', 'single-room', 'double-room'] as const) {
+      expect(planUnit({ ...base, type }, 'day')?.availability).toBeUndefined();
+    }
+  });
+
+  it('draws a built hotel room furnished whether or not it is taken', () => {
+    for (const type of ['suite', 'single-room', 'double-room'] as const) {
+      const free = planUnit({ ...base, type }, 'day');
+      const taken = planUnit({ ...base, type, occupied: true, variant: 'occupied' }, 'day');
+      expect(free?.variant).toEqual({ state: 'closed', time: 'day' });
+      expect(taken?.variant).toEqual({ state: 'closed', time: 'day' });
+    }
+  });
+
+  it('draws no tape on a unit that is not listed', () => {
+    expect(planUnit({ ...base, type: 'condo', listed: false }, 'day')?.availability).toBeUndefined();
+    expect(planUnit({ ...base, type: 'office', listed: false }, 'day')?.availability).toBeUndefined();
+    expect(planUnit({ ...base, type: 'office', listed: true }, 'day')?.availability).toBe('rent');
   });
 
   it('leaves taken units, construction sites and owned units without tape', () => {

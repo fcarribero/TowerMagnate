@@ -85,8 +85,20 @@ export class CommandClient {
     return this.send({ type: 'renameUnit', unitId, name });
   }
 
-  setPrice(unitId: string, price: Extract<Command, { type: 'setPrice' }>['price']) {
+  setPrice(unitId: string, price: number): Promise<CommandResult> {
     return this.send({ type: 'setPrice', unitId, price });
+  }
+
+  setListed(unitId: string, listed: boolean): Promise<CommandResult> {
+    return this.send({ type: 'setListed', unitId, listed });
+  }
+
+  setVenueEnabled(unitId: string, enabled: boolean): Promise<CommandResult> {
+    return this.send({ type: 'setVenueEnabled', unitId, enabled });
+  }
+
+  setVenueHours(unitId: string, open: number, close: number): Promise<CommandResult> {
+    return this.send({ type: 'setVenueHours', unitId, open, close });
   }
 
   changeFilm(unitId: string): Promise<CommandResult> {

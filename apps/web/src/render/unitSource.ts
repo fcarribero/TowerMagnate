@@ -85,7 +85,7 @@ export function debugUnits(
         x,
         level: DEBUG_FIRST_LEVEL + row * DEBUG_ROW_SPACING,
         name: null,
-        price: 'normal',
+        price: 0,
         occupied,
         variant: occupied ? 'occupied' : 'empty',
         inside: occupied,
@@ -138,7 +138,7 @@ function variantUnits(): UnitView[] {
       x,
       level: DEBUG_VARIANT_LEVEL,
       name: null,
-      price: 'normal',
+      price: 0,
       occupied: false,
       variant,
     };

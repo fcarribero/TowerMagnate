@@ -15,7 +15,7 @@ export const office: UnitView = {
   x: 12,
   level: 2,
   name: null,
-  price: 'normal',
+  price: 1000,
   occupied: true,
   variant: 'occupied',
 };

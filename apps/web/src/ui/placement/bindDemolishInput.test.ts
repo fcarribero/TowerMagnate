@@ -13,6 +13,7 @@ function setup(units: DemolishWorld['units'] = [], ruinsRow = '..rrr.rr..') {
   const sent: Command[] = [];
   const asked: Confirmation[] = [];
   const answers: Array<() => void> = [];
+  const keeps: Array<(() => void) | undefined> = [];
   const frames: unknown[] = [];
   const outcomes: unknown[] = [];
   const keys = new EventTarget();
@@ -45,7 +46,8 @@ function setup(units: DemolishWorld['units'] = [], ruinsRow = '..rrr.rr..') {
       shafts: [],
       cars: [],
     }),
-    confirm: (confirmation, proceed) => {
+    confirm: (confirmation, proceed, keepContract) => {
+      keeps.push(keepContract);
       asked.push(confirmation);
       answers.push(proceed);
     },
@@ -65,6 +67,7 @@ function setup(units: DemolishWorld['units'] = [], ruinsRow = '..rrr.rr..') {
     sentAt,
     asked,
     answers,
+    keeps,
     frames,
     outcomes,
   };
@@ -82,7 +85,7 @@ const cinema = {
   x: 4,
   level: 2,
   name: null,
-  price: 'normal',
+  price: 1000,
   occupied: false,
   variant: 'empty',
 } as const;
@@ -175,5 +178,22 @@ describe('bindDemolishInput', () => {
     expect(t.sent).toEqual([]);
     t.answers[0]?.();
     expect(t.sent).toEqual([{ type: 'demolish', target: { kind: 'unit', id: 'u9' } }]);
+  });
+
+  it('asks about a rented office and unlists it on "No renovar" without demolishing', () => {
+    const office = {
+      ...cinema,
+      id: 'u5',
+      type: 'office',
+      rent: 9000,
+      listed: true,
+      occupied: true,
+    } as const;
+    const t = setup([office]);
+    t.input('down', { x: 5, level: 2 });
+    expect(t.asked[0]).toMatchObject({ kind: 'rented', indemnity: 9000 });
+    expect(t.sent).toEqual([]);
+    t.keeps[0]?.();
+    expect(t.sent).toEqual([{ type: 'setListed', unitId: 'u5', listed: false }]);
   });
 });

@@ -128,8 +128,11 @@ export interface ConfirmDialogProps {
   actionTone?: 'danger' | 'plain';
   onConfirm: () => void;
   onCancel: () => void;
+  /** A third button between the action and Cancelar. */
+  extra?: { label: string; onChoose: () => void };
 }
 
+const EXTRA = 'extra';
 const CONFIRM = 'confirm';
 const CANCEL = 'cancel';
 
@@ -142,6 +145,7 @@ export function ConfirmDialog({
   actionTone = 'danger',
   onConfirm,
   onCancel,
+  extra,
 }: ConfirmDialogProps) {
   return (
     <DialogFrame
@@ -150,13 +154,22 @@ export function ConfirmDialog({
       body={<p class="tm-dialog__body">{body}</p>}
       choices={[
         { id: CONFIRM, label: actionLabel },
+        ...(extra === undefined ? [] : [{ id: EXTRA, label: extra.label }]),
         { id: CANCEL, label: t('ui.cancel') },
       ]}
       redChoiceId={actionTone === 'danger' ? CONFIRM : undefined}
       focusedChoiceId={CANCEL}
       escapeChoiceId={CANCEL}
       showCloseButton={false}
-      onChoose={(choice) => (choice === CONFIRM ? onConfirm() : onCancel())}
+      onChoose={(choice) => {
+        if (choice === CONFIRM) {
+          onConfirm();
+        } else if (choice === EXTRA) {
+          extra?.onChoose();
+        } else {
+          onCancel();
+        }
+      }}
       modal
     />
   );

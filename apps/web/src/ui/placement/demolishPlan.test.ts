@@ -1,7 +1,13 @@
 import type { CarView, ShaftView, TransportView, UnitView } from '@tower-magnate/shared';
 import { describe, expect, it } from 'vitest';
 import { levelToIndex } from '../../render/levels';
-import { combineOutcomes, pickDemolition, type DemolishWorld } from './demolishPlan';
+import {
+  combineOutcomes,
+  indemnityOf,
+  pickDemolition,
+  unlistCommands,
+  type DemolishWorld,
+} from './demolishPlan';
 
 const unit = (over: Partial<UnitView>): UnitView => ({
   id: 'u1',
@@ -9,7 +15,7 @@ const unit = (over: Partial<UnitView>): UnitView => ({
   x: 10,
   level: 2,
   name: null,
-  price: 'normal' as UnitView['price'],
+  price: 1000,
   occupied: false,
   variant: 'empty',
   ...over,
@@ -152,5 +158,35 @@ describe('combineOutcomes', () => {
         { ok: false, error: 'CELL_OCCUPIED' },
       ]),
     ).toEqual({ ok: false, error: 'CELL_OCCUPIED' });
+  });
+});
+
+describe('rented units', () => {
+  const rented = unit({ rent: 12_000, listed: true, occupied: true });
+
+  it('asks before demolishing a rented office and names a week of rent', () => {
+    const pick = pickDemolition(world({ units: [rented] }), { x: 12, level: 2 });
+    expect(pick?.confirmation).toMatchObject({ kind: 'rented', unitType: 'office', indemnity: 12_000 });
+    expect(unlistCommands(pick!.confirmation!)).toEqual([
+      { type: 'setListed', unitId: 'u1', listed: false },
+    ]);
+  });
+
+  it('offers no unlisting for a unit that is already unlisted', () => {
+    const pick = pickDemolition(world({ units: [{ ...rented, listed: false }] }), {
+      x: 12,
+      level: 2,
+    });
+    expect(pick?.confirmation?.kind).toBe('rented');
+    expect(unlistCommands(pick!.confirmation!)).toEqual([]);
+  });
+
+  it('does not ask for an unrented office', () => {
+    const pick = pickDemolition(world({ units: [unit({ listed: true })] }), { x: 12, level: 2 });
+    expect(pick?.confirmation).toBeNull();
+  });
+
+  it('sums one week of rent over the rented units', () => {
+    expect(indemnityOf([{ rent: 5000 }, {}, { rent: 7000 }])).toBe(12_000);
   });
 });

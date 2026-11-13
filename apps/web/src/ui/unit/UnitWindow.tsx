@@ -1,24 +1,37 @@
 import { useEffect, useState } from 'preact/hooks';
 import type { GameConnection } from '../../net/gameConnection';
-import type { PriceLevel, UnitView } from '@tower-magnate/shared';
-import { Button, ConfirmDialog, Tooltip, Window, dialogRequest, useWindowManager } from '../kit';
+import type { UnitView } from '@tower-magnate/shared';
+import type { UnitInspect } from '../../model/inspectStore';
+import {
+  Button,
+  Checkbox,
+  ConfirmDialog,
+  RangeSlider,
+  Tooltip,
+  Window,
+  dialogRequest,
+  useWindowManager,
+} from '../kit';
 import { unitPanelId, unitWindowId } from '../inspectTarget';
 import { t } from '../strings';
+import { PeopleRow } from './PeopleRow';
+import { PriceControlView } from './PriceControl';
 import {
   NAME_MAX_LENGTH,
+  clampHours,
   filmChangeState,
   groupUnitRows,
-  isSoldCondo,
+  hourText,
+  listedOf,
   locationText,
+  peopleGroups,
+  priceControlOf,
   priceLabelKey,
-  priceOf,
-  priceOptions,
   typeName,
   unitRows,
   unitSubtitle,
   unitTitle,
   venueChart,
-  type PriceOption,
   type UnitRow,
   type VenueChart,
 } from './unitWindowModel';
@@ -82,7 +95,6 @@ export function UnitWindow({ unitId, connection, anchored = false }: UnitWindowP
   const gone = data?.status === 'gone' || (loaded && view === undefined);
   const windowId = anchored ? unitPanelId(unitId) : unitWindowId(unitId);
   const filmDialogId = `changeFilm:${unitId}`;
-  const [, redraw] = useState(0);
 
   const known = found ?? view;
   const customName = found?.name ?? view?.name ?? null;
@@ -116,9 +128,10 @@ export function UnitWindow({ unitId, connection, anchored = false }: UnitWindowP
   };
 
   const title = known === undefined ? '' : unitTitle(known);
-  const sold = found !== undefined && isSoldCondo(found);
   const priceLabel = found === undefined ? null : priceLabelKey(found.type);
-  const price = found === undefined ? null : priceOf(found);
+  const priceControl = found === undefined ? null : priceControlOf(found);
+  const listed = found === undefined ? null : listedOf(found);
+  const people = found === undefined ? [] : peopleGroups(found);
 
   const groups = found === undefined ? null : groupUnitRows(unitRows(found));
 
@@ -171,23 +184,28 @@ export function UnitWindow({ unitId, connection, anchored = false }: UnitWindowP
             ))}
           </dl>
         )}
-        {found !== undefined && priceLabel !== null && price !== null && (
-          <>
-            <PriceTiles
-              name={`${windowId}-price`}
-              label={t(priceLabel)}
-              options={priceOptions(found.type)}
-              value={price}
-              disabled={gone || sold}
-              onChange={(price) => {
-                void commands.setPrice(unitId, price);
-                // The tiles keep what the server last said until the next inspect.
-                redraw((count) => count + 1);
-              }}
-            />
-            {sold && <p class="tm-unit__note">{t('window.unit.alreadySold')}</p>}
-          </>
+        {found !== undefined && priceLabel !== null && priceControl !== null && (
+          <PriceControlView
+            id={`${windowId}-price`}
+            label={t(priceLabel)}
+            control={priceControl}
+            disabled={gone}
+            onCommit={(price) => void commands.setPrice(unitId, price)}
+          />
         )}
+        {found !== undefined && listed !== null && !(found.details?.group === 'condo' && found.details.state === 'sold') && (
+          <ListedToggle
+            id={`${windowId}-listed`}
+            label={t(found.details?.group === 'condo' ? 'window.unit.listedSale' : 'window.unit.listedRent')}
+            note={found.details?.group === 'lease' ? t('window.unit.listedRentNote') : undefined}
+            listed={listed}
+            disabled={gone}
+            onChange={(next) => void commands.setListed(unitId, next)}
+          />
+        )}
+        {people.map((group) => (
+          <PeopleRow key={group.id} group={group} connection={connection} />
+        ))}
         {groups !== null && groups.chips.length > 0 && (
           <div class="tm-unit__chips">
             {groups.chips.map((row) => (
@@ -196,6 +214,15 @@ export function UnitWindow({ unitId, connection, anchored = false }: UnitWindowP
               </span>
             ))}
           </div>
+        )}
+        {found?.details?.group === 'venue' && found.type === 'fast-food' && (
+          <VenueControls
+            id={windowId}
+            details={found.details}
+            disabled={gone}
+            onEnabled={(enabled) => void commands.setVenueEnabled(unitId, enabled)}
+            onHours={(open, close) => void commands.setVenueHours(unitId, open, close)}
+          />
         )}
         {found?.type === 'cinema' && (
           <FilmButton
@@ -275,39 +302,90 @@ function VenueChartView({ chart }: { chart: VenueChart }) {
   );
 }
 
-interface PriceTilesProps {
-  name: string;
+interface ListedToggleProps {
+  id: string;
   label: string;
-  options: readonly PriceOption[];
-  value: PriceLevel;
+  note: string | undefined;
+  listed: boolean;
   disabled: boolean;
-  onChange: (value: PriceLevel) => void;
+  onChange: (listed: boolean) => void;
 }
 
-/** Four big tiles that behave as one radio group. */
-function PriceTiles({ name, label, options, value, disabled, onChange }: PriceTilesProps) {
+/** The on-the-market switch; it shows the tick at once and follows the server on the next inspect. */
+function ListedToggle({ id, label, note, listed, disabled, onChange }: ListedToggleProps) {
+  const [shown, setShown] = useState(listed);
+  useEffect(() => setShown(listed), [listed]);
   return (
-    <fieldset class="tm-unit__prices" disabled={disabled}>
-      <legend class="tm-unit__prices-label">{label}</legend>
-      <div class="tm-unit__price-row">
-        {options.map((option) => (
-          <label key={option.value} class="tm-unit__price">
-            <input
-              type="radio"
-              name={name}
-              value={option.value}
-              aria-label={option.label}
-              checked={option.value === value}
-              onChange={() => onChange(option.value)}
-            />
-            <span class="tm-unit__price-face" aria-hidden="true">
-              <span class="tm-unit__price-name">{option.name}</span>
-              <span class="tm-unit__price-amount">{option.amount}</span>
-            </span>
-          </label>
-        ))}
+    <div class="tm-unit__toggle">
+      <Checkbox
+        id={id}
+        label={label}
+        checked={shown}
+        disabled={disabled}
+        onChange={(next) => {
+          setShown(next);
+          onChange(next);
+        }}
+      />
+      {note !== undefined && <p class="tm-unit__note">{note}</p>}
+    </div>
+  );
+}
+
+interface VenueControlsProps {
+  id: string;
+  details: Extract<NonNullable<UnitInspect['details']>, { group: 'venue' }>;
+  disabled: boolean;
+  onEnabled: (enabled: boolean) => void;
+  onHours: (open: number, close: number) => void;
+}
+
+/** A fast food's on/off switch, which applies from tomorrow, and its opening hours. */
+function VenueControls({ id, details, disabled, onEnabled, onHours }: VenueControlsProps) {
+  const [enabled, setEnabled] = useState(details.enabled);
+  useEffect(() => setEnabled(details.enabled), [details.enabled]);
+  const [live, setLive] = useState(details.hours);
+  useEffect(() => setLive(details.hours), [details.hours.open, details.hours.close]);
+  return (
+    <>
+      <div class="tm-unit__toggle">
+        <Checkbox
+          id={`${id}-enabled`}
+          label={t('window.unit.enabled')}
+          checked={enabled}
+          disabled={disabled}
+          onChange={(next) => {
+            setEnabled(next);
+            onEnabled(next);
+          }}
+        />
+        {details.enabled !== details.activeToday && (
+          <p class="tm-unit__note">{t('window.unit.enabledFromTomorrow')}</p>
+        )}
       </div>
-    </fieldset>
+      <div class="tm-unit__hours">
+        <p class="tm-unit__price-title">
+          {t('window.unit.hoursSlider', { from: hourText(live.open), to: hourText(live.close) })}
+        </p>
+        <RangeSlider
+          id={`${id}-hours`}
+          lowLabel={t('window.unit.hoursOpen')}
+          highLabel={t('window.unit.hoursClose')}
+          min={0}
+          max={24}
+          step={1}
+          low={details.hours.open}
+          high={details.hours.close}
+          disabled={disabled}
+          constrain={(low, high, moved) => {
+            const next = clampHours(low, high, moved === 'low' ? 'open' : 'close');
+            return { low: next.open, high: next.close };
+          }}
+          onInput={(low, high) => setLive({ open: low, close: high })}
+          onChange={onHours}
+        />
+      </div>
+    </>
   );
 }
 

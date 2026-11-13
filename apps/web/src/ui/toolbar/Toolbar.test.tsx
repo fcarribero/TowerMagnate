@@ -233,7 +233,7 @@ describe('Toolbar', () => {
       });
       const lines = [...screen.getByRole('tooltip').querySelectorAll('.tm-tooltip__line')];
       expect(lines.map((line) => line.textContent)).toEqual([
-        'Ascensor expreso: $600.000 + $250.000 por cabina',
+        'Ascensor expreso: $850.000 con una cabina, $250.000 por cabina extra',
         'Hueco de 6',
       ]);
     });

@@ -143,46 +143,44 @@ export function homeRow(
   return unit === undefined ? null : { label: t(key), value: unitLabel(unit) };
 }
 
-export interface FollowButton {
+export interface FollowStar {
+  /** Tooltip and accessible name: Seguir, or Dejar de seguir while following. */
   label: string;
-  isPrimary: boolean;
+  /** True while the person is followed: the star is filled. */
+  active: boolean;
   disabled: boolean;
-  tooltip: string | undefined;
+  /** Why the star is disabled, shown instead of the label. */
+  reason: string | undefined;
 }
 
-/** Seguir is primary and needs a name and room in the list; Dejar de seguir is plain. */
-export function followButton(
+/** The star follows a person; it needs a name and room in the list, and unfollowing is always allowed. */
+export function followStar(
   named: boolean,
   isFollowed: boolean,
   followedCount: number,
   gone: boolean,
-): FollowButton {
+): FollowStar {
   if (isFollowed) {
-    return {
-      label: t('window.person.unfollow'),
-      isPrimary: false,
-      disabled: gone,
-      tooltip: undefined,
-    };
+    return { label: t('window.person.unfollow'), active: true, disabled: gone, reason: undefined };
   }
   const label = t('window.person.follow');
   if (!named) {
     return {
       label,
-      isPrimary: true,
+      active: false,
       disabled: true,
-      tooltip: gone ? undefined : t('window.person.needsName'),
+      reason: gone ? undefined : t('window.person.needsName'),
     };
   }
   if (followedCount >= MAX_FOLLOWED_PEOPLE) {
     return {
       label,
-      isPrimary: true,
+      active: false,
       disabled: true,
-      tooltip: gone ? undefined : errorText('FOLLOW_LIMIT'),
+      reason: gone ? undefined : errorText('FOLLOW_LIMIT'),
     };
   }
-  return { label, isPrimary: true, disabled: gone, tooltip: undefined };
+  return { label, active: false, disabled: gone, reason: undefined };
 }
 
 export function followedTitle(count: number): string {

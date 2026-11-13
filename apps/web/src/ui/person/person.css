@@ -118,3 +118,59 @@
   color: var(--obra-paper);
   background: var(--obra-red);
 }
+
+.tm-person__header {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  min-height: calc(32 * var(--tm-px));
+  margin: 0 0 var(--space-3);
+}
+
+.tm-person__header > .tm-tooltip-anchor,
+.tm-person__header > .tm-person__star {
+  position: absolute;
+  top: 0;
+  right: 0;
+}
+
+.tm-person__star {
+  display: inline-flex;
+  width: calc(28 * var(--tm-px));
+  height: calc(28 * var(--tm-px));
+  padding: 0;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--obra-ink);
+  background: var(--obra-paper);
+  border: var(--border-control);
+}
+
+.tm-person__star svg {
+  width: 70%;
+  height: 70%;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linejoin: round;
+}
+
+.tm-person__star.is-active {
+  background: var(--obra-yellow);
+}
+
+.tm-person__star.is-active svg {
+  fill: currentColor;
+}
+
+.tm-person__star:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.tm-person__star:focus-visible {
+  outline: var(--border-control);
+  outline-offset: 2px;
+}

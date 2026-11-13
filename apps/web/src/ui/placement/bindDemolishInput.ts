@@ -8,6 +8,7 @@ import {
   combineOutcomes,
   pickDemolition,
   runCommands,
+  unlistCommands,
   runFootprint,
   type Confirmation,
   type DemolishPick,
@@ -36,8 +37,11 @@ export interface DemolishInputOptions {
   world: () => DemolishWorld | null;
   /** Calls the listener when the tower changes, so the frame follows what is still there. */
   watchWorld?: (listener: () => void) => () => void;
-  /** Called when a demolition needs a yes; `proceed` sends the command. */
-  confirm: (confirmation: Confirmation, proceed: () => void) => void;
+  /**
+   * Called when a demolition needs a yes; `proceed` sends the command. `keepContract` is given
+   * for rented units still listed: it unlists them and sends no demolition.
+   */
+  confirm: (confirmation: Confirmation, proceed: () => void, keepContract?: () => void) => void;
   onOutcome(outcome: CommandOutcome, command: Command, at: ScreenPoint): void;
   /** Waits between chunks of a long run; replaceable in tests. */
   pause?: (ms: number) => Promise<void>;
@@ -109,7 +113,19 @@ export function bindDemolishInput(options: DemolishInputOptions): () => void {
       drag = { kind: pick.run, press: cell, currentX: cell.x };
       frame();
     } else if (pick.confirmation !== null) {
-      confirm(pick.confirmation, () => send(pick.command, at));
+      const { confirmation } = pick;
+      const unlist = unlistCommands(confirmation);
+      confirm(
+        confirmation,
+        () => send(pick.command, at),
+        unlist.length === 0
+          ? undefined
+          : () => {
+              for (const command of unlist) {
+                send(command, at);
+              }
+            },
+      );
     } else {
       send(pick.command, at);
     }

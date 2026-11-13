@@ -236,3 +236,102 @@
 .tm-unit__chart-key.is-average::before {
   background: var(--obra-blue);
 }
+
+.tm-unit__people {
+  margin: 0 0 var(--space-3);
+}
+
+.tm-unit__people-title {
+  margin: 0 0 var(--space-1);
+  font: var(--text-body);
+}
+
+.tm-unit__people-none {
+  margin: 0;
+  font: var(--text-body);
+  color: var(--obra-muted);
+}
+
+.tm-unit__queue {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--space-1);
+  margin: 0;
+  padding: var(--space-1) var(--space-2) 0;
+  list-style: none;
+  background: var(--obra-paper-shade);
+  border: var(--border-control);
+}
+
+.tm-unit__person {
+  display: block;
+  padding: 0;
+  cursor: pointer;
+  background: transparent;
+  border: 0;
+}
+
+.tm-unit__person:hover {
+  background: var(--obra-yellow);
+}
+
+.tm-unit__portrait {
+  display: block;
+  image-rendering: pixelated;
+}
+
+.tm-unit__price-control {
+  margin: 0 0 var(--space-3);
+}
+
+.tm-unit__price-title {
+  margin: 0 0 var(--space-1);
+  font: var(--text-body);
+}
+
+.tm-unit__price-line {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.tm-unit__price-bar {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+}
+
+.tm-unit__price-bar input {
+  display: block;
+  width: 100%;
+  margin: 0;
+}
+
+.tm-unit__appraisal-mark {
+  position: absolute;
+  top: calc(-3 * var(--tm-px));
+  width: calc(2 * var(--tm-px));
+  height: calc(6 * var(--tm-px));
+  background: var(--obra-red);
+  pointer-events: none;
+  transform: translateX(-50%);
+}
+
+.tm-unit__price-input {
+  flex: none;
+  width: calc(64 * var(--tm-px));
+}
+
+.tm-unit__band {
+  margin: var(--space-1) 0 0;
+  font: var(--text-body-strong);
+}
+
+.tm-unit__toggle {
+  margin: 0 0 var(--space-3);
+}
+
+.tm-unit__hours {
+  margin: 0 0 var(--space-3);
+}

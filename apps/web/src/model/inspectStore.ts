@@ -23,6 +23,7 @@ export class InspectStore {
   private readonly people = new Map<string, PersonInspect>();
   private readonly personOpenRequests = new Set<OpenRequestListener>();
   private anchored: string | null = null;
+  private anchoredPersonId: string | null = null;
   private readonly anchorListeners = new Set<Listener>();
 
   receive(message: ServerMessage): void {
@@ -94,11 +95,21 @@ export class InspectStore {
   }
 
   anchorUnit(unitId: string): void {
-    this.setAnchored(unitId);
+    this.setAnchored(unitId, null);
   }
 
+  /** The person whose fixed panel is open next to them; never together with an anchored unit. */
+  anchoredPerson(): string | null {
+    return this.anchoredPersonId;
+  }
+
+  anchorPerson(personId: string): void {
+    this.setAnchored(null, personId);
+  }
+
+  /** Removes the fixed panel, of the unit or of the person. */
   clearAnchor(): void {
-    this.setAnchored(null);
+    this.setAnchored(null, null);
   }
 
   onAnchorChange(listener: Listener): () => void {
@@ -108,11 +119,12 @@ export class InspectStore {
     };
   }
 
-  private setAnchored(unitId: string | null): void {
-    if (this.anchored === unitId) {
+  private setAnchored(unitId: string | null, personId: string | null): void {
+    if (this.anchored === unitId && this.anchoredPersonId === personId) {
       return;
     }
     this.anchored = unitId;
+    this.anchoredPersonId = personId;
     for (const listener of this.anchorListeners) {
       listener();
     }

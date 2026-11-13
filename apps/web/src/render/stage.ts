@@ -4,6 +4,7 @@ import { Application, Container, TextureSource } from 'pixi.js';
 import type { DrawnFrame } from '../model/interpolation';
 import 'pixi.js/unsafe-eval';
 import { loadSprites } from './atlasLoader';
+import { setPortraitSprites } from './personPortrait';
 import {
   centerCamera,
   centerCameraOnRect,
@@ -88,6 +89,10 @@ export interface Stage {
   centerOnUnit(unitId: string): boolean;
   /** The unit's rectangle in canvas device pixels, or null when it is off screen or not drawn. */
   unitScreenRect(unitId: string): ScreenRect | null;
+  /** The person's rectangle in canvas device pixels, or null when they are off screen or not drawn. */
+  personScreenRect(personId: string): ScreenRect | null;
+  /** Frames the person with this id, following them as they move; null removes the frame. */
+  showPersonSelection(personId: string | null): void;
   /** One zoom level in or out, keeping the centre of the view in place. */
   zoomStep(direction: 1 | -1): void;
   onCameraChange(listener: CameraListener): () => void;
@@ -136,6 +141,7 @@ export interface Stage {
 export async function mountStage(host: HTMLElement, options: StageOptions = {}): Promise<Stage> {
   TextureSource.defaultOptions.scaleMode = 'nearest';
   const sprites = await loadSprites();
+  setPortraitSprites(sprites);
 
   const app = new Application();
   await app.init({
@@ -289,11 +295,21 @@ export async function mountStage(host: HTMLElement, options: StageOptions = {}):
   window.addEventListener('pointerup', onPointerUp);
   app.canvas.addEventListener('contextmenu', onContextMenu);
   let carSource: CarSource | null = null;
+  let selectedPerson: string | null = null;
+  const personRectOf = (personId: string) => people.rectOf(personId) ?? elevators.rectOf(personId);
+  const drawPersonSelection = (): void => {
+    ghost.showPersonSelection(
+      selectedPerson === null ? null : (personRectOf(selectedPerson) ?? null),
+    );
+  };
   const drawCars = (): void => {
     const next = carSource?.();
     if (next) {
       elevators.showCars(next.frame, next.shafts);
       people.show(next.frame);
+    }
+    if (selectedPerson !== null) {
+      drawPersonSelection();
     }
   };
   app.ticker.add(drawCars);
@@ -334,6 +350,14 @@ export async function mountStage(host: HTMLElement, options: StageOptions = {}):
     unitScreenRect(unitId) {
       const rect = units.rectOf(unitId);
       return rect === undefined ? null : screenRectOf(camera, rect);
+    },
+    personScreenRect(personId) {
+      const rect = personRectOf(personId);
+      return rect === undefined ? null : screenRectOf(camera, rect);
+    },
+    showPersonSelection(personId) {
+      selectedPerson = personId;
+      drawPersonSelection();
     },
     zoomStep(direction) {
       const zoom = nextZoom(camera.zoom, direction);

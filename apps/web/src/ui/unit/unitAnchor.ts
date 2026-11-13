@@ -24,6 +24,18 @@ export function anchoredPosition(
   };
 }
 
+/** Clicks on these never close a fixed panel: the canvas decides for itself, dialogs belong to the panel. */
+export function isInsidePanelArea(target: EventTarget | null, panelId: string): boolean {
+  if (!(target instanceof Element)) {
+    return false;
+  }
+  return (
+    target.closest('canvas') !== null ||
+    target.closest(`[data-window-id="${panelId}"]`) !== null ||
+    target.closest('.tm-window--dialog, .tm-modal-backdrop') !== null
+  );
+}
+
 function clamp(value: number, min: number, max: number): number {
   return Math.min(Math.max(value, min), Math.max(min, max));
 }

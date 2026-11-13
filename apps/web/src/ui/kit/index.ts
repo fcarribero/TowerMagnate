@@ -17,6 +17,7 @@ export { Checkbox, type CheckboxProps } from './Checkbox';
 export { Dropdown, type DropdownOption, type DropdownProps } from './Dropdown';
 export { ListBox, type ListBoxProps, type ListItem } from './ListBox';
 export { NumberInput, clampToStep, type NumberInputProps } from './NumberInput';
+export { RangeSlider, type RangeSliderProps } from './RangeSlider';
 export { ProgressBar, type ProgressBarProps } from './ProgressBar';
 export { RadioGroup, type RadioGroupProps, type RadioOption } from './RadioGroup';
 export { ScrollArea, type ScrollAreaProps } from './ScrollArea';

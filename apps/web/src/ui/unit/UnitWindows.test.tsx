@@ -21,7 +21,7 @@ function unitView(id: string, type: UnitView['type'] = 'office'): UnitView {
     x: 10,
     level: 3,
     name: null,
-    price: 'normal',
+    price: 10_000,
     occupied: true,
     variant: 'occupied',
   };
@@ -36,9 +36,18 @@ function leaseDetails(fields: Partial<Extract<Details, { group: 'lease' }>> = {}
     persons: 2,
     capacity: 6,
     evaluation: 'good',
-    price: 'normal',
+    price: 10_000,
+    appraisal: 10_000,
+    priceBand: 'normal',
+    priceMin: 2_000,
+    priceMax: 20_000,
+    priceStep: 1,
+    listed: true,
+    weeklyRent: 10_000,
     leaseWeek: 1,
     nextPaymentStep: null,
+    workers: ['p1', 'p2'],
+    customers: [],
     ...fields,
   };
 }
@@ -190,23 +199,33 @@ describe('unit windows', () => {
     expect(commandsSent()).toEqual([]);
   });
 
-  it('sends the price at once and follows the next inspect', () => {
+  it('sends the price once, when the bar is let go, and follows the next inspect', () => {
     const { open, show, commandsSent } = setup([unitView('u1')]);
     open('u1');
     show(inspectOf('u1'));
-    const low = screen.getByRole('radio', { name: 'Bajo $5.000' }) as HTMLInputElement;
-    fireEvent.click(low);
-    expect(commandsSent()).toEqual([{ type: 'setPrice', unitId: 'u1', price: 'low' }]);
-    expect(
-      (screen.getByRole('radio', { name: 'Normal $10.000' }) as HTMLInputElement).checked,
-    ).toBe(true);
-    show(inspectOf('u1', { details: leaseDetails({ price: 'low' }) }));
-    expect((screen.getByRole('radio', { name: 'Bajo $5.000' }) as HTMLInputElement).checked).toBe(
-      true,
-    );
+    const bar = screen.getByRole('slider', { name: 'Ajustar el precio' }) as HTMLInputElement;
+    fireEvent.input(bar, { target: { value: '5000' } });
+    fireEvent.input(bar, { target: { value: '6000' } });
+    expect(commandsSent()).toEqual([]);
+    fireEvent.change(bar, { target: { value: '6000' } });
+    expect(commandsSent()).toEqual([{ type: 'setPrice', unitId: 'u1', price: 6000 }]);
+    show(inspectOf('u1', { details: leaseDetails({ price: 6000, priceBand: 'low' }) }));
+    const after = screen.getByRole('slider', { name: 'Ajustar el precio' }) as HTMLInputElement;
+    expect(after.value).toBe('6000');
+    expect(screen.getByText('Bajo')).toBeTruthy();
   });
 
-  it('disables the price of a sold condo', () => {
+  it('sends a typed price clamped to the limits', () => {
+    const { open, show, commandsSent } = setup([unitView('u1')]);
+    open('u1');
+    show(inspectOf('u1'));
+    const field = screen.getByRole('spinbutton');
+    fireEvent.input(field, { target: { value: '99999' } });
+    fireEvent.blur(field);
+    expect(commandsSent()).toEqual([{ type: 'setPrice', unitId: 'u1', price: 20_000 }]);
+  });
+
+  it('shows no price control, no sold tile and no status for a sold condo', () => {
     const { open, show } = setup([unitView('u1', 'condo')]);
     open('u1');
     show(
@@ -215,20 +234,85 @@ describe('unit windows', () => {
         details: {
           group: 'condo',
           state: 'sold',
-          residents: 2,
+          residents: ['p1', 'p2'],
+          residentCount: 2,
           capacity: 3,
           evaluation: null,
-          price: 'normal',
+          price: 200_000,
+          appraisal: 200_000,
+          priceBand: 'normal',
+          priceMin: 50_000,
+          priceMax: 400_000,
+          priceStep: 1,
+          listed: false,
           nextEvaluationStep: null,
         },
       }),
     );
-    expect(screen.getByText('Ya está vendido.')).toBeTruthy();
-    expect(
-      (screen.getByRole('radio', { name: 'Alto $230.000' }) as HTMLInputElement).matches(
-        ':disabled',
-      ),
-    ).toBe(true);
+    expect(screen.queryByRole('slider', { name: 'Ajustar el precio' })).toBeNull();
+    expect(screen.queryByText('Vendido')).toBeNull();
+    expect(screen.queryByText('Estado')).toBeNull();
+    expect(screen.queryByLabelText('En venta')).toBeNull();
+    expect(screen.getAllByRole('button', { name: 'Ver a esta persona' })).toHaveLength(2);
+  });
+
+  it('opens a person window from the people row', () => {
+    const { open, show, inspect } = setup([unitView('u1')]);
+    open('u1');
+    show(inspectOf('u1'));
+    const requested: string[] = [];
+    inspect.onPersonWindowRequest((id: string) => requested.push(id));
+    const buttons = screen.getAllByRole('button', { name: 'Ver a esta persona' });
+    fireEvent.click(buttons[1] as HTMLElement);
+    expect(requested).toEqual(['p2']);
+  });
+
+  it('lists the office for rent with a checkbox', () => {
+    const { open, show, commandsSent } = setup([unitView('u1')]);
+    open('u1');
+    show(inspectOf('u1'));
+    const box = screen.getByLabelText('En renta') as HTMLInputElement;
+    expect(box.checked).toBe(true);
+    fireEvent.click(box);
+    expect(commandsSent()).toEqual([{ type: 'setListed', unitId: 'u1', listed: false }]);
+  });
+
+  it('shows the fast food hours and switch, and a note while the switch waits for tomorrow', () => {
+    const { open, show, commandsSent } = setup([unitView('u1', 'fast-food')]);
+    open('u1');
+    show(
+      inspectOf('u1', {
+        type: 'fast-food',
+        details: {
+          group: 'venue',
+          served: 0,
+          inside: 0,
+          workers: ['p1'],
+          workersInside: 0,
+          customers: [],
+          opens: 8,
+          closes: 20,
+          hours: { open: 8, close: 20 },
+          enabled: false,
+          activeToday: true,
+          resultToday: 0,
+          today: [],
+          average: [],
+        },
+      }),
+    );
+    expect(screen.getByText('Horario 08:00 a 20:00')).toBeTruthy();
+    expect(screen.getByText('Se aplica desde mañana.')).toBeTruthy();
+    expect(screen.getByText('Personal')).toBeTruthy();
+    expect(screen.getByText('Clientes')).toBeTruthy();
+    const close = screen.getByRole('slider', { name: 'Hora de cierre' });
+    fireEvent.input(close, { target: { value: '22' } });
+    expect(screen.getByText('Horario 08:00 a 22:00')).toBeTruthy();
+    expect(commandsSent()).toEqual([]);
+    fireEvent.change(close, { target: { value: '22' } });
+    expect(commandsSent()).toEqual([{ type: 'setVenueHours', unitId: 'u1', open: 8, close: 22 }]);
+    fireEvent.click(screen.getByLabelText('Habilitado'));
+    expect(commandsSent().at(-1)).toEqual({ type: 'setVenueEnabled', unitId: 'u1', enabled: true });
   });
 
   it('shows a unit the server reports gone, with controls disabled', () => {
@@ -260,9 +344,7 @@ describe('unit windows', () => {
     expect(screen.getByText('Ya no está en la torre.')).toBeTruthy();
     expect((screen.getByLabelText('Nombre') as HTMLInputElement).disabled).toBe(true);
     expect(
-      (screen.getByRole('radio', { name: 'Normal $10.000' }) as HTMLInputElement).matches(
-        ':disabled',
-      ),
+      (screen.getByRole('slider', { name: 'Ajustar el precio' }) as HTMLInputElement).disabled,
     ).toBe(true);
   });
 
@@ -347,7 +429,7 @@ describe('unit windows', () => {
     const cinema = (fields: Partial<UnitInspect> = {}) =>
       inspectOf('u1', {
         type: 'cinema',
-        details: { group: 'cinema', filmWeek: 2, filmAgeDays: 9, price: 'normal' },
+        details: { group: 'cinema', filmWeek: 2, filmAgeDays: 9 },
         ...fields,
       });
 

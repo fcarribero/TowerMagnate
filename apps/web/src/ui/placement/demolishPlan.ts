@@ -36,9 +36,13 @@ export interface DemolishWorld {
 }
 
 export interface Confirmation {
-  kind: 'soldCondo' | 'expensive';
+  kind: 'soldCondo' | 'expensive' | 'rented';
   unitType: UnitType;
   price: number;
+  /** Rented units only: the indemnity, one week of rent summed over the units. */
+  indemnity?: number;
+  /** Rented units only: the rented units that are still listed, which "No renovar" unlists. */
+  unlistIds?: string[];
 }
 
 /** What sits under the pointer and what removing it would send. */
@@ -62,6 +66,34 @@ function confirmationFor(unitType: UnitType, soldCondo: boolean): Confirmation |
     return { kind: 'soldCondo', unitType, price };
   }
   return price >= CONFIRM_PRICE ? { kind: 'expensive', unitType, price } : null;
+}
+
+/** One week of the rent locked in each lease: what demolishing rented units costs. */
+export function indemnityOf(units: Iterable<Pick<UnitView, 'rent'>>): number {
+  let total = 0;
+  for (const unit of units) {
+    total += unit.rent ?? 0;
+  }
+  return total;
+}
+
+function rentedConfirmation(unit: UnitView): Confirmation {
+  return {
+    kind: 'rented',
+    unitType: unit.type,
+    price: buildPrice(unit.type),
+    indemnity: indemnityOf([unit]),
+    unlistIds: unit.listed === false ? [] : [unit.id],
+  };
+}
+
+/** The commands behind "No renovar": the contracts end at their term and are not offered again. */
+export function unlistCommands(confirmation: Confirmation): Command[] {
+  return (confirmation.unlistIds ?? []).map((unitId) => ({
+    type: 'setListed',
+    unitId,
+    listed: false,
+  }));
 }
 
 function targetPick(
@@ -126,7 +158,10 @@ function pickUnit(world: DemolishWorld, cell: Cell): DemolishPick | null {
     const footprint = footprintOfThing(unit);
     if (coversCell(footprint, cell)) {
       const soldCondo = unit.type === 'condo' && unit.occupied;
-      const confirmation = confirmationFor(unit.type, soldCondo);
+      const confirmation =
+        unit.rent !== undefined && !soldCondo
+          ? rentedConfirmation(unit)
+          : confirmationFor(unit.type, soldCondo);
       return targetPick({ kind: 'unit', id: unit.id }, footprint, confirmation);
     }
   }

@@ -16,11 +16,11 @@ function clientWith(open = true) {
 describe('CommandClient', () => {
   it('settles a command with the result that has its id', async () => {
     const { client, sent } = clientWith();
-    const result = client.setPrice('u1', 'low');
+    const result = client.setPrice('u1', 5000);
     const first = sent[0];
     expect(first).toMatchObject({
       t: 'command',
-      p: { command: { type: 'setPrice', unitId: 'u1', price: 'low' } },
+      p: { command: { type: 'setPrice', unitId: 'u1', price: 5000 } },
     });
     const id = first?.t === 'command' ? first.p.id : '';
     client.receive({

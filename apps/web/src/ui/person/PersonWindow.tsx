@@ -5,12 +5,13 @@ import type { GameConnection } from '../../net/gameConnection';
 import { personWorldPoint } from '../../render/personPoint';
 import { unitAt } from '../../render/placementCheck';
 import { Button, TextField, Tooltip, Window, useWindowManager } from '../kit';
-import { personWindowId } from '../inspectTarget';
+import { personPanelId, personWindowId } from '../inspectTarget';
+import { PersonPortrait } from './PersonPortrait';
 import { t } from '../strings';
 import { NAME_MAX_LENGTH } from '../unit/unitWindowModel';
 import {
   destinationText,
-  followButton,
+  followStar,
   homeRow,
   kindName,
   personTitle,
@@ -27,6 +28,8 @@ export interface PersonWindowProps {
   connection: Pick<GameConnection, 'store' | 'inspect' | 'commands'>;
   /** Moves the view to a world point, keeping the zoom. */
   onCenter: (point: { x: number; y: number }) => void;
+  /** The fixed panel next to the selected person: no close button, no dragging. A click elsewhere closes it. */
+  anchored?: boolean;
 }
 
 interface Place {
@@ -100,7 +103,12 @@ function useLastKnown<T>(value: T | undefined): T | undefined {
 }
 
 /** Person window, ui.md 6.3. */
-export function PersonWindow({ personId, connection, onCenter }: PersonWindowProps) {
+export function PersonWindow({
+  personId,
+  connection,
+  onCenter,
+  anchored = false,
+}: PersonWindowProps) {
   const manager = useWindowManager();
   const { commands } = connection;
   const facts = useTowerFacts(connection, personId);
@@ -109,7 +117,7 @@ export function PersonWindow({ personId, connection, onCenter }: PersonWindowPro
   const known = useLastKnown(found);
   const place = useLastKnown(facts.place);
   const gone = data?.status === 'gone';
-  const windowId = personWindowId(personId);
+  const windowId = anchored ? personPanelId(personId) : personWindowId(personId);
 
   const storedName = known?.name ?? null;
   const [draft, setDraft] = useState<string | null>(null);
@@ -126,6 +134,10 @@ export function PersonWindow({ personId, connection, onCenter }: PersonWindowPro
   };
 
   const close = (): void => {
+    if (anchored) {
+      connection.inspect.clearAnchor();
+      return;
+    }
     connection.inspect.forgetPerson(personId);
     manager.close(windowId);
   };
@@ -135,7 +147,7 @@ export function PersonWindow({ personId, connection, onCenter }: PersonWindowPro
     place === undefined
       ? undefined
       : (unitAt(facts.units.values(), Math.round(place.x), place.level) ?? undefined);
-  const follow = followButton(storedName !== null, facts.isFollowed, facts.followedCount, gone);
+  const follow = followStar(storedName !== null, facts.isFollowed, facts.followedCount, gone);
   const toggleFollow = (): void => {
     void (facts.isFollowed ? commands.unfollowPerson(personId) : commands.followPerson(personId));
   };
@@ -143,15 +155,35 @@ export function PersonWindow({ personId, connection, onCenter }: PersonWindowPro
   const home = found === undefined ? null : homeRow(found.personKind, found.homeUnitId, unitOf);
   const stress = found === undefined ? null : stressText(found.stressMinutes, found.stress);
 
-  const followButtonElement = (
-    <Button isPrimary={follow.isPrimary} disabled={follow.disabled} onClick={toggleFollow}>
-      {follow.label}
-    </Button>
+  const starButton = (
+    <button
+      type="button"
+      class={`tm-person__star${follow.active ? ' is-active' : ''}`}
+      aria-label={follow.label}
+      aria-pressed={follow.active}
+      disabled={follow.disabled}
+      onClick={toggleFollow}
+    >
+      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+        <path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z" />
+      </svg>
+    </button>
   );
 
   return (
-    <Window id={windowId} title={title} onClose={close} width={200}>
+    <Window
+      id={windowId}
+      title={title}
+      onClose={close}
+      showCloseButton={!anchored}
+      draggable={!anchored}
+      width={200}
+    >
       {gone && <p class="tm-person__gone">{t('ui.goneFromTower')}</p>}
+      <div class="tm-person__header">
+        {known !== undefined && <PersonPortrait id={personId} kind={known.personKind} />}
+        {follow.reason === undefined ? starButton : <Tooltip text={follow.reason}>{starButton}</Tooltip>}
+      </div>
       <TextField
         id={`${windowId}-name`}
         label={t('window.unit.name')}
@@ -183,11 +215,6 @@ export function PersonWindow({ personId, connection, onCenter }: PersonWindowPro
         </dl>
       )}
       <div class="tm-person__buttons">
-        {follow.tooltip === undefined ? (
-          followButtonElement
-        ) : (
-          <Tooltip text={follow.tooltip}>{followButtonElement}</Tooltip>
-        )}
         <Button
           disabled={gone || place === undefined}
           onClick={() => place !== undefined && onCenter(personWorldPoint(place))}

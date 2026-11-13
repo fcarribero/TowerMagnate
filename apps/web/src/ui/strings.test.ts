@@ -44,6 +44,8 @@ const ERROR_CODES: Readonly<Record<ErrorCode | SocketErrorCode, true>> = {
   PARKING_NOT_CONNECTED: true,
   RECYCLING_NOT_ADJACENT: true,
   MAIN_LOBBY_PROTECTED: true,
+  MAIN_LOBBY_COVERED: true,
+  MAIN_LOBBY_INNER: true,
   SUPPORTS_STRUCTURE: true,
   SHAFT_IN_USE: true,
   NOTHING_TO_DEMOLISH: true,

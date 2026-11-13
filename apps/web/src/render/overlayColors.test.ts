@@ -9,7 +9,7 @@ function unit(type: UnitView['type'], id = 'u1'): UnitView {
     x: 0,
     level: 1,
     name: null,
-    price: 'normal',
+    price: 1,
     occupied: false,
     variant: 'empty',
   } as UnitView;
@@ -17,7 +17,7 @@ function unit(type: UnitView['type'], id = 'u1'): UnitView {
 
 const data: OverlayData = {
   evaluation: { u1: 'good', u2: 'fair', u3: 'poor', u4: null },
-  price: { u1: 'high', u2: 'normal', u3: 'low', u4: 'minimum' },
+  price: { u1: 'high', u2: 'normal', u3: 'low' },
   hotel: { u1: 'clean', u2: 'occupied', u3: 'dirty', u4: 'infested' },
 };
 
@@ -37,11 +37,11 @@ describe('overlayColorOf', () => {
     expect(overlayColorOf('evaluation', unit('condo', 'u9'), data)).toBe('gray');
   });
 
-  it('colors price levels', () => {
+  it('colors price bands, normal when a unit has none', () => {
     const colors = ['u1', 'u2', 'u3', 'u4'].map((id) =>
       overlayColorOf('price', unit('retail-shop', id), data),
     );
-    expect(colors).toEqual(['cloth-red', 'leaf', 'sky-deep', 'lamp']);
+    expect(colors).toEqual(['cloth-red', 'leaf', 'sky-deep', 'leaf']);
   });
 
   it('colors hotel room states', () => {

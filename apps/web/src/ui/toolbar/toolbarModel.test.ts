@@ -29,9 +29,9 @@ const DESIGN_TABLE: Readonly<Record<ToolbarCategory, readonly Row[]>> = {
   transport: [
     ['stairs', '8 casilleros, une 2 pisos', '$5.000', 1],
     ['escalator', '8 casilleros, une 2 pisos', '$20.000', 1],
-    ['standard-elevator', 'Hueco de 4, hasta 30 pisos', '$200.000 + $80.000 por cabina', 1],
-    ['service-elevator', 'Hueco de 4, hasta 30 pisos', '$100.000 + $50.000 por cabina', 2],
-    ['express-elevator', 'Hueco de 6', '$600.000 + $250.000 por cabina', 3],
+    ['standard-elevator', 'Hueco de 4, hasta 30 pisos', '$280.000 con una cabina, $80.000 por cabina extra', 1],
+    ['service-elevator', 'Hueco de 4, hasta 30 pisos', '$150.000 con una cabina, $50.000 por cabina extra', 2],
+    ['express-elevator', 'Hueco de 6', '$850.000 con una cabina, $250.000 por cabina extra', 3],
   ],
   'offices-and-housing': [
     ['office', '9 x 1 casilleros', '$40.000', 1],

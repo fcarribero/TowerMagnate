@@ -162,6 +162,7 @@ export function App({ developer = false, onLogout, onRestartTower, onSessionLost
   const [pendingDemolition, setPendingDemolition] = useState<{
     confirmation: Confirmation;
     proceed: () => void;
+    keepContract?: () => void;
   } | null>(null);
   const [dragLabel, setDragLabel] = useState<DragLabel | null>(null);
   const [mainLobbyHeight, setMainLobbyHeight] = useState<number | null>(null);
@@ -263,7 +264,7 @@ export function App({ developer = false, onLogout, onRestartTower, onSessionLost
       return;
     }
     const unbind = bindUnitClicks(stage, connection.store, {
-      person: (personId) => connection.inspect.requestPersonWindow(personId),
+      person: (personId) => connection.inspect.anchorPerson(personId),
       unit: (unitId) => connection.inspect.anchorUnit(unitId),
       shaft: (shaftId) => connection.inspect.requestShaftWindow(shaftId),
       clearUnit: () => connection.inspect.clearAnchor(),
@@ -305,7 +306,8 @@ export function App({ developer = false, onLogout, onRestartTower, onSessionLost
             }),
             listener,
           ),
-        confirm: (confirmation, proceed) => setPendingDemolition({ confirmation, proceed }),
+        confirm: (confirmation, proceed, keepContract) =>
+          setPendingDemolition({ confirmation, proceed, keepContract }),
         onOutcome: (outcome, _command, at) => report(outcome, at),
       });
       return () => {
@@ -443,6 +445,14 @@ export function App({ developer = false, onLogout, onRestartTower, onSessionLost
               pendingDemolition?.proceed();
               setPendingDemolition(null);
             }}
+            onKeepContract={
+              pendingDemolition?.keepContract === undefined
+                ? undefined
+                : () => {
+                    pendingDemolition.keepContract?.();
+                    setPendingDemolition(null);
+                  }
+            }
             onCancel={() => setPendingDemolition(null)}
           />
           {financeOpen && (
@@ -472,7 +482,7 @@ export function App({ developer = false, onLogout, onRestartTower, onSessionLost
             />
           )}
           <UnitWindows connection={connection} stage={stage} />
-          <PersonWindows connection={connection} onCenter={centerView} />
+          <PersonWindows connection={connection} onCenter={centerView} stage={stage} />
           <InfoDialogs subscribe={connection.onMessage} />
           <DecisionDialogs
             store={connection.store}

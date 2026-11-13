@@ -15,7 +15,7 @@ import {
   unitWindowId,
 } from '../inspectTarget';
 import { UnitWindow } from './UnitWindow';
-import { ANCHOR_GAP, anchoredPosition } from './unitAnchor';
+import { ANCHOR_GAP, anchoredPosition, isInsidePanelArea } from './unitAnchor';
 
 const FIRST_WINDOW_POSITION = { x: 40, y: 40 };
 const CASCADE_STEP = 12;
@@ -30,18 +30,6 @@ interface UnitWindowsProps {
 }
 
 const PANEL_FALLBACK_HEIGHT = 200;
-
-/** Clicks on these never close the panel: the canvas decides for itself, dialogs belong to the panel. */
-function isInsidePanelArea(target: EventTarget | null, panelId: string): boolean {
-  if (!(target instanceof Element)) {
-    return false;
-  }
-  return (
-    target.closest('canvas') !== null ||
-    target.closest(`[data-window-id="${panelId}"]`) !== null ||
-    target.closest('.tm-window--dialog, .tm-modal-backdrop') !== null
-  );
-}
 
 /**
  * Opens a unit window whenever a list asks for one, shows the fixed panel of the

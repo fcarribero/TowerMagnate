@@ -61,6 +61,7 @@ export type UnitSource = Pick<
   | 'construction'
   | 'inside'
   | 'leased'
+  | 'listed'
   | 'staffed'
   | 'garbage'
 >;
@@ -90,7 +91,8 @@ export function planUnit(
     openVenues,
   );
   const drawing = footprint(unit.id, `units/${unit.type}`, unit, { state, time }, overlay);
-  const open = !building && state === 'empty' ? AVAILABILITY[unit.type] : undefined;
+  const open =
+    !building && state === 'empty' && unit.listed !== false ? AVAILABILITY[unit.type] : undefined;
   const offered = open === undefined ? drawing : { ...drawing, availability: open };
   const marked = unit.variant === 'disconnected' ? { ...offered, noAccess: true } : offered;
   const piled =
@@ -98,13 +100,10 @@ export function planUnit(
   return unit.construction === undefined ? piled : { ...piled, construction: unit.construction };
 }
 
-/** What the tape on an untaken unit says: condos are sold, the rest are rented. */
+/** What the tape on an untaken unit says: condos are sold, the rest are rented. Hotel rooms get none. */
 const AVAILABILITY: Partial<Record<UnitType, 'rent' | 'sale'>> = {
   office: 'rent',
   condo: 'sale',
-  'single-room': 'rent',
-  'double-room': 'rent',
-  suite: 'rent',
   'retail-shop': 'rent',
 };
 
@@ -118,6 +117,10 @@ const CREWLESS_STATES: Record<keyof typeof VENUE_STAFF, string> = {
 };
 
 const HOTEL_ROOMS: readonly UnitType[] = ['single-room', 'double-room', 'suite'];
+
+function isBuilding(unit: UnitSource): boolean {
+  return unit.construction !== undefined;
+}
 
 function unitState(unit: UnitSource, openVenues: OpenVenues): string {
   const { type, variant } = unit;
@@ -140,7 +143,9 @@ function unitState(unit: UnitSource, openVenues: OpenVenues): string {
   const taken = unit.occupied || variant === 'occupied';
   if (RENTAL_UNITS.includes(type)) {
     // Not taken: the bare room. Taken with nobody in: furnished and dark. Someone in: lit.
-    return !taken ? 'empty' : unit.inside === true ? 'occupied' : 'closed';
+    // A built hotel room is always furnished, taken or not.
+    if (!taken) return HOTEL_ROOMS.includes(type) && !isBuilding(unit) ? 'closed' : 'empty';
+    return unit.inside === true ? 'occupied' : 'closed';
   }
   return spriteState(type, taken);
 }
