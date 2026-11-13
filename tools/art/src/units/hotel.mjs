@@ -99,16 +99,13 @@ function drawBed(room, left, width, { made, pillows, sleeper = false }) {
   }
 }
 
-// Someone asleep: the head on the first pillow and the blanket pulled over the body.
+// Someone asleep: the head on the first pillow and a hump of blanket over the body.
 function drawSleeper(room, right, top, width) {
-  room.fillRect(right - 6, top + 1, 4, 2, 'skin-mid');
-  room.hline(right - 6, top + 1, 4, 'wood-dark');
-  room.hline(left(right, width) + 1, top + 2, width - 9, 'cloth-blue');
-  room.hline(left(right, width) + 1, top + 3, width - 9, 'cloth-blue');
-}
-
-function left(right, width) {
-  return right - width + 1;
+  const left = right - width + 1;
+  room.fillRect(right - 6, top, 4, 3, 'skin-mid');
+  room.hline(right - 6, top, 4, 'wood-dark');
+  room.hline(left + 2, top + 2, width - 10, 'cloth-blue');
+  room.hline(left + 3, top + 1, width - 12, 'cloth-blue');
 }
 
 function rumpleSheets(room, left, top, width) {

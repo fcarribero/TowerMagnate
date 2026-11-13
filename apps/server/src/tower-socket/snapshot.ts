@@ -240,6 +240,16 @@ function unitsWithSleepers(state: TowerState, people: EnginePerson[]): Set<strin
   return sleeping;
 }
 
+/** An idle person standing in a unit that shows as sleeping is not drawn: the unit looks closed. */
+function isInSleepingUnit(
+  state: TowerState,
+  person: EnginePerson,
+  sleeping: ReadonlySet<string>,
+): boolean {
+  const occupant = occupantAt(state.grid, person.level, person.column);
+  return occupant?.kind === 'unit' && sleeping.has(occupant.id);
+}
+
 /** Units with at least one person standing idle in one of their cells; riders, people outside and walkers passing through excluded. */
 function unitsWithPeopleInside(state: TowerState, people: EnginePerson[]): Set<string> {
   const inside = new Set<string>();
@@ -348,9 +358,11 @@ export function peopleViews(
 ): PersonView[] {
   const rides = ridePlaces(state);
   const views: PersonView[] = [];
+  const sleeping = unitsWithSleepers(state, people);
   people.forEach((person, slot) => {
     if (isOutsideTower(state.people, slot) || isAsleep(state.people, slot)) return;
     const phase = trekPhaseAt(state.people, slot);
+    if (phase === 'idle' && sleeping.size > 0 && isInSleepingUnit(state, person, sleeping)) return;
     const ride = phase === 'riding' ? rides.get(person.id) : undefined;
     const place = {
       level: ride?.level ?? person.level,

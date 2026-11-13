@@ -4,6 +4,7 @@ import {
   createTower,
   creditMoney,
   defaultSchedule,
+  encodeResidentRoutine,
   encodeRoutine,
   followPerson,
   renamePerson,
@@ -301,6 +302,26 @@ describe('snapshot from tower state', () => {
     addOccupant(walking.grid, 2, 0, 8, { kind: 'unit', id: 'u5' });
     walking.people.trek[0] = TREK_PHASES.indexOf('walkingToDestination');
     expect(unitOf(walking)?.inside).toBeUndefined();
+  });
+
+  it('shows a unit with a sleeper as sleeping and draws nobody who lives in it', () => {
+    const state = createTower(7);
+    setStructure(state.grid, 2, 0, 19, 'floor');
+    state.units.u8 = { ...office('u8', 0, null), type: 'condo' };
+    addOccupant(state.grid, 2, 0, 15, { kind: 'unit', id: 'u8' });
+    const sleeper = addPerson(state, { kind: 'resident', homeUnit: 8, level: 2, column: 3 });
+    addPerson(state, { kind: 'resident', homeUnit: 8, level: 2, column: 5 });
+    const slot = state.people.id.indexOf(sleeper);
+    state.people.trip[slot] = encodeResidentRoutine({
+      plan: 'works',
+      phase: 'sleeping',
+      venue: 0,
+      slots: [0, 0, 0],
+    });
+    const view = { levelFrom: 1, levelTo: 3, xFrom: 0, xTo: 50 };
+    const snapshot = buildSnapshot(state, view, new Set());
+    expect(snapshot.units.find((unit) => unit.id === 'u8')?.variant).toBe('sleeping');
+    expect(snapshot.people).toHaveLength(0);
   });
 
   it('maps each trip phase to a person mode', () => {

@@ -139,6 +139,7 @@ export {
 } from './office-routine';
 export type { OfficeRoutine, Place, RoutePlanner, RoutinePhase } from './office-routine';
 export { isAsleep, isOutsideTower } from './outside-tower';
+export { encodeResidentRoutine } from './resident-routine';
 export { createProspectDemand } from './prospects';
 export type { ProspectDemand } from './prospects';
 export { chance, createRng, nextFloat, nextInt, nextUint32 } from './rng';

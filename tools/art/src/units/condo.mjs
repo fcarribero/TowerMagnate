@@ -32,6 +32,7 @@ const legend = {
   L: 'leaf',
   D: 'leaf-dark',
   n: 'night',
+  p: 'skin-mid',
 };
 
 const kitchen = {
@@ -144,6 +145,16 @@ function drawPartition(room) {
   room.vline(PARTITION_LEFT + 2, 1, FLOOR_ROW - 3, 'concrete-dark');
 }
 
+// Someone asleep: a hump of blanket over the body and a head on the pillow.
+const sleeperBody = ['....rrrrrrrr....', '..rrrrrrrrrrrr..', '.rrrrrrrrrrrrrrr'];
+const sleeperHead = ['dddd', 'pppp'];
+
+function drawSleeper(room, bedLeft, bedTop) {
+  room.drawMap(bedLeft + 1, bedTop, sleeperBody, legend);
+  room.drawMap(bedLeft + 18, bedTop, sleeperHead, legend);
+  room.set(bedLeft + 17, bedTop + 2, legend.r);
+}
+
 function drawBedroom(room, occupied, sleeping) {
   const standLeft = 90;
   room.drawMap(standLeft, FLOOR_ROW - nightstand.length + 1, nightstand, legend);
@@ -153,6 +164,9 @@ function drawBedroom(room, occupied, sleeping) {
   const bedLeft = 100;
   const bedTop = FLOOR_ROW - bed.length + 1;
   room.drawMap(bedLeft, bedTop, bed, legend);
+  if (sleeping) {
+    drawSleeper(room, bedLeft, bedTop);
+  }
   if (occupied || sleeping) {
     room.drawMap(bedLeft + 1, bedTop + 3, ['rrrrrrrrrrrrrrr', 'rrrrrrrrrrrrrrrr'], legend);
     room.drawMap(bedLeft + 18, bedTop + 2, ['wwww'], legend);
