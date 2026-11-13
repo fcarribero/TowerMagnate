@@ -131,8 +131,10 @@ export function grabShaft(
   shafts: Iterable<Pick<ShaftView, 'id' | 'type' | 'x' | 'bottom' | 'top'>> | undefined,
   cell: Cell,
 ): GrabbedShaft | null {
-  const id = shaftIdAt(shafts, cell);
-  const shaft = id === null ? undefined : [...(shafts ?? [])].find((other) => other.id === id);
+  // The store hands over an iterator, which can be read only once.
+  const all = [...(shafts ?? [])];
+  const id = shaftIdAt(all, cell);
+  const shaft = id === null ? undefined : all.find((other) => other.id === id);
   if (shaft === undefined) {
     return null;
   }

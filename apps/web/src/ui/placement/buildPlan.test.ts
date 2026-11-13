@@ -3,6 +3,7 @@ import {
   buildMode,
   commandForClick,
   commandForDrag,
+  grabShaft,
   shaftCost,
   shaftIdAt,
   shaftMaxFloors,
@@ -84,5 +85,17 @@ describe('shaft helpers', () => {
     expect(shaftIdAt(shafts, { x: 9, level: 5 })).toBeNull();
     expect(shaftIdAt(shafts, { x: 10, level: 10 })).toBeNull();
     expect(shaftIdAt(undefined, { x: 10, level: 5 })).toBeNull();
+  });
+
+  it('grabs the nearest end of a shaft given a one-shot iterator, as the store hands it over', () => {
+    const shafts = new Map([
+      ['s1', { id: 's1', type: 'standard' as const, x: 10, bottom: 1, top: 9 }],
+    ]);
+    expect(grabShaft(shafts.values(), { x: 11, level: 8 })).toMatchObject({ id: 's1', end: 'top' });
+    expect(grabShaft(shafts.values(), { x: 11, level: 2 })).toMatchObject({
+      id: 's1',
+      end: 'bottom',
+    });
+    expect(grabShaft(shafts.values(), { x: 30, level: 2 })).toBeNull();
   });
 });
