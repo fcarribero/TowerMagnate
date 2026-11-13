@@ -53,22 +53,10 @@ function drawLobbyWindow(tile, top, bottom) {
   }
 }
 
-function drawMarbleColumn(tile) {
-  const slabTop = slabTopOf(tile);
-  tile.fillRect(2, 2, 4, slabTop - 2, 'cloud');
-  tile.vline(2, 2, slabTop - 2, 'white');
-  tile.vline(5, 2, slabTop - 2, 'silver');
-  tile.hline(1, 2, 6, 'white');
-  tile.hline(1, 3, 6, 'silver');
-  tile.hline(1, slabTop - 2, 6, 'cloud');
-  tile.hline(1, slabTop - 1, 6, 'silver');
-}
-
-// One column of lobby, 1 to 3 floors tall. With `column`, a marble column
-// covers the window; the client places it every few tiles. With `window: false`
-// the wall is solid: most of a lobby is wall and the client puts a pane of
-// windows only every few tiles.
-function lobby(floors, { column, window = true }) {
+// One column of lobby, 1 to 3 floors tall. With `window: false` the wall is
+// solid: most of a lobby is wall and the client puts a pane of windows only
+// every few tiles.
+function lobby(floors, { window = true } = {}) {
   const tile = new PixelCanvas(tileWidth, floors * floorHeight);
   const slabTop = slabTopOf(tile);
   const wainscotTop = slabTop - 6;
@@ -85,24 +73,12 @@ function lobby(floors, { column, window = true }) {
   tile.fillRect(0, wainscotTop + 1, tileWidth, 4, 'wood');
   tile.hline(0, slabTop - 1, tileWidth, 'wood-dark');
   drawSlab(tile, ['white', 'concrete-light']);
-  if (column) {
-    drawMarbleColumn(tile);
-  } else {
-    drawPendantLamp(tile);
-  }
+  drawPendantLamp(tile);
   return tile;
 }
 
-function drawSteelColumn(tile) {
-  const slabTop = slabTopOf(tile);
-  tile.fillRect(2, 2, 4, slabTop - 2, 'gray');
-  tile.vline(2, 2, slabTop - 2, 'silver');
-  tile.vline(5, 2, slabTop - 2, 'slate');
-  tile.hline(1, slabTop - 1, 6, 'slate');
-}
-
 // Sky lobby: a glass band with the view outside, a handrail and parquet.
-function skyLobby({ column }) {
+function skyLobby() {
   const tile = new PixelCanvas(tileWidth, floorHeight);
   const slabTop = slabTopOf(tile);
   tile.fillRect(0, 0, tileWidth, slabTop, 'silver');
@@ -119,11 +95,7 @@ function skyLobby({ column }) {
   for (let x = 2; x < tileWidth; x += 4) {
     tile.set(x, slabTop, 'wood-light');
   }
-  if (column) {
-    drawSteelColumn(tile);
-  } else {
-    tile.hline(3, 2, 2, 'silver');
-  }
+  tile.hline(3, 2, 2, 'silver');
   return tile;
 }
 
@@ -388,29 +360,25 @@ function lobbyDoor() {
 const subjects = [
   { subject: 'floor', draw: bareFloor },
   { subject: 'ruins', draw: () => toBurnt(bareFloor()) },
-  { subject: 'lobby-1', draw: () => lobby(1, { column: false }), lightUp: lightPendantLamp },
+  { subject: 'lobby-1', draw: () => lobby(1), lightUp: lightPendantLamp },
   {
     subject: 'lobby-1-wall',
-    draw: () => lobby(1, { column: false, window: false }),
+    draw: () => lobby(1, { window: false }),
     lightUp: lightPendantLamp,
   },
-  { subject: 'lobby-1-column', draw: () => lobby(1, { column: true }) },
-  { subject: 'lobby-2', draw: () => lobby(2, { column: false }), lightUp: lightPendantLamp },
+  { subject: 'lobby-2', draw: () => lobby(2), lightUp: lightPendantLamp },
   {
     subject: 'lobby-2-wall',
-    draw: () => lobby(2, { column: false, window: false }),
+    draw: () => lobby(2, { window: false }),
     lightUp: lightPendantLamp,
   },
-  { subject: 'lobby-2-column', draw: () => lobby(2, { column: true }) },
-  { subject: 'lobby-3', draw: () => lobby(3, { column: false }), lightUp: lightPendantLamp },
+  { subject: 'lobby-3', draw: () => lobby(3), lightUp: lightPendantLamp },
   {
     subject: 'lobby-3-wall',
-    draw: () => lobby(3, { column: false, window: false }),
+    draw: () => lobby(3, { window: false }),
     lightUp: lightPendantLamp,
   },
-  { subject: 'lobby-3-column', draw: () => lobby(3, { column: true }) },
-  { subject: 'sky-lobby', draw: () => skyLobby({ column: false }), lightUp: lightSkyLobby },
-  { subject: 'sky-lobby-column', draw: () => skyLobby({ column: true }) },
+  { subject: 'sky-lobby', draw: () => skyLobby(), lightUp: lightSkyLobby },
   { subject: 'basement', draw: basement },
   ...Array.from({ length: SOIL_LEVELS }, (_, index) => ({
     subject: `soil-${index + 1}`,
