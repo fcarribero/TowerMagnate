@@ -206,9 +206,11 @@ describe('rental units', () => {
   it('lights the room at night only when occupied and keeps the glass clear', () => {
     for (const subject of rentals) {
       const [x, y] = windowCentre[subject];
-      for (const state of ['empty', 'closed', 'occupied']) {
+      for (const state of ['empty', 'occupied']) {
         expect(byId[`units/${subject}/${state}_night`].get(x, y), `${subject} ${state}`).toBe(0);
       }
+      expect(byId[`units/${subject}/closed_night`].get(x, y)).not.toBe(0);
+      expect(byId[`units/${subject}/closed_day`].get(x, y)).not.toBe(0);
       const lit = byId[`units/${subject}/occupied_night`];
       const dark = byId[`units/${subject}/closed_night`];
       const day = byId[`units/${subject}/occupied_day`];

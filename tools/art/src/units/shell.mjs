@@ -72,19 +72,35 @@ export function unitSprites(subject, { windows, drawDay }) {
   return sprites;
 }
 
+// Closed curtains over a window: a rod on top, cloth in soft vertical folds and a hem.
+export function drawCurtains(room, { left, top, width, height }) {
+  room.fillRect(left, top, width, height, 'cloud');
+  for (let x = left + 2; x < left + width; x += 3) {
+    room.vline(x, top + 1, height - 1, 'silver');
+  }
+  room.hline(left, top, width, 'gray');
+  room.hline(left, top + height - 1, width, 'silver');
+}
+
 export const RENTAL_STATES = ['empty', 'closed', 'occupied'];
 
 // Returns the six sprites of a unit that people rent or buy, day and night each:
-// `empty` is the bare room nobody has taken, `closed` is furnished but dark with
+// `empty` is the bare room nobody has taken, `closed` is furnished, dark and curtained with
 // nobody inside, `occupied` is lit with someone inside. `drawDay(state)` draws one.
 export function rentalSprites(subject, { windows, drawDay }) {
   const sprites = [];
   for (const state of RENTAL_STATES) {
     const lit = drawDay(state);
-    // A closed unit has its lights off even by day, so its room is one step darker.
-    const day = state === 'closed' ? lightsOff(toNight(lit)) : lit;
+    // A closed unit has its curtains drawn over the windows and its lights off, so even
+    // by day its room is one step darker.
+    const closed = state === 'closed';
+    if (closed) {
+      windows.forEach((window) => drawCurtains(lit, window));
+    }
+    const day = closed ? lightsOff(toNight(lit)) : lit;
     for (const time of TIMES) {
-      const canvas = time === 'day' ? day : nightVersion(lit, windows, state === 'occupied');
+      const canvas =
+        time === 'day' ? day : nightVersion(lit, closed ? [] : windows, state === 'occupied');
       sprites.push({ id: `units/${subject}/${state}_${time}`, canvas });
     }
   }
