@@ -189,7 +189,6 @@ describe('UnitLayer depth', () => {
     'units/office/ceiling_day',
     'units/office/floor_day',
   ];
-  const camera = { zoom: 2 as const, left: 2000, top: 0, viewWidth: 800, viewHeight: 600 };
 
   it('draws the frame over a box when the room has depth layers', () => {
     const { layer, textures } = layerWith([...flat, ...layers]);
@@ -205,16 +204,5 @@ describe('UnitLayer depth', () => {
     const { layer, textures } = layerWith(flat);
     layer.update({ units: [office], transports: [], time: 'day', openVenues: ALL_VENUES_OPEN });
     expect(spriteOf(layer)).toMatchObject({ texture: textures['units/office/empty_day'] });
-  });
-
-  it('slides the back toward a camera on the right', () => {
-    const { layer } = layerWith([...flat, ...layers]);
-    layer.update({ units: [office], transports: [], time: 'day', openVenues: ALL_VENUES_OPEN });
-    layer.showOnly({ lowest: 0, highest: 1000 });
-    layer.setCamera(camera);
-    const box = layer.view.children[0]?.children[0];
-    const inside = box?.children[1];
-    const back = inside?.children[5];
-    expect(back?.x).toBeGreaterThan(0);
   });
 });

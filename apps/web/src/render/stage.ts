@@ -210,7 +210,6 @@ export async function mountStage(host: HTMLElement, options: StageOptions = {}):
     const onScreen = visibleLevels(camera);
     structure.rows.showOnly(onScreen);
     units.showOnly(onScreen);
-    units.setCamera(camera);
     elevators.showOnly(onScreen);
     people.showOnly(onScreen);
     events.showOnly(onScreen);

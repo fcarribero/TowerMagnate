@@ -2,18 +2,10 @@ import type { OverlayData } from '@tower-magnate/shared';
 import { Container, Graphics, Sprite, TilingSprite } from 'pixi.js';
 import { buildStageFor, siteRects } from './constructionStages';
 import { CulledRows } from './culledRows';
-import type { Camera, LevelRange, WorldRect } from './camera';
+import type { LevelRange, WorldRect } from './camera';
 import { levelTop } from './levels';
 import { altitudeAtWorldY } from './skyRows';
-import {
-  DepthRoom,
-  MAX_DEPTH_X,
-  MAX_DEPTH_Y,
-  REACH_X,
-  REACH_Y,
-  depthOffset,
-  type DepthTextures,
-} from './unitDepth';
+import { DepthRoom, type DepthTextures } from './unitDepth';
 import { checkerTexture } from './overlayChecker';
 import { overlayColorOf, transportOverlayColor, type OverlayId } from './overlayColors';
 import type { SpriteRegistry } from './spriteRegistry';
@@ -77,7 +69,6 @@ export class UnitLayer {
   private readonly frontContainers = new Map<number, Container>();
   private readonly drawn = new Map<string, DrawnUnit>();
   private readonly rects = new Map<string, WorldRect>();
-  private camera: Camera | null = null;
 
   constructor(private readonly sprites: SpriteRegistry) {}
 
@@ -131,29 +122,6 @@ export class UnitLayer {
     return this.drawn.size;
   }
 
-  /** Slides the back of every room on screen against its frame, so rooms look like boxes. */
-  setCamera(camera: Camera): void {
-    this.camera = camera;
-    for (const [id, entry] of this.drawn) {
-      if (entry.depth !== null && entry.container.visible) {
-        this.shiftDepth(entry, this.rects.get(id));
-      }
-    }
-  }
-
-  private shiftDepth(entry: DrawnUnit, rect: WorldRect | undefined): void {
-    const camera = this.camera;
-    if (entry.depth === null || camera === null || rect === undefined) {
-      return;
-    }
-    const cameraX = (camera.left + camera.viewWidth / 2) / camera.zoom;
-    const cameraY = (camera.top + camera.viewHeight / 2) / camera.zoom;
-    entry.depth.setShift(
-      depthOffset(rect.x + rect.width / 2, cameraX, REACH_X, MAX_DEPTH_X),
-      depthOffset(rect.y + rect.height / 2, cameraY, REACH_Y, MAX_DEPTH_Y),
-    );
-  }
-
   /** The layers of a finished room, or null when it has none and is drawn flat. */
   private depthTextures(drawing: UnitDrawing): DepthTextures | null {
     const { variant, subject } = drawing;
@@ -199,7 +167,7 @@ export class UnitLayer {
     entry.depth.view.position.set(drawing.x, drawing.y);
     const worldY = levelTop(drawing.bottomIndex) + drawing.y + drawing.height / 2;
     entry.depth.setSky(altitudeAtWorldY(worldY), drawing.variant.time ?? 'day');
-    this.shiftDepth(entry, this.rects.get(drawing.id) ?? worldRectOf(drawing));
+    entry.depth.setShift(0, 0);
   }
 
   private removeMissing(keep: ReadonlySet<string>): void {
