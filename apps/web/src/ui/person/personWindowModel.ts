@@ -21,6 +21,7 @@ const KIND_KEYS: Readonly<Record<PersonKind, StringKey>> = {
   prospect: 'value.person.prospect',
   builder: 'value.person.builder',
   staff: 'value.person.staff',
+  courier: 'value.person.courier',
 };
 
 const STRESS_KEYS: Readonly<Record<StressLevel, StringKey>> = {
@@ -71,8 +72,15 @@ export function stressText(minutes: number, level: StressLevel): StressText {
   };
 }
 
-/** What the person is doing; `unit` is the unit they are in, when there is one. */
-export function stateText(state: Found['state'], unit: UnitView | undefined): string {
+/** What the person is doing; `unit` is the unit they are in, when there is one. A courier on foot is delivering. */
+export function stateText(
+  state: Found['state'],
+  unit: UnitView | undefined,
+  kind?: PersonKind,
+): string {
+  if (kind === 'courier' && (state === 'walk' || state === 'inside')) {
+    return t('value.personState.delivering');
+  }
   switch (state) {
     case 'walk':
       return t('value.personState.walking');

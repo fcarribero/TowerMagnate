@@ -4,6 +4,8 @@ Version 1.0, 12 November 2026. Owner: Game Designer. Task TM-10.
 
 This document defines who lives in, works in and visits a tower: how many people each unit creates, when each person moves and where to, how visitors pick a venue, how many customers a venue gets per day, hotel bookings, medical and parking demand from 3 stars, and how vacant offices, shops and condos find tenants. Values come from `docs/GDD.md` (section Personas) and the SimTower research notes, adapted to a linear clock and a Monday-to-Sunday week. Where the GDD leaves a point open, or where a GDD value changes, the decision is marked "Design call" with a short reason. Section 19 maps every row of the GDD Personas table to the section that covers it. The numbered rules at the end are the contract for the engine (`packages/engine`), the balance constants (`packages/shared`) and QA.
 
+Couriers, who bring a package to an office, are specified in `docs/design/couriers.md`.
+
 Related specs: construction (TM-8, `docs/design/construction.md`) for what demolition does to people; economy (TM-9, `docs/design/economy.md`) for leases, hotel stays, venue payouts and film aging. Routing costs and walking limits are TM-11, elevator dispatch is TM-12, stress and unit evaluation are TM-13, stars and population are TM-14, events (bomb, fire, VIP trigger) are TM-15, and housekeeping room selection and infestation are TM-16. This document only says when people want to move, where they go and what they do there. The engine implementation of tenant move-in is TM-39.
 
 ## 1. Time conventions

@@ -31,6 +31,8 @@ describe('person window text', () => {
     expect(personTitle('officeWorker', 'Ana')).toBe('Ana');
     expect(personTitle('officeWorker', null)).toBe('Oficinista');
     expect(kindName('guard')).toBe('Guardia de seguridad');
+    expect(kindName('courier')).toBe('Mensajero');
+    expect(personTitle('courier', null)).toBe('Mensajero');
   });
 
   it('writes the stress as minutes and level', () => {
@@ -53,6 +55,10 @@ describe('person window text', () => {
     expect(stateText('outside', undefined)).toBe('Fuera de la torre');
     expect(stateText('inside', named)).toBe('En Estudio');
     expect(stateText('inside', office)).toBe('En Oficina');
+    expect(stateText('walk', undefined, 'courier')).toBe('Entregando un paquete');
+    expect(stateText('inside', office, 'courier')).toBe('Entregando un paquete');
+    expect(stateText('ride', undefined, 'courier')).toBe('En el ascensor');
+    expect(stateText('walk', undefined, 'resident')).toBe('Caminando');
   });
 
   it('writes the destination as unit and level, exit or none', () => {

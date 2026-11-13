@@ -166,7 +166,10 @@ export function PersonWindow({ personId, connection, onCenter }: PersonWindowPro
       {found !== undefined && stress !== null && (
         <dl class="tm-person__rows">
           <Row label={t('window.person.type')} value={kindName(found.personKind)} />
-          <Row label={t('window.person.status')} value={stateText(found.state, unitHere)} />
+          <Row
+            label={t('window.person.status')}
+            value={stateText(found.state, unitHere, found.personKind)}
+          />
           <Row
             label={t('window.person.destination')}
             value={destinationText(found.destination, unitOf)}
