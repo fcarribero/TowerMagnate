@@ -1,4 +1,4 @@
-import { Sprite } from 'pixi.js';
+import { Container, Sprite } from 'pixi.js';
 import { FRAME_HEIGHT, FRAME_WIDTH, multiplyColors, type PersonLook } from './personLook';
 import type { SpriteRegistry } from './spriteRegistry';
 
@@ -12,12 +12,15 @@ export interface PersonPose {
 }
 
 /**
- * One person drawn as stacked layers of the same frame: trousers or skirt (the root sprite), shirt,
- * skin, hair and the fixed parts (shoes, uniform, props). The root's scale stretches every layer, and
- * its anchor is the bottom center, so the feet stay on the floor line whatever the height.
+ * One person drawn as stacked layers of the same frame: trousers or skirt, shirt, skin, hair and
+ * the fixed parts (shoes, uniform, props). The root is a plain container that is never tinted: a
+ * container's tint is multiplied into everything inside it, so tinting one layer through the root
+ * would darken the others by its color. Its scale stretches every layer, and every layer's anchor
+ * is the bottom center, so the feet stay on the floor line whatever the height.
  */
 export class PersonRig {
-  readonly root = new Sprite();
+  readonly root = new Container();
+  private readonly pants = new Sprite();
   private readonly shirt = new Sprite();
   private readonly skin = new Sprite();
   private readonly hair = new Sprite();
@@ -28,8 +31,7 @@ export class PersonRig {
   private tinted = NO_TINT;
 
   constructor() {
-    this.root.anchor.set(0.5, 1);
-    for (const layer of [this.shirt, this.skin, this.hair, this.fixed]) {
+    for (const layer of [this.pants, this.shirt, this.skin, this.hair, this.fixed]) {
       layer.anchor.set(0.5, 1);
       this.root.addChild(layer);
     }
@@ -42,7 +44,7 @@ export class PersonRig {
     }
     const { look, state, frame } = pose;
     const variant = { state, frame };
-    this.root.texture = sprites.variant(look.subjects.pants, variant);
+    this.pants.texture = sprites.variant(look.subjects.pants, variant);
     this.shirt.texture = sprites.variant(look.subjects.shirt, variant);
     this.skin.texture = sprites.variant(look.subjects.skin, variant);
     this.hair.texture = sprites.variant(look.subjects.hair, variant);
@@ -67,7 +69,7 @@ export class PersonRig {
   }
 
   private applyColors(look: PersonLook, tint: number): void {
-    this.root.tint = multiplyColors(look.pants, tint);
+    this.pants.tint = multiplyColors(look.pants, tint);
     this.shirt.tint = multiplyColors(look.shirt, tint);
     this.skin.tint = multiplyColors(look.skin, tint);
     this.hair.tint = multiplyColors(look.hair, tint);

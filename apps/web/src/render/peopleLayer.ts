@@ -33,7 +33,7 @@ function idlePhase(id: string): number {
 }
 
 interface DrawnWalker {
-  sprite: Sprite;
+  sprite: Container;
   rig: PersonRig;
   /** Row of the sprite top a person of average height has, the one used to cull by floor. */
   top: number;

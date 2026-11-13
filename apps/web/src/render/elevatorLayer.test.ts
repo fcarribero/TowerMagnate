@@ -143,10 +143,10 @@ describe('ElevatorLayer cars', () => {
     layer.showCars(frameOf(5, 'open', [rider]), shafts);
     const view = layer.carView.children[0];
     expect(view?.children.length).toBe(4);
-    expect(view?.children[3]).toMatchObject({
+    expect(view?.children[3]?.children[0]).toMatchObject({
       texture: textures[`${personLook('p5', 'officeWorker').subjects.pants}/stand`],
     });
-    expect(view?.children[3]?.children).toHaveLength(4);
+    expect(view?.children[3]?.children).toHaveLength(5);
 
     layer.showCars(frameOf(5, 'closed', [rider]), shafts);
     expect(view?.children.length).toBe(4);
@@ -181,7 +181,7 @@ describe('ElevatorLayer cars', () => {
     const { layer, textures } = layerWithArt();
     layer.showCars(frameOf(5, 'open', [{ ...rider, stress: 'stressed' }]), shafts);
     const view = layer.carView.children[0];
-    expect(view?.children[3]).toMatchObject({
+    expect(view?.children[3]?.children[0]).toMatchObject({
       texture: textures[`${personLook('p5', 'officeWorker').subjects.pants}/stand`],
       tint: personLook('p5', 'officeWorker').pants,
     });

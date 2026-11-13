@@ -1,4 +1,4 @@
-import type { Sprite, Texture } from 'pixi.js';
+import type { Container, Sprite, Texture } from 'pixi.js';
 import { describe, expect, it } from 'vitest';
 import {
   crowdFrame,
@@ -9,6 +9,11 @@ import {
 } from '../testing/peopleLayerFixtures';
 import { floorSprite } from './elevatorPlan';
 import { personLook } from './personLook';
+
+/** The trousers or skirt layer of a person: the first layer after the hidden followed marker. */
+function pantsOf(person: unknown): Sprite {
+  return (person as Container).children[1] as Sprite;
+}
 
 /** The two idle textures of the root layer (the trousers or skirt) of a worker with this id. */
 function idleTextures(textures: Record<string, Texture>, id: string): Texture[] {
@@ -37,7 +42,7 @@ describe('PeopleLayer', () => {
     layer.show(frameOf(person('p1', { mode: 'wait', stress: 'normal' })));
     layer.show(frameOf(person('p1', { mode: 'wait', stress: 'stressed' })));
     expect(layer.count).toBe(1);
-    expect(idleTextures(textures, 'p1')).toContain((layer.view.children[0] as Sprite).texture);
+    expect(idleTextures(textures, 'p1')).toContain(pantsOf(layer.view.children[0]).texture);
   });
 
   it('shows the lamp marker only over followed people', () => {
@@ -138,7 +143,7 @@ describe('PeopleLayer', () => {
     expect(layer.view.children).toHaveLength(2);
     const shown = layer.view.children.filter((sprite) => sprite.visible) as Sprite[];
     expect(shown).toHaveLength(1);
-    expect(idleTextures(textures, 'p5')).toContain(shown[0]?.texture);
+    expect(idleTextures(textures, 'p5')).toContain(pantsOf(shown[0]).texture);
   });
 
   it('gives a person who comes into view the right look and place', () => {
@@ -148,7 +153,7 @@ describe('PeopleLayer', () => {
     layer.showOnly({ lowest: 0, highest: 5 });
     layer.show(frameOf(person('p1', { mode: 'wait', stress: 'stressed', x: 10 })));
     const sprite = layer.view.children[0];
-    expect(idleTextures(textures, 'p1')).toContain((sprite as Sprite).texture);
+    expect(idleTextures(textures, 'p1')).toContain(pantsOf(sprite).texture);
     expect(sprite?.x).toBeGreaterThan(80);
   });
 
@@ -177,7 +182,7 @@ describe('PeopleLayer idle animation', () => {
     const seen = new Set<unknown>();
     for (let tick = 0; tick < 100; tick += 1) {
       layer.show(frameOf(person('p1', { mode: 'wait', stress: 'normal' })));
-      seen.add((layer.view.children[0] as Sprite).texture);
+      seen.add(pantsOf(layer.view.children[0]).texture);
     }
     expect(seen.size).toBe(2);
   });
@@ -187,7 +192,7 @@ describe('PeopleLayer idle animation', () => {
     const seen = new Set<unknown>();
     for (let tick = 0; tick < 100; tick += 1) {
       layer.show(frameOf(person('p1', { mode: 'walk', x: 10 })));
-      seen.add((layer.view.children[0] as Sprite).texture);
+      seen.add(pantsOf(layer.view.children[0]).texture);
     }
     expect(seen.size).toBe(1);
   });
@@ -232,11 +237,13 @@ describe('PeopleLayer look', () => {
   it('draws five layers per person, colored and stretched from the id', () => {
     const { layer } = layerWithArt();
     layer.show(frameOf(person('p1', {})));
-    const root = layer.view.children[0] as Sprite;
+    const root = layer.view.children[0] as Container;
     const look = personLook('p1', 'officeWorker');
-    expect(root.children).toHaveLength(5);
-    const [, shirt, skin, hair] = root.children as Sprite[];
-    expect([root.tint, shirt?.tint, skin?.tint, hair?.tint]).toEqual([
+    expect(root.children).toHaveLength(6);
+    // The container is never tinted: a tint on it would be multiplied into every layer.
+    expect(root.tint).toBe(0xffffff);
+    const [, pants, shirt, skin, hair] = root.children as Sprite[];
+    expect([pants?.tint, shirt?.tint, skin?.tint, hair?.tint]).toEqual([
       look.pants,
       look.shirt,
       look.skin,
@@ -257,9 +264,9 @@ describe('PeopleLayer look', () => {
   it('gives the same look to a person in the same id after a reuse', () => {
     const { layer } = layerWithArt();
     layer.show(frameOf(person('p1', {})));
-    const first = (layer.view.children[0] as Sprite).tint;
+    const first = pantsOf(layer.view.children[0]).tint;
     layer.show(frameOf());
     layer.show(frameOf(person('p1', {})));
-    expect((layer.view.children[0] as Sprite).tint).toBe(first);
+    expect(pantsOf(layer.view.children[0]).tint).toBe(first);
   });
 });
