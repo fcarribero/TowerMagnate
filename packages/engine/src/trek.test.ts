@@ -96,7 +96,7 @@ describe('lines for the elevator', () => {
     expect(columns.every((person) => person.phase === 'queued')).toBe(true);
     const sorted = columns.map((person) => person.column).sort((a, b) => a - b);
     expect(new Set(sorted).size).toBe(3);
-    expect(sorted[2]! - sorted[0]!).toBe(2);
+    expect(Math.max(...sorted) - Math.min(...sorted)).toBe(2);
   });
 
   it('puts the up line on the right of the shaft and the down line on the left', () => {
