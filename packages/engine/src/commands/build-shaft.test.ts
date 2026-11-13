@@ -201,7 +201,7 @@ describe('resizeShaft', () => {
     expect(rejection(tower, resize('s3', 1, 16))).toBe('EXPRESS_STOP_NOT_ALLOWED');
     accept(tower, resize('s3', 1, 30));
     clearStructure(tower.grid, 12, 40, 43);
-    expect(rejection(tower, resize('s1', 1, 12))).toBe('NO_FLOOR');
+    accept(tower, resize('s1', 1, 12));
     expect(rejection(tower, resize('s9', 1, 5))).toBe('UNKNOWN_ENTITY');
   });
 

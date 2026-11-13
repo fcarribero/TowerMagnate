@@ -161,7 +161,8 @@ export function shaftRangeError(
   if (!levels.every((level) => isFreeForShaft(grid, level, range.x, x1, self))) {
     return 'CELL_OCCUPIED';
   }
-  if (levels.some((level) => cellsWithoutStructure(grid, level, range.x, x1) > 0)) {
+  // A resize may reach levels that have no floor yet; only a new shaft needs structure (C-34).
+  if (self === null && levels.some((level) => cellsWithoutStructure(grid, level, range.x, x1) > 0)) {
     return 'NO_FLOOR';
   }
 

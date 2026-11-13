@@ -454,7 +454,7 @@ C-32. Stairs plus escalators are at most 64 per tower. Error: `LIMIT_REACHED`.
 
 C-33. Placing a shaft charges the shaft price plus one car. Standard is 4 wide ($200,000 + $80,000), service 4 wide ($100,000 + $50,000), express 6 wide ($600,000 + $250,000). Error: `INSUFFICIENT_FUNDS` if the balance is short.
 
-C-34. Every shaft cell on every level from bottom to top must have structure. Error: `NO_FLOOR`.
+C-34. Every shaft cell on every level from bottom to top must have structure when the shaft is placed. Error: `NO_FLOOR`. Resizing a shaft (C-43) skips this check, so an end can be dragged to a level with no floor yet.
 
 C-35. Every shaft cell must have no stair, escalator or other shaft; units in the cell do not block it. Error: `CELL_OCCUPIED`.
 
