@@ -5,7 +5,15 @@ import { CulledRows } from './culledRows';
 import type { Camera, LevelRange, WorldRect } from './camera';
 import { levelTop } from './levels';
 import { altitudeAtWorldY } from './skyRows';
-import { DepthRoom, MAX_DEPTH_X, MAX_DEPTH_Y, depthOffset, type DepthTextures } from './unitDepth';
+import {
+  DepthRoom,
+  MAX_DEPTH_X,
+  MAX_DEPTH_Y,
+  REACH_X,
+  REACH_Y,
+  depthOffset,
+  type DepthTextures,
+} from './unitDepth';
 import { checkerTexture } from './overlayChecker';
 import { overlayColorOf, transportOverlayColor, type OverlayId } from './overlayColors';
 import type { SpriteRegistry } from './spriteRegistry';
@@ -141,18 +149,8 @@ export class UnitLayer {
     const cameraX = (camera.left + camera.viewWidth / 2) / camera.zoom;
     const cameraY = (camera.top + camera.viewHeight / 2) / camera.zoom;
     entry.depth.setShift(
-      depthOffset(
-        rect.x + rect.width / 2,
-        cameraX,
-        camera.viewWidth / camera.zoom / 2,
-        MAX_DEPTH_X,
-      ),
-      depthOffset(
-        rect.y + rect.height / 2,
-        cameraY,
-        camera.viewHeight / camera.zoom / 2,
-        MAX_DEPTH_Y,
-      ),
+      depthOffset(rect.x + rect.width / 2, cameraX, REACH_X, MAX_DEPTH_X),
+      depthOffset(rect.y + rect.height / 2, cameraY, REACH_Y, MAX_DEPTH_Y),
     );
   }
 
@@ -342,6 +340,12 @@ export class UnitLayer {
 
   /** Placeholders are one tile big, so every sprite is sized to the footprint. */
   private place(sprite: Sprite, drawing: UnitDrawing): void {
+    const offset = drawing.spriteOffset;
+    if (offset !== undefined) {
+      sprite.position.set(drawing.x + offset.x, drawing.y + offset.y);
+      sprite.scale.set(1);
+      return;
+    }
     sprite.position.set(drawing.x, drawing.y);
     sprite.width = drawing.width;
     sprite.height = drawing.height;

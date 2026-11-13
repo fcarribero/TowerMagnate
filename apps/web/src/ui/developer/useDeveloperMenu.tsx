@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'preact/hooks';
+import { setAnimationPaused } from '../../render/animationClock';
 import type { MenuItem } from '../menu/GameMenu';
 import { isPlainShortcut } from '../keys';
 import { t } from '../strings';
@@ -26,6 +27,11 @@ export function useDeveloperMenu(
     sendDebug('setInfiniteMoney', { enabled: settings.infiniteMoney });
     sendDebug('setSpeed', { speed: paused ? 0 : settings.speed });
   }, [developer, live, settings, paused]);
+
+  useEffect(() => {
+    setAnimationPaused(developer && paused);
+    return () => setAnimationPaused(false);
+  }, [developer, paused]);
 
   const pickSpeed = (speed: number): void => {
     const next = { ...settings, speed };

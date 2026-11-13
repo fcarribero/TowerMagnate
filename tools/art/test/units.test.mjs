@@ -6,8 +6,9 @@ import { colorIndex } from '../src/palette.mjs';
 
 const [{ sprites }] = drawGroups([unitsGroup]);
 const byId = Object.fromEntries(sprites.map((sprite) => [sprite.id, sprite.canvas]));
-const rentableIds = Object.keys(byId).filter((id) =>
-  /^units\/(office|condo|.*room|suite|housekeeping)\//.test(id),
+const DEPTH_LAYER = /\/(back-|front-|side_|ceiling_|floor_)/;
+const rentableIds = Object.keys(byId).filter(
+  (id) => /^units\/(office|condo|.*room|suite|housekeeping)\//.test(id) && !DEPTH_LAYER.test(id),
 );
 const cathedralVariants = ['empty_day', 'empty_night', 'wedding_day', 'wedding_night'];
 const catalogWidthTiles = {

@@ -1,21 +1,20 @@
 import { PixelCanvas } from '../canvas.mjs';
 import { metrics } from '../metrics.mjs';
 
-// Stairs and escalators are 8 tiles wide and rise from the floor of their lower
-// level, on the left, to the slab of the level above, on the right.
+// Escalators are 8 tiles wide and rise from the floor of their lower
+// level, on the left, to the floor of the level above, on the right. The canvas
+// covers both levels, so the sprite is drawn at its real size, never stretched.
 export const WALKWAY_WIDTH = 8 * metrics.tileWidth;
+export const WALKWAY_HEIGHT = 2 * metrics.floorHeight;
 export const ESCALATOR_FRAMES = 4;
 
-const FLOOR_ROW = metrics.floorHeight - metrics.slabHeight - 1;
+const FLOOR_ROW = WALKWAY_HEIGHT - metrics.slabHeight - 1;
 const FIRST_STEP_X = 4;
 const STEP_RUN = 8;
-const STEP_RISE = 4;
-const STEP_COUNT = 7;
-const RAIL_HEIGHT = 8;
-const LAST_RISING_X = FIRST_STEP_X + STEP_COUNT * STEP_RUN - 1;
+const LAST_RISING_X = FIRST_STEP_X + 7 * STEP_RUN - 1;
 
 function newWalkwayCanvas() {
-  return new PixelCanvas(WALKWAY_WIDTH, metrics.floorHeight);
+  return new PixelCanvas(WALKWAY_WIDTH, WALKWAY_HEIGHT);
 }
 
 // The sloped line under the flight: half a pixel up for every pixel to the right.
@@ -28,38 +27,63 @@ function stepTreadRow(step) {
   return FLOOR_ROW + 1 - STEP_RISE * (step + 1);
 }
 
-function drawStep(stairs, step) {
-  const left = FIRST_STEP_X + step * STEP_RUN;
-  const tread = stepTreadRow(step);
-  for (let x = left; x < left + STEP_RUN; x++) {
-    const underside = Math.min(FLOOR_ROW, slopeRow(x) + 3);
-    stairs.vline(x, tread, underside - tread + 1, 'concrete');
-    stairs.set(x, tread, 'concrete-light');
-    stairs.set(x, underside, 'concrete-dark');
+// Stairs: a 32x32 box, one level tall and 4 tiles wide, on a canvas with spare
+// columns at each side because the steps stick out of the box on the left.
+//
+// A straight light gray beam climbs one pixel for every pixel along, from the floor
+// of the lower level (bottom left) up to the floor of the level above (top right).
+// A wooden handrail bar runs above it to the very top, with no posts. Each of the 8 steps is a darker gray horizontal line, 4 pixels wide, one every
+// 4 pixels along and 4 up. The first step is on the bottom row. No riser.
+export const STAIRS_SIZE = 32;
+export const STAIRS_MARGIN = 8;
+// Spare rows above the box, for the handrail that rises past the top step.
+export const STAIRS_TOP_MARGIN = 8;
+const STAIRS_WIDTH = STAIRS_SIZE + 2 * STAIRS_MARGIN;
+const STAIRS_HEIGHT = STAIRS_SIZE + STAIRS_TOP_MARGIN;
+const STEP_LENGTH = 4;
+const STEP_RISE = 4;
+const STEP_COUNT = STAIRS_SIZE / STEP_RISE;
+// The steps sit 4 pixels left of where the beam would put them.
+const STEPS_SHIFT = -4;
+const BEAM_THICKNESS = 5;
+const BEAM_COLOR = 'silver';
+const STEP_COLOR = 'slate';
+// The handrail is just the bar, parallel to the beam and this many rows above it.
+const RAIL_HEIGHT = 6;
+
+// Column x of the box has its beam top at row 29 - x, and the beam goes 5 rows down.
+function drawBeam(stairs) {
+  for (let x = 0; x < STAIRS_SIZE; x++) {
+    const top = STAIRS_SIZE - 3 - x;
+    for (let row = Math.max(0, top); row < Math.min(STAIRS_SIZE, top + BEAM_THICKNESS); row++) {
+      stairs.set(STAIRS_MARGIN + x, STAIRS_TOP_MARGIN + row, BEAM_COLOR);
+    }
   }
-  stairs.vline(left, tread, STEP_RISE, 'concrete-light');
 }
 
-function drawStairRail(stairs) {
+function drawSteps(stairs) {
   for (let step = 0; step < STEP_COUNT; step++) {
-    const postX = FIRST_STEP_X + step * STEP_RUN + 3;
-    const tread = stepTreadRow(step);
-    stairs.vline(postX, tread - RAIL_HEIGHT, RAIL_HEIGHT, 'gray');
-  }
-  for (let x = FIRST_STEP_X; x <= LAST_RISING_X; x++) {
-    const rail = slopeRow(x) - RAIL_HEIGHT - 3;
-    stairs.set(x, rail, 'wood-light');
-    stairs.set(x, rail + 1, 'wood');
+    const left = STAIRS_MARGIN + step * STEP_LENGTH + STEPS_SHIFT;
+    stairs.hline(left, STAIRS_HEIGHT - 1 - step * STEP_RISE, STEP_LENGTH, STEP_COLOR);
   }
 }
 
-// A concrete flight of seven steps; the slab of the level above is the eighth.
+// The bar runs from above the first step to the end of the beam, past the top of the box.
+function drawHandrail(stairs) {
+  for (let x = STEPS_SHIFT; x < STAIRS_SIZE; x++) {
+    const bar = STAIRS_HEIGHT - 3 - x - RAIL_HEIGHT;
+    if (bar >= 0) {
+      stairs.set(STAIRS_MARGIN + x, bar, 'wood-light');
+      stairs.set(STAIRS_MARGIN + x, bar + 1, 'wood');
+    }
+  }
+}
+
 export function drawStairs() {
-  const stairs = newWalkwayCanvas();
-  for (let step = 0; step < STEP_COUNT; step++) {
-    drawStep(stairs, step);
-  }
-  drawStairRail(stairs);
+  const stairs = new PixelCanvas(STAIRS_WIDTH, STAIRS_HEIGHT);
+  drawBeam(stairs);
+  drawSteps(stairs);
+  drawHandrail(stairs);
   return stairs;
 }
 

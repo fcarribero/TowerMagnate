@@ -26,6 +26,7 @@ export function roomShell(widthTiles, { wall, wallLight, wallDark, floor }, floo
   room.hline(0, 0, width, 'ink');
   room.vline(0, 0, height - metrics.slabHeight, 'ink');
   room.vline(width - 1, 0, height - metrics.slabHeight, 'ink');
+  room.shellLook = { wall, wallLight, wallDark, floor };
   return room;
 }
 

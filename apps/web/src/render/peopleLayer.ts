@@ -1,9 +1,17 @@
-import { UNIT_CATALOG, levelToIndex, type PersonView, type UnitType } from '@tower-magnate/shared';
+import {
+  ESCALATOR_FLIGHT_STEPS,
+  STAIR_FLIGHT_STEPS,
+  UNIT_CATALOG,
+  levelToIndex,
+  type PersonView,
+  type UnitType,
+} from '@tower-magnate/shared';
 import { Container, Sprite } from 'pixi.js';
 import type { DrawnFrame } from '../model/interpolation';
 import type { LevelRange } from './camera';
 import { floorSprite } from './elevatorPlan';
 import { newFollowedMarker } from './followedMarker';
+import { animationNow, isAnimationPaused } from './animationClock';
 import { insideLook, type UnitSpan } from './insideMotion';
 import { levelTop } from './levels';
 import { FLOOR_HEIGHT, TILE_WIDTH } from './metrics';
@@ -28,6 +36,15 @@ function idlePhase(id: string): number {
   return hash;
 }
 
+/** Step length used before two deltas are buffered, in milliseconds. */
+const DEFAULT_STEP_MS = 100;
+
+interface FlightSpan {
+  x: number;
+  width: number;
+  steps: number;
+}
+
 interface DrawnWalker {
   sprite: Sprite;
   subject: string;
@@ -49,6 +66,8 @@ export class PeopleLayer {
   private readonly spare: Sprite[] = [];
   private range: LevelRange | null = null;
   private frameNumber = 0;
+  /** Counts the frames drawn while the game runs; idle animations follow it. */
+  private idleFrames = 0;
   private guests: ReadonlySet<string> = new Set();
   private followed: ReadonlySet<string> = new Set();
   private readonly markers = new WeakMap<Sprite, Sprite>();
@@ -56,9 +75,14 @@ export class PeopleLayer {
   /** Units by level, which is where the people inside move around. */
   private unitsByLevel = new Map<number, UnitSpan[]>();
 
+  /** Stairs and escalators by the level their footprint is on. */
+  private flightsByLevel = new Map<number, FlightSpan[]>();
+  /** When each person on a flight was first seen on it, in milliseconds. */
+  private readonly flightStarts = new Map<string, number>();
+
   constructor(
     private readonly sprites: SpriteRegistry,
-    private readonly now: () => number = () => performance.now(),
+    private readonly now: () => number = animationNow,
   ) {}
 
   /** The units people can be inside of. Floors, lobbies and transports are not rooms. */
@@ -70,6 +94,21 @@ export class PeopleLayer {
       byLevel.set(unit.level, spans);
     }
     this.unitsByLevel = byLevel;
+  }
+
+  /** The stairs and escalators people climb. */
+  setTransports(transports: Iterable<{ type: UnitType; x: number; level: number }>): void {
+    const byLevel = new Map<number, FlightSpan[]>();
+    for (const transport of transports) {
+      const spans = byLevel.get(transport.level) ?? [];
+      spans.push({
+        x: transport.x,
+        width: UNIT_CATALOG[transport.type].width,
+        steps: transport.type === 'stairs' ? STAIR_FLIGHT_STEPS : ESCALATOR_FLIGHT_STEPS,
+      });
+      byLevel.set(transport.level, spans);
+    }
+    this.flightsByLevel = byLevel;
   }
 
   get count(): number {
@@ -98,11 +137,26 @@ export class PeopleLayer {
 
   show(frame: DrawnFrame): void {
     this.frameNumber += 1;
+    if (!isAnimationPaused()) {
+      this.idleFrames += 1;
+    }
+    const climbing = new Set<string>();
     for (const { person, x, position } of frame.people) {
       if (person.mode === 'ride') {
         continue;
       }
-      this.drawPerson(person, x, position, floorSprite(person, x), person.facing);
+      const flight = person.mode === 'stairs' ? this.climb(person, frame.stepMs) : null;
+      if (flight === null) {
+        this.drawPerson(person, x, position, floorSprite(person, x), person.facing);
+        continue;
+      }
+      climbing.add(person.id);
+      this.drawPerson(person, flight.x, flight.position, floorSprite(person, flight.x), 'right');
+    }
+    for (const id of this.flightStarts.keys()) {
+      if (!climbing.has(id)) {
+        this.flightStarts.delete(id);
+      }
     }
     const time = this.now();
     for (const person of frame.inside ?? []) {
@@ -115,6 +169,31 @@ export class PeopleLayer {
       this.drawPerson(person, look.x, levelToIndex(person.level), placed, look.facing);
     }
     this.releaseMissing();
+  }
+
+  /**
+   * Where a person on a flight is: they go up the stairs at a steady pace, from the
+   * bottom left to the top right, over the steps the flight lasts. Null when no
+   * stairs are under them.
+   */
+  private climb(
+    person: PersonView,
+    stepMs = DEFAULT_STEP_MS,
+  ): { x: number; position: number } | null {
+    const flight = this.flightsByLevel
+      .get(person.level)
+      ?.find((span) => person.x >= span.x - 1 && person.x < span.x + span.width + 1);
+    if (flight === undefined) {
+      return null;
+    }
+    const now = this.now();
+    const start = this.flightStarts.get(person.id) ?? now;
+    this.flightStarts.set(person.id, start);
+    const progress = Math.min(Math.max((now - start) / (flight.steps * stepMs), 0), 1);
+    return {
+      x: flight.x + progress * (flight.width - 1),
+      position: levelToIndex(person.level) + progress,
+    };
   }
 
   /** The unit on the person's level whose columns hold them, if there is one. */
@@ -131,7 +210,7 @@ export class PeopleLayer {
     placed: { subject: string; state: string; frame?: number },
     facing: PersonView['facing'],
   ): void {
-    const top = levelTop(Math.round(position)) + FEET_ROW - PERSON_HEIGHT;
+    const top = levelTop(position) + FEET_ROW - PERSON_HEIGHT;
     if (!this.isOnScreen(top)) {
       return;
     }
@@ -158,7 +237,8 @@ export class PeopleLayer {
       marker.visible = this.followed.has(person.id);
     }
     sprite.scale.x = facing === 'left' ? -1 : 1;
-    sprite.position.set(Math.round(x * TILE_WIDTH + sprite.texture.width / 2), top);
+    const crewShift = person.kind === 'builder' ? ((idlePhase(person.id) % 5) - 2) * 0.3 : 0;
+    sprite.position.set(Math.round((x + crewShift) * TILE_WIDTH + sprite.texture.width / 2), top);
   }
 
   /** A standing person alternates two idle frames; a walking one keeps the walk frame. */
@@ -169,7 +249,7 @@ export class PeopleLayer {
     if (!look.state.startsWith('stand')) {
       return look;
     }
-    const tick = Math.floor(this.frameNumber / IDLE_FRAME_LENGTH) + idlePhase(id);
+    const tick = Math.floor(this.idleFrames / IDLE_FRAME_LENGTH) + idlePhase(id);
     return {
       subject: look.subject,
       state: look.state.replace('stand', 'idle'),

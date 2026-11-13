@@ -4,14 +4,14 @@ import { FLOOR_HEIGHT, TILE_WIDTH } from './metrics';
 
 const SHAFT_TILES: Record<ShaftType, number> = { standard: 4, service: 4, express: 6 };
 const CAR_SIZE: Record<ShaftType, { width: number; height: number }> = {
-  standard: { width: 24, height: 27 },
-  service: { width: 24, height: 27 },
-  express: { width: 40, height: 27 },
+  standard: { width: 32, height: 32 },
+  service: { width: 32, height: 32 },
+  express: { width: 48, height: 32 },
 };
 
-const TOP_CAP_HEIGHT = 12;
+const TOP_CAP_HEIGHT = 32;
 /** Rows of the car sprite above the car floor where people stand. */
-const CAR_FLOOR_ROW = 23;
+const CAR_FLOOR_ROW = 28;
 const RIDER_HEIGHT = 16;
 const CAR_WALL = 3;
 const RIDER_SPACING = 5;
@@ -93,7 +93,7 @@ export function carInRange(position: number, range: { lowest: number; highest: n
 /** Door opening inside the car sprite, as the art tool draws it. */
 const DOOR_INSET = 3;
 const DOOR_TOP = 4;
-const DOOR_BOTTOM = 23;
+const DOOR_BOTTOM = 28;
 /** Width of a door leaf that is fully open, which the open car sprite already draws. */
 const OPEN_LEAF = 2;
 

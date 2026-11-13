@@ -2,7 +2,7 @@ import { UNIT_CATALOG, type UnitType, type UnitView } from '@tower-magnate/share
 import type { OverlayColor } from './overlayColors';
 import type { SpriteVariant } from './spriteRegistry';
 import { levelToIndex, levelTop } from './levels';
-import { FLOOR_HEIGHT, TILE_WIDTH } from './metrics';
+import { FLOOR_HEIGHT, SLAB_HEIGHT, TILE_WIDTH } from './metrics';
 import type { TimeOfDay } from './structurePlan';
 import { ALL_VENUES_OPEN, isVenue, type OpenVenues } from './venueHours';
 
@@ -25,7 +25,16 @@ export interface UnitDrawing {
   construction?: number;
   /** Drawn in front of the units on its level, as stairs and escalators are. */
   front?: boolean;
+  /**
+   * Set when the sprite is bigger than the footprint: it is drawn at its own size, never
+   * scaled, this many pixels from the footprint corner. The footprint still sizes the rest.
+   */
+  spriteOffset?: { x: number; y: number };
 }
+
+/** Pixels the stairs sprite reaches beyond each side of its footprint; matches the art tool. */
+const STAIRS_MARGIN = 8;
+const STAIRS_TOP_MARGIN = 8;
 
 export interface TransportSource {
   id: string;
@@ -111,6 +120,15 @@ export function planTransport(
     variant,
     overlay,
   );
+  if (transport.type === 'stairs') {
+    // The stairs sprite runs from the floor of its level up to the floor of the level above.
+    return {
+      ...drawing,
+      y: drawing.y - SLAB_HEIGHT,
+      spriteOffset: { x: -STAIRS_MARGIN, y: -STAIRS_TOP_MARGIN },
+      front: true,
+    };
+  }
   return { ...drawing, front: true };
 }
 

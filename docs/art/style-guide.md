@@ -225,8 +225,8 @@ Elevator sprites are in `tools/art/src/groups/transport.mjs`. They are indoors, 
 | Id | Size | Use |
 |---|---|---|
 | `transport/<type>-shaft/body` | 32 or 48 x 32 | one level of shaft, repeated on every level it serves |
-| `transport/<type>-shaft/top` | 32 or 48 x 12 | machine room, drawn just above the top level |
-| `transport/<type>-shaft/bottom` | 32 or 48 x 6 | pit with buffers, drawn just below the lowest level |
+| `transport/<type>-shaft/top` | 32 or 48 x 32 | machine room with sheave, motor and cables, drawn just above the top level |
+| `transport/<type>-shaft/bottom` | 32 or 48 x 32 | pit with tension sheave, buffers and concrete base, drawn just below the lowest level |
 | `transport/<type>-car/open`, `closed` | 24 x 27, express 40 x 27 | the car, doors open or closed |
 
 | `transport/<type>-shaft/landing` | 32 or 48 x 32 | hall door frame on every level where the car stops, drawn over the body and under the car |

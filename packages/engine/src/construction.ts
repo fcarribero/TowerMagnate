@@ -15,7 +15,7 @@ import { isWeekendDay, STEPS_PER_MINUTE, weekdayOfDay } from './calendar';
 import { STEPS_PER_DAY } from './clock';
 import { entrancePlace } from './office-routine';
 import { addPeopleForUnit, addPerson, NO_TRIP, removePerson } from './people';
-import { chance } from './rng';
+import { chance, nextInt } from './rng';
 import type { ScheduledHook } from './scheduler';
 import type { SimulationSystem, StepContext } from './step';
 import { cancelTrek, isOnTrek, startTrek, trekPhaseAt, type TrekPlace } from './trek';
@@ -267,14 +267,17 @@ export function createConstructionSystem(): SimulationSystem {
 /** The crew comes in through the main lobby entrance. */
 function bringCrew(context: StepContext): void {
   const { state } = context;
-  const entrance = entrancePlace(state, chance(state.rng, 0.5));
-  if (!entrance) return;
+  const left = entrancePlace(state, false);
+  const right = entrancePlace(state, true);
+  if (!left || !right) return;
+  const low = Math.min(left.column, right.column);
+  const high = Math.max(left.column, right.column);
   for (let index = 0; index < BUILDER_CREW_SIZE; index++) {
     addPerson(state, {
       kind: 'builder',
       homeUnit: 0,
-      level: entrance.level,
-      column: entrance.column,
+      level: left.level,
+      column: nextInt(state.rng, low, high),
     });
     const slot = state.people.id.length - 1;
     state.people.trip[slot] = encodeBuilderTask({ phase: 'choosing', site: 0 });

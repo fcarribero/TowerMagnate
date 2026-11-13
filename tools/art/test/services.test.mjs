@@ -27,7 +27,10 @@ const countColor = (canvas, color) =>
 describe('service facility sprites', () => {
   it('draws empty and occupied by day and night, plus one burnt sprite', () => {
     for (const subject of Object.keys(catalog)) {
-      const ids = Object.keys(byId).filter((id) => id.startsWith(`units/${subject}/`));
+      const ids = Object.keys(byId).filter(
+        (id) =>
+          id.startsWith(`units/${subject}/`) && !/\/(back-|front-|side_|ceiling_|floor_)/.test(id),
+      );
       const expected = subject === 'parking-space' ? [...variants, ...disconnected] : variants;
       expect(ids.sort()).toEqual(expected.map((variant) => `units/${subject}/${variant}`).sort());
     }

@@ -216,10 +216,10 @@ describe('transport group', () => {
     }
   });
 
-  it('fits each car inside its shaft with room for the rails', () => {
+  it('fills the shaft width with each car', () => {
     for (const type of types) {
       const shaft = sprites[`transport/${type}-shaft/body`];
-      expect(shaft.width - sprites[`transport/${type}-car/closed`].width).toBe(8);
+      expect(shaft.width - sprites[`transport/${type}-car/closed`].width).toBe(0);
     }
   });
 
@@ -237,27 +237,30 @@ describe('transport walkways and landings', () => {
   const sprites = spritesById(transportGroup);
   const types = ['standard', 'service', 'express'];
 
-  it('draws stairs and escalators 8 tiles wide and one level tall, day and night', () => {
+  it('draws stairs on a 48x40 canvas around a 32x32 box and escalators 8 tiles wide and two levels tall, day and night', () => {
     for (const time of ['day', 'night']) {
-      const ids = [`transport/stairs/${time}`];
+      const stairs = sprites[`transport/stairs/${time}`];
+      expect(stairs.width).toBe(32 + 16);
+      expect(stairs.height).toBe(40);
       for (let frame = 1; frame <= 4; frame++) {
-        ids.push(`transport/escalator/${time}_0${frame}`);
-      }
-      for (const id of ids) {
+        const id = `transport/escalator/${time}_0${frame}`;
         expect(sprites[id].width, id).toBe(8 * metrics.tileWidth);
-        expect(sprites[id].height, id).toBe(metrics.floorHeight);
+        expect(sprites[id].height, id).toBe(2 * metrics.floorHeight);
       }
     }
   });
 
-  it('starts the flight on the floor at the left and reaches the level above at the right', () => {
+  it('rises the stairs from the floor at the left to the slab above at the right, one step per step', () => {
     const stairs = sprites['transport/stairs/day'];
-    const floorRow = metrics.floorHeight - metrics.slabHeight - 1;
-    expect(stairs.get(5, floorRow)).not.toBe(0);
-    expect(stairs.get(stairs.width - 6, 1)).not.toBe(0);
-    for (let row = floorRow + 1; row < metrics.floorHeight; row++) {
-      expect(stairs.get(5, row)).toBe(0);
-    }
+    const last = stairs.height - 1;
+    const margin = 8;
+    const top = 8;
+    // The first step is on the bottom row and sticks out 4 pixels left of the 32x32 box.
+    expect(stairs.get(margin - 4, last)).not.toBe(0);
+    expect(stairs.get(margin - 5, last)).toBe(0);
+    // The last step is on row 3, one rise under the floor above.
+    expect(stairs.get(margin + 24, top + 3)).not.toBe(0);
+    expect(stairs.get(margin + 24, top + 2)).toBe(0);
   });
 
   it('animates the escalator steps over four distinct frames that loop', () => {

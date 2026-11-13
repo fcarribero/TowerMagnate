@@ -1,0 +1,13 @@
+﻿tools
+e2e
+scripts
+tests
+docs
+assets
+.github
+docker
+*.md
+*.yml
+*.json
+*.config.js
+*.config.ts

@@ -1,6 +1,7 @@
 import { PixelCanvas } from './canvas.mjs';
 import { metrics } from './metrics.mjs';
 import { CALL_PANEL_TOP } from './groups/transport.mjs';
+import { STAIRS_TOP_MARGIN } from './transport/walkways.mjs';
 
 const SCENE_TILES = 24;
 const TOWER_FIRST_TILE = 6;
@@ -191,9 +192,8 @@ export function drawIconSheet(sprites) {
 }
 
 const SHAFT_LEVELS = 3;
-const CAR_INSET_X = 4;
-const CAR_TOP_IN_FLOOR =
-  metrics.floorHeight - metrics.slabHeight - metrics.elevatorCar.standard.height;
+const CAR_INSET_X = 0;
+const CAR_TOP_IN_FLOOR = metrics.floorHeight - metrics.elevatorCar.standard.height;
 
 // One shaft per elevator type on bare floors: the car waits with its doors
 // closed on the top level and open on the bottom level.
@@ -359,8 +359,9 @@ function drawWalkwayScene(sprites, time) {
   }
   ids.forEach((id, index) => {
     const left = gap + index * (walkwayWidth + gap);
-    scene.stamp(sprites[id], left, floor);
-    scene.stamp(sprites[id], left, 2 * floor);
+    // The stairs canvas has spare rows above its box; the escalators start at the box.
+    const lift = id.includes('/stairs/') ? STAIRS_TOP_MARGIN : 0;
+    scene.stamp(sprites[id], left, floor - lift);
   });
   return scene;
 }

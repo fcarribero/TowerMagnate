@@ -113,10 +113,10 @@ describe('ElevatorLayer cars', () => {
     t += 225;
     layer.showCars(frameOf(5, 'closed'), shafts);
     expect(leaf.width).toBeGreaterThan(2);
-    expect(leaf.width).toBeLessThan(9);
+    expect(leaf.width).toBeLessThan(13);
     t += 400;
     layer.showCars(frameOf(5, 'closed'), shafts);
-    expect(leaf.width).toBe(9);
+    expect(leaf.width).toBe(13);
     t += 450;
     layer.showCars(frameOf(5, 'open'), shafts);
     expect(leaf.width).toBe(2);

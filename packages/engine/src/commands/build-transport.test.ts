@@ -37,7 +37,7 @@ function rejection(tower: TowerState, command: QueuedCommand) {
 }
 
 describe('buildTransport stairs', () => {
-  it('places stairs on 8 empty floor cells for $5,000', () => {
+  it('places stairs on 4 empty floor cells for $5,000', () => {
     const tower = towerWith();
     const { state, result } = run(tower, transport('stairs', 10, 2));
     expect(result).toEqual({ id: 'c1', ok: true, step: 0, cost: 5_000, refund: 0 });
@@ -57,10 +57,10 @@ describe('buildTransport stairs', () => {
     const footprint = { kind: 'transport', id: 't1', part: 'footprint' };
     const landing = { kind: 'transport', id: 't1', part: 'landing' };
     expect(occupantAt(state.grid, 2, 10)).toEqual(footprint);
-    expect(occupantAt(state.grid, 2, 17)).toEqual(footprint);
-    expect(occupantAt(state.grid, 2, 18)).toBeNull();
+    expect(occupantAt(state.grid, 2, 13)).toEqual(footprint);
+    expect(occupantAt(state.grid, 2, 14)).toBeNull();
     expect(occupantAt(state.grid, 3, 10)).toEqual(landing);
-    expect(occupantAt(state.grid, 3, 17)).toEqual(landing);
+    expect(occupantAt(state.grid, 3, 13)).toEqual(landing);
     expect(occupantAt(state.grid, 3, 9)).toBeNull();
   });
 
@@ -83,10 +83,10 @@ describe('buildTransport stairs', () => {
 
   it('lets a staircase stand on the landing of another one placed with an offset', () => {
     const first = run(towerWith(), transport('stairs', 10, 2)).state;
-    const { state, result } = run(first, transport('stairs', 14, 3));
+    const { state, result } = run(first, transport('stairs', 12, 3));
     expect(result.ok).toBe(true);
-    expect(occupantAt(state.grid, 3, 12)).toMatchObject({ id: 't1', part: 'landing' });
-    expect(occupantAt(state.grid, 3, 14)).toMatchObject({ id: 't2', part: 'footprint' });
+    expect(occupantAt(state.grid, 3, 11)).toMatchObject({ id: 't1', part: 'landing' });
+    expect(occupantAt(state.grid, 3, 12)).toMatchObject({ id: 't2', part: 'footprint' });
   });
 
   it('accepts stairs below an existing one when their footprints meet the landing', () => {
@@ -97,7 +97,7 @@ describe('buildTransport stairs', () => {
   });
 
   it('rejects a footprint cell without structure as NO_FLOOR', () => {
-    expect(rejection(towerWith(), transport('stairs', 76, 2))).toBe('NO_FLOOR');
+    expect(rejection(towerWith(), transport('stairs', 78, 2))).toBe('NO_FLOOR');
   });
 
   it('places stairs over a unit: the unit stays in the back layer', () => {
@@ -122,7 +122,7 @@ describe('buildTransport stairs', () => {
 
   it('rejects a footprint on another footprint as CELL_OCCUPIED', () => {
     const tower = run(towerWith(), transport('stairs', 10, 2)).state;
-    expect(rejection(tower, transport('stairs', 14, 2))).toBe('CELL_OCCUPIED');
+    expect(rejection(tower, transport('stairs', 12, 2))).toBe('CELL_OCCUPIED');
   });
 
   it('rejects a missing landing floor as TRANSPORT_LANDING', () => {
@@ -148,7 +148,7 @@ describe('buildTransport stairs', () => {
   });
 
   it('rejects stairs past the right edge of the site', () => {
-    expect(rejection(towerWith(), transport('stairs', 370, 2))).toBe('OUT_OF_BOUNDS');
+    expect(rejection(towerWith(), transport('stairs', 372, 2))).toBe('OUT_OF_BOUNDS');
   });
 
   it('rejects an unknown transport type', () => {

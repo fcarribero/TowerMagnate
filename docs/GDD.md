@@ -64,7 +64,7 @@ La población se cuenta así: 6 por oficina ocupada, 3 por departamento vendido,
 |---|---|---|---|---|
 | Piso | 1 | $500 por casillero | | 1 |
 | Lobby | 1 por casillero, alto 1, 2 o 3 pisos | $5.000 por casillero | | 1 |
-| Escalera | 8, une 2 pisos | $5.000 | | 1 |
+| Escalera | 4 x 1, une 2 pisos | $5.000 | | 1 |
 | Escalera mecánica | 8, une 2 pisos | $20.000 | | 1 |
 | Ascensor estándar | hueco de 4 | $200.000 + $80.000 por cabina | 21 por cabina | 1 |
 | Oficina | 9 x 1 | $40.000 | 6 | 1 |

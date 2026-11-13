@@ -28,6 +28,8 @@ export interface DrawnFrame {
   readonly people: readonly DrawnPerson[];
   /** People inside their unit; they have no route, so the renderer moves them in the unit. */
   readonly inside?: readonly PersonView[];
+  /** Real milliseconds one simulation step lasts, from the two buffered deltas. */
+  readonly stepMs?: number;
 }
 
 /** How far the drawing has moved from the previous delta to the latest one, from 0 to 1. */
@@ -115,5 +117,8 @@ function drawPeople(
 export function drawnFrame(frames: StoreFrames, progress: number): DrawnFrame {
   const cars = drawCars(frames, progress);
   const inside = [...frames.latest.people.values()].filter((person) => person.mode === 'inside');
-  return { cars, people: drawPeople(frames, progress, cars), inside };
+  const { previous, latest } = frames;
+  const steps = previous === null ? 0 : latest.step - previous.step;
+  const stepMs = steps > 0 ? DELTA_INTERVAL_MS / steps : undefined;
+  return { cars, people: drawPeople(frames, progress, cars), inside, stepMs };
 }

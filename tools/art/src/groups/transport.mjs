@@ -8,8 +8,10 @@ const SHAFT_TILES = { standard: 4, service: 4, express: 6 };
 const WALL_WIDTH = 2;
 const RAIL_WIDTH = 2;
 const BEAM_ROW = floorHeight - metrics.slabHeight;
-const TOP_CAP_HEIGHT = 12;
-const BOTTOM_CAP_HEIGHT = 6;
+const TOP_CAP_HEIGHT = floorHeight;
+const BOTTOM_CAP_HEIGHT = floorHeight;
+const SHEAVE_TOP = 10;
+const PIT_SHEAVE_TOP = 11;
 
 // Each elevator type has its own ramp for the car frame and its own pattern on
 // the beam that crosses the shaft at every slab.
@@ -118,55 +120,103 @@ function drawSheave(tile, centreX, top) {
   });
 }
 
-// The machine room above the top level: a housing with the hoist sheave and motor.
+// The machine room above the top level, one full floor tall: the hoist sheave hangs from a
+// beam, a motor and a control cabinet stand on a platform, and both cables leave the sheave
+// downward.
 function shaftTop(type) {
   const tile = new PixelCanvas(shaftWidth(type), TOP_CAP_HEIGHT);
-  const roomTop = 2;
+  const centreX = tile.width / 2;
+  const [cableLeft, cableRight] = cableColumns(tile.width);
   tile.fillRect(0, 0, tile.width, tile.height, 'charcoal');
-  tile.hline(0, 0, tile.width, 'silver');
-  tile.hline(0, 1, tile.width, 'gray');
   drawShaftWalls(tile);
   tile.hline(0, 0, tile.width, 'silver');
+  tile.hline(0, 1, tile.width, 'gray');
   tile.set(tile.width - 1, 0, 'gray');
 
-  const centreX = tile.width / 2;
-  drawSheave(tile, centreX, roomTop + 1);
-  const motorLeft = centreX + 4;
-  tile.fillRect(motorLeft, roomTop + 2, 5, 4, 'gray');
-  tile.hline(motorLeft, roomTop + 2, 5, 'silver');
-  tile.vline(motorLeft + 4, roomTop + 3, 3, 'slate');
-  tile.set(motorLeft + 2, roomTop + 3, 'lamp');
-  tile.hline(WALL_WIDTH, roomTop + 6, tile.width - 2 * WALL_WIDTH, 'slate');
+  const beamTop = 4;
+  tile.hline(WALL_WIDTH, beamTop, tile.width - 2 * WALL_WIDTH, 'silver');
+  tile.hline(WALL_WIDTH, beamTop + 1, tile.width - 2 * WALL_WIDTH, 'slate');
+  tile.vline(centreX - 1, beamTop + 2, 6, 'gray');
+  tile.vline(centreX, beamTop + 2, 6, 'slate');
+  drawSheave(tile, centreX, SHEAVE_TOP);
 
-  const cablesTop = roomTop + 7;
-  drawGuideRails(tile, cablesTop, tile.height - cablesTop);
-  drawCables(tile, roomTop + 4, tile.height - roomTop - 4);
+  const platformTop = 24;
+  const motorLeft = centreX + 5;
+  tile.fillRect(motorLeft, 13, 7, platformTop - 13, 'gray');
+  tile.hline(motorLeft, 13, 7, 'silver');
+  tile.vline(motorLeft + 6, 14, platformTop - 14, 'slate');
+  for (let y = 16; y < platformTop - 2; y += 3) {
+    tile.hline(motorLeft + 1, y, 4, 'slate');
+  }
+  tile.set(motorLeft + 3, 15, 'lamp');
+  tile.hline(centreX + 3, SHEAVE_TOP + 2, 2, 'slate');
+
+  const cabinetLeft = centreX - 11;
+  tile.fillRect(cabinetLeft, 12, 6, platformTop - 12, 'gray');
+  tile.hline(cabinetLeft, 12, 6, 'silver');
+  tile.vline(cabinetLeft + 5, 13, platformTop - 13, 'slate');
+  tile.vline(cabinetLeft + 2, 14, platformTop - 14, 'slate');
+  tile.set(cabinetLeft + 1, 15, 'lamp');
+  tile.set(cabinetLeft + 1, 17, 'cloth-red');
+  tile.set(cabinetLeft + 4, 15, 'lamp-glow');
+
+  tile.hline(WALL_WIDTH, platformTop, tile.width - 2 * WALL_WIDTH, 'silver');
+  tile.hline(WALL_WIDTH, platformTop + 1, tile.width - 2 * WALL_WIDTH, 'slate');
+  tile.hline(WALL_WIDTH, platformTop + 2, tile.width - 2 * WALL_WIDTH, 'ink');
+  drawGuideRails(tile, platformTop + 3, tile.height - platformTop - 3);
+  for (const x of [cableLeft, cableRight]) {
+    tile.vline(x, SHEAVE_TOP + 1, tile.height - SHEAVE_TOP - 1, 'gray');
+  }
+  drawBeam(tile, type);
   return tile;
 }
 
-function drawBuffer(tile, left, floorTop) {
-  tile.hline(left, floorTop - 3, 3, 'silver');
-  tile.vline(left + 1, floorTop - 2, 2, 'gray');
-  tile.set(left, floorTop - 1, 'slate');
-  tile.set(left + 2, floorTop - 1, 'slate');
+function drawBuffer(tile, centre, topRow, baseRow) {
+  tile.hline(centre - 3, topRow, 7, 'silver');
+  tile.hline(centre - 3, topRow + 1, 7, 'slate');
+  for (let y = topRow + 2; y < baseRow; y++) {
+    const turn = (y - topRow) % 3 === 0;
+    tile.hline(centre - 2, y, 5, turn ? 'silver' : 'slate');
+    tile.set(centre - 2, y, 'gray');
+    tile.set(centre + 2, y, 'gray');
+  }
+  tile.hline(centre - 3, baseRow, 7, 'gray');
+  tile.hline(centre - 3, baseRow + 1, 7, 'slate');
 }
 
-// The pit under the lowest level, with two spring buffers for the car.
+// The pit under the lowest level, one full floor tall: the tension sheave the cables wrap
+// around, two spring buffers for the car and a solid concrete base.
 function shaftBottom(type) {
   const tile = new PixelCanvas(shaftWidth(type), BOTTOM_CAP_HEIGHT);
-  const floorTop = tile.height - 2;
+  const centreX = tile.width / 2;
+  const [cableLeft, cableRight] = cableColumns(tile.width);
+  const baseTop = 22;
   tile.fillRect(0, 0, tile.width, tile.height, 'charcoal');
   drawShaftWalls(tile);
-  drawGuideRails(tile, 0, floorTop);
-  tile.hline(0, floorTop, tile.width, 'concrete');
-  tile.hline(0, floorTop + 1, tile.width, 'concrete-dark');
-  drawBuffer(tile, Math.floor(tile.width / 4), floorTop);
-  drawBuffer(tile, Math.floor((tile.width * 3) / 4) - 3, floorTop);
+  drawGuideRails(tile, 0, baseTop);
+  for (const x of [cableLeft, cableRight]) {
+    tile.vline(x, 0, PIT_SHEAVE_TOP + 1, 'gray');
+  }
+  drawSheave(tile, centreX, PIT_SHEAVE_TOP);
+  tile.vline(centreX - 1, PIT_SHEAVE_TOP + 6, baseTop - PIT_SHEAVE_TOP - 6, 'gray');
+  tile.vline(centreX, PIT_SHEAVE_TOP + 6, baseTop - PIT_SHEAVE_TOP - 6, 'slate');
+  tile.hline(centreX - 3, baseTop - 1, 6, 'slate');
+  const spread = Math.floor(tile.width / 4);
+  drawBuffer(tile, spread, 8, baseTop - 2);
+  drawBuffer(tile, tile.width - spread, 8, baseTop - 2);
+
+  tile.fillRect(0, baseTop, tile.width, tile.height - baseTop, 'concrete');
+  tile.hline(0, baseTop, tile.width, 'concrete-light');
+  tile.hline(0, tile.height - 1, tile.width, 'concrete-dark');
+  for (let x = 7; x < tile.width; x += 8) {
+    tile.vline(x, baseTop + 1, tile.height - baseTop - 2, 'concrete-dark');
+  }
+  tile.hline(0, baseTop + 5, tile.width, 'concrete-dark');
   return tile;
 }
 
 const DOOR_TOP = 4;
-const DOOR_BOTTOM = 23;
+const DOOR_BOTTOM = 28;
 
 function doorOpening(car) {
   return { left: 3, right: car.width - 4, top: DOOR_TOP, bottom: DOOR_BOTTOM };
@@ -289,6 +339,7 @@ function landingFrame(type) {
   frame.set(middle - 1, 0, 'lamp');
   frame.set(middle, 0, 'lamp');
   drawHallDoors(frame, jambRight);
+  drawCables(frame, 0, BEAM_ROW);
   return frame;
 }
 

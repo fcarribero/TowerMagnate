@@ -53,7 +53,7 @@ describe('checkPlacement', () => {
     const office = { type: 'office', x: 12, level: 3 } as const;
     expect(checkPlacement('stairs', 10, 3, world({ units: [office] })).problem).toBeNull();
     const stairs = { type: 'stairs', x: 10, level: 3 } as const;
-    expect(checkPlacement('escalator', 14, 3, world({ transports: [stairs] })).problem).toBe(
+    expect(checkPlacement('escalator', 12, 3, world({ transports: [stairs] })).problem).toBe(
       'CELL_OCCUPIED',
     );
   });

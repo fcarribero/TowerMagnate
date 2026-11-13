@@ -130,7 +130,9 @@ function widthOf(type: UnitType): number {
   return UNIT_CATALOG[type].width;
 }
 
+/** Levels a slot touches. Stairs draw one floor tall but land on the level above. */
 function heightOf(type: UnitType): number {
+  if (type === 'stairs') return 2;
   const height = UNIT_CATALOG[type].height;
   return height.kind === 'fixed' ? height.floors : 1;
 }

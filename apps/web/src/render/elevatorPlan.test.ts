@@ -57,7 +57,7 @@ describe('planShaft', () => {
   it('puts the machine room over the top level and the pit under the bottom one', () => {
     expect(pieces.find((piece) => piece.sprite.endsWith('/top'))).toMatchObject({
       index: levelToIndex(2),
-      y: -12,
+      y: -32,
     });
     expect(pieces.find((piece) => piece.sprite.endsWith('/bottom'))).toMatchObject({
       index: levelToIndex(-1),
@@ -77,7 +77,7 @@ describe('planShaft', () => {
 describe('carOrigin', () => {
   it('centres the car in the shaft and rests it on the floor of its level', () => {
     const index = levelToIndex(3);
-    expect(carOrigin(shaft, index)).toEqual({ x: 804, y: levelTop(index) + 5 });
+    expect(carOrigin(shaft, index)).toEqual({ x: 800, y: levelTop(index) });
   });
 
   it('moves up the screen by one floor per level index', () => {

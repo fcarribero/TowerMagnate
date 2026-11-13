@@ -57,8 +57,8 @@ const GDD_UNIT_TABLE: GddUnitRow[] = [
   {
     type: 'stairs',
     name: 'Escalera',
-    width: 8,
-    floors: 2,
+    width: 4,
+    floors: 1,
     cost: unit(5_000),
     people: null,
     stars: 1,

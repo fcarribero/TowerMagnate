@@ -2,24 +2,28 @@ import { Container, Graphics, Sprite, type Texture } from 'pixi.js';
 import { skyColorAt } from './skyRows';
 import { FLOOR_HEIGHT, SLAB_HEIGHT } from './metrics';
 
-/** How far, in zoom 1 pixels, the back of a room slides when the camera is a half screen away. */
-export const MAX_DEPTH_X = 5;
-export const MAX_DEPTH_Y = 3;
+/** How far, in zoom 1 pixels, the back of a room slides when the camera is `reach` zoom 1 pixels away. */
+export const MAX_DEPTH_X = 10;
+export const MAX_DEPTH_Y = 6;
+
+/** Zoom 1 pixels from the camera at which a room's back wall has slid as far as it goes. */
+export const REACH_X = 160;
+export const REACH_Y = 64;
 
 /**
  * Whole pixels the back of a room moves toward the camera. It is zero when the
- * camera looks straight at the room and grows to `max` at half a screen away.
+ * camera looks straight at the room and grows to `max` at `reach`.
  */
 export function depthOffset(
   roomCenter: number,
   cameraCenter: number,
-  halfView: number,
+  reach: number,
   max: number,
 ): number {
-  if (halfView <= 0) {
+  if (reach <= 0) {
     return 0;
   }
-  const ratio = Math.min(1, Math.max(-1, (cameraCenter - roomCenter) / halfView));
+  const ratio = Math.min(1, Math.max(-1, (cameraCenter - roomCenter) / reach));
   return Math.round(ratio * max) || 0;
 }
 

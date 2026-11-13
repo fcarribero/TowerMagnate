@@ -1,3 +1,4 @@
+import { animationNow, isAnimationPaused } from './animationClock';
 import type { FireSpan, Level, ShaftView } from '@tower-magnate/shared';
 import { Application, Container, TextureSource } from 'pixi.js';
 import type { DrawnFrame } from '../model/interpolation';
@@ -291,12 +292,14 @@ export async function mountStage(host: HTMLElement, options: StageOptions = {}):
     }
   };
   app.ticker.add(drawCars);
-  const drawEvents = (): void => events.tick(performance.now());
+  const drawEvents = (): void => events.tick(animationNow());
   app.ticker.add(drawEvents);
   const growBuildings = (): void => {
     structure.animate();
-    driftClouds(sky, app.ticker.deltaMS / 1000);
-    updateWeather(sky, app.ticker.deltaMS / 1000);
+    if (!isAnimationPaused()) {
+      driftClouds(sky, app.ticker.deltaMS / 1000);
+      updateWeather(sky, app.ticker.deltaMS / 1000);
+    }
   };
   app.ticker.add(growBuildings);
   const statsTimer = window.setInterval(() => {
@@ -370,8 +373,10 @@ export async function mountStage(host: HTMLElement, options: StageOptions = {}):
     },
     showUnits(input) {
       const placed = [...input.units];
-      units.update({ ...input, units: placed });
+      const flights = [...input.transports];
+      units.update({ ...input, units: placed, transports: flights });
       people.setUnits(placed);
+      people.setTransports(flights);
     },
     showFollowed(followed) {
       people.markFollowed(followed);
@@ -389,7 +394,7 @@ export async function mountStage(host: HTMLElement, options: StageOptions = {}):
       events.showLooping(input.drawings, input.fire);
     },
     playEffect(effect) {
-      events.start(effect, performance.now());
+      events.start(effect, animationNow());
     },
     destroy() {
       app.ticker.remove(drawCars);

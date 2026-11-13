@@ -5,9 +5,9 @@
   "towerWidthTiles": 375,
   "person": { "frameWidth": 8, "frameHeight": 16, "bodyWidth": 5, "bodyHeight": 14 },
   "elevatorCar": {
-    "standard": { "width": 24, "height": 27 },
-    "service": { "width": 24, "height": 27 },
-    "express": { "width": 40, "height": 27 }
+    "standard": { "width": 32, "height": 32 },
+    "service": { "width": 32, "height": 32 },
+    "express": { "width": 48, "height": 32 }
   },
   "uiIcon": 16,
   "zoomLevels": [1, 2, 3, 4]
