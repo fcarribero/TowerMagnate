@@ -11,6 +11,7 @@ import {
   openBombThreat,
   openFire,
   rollLedgerWeek,
+  addOccupant,
   setStructure,
   step,
   STEPS_PER_DAY,
@@ -287,6 +288,19 @@ describe('snapshot from tower state', () => {
 
     expect(snapshot.people.map((person) => person.id)).toEqual(['p1']);
     expect(snapshot.people[0]).toMatchObject({ x: 3, level: 2, mode: 'inside', carRef: null });
+  });
+
+  it('marks a unit inside for someone idle in it but not for a walker passing through', () => {
+    const idle = towerWithPeople();
+    addOccupant(idle.grid, 2, 0, 8, { kind: 'unit', id: 'u5' });
+    const unitOf = (state: ReturnType<typeof towerWithPeople>) =>
+      buildSnapshot(state, null).units.find((unit) => unit.id === 'u5');
+    expect(unitOf(idle)?.inside).toBe(true);
+
+    const walking = towerWithPeople();
+    addOccupant(walking.grid, 2, 0, 8, { kind: 'unit', id: 'u5' });
+    walking.people.trek[0] = TREK_PHASES.indexOf('walkingToDestination');
+    expect(unitOf(walking)?.inside).toBeUndefined();
   });
 
   it('maps each trip phase to a person mode', () => {
