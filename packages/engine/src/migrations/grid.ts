@@ -10,7 +10,7 @@ import {
   type OccupantSpan,
   type StructureSpan,
 } from '@tower-magnate/shared';
-import { createGrid } from '../grid';
+import { createGrid, isOverlay } from '../grid';
 import { isRecord, StateMigrationError } from './errors';
 
 const STRUCTURE_KINDS: readonly unknown[] = ['floor', 'lobby'];
@@ -57,7 +57,7 @@ function readRow(level: number, raw: unknown): LevelRow {
   const structure = raw.structure.map((span) => readStructureSpan(level, span));
   const occupants = raw.occupants.map((span) => readOccupantSpan(level, span));
   assertSortedAndDisjoint(level, structure);
-  assertSortedAndDisjoint(level, occupants);
+  assertOccupantsSortedAndLayered(level, occupants);
   assertMerged(level, structure);
   return { structure, occupants };
 }
@@ -105,6 +105,23 @@ function assertSortedAndDisjoint(level: number, spans: readonly ColumnSpan[]): v
       throw new StateMigrationError(`Grid row ${level} has unsorted or overlapping spans`);
     }
     previous = span;
+  }
+}
+
+/**
+ * Occupants are sorted by first column. Stairs, escalators and shafts sit in a layer over the
+ * units, so only spans of the same layer may not share a cell.
+ */
+function assertOccupantsSortedAndLayered(level: number, spans: readonly OccupantSpan[]): void {
+  let previousStart = -1;
+  const lastEnd = { back: -1, over: -1 };
+  for (const span of spans) {
+    const layer = isOverlay(span.occupant) ? 'over' : 'back';
+    if (span.x0 < previousStart || span.x0 <= lastEnd[layer]) {
+      throw new StateMigrationError(`Grid row ${level} has unsorted or overlapping spans`);
+    }
+    previousStart = span.x0;
+    lastEnd[layer] = span.x1;
   }
 }
 

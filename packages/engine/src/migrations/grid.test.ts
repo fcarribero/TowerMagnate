@@ -80,6 +80,25 @@ describe('migrateState grid', () => {
     }
   });
 
+  it('loads stairs drawn over an office, which the engine allows', () => {
+    const tower = createTower(5);
+    setStructure(tower.grid, 2, 157, 235, 'floor');
+    addOccupant(tower.grid, 2, 193, 201, { kind: 'unit', id: 'u5' });
+    addOccupant(tower.grid, 2, 194, 201, { kind: 'transport', id: 't32', part: 'footprint' });
+    const saved = JSON.parse(JSON.stringify(tower)) as unknown;
+    expect(migrateState(saved).grid.levels[2]?.occupants).toHaveLength(2);
+  });
+
+  it('refuses two stairs or two shafts on the same cells', () => {
+    const stairs = [
+      { x0: 0, x1: 8, occupant: { kind: 'transport', id: 't1', part: 'footprint' } },
+      { x0: 4, x1: 12, occupant: { kind: 'transport', id: 't2', part: 'footprint' } },
+    ];
+    expect(() => migrateState(savedWithRow({ structure: [], occupants: stairs }))).toThrow(
+      StateMigrationError,
+    );
+  });
+
   it('refuses overlapping occupants and unknown occupant refs', () => {
     const office = { kind: 'unit', id: 'u1' };
     const overlapping = [
