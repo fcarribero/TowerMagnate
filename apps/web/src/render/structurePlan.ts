@@ -49,7 +49,6 @@ const ROOF_HEIGHT = 4;
 /** How far the exterior wall rises above the roof, about the waist of a person. */
 const PARAPET_HEIGHT = 8;
 const COLUMN_EVERY_TILES = 4;
-const LOBBY_WINDOW_EVERY_TILES = 8;
 const MAX_LOBBY_HEIGHT = 3;
 const SUBWAY_LEVEL = -TOWER_LAYOUT.subwayTunnelBasement;
 const MAIN_LOBBY_LEVEL = TOWER_LAYOUT.mainLobbyFloor;
@@ -181,7 +180,7 @@ function lobbyRun(level: Level, run: Run, source: StructureSource): StructurePie
   if (level === MAIN_LOBBY_LEVEL) {
     const height = source.mainLobbyHeight ?? 1;
     return [
-      ...sparseWindowRuns(`lobby-${height}`, run, FLOOR_HEIGHT - height * FLOOR_HEIGHT),
+      ...wallRun(`lobby-${height}`, run, FLOOR_HEIGHT - height * FLOOR_HEIGHT),
       ...lobbyDoors(run),
       ...lobbyProps(level, run, MAIN_LOBBY_END_MARGIN_TILES),
     ];
@@ -192,7 +191,7 @@ function lobbyRun(level: Level, run: Run, source: StructureSource): StructurePie
       ...lobbyProps(level, run, undefined, LOBBY_KINDS.filter((kind) => kind.sky === true)),
     ];
   }
-  return [...sparseWindowRuns('lobby-1', run, 0), ...lobbyProps(level, run)];
+  return [...wallRun('lobby-1', run, 0), ...lobbyProps(level, run)];
 }
 
 /** Props stand on the floor line of the bottom row, where the doors stand. */
@@ -210,11 +209,6 @@ function lobbyProps(
   }));
 }
 
-/** Lobby walls are solid except for a two-tile pane of windows every 8 tiles. */
-function hasLobbyWindow(column: number): boolean {
-  return column % LOBBY_WINDOW_EVERY_TILES >= 2 && column % LOBBY_WINDOW_EVERY_TILES <= 3;
-}
-
 /** A building door at each end of a main lobby run wide enough for two. */
 function lobbyDoors(run: Run): StructurePiece[] {
   if (run.to - run.from + 1 < 2 * DOOR_TILES + 2) {
@@ -227,24 +221,9 @@ function lobbyDoors(run: Run): StructurePiece[] {
   ];
 }
 
-/** The wall sprite along a lobby run, with the window sprite over the window tiles. */
-function sparseWindowRuns(subject: StructureSubject, run: Run, y: number): StructurePiece[] {
-  const windows: boolean[] = [];
-  for (let column = run.from; column <= run.to; column += 1) {
-    windows.push(hasLobbyWindow(column));
-  }
-  const pieces: StructurePiece[] = [];
-  let from = 0;
-  while (from < windows.length) {
-    let to = from;
-    while (to + 1 < windows.length && windows[to + 1] === windows[from]) {
-      to += 1;
-    }
-    const sprite = windows[from] ? subject : `${subject}-wall`;
-    pieces.push(tiledRun(sprite, { from: run.from + from, to: run.from + to }, y));
-    from = to + 1;
-  }
-  return pieces;
+/** The solid lobby wall along a run; lobbies have no windows. */
+function wallRun(subject: StructureSubject, run: Run, y: number): StructurePiece[] {
+  return [tiledRun(`${subject}-wall`, run, y)];
 }
 
 /** A run without the cells that a unit covers; its sprite brings its own floor. */
