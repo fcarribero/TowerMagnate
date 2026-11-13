@@ -21,14 +21,14 @@ const IDS = [
   'people/worker-b/walk-red_02',
 ];
 
-export function layerWithArt() {
+export function layerWithArt(now?: () => number) {
   const textures: Record<string, Texture> = {};
   for (const id of IDS) {
     textures[id] = new Texture();
   }
   const registry = new SpriteRegistry(new Texture(), () => undefined);
   registry.addSheet(textures);
-  return { layer: new PeopleLayer(registry), textures };
+  return { layer: new PeopleLayer(registry, now), textures };
 }
 
 export const person = (id: string, patch: Partial<PersonView>): PersonView => ({

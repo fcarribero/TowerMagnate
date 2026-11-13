@@ -26,6 +26,8 @@ export interface DrawnPerson {
 export interface DrawnFrame {
   readonly cars: ReadonlyMap<string, DrawnCar>;
   readonly people: readonly DrawnPerson[];
+  /** People inside their unit; they have no route, so the renderer moves them in the unit. */
+  readonly inside?: readonly PersonView[];
 }
 
 /** How far the drawing has moved from the previous delta to the latest one, from 0 to 1. */
@@ -112,5 +114,6 @@ function drawPeople(
 /** Positions of every car and visible person at `progress` between the two buffered states. */
 export function drawnFrame(frames: StoreFrames, progress: number): DrawnFrame {
   const cars = drawCars(frames, progress);
-  return { cars, people: drawPeople(frames, progress, cars) };
+  const inside = [...frames.latest.people.values()].filter((person) => person.mode === 'inside');
+  return { cars, people: drawPeople(frames, progress, cars), inside };
 }

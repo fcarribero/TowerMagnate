@@ -1,8 +1,10 @@
+import { UNIT_CATALOG, levelToIndex, type PersonView, type UnitType } from '@tower-magnate/shared';
 import { Container, Sprite } from 'pixi.js';
 import type { DrawnFrame } from '../model/interpolation';
 import type { LevelRange } from './camera';
 import { floorSprite } from './elevatorPlan';
 import { newFollowedMarker } from './followedMarker';
+import { insideLook, type UnitSpan } from './insideMotion';
 import { levelTop } from './levels';
 import { FLOOR_HEIGHT, TILE_WIDTH } from './metrics';
 import type { SpriteRegistry } from './spriteRegistry';
@@ -10,6 +12,8 @@ import type { SpriteRegistry } from './spriteRegistry';
 /** Row of a floor tile where a person's feet are. */
 const FEET_ROW = 28;
 const PERSON_HEIGHT = 16;
+/** Columns a person takes, so the ones inside a unit stay within its walls. */
+const INSIDE_PERSON_COLUMNS = 2;
 const GUEST_TINT = 0xffe9a8;
 const NO_TINT = 0xffffff;
 /** Render frames each idle frame is shown for, about half a second at 60 frames a second. */
@@ -49,7 +53,24 @@ export class PeopleLayer {
   private followed: ReadonlySet<string> = new Set();
   private readonly markers = new WeakMap<Sprite, Sprite>();
 
-  constructor(private readonly sprites: SpriteRegistry) {}
+  /** Units by level, which is where the people inside move around. */
+  private unitsByLevel = new Map<number, UnitSpan[]>();
+
+  constructor(
+    private readonly sprites: SpriteRegistry,
+    private readonly now: () => number = () => performance.now(),
+  ) {}
+
+  /** The units people can be inside of. Floors, lobbies and transports are not rooms. */
+  setUnits(units: Iterable<{ type: UnitType; x: number; level: number }>): void {
+    const byLevel = new Map<number, UnitSpan[]>();
+    for (const unit of units) {
+      const spans = byLevel.get(unit.level) ?? [];
+      spans.push({ from: unit.x, width: UNIT_CATALOG[unit.type].width });
+      byLevel.set(unit.level, spans);
+    }
+    this.unitsByLevel = byLevel;
+  }
 
   get count(): number {
     return this.drawn.size;
@@ -81,36 +102,63 @@ export class PeopleLayer {
       if (person.mode === 'ride') {
         continue;
       }
-      const top = levelTop(Math.round(position)) + FEET_ROW - PERSON_HEIGHT;
-      if (!this.isOnScreen(top)) {
+      this.drawPerson(person, x, position, floorSprite(person, x), person.facing);
+    }
+    const time = this.now();
+    for (const person of frame.inside ?? []) {
+      const unit = this.unitAt(person);
+      if (unit === undefined) {
         continue;
       }
-      const walker = this.drawn.get(person.id) ?? this.create(person.id);
-      walker.seenIn = this.frameNumber;
-      const sprite = walker.sprite;
-      const look = this.animated(floorSprite(person, x), person.id);
-      if (
-        look.subject !== walker.subject ||
-        look.state !== walker.state ||
-        look.frame !== walker.frame
-      ) {
-        sprite.texture = this.sprites.variant(look.subject, {
-          state: look.state,
-          frame: look.frame,
-        });
-        walker.subject = look.subject;
-        walker.state = look.state;
-        walker.frame = look.frame;
-      }
-      sprite.tint = this.guests.has(person.id) ? GUEST_TINT : NO_TINT;
-      const marker = this.markers.get(sprite);
-      if (marker !== undefined) {
-        marker.visible = this.followed.has(person.id);
-      }
-      sprite.scale.x = person.facing === 'left' ? -1 : 1;
-      sprite.position.set(Math.round(x * TILE_WIDTH + sprite.texture.width / 2), top);
+      const look = insideLook(person.id, unit, time, INSIDE_PERSON_COLUMNS);
+      const placed = floorSprite({ ...person, mode: look.walking ? 'walk' : 'wait' }, look.x);
+      this.drawPerson(person, look.x, levelToIndex(person.level), placed, look.facing);
     }
     this.releaseMissing();
+  }
+
+  /** The unit on the person's level whose columns hold them, if there is one. */
+  private unitAt(person: PersonView): UnitSpan | undefined {
+    return this.unitsByLevel
+      .get(person.level)
+      ?.find((unit) => person.x >= unit.from - 1 && person.x < unit.from + unit.width + 1);
+  }
+
+  private drawPerson(
+    person: PersonView,
+    x: number,
+    position: number,
+    placed: { subject: string; state: string; frame?: number },
+    facing: PersonView['facing'],
+  ): void {
+    const top = levelTop(Math.round(position)) + FEET_ROW - PERSON_HEIGHT;
+    if (!this.isOnScreen(top)) {
+      return;
+    }
+    const walker = this.drawn.get(person.id) ?? this.create(person.id);
+    walker.seenIn = this.frameNumber;
+    const sprite = walker.sprite;
+    const look = this.animated(placed, person.id);
+    if (
+      look.subject !== walker.subject ||
+      look.state !== walker.state ||
+      look.frame !== walker.frame
+    ) {
+      sprite.texture = this.sprites.variant(look.subject, {
+        state: look.state,
+        frame: look.frame,
+      });
+      walker.subject = look.subject;
+      walker.state = look.state;
+      walker.frame = look.frame;
+    }
+    sprite.tint = this.guests.has(person.id) ? GUEST_TINT : NO_TINT;
+    const marker = this.markers.get(sprite);
+    if (marker !== undefined) {
+      marker.visible = this.followed.has(person.id);
+    }
+    sprite.scale.x = facing === 'left' ? -1 : 1;
+    sprite.position.set(Math.round(x * TILE_WIDTH + sprite.texture.width / 2), top);
   }
 
   /** A standing person alternates two idle frames; a walking one keeps the walk frame. */

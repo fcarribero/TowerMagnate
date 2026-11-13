@@ -187,3 +187,38 @@ describe('PeopleLayer idle animation', () => {
     expect(seen.size).toBe(1);
   });
 });
+
+describe('PeopleLayer people inside units', () => {
+  const office = { type: 'office' as const, x: 20, level: 1 };
+
+  it('draws a person inside a unit, within the unit', () => {
+    const { layer } = layerWithArt();
+    layer.setUnits([office]);
+    layer.show({
+      ...frameOf(),
+      inside: [person('p1', { mode: 'inside', x: 22, level: 1 })],
+    });
+    expect(layer.count).toBe(1);
+    const sprite = layer.view.children[0] as Sprite;
+    expect(sprite.visible).toBe(true);
+  });
+
+  it('skips a person inside when no unit holds them', () => {
+    const { layer } = layerWithArt();
+    layer.setUnits([office]);
+    layer.show({ ...frameOf(), inside: [person('p1', { mode: 'inside', x: 90, level: 1 })] });
+    expect(layer.count).toBe(0);
+  });
+
+  it('moves them over time', () => {
+    let now = 0;
+    const { layer } = layerWithArt(() => now);
+    layer.setUnits([office]);
+    const xs = new Set<number>();
+    for (now = 0; now < 30_000; now += 500) {
+      layer.show({ ...frameOf(), inside: [person('p1', { mode: 'inside', x: 22, level: 1 })] });
+      xs.add((layer.view.children[0] as Sprite).x);
+    }
+    expect(xs.size).toBeGreaterThan(3);
+  });
+});

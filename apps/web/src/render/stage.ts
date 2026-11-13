@@ -359,7 +359,9 @@ export async function mountStage(host: HTMLElement, options: StageOptions = {}):
       app.renderer.background.color = SKY_BACKGROUND[time];
     },
     showUnits(input) {
-      units.update(input);
+      const placed = [...input.units];
+      units.update({ ...input, units: placed });
+      people.setUnits(placed);
     },
     showFollowed(followed) {
       people.markFollowed(followed);
