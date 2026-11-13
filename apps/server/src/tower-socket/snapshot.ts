@@ -3,12 +3,10 @@ import {
   disconnectedUnits,
   findPerson,
   isEvaluatedUnit,
-  isExpressStop,
   listPeople,
   NO_TRIP,
   nextStarRequirements,
   populationOf,
-  shaftLevels,
   STEPS_PER_DAY,
   DAYS_PER_WEEK,
   isOutsideTower,
@@ -181,14 +179,13 @@ function transportView(transport: Transport): TransportView {
 }
 
 function shaftView(shaft: Shaft): ShaftView {
-  const levels = shaftLevels(shaft);
   return {
     id: shaft.id,
     type: shaft.type,
     x: shaft.x,
     bottom: shaft.bottom,
     top: shaft.top,
-    stops: shaft.type === 'express' ? levels.filter(isExpressStop) : levels,
+    stops: [...shaft.stops],
   };
 }
 
