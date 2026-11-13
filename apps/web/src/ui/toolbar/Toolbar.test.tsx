@@ -76,7 +76,7 @@ describe('Toolbar', () => {
   });
 
   it('opens a category without changing the current tool', () => {
-    render(<Harness stars={1} />);
+    render(<Harness stars={2} />);
     openCategory('Hotel');
     const panel = screen.getByRole('tabpanel', { name: 'Hotel' });
     expect(within(panel).getAllByRole('button')).toHaveLength(4);
@@ -92,34 +92,30 @@ describe('Toolbar', () => {
     expect(infoText()).toBe('OficinaTamaño9 x 1 casillerosPrecio$40.000');
   });
 
-  it('keeps locked tools unselectable at 1 star', () => {
+  it('hides locked tools and the categories that have none unlocked', () => {
     render(<Harness stars={1} />);
-    openCategory('Hotel');
-    const suite = toolButton('Suite');
-    expect(suite.getAttribute('aria-disabled')).toBe('true');
-    fireEvent.click(suite);
-    expect(suite.getAttribute('aria-pressed')).toBe('false');
-    expect(toolButton('Lupa').getAttribute('aria-pressed')).toBe('true');
+    expect(screen.queryByRole('tab', { name: 'Hotel' })).toBeNull();
+    expect(screen.queryByRole('tab', { name: 'Servicios' })).toBeNull();
+    openCategory('Transporte');
+    expect(screen.queryByRole('button', { name: 'Ascensor expreso' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Ascensor de servicio' })).toBeNull();
+    expect(toolButton('Ascensor estándar')).toBeTruthy();
   });
 
-  it('unlocks tools when the rating rises', () => {
+  it('shows tools and categories when the rating rises', () => {
     const { rerender } = render(<Harness stars={1} />);
-    openCategory('Hotel');
-    expect(toolButton('Suite').getAttribute('aria-disabled')).toBe('true');
+    expect(screen.queryByRole('tab', { name: 'Hotel' })).toBeNull();
     rerender(<Harness stars={2} />);
+    openCategory('Hotel');
     expect(toolButton('Suite').getAttribute('aria-disabled')).toBe('false');
   });
 
   it('shows a hovered tool in the info box until the pointer leaves', () => {
     render(<Harness stars={1} />);
-    openCategory('Servicios');
-    fireEvent.pointerEnter(toolButton('Catedral'));
-    expect(infoText()).toBe(
-      'CatedralTamaño28 x 4 casillerosPrecio$35.000.000Se desbloquea con 5 estrellas',
-    );
-    expect(document.querySelector('.tm-toolbar__info-size')?.textContent).toBe('28 x 4 casilleros');
-    expect(document.querySelector('.tm-toolbar__info-price')?.textContent).toBe('$35.000.000');
-    fireEvent.pointerLeave(toolButton('Catedral'));
+    openCategory('Oficinas y vivienda');
+    fireEvent.pointerEnter(toolButton('Oficina'));
+    expect(infoText()).toBe('OficinaTamaño9 x 1 casillerosPrecio$40.000');
+    fireEvent.pointerLeave(toolButton('Oficina'));
     expect(infoText()).toBe('Lupa');
   });
 
@@ -227,8 +223,8 @@ describe('Toolbar', () => {
     beforeEach(() => vi.useFakeTimers());
     afterEach(() => vi.useRealTimers());
 
-    it('list name and price, size, and the stars a locked tool needs', () => {
-      render(<Harness stars={1} />);
+    it('list name and price, and size', () => {
+      render(<Harness stars={3} />);
       openCategory('Transporte');
       const anchor = toolButton('Ascensor expreso').closest('.tm-tooltip-anchor') as HTMLElement;
       fireEvent.pointerEnter(anchor);
@@ -239,7 +235,6 @@ describe('Toolbar', () => {
       expect(lines.map((line) => line.textContent)).toEqual([
         'Ascensor expreso: $600.000 + $250.000 por cabina',
         'Hueco de 6',
-        'Se desbloquea con 3 estrellas',
       ]);
     });
   });

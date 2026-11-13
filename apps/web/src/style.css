@@ -8,19 +8,10 @@ body,
   background: var(--obra-ink);
 }
 
-/* The tower view ends where the build bar starts; the soil colour fills the rest behind the bar. */
+/* The tower view ends where the build bar starts. */
 .stage-host {
   position: absolute;
   inset: 0 0 var(--chrome-stage-bottom);
-}
-
-.stage-ground {
-  position: absolute;
-  right: 0;
-  bottom: 0;
-  left: 0;
-  height: var(--chrome-stage-bottom);
-  background: var(--tm-soil);
 }
 
 .stage-host canvas {

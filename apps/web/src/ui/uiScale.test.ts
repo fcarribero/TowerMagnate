@@ -8,11 +8,8 @@ function resizeTo(width: number, height: number): void {
 }
 
 describe('uiScaleFor', () => {
-  it('is 1.5 whatever the viewport size', () => {
-    expect(uiScaleFor(1280, 800)).toBe(1.5);
-    expect(uiScaleFor(1024, 640)).toBe(1.5);
-    expect(uiScaleFor(1920, 1080)).toBe(1.5);
-    expect(uiScaleFor(8000, 5000)).toBe(1.5);
+  it('is always 1.5', () => {
+    expect(uiScaleFor()).toBe(1.5);
   });
 });
 

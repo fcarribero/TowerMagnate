@@ -6,7 +6,6 @@ import { Texture } from 'pixi.js';
 import { describe, expect, it } from 'vitest';
 import { ATLAS_NAMES, atlasUrl, loadSprites, type LoadedSheet } from './atlasLoader';
 import { SPRITE_IDS } from './atlasManifest';
-import { skySpriteId } from './skyRows';
 import { SpriteRegistry } from './spriteRegistry';
 
 const atlasesDir = fileURLToPath(new URL('../../../../assets/atlases', import.meta.url));
@@ -62,13 +61,6 @@ describe('loadSprites', () => {
     expect(registry.size).toBe(expectedIds.length);
     for (const id of expectedIds) {
       expect(registry.has(id), id).toBe(true);
-    }
-  });
-
-  it('has every sky band the stage draws', async () => {
-    const registry = await loadSprites(sheetFromCommittedJson);
-    for (const level of [1, 50, 104]) {
-      expect(registry.has(skySpriteId(level))).toBe(true);
     }
   });
 

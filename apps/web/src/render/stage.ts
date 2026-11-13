@@ -26,7 +26,7 @@ import { ElevatorLayer } from './elevatorLayer';
 import { EventLayer } from './eventLayer';
 import type { EffectDrawing, TransientEffect } from './eventPlan';
 import { PeopleLayer } from './peopleLayer';
-import { SKY_BACKGROUND, createSkyRows, setSkyTime, showSkyRows } from './skyRows';
+import { SKY_BACKGROUND, createSky, setSkyTime } from './skyRows';
 import type { SkyTime } from './timeOfDay';
 import type { SpriteRegistry } from './spriteRegistry';
 import { StructureLayer } from './structureLayer';
@@ -137,10 +137,8 @@ export async function mountStage(host: HTMLElement, options: StageOptions = {}):
   app.canvas.style.touchAction = 'none';
 
   const world = new Container();
-  const skyRows = createSkyRows(sprites);
-  for (const row of skyRows) {
-    world.addChild(row.sprite);
-  }
+  const sky = createSky();
+  world.addChild(sky.view);
   const structure = new StructureLayer(sprites);
   world.addChild(structure.view);
   const units = new UnitLayer(sprites);
@@ -201,7 +199,6 @@ export async function mountStage(host: HTMLElement, options: StageOptions = {}):
     ghost.setZoom(camera.zoom);
     world.position.set(-camera.left, -camera.top);
     const onScreen = visibleLevels(camera);
-    showSkyRows(skyRows, onScreen);
     structure.rows.showOnly(onScreen);
     units.showOnly(onScreen);
     elevators.showOnly(onScreen);
@@ -358,7 +355,7 @@ export async function mountStage(host: HTMLElement, options: StageOptions = {}):
       structure.update(input);
     },
     showSky(time) {
-      setSkyTime(skyRows, sprites, time);
+      setSkyTime(sky, time);
       app.renderer.background.color = SKY_BACKGROUND[time];
     },
     showUnits(input) {

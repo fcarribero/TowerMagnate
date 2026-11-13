@@ -54,9 +54,17 @@ export function Toolbar({
   disabled = false,
   onZoom,
 }: ToolbarProps) {
-  const [openCategory, setOpenCategory] = useState<ToolbarCategory>(() =>
+  const [chosenCategory, setOpenCategory] = useState<ToolbarCategory>(() =>
     isFixedTool(currentTool) ? 'structure' : categoryOf(currentTool),
   );
+  // Locked tools are not shown, and neither are categories that have none unlocked.
+  const unlockedByCategory = TOOLBAR_CATEGORIES.map((category) => ({
+    category,
+    tools: toolsInCategory(category).filter((tool) => !isLocked(tool, stars)),
+  })).filter((entry) => entry.tools.length > 0);
+  const openEntry =
+    unlockedByCategory.find((entry) => entry.category === chosenCategory) ?? unlockedByCategory[0];
+  const openCategory = openEntry?.category ?? chosenCategory;
   const [hoveredTool, setHoveredTool] = useState<ToolId | null>(null);
 
   const select = (tool: ToolId): void => {
@@ -116,7 +124,7 @@ export function Toolbar({
       </div>
       <div class="tm-toolbar__catbox">
         <div class="tm-toolbar__categories" role="tablist">
-          {TOOLBAR_CATEGORIES.map((category) => (
+          {unlockedByCategory.map(({ category }) => (
             <button
               key={category}
               type="button"
@@ -130,7 +138,7 @@ export function Toolbar({
           ))}
         </div>
         <div class="tm-toolbar__tools" role="tabpanel" aria-label={t(`category.${openCategory}`)}>
-          {toolsInCategory(openCategory).map((tool) => toolButton(tool, 'tm-tool'))}
+          {(openEntry?.tools ?? []).map((tool) => toolButton(tool, 'tm-tool'))}
         </div>
       </div>
       <ToolInfo tool={hoveredTool ?? currentTool} stars={stars}>

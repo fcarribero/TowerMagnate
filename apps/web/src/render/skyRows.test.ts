@@ -3,78 +3,82 @@ import { describe, expect, it } from 'vitest';
 import { HIGHEST_LEVEL, levelToIndex, levelTop } from './levels';
 import { FLOOR_HEIGHT } from './metrics';
 import {
-  createSkyRows,
+  SKY_HEIGHT,
+  SKY_TOP,
+  STAR_FLOOR,
+  altitudeAtWorldY,
+  createSky,
+  makeStars,
   setSkyTime,
-  showSkyRows,
-  skyBandForLevel,
-  skySpans,
-  skySpriteId,
+  skyColorAt,
 } from './skyRows';
-import { SpriteRegistry } from './spriteRegistry';
 
-describe('skyBandForLevel', () => {
-  it('is pale near the ground and deep at the top', () => {
-    expect(skyBandForLevel(1)).toBe('horizon');
-    expect(skyBandForLevel(5)).toBe('horizon');
-    expect(skyBandForLevel(6)).toBe('middle');
-    expect(skyBandForLevel(89)).toBe('middle');
-    expect(skyBandForLevel(90)).toBe('top');
-    expect(skyBandForLevel(104)).toBe('top');
+function brightness(color: readonly [number, number, number]): number {
+  return color[0] + color[1] + color[2];
+}
+
+describe('skyColorAt', () => {
+  it('gets darker with altitude until it is almost black in space', () => {
+    for (const time of ['day', 'dusk', 'night'] as const) {
+      let previous = Infinity;
+      for (let altitude = 0; altitude <= 1; altitude += 0.05) {
+        const value = brightness(skyColorAt(altitude, time));
+        expect(value).toBeLessThanOrEqual(previous);
+        previous = value;
+      }
+      expect(brightness(skyColorAt(1, time))).toBeLessThan(20);
+    }
   });
 
-  it('names a day sky sprite', () => {
-    expect(skySpriteId(50)).toBe('sky/day/middle');
-    expect(skySpriteId(50, 'dusk')).toBe('sky/dusk/middle');
-    expect(skySpriteId(1, 'night')).toBe('sky/night/horizon');
+  it('is pale at the day horizon and darker at night', () => {
+    expect(brightness(skyColorAt(0, 'day'))).toBeGreaterThan(brightness(skyColorAt(0, 'night')));
+    expect(skyColorAt(0, 'day')).toEqual([196, 224, 245]);
+  });
+
+  it('clamps outside 0 to 1', () => {
+    expect(skyColorAt(-1, 'day')).toEqual(skyColorAt(0, 'day'));
+    expect(skyColorAt(2, 'day')).toEqual(skyColorAt(1, 'day'));
   });
 });
 
-describe('sky bands', () => {
-  function rowsWithArt() {
-    const textures: Record<string, Texture> = {};
-    for (const time of ['day', 'night'] as const) {
-      for (const band of ['horizon', 'middle', 'top'] as const) {
-        textures[`sky/${time}/${band}`] = new Texture();
-      }
-    }
-    const registry = new SpriteRegistry(new Texture(), () => undefined);
-    registry.addSheet(textures);
-    return { rows: createSkyRows(registry), registry, textures };
-  }
+describe('sky geometry', () => {
+  it('covers the levels above the ground', () => {
+    expect(SKY_TOP).toBe(levelTop(levelToIndex(HIGHEST_LEVEL)));
+    expect(SKY_TOP + SKY_HEIGHT).toBe(levelTop(levelToIndex(1)) + FLOOR_HEIGHT);
+    expect(altitudeAtWorldY(SKY_TOP + SKY_HEIGHT)).toBe(0);
+    expect(altitudeAtWorldY(SKY_TOP)).toBe(1);
+  });
+});
 
-  it('groups the above-ground levels into one span per band', () => {
-    expect(skySpans()).toEqual([
-      { band: 'horizon', lowestLevel: 1, highestLevel: 5 },
-      { band: 'middle', lowestLevel: 6, highestLevel: 89 },
-      { band: 'top', lowestLevel: 90, highestLevel: HIGHEST_LEVEL },
-    ]);
+describe('stars', () => {
+  it('are the same every time and stay in the sky', () => {
+    const stars = makeStars();
+    expect(makeStars()).toEqual(stars);
+    expect(stars.every((star) => star.altitude >= 0.2 && star.altitude <= 1)).toBe(true);
+  });
+});
+
+describe('sky', () => {
+  const texture = new Texture();
+  const make = () => texture;
+
+  it('stretches one gradient over the whole sky', () => {
+    const sky = createSky('day', make);
+    expect(sky.gradient.y).toBe(SKY_TOP);
+    expect(sky.gradient.height).toBe(SKY_HEIGHT);
   });
 
-  it('covers each span with one sprite aligned to its levels', () => {
-    const middle = rowsWithArt().rows.find((row) => row.span.band === 'middle');
-    if (middle === undefined) {
-      throw new Error('no middle band');
-    }
-    expect(middle.sprite.height).toBe(84 * FLOOR_HEIGHT);
-    expect(middle.sprite.y).toBe(levelTop(levelToIndex(89)));
-    expect(middle.sprite.y + middle.sprite.height).toBe(levelTop(levelToIndex(6)) + FLOOR_HEIGHT);
+  it('keeps the other time of day when it is set again', () => {
+    const sky = createSky('day', make);
+    const other = new Texture();
+    setSkyTime(sky, 'day', () => other);
+    expect(sky.gradient.texture).toBe(texture);
+    setSkyTime(sky, 'night', () => other);
+    expect(sky.time).toBe('night');
+    expect(sky.gradient.texture).toBe(other);
   });
 
-  it('shows only the bands with a level on screen', () => {
-    const { rows } = rowsWithArt();
-    showSkyRows(rows, { lowest: levelToIndex(40), highest: levelToIndex(73) });
-    expect(rows.map((row) => row.sprite.visible)).toEqual([false, true, false]);
-    showSkyRows(rows, { lowest: levelToIndex(-3), highest: levelToIndex(6) });
-    expect(rows.map((row) => row.sprite.visible)).toEqual([true, true, false]);
-  });
-
-  it('swaps every band to the night sky', () => {
-    const { rows, registry, textures } = rowsWithArt();
-    setSkyTime(rows, registry, 'night');
-    expect(rows.map((row) => row.sprite.texture)).toEqual([
-      textures['sky/night/horizon'],
-      textures['sky/night/middle'],
-      textures['sky/night/top'],
-    ]);
+  it('shows stars lower down at night than by day', () => {
+    expect(STAR_FLOOR.night).toBeLessThan(STAR_FLOOR.day);
   });
 });

@@ -45,7 +45,6 @@ export function StageHost({ onStage }: StageHostProps) {
 
   return (
     <>
-      <div class="stage-ground" />
       <div class="stage-host" ref={hostRef} />
       {loadState === 'loading' && <div class="stage-message">{t('ui.stage.loading')}</div>}
       {loadState === 'failed' && <div class="stage-message">{t('ui.stage.loadError')}</div>}

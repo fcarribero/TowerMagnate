@@ -9,7 +9,7 @@ export const DESIGN_UI_SCALE = 1.5;
  * How many CSS pixels one UI pixel takes. It is fixed at 1.5 whatever the viewport size, so the
  * UI keeps the same size on every resolution.
  */
-export function uiScaleFor(_viewportWidth: number, _viewportHeight: number): number {
+export function uiScaleFor(): number {
   return DESIGN_UI_SCALE;
 }
 
@@ -25,7 +25,7 @@ export interface UiScale {
 function readViewport(): UiScale {
   const { innerWidth, innerHeight } = window;
   return {
-    scale: uiScaleFor(innerWidth, innerHeight),
+    scale: uiScaleFor(),
     tooSmall: isViewportTooSmall(innerWidth, innerHeight),
   };
 }
