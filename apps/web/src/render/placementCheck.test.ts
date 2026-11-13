@@ -49,13 +49,43 @@ describe('checkPlacement', () => {
     expect(checkPlacement('office', 14, 3, withCinema).problem).toBe('CELL_OCCUPIED');
   });
 
+  const twoFloors = new Map([
+    [3, row({ 10: 'f'.repeat(40) })],
+    [4, row({ 10: 'f'.repeat(40) })],
+  ]);
+
   it('lets stairs pass over a unit but not over other stairs', () => {
     const office = { type: 'office', x: 12, level: 3 } as const;
-    expect(checkPlacement('stairs', 10, 3, world({ units: [office] })).problem).toBeNull();
+    const base = { structure: twoFloors };
+    expect(checkPlacement('stairs', 10, 3, world({ ...base, units: [office] })).problem).toBeNull();
     const stairs = { type: 'stairs', x: 10, level: 3 } as const;
-    expect(checkPlacement('escalator', 12, 3, world({ transports: [stairs] })).problem).toBe(
-      'CELL_OCCUPIED',
+    expect(
+      checkPlacement('escalator', 12, 3, world({ ...base, transports: [stairs] })).problem,
+    ).toBe('CELL_OCCUPIED');
+  });
+
+  it('rejects stairs where an elevator shaft stands', () => {
+    const shaft = { type: 'standard', x: 12, bottom: 1, top: 10 } as const;
+    expect(
+      checkPlacement('stairs', 10, 3, world({ structure: twoFloors, shafts: [shaft] })).problem,
+    ).toBe('CELL_OCCUPIED');
+  });
+
+  it('needs floor on both levels of the stairs', () => {
+    const onlyBottom = new Map([[3, row({ 10: 'f'.repeat(40) })]]);
+    expect(checkPlacement('stairs', 10, 3, world({ structure: onlyBottom })).problem).toBe(
+      'TRANSPORT_LANDING',
     );
+    expect(checkPlacement('stairs', 10, 3, world({ structure: new Map() })).problem).toBe(
+      'NO_FLOOR',
+    );
+  });
+
+  it('keeps stairs of the same level apart', () => {
+    const stairs = { type: 'stairs', x: 10, level: 3 } as const;
+    const near = world({ structure: twoFloors, transports: [stairs] });
+    expect(checkPlacement('stairs', 20, 3, near).problem).toBe('STAIRS_TOO_CLOSE');
+    expect(checkPlacement('stairs', 22, 3, near).problem).toBeNull();
   });
 
   it('lets a unit go behind stairs', () => {

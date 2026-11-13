@@ -257,6 +257,13 @@ describe('buildUnit on escalator levels', () => {
     expect(run(tower, unit('office', 40, 2)).result.ok).toBe(true);
   });
 
+  it('rejects stairs closer than 8 columns to other stairs on the same level', () => {
+    const tower = run(towerWith(), transport('stairs', 10, 2)).state;
+    expect(rejection(tower, transport('stairs', 20, 2))).toBe('STAIRS_TOO_CLOSE');
+    expect(run(tower, transport('stairs', 22, 2)).result.ok).toBe(true);
+    expect(run(tower, transport('stairs', 20, 4)).result.ok).toBe(true);
+  });
+
   it('lets a unit go behind stairs, which pass over the back layer', () => {
     const tower = run(towerWith(), transport('stairs', 10, 2)).state;
     expect(run(tower, unit('office', 10, 2)).result.ok).toBe(true);

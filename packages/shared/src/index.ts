@@ -7,6 +7,7 @@ export * from './people';
 export * from './people-schedules';
 export * from './units';
 export * from './balance';
+export * from './stairs-spacing';
 export * from './levels';
 export * from './ledger';
 export * from './money-text';

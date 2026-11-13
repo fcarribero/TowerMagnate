@@ -39,6 +39,7 @@ const ERROR_CODES: Readonly<Record<ErrorCode | SocketErrorCode, true>> = {
   ESCALATOR_FLOOR_TYPE: true,
   SHAFT_TOO_TALL: true,
   SHAFT_TOO_CLOSE: true,
+  STAIRS_TOO_CLOSE: true,
   RAMP_POSITION: true,
   PARKING_NOT_CONNECTED: true,
   RECYCLING_NOT_ADJACENT: true,

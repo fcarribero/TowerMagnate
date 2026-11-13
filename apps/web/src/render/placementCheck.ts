@@ -1,5 +1,6 @@
 import {
   LAST_COLUMN,
+  SHAFT_UNIT_TYPES,
   TOWER_LAYOUT,
   UNIT_CATALOG,
   isBasement,
@@ -7,11 +8,20 @@ import {
   isLevel,
   levelAbove,
   levelBelow,
+  levelToIndex,
+  stairsTooClose,
   type Level,
+  type ShaftType,
   type UnitType,
 } from '@tower-magnate/shared';
 
-export type PlacementProblem = 'OUT_OF_BOUNDS' | 'CELL_OCCUPIED' | 'NO_SUPPORT';
+export type PlacementProblem =
+  | 'OUT_OF_BOUNDS'
+  | 'CELL_OCCUPIED'
+  | 'NO_SUPPORT'
+  | 'NO_FLOOR'
+  | 'TRANSPORT_LANDING'
+  | 'STAIRS_TOO_CLOSE';
 
 export interface PlacedThing {
   type: UnitType;
@@ -24,6 +34,15 @@ export interface PlacementWorld {
   structure: ReadonlyMap<Level, string>;
   units: Iterable<PlacedThing>;
   transports: Iterable<PlacedThing>;
+  /** Elevator shafts, which block stairs and escalators. */
+  shafts?: Iterable<PlacedShaft>;
+}
+
+export interface PlacedShaft {
+  type: ShaftType;
+  x: number;
+  bottom: Level;
+  top: Level;
 }
 
 export interface PlacementCheck {
@@ -91,9 +110,10 @@ export function checkPlacement(
     return { x0, x1, levels: levels ?? [bottom], problem: 'OUT_OF_BOUNDS' };
   }
   const cells = new BuiltCells(world);
-  // Stairs and escalators are in the front layer: they pass over units and lobby rows.
-  const overlay = isTransportTool(type);
-  if (levels.some((level) => cells.hasOccupant(level, x0, x1, overlay))) {
+  if (isTransportTool(type)) {
+    return checkTransport(type, x0, x1, bottom, levels, world, cells);
+  }
+  if (levels.some((level) => cells.hasOccupant(level, x0, x1))) {
     return { x0, x1, levels, problem: 'CELL_OCCUPIED' };
   }
   const anchor = isBasement(bottom) ? (levels[levels.length - 1] ?? bottom) : bottom;
@@ -103,6 +123,67 @@ export function checkPlacement(
     }
   }
   return { x0, x1, levels, problem: null };
+}
+
+/**
+ * Stairs and escalators are in the front layer: they pass over units and lobby rows, but not over
+ * another footprint or a shaft. They need floor under every column on both levels, and stairs keep
+ * a gap from other stairs on the same level. This mirrors the server's checks.
+ */
+function checkTransport(
+  type: UnitType,
+  x0: number,
+  x1: number,
+  bottom: Level,
+  levels: Level[],
+  world: PlacementWorld,
+  cells: BuiltCells,
+): PlacementCheck {
+  const result = (problem: PlacementProblem | null): PlacementCheck => ({
+    x0,
+    x1,
+    levels,
+    problem,
+  });
+  const landing = levelAbove(bottom);
+  if (landing === null) {
+    return result('OUT_OF_BOUNDS');
+  }
+  const shafts = [...(world.shafts ?? [])];
+  if (cells.hasOccupant(bottom, x0, x1, true) || shaftsCover(shafts, bottom, x0, x1)) {
+    return result('CELL_OCCUPIED');
+  }
+  if (!cells.hasFloor(bottom, x0, x1)) {
+    return result('NO_FLOOR');
+  }
+  if (!cells.hasFloor(landing, x0, x1) || shaftsCover(shafts, landing, x0, x1)) {
+    return result('TRANSPORT_LANDING');
+  }
+  if (type === 'stairs') {
+    const stairs = [...world.transports].filter((other) => other.type === 'stairs');
+    if (stairsTooClose(stairs, x0, footprintWidth(type), bottom)) {
+      return result('STAIRS_TOO_CLOSE');
+    }
+  }
+  return result(null);
+}
+
+function shaftsCover(
+  shafts: readonly PlacedShaft[],
+  level: Level,
+  x0: number,
+  x1: number,
+): boolean {
+  const index = levelToIndex(level);
+  return shafts.some((shaft) => {
+    const width = UNIT_CATALOG[SHAFT_UNIT_TYPES[shaft.type]].width;
+    return (
+      shaft.x <= x1 &&
+      shaft.x + width - 1 >= x0 &&
+      index >= levelToIndex(shaft.bottom) &&
+      index <= levelToIndex(shaft.top)
+    );
+  });
 }
 
 /** The unit or stairs covering a cell, if any. */
@@ -169,6 +250,16 @@ class BuiltCells {
       }
     }
     return false;
+  }
+
+  /** Structure on every column of the span. */
+  hasFloor(level: Level, x0: number, x1: number): boolean {
+    for (let x = x0; x <= x1; x += 1) {
+      if (this.structureAt(level, x) === '.') {
+        return false;
+      }
+    }
+    return true;
   }
 
   isSupported(level: Level, x: number): boolean {

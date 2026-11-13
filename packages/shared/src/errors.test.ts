@@ -53,6 +53,7 @@ describe('error codes', () => {
         "ESCALATOR_FLOOR_TYPE",
         "SHAFT_TOO_TALL",
         "SHAFT_TOO_CLOSE",
+        "STAIRS_TOO_CLOSE",
         "RAMP_POSITION",
         "PARKING_NOT_CONNECTED",
         "RECYCLING_NOT_ADJACENT",

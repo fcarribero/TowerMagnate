@@ -1,6 +1,7 @@
 import {
   isColumn,
   levelAbove,
+  stairsTooClose,
   TOWER_LIMITS,
   TransportTypeSchema,
   UNIT_CATALOG,
@@ -120,6 +121,15 @@ export const buildTransport: CommandHandler<'buildTransport'> = (context, comman
   const checks = [footprintError(grid, level, x, x1), landingError(grid, landingLevel, x, x1)];
   const placementError = checks.find((error) => error !== null);
   if (placementError) return { ok: false, error: placementError };
+  const nearStairs =
+    parsedType.data === 'stairs' &&
+    stairsTooClose(
+      Object.values(state.transports).filter((other) => other.type === 'stairs'),
+      x,
+      definition.width,
+      level,
+    );
+  if (nearStairs) return { ok: false, error: 'STAIRS_TOO_CLOSE' };
   const onEscalatorFloors = isEscalatorFloor(state, level) && isEscalatorFloor(state, landingLevel);
   if (parsedType.data === 'escalator' && !onEscalatorFloors) {
     return { ok: false, error: 'ESCALATOR_FLOOR_TYPE' };

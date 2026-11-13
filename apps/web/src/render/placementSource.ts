@@ -18,6 +18,7 @@ export function worldOf(state: GameState): PlacementWorld {
     structure: state.structure,
     units: state.units.values(),
     transports: state.transports.values(),
+    shafts: state.shafts.values(),
   };
 }
 
@@ -61,7 +62,12 @@ export function bindPreview(
     redraw();
   });
   const stopStore = store.select(
-    (state) => ({ structure: state.structure, units: state.units, transports: state.transports }),
+    (state) => ({
+      structure: state.structure,
+      units: state.units,
+      transports: state.transports,
+      shafts: state.shafts,
+    }),
     redraw,
   );
   redraw();
