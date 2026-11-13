@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   addOccupant,
   cellsWithoutStructure,
+  clearRuinsAt,
   clearStructure,
   createGrid,
   isSpanFree,
@@ -217,5 +218,18 @@ describe('grid serialization', () => {
     expect(occupantAt(restored, -9, 9)).toEqual(office(1));
     expect(isSpanFree(restored, 100, 359, 359)).toBe(true);
     expect(isSpanFree(restored, 100, 359, 360)).toBe(false);
+  });
+});
+
+describe('clearing ruins behind a shaft', () => {
+  it('clears the ruins cell even when a shaft span covers it and starts earlier', () => {
+    const grid = createGrid();
+    addOccupant(grid, 3, 10, 13, { kind: 'shaft', id: 's1' });
+    addOccupant(grid, 3, 11, 12, { kind: 'ruins' });
+    expect(clearRuinsAt(grid, 3, 11)).toBe(true);
+    expect(occupantAt(grid, 3, 11)).toEqual({ kind: 'shaft', id: 's1' });
+    expect(occupantAt(grid, 3, 12)).toEqual({ kind: 'ruins' });
+    expect(clearRuinsAt(grid, 3, 12)).toBe(true);
+    expect(occupantAt(grid, 3, 12)).toEqual({ kind: 'shaft', id: 's1' });
   });
 });

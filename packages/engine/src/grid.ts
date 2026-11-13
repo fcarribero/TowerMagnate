@@ -150,8 +150,11 @@ export function removeOccupant(grid: GridState, level: Level, occupant: Occupant
 /** Frees the single cell x on the level if ruins stand there; other ruins on the level stay. */
 export function clearRuinsAt(grid: GridState, level: Level, x: number): boolean {
   const row = grid.levels[level];
-  const span = row?.occupants.find((candidate) => covers(candidate, x));
-  if (!row || span?.occupant.kind !== 'ruins') return false;
+  // A shaft or stairs may cover the same cell, so look for the ruins span itself.
+  const span = row?.occupants.find(
+    (candidate) => candidate.occupant.kind === 'ruins' && covers(candidate, x),
+  );
+  if (!row || !span) return false;
   const rest = row.occupants.filter((candidate) => candidate !== span);
   if (span.x0 < x) rest.push({ x0: span.x0, x1: x - 1, occupant: span.occupant });
   if (span.x1 > x) rest.push({ x0: x + 1, x1: span.x1, occupant: span.occupant });
