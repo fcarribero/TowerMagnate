@@ -313,7 +313,7 @@ export const INFESTATION_CHECK_MINUTE = minutes(0);
 /** Daily checks that find a room dirty before it becomes infested. */
 export const INFESTATION_DIRTY_CHECKS = 3;
 
-/** Construction crews (construction spec). Builders work on weekdays between these minutes. */
+/** Construction crews (construction spec). Builders work Monday to Saturday between these minutes. */
 export const BUILDER_WORK_START_MINUTE = minutes(8);
 export const BUILDER_WORK_END_MINUTE = minutes(17);
 

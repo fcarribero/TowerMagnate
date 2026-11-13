@@ -11,7 +11,7 @@ import {
   type UnitId,
   type UnitType,
 } from '@tower-magnate/shared';
-import { isWeekendDay, STEPS_PER_MINUTE, weekdayOfDay } from './calendar';
+import { STEPS_PER_MINUTE, WEEKDAYS, weekdayOfDay } from './calendar';
 import { STEPS_PER_DAY } from './clock';
 import { entrancePlace } from './office-routine';
 import { addPeopleForUnit, addPerson, NO_TRIP, removePerson } from './people';
@@ -104,7 +104,7 @@ function stepOfDay(step: number): number {
 }
 
 function isWorkDay(step: number): boolean {
-  return !isWeekendDay(weekdayOfDay(Math.floor(step / STEPS_PER_DAY)));
+  return weekdayOfDay(Math.floor(step / STEPS_PER_DAY)) !== WEEKDAYS.sunday;
 }
 
 /** True on a work day between the start and the end of the work hours. */

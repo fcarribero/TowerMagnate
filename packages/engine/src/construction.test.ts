@@ -122,9 +122,15 @@ describe('construction sites', () => {
     expect(builders(state).length).toBeGreaterThan(0);
   });
 
-  it('does not work on weekends', () => {
+  it('works on Saturday', () => {
     const saturday = buildOffice(startOfDay(tower(), 5, 6), 0);
-    const evening = advance(saturday, 12 * STEPS_PER_HOUR);
+    const midday = advance(saturday, 4 * STEPS_PER_HOUR);
+    expect(builders(midday).length).toBeGreaterThan(0);
+  });
+
+  it('does not work on Sunday', () => {
+    const sunday = buildOffice(startOfDay(tower(), 6, 6), 0);
+    const evening = advance(sunday, 12 * STEPS_PER_HOUR);
     expect(builders(evening)).toHaveLength(0);
     expect(Object.values(evening.sites)[0]?.points).toBe(0);
   });
