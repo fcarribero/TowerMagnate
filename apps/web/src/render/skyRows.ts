@@ -21,25 +21,28 @@ interface Stop {
 export const SKY_STOPS: Record<SkyTime, readonly Stop[]> = {
   day: [
     { at: 0, color: [196, 224, 245] },
-    { at: 0.15, color: [128, 176, 226] },
-    { at: 0.4, color: [58, 110, 190] },
-    { at: 0.65, color: [24, 52, 120] },
-    { at: 0.85, color: [6, 14, 44] },
+    { at: 0.06, color: [170, 208, 240] },
+    { at: 0.2, color: [120, 176, 230] },
+    { at: 0.42, color: [70, 128, 205] },
+    { at: 0.65, color: [30, 68, 144] },
+    { at: 0.85, color: [8, 20, 56] },
     { at: 1, color: [0, 0, 6] },
   ],
   dusk: [
-    { at: 0, color: [246, 170, 110] },
-    { at: 0.12, color: [222, 124, 112] },
-    { at: 0.35, color: [122, 82, 140] },
-    { at: 0.6, color: [44, 40, 98] },
-    { at: 0.85, color: [10, 12, 38] },
+    { at: 0, color: [250, 196, 130] },
+    { at: 0.05, color: [240, 150, 104] },
+    { at: 0.18, color: [200, 110, 118] },
+    { at: 0.38, color: [114, 84, 144] },
+    { at: 0.62, color: [46, 48, 108] },
+    { at: 0.85, color: [10, 14, 40] },
     { at: 1, color: [0, 0, 6] },
   ],
   night: [
-    { at: 0, color: [52, 66, 112] },
-    { at: 0.15, color: [34, 46, 90] },
-    { at: 0.45, color: [18, 26, 62] },
-    { at: 0.75, color: [8, 12, 34] },
+    { at: 0, color: [58, 72, 116] },
+    { at: 0.1, color: [40, 54, 98] },
+    { at: 0.3, color: [24, 34, 74] },
+    { at: 0.6, color: [12, 18, 46] },
+    { at: 0.85, color: [5, 8, 26] },
     { at: 1, color: [0, 0, 5] },
   ],
 };
@@ -126,15 +129,163 @@ export function makeStars(count = STAR_COUNT): Star[] {
   return stars;
 }
 
+export interface Cloud {
+  x: number;
+  y: number;
+  altitude: number;
+  scale: number;
+  alpha: number;
+  flip: boolean;
+}
+
+/** Cloud tint by time of day. */
+export const CLOUD_TINT: Record<SkyTime, number> = {
+  day: 0xffffff,
+  dusk: 0xffb88a,
+  night: 0x5a678f,
+};
+
+const CLOUD_COUNT = 46;
+const CLOUD_MAX_ALTITUDE = 0.55;
+
+/** A repeatable scatter of clouds, thicker near the ground and gone before space. */
+export function makeClouds(count = CLOUD_COUNT): Cloud[] {
+  let seed = 7771337;
+  const next = (): number => {
+    seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
+    return seed / 4294967296;
+  };
+  const clouds: Cloud[] = [];
+  for (let i = 0; i < count; i += 1) {
+    const altitude = Math.pow(next(), 1.6) * CLOUD_MAX_ALTITUDE;
+    const fade = 1 - altitude / CLOUD_MAX_ALTITUDE;
+    clouds.push({
+      x: Math.floor(next() * WORLD_WIDTH),
+      y: Math.floor(SKY_TOP + (1 - altitude) * SKY_HEIGHT),
+      altitude,
+      scale: 0.7 + next() * 1.6,
+      alpha: 0.35 + fade * 0.5 * (0.6 + next() * 0.4),
+      flip: next() < 0.5,
+    });
+  }
+  return clouds;
+}
+
+const cloudCache: { texture: Texture | null | undefined } = { texture: undefined };
+
+/** A soft, flat-bottomed cloud built from overlapping blurred puffs; null without a canvas. */
+function cloudTexture(): Texture | null {
+  if (cloudCache.texture !== undefined) {
+    return cloudCache.texture;
+  }
+  cloudCache.texture = null;
+  if (typeof document === 'undefined') {
+    return null;
+  }
+  const canvas = document.createElement('canvas');
+  canvas.width = 320;
+  canvas.height = 110;
+  const context = canvas.getContext('2d');
+  if (context === null) {
+    return null;
+  }
+  const puffs: ReadonlyArray<readonly [number, number, number]> = [
+    [70, 74, 38],
+    [112, 60, 46],
+    [160, 50, 52],
+    [208, 60, 46],
+    [250, 74, 36],
+    [135, 78, 40],
+    [190, 80, 40],
+  ];
+  for (const [x, y, r] of puffs) {
+    const g = context.createRadialGradient(x, y, 0, x, y, r);
+    g.addColorStop(0, 'rgba(255,255,255,0.95)');
+    g.addColorStop(0.55, 'rgba(255,255,255,0.55)');
+    g.addColorStop(1, 'rgba(255,255,255,0)');
+    context.fillStyle = g;
+    context.fillRect(x - r, y - r, r * 2, r * 2);
+  }
+  // Flatten and soften the underside like a real cumulus.
+  const base = context.createLinearGradient(0, 70, 0, 110);
+  base.addColorStop(0, 'rgba(0,0,0,0)');
+  base.addColorStop(1, 'rgba(0,0,0,1)');
+  context.globalCompositeOperation = 'destination-out';
+  context.fillStyle = base;
+  context.fillRect(0, 70, 320, 40);
+  cloudCache.texture = Texture.from(canvas);
+  return cloudCache.texture;
+}
+
 export interface Sky {
   view: Container;
   gradient: Sprite;
+  glow: Graphics;
+  cloudLayer: Container;
+  moon: Graphics;
   starLayer: Graphics;
   stars: Star[];
   time: SkyTime;
 }
 
-/** One sprite with the whole gradient, and the stars over it. */
+/** Horizon glow colour and strength by time of day. */
+const GLOW: Record<SkyTime, { color: number; alpha: number }> = {
+  day: { color: 0xfff1d0, alpha: 0.28 },
+  dusk: { color: 0xffa860, alpha: 0.5 },
+  night: { color: 0x6a7cc0, alpha: 0.14 },
+};
+
+function drawGlow(sky: Sky): void {
+  const { color, alpha } = GLOW[sky.time];
+  const bands = 24;
+  const height = SKY_HEIGHT * 0.16;
+  sky.glow.clear();
+  for (let i = 0; i < bands; i += 1) {
+    const k = i / bands;
+    const top = SKY_TOP + SKY_HEIGHT - height * (1 - k);
+    sky.glow.rect(0, top, WORLD_WIDTH, height / bands + 1).fill({ color, alpha: alpha * k * k });
+  }
+}
+
+function drawMoon(sky: Sky): void {
+  sky.moon.clear();
+  sky.moon.visible = sky.time === 'night';
+  const x = WORLD_WIDTH * 0.74;
+  const y = SKY_TOP + SKY_HEIGHT * 0.42;
+  for (let i = 6; i >= 1; i -= 1) {
+    sky.moon.circle(x, y, 22 + i * 14).fill({ color: 0xbcc8f0, alpha: 0.025 });
+  }
+  sky.moon.circle(x, y, 22).fill({ color: 0xeef1ff });
+  sky.moon.circle(x - 6, y - 5, 4).fill({ color: 0xc9cfe6, alpha: 0.8 });
+  sky.moon.circle(x + 7, y + 6, 5).fill({ color: 0xc9cfe6, alpha: 0.7 });
+  sky.moon.circle(x + 2, y - 10, 2.5).fill({ color: 0xc9cfe6, alpha: 0.7 });
+}
+
+function buildClouds(sky: Sky): void {
+  const texture = cloudTexture();
+  sky.cloudLayer.removeChildren();
+  if (texture === null) {
+    return;
+  }
+  for (const cloud of makeClouds()) {
+    const sprite = new Sprite(texture);
+    sprite.anchor.set(0.5, 0.8);
+    sprite.scale.set(cloud.flip ? -cloud.scale : cloud.scale, cloud.scale);
+    sprite.x = cloud.x;
+    sprite.y = cloud.y;
+    sprite.alpha = cloud.alpha;
+    sprite.tint = CLOUD_TINT[sky.time];
+    sky.cloudLayer.addChild(sprite);
+  }
+}
+
+function tintClouds(sky: Sky): void {
+  for (const child of sky.cloudLayer.children) {
+    (child as Sprite).tint = CLOUD_TINT[sky.time];
+  }
+}
+
+/** One sprite with the whole gradient, with stars, moon, horizon glow and clouds over it. */
 export function createSky(
   time: SkyTime = 'day',
   makeTexture: (time: SkyTime) => Texture = gradientTexture,
@@ -145,10 +296,16 @@ export function createSky(
   gradient.width = WORLD_WIDTH;
   gradient.height = SKY_HEIGHT;
   const starLayer = new Graphics();
+  const glow = new Graphics();
+  const moon = new Graphics();
+  const cloudLayer = new Container();
   const view = new Container();
-  view.addChild(gradient, starLayer);
-  const sky: Sky = { view, gradient, starLayer, stars: makeStars(), time };
+  view.addChild(gradient, starLayer, moon, glow, cloudLayer);
+  const sky: Sky = { view, gradient, glow, cloudLayer, moon, starLayer, stars: makeStars(), time };
   drawStars(sky);
+  drawGlow(sky);
+  drawMoon(sky);
+  buildClouds(sky);
   return sky;
 }
 
@@ -177,4 +334,7 @@ export function setSkyTime(
   sky.time = time;
   sky.gradient.texture = makeTexture(time);
   drawStars(sky);
+  drawGlow(sky);
+  drawMoon(sky);
+  tintClouds(sky);
 }
