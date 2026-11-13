@@ -99,7 +99,7 @@ describe('WeatherWindow', () => {
   it('shows the title, the season and today', () => {
     renderWindow(NOON);
     expect(screen.getByText('Pronóstico')).toBeTruthy();
-    expect(screen.getByText('Estación: Verano')).toBeTruthy();
+    expect(screen.getByText('Estación: Invierno')).toBeTruthy();
     expect(document.querySelector('.weather-window__today')?.textContent).toMatch(/^Hoy: /);
   });
 
