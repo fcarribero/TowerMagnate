@@ -3,6 +3,7 @@ import {
   COURIER_CHANCE_PER_BLOCK,
   COURIER_DWELL_STEPS,
   COURIER_GIVE_UP_BLOCKS,
+  COURIER_HOURS_JITTER_MINUTES,
   COURIER_MARGIN_MINUTES,
   COURIER_OFFICE_CLOSE_MINUTE,
   COURIER_OFFICE_OPEN_MINUTE,
@@ -31,9 +32,9 @@ const COURIER_KIND = PERSON_KINDS.indexOf('courier');
 
 const BLOCK_STEPS = COURIER_BLOCK_MINUTES * STEPS_PER_MINUTE;
 const BLOCKS_PER_DAY = STEPS_PER_DAY / BLOCK_STEPS;
-const FIRST_SENDING_MINUTE = COURIER_OFFICE_OPEN_MINUTE + COURIER_MARGIN_MINUTES;
-/** A courier is sent only before this minute, so the delivery ends well before the office closes. */
-const LAST_SENDING_MINUTE = COURIER_OFFICE_CLOSE_MINUTE - COURIER_MARGIN_MINUTES;
+/** The first block hook: the earliest any office can start sending (opens early, plus the margin). */
+const FIRST_SENDING_MINUTE =
+  COURIER_OFFICE_OPEN_MINUTE - COURIER_HOURS_JITTER_MINUTES + COURIER_MARGIN_MINUTES;
 
 type CourierPhase = 'toOffice' | 'atDoor' | 'leaving';
 const PHASES: readonly CourierPhase[] = ['toOffice', 'atDoor', 'leaving'];
@@ -88,9 +89,34 @@ export function officeWantsCourier(unit: number, day: number, block: number): bo
   return keyedUnit(COURIER_SALT, unit, day, block) < COURIER_CHANCE_PER_BLOCK;
 }
 
+export interface OfficeHours {
+  open: number;
+  close: number;
+}
+
+/** Minutes of drift, from -jitter to +jitter, that an office has on this day for one end of its hours. */
+function hoursDrift(unit: number, day: number, end: number): number {
+  const spread = 2 * COURIER_HOURS_JITTER_MINUTES + 1;
+  return (
+    Math.floor(keyedUnit(COURIER_SALT, unit, day, 1000 + end) * spread) -
+    COURIER_HOURS_JITTER_MINUTES
+  );
+}
+
+/** When this office opens and closes on this day: the nominal hours, a little early or late. */
+export function officeHours(unit: number, day: number): OfficeHours {
+  return {
+    open: COURIER_OFFICE_OPEN_MINUTE + hoursDrift(unit, day, 0),
+    close: COURIER_OFFICE_CLOSE_MINUTE + hoursDrift(unit, day, 1),
+  };
+}
+
 /** True for the minutes in which a courier may be sent: office open, minus the margin at both ends. */
-export function isCourierSendingMinute(minuteOfDay: number): boolean {
-  return minuteOfDay >= FIRST_SENDING_MINUTE && minuteOfDay < LAST_SENDING_MINUTE;
+export function isCourierSendingMinute(minuteOfDay: number, hours: OfficeHours): boolean {
+  return (
+    minuteOfDay >= hours.open + COURIER_MARGIN_MINUTES &&
+    minuteOfDay < hours.close - COURIER_MARGIN_MINUTES
+  );
 }
 
 /** An office is open to deliveries when a tenant has it, on weekdays. */
@@ -154,10 +180,13 @@ function rollForCouriers(context: StepContext, occurrence: HookOccurrence): void
   const stepOfDay = state.step % STEPS_PER_DAY;
   const block = Math.floor(stepOfDay / BLOCK_STEPS);
   dropStuckCouriers(context, occurrence.dayNumber * BLOCKS_PER_DAY + block);
-  if (!isCourierSendingMinute(Math.floor(stepOfDay / STEPS_PER_MINUTE))) return;
+  const minute = Math.floor(stepOfDay / STEPS_PER_MINUTE);
   const busy = officesWithCouriers(state.people);
   const offices = Object.values(state.units)
     .filter((unit) => isOfficeOpen(unit, occurrence.weekday))
+    .filter((unit) =>
+      isCourierSendingMinute(minute, officeHours(unitNumber(unit.id), occurrence.dayNumber)),
+    )
     .filter((unit) => !busy.has(unitNumber(unit.id)))
     .filter((unit) => officeWantsCourier(unitNumber(unit.id), occurrence.dayNumber, block))
     .sort((a, b) => unitNumber(a.id) - unitNumber(b.id));
@@ -171,7 +200,8 @@ function walkOut(context: StepContext, slot: number, trip: CourierTrip): void {
   const entrance = entrancePlace(state, trip.onRight);
   setTrip(state, slot, { ...trip, phase: 'leaving' });
   pool.dueStep[slot] = NOTHING_DUE;
-  if (!entrance || !startTrek(context, slot, entrance)) removePerson(state, pool.id[slot] as number);
+  if (!entrance || !startTrek(context, slot, entrance))
+    removePerson(state, pool.id[slot] as number);
 }
 
 function advanceCourier(context: StepContext, slot: number): void {

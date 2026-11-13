@@ -737,3 +737,5 @@ export const COURIER_CHANCE_PER_BLOCK = 0.4;
 export const COURIER_DWELL_STEPS = 3;
 /** A courier that has not left this many blocks after being sent gives up and is removed. */
 export const COURIER_GIVE_UP_BLOCKS = 3;
+/** Each office opens and closes up to this many minutes earlier or later than the hours above, a new draw per day. */
+export const COURIER_HOURS_JITTER_MINUTES = 30;

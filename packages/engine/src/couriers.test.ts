@@ -1,4 +1,11 @@
-import { COURIER_CHANCE_PER_BLOCK, PERSON_KINDS, type TowerState } from '@tower-magnate/shared';
+import {
+  COURIER_CHANCE_PER_BLOCK,
+  COURIER_HOURS_JITTER_MINUTES,
+  COURIER_OFFICE_CLOSE_MINUTE,
+  COURIER_OFFICE_OPEN_MINUTE,
+  PERSON_KINDS,
+  type TowerState,
+} from '@tower-magnate/shared';
 import { describe, expect, it } from 'vitest';
 import { STEPS_PER_HOUR } from './calendar';
 import { STEPS_PER_DAY } from './clock';
@@ -8,6 +15,7 @@ import {
   createCouriers,
   isCourierSendingMinute,
   keyedHash,
+  officeHours,
   officeWantsCourier,
 } from './couriers';
 import { moveInTenant } from './leases';
@@ -18,8 +26,9 @@ import { addFlight, buildTower, plainTowerPlan } from './testing';
 import { createTrekSystem } from './trek';
 
 const COURIER_KIND = PERSON_KINDS.indexOf('courier');
-const FIRST_SENDING_STEP = 11 * STEPS_PER_HOUR;
-const LAST_SENDING_STEP = 15 * STEPS_PER_HOUR;
+/** The earliest and latest an office with its hours drifted by the jitter can send a courier. */
+const FIRST_SENDING_STEP = 10.5 * STEPS_PER_HOUR;
+const LAST_SENDING_STEP = 15.5 * STEPS_PER_HOUR;
 const SATURDAY = 5 * STEPS_PER_DAY;
 
 const couriers = createCouriers();
@@ -89,10 +98,32 @@ function watchDay(state: TowerState, steps: number): Watch {
 
 describe('courier sending rules', () => {
   it('sends only between two hours after opening and two hours before closing', () => {
-    expect(isCourierSendingMinute(11 * 60 - 1)).toBe(false);
-    expect(isCourierSendingMinute(11 * 60)).toBe(true);
-    expect(isCourierSendingMinute(15 * 60 - 1)).toBe(true);
-    expect(isCourierSendingMinute(15 * 60)).toBe(false);
+    const hours = { open: 9 * 60, close: 17 * 60 };
+    expect(isCourierSendingMinute(11 * 60 - 1, hours)).toBe(false);
+    expect(isCourierSendingMinute(11 * 60, hours)).toBe(true);
+    expect(isCourierSendingMinute(15 * 60 - 1, hours)).toBe(true);
+    expect(isCourierSendingMinute(15 * 60, hours)).toBe(false);
+  });
+
+  it('opens and closes each office a little early or late, never at the exact hour for all', () => {
+    const opens = new Set<number>();
+    const closes = new Set<number>();
+    for (let unit = 1; unit <= 200; unit++) {
+      for (let day = 0; day < 5; day++) {
+        const hours = officeHours(unit, day);
+        expect(Math.abs(hours.open - COURIER_OFFICE_OPEN_MINUTE)).toBeLessThanOrEqual(
+          COURIER_HOURS_JITTER_MINUTES,
+        );
+        expect(Math.abs(hours.close - COURIER_OFFICE_CLOSE_MINUTE)).toBeLessThanOrEqual(
+          COURIER_HOURS_JITTER_MINUTES,
+        );
+        expect(officeHours(unit, day)).toEqual(hours);
+        opens.add(hours.open);
+        closes.add(hours.close);
+      }
+    }
+    expect(opens.size).toBeGreaterThan(30);
+    expect(closes.size).toBeGreaterThan(30);
   });
 
   it('decides from a pure hash of unit, day and block', () => {
@@ -163,7 +194,11 @@ describe('courier trip', () => {
     let followed: number | null = null;
     const phases: string[] = [];
     let atDoorColumn = -1;
-    for (let index = 0; index < 2 * STEPS_PER_HOUR && !(followed !== null && courierCount(state) === 0); index++) {
+    for (
+      let index = 0;
+      index < 2 * STEPS_PER_HOUR && !(followed !== null && courierCount(state) === 0);
+      index++
+    ) {
       state = engine.step(state, [], 1).state;
       const pool = state.people;
       if (followed === null) {
