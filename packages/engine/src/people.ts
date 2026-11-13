@@ -14,6 +14,7 @@ import {
   type UnitId,
   type UnitType,
 } from '@tower-magnate/shared';
+import { startingEnergy } from './energy';
 import { leaveQueues } from './elevator-queues';
 import { stressBand, type StressBand } from './person-stress';
 import { chance, nextInt, nextUint32 } from './rng';
@@ -83,6 +84,7 @@ export function createPersonPool(): PersonPool {
     queueRechecks: [],
     leftShafts: [],
     facing: [],
+    energy: [],
     nameSeed: [],
     followed: [],
     names: {},
@@ -117,6 +119,7 @@ export function clonePersonPool(pool: PersonPool): PersonPool {
     queueRechecks: pool.queueRechecks.slice(),
     leftShafts: pool.leftShafts.slice(),
     facing: pool.facing.slice(),
+    energy: pool.energy.slice(),
     nameSeed: pool.nameSeed.slice(),
     followed: pool.followed.slice(),
     names: { ...pool.names },
@@ -180,7 +183,9 @@ export function addPerson(state: TowerState, person: NewPerson): number {
   pool.queueRechecks.push(0);
   pool.leftShafts.push(0);
   pool.facing.push(0);
-  pool.nameSeed.push(nextUint32(state.rng));
+  const nameSeed = nextUint32(state.rng);
+  pool.nameSeed.push(nameSeed);
+  pool.energy.push(startingEnergy(person.kind, nameSeed));
   pool.nextId += 1;
   return id;
 }
@@ -474,6 +479,7 @@ function poolArrays(pool: PersonPool): number[][] {
     pool.queueRechecks,
     pool.leftShafts,
     pool.facing,
+    pool.energy,
     pool.nameSeed,
   ];
 }

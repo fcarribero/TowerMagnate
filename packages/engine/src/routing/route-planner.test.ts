@@ -43,10 +43,16 @@ function plan(
   });
 }
 
-function fillQueue(state: TowerState, shaftId: string, level: Level, direction: 'up' | 'down') {
+function fillQueue(
+  state: TowerState,
+  shaftId: string,
+  level: Level,
+  direction: 'up' | 'down',
+  count = ELEVATOR_QUEUE_CAPACITY,
+) {
   const shaft = state.shafts[shaftId] as Shaft;
   const queue = (shaft.queues[String(level)] ??= { up: [], down: [] });
-  for (let index = 0; index < ELEVATOR_QUEUE_CAPACITY; index++) {
+  for (let index = 0; index < count; index++) {
     queue[direction].push({ person: `p${index}`, destination: level, joinedStep: 0 });
   }
 }
@@ -86,20 +92,20 @@ describe('tower A: stairs and one elevator (routing 12.1)', () => {
     });
   }
 
-  it('A1: takes the elevator alone when it ties an escalator plus elevator', () => {
+  it('A1: climbs three floors of stairs instead of walking to the elevator', () => {
     const route = plan(towerA(), [1, 100], [4, 104]);
-    expect(route).toMatchObject({ cost: 524, transportLegs: 1, columnsWalked: 80 });
-    expect(route?.firstLeg).toMatchObject({ kind: 'ride', walkColumns: 42 });
+    expect(route).toMatchObject({ cost: 428, transportLegs: 1, columnsWalked: 64 });
+    expect(route?.firstLeg).toMatchObject({ kind: 'stairs', walkColumns: 34 });
+    expect(route?.firstLeg?.steps).toHaveLength(3);
   });
 
-  it('A2: takes the elevator down, and the stairs when its queue is full', () => {
+  it('A2: takes the stairs down two floors, with or without a queue at the elevator', () => {
     const built = towerA();
-    expect(plan(built, [4, 104], [2, 112])).toMatchObject({ cost: 516 });
-    fillQueue(built.state, first(built.shaftIds), 4, 'down');
     const route = plan(built, [4, 104], [2, 112]);
-    expect(route).toMatchObject({ cost: 616 });
+    expect(route).toMatchObject({ cost: 264 });
     expect(route?.firstLeg).toMatchObject({ kind: 'stairs', walkColumns: 20 });
-    expect(route?.firstLeg?.steps).toHaveLength(2);
+    fillQueue(built.state, first(built.shaftIds), 4, 'down');
+    expect(plan(built, [4, 104], [2, 112])?.firstLeg?.kind).toBe('stairs');
   });
 
   it('A3: has no route to level 6 once the elevator is gone', () => {
@@ -124,18 +130,18 @@ describe('tower B: sky lobby and one transfer (routing 12.2)', () => {
     });
   }
 
-  it('B1: rides the express to the sky lobby and transfers', () => {
+  it('B1: rides the nearest elevator to the sky lobby and transfers', () => {
     const route = plan(towerB(), [1, 249], [22, 214]);
-    expect(route).toMatchObject({ cost: 3598, transportLegs: 2 });
-    expect(route?.firstLeg).toMatchObject({ kind: 'ride', walkColumns: 186 });
-    expect(route?.firstLeg?.steps[0]?.kind).toBe('express');
+    expect(route).toMatchObject({ cost: 3938, transportLegs: 2 });
+    expect(route?.firstLeg).toMatchObject({ kind: 'ride', walkColumns: 127 });
+    expect(route?.firstLeg?.steps[0]?.kind).toBe('standard');
   });
 
   it('B2: takes the local elevator when the express queue is full', () => {
     const built = towerB();
     fillQueue(built.state, first(built.shaftIds), 1, 'up');
     const route = plan(built, [1, 249], [22, 214]);
-    expect(route).toMatchObject({ cost: 3668 });
+    expect(route).toMatchObject({ cost: 3938 });
     expect(route?.firstLeg).toMatchObject({ kind: 'ride', walkColumns: 127 });
     expect(route?.firstLeg?.steps[0]?.kind).toBe('standard');
   });
@@ -148,7 +154,7 @@ describe('tower B: sky lobby and one transfer (routing 12.2)', () => {
       escalatorFloors: 0,
       rides: 1,
     });
-    expect(route).toMatchObject({ cost: 3656, transportLegs: 2, columnsWalked: 195 });
+    expect(route).toMatchObject({ cost: 3490, transportLegs: 2, columnsWalked: 195 });
     expect(route?.firstLeg).toMatchObject({ kind: 'stairs', walkColumns: 161 });
     expect(route?.firstLeg?.steps).toHaveLength(1);
     expect(built.graph.node(route?.firstLeg?.steps[0]?.to ?? -1).level).toBe(16);
@@ -184,13 +190,13 @@ describe('tower C: stairs before a transfer, cathedral and a maid (routing 12.3)
 
   it('C1: prefers two flights of stairs to a transfer', () => {
     const route = plan(towerC(), [-7, 110], [47, 184]);
-    expect(route).toMatchObject({ cost: 1269, transportLegs: 2, columnsWalked: 168 });
+    expect(route).toMatchObject({ cost: 1036, transportLegs: 2, columnsWalked: 168 });
     expect(route?.firstLeg).toMatchObject({ kind: 'ride', walkColumns: 47 });
   });
 
   it('C2: reaches the cathedral only while the level 101 stop is enabled', () => {
     const built = towerC();
-    expect(plan(built, [1, 40], [101, 174])).toMatchObject({ cost: 3855 });
+    expect(plan(built, [1, 40], [101, 174])).toMatchObject({ cost: 3768 });
     built.graph.rebuild(
       built.state,
       new Map([
@@ -203,31 +209,33 @@ describe('tower C: stairs before a transfer, cathedral and a maid (routing 12.3)
 
   it('C3: keeps maids on the service elevator and the stairs', () => {
     const built = towerC();
-    expect(plan(built, [50, 207], [58, 230], 'maid')).toMatchObject({ cost: 564 });
-    expect(plan(built, [50, 207], [45, 200], 'maid')).toMatchObject({ cost: 1140 });
+    expect(plan(built, [50, 207], [58, 230], 'maid')).toMatchObject({ cost: 674 });
+    expect(plan(built, [50, 207], [45, 200], 'maid')).toMatchObject({ cost: 938 });
     expect(plan(built, [50, 207], [40, 200], 'maid')).toBeNull();
   });
 });
 
 describe('limits at the boundary', () => {
-  it('walks 3 stair floors and refuses a 4th', () => {
+  it('walks 3 stair floors, and 4 as the most', () => {
     const three = setup({ plan: tower(6, 0, 300), flights: flightsUp('stairs', 1, 4) });
+    const five = setup({ plan: tower(6, 0, 300), flights: flightsUp('stairs', 1, 6) });
+    expect(plan(three, [1, 100], [4, 100])).toMatchObject({ cost: 716 });
+    expect(plan(five, [1, 100], [6, 100])).toBeNull();
     const four = setup({ plan: tower(6, 0, 300), flights: flightsUp('stairs', 1, 5) });
-    expect(plan(three, [1, 100], [4, 100])).toMatchObject({ cost: 624 });
-    expect(plan(four, [1, 100], [5, 100])).toBeNull();
+    expect(plan(four, [1, 100], [5, 100])).not.toBeNull();
   });
 
   it('walks 7 escalator floors and refuses 8', () => {
     const seven = setup({ plan: tower(10, 0, 300), flights: flightsUp('escalator', 1, 8) });
     const eight = setup({ plan: tower(10, 0, 300), flights: flightsUp('escalator', 1, 9) });
-    expect(plan(seven, [1, 100], [8, 100])).toMatchObject({ cost: 56 });
+    expect(plan(seven, [1, 100], [8, 100])).toMatchObject({ cost: 472 });
     expect(plan(eight, [1, 100], [9, 100])).toBeNull();
   });
 
   it('counts stair and escalator floors separately', () => {
     const flights = [...flightsUp('escalator', 1, 8), ...flightsUp('stairs', 8, 11)];
     const built = setup({ plan: tower(12, 0, 300), flights });
-    expect(plan(built, [1, 100], [11, 100])).toMatchObject({ cost: 7 * 8 + 3 * 8 + 600 });
+    expect(plan(built, [1, 100], [11, 100])).toMatchObject({ cost: 772 });
   });
 
   it('takes 3 rides and refuses a 4th', () => {
@@ -253,7 +261,7 @@ describe('limits at the boundary', () => {
 
   it('counts the stair floors already walked in the trip', () => {
     const built = setup({ plan: tower(6, 0, 300), flights: flightsUp('stairs', 1, 3) });
-    const used = { stairFloors: 2, escalatorFloors: 0, rides: 0 };
+    const used = { stairFloors: 3, escalatorFloors: 0, rides: 0 };
     expect(plan(built, [1, 100], [3, 100], 'other', used)).toBeNull();
     expect(plan(built, [1, 100], [2, 100], 'other', used)).not.toBeNull();
   });
@@ -364,5 +372,56 @@ describe('no route', () => {
       tripKind: 'optional',
     });
     expect(result).toEqual({ kind: 'no-route', outcome: { action: 'cancel' } });
+  });
+});
+
+describe('energy and waiting people change the weights', () => {
+  const stairs = [
+    { type: 'stairs' as const, x: 150, level: 1 },
+    { type: 'stairs' as const, x: 150, level: 2 },
+    { type: 'stairs' as const, x: 150, level: 3 },
+  ];
+  function towerE() {
+    return setup({
+      plan: tower(6, 100, 179, [{ type: 'standard', x: 110, bottom: 1, top: 6 }]),
+      flights: stairs,
+    });
+  }
+
+  it('sends a tired person to the elevator and an energetic one up the stairs', () => {
+    const built = towerE();
+    const tired = built.planner.plan(built.state, {
+      from: { level: 1, x: 140 },
+      to: { level: 4, x: 140 },
+      userClass: 'other',
+      energy: 1,
+    });
+    const fresh = built.planner.plan(built.state, {
+      from: { level: 1, x: 140 },
+      to: { level: 4, x: 140 },
+      userClass: 'other',
+      energy: 10,
+    });
+    expect(tired?.firstLeg?.kind).toBe('ride');
+    expect(fresh?.firstLeg?.kind).toBe('stairs');
+  });
+
+  it('costs the same ride for one floor or many', () => {
+    const built = setup({
+      plan: tower(30, 100, 179, [{ type: 'standard', x: 110, bottom: 1, top: 30 }]),
+    });
+    const short = plan(built, [1, 110], [2, 110]);
+    const long = plan(built, [1, 110], [29, 110]);
+    expect(short?.cost).toBe(long?.cost);
+  });
+
+  it('adds the people waiting to the cost of a ride', () => {
+    const built = setup({
+      plan: tower(6, 100, 179, [{ type: 'standard', x: 110, bottom: 1, top: 6 }]),
+    });
+    const empty = plan(built, [1, 110], [2, 110]);
+    fillQueue(built.state, first(built.shaftIds), 1, 'up', 5);
+    const busy = plan(built, [1, 110], [2, 110]);
+    expect((busy?.cost ?? 0) - (empty?.cost ?? 0)).toBe(5 * 40);
   });
 });

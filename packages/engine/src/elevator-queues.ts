@@ -1,6 +1,7 @@
 import {
   carCapacity,
   ELEVATOR_QUEUE_CAPACITY,
+  ROUTE_QUEUE_PERSON_COST,
   FULL_QUEUE_RECHECK_STEPS,
   FULL_QUEUE_ROUTE_COST,
   type EntityId,
@@ -38,6 +39,17 @@ export function isQueueFull(shaft: Shaft, level: Level, direction: HallDirection
 /** Added to the cost of a ride while its queue is full (routing section 8.3). */
 export function fullQueueSurcharge(shaft: Shaft, level: Level, direction: HallDirection): number {
   return isQueueFull(shaft, level, direction) ? FULL_QUEUE_ROUTE_COST : 0;
+}
+
+/**
+ * What waiting for a ride adds to its route cost: every person in line adds a fixed amount, and
+ * a full queue adds the full-queue surcharge on top.
+ */
+export function queueRouteCost(shaft: Shaft, level: Level, direction: HallDirection): number {
+  return (
+    queueLength(shaft, level, direction) * ROUTE_QUEUE_PERSON_COST +
+    fullQueueSurcharge(shaft, level, direction)
+  );
 }
 
 /** The step at which a person who found the queue full looks at it again. */

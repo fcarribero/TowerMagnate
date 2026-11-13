@@ -659,11 +659,36 @@ export const FULL_QUEUE_MAX_SWITCHES_PER_TRIP = 2;
 
 /** Route costs per routing.md section 6, in cost points. */
 export const ROUTE_FLOOR_COST = 8;
-export const ROUTE_EXPRESS_FLOOR_COST = 3;
 export const ROUTE_ESCALATOR_LEG_COST = 0;
+/** One ride costs this much for any number of floors; waiting people add to it (ROUTE_QUEUE_PERSON_COST). */
 export const ROUTE_RIDE_COST = 500;
-export const ROUTE_STAIR_LEG_COST = 600;
+export const ROUTE_STAIR_LEG_COST = 0;
 export const ROUTE_TRANSFER_COST = 2_500;
+/** Every column walked on a level adds this to the cost of a route. */
+export const ROUTE_WALK_COLUMN_COST = 2;
+/** Cost of one stair floor for a person of neutral energy (NEUTRAL_ENERGY). */
+export const ROUTE_STAIR_FLOOR_COST = 100;
+/** Each energy level below neutral adds this to a stair floor, each level above takes it off. */
+export const ROUTE_STAIR_ENERGY_STEP = 20;
+/** The cheapest a stair floor gets, for the most energetic people. */
+export const ROUTE_STAIR_FLOOR_MIN_COST = 10;
+/** Added to the cost of a ride for every person already waiting in the queue it starts from. */
+export const ROUTE_QUEUE_PERSON_COST = 40;
+
+/** Energy runs from 1 to 10; it is kept in thousandths of a level (people.md energy section). */
+export const MIN_ENERGY_LEVEL = 1;
+export const MAX_ENERGY_LEVEL = 10;
+export const NEUTRAL_ENERGY = 6;
+export const ENERGY_UNIT = 1_000;
+/** Thousandths of a level lost each step while walking, climbing stairs and waiting in a line. */
+export const ENERGY_WALK_DRAIN = 10;
+export const ENERGY_STAIRS_DRAIN = 50;
+export const ENERGY_WAIT_DRAIN = 60;
+/** Thousandths lost each step by a worker inside a unit, and gained by a resident or guest. */
+export const ENERGY_WORKER_IDLE_DRAIN = 1;
+export const ENERGY_HOME_RESTORE = 8;
+/** Levels a resident has less than their own level when they step out of the condo. */
+export const ENERGY_RESIDENT_EXIT_LOSS = 2;
 
 /** Movement times per routing.md section 8.1, in steps. */
 export const WALK_COLUMNS_PER_STEP = 1;
@@ -671,7 +696,7 @@ export const STAIR_FLIGHT_STEPS = 12;
 export const ESCALATOR_FLIGHT_STEPS = 6;
 
 /** Limits for one trip (routing section 5.2). */
-export const MAX_STAIR_FLOORS_PER_TRIP = 3;
+export const MAX_STAIR_FLOORS_PER_TRIP = 4;
 export const MAX_ESCALATOR_FLOORS_PER_TRIP = 7;
 export const MAX_RIDES_PER_TRIP = 3;
 

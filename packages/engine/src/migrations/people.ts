@@ -4,6 +4,7 @@ import {
   PERSON_KINDS,
   type PersonPool,
 } from '@tower-magnate/shared';
+import { MAX_ENERGY, MIN_ENERGY, startingEnergy } from '../energy';
 import { createPersonPool } from '../people';
 import { isRecord, StateMigrationError } from './errors';
 
@@ -86,6 +87,26 @@ function readFacing(raw: unknown, count: number): number[] {
   return raw.slice();
 }
 
+/** Saves from before energy was kept give everyone the energy they would start with. */
+function readEnergy(raw: unknown, pool: PersonPool): number[] {
+  if (raw === undefined) {
+    return pool.id.map((_, slot) =>
+      startingEnergy(
+        PERSON_KINDS[pool.kind[slot] as number] ?? 'officeWorker',
+        pool.nameSeed[slot] as number,
+      ),
+    );
+  }
+  if (
+    !isIntegerArray(raw) ||
+    raw.length !== pool.id.length ||
+    !raw.every((v) => v >= MIN_ENERGY && v <= MAX_ENERGY)
+  ) {
+    fail('energy must hold a value from 1,000 to 10,000 per person');
+  }
+  return raw.slice();
+}
+
 /** Saves from before the full-queue rule have no switches, rechecks or left shafts. */
 function readFullQueueTrip(raw: Record<string, unknown>, pool: PersonPool): void {
   for (const field of ['tripSwitches', 'queueRechecks', 'leftShafts'] as const) {
@@ -149,6 +170,7 @@ export function readPeople(raw: unknown): PersonPool {
   }
   readFullQueueTrip(raw, pool);
   pool.facing = readFacing(raw.facing, id.length);
+  pool.energy = readEnergy(raw.energy, pool);
   pool.names = readNames(raw.names, id);
   pool.followed = readFollowed(raw.followed, id);
   if (!pool.followed.every((personId) => Object.hasOwn(pool.names, personId))) {

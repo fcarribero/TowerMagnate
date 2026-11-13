@@ -1,5 +1,8 @@
 import {
   ELEVATOR_QUEUE_CAPACITY,
+  ENERGY_STAIRS_DRAIN,
+  ENERGY_WAIT_DRAIN,
+  ENERGY_WALK_DRAIN,
   ESCALATOR_FLIGHT_STEPS,
   FULL_QUEUE_MAX_SWITCHES_PER_TRIP,
   FULL_QUEUE_STAY_RECHECKS,
@@ -19,6 +22,8 @@ import {
   type Shaft,
   type TowerState,
 } from '@tower-magnate/shared';
+import { SECONDS_PER_STEP, STEPS_PER_DAY } from './clock';
+import { drainEnergy, energyLevelOf, leaveHome, resetEnergy, restEnergy } from './energy';
 import { isQueueFull, joinQueue, nextQueueCheckStep, queueLength } from './elevator-queues';
 import {
   addFailedSearch,
@@ -140,6 +145,7 @@ function planFrom(context: StepContext, slot: number): RoutePlan | null {
       to: { level: pool.trekLevel[slot] as Level, x: pool.trekColumn[slot] as number },
       userClass,
       budget: unpackBudget(pool.trekBudget[slot] as number),
+      energy: energyLevelOf(pool, slot),
     },
     leftShaftsOf(pool, slot),
   );
@@ -196,7 +202,11 @@ function recheckStart(pool: PersonPool, slot: number): number {
 
 function destinationGroupOf(pass: TrekPass, pool: PersonPool, slot: number): number | null {
   const to = { level: pool.trekLevel[slot] as Level, x: pool.trekColumn[slot] as number };
-  return pass.planner.destinationGroup(to, pool.kind[slot] === MAID_KIND ? 'maid' : 'other');
+  return pass.planner.destinationGroup(
+    to,
+    pool.kind[slot] === MAID_KIND ? 'maid' : 'other',
+    energyLevelOf(pool, slot),
+  );
 }
 
 function rideOf(context: StepContext, plan: RoutePlan | null): Ride | null {
@@ -227,6 +237,7 @@ function recheckFrom(
       to: { level: pool.trekLevel[slot] as Level, x: pool.trekColumn[slot] as number },
       userClass,
       budget: unpackBudget(pool.trekBudget[slot] as number),
+      energy: energyLevelOf(pool, slot),
     },
     {
       via: pool.legVia[slot] as number,
@@ -463,6 +474,7 @@ function replan(
  */
 export function startTrek(context: StepContext, slot: number, to: TrekPlace): boolean {
   const pool = context.state.people;
+  leaveHome(pool, slot);
   pool.trekLevel[slot] = to.level;
   pool.trekColumn[slot] = to.column;
   pool.trekBudget[slot] = packBudget({ stairFloors: 0, escalatorFloors: 0, rides: 0 });
@@ -859,7 +871,11 @@ function walk(context: StepContext, slot: number, pass: TrekPass): boolean {
     ahead = pass.lane.get(nextKey);
   }
   pool.facing[slot] = direction < 0 ? 1 : 0;
-  if (ahead !== undefined && ahead !== slot) return false;
+  if (ahead !== undefined && ahead !== slot) {
+    drainEnergy(pool, slot, ENERGY_WAIT_DRAIN);
+    return false;
+  }
+  drainEnergy(pool, slot, ENERGY_WALK_DRAIN);
   pool.column[slot] = column + direction;
   syncLane(pass, slot);
   return pool.column[slot] === target;
@@ -1013,6 +1029,18 @@ function refreshTravellerStress(
   });
 }
 
+/** 03:00, when energy is reset for the new day. */
+const NIGHT_RESET_STEP = (3 * 3600) / SECONDS_PER_STEP;
+
+/** Energy lost in a step standing in a line or on a flight of stairs; walking is drained in `walk`. */
+function drainWhileWaiting(pool: PersonPool, slot: number, phase: number): void {
+  if (phase === QUEUED || phase === WAITING_BESIDE_QUEUE) {
+    drainEnergy(pool, slot, ENERGY_WAIT_DRAIN);
+  } else if (phase === ON_STAIRS) {
+    drainEnergy(pool, slot, ENERGY_STAIRS_DRAIN);
+  }
+}
+
 /** Phases in which nothing happens until the leg step: flights, a full queue, no route. */
 function waitsForLegStep(phase: number): boolean {
   return phase > WALKING_TO_SHAFT && phase !== QUEUED && phase !== RIDING;
@@ -1045,10 +1073,15 @@ export function createTrekSystem(): SimulationSystem {
     }
     const checkpoints = checkpointsOf(pool);
     const now = context.state.step;
+    if (now % STEPS_PER_DAY === NIGHT_RESET_STEP) resetEnergy(pool);
     const advance = (slot: number): void => {
       pass.done[slot] = 1;
       const phase = pool.trek[slot] as number;
-      if (phase === IDLE) return;
+      if (phase === IDLE) {
+        restEnergy(pool, slot);
+        return;
+      }
+      drainWhileWaiting(pool, slot, phase);
       const legStep = pool.legStep[slot] as number;
       if (legStep !== now && waitsForLegStep(phase)) return;
       const sum = pool.tripSum[slot] as number;

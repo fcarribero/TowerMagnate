@@ -2,13 +2,19 @@ import {
   MAX_ESCALATOR_FLOORS_PER_TRIP,
   MAX_RIDES_PER_TRIP,
   MAX_STAIR_FLOORS_PER_TRIP,
+  MAX_ENERGY_LEVEL,
+  MIN_ENERGY_LEVEL,
+  NEUTRAL_ENERGY,
   ROUTE_ESCALATOR_LEG_COST,
-  ROUTE_EXPRESS_FLOOR_COST,
   ROUTE_FLOOR_COST,
   ROUTE_RETRY_STEPS,
   ROUTE_RIDE_COST,
+  ROUTE_STAIR_ENERGY_STEP,
+  ROUTE_STAIR_FLOOR_COST,
+  ROUTE_STAIR_FLOOR_MIN_COST,
   ROUTE_STAIR_LEG_COST,
   ROUTE_TRANSFER_COST,
+  ROUTE_WALK_COLUMN_COST,
   LAST_COLUMN,
   LOWEST_LEVEL,
   type EntityId,
@@ -16,7 +22,7 @@ import {
   type Level,
   type TowerState,
 } from '@tower-magnate/shared';
-import { fullQueueSurcharge } from '../elevator-queues';
+import { queueRouteCost } from '../elevator-queues';
 import {
   floorIndex,
   type GraphNode,
@@ -44,6 +50,38 @@ export interface RouteRequest {
   to: RoutePoint;
   userClass: UserClass;
   budget?: TripBudget;
+  /** Energy level 1 to 10 of the person; stairs cost more below 6 and less above. Default 6. */
+  energy?: number;
+}
+
+/** What makes the cost of the same links differ between people: class and energy level. */
+interface Who {
+  userClass: UserClass;
+  energy: number;
+  /** One number per class and energy level, for cache keys. */
+  profile: number;
+}
+
+const PROFILES = 2 * MAX_ENERGY_LEVEL;
+
+function whoOf(userClass: UserClass, energy: number | undefined): Who {
+  const level = Math.min(
+    MAX_ENERGY_LEVEL,
+    Math.max(MIN_ENERGY_LEVEL, Math.round(energy ?? NEUTRAL_ENERGY)),
+  );
+  return {
+    userClass,
+    energy: level,
+    profile: (userClass === 'maid' ? 1 : 0) + 2 * (level - MIN_ENERGY_LEVEL),
+  };
+}
+
+/** Cost of one stair floor for a person of this energy level. */
+export function stairFloorCost(energy: number): number {
+  return Math.max(
+    ROUTE_STAIR_FLOOR_MIN_COST,
+    ROUTE_STAIR_FLOOR_COST + (NEUTRAL_ENERGY - energy) * ROUTE_STAIR_ENERGY_STEP,
+  );
 }
 
 /** The ride a person waits for beside a full queue, as the first option of their route. */
@@ -128,7 +166,8 @@ const LEG_RANGE = 16;
 const END_OFFSET = 10;
 
 function pack(cost: number, legs: number, columns: number, end: number): number {
-  return ((cost * LEG_RANGE + legs) * COLUMN_RANGE + columns) * END_RANGE + end;
+  const walking = columns * ROUTE_WALK_COLUMN_COST;
+  return (((cost + walking) * LEG_RANGE + legs) * COLUMN_RANGE + columns) * END_RANGE + end;
 }
 
 function withoutEnd(value: number): number {
@@ -153,6 +192,8 @@ function columnsOf(value: number): number {
 }
 
 const COST_UNIT_IN_PREFIX = LEG_RANGE * COLUMN_RANGE;
+/** What one column of walking adds to a value: one column and its cost. */
+const COLUMN_UNIT = END_RANGE * (1 + ROUTE_WALK_COLUMN_COST * COST_UNIT_IN_PREFIX);
 
 type PreviousLeg = 0 | 1 | 2 | 3;
 const AFTER_STAIRS: PreviousLeg = 1;
@@ -238,14 +279,16 @@ function counterKey(code: CounterCode, previous: PreviousLeg): number {
   return code * 4 + previous;
 }
 
-const STATES_PER_NODE = 4 * 8 * 4 * 4;
+const STATES_PER_NODE = (MAX_STAIR_FLOORS_PER_TRIP + 1) * 8 * 4 * 4;
 
-function legCost(link: Link, rides: number, merges: boolean): number {
-  const floorCost = link.kind === 'express' ? ROUTE_EXPRESS_FLOOR_COST : ROUTE_FLOOR_COST;
-  const base = floorCost * link.floors;
-  if (link.kind === 'escalator') return base + ROUTE_ESCALATOR_LEG_COST;
-  if (link.kind === 'stairs') return base + (merges ? 0 : ROUTE_STAIR_LEG_COST);
-  return base + ROUTE_RIDE_COST + (rides >= 1 ? ROUTE_TRANSFER_COST : 0);
+function legCost(link: Link, rides: number, merges: boolean, energy: number): number {
+  if (link.kind === 'escalator') {
+    return ROUTE_FLOOR_COST * link.floors + ROUTE_ESCALATOR_LEG_COST;
+  }
+  if (link.kind === 'stairs') {
+    return stairFloorCost(energy) * link.floors + (merges ? 0 : ROUTE_STAIR_LEG_COST);
+  }
+  return ROUTE_RIDE_COST + (rides >= 1 ? ROUTE_TRANSFER_COST : 0);
 }
 
 function withinBudget(link: Link, counters: Counters): boolean {
@@ -266,7 +309,7 @@ function withinBudget(link: Link, counters: Counters): boolean {
 interface DestinationTable {
   point: RoutePoint;
   run: number;
-  userClass: UserClass;
+  who: Who;
   values: Map<number, number>;
 }
 
@@ -356,7 +399,8 @@ export class TripPlanner {
     }
 
     const counters = countersOf(request);
-    const { table, extraColumns } = this.tableFor(request.to, goalRun.id, request.userClass);
+    const who = whoOf(request.userClass, request.energy);
+    const { table, extraColumns } = this.tableFor(request.to, goalRun.id, who);
     const options = this.optionsFor(table, extraColumns, request, startRun.id, counters);
     const chosen = this.pickWithQueues(state, options, avoidShafts);
     if (!chosen) return null;
@@ -380,7 +424,8 @@ export class TripPlanner {
     if (!startRun || !goalRun || startRun.id === goalRun.id) return null;
 
     const counters = countersOf(request);
-    const { table, extraColumns } = this.tableFor(request.to, goalRun.id, request.userClass);
+    const who = whoOf(request.userClass, request.energy);
+    const { table, extraColumns } = this.tableFor(request.to, goalRun.id, who);
     const options = this.optionsFor(table, extraColumns, request, startRun.id, counters);
     const waitedOption = options.find((option) => this.isWaitedRide(option, waited));
     if (!waitedOption) return null;
@@ -454,15 +499,15 @@ export class TripPlanner {
    * Plans to such destinations from the same start and budget choose the same first leg and
    * differ only in columns walked. Null when the point is on no walkable run.
    */
-  destinationGroup(to: RoutePoint, userClass: UserClass): number | null {
+  destinationGroup(to: RoutePoint, userClass: UserClass, energy?: number): number | null {
     this.dropStaleCaches();
-    const isMaid = userClass === 'maid' ? 1 : 0;
-    const key = ((to.level - LOWEST_LEVEL) * (LAST_COLUMN + 1) + to.x) * 2 + isMaid;
+    const { profile } = whoOf(userClass, energy);
+    const key = ((to.level - LOWEST_LEVEL) * (LAST_COLUMN + 1) + to.x) * PROFILES + profile;
     let group = this.groups.get(key);
     if (group === undefined) {
       const run = this.graph.runAtCell(to.level, to.x);
       const shared = run && run.nodes.length > 0 ? this.sharedColumn(run.id, to.x) : 0;
-      group = run ? (run.id * COLUMN_RANGE + shared) * 2 + isMaid : null;
+      group = run ? (run.id * COLUMN_RANGE + shared) * PROFILES + profile : null;
       this.groups.set(key, group);
     }
     return group;
@@ -479,14 +524,14 @@ export class TripPlanner {
     return x >= ends.last ? ends.last : x <= ends.first ? ends.first : x;
   }
 
-  private runOptionsOf(run: number, userClass: UserClass): RunOption[] {
-    const key = run * 2 + (userClass === 'maid' ? 1 : 0);
+  private runOptionsOf(run: number, who: Who): RunOption[] {
+    const key = run * PROFILES + who.profile;
     let options = this.runOptions.get(key);
     if (!options) {
       options = [];
       for (const entryId of this.graph.run(run).nodes) {
         const x = this.graph.node(entryId).x;
-        for (const link of this.graph.neighbours(entryId, userClass)) {
+        for (const link of this.graph.neighbours(entryId, who.userClass)) {
           options.push({
             entry: entryId,
             x,
@@ -498,8 +543,8 @@ export class TripPlanner {
             escalatorFloors: link.kind === 'escalator' ? link.floors : 0,
             rides: link.kind === 'stairs' || link.kind === 'escalator' ? 0 : 1,
             transferable: link.kind !== 'stairs' && link.kind !== 'escalator',
-            cost: legCost(link, 0, false),
-            mergedCost: legCost(link, 0, true),
+            cost: legCost(link, 0, false, who.energy),
+            mergedCost: legCost(link, 0, true, who.energy),
           });
         }
       }
@@ -511,14 +556,14 @@ export class TripPlanner {
   private tableFor(
     point: RoutePoint,
     run: number,
-    userClass: UserClass,
+    who: Who,
   ): { table: DestinationTable; extraColumns: number } {
     const shared = this.sharedColumn(run, point.x);
-    const key = `${userClass}:${run}:${shared}`;
+    const key = `${who.profile}:${run}:${shared}`;
     let table = this.tables.get(key);
     if (!table) {
       if (this.tables.size >= MAX_CACHED_DESTINATIONS) this.tables.clear();
-      table = { point: { level: point.level, x: shared }, run, userClass, values: new Map() };
+      table = { point: { level: point.level, x: shared }, run, who, values: new Map() };
       this.tables.set(key, table);
     }
     return { table, extraColumns: Math.abs(point.x - shared) };
@@ -533,7 +578,7 @@ export class TripPlanner {
     counters: Counters,
   ): FirstOption[] {
     const { from } = request;
-    const key = `${request.userClass}:${request.to.level}:${request.to.x}|${from.level}:${from.x}|${counters.stairs},${counters.escalator},${counters.rides}`;
+    const key = `${table.who.profile}:${request.to.level}:${request.to.x}|${from.level}:${from.x}|${counters.stairs},${counters.escalator},${counters.rides}`;
     const cached = this.firstOptions.get(key);
     if (cached) return cached;
 
@@ -542,13 +587,13 @@ export class TripPlanner {
     for (const nodeId of this.graph.run(startRun).nodes) {
       const entry = this.graph.node(nodeId);
       const walk = Math.abs(entry.x - from.x);
-      for (const link of this.graph.neighbours(nodeId, request.userClass)) {
+      for (const link of this.graph.neighbours(nodeId, table.who.userClass)) {
         if (!withinBudget(link, counters)) continue;
         const previous = previousLegOf(link.kind);
         const shared = this.valueAt(table, link.to, codeAfter(link, startCode), previous);
         if (shared === Infinity) continue;
-        const rest = shared + extraColumns * END_RANGE;
-        const own = pack(legCost(link, counters.rides, false), 1, walk, 0);
+        const rest = shared + extraColumns * COLUMN_UNIT;
+        const own = pack(legCost(link, counters.rides, false, table.who.energy), 1, walk, 0);
         const value = isWalkedLeg(previous)
           ? own + rest
           : own + withoutEnd(rest) + this.endOf(link.to);
@@ -619,7 +664,7 @@ export class TripPlanner {
     const target = this.graph.node(link.to);
     const direction: HallDirection =
       floorIndex(target.level) > floorIndex(option.entry.level) ? 'up' : 'down';
-    return fullQueueSurcharge(shaft, option.entry.level, direction);
+    return queueRouteCost(shaft, option.entry.level, direction);
   }
 
   private describe(
@@ -715,14 +760,14 @@ export class TripPlanner {
     return table.values.get(key) as number;
   }
 
-  private runByX(run: number, userClass: UserClass): RunByX {
-    const key = run * 2 + (userClass === 'maid' ? 1 : 0);
+  private runByX(run: number, who: Who): RunByX {
+    const key = run * PROFILES + who.profile;
     let sorted = this.runsByX.get(key);
     if (!sorted) {
       const nodes = [...this.graph.run(run).nodes].sort(
         (a, b) => this.graph.node(a).x - this.graph.node(b).x || a - b,
       );
-      const options = [...this.runOptionsOf(run, userClass)].sort((a, b) => a.x - b.x);
+      const options = [...this.runOptionsOf(run, who)].sort((a, b) => a.x - b.x);
       sorted = {
         nodes,
         nodeX: nodes.map((id) => this.graph.node(id).x),
@@ -754,7 +799,7 @@ export class TripPlanner {
     code: CounterCode,
     previous: PreviousLeg,
   ): void {
-    const run_ = this.runByX(run, table.userClass);
+    const run_ = this.runByX(run, table.who);
     const { nodes, nodeX, options } = run_;
     const walked = isWalkedLeg(previous);
     const rides = ridesIn(code);
@@ -798,12 +843,12 @@ export class TripPlanner {
     for (let index = 0; index < count; index++) {
       const x = nodeX[index] as number;
       for (; next < valid && (xs[next] as number) <= x; next++) {
-        const shifted = (bases[next] as number) - (xs[next] as number) * END_RANGE;
+        const shifted = (bases[next] as number) - (xs[next] as number) * COLUMN_UNIT;
         if (joins[next]) leftJoin = Math.min(leftJoin, shifted);
         else leftNew = Math.min(leftNew, shifted);
       }
       const end = this.chainEndIf(walked, nodes[index] as NodeId);
-      best[index] = Math.min(leftJoin, leftNew + end) + x * END_RANGE;
+      best[index] = Math.min(leftJoin, leftNew + end) + x * COLUMN_UNIT;
     }
     let rightJoin = Infinity;
     let rightNew = Infinity;
@@ -811,12 +856,12 @@ export class TripPlanner {
     for (let index = count - 1; index >= 0; index--) {
       const x = nodeX[index] as number;
       for (; next >= 0 && (xs[next] as number) >= x; next--) {
-        const shifted = (bases[next] as number) + (xs[next] as number) * END_RANGE;
+        const shifted = (bases[next] as number) + (xs[next] as number) * COLUMN_UNIT;
         if (joins[next]) rightJoin = Math.min(rightJoin, shifted);
         else rightNew = Math.min(rightNew, shifted);
       }
       const end = this.chainEndIf(walked, nodes[index] as NodeId);
-      const fromRight = Math.min(rightJoin, rightNew + end) - x * END_RANGE;
+      const fromRight = Math.min(rightJoin, rightNew + end) - x * COLUMN_UNIT;
       const value = Math.min(best[index] as number, fromRight);
       table.values.set(
         (nodes[index] as NodeId) * STATES_PER_NODE + counterKey(code, previous),
@@ -848,14 +893,14 @@ export class TripPlanner {
       visit(pack(0, 0, Math.abs(here.x - table.point.x), chainEnd), at, null);
     }
     const rides = ridesIn(code);
-    for (const option of this.runOptionsOf(here.run, table.userClass)) {
+    for (const option of this.runOptionsOf(here.run, table.who)) {
       const { link } = option;
       if (!withinCodeBudget(link, code)) continue;
       const merges = option.kindAfter === previous && walked;
       const rest = this.valueAt(table, link.to, codeAfter(link, code), option.kindAfter);
       if (rest === Infinity) continue;
       const own = pack(
-        legCost(link, rides, merges),
+        legCost(link, rides, merges, table.who.energy),
         merges ? 0 : 1,
         Math.abs(option.x - here.x),
         0,

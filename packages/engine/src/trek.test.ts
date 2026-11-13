@@ -247,11 +247,11 @@ describe('stairs and escalators', () => {
     });
   });
 
-  it('climbs 3 floors on stairs and finds no route for a fourth', () => {
-    const state = buildTestTower({ floors: 5, flights: [{ type: 'stairs', from: 1, to: 5 }] });
+  it('climbs 4 floors on stairs and finds no route for a fifth', () => {
+    const state = buildTestTower({ floors: 6, flights: [{ type: 'stairs', from: 1, to: 6 }] });
     const id = addWalker(state, 1, 10);
-    expect(sendTo(state, id, { level: 4, column: 10 })).toBe(true);
-    expect(sendTo(state, id, { level: 5, column: 10 })).toBe(false);
+    expect(sendTo(state, id, { level: 5, column: 10 })).toBe(true);
+    expect(sendTo(state, id, { level: 6, column: 10 })).toBe(false);
     expect(view(state, id).phase).toBe('idle');
   });
 
@@ -457,11 +457,12 @@ describe('full queue recheck rule (routing 8.3)', () => {
     expect(pool(joined, id).switches).toBe(0);
   });
 
-  it('keeps waiting when the other way costs less than 500 under waiting', () => {
+  it('keeps waiting when the other way is also a full queue', () => {
     const { state, id } = waiterWalkingToFirstShaft({
       shafts: [shafts[0] as PlannedShaft, { type: 'standard', x: 70, bottom: 1, top: 2 }],
       flights: [{ type: 'stairs', from: 2, to: 3 }],
     });
+    setQueue(state, 1, ELEVATOR_QUEUE_CAPACITY);
     const waited = runSteps(state, thirdRecheckStep + 5 * FULL_QUEUE_RECHECK_STEPS);
     expect(view(waited, id)).toMatchObject({ column: first, phase: 'waitingBesideQueue' });
     expect(pool(waited, id).switches).toBe(0);
@@ -670,6 +671,7 @@ describe('broken legs', () => {
       shafts: [shaft],
     });
     const id = addWalker(state, 1, shaftColumn);
+    state.people.energy[slotOfPerson(state.people, id)] = 1_000;
     sendTo(state, id, { level: 3, column: shaftColumn });
     expect(view(state, id).phase).toBe('queued');
 
