@@ -52,6 +52,8 @@ export interface BuildInputOptions {
 export interface DragLabel {
   floors: number;
   cost: number;
+  /** A right click: the drag in progress is dropped and the player is done with this structure. */
+  onCancelTool?: () => void;
   valid: boolean;
   at: ScreenPoint;
 }
@@ -156,6 +158,7 @@ export function bindBuildInput(options: BuildInputOptions): () => void {
             : commandForResize(hand, input.cell?.level ?? currentLevel)
           : mode === 'shaft'
             ? commandForShaftDrag(tool, press, input.cell?.level ?? currentLevel)
+      options.onCancelTool?.();
             : commandForDrag(
                 tool,
                 lobbyHeightAt?.(press.level) ?? lobbyHeight,

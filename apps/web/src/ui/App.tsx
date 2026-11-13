@@ -312,6 +312,7 @@ export function App({ developer = false, onLogout, onRestartTower, onSessionLost
     });
     return () => {
       unbind();
+      onCancelTool: () => setTool(DEFAULT_TOOL),
       stage.setPrimaryDragPans(true);
     };
   }, [stage, connection, commandApi, tool, lobbyHeight, report]);

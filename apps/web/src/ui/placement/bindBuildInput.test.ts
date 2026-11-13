@@ -12,6 +12,7 @@ function setup(
   extra: {
     shaftAt?: (cell: Cell) => GrabbedShaft | null;
     lobbyHeightAt?: (level: number) => number | null;
+    onCancelTool?: () => void;
   } = {},
 ) {
   let onInput: (input: CellInput) => void = () => {};
@@ -88,6 +89,17 @@ describe('bindBuildInput', () => {
     t.input('down', { x: 2, level: 3 });
     t.input('cancel', null);
     t.input('up', { x: 6, level: 3 });
+    expect(t.sent).toEqual([]);
+  });
+
+  it('drops the tool with a right click, in a drag or not', () => {
+    let cancelled = 0;
+    const t = setup('floor', 1, { onCancelTool: () => (cancelled += 1) });
+    t.input('cancel', null);
+    t.input('down', { x: 2, level: 3 });
+    t.input('cancel', null);
+    t.input('up', { x: 6, level: 3 });
+    expect(cancelled).toBe(2);
     expect(t.sent).toEqual([]);
   });
 
