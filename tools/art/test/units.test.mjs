@@ -211,6 +211,11 @@ describe('rental units', () => {
       }
       expect(byId[`units/${subject}/closed_night`].get(x, y)).not.toBe(0);
       expect(byId[`units/${subject}/closed_day`].get(x, y)).not.toBe(0);
+      const [left, top] = [windowCentre[subject][0] - 6, 4];
+      for (const time of ['day', 'night']) {
+        const open = byId[`units/${subject}/occupied_${time}`];
+        expect(open.get(left, top + 3), `${subject} ${time} curtain`).toBe(colorIndex('cloud'));
+      }
       const lit = byId[`units/${subject}/occupied_night`];
       const dark = byId[`units/${subject}/closed_night`];
       const day = byId[`units/${subject}/occupied_day`];

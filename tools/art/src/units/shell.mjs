@@ -82,6 +82,17 @@ export function drawCurtains(room, { left, top, width, height }) {
   room.hline(left, top + height - 1, width, 'silver');
 }
 
+// Open curtains: the same rod and cloth gathered at both sides, the glass left clear.
+export function drawOpenCurtains(room, { left, top, width, height }) {
+  const side = 3;
+  for (const x of [left, left + width - side]) {
+    room.fillRect(x, top + 1, side, height - 1, 'cloud');
+    room.vline(x + 1, top + 1, height - 1, 'silver');
+    room.hline(x, top + height - 1, side, 'silver');
+  }
+  room.hline(left, top, width, 'gray');
+}
+
 export const RENTAL_STATES = ['empty', 'closed', 'occupied'];
 
 // Returns the six sprites of a unit that people rent or buy, day and night each:
@@ -97,10 +108,17 @@ export function rentalSprites(subject, { windows, drawDay }) {
     if (closed) {
       windows.forEach((window) => drawCurtains(lit, window));
     }
+    const occupied = state === 'occupied';
+    if (occupied) {
+      windows.forEach((window) => drawOpenCurtains(lit, window));
+    }
     const day = closed ? lightsOff(toNight(lit)) : lit;
     for (const time of TIMES) {
-      const canvas =
-        time === 'day' ? day : nightVersion(lit, closed ? [] : windows, state === 'occupied');
+      const canvas = time === 'day' ? day : nightVersion(lit, closed ? [] : windows, occupied);
+      if (occupied && time === 'night') {
+        // Clearing the glass at night also cleared the curtains, so draw them again.
+        windows.forEach((window) => drawOpenCurtains(canvas, window));
+      }
       sprites.push({ id: `units/${subject}/${state}_${time}`, canvas });
     }
   }
