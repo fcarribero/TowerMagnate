@@ -126,7 +126,7 @@ export interface GrabbedShaft {
   end: 'top' | 'bottom';
 }
 
-/** The shaft under the cell and the end of it nearest the cell, which is the end that is dragged. */
+/** The shaft whose base or top is at the cell; that end is the one dragged. Nothing in the middle can be taken. */
 export function grabShaft(
   shafts: Iterable<Pick<ShaftView, 'id' | 'type' | 'x' | 'bottom' | 'top'>> | undefined,
   cell: Cell,
@@ -138,10 +138,11 @@ export function grabShaft(
   if (shaft === undefined) {
     return null;
   }
-  const index = levelToIndex(cell.level);
-  const toTop = levelToIndex(shaft.top) - index;
-  const toBottom = index - levelToIndex(shaft.bottom);
-  return { ...shaft, end: toTop <= toBottom ? 'top' : 'bottom' };
+  // Only the base and the top can be taken; a one-level shaft is taken by its top.
+  if (cell.level === shaft.top) {
+    return { ...shaft, end: 'top' };
+  }
+  return cell.level === shaft.bottom ? { ...shaft, end: 'bottom' } : null;
 }
 
 /** The levels a shaft would serve if its grabbed end were let go at `releaseLevel`; null if that flips it. */

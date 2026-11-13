@@ -87,15 +87,17 @@ describe('shaft helpers', () => {
     expect(shaftIdAt(undefined, { x: 10, level: 5 })).toBeNull();
   });
 
-  it('grabs the nearest end of a shaft given a one-shot iterator, as the store hands it over', () => {
+  it('grabs a shaft only by its base or its top, given a one-shot iterator', () => {
     const shafts = new Map([
       ['s1', { id: 's1', type: 'standard' as const, x: 10, bottom: 1, top: 9 }],
     ]);
-    expect(grabShaft(shafts.values(), { x: 11, level: 8 })).toMatchObject({ id: 's1', end: 'top' });
-    expect(grabShaft(shafts.values(), { x: 11, level: 2 })).toMatchObject({
+    expect(grabShaft(shafts.values(), { x: 11, level: 9 })).toMatchObject({ id: 's1', end: 'top' });
+    expect(grabShaft(shafts.values(), { x: 11, level: 1 })).toMatchObject({
       id: 's1',
       end: 'bottom',
     });
+    expect(grabShaft(shafts.values(), { x: 11, level: 8 })).toBeNull();
+    expect(grabShaft(shafts.values(), { x: 11, level: 2 })).toBeNull();
     expect(grabShaft(shafts.values(), { x: 30, level: 2 })).toBeNull();
   });
 });
