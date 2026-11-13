@@ -139,6 +139,18 @@ describe('prospect move-in', () => {
     expect(prospectCount(after)).toBe(0);
   });
 
+  it('sends the whole condo household walking in together, with nobody appearing inside', () => {
+    let walking: TowerState | null = null;
+    for (let seed = 1; walking === null && seed < 50; seed++) {
+      const { state } = towerWithVacantUnit({ unit: 'condo', priceLevel: 'minimum', seed });
+      const afterRoll = engine.step(state, [], FIRST_ROLL).state;
+      if (prospectCount(afterRoll) > 0) walking = afterRoll;
+    }
+    if (walking === null) throw new Error('No seed sent a prospect');
+    expect(prospectCount(walking)).toBe(3);
+    expect(countPeopleByKind(walking.people).resident ?? 0).toBe(0);
+  });
+
   it('removes a prospect on the way when the unit is demolished', () => {
     let walking: TowerState | null = null;
     let unitId = '';

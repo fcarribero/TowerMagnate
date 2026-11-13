@@ -1,4 +1,5 @@
 import {
+  ELEVATOR_QUEUE_CAPACITY,
   ESCALATOR_FLIGHT_STEPS,
   FULL_QUEUE_MAX_SWITCHES_PER_TRIP,
   FULL_QUEUE_STAY_RECHECKS,
@@ -18,7 +19,7 @@ import {
   type Shaft,
   type TowerState,
 } from '@tower-magnate/shared';
-import { isQueueFull, joinQueue, nextQueueCheckStep } from './elevator-queues';
+import { isQueueFull, joinQueue, nextQueueCheckStep, queueLength } from './elevator-queues';
 import {
   addFailedSearch,
   addFlight,
@@ -166,6 +167,7 @@ interface RecheckResult {
  * plan's first leg, which is the same for every destination of a group.
  */
 interface TrekPass {
+  context: StepContext;
   planner: TripPlanner;
   /** Lobby height by `placeKey`; the grid does not change during a trek pass. */
   lobbyHeights: Map<number, number | null>;
@@ -535,6 +537,7 @@ function leaveQueueOf(context: StepContext, slot: number): void {
   const wasFull = isQueueFull(shaft, pool.level[slot] as Level, direction);
   queue.splice(at, 1);
   if (wasFull) forgetRecheckPlans(context);
+  realignQueue(context, shaft, pool.level[slot] as Level, direction);
 }
 
 function leaveCarOf(context: StepContext, slot: number): void {
@@ -596,7 +599,44 @@ function joinQueueAt(
   const level = pool.level[slot] as Level;
   const person = personEntityId(pool.id[slot] as number);
   joinQueue(shaft, level, direction, person, pool.legLevel[slot] as Level, context.state.step);
+  const place = queueLength(shaft, level, direction) - 1;
+  pool.column[slot] = lineCell(context, level, pool.legColumn[slot] as number, direction, place);
   if (isQueueFull(shaft, level, direction)) forgetPlansRidingFrom(context, shaft, level, direction);
+}
+
+/**
+ * The cell of the person at `place` in the line for a hall call. The line starts at the shaft
+ * column and runs away from it along the floor: to the right for the up queue and to the left for
+ * the down queue. It stops at the end of the walkable run, where people then share a cell.
+ */
+function lineCell(
+  context: StepContext,
+  level: Level,
+  base: number,
+  direction: HallDirection,
+  place: number,
+): number {
+  const run = graphOf(context).runAtCell(level, base);
+  const offset = Math.min(place, ELEVATOR_QUEUE_CAPACITY);
+  if (direction === 'up') return Math.min(base + offset, run?.x1 ?? LAST_COLUMN);
+  return Math.max(base - offset, run?.x0 ?? 0);
+}
+
+/** Moves everyone queued for a hall call to the cell their place in the line gives them. */
+export function realignQueue(
+  context: StepContext,
+  shaft: Shaft,
+  level: Level,
+  direction: HallDirection,
+): void {
+  const pool = context.state.people;
+  const queue = shaft.queues[String(level)]?.[direction];
+  if (!queue) return;
+  queue.forEach((entry, place) => {
+    const slot = slotOfEntity(context, entry.person);
+    if (slot < 0 || pool.trek[slot] !== QUEUED) return;
+    pool.column[slot] = lineCell(context, level, pool.legColumn[slot] as number, direction, place);
+  });
 }
 
 function enterQueueOrWait(context: StepContext, slot: number): void {
@@ -718,6 +758,7 @@ export function boardRider(context: StepContext, person: EntityId): void {
   const slot = slotOfEntity(context, person);
   if (slot >= 0 && context.state.people.trek[slot] === QUEUED) {
     context.state.people.trek[slot] = RIDING;
+    context.state.people.column[slot] = context.state.people.legColumn[slot] as number;
     boardCar(context.state, slot);
   }
 }
@@ -756,18 +797,37 @@ function finishFlight(context: StepContext, slot: number): void {
  * in opposite directions pass through each other and two walking the same way never share a cell.
  * Null for a person who is not walking.
  */
-function laneKey(pool: PersonPool, slot: number): number | null {
+function laneKey(context: StepContext, slot: number): number | null {
+  const pool = context.state.people;
   const phase = pool.trek[slot] as number;
   if (phase === IDLE || phase > WALKING_TO_SHAFT) return null;
   const column = pool.column[slot] as number;
-  const target = pool.legColumn[slot] as number;
+  const target = targetColumn(context, slot);
   if (column === target) return null;
   return placeKey(pool.level[slot] as number, column) * 2 + (target < column ? 1 : 0);
 }
 
+/**
+ * The column a walking person is heading for. Someone walking to a shaft stops at the end of the
+ * line for it, so the target moves as the line grows and shrinks.
+ */
+function targetColumn(context: StepContext, slot: number): number {
+  const pool = context.state.people;
+  const base = pool.legColumn[slot] as number;
+  if (pool.trek[slot] !== WALKING_TO_SHAFT) return base;
+  const shaft = context.state.shafts[shaftKey(pool.legVia[slot] as number)];
+  if (!shaft) return base;
+  const level = pool.level[slot] as Level;
+  const direction = directionBetween(level, pool.legLevel[slot] as Level);
+  const length = queueLength(shaft, level, direction);
+  // A full line takes nobody: people wait beside the shaft until it has room.
+  if (length >= ELEVATOR_QUEUE_CAPACITY) return base;
+  return lineCell(context, level, base, direction, length);
+}
+
 /** Keeps the lane registry in line with where the person now is and what they are doing. */
-function syncLane(pass: TrekPass, pool: PersonPool, slot: number): void {
-  const next = laneKey(pool, slot);
+function syncLane(pass: TrekPass, slot: number): void {
+  const next = laneKey(pass.context, slot);
   const old = pass.laneOf.get(slot) ?? null;
   if (next === old) return;
   if (old !== null) {
@@ -788,8 +848,9 @@ function syncLane(pass: TrekPass, pool: PersonPool, slot: number): void {
 function walk(context: StepContext, slot: number, pass: TrekPass): boolean {
   const pool = context.state.people;
   const column = pool.column[slot] as number;
-  const target = pool.legColumn[slot] as number;
+  const target = targetColumn(context, slot);
   const direction = Math.sign(target - column);
+  if (direction === 0) return true;
   const level = pool.level[slot] as number;
   const nextKey = placeKey(level, column + direction) * 2 + (direction < 0 ? 1 : 0);
   let ahead = pass.lane.get(nextKey);
@@ -800,7 +861,7 @@ function walk(context: StepContext, slot: number, pass: TrekPass): boolean {
   pool.facing[slot] = direction < 0 ? 1 : 0;
   if (ahead !== undefined && ahead !== slot) return false;
   pool.column[slot] = column + direction;
-  syncLane(pass, pool, slot);
+  syncLane(pass, slot);
   return pool.column[slot] === target;
 }
 
@@ -992,12 +1053,13 @@ export function createTrekSystem(): SimulationSystem {
       if (legStep !== now && waitsForLegStep(phase)) return;
       const sum = pool.tripSum[slot] as number;
       stepPerson(context, slot, pass);
-      syncLane(pass, pool, slot);
+      syncLane(pass, slot);
       if (isOnTrek(pool, slot) && stressMayHaveMoved(pool, slot, phase, sum, legStep)) {
         refreshTravellerStress(context, slot, checkpoints);
       }
     };
     const pass: TrekPass = {
+      context,
       planner: plannerFor(graph),
       lobbyHeights: new Map(),
       plans: new Map(),
@@ -1007,7 +1069,7 @@ export function createTrekSystem(): SimulationSystem {
       advance,
     };
     trekPasses.set(context, pass);
-    for (let slot = 0; slot < pool.id.length; slot++) syncLane(pass, pool, slot);
+    for (let slot = 0; slot < pool.id.length; slot++) syncLane(pass, slot);
     for (let slot = 0; slot < pool.id.length; slot++) {
       if (!pass.done[slot]) advance(slot);
     }

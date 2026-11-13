@@ -2,7 +2,6 @@ import {
   PERSON_KINDS,
   PROSPECT_CHANCE,
   PROSPECT_ROLL_HOURS,
-  UNIT_CATALOG,
   type TowerState,
   type Unit,
 } from '@tower-magnate/shared';
@@ -20,7 +19,7 @@ import {
   slotOfPerson,
   unitPeople,
 } from './people';
-import { chance, nextInt } from './rng';
+import { chance } from './rng';
 import type { HookOccurrence, ScheduledHook } from './scheduler';
 import type { SimulationSystem, StepContext } from './step';
 import { isOnTrek, startTrek } from './trek';
@@ -28,6 +27,7 @@ import { unitNumber } from './units';
 
 const PROSPECT_KIND = PERSON_KINDS.indexOf('prospect');
 const RESIDENT_KIND = PERSON_KINDS.indexOf('resident');
+const CONDO_HOUSEHOLD = unitPeople('condo')?.count ?? 1;
 
 function isVacant(unit: Unit): boolean {
   if (unit.type === 'condo') return !unit.sale;
@@ -60,14 +60,22 @@ function sendProspect(context: StepContext, unit: Unit): void {
   const onRight = chance(state.rng, 0.5);
   const entrance = entrancePlace(state, onRight);
   if (!entrance) return;
-  const personId = addPerson(state, {
-    kind: 'prospect',
-    homeUnit: unitNumber(unit.id),
-    level: entrance.level,
-    column: entrance.column,
-  });
-  const slot = slotOfPerson(state.people, personId);
-  if (!startTrek(context, slot, unitPlace(unit))) removePerson(state, personId);
+  const household = unit.type === 'condo' ? (unitPeople('condo')?.count ?? 1) : 1;
+  const arrived: number[] = [];
+  for (let index = 0; index < household; index++) {
+    const personId = addPerson(state, {
+      kind: 'prospect',
+      homeUnit: unitNumber(unit.id),
+      level: entrance.level,
+      column: entrance.column,
+    });
+    arrived.push(personId);
+    const slot = slotOfPerson(state.people, personId);
+    if (!startTrek(context, slot, unitPlace(unit))) {
+      for (const id of arrived) removePerson(state, id);
+      return;
+    }
+  }
 }
 
 /** One hourly roll: every vacant unit without a prospect rolls once, in increasing unit id. */
@@ -84,19 +92,18 @@ function rollForProspects(context: StepContext, occurrence: HookOccurrence): voi
   }
 }
 
-/** Residents 2 and up appear in the condo at the step of the sale; resident 1 is the prospect. */
-function addOtherResidents(state: TowerState, unit: Unit): void {
-  const residents = unitPeople('condo')?.count ?? 1;
-  const width = UNIT_CATALOG.condo.width;
-  for (let index = 1; index < residents; index++) {
-    const column = unit.x + nextInt(state.rng, 0, width - 1);
-    addPerson(state, {
-      kind: 'resident',
-      homeUnit: unitNumber(unit.id),
-      level: unit.level,
-      column,
-    });
+/** Residents of a condo, counting the prospects of its household who are still walking in. */
+function householdOf(state: TowerState, unit: Unit): number {
+  const pool = state.people;
+  const home = unitNumber(unit.id);
+  let count = 0;
+  for (let slot = 0; slot < pool.id.length; slot++) {
+    const kind = pool.kind[slot];
+    if (pool.homeUnit[slot] === home && (kind === RESIDENT_KIND || kind === PROSPECT_KIND)) {
+      count += 1;
+    }
   }
+  return count;
 }
 
 function settleProspect(context: StepContext, slot: number): void {
@@ -105,6 +112,12 @@ function settleProspect(context: StepContext, slot: number): void {
   const personId = pool.id[slot] as number;
   const unitId = `u${pool.homeUnit[slot]}`;
   const unit = Object.hasOwn(state.units, unitId) ? state.units[unitId] : undefined;
+  if (unit?.type === 'condo' && !isVacant(unit) && householdOf(state, unit) <= CONDO_HOUSEHOLD) {
+    // The rest of the household walks in with the buyer and moves in as each one arrives.
+    pool.kind[slot] = RESIDENT_KIND;
+    pool.dueStep[slot] = NOTHING_DUE;
+    return;
+  }
   if (!unit || !isVacant(unit)) {
     removePerson(state, personId);
     return;
@@ -114,7 +127,6 @@ function settleProspect(context: StepContext, slot: number): void {
     rollParkingHolder(state, personId, 'condo');
     pool.kind[slot] = RESIDENT_KIND;
     pool.dueStep[slot] = NOTHING_DUE;
-    addOtherResidents(state, unit);
     return;
   }
   moveInTenant(context, unit.id);

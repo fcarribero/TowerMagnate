@@ -84,6 +84,32 @@ function runSteps(state: TowerState, steps: number): TowerState {
   return engine.step(state, [], steps).state;
 }
 
+describe('lines for the elevator', () => {
+  const shafts: PlannedShaft[] = [{ type: 'standard', x: 60, bottom: 1, top: 4 }];
+
+  it('makes people queued for the same ride stand in a line away from the shaft', () => {
+    const state = buildTestTower({ floors: 4, shafts });
+    const ids = [30, 31, 32].map((column) => addWalker(state, 1, column));
+    for (const id of ids) sendTo(state, id, { level: 3, column: 40 });
+    const after = runSteps(state, 80);
+    const columns = ids.map((id) => view(after, id));
+    expect(columns.every((person) => person.phase === 'queued')).toBe(true);
+    const sorted = columns.map((person) => person.column).sort((a, b) => a - b);
+    expect(new Set(sorted).size).toBe(3);
+    expect(sorted[2]! - sorted[0]!).toBe(2);
+  });
+
+  it('puts the up line on the right of the shaft and the down line on the left', () => {
+    const state = buildTestTower({ floors: 4, shafts });
+    const up = addWalker(state, 2, 62);
+    const down = addWalker(state, 3, 62);
+    sendTo(state, up, { level: 3, column: 40 });
+    sendTo(state, down, { level: 2, column: 40 });
+    const first = view(runSteps(state, 40), up).column;
+    expect(first).toBeGreaterThanOrEqual(view(runSteps(state, 40), down).column);
+  });
+});
+
 describe('walking in a crowd', () => {
   function columnOf(state: TowerState, id: number): number {
     return view(state, id).column;

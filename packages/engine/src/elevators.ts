@@ -16,7 +16,7 @@ import { isWeekendDay, weekdayOfDay } from './calendar';
 import { SECONDS_PER_STEP, STEPS_PER_DAY } from './clock';
 import { boardFromQueue, hallCallAge, queueLength } from './elevator-queues';
 import type { SimulationSystem, StepContext } from './step';
-import { alightRider, boardRider } from './trek';
+import { alightRider, boardRider, realignQueue } from './trek';
 
 /** Elevators 10: shafts in id order, each car in index order, then the shaft's dispatch pass. */
 export function createElevatorSystem(): SimulationSystem {
@@ -231,6 +231,7 @@ function boardPeople(
   const car = shaft.cars[carIndex] as ElevatorCar;
   const boarded = boardFromQueue(shaft, carIndex, car.level, direction, context.state.step);
   for (const person of boarded) boardRider(context, person);
+  if (boarded.length > 0) realignQueue(context, shaft, car.level, direction);
 }
 
 function letRidersOut(context: StepContext, shaft: Shaft, carIndex: number): void {
