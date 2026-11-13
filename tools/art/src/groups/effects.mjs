@@ -422,22 +422,46 @@ function burntOverlay() {
 
 // No-access sticker ----------------------------------------------------------
 
-const STICKER_SIZE = 16;
+const STICKER_SIZE = 24;
 
-// A red no-entry sign: the client sticks it on a unit that no route reaches.
+// A die-cut no-entry sticker: white border, ink outline, red disc with a soft highlight
+// at the top left and a shaded rim at the bottom right. The client sticks it on a unit
+// that no route reaches.
 function noAccessSticker() {
   const canvas = new PixelCanvas(STICKER_SIZE, STICKER_SIZE);
   const center = (STICKER_SIZE - 1) / 2;
   for (let y = 0; y < STICKER_SIZE; y++) {
     for (let x = 0; x < STICKER_SIZE; x++) {
-      const distance = Math.hypot(x - center, y - center);
-      if (distance <= 7.6) {
-        canvas.set(x, y, distance <= 6.2 ? 'cloth-red' : 'ink');
+      const dx = x - center;
+      const dy = y - center;
+      const distance = Math.hypot(dx, dy);
+      if (distance > 11.8) {
+        continue;
+      }
+      if (distance > 10.8) {
+        canvas.set(x, y, dx + dy > 6 ? 'silver' : 'white');
+      } else if (distance > 9.7) {
+        canvas.set(x, y, 'ink');
+      } else if (distance > 8.4 && dx + dy > 3) {
+        canvas.set(x, y, 'wood-dark');
+      } else if (distance > 7.2 && dx + dy < -6) {
+        canvas.set(x, y, 'dusk');
+      } else {
+        canvas.set(x, y, 'cloth-red');
       }
     }
   }
-  canvas.fillRect(3, 6, 10, 4, 'white');
-  canvas.hline(3, 10, 10, 'cloud');
+  // The bar: ink outline, white face, light shade underneath.
+  canvas.fillRect(4, 8, 16, 8, 'ink');
+  canvas.fillRect(5, 9, 14, 5, 'white');
+  canvas.fillRect(5, 14, 14, 1, 'cloud');
+  canvas.fillRect(4, 8, 1, 1, 'cloth-red');
+  canvas.fillRect(19, 8, 1, 1, 'cloth-red');
+  canvas.fillRect(4, 15, 1, 1, 'cloth-red');
+  canvas.fillRect(19, 15, 1, 1, 'cloth-red');
+  // A glint on the border.
+  canvas.set(6, 4, 'white');
+  canvas.set(5, 5, 'white');
   return canvas;
 }
 
