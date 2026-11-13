@@ -131,6 +131,19 @@ describe('planStructureRow', () => {
     expect(pieces).toContainEqual({ subject: 'roof', x: 64, y: -68, width: 64 });
   });
 
+  it('puts a door at each end of the main lobby, standing on the floor', () => {
+    const lobby = row(span(8, 23, 'l'));
+    const doors = planStructureRow(1, source({ 1: lobby })).filter(
+      (piece) => piece.subject === 'lobby-door',
+    );
+    expect(doors).toEqual([
+      { subject: 'lobby-door', x: 64, y: 29, anchorBottom: true },
+      { subject: 'lobby-door', x: 176, y: 29, anchorBottom: true },
+    ]);
+    const narrow = planStructureRow(1, source({ 1: row(span(8, 10, 'l')) }));
+    expect(narrow.some((piece) => piece.subject === 'lobby-door')).toBe(false);
+  });
+
   it('leaves the upper rows of a tall main lobby empty', () => {
     const lobby = row(span(8, 15, 'l'));
     const rows = { 1: lobby, 2: lobby, 3: lobby };

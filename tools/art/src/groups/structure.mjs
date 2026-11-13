@@ -356,6 +356,33 @@ function parapet(side) {
   return tile;
 }
 
+// A glass double door for each end of the main lobby: two leaves in a metal frame with
+// handles in the middle, standing on the lobby floor.
+const DOOR_WIDTH = 16;
+const DOOR_HEIGHT = 24;
+
+function lobbyDoor() {
+  const tile = new PixelCanvas(DOOR_WIDTH, DOOR_HEIGHT);
+  tile.fillRect(0, 0, DOOR_WIDTH, DOOR_HEIGHT, 'slate');
+  tile.strokeRect(0, 0, DOOR_WIDTH, DOOR_HEIGHT, 'ink');
+  tile.hline(1, 1, DOOR_WIDTH - 2, 'silver');
+  const paneTop = 3;
+  const paneHeight = DOOR_HEIGHT - paneTop - 2;
+  for (const left of [2, 9]) {
+    tile.fillRect(left, paneTop, 5, paneHeight, 'glass');
+    tile.strokeRect(left - 1, paneTop - 1, 7, paneHeight + 2, 'gray');
+    tile.vline(left + 1, paneTop + 1, 5, 'sky-light');
+    tile.vline(left + 2, paneTop + 4, 4, 'sky-light');
+    tile.hline(left, paneTop + paneHeight - 4, 5, 'gray');
+  }
+  tile.vline(7, 2, DOOR_HEIGHT - 3, 'ink');
+  tile.vline(8, 2, DOOR_HEIGHT - 3, 'ink');
+  tile.vline(6, 11, 4, 'lamp');
+  tile.vline(9, 11, 4, 'lamp');
+  tile.hline(0, 0, DOOR_WIDTH, 'ink');
+  return tile;
+}
+
 // Each entry draws the day sprite; night is the same drawing one ramp step darker,
 // with the lights switched on by `lightUp`.
 const subjects = [
@@ -412,6 +439,7 @@ const subjects = [
   { subject: 'roof', draw: roof },
   { subject: 'roof-left', draw: () => roofCorner('left') },
   { subject: 'roof-right', draw: () => roofCorner('right') },
+  { subject: 'lobby-door', draw: lobbyDoor },
   { subject: 'parapet-left', draw: () => parapet('left') },
   { subject: 'parapet-right', draw: () => parapet('right') },
 ];

@@ -34,6 +34,9 @@ export interface StructureSource {
 }
 
 const EDGE_WIDTH = 3;
+const SLAB_HEIGHT = 3;
+/** Width in tiles of the door sprite at each end of the main lobby. */
+const DOOR_TILES = 2;
 const ROOF_HEIGHT = 4;
 /** How far the exterior wall rises above the roof, about the waist of a person. */
 const PARAPET_HEIGHT = 8;
@@ -169,7 +172,10 @@ function drawnRow(level: Level, source: StructureSource): string | undefined {
 function lobbyRun(level: Level, run: Run, source: StructureSource): StructurePiece[] {
   if (level === MAIN_LOBBY_LEVEL) {
     const height = source.mainLobbyHeight ?? 1;
-    return withColumns(`lobby-${height}`, run, FLOOR_HEIGHT - height * FLOOR_HEIGHT, true);
+    return [
+      ...withColumns(`lobby-${height}`, run, FLOOR_HEIGHT - height * FLOOR_HEIGHT, true),
+      ...lobbyDoors(run),
+    ];
   }
   if (SKY_LOBBY_LEVELS.includes(level)) {
     return withColumns('sky-lobby', run, 0);
@@ -180,6 +186,18 @@ function lobbyRun(level: Level, run: Run, source: StructureSource): StructurePie
 /** Lobby walls are solid except for a two-tile pane of windows every 8 tiles. */
 function hasLobbyWindow(column: number): boolean {
   return column % LOBBY_WINDOW_EVERY_TILES >= 2 && column % LOBBY_WINDOW_EVERY_TILES <= 3;
+}
+
+/** A building door at each end of a main lobby run wide enough for two. */
+function lobbyDoors(run: Run): StructurePiece[] {
+  if (run.to - run.from + 1 < 2 * DOOR_TILES + 2) {
+    return [];
+  }
+  const y = FLOOR_HEIGHT - SLAB_HEIGHT;
+  return [
+    { subject: 'lobby-door', x: run.from * TILE_WIDTH, y, anchorBottom: true },
+    { subject: 'lobby-door', x: (run.to + 1 - DOOR_TILES) * TILE_WIDTH, y, anchorBottom: true },
+  ];
 }
 
 function withColumns(
