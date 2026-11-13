@@ -521,9 +521,10 @@ function garbageSprites() {
 
 // Availability tape ------------------------------------------------------------
 
-const TAPE_WIDTH = 96;
-const TAPE_HEIGHT = 56;
-const TAPE_LENGTH = 88;
+// The lettering is 94 px long, so the tape is longer than that with room for the torn ends.
+const TAPE_WIDTH = 120;
+const TAPE_HEIGHT = 64;
+const TAPE_LENGTH = 112;
 const TAPE_THICKNESS = 26;
 const TAPE_ANGLE = (-18 * Math.PI) / 180;
 const GLYPH_SCALE = 2;

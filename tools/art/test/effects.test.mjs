@@ -97,6 +97,39 @@ describe('availability tape', () => {
       byId['effects/for-sale/sticker'].pixels,
     );
   });
+
+  it('fits the whole tape and its lettering inside the sprite, nothing cut at the ends', () => {
+    for (const id of ['effects/for-rent/sticker', 'effects/for-sale/sticker']) {
+      const tape = byId[id];
+      for (let x = 0; x < tape.width; x++) {
+        expect(tape.get(x, 0), `${id} top ${x}`).toBe(0);
+        expect(tape.get(x, tape.height - 1), `${id} bottom ${x}`).toBe(0);
+      }
+      for (let y = 0; y < tape.height; y++) {
+        expect(tape.get(0, y), `${id} left ${y}`).toBe(0);
+        expect(tape.get(tape.width - 1, y), `${id} right ${y}`).toBe(0);
+      }
+      let first = tape.width;
+      let last = -1;
+      let whiteFirst = tape.width;
+      let whiteLast = -1;
+      for (let y = 0; y < tape.height; y++) {
+        for (let x = 0; x < tape.width; x++) {
+          if (tape.get(x, y) === 0) continue;
+          first = Math.min(first, x);
+          last = Math.max(last, x);
+          if (tape.get(x, y) === colorIndex('white')) {
+            whiteFirst = Math.min(whiteFirst, x);
+            whiteLast = Math.max(whiteLast, x);
+          }
+        }
+      }
+      // The lettering is 94 px long, drawn on a slant, and the tape runs past it at both ends.
+      expect(whiteLast - whiteFirst, id).toBeGreaterThan(85);
+      expect(whiteFirst - first, `${id} red before the first letter`).toBeGreaterThanOrEqual(4);
+      expect(last - whiteLast, `${id} red after the last letter`).toBeGreaterThanOrEqual(4);
+    }
+  });
 });
 
 describe('garbage pile', () => {
