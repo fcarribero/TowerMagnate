@@ -10,11 +10,11 @@ import {
 import { floorSprite } from './elevatorPlan';
 
 describe('floorSprite', () => {
-  it('picks the stress tint from the stress level', () => {
+  it('keeps the same sprite whatever the stress level', () => {
     const states = (['normal', 'stressed', 'veryStressed'] as const).map(
       (stress) => floorSprite(person('p1', { mode: 'wait', stress }), 0).state,
     );
-    expect(states).toEqual(['stand', 'stand-pink', 'stand-red']);
+    expect(states).toEqual(['stand', 'stand', 'stand']);
   });
 
   it('alternates walk frames every half column', () => {
@@ -24,14 +24,14 @@ describe('floorSprite', () => {
 });
 
 describe('PeopleLayer', () => {
-  it('turns a waiting person pink while it keeps waiting', () => {
+  it('does not tint a waiting person when its stress changes', () => {
     const { layer, textures } = layerWithArt();
     layer.show(frameOf(person('p1', { mode: 'wait', stress: 'normal' })));
     layer.show(frameOf(person('p1', { mode: 'wait', stress: 'stressed' })));
     expect(layer.count).toBe(1);
     expect([
-      textures['people/worker-b/idle-pink_01'],
-      textures['people/worker-b/idle-pink_02'],
+      textures['people/worker-b/idle_01'],
+      textures['people/worker-b/idle_02'],
     ]).toContain((layer.view.children[0] as Sprite).texture);
   });
 
@@ -141,8 +141,8 @@ describe('PeopleLayer', () => {
     layer.show(frameOf(person('p1', { mode: 'wait', stress: 'stressed', x: 10 })));
     const sprite = layer.view.children[0];
     expect([
-      textures['people/worker-b/idle-pink_01'],
-      textures['people/worker-b/idle-pink_02'],
+      textures['people/worker-b/idle_01'],
+      textures['people/worker-b/idle_02'],
     ]).toContain((sprite as Sprite).texture);
     expect(sprite?.x).toBeGreaterThan(80);
   });

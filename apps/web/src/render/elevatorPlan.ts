@@ -149,12 +149,6 @@ const SPRITE_NAME_OF_KIND: Record<PersonKind, string> = {
 };
 
 const LOOKS = ['a', 'b', 'c', 'd'];
-const STRESS_SUFFIX: Record<PersonView['stress'], string> = {
-  normal: '',
-  stressed: '-pink',
-  veryStressed: '-red',
-};
-
 function personSubject(person: PersonView): string {
   const look = LOOKS[Number(person.id.slice(1)) % LOOKS.length] ?? 'a';
   const name = person.carrying === true ? 'staffbag' : SPRITE_NAME_OF_KIND[person.kind];
@@ -163,7 +157,7 @@ function personSubject(person: PersonView): string {
 
 /** Sprite subject and state of a person standing, with the look picked from the id. */
 export function riderSprite(person: PersonView): { subject: string; state: string } {
-  return { subject: personSubject(person), state: `stand${STRESS_SUFFIX[person.stress]}` };
+  return { subject: personSubject(person), state: 'stand' };
 }
 
 /** Sprite of a person on a floor: standing while waiting, otherwise one of two walk frames. */
@@ -172,9 +166,8 @@ export function floorSprite(
   column: number,
 ): { subject: string; state: string; frame?: number } {
   const subject = personSubject(person);
-  const suffix = STRESS_SUFFIX[person.stress];
   if (person.mode === 'wait') {
-    return { subject, state: `stand${suffix}` };
+    return { subject, state: 'stand' };
   }
-  return { subject, state: `walk${suffix}`, frame: (Math.floor(column * 2) % 2) + 1 };
+  return { subject, state: 'walk', frame: (Math.floor(column * 2) % 2) + 1 };
 }

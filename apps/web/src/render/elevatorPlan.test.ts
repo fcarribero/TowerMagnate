@@ -125,14 +125,14 @@ describe('riders', () => {
     expect(riderPlace('standard', 1).x).toBeGreaterThan(riderPlace('standard', 0).x);
   });
 
-  it('picks the look from the person id and the tint from stress', () => {
+  it('picks the look from the person id and ignores stress', () => {
     expect(riderSprite({ ...walker, id: 'p6', stress: 'normal' })).toEqual({
       subject: 'people/worker-c',
       state: 'stand',
     });
     expect(riderSprite({ ...walker, id: 'p4', kind: 'guard', stress: 'veryStressed' })).toEqual({
       subject: 'people/security-a',
-      state: 'stand-red',
+      state: 'stand',
     });
   });
 

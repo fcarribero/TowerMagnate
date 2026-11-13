@@ -172,11 +172,11 @@ describe('ElevatorLayer cars', () => {
     expect(view?.children.length).toBe(4);
   });
 
-  it('tints a stressed rider', () => {
+  it('does not tint a stressed rider', () => {
     const { layer, textures } = layerWithArt();
     layer.showCars(frameOf(5, 'open', [{ ...rider, stress: 'stressed' }]), shafts);
     const view = layer.carView.children[0];
-    expect(view?.children[1]).toMatchObject({ texture: textures['people/worker-b/stand-pink'] });
+    expect(view?.children[1]).toMatchObject({ texture: textures['people/worker-b/stand'] });
   });
 
   it('hides cars outside the visible levels', () => {
