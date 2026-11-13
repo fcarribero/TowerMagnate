@@ -33,6 +33,7 @@ describe('people group', () => {
       'bride',
       'wedding-guest',
       'groom',
+      'builder',
     ]);
     expect(subjects.length).toBeGreaterThanOrEqual(8);
     expect(PERSON_VARIANTS).toEqual(['a', 'b', 'c', 'd']);

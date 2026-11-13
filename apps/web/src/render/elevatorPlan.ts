@@ -122,6 +122,7 @@ const SPRITE_NAME_OF_KIND: Record<PersonKind, string> = {
   vip: 'vip',
   weddingGuest: 'guest',
   prospect: 'customer',
+  builder: 'builder',
 };
 
 const LOOKS = ['a', 'b', 'c', 'd'];

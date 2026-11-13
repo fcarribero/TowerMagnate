@@ -19,7 +19,8 @@ import {
   setStructure,
   structureAt,
 } from '../grid';
-import { chargeMoney } from '../money';
+import { siteProgress } from '../construction';
+import { chargeMoney, creditMoney } from '../money';
 import { removePeopleOfUnit, setDueStep, parsePersonId } from '../people';
 import type { CommandHandler, CommandOutcome } from '../step';
 import { heightOnLevel, lobbyRows, SKY_LOBBY_LEVELS } from './build-lobby';
@@ -49,7 +50,7 @@ function isMainLobbyRow(grid: GridState, level: Level, x: number): boolean {
   return lobbyRows(TOWER_LAYOUT.mainLobbyFloor, height).includes(level);
 }
 
-export function unitLevels(unit: Unit): Level[] {
+export function unitLevels(unit: Pick<Unit, 'type' | 'level'>): Level[] {
   const definition = UNIT_CATALOG[unit.type];
   const floors = definition.height.kind === 'fixed' ? definition.height.floors : 1;
   const levels: Level[] = [unit.level];
@@ -66,6 +67,26 @@ function isLowestRamp(state: TowerState, unit: Unit): boolean {
   return !Object.values(state.units).some(
     (other) => other.type === 'parking-ramp' && other.level < unit.level,
   );
+}
+
+/** A site that has had no work yet is paid back in full; one that has is paid back for what is left. */
+function planSite(state: TowerState, siteId: string): Plan {
+  const site = Object.hasOwn(state.sites, siteId) ? state.sites[siteId] : undefined;
+  if (!site) return NOTHING;
+  return {
+    ok: true,
+    apply() {
+      const x1 = site.x + UNIT_CATALOG[site.type].width - 1;
+      for (const level of unitLevels(site)) {
+        removeOccupant(state.grid, level, { kind: 'unit', id: site.id });
+        setStructure(state.grid, level, site.x, x1, 'floor');
+      }
+      Reflect.deleteProperty(state.sites, site.id);
+      const left = 1 - siteProgress(site);
+      const refund = Math.floor(site.paid * left);
+      return refund > 0 ? creditMoney(state, 'construction', refund) : 0;
+    },
+  };
 }
 
 function planUnit(state: TowerState, unitId: string): Plan {
@@ -216,7 +237,9 @@ function planRuins(state: TowerState, level: Level, x: number): Plan {
 function planTarget(state: TowerState, target: DemolishTarget): Plan {
   switch (target.kind) {
     case 'unit':
-      return planUnit(state, target.id);
+      return Object.hasOwn(state.sites, target.id)
+        ? planSite(state, target.id)
+        : planUnit(state, target.id);
     case 'transport':
       return planTransport(state, target.id);
     case 'shaft':

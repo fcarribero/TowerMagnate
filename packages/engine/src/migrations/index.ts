@@ -53,6 +53,7 @@ import {
 import { readGrid } from './grid';
 import { readLedger, readMoney } from './money';
 import { readPeople, readTripLedger } from './people';
+import { readSites } from './sites';
 import { readLastWeddingDay, readStars, readWedding } from './stars';
 import { readFloorPurchases, readLobbyPurchases, readTransports } from './transports';
 
@@ -97,6 +98,7 @@ const MIGRATIONS: readonly Migration[] = [
   addFilmChangeStep,
   addVipDryDays,
   addPersonNames,
+  addConstructionSites,
 ];
 
 /** Version 2 records each unit's price level, what was paid for it and when it was placed. */
@@ -509,6 +511,11 @@ function dropOrphanLedgerEntries(raw: Record<string, unknown>): Record<string, u
   return { ...raw, schemaVersion: 33, unitLedger: Object.fromEntries(kept) };
 }
 
+/** Version 37 adds the construction sites; every saved unit is already built. */
+function addConstructionSites(raw: Record<string, unknown>): Record<string, unknown> {
+  return { sites: {}, ...raw, schemaVersion: 37 };
+}
+
 /** Version 36 stores person names. Names are needed to follow, so earlier follows are dropped. */
 function addPersonNames(raw: Record<string, unknown>): Record<string, unknown> {
   if (!isRecord(raw.people)) {
@@ -903,6 +910,7 @@ function assertCurrentShape(raw: Record<string, unknown>): TowerState {
     money: readMoney(raw.money),
     stars: readStars(raw.stars),
     units,
+    sites: readSites(raw.sites),
     transports: readTransports(raw.transports),
     shafts: readShafts(raw.shafts),
     grid: readGrid(raw.grid),

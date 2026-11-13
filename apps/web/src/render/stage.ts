@@ -293,7 +293,6 @@ export async function mountStage(host: HTMLElement, options: StageOptions = {}):
   app.ticker.add(drawEvents);
   const growBuildings = (): void => {
     structure.animate();
-    units.animate();
     driftClouds(sky, app.ticker.deltaMS / 1000);
     updateWeather(sky, app.ticker.deltaMS / 1000);
   };

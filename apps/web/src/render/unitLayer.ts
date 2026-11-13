@@ -1,6 +1,6 @@
 import type { OverlayData } from '@tower-magnate/shared';
 import { Container, Graphics, Sprite, TilingSprite } from 'pixi.js';
-import { buildStageAt, siteRects } from './constructionStages';
+import { buildStageFor, siteRects } from './constructionStages';
 import { CulledRows } from './culledRows';
 import type { LevelRange, WorldRect } from './camera';
 import { levelTop } from './levels';
@@ -32,7 +32,6 @@ const MAX_FOOTPRINT_FLOORS = 4;
 
 /** A unit being built: a bare site first, then more of the unit behind scaffolding, then the whole unit. */
 interface Construction {
-  startedAt: number;
   mask: Graphics;
   site: Graphics;
   /** Index of the stage drawn last, so a stage is drawn once. */
@@ -62,13 +61,8 @@ export class UnitLayer {
   private readonly containers = new Map<number, Container>();
   private readonly drawn = new Map<string, DrawnUnit>();
   private readonly rects = new Map<string, WorldRect>();
-  /** The first update draws what is already built; only units that arrive later are built on screen. */
-  private populated = false;
 
-  constructor(
-    private readonly sprites: SpriteRegistry,
-    private readonly now: () => number = () => performance.now(),
-  ) {}
+  constructor(private readonly sprites: SpriteRegistry) {}
 
   update(input: UnitsInput): void {
     const drawings: UnitDrawing[] = [];
@@ -88,17 +82,6 @@ export class UnitLayer {
     for (const drawing of drawings) {
       this.show(drawing);
       this.rects.set(drawing.id, worldRectOf(drawing));
-    }
-    this.populated = true;
-  }
-
-  /** Moves the units that are being built one step; call it on every frame. */
-  animate(): void {
-    const now = this.now();
-    for (const entry of this.drawn.values()) {
-      if (entry.construction !== null) {
-        this.growConstruction(entry, entry.construction, now);
-      }
     }
   }
 
@@ -147,6 +130,7 @@ export class UnitLayer {
       this.drawn.set(drawing.id, this.create(drawing, textureId));
       return;
     }
+    this.showConstruction(existing, drawing);
     const container = this.containerFor(drawing.bottomIndex);
     if (existing.container !== container) {
       container.addChild(existing.sprite);
@@ -167,32 +151,36 @@ export class UnitLayer {
     this.place(sprite, drawing);
     const entry: DrawnUnit = { sprite, container, textureId, checker: null, construction: null };
     this.showChecker(entry, drawing);
-    if (this.populated) {
-      this.beginConstruction(entry, drawing);
-    }
+    this.showConstruction(entry, drawing);
     return entry;
   }
 
-  private beginConstruction(entry: DrawnUnit, drawing: UnitDrawing): void {
-    const mask = new Graphics();
-    const site = new Graphics();
-    entry.container.addChild(mask, site);
-    entry.sprite.mask = mask;
-    entry.construction = {
-      startedAt: this.now(),
-      mask,
-      site,
-      stage: -1,
-      x: drawing.x,
-      y: drawing.y,
-      width: drawing.width,
-      height: drawing.height,
-    };
-    this.growConstruction(entry, entry.construction, entry.construction.startedAt);
+  /** A site shows how far the crew has got; once the server sends it as a unit, the site goes away. */
+  private showConstruction(entry: DrawnUnit, drawing: UnitDrawing): void {
+    if (drawing.construction === undefined) {
+      this.endConstruction(entry);
+      return;
+    }
+    if (entry.construction === null) {
+      const mask = new Graphics();
+      const site = new Graphics();
+      entry.container.addChild(mask, site);
+      entry.sprite.mask = mask;
+      entry.construction = {
+        mask,
+        site,
+        stage: -1,
+        x: drawing.x,
+        y: drawing.y,
+        width: drawing.width,
+        height: drawing.height,
+      };
+    }
+    this.growConstruction(entry, entry.construction, drawing.construction);
   }
 
-  private growConstruction(entry: DrawnUnit, build: Construction, now: number): void {
-    const stage = buildStageAt(now - build.startedAt);
+  private growConstruction(entry: DrawnUnit, build: Construction, percent: number): void {
+    const stage = buildStageFor(percent);
     if (stage === null) {
       this.endConstruction(entry);
       return;

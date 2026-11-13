@@ -25,9 +25,14 @@ import { fileUnitTrip } from './unit-evaluation';
 
 const MAID_KIND = PERSON_KINDS.indexOf('maid');
 const GUARD_KIND = PERSON_KINDS.indexOf('guard');
+const BUILDER_KIND = PERSON_KINDS.indexOf('builder');
 
 function recordsStress(pool: PersonPool, slot: number): boolean {
-  return pool.kind[slot] !== MAID_KIND && pool.kind[slot] !== GUARD_KIND;
+  return (
+    pool.kind[slot] !== MAID_KIND &&
+    pool.kind[slot] !== GUARD_KIND &&
+    pool.kind[slot] !== BUILDER_KIND
+  );
 }
 
 function field(array: readonly number[], slot: number): number {

@@ -5,7 +5,7 @@ import { clonePersonPool, createPersonPool } from './people';
 import { createRng } from './rng';
 import { copyPlainData, copyUnits } from './step-copy';
 
-export const SCHEMA_VERSION = 36;
+export const SCHEMA_VERSION = 37;
 
 export function createTower(seed: number): TowerState {
   if (!Number.isInteger(seed)) {
@@ -19,6 +19,7 @@ export function createTower(seed: number): TowerState {
     money: STARTING_MONEY,
     stars: 1,
     units: {},
+    sites: {},
     transports: {},
     shafts: {},
     grid: createGrid(),

@@ -14,6 +14,7 @@ import {
   isOutsideTower,
   trekPhaseAt,
   type TrekPhase,
+  siteProgress,
 } from '@tower-magnate/engine';
 import type { PersonView as EnginePerson } from '@tower-magnate/engine';
 import {
@@ -43,6 +44,7 @@ import {
   type UnitView,
   type Viewport,
   type WeekTotals,
+  DEFAULT_PRICE_LEVEL,
 } from '@tower-magnate/shared';
 import { noticeParamTexts } from './notice-params';
 
@@ -73,9 +75,12 @@ export function buildSnapshot(
 ): Snapshot {
   const people = listPeople(state.people);
   const homes = occupiedUnits(people);
-  const units = Object.values(state.units).map((unit) =>
-    unitView(unit, homes.has(unit.id), disconnected.has(unit.id)),
-  );
+  const units = [
+    ...Object.values(state.units).map((unit) =>
+      unitView(unit, homes.has(unit.id), disconnected.has(unit.id)),
+    ),
+    ...Object.values(state.sites).map(siteView),
+  ];
   return {
     step: state.step,
     money: state.money,
@@ -132,6 +137,20 @@ function unitVariant(
   if (roomState === 'dirty' || roomState === 'infested') return roomState;
   if (disconnected) return 'disconnected';
   return occupied ? 'occupied' : 'empty';
+}
+
+function siteView(site: TowerState['sites'][string]): UnitView {
+  return {
+    id: site.id,
+    type: site.type,
+    x: site.x,
+    level: site.level,
+    name: null,
+    price: DEFAULT_PRICE_LEVEL,
+    occupied: false,
+    variant: 'empty',
+    construction: Math.floor(siteProgress(site) * 100),
+  };
 }
 
 function unitView(unit: TowerUnit, occupied: boolean, disconnected: boolean): UnitView {

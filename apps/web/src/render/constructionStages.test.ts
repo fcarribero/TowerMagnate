@@ -1,17 +1,22 @@
 import { describe, expect, it } from 'vitest';
-import { UNIT_BUILD_MS, buildStageAt, siteRects } from './constructionStages';
+import { buildStageFor, siteRects } from './constructionStages';
 
-describe('buildStageAt', () => {
+describe('buildStageFor', () => {
   it('goes from the bare site to nearly whole, each stage showing more', () => {
-    const stages = [0, 0.3, 0.5, 0.8].map((share) => buildStageAt(UNIT_BUILD_MS * share));
-    expect(stages.map((stage) => stage?.index)).toEqual([0, 1, 2, 3]);
+    const stages = [0, 5, 20, 50, 90].map((percent) => buildStageFor(percent));
+    expect(stages[0]).toEqual({ index: 0, built: 0 });
     const built = stages.map((stage) => stage?.built ?? -1);
     expect(built).toEqual([...built].sort((a, b) => a - b));
-    expect(built[0]).toBe(0);
+    expect(new Set(stages.map((stage) => stage?.index)).size).toBe(stages.length - 1);
+    expect(built[4]).toBeLessThan(1);
   });
 
-  it('is done after the build time', () => {
-    expect(buildStageAt(UNIT_BUILD_MS)).toBeNull();
+  it('keeps the same stage between two close percents, so it is drawn once', () => {
+    expect(buildStageFor(40)?.index).toBe(buildStageFor(41)?.index);
+  });
+
+  it('is done at 100 percent', () => {
+    expect(buildStageFor(100)).toBeNull();
   });
 });
 

@@ -121,6 +121,14 @@ const DETAILS = {
     person.hline(HEAD_LEFT, headTop, 3, 'ink');
     person.set(HEAD_LEFT + 3, headTop, 'ink');
   },
+  hardHat(person, { headTop }) {
+    person.hline(HEAD_LEFT, headTop, 4, 'lamp');
+    person.set(HEAD_LEFT + 1, headTop - 1, 'lamp');
+    person.set(HEAD_LEFT + 2, headTop - 1, 'lamp');
+  },
+  vestStripe(person, { torsoTop }) {
+    person.hline(2, torsoTop + 1, 3, 'lamp');
+  },
   badgeAndBelt(person, { torsoTop, handRow }) {
     person.set(2, torsoTop + 1, 'lamp');
     person.hline(2, handRow, 3, 'ink');
@@ -252,6 +260,14 @@ const TYPES = {
     outfits: [
       { top: 'ink', legs: 'ink', accent: 'white' },
       { top: 'charcoal', legs: 'ink', accent: 'cloud' },
+    ],
+  },
+  builder: {
+    lowerBody: 'trousers',
+    details: ['hardHat', 'vestStripe'],
+    outfits: [
+      { top: 'dusk', legs: 'concrete-dark' },
+      { top: 'dusk', legs: 'wood-dark' },
     ],
   },
 };

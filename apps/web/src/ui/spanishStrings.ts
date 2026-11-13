@@ -330,6 +330,7 @@ export const SPANISH_STRINGS = {
   'value.person.audience': 'Espectador',
   'value.person.partyGuest': 'Invitado a la fiesta',
   'value.person.maid': 'Mucama',
+  'value.person.builder': 'Obrero',
   'value.person.securityGuard': 'Guardia de seguridad',
   'value.person.vip': 'VIP',
   'value.person.weddingGuest': 'Invitado a la boda',

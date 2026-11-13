@@ -60,6 +60,7 @@ export {
 } from './hotel';
 export type { CheckInResult } from './hotel';
 export { housekeepingSummary, maidTaskAt } from './housekeeping';
+export { completeSite, constructionPointsFor, siteProgress } from './construction';
 export type { HousekeepingSummary, MaidPhase, MaidTask } from './housekeeping';
 export {
   createLeaseSystem,

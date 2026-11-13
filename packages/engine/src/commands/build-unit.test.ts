@@ -1,3 +1,4 @@
+import { finishSites } from '../testing/finish-sites';
 import {
   UNIT_CATALOG,
   type Level,
@@ -40,10 +41,10 @@ function unit(unitType: string, x: number, level: number): QueuedCommand {
 }
 
 function run(tower: TowerState, command: QueuedCommand) {
-  const { state, results } = step(tower, [command], 0);
+  const { state: stepped, results } = step(tower, [command], 0);
   const [result] = results;
   if (!result) throw new Error('Expected one command result');
-  return { state, result };
+  return { state: finishSites(stepped), result };
 }
 
 function rejection(tower: TowerState, command: QueuedCommand) {

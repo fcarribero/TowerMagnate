@@ -1,29 +1,28 @@
-/** How long a unit takes to go from an empty building site to the finished unit. */
-export const UNIT_BUILD_MS = 2400;
-
 export interface BuildStage {
-  /** 0 is the bare site; the last stage is the unit almost done. */
+  /** 0 is the bare site; later indexes are the scaffolded unit, each showing more of it. */
   index: number;
   /** Share of the unit's height already built, from the bottom, from 0 to 1. */
   built: number;
 }
 
-/** Each stage shows more of the unit than the one before, from the empty site to nearly whole. */
-export const BUILD_STAGES: readonly (BuildStage & { until: number })[] = [
-  { index: 0, built: 0, until: 0.2 },
-  { index: 1, built: 0.3, until: 0.45 },
-  { index: 2, built: 0.6, until: 0.7 },
-  { index: 3, built: 0.85, until: 1 },
-];
+/** Below this percent the site is only a marked zone with a fence and a crane. */
+const BARE_SITE_PERCENT = 8;
+/** The unit is revealed in steps of this many percent, so it is redrawn rarely. */
+const STAGE_PERCENT = 4;
 
-/** The stage at `elapsedMs` since the unit was placed; null once the unit is finished. */
-export function buildStageAt(elapsedMs: number): BuildStage | null {
-  const progress = elapsedMs / UNIT_BUILD_MS;
-  if (progress >= 1) {
+/**
+ * What a construction site looks like at `percent` built (0 to 100): a marked zone first, then
+ * the empty unit rising behind scaffolding. At 100 the site is a unit and has no stage.
+ */
+export function buildStageFor(percent: number): BuildStage | null {
+  if (percent >= 100) {
     return null;
   }
-  const stage = BUILD_STAGES.find((candidate) => progress < candidate.until) ?? BUILD_STAGES[0];
-  return stage === undefined ? null : { index: stage.index, built: stage.built };
+  if (percent < BARE_SITE_PERCENT) {
+    return { index: 0, built: 0 };
+  }
+  const step = Math.floor(percent / STAGE_PERCENT);
+  return { index: step, built: Math.min((step * STAGE_PERCENT) / 100, 0.96) };
 }
 
 export interface SiteRect {

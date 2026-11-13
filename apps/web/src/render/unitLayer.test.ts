@@ -133,18 +133,10 @@ describe('UnitLayer', () => {
 });
 
 describe('UnitLayer construction', () => {
-  function layerWithClock() {
+  function newLayer() {
     const registry = new SpriteRegistry(new Texture(), () => undefined);
     registry.addSheet({ 'units/office/empty_day': new Texture() });
-    let now = 0;
-    const layer = new UnitLayer(registry, () => now);
-    return {
-      layer,
-      at(ms: number) {
-        now = ms;
-        layer.animate();
-      },
-    };
+    return new UnitLayer(registry);
   }
 
   const input = (units: UnitSource[]) => ({
@@ -154,33 +146,34 @@ describe('UnitLayer construction', () => {
     openVenues: ALL_VENUES_OPEN,
   });
 
-  it('draws what is already built at once and builds a unit that arrives later', () => {
-    const { layer, at } = layerWithClock();
+  it('draws a unit with no construction as a plain unit', () => {
+    const layer = newLayer();
     layer.update(input([office]));
     expect(layer.buildingCount).toBe(0);
-    layer.update(input([office, { ...office, id: 'u2', x: 20 }]));
-    expect(layer.buildingCount).toBe(1);
-    at(100);
-    expect(layer.buildingCount).toBe(1);
   });
 
-  it('starts as a building site, shows more of the unit in each stage, then lets it go whole', () => {
-    const { layer, at } = layerWithClock();
-    layer.update(input([]));
-    layer.update(input([office]));
+  it('draws a site from the first update, even one that was already there', () => {
+    const layer = newLayer();
+    layer.update(input([{ ...office, construction: 30 }]));
+    expect(layer.buildingCount).toBe(1);
+    expect((spriteOf(layer) as { mask: unknown }).mask).toBeTruthy();
+  });
+
+  it('shows more of the unit as the percent grows, then lets it go whole', () => {
+    const layer = newLayer();
+    layer.update(input([{ ...office, construction: 0 }]));
     const sprite = spriteOf(layer) as { mask: unknown };
     expect(sprite.mask).toBeTruthy();
-    at(300);
+    layer.update(input([{ ...office, construction: 60 }]));
     expect(layer.buildingCount).toBe(1);
-    at(2400);
+    layer.update(input([office]));
     expect(layer.buildingCount).toBe(0);
     expect(sprite.mask).toBeFalsy();
   });
 
   it('stops building a unit that is demolished halfway', () => {
-    const { layer } = layerWithClock();
-    layer.update(input([]));
-    layer.update(input([office]));
+    const layer = newLayer();
+    layer.update(input([{ ...office, construction: 50 }]));
     layer.update(input([]));
     expect(layer.buildingCount).toBe(0);
     expect(layer.count).toBe(0);

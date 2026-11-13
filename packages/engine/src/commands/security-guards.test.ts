@@ -1,3 +1,4 @@
+import { finishSites } from '../testing/finish-sites';
 import type { QueuedCommand, TowerState } from '@tower-magnate/shared';
 import { describe, expect, it } from 'vitest';
 import { cloneState } from '../state';
@@ -20,7 +21,7 @@ function buildSecurity(tower: TowerState, x: number, id: string): TowerState {
   };
   const { state, results } = step(tower, [command], 0);
   expect(results[0]?.ok).toBe(true);
-  return state;
+  return finishSites(state);
 }
 
 function threeOffices(): TowerState {

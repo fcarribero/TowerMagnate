@@ -84,6 +84,25 @@ export interface Unit {
   venue: VenueDay | null;
 }
 
+/**
+ * A unit that has been paid for and marked on the grid but is not built yet. The builders work on
+ * the sites in the order they were placed; when `points` reaches the points the unit needs, the
+ * site turns into the unit with the same id. The points a unit needs are not shown to players.
+ */
+export interface ConstructionSite {
+  id: UnitId;
+  type: UnitType;
+  /** Leftmost column. */
+  x: number;
+  /** Bottom level. */
+  level: Level;
+  /** Whole dollars charged at placement, automatic floor included. */
+  paid: number;
+  placedAtStep: number;
+  /** Construction points the builders have added so far. */
+  points: number;
+}
+
 export interface VenueDay {
   /** Visits started today inside the venue's hours. For a cinema: the 14:00 show. */
   visits: number;
@@ -275,6 +294,8 @@ export interface TowerState {
   /** The tower's star rating, which unlocks unit types. */
   stars: StarRating;
   units: Record<UnitId, Unit>;
+  /** Units being built, by the id the finished unit will have. */
+  sites: Record<UnitId, ConstructionSite>;
   transports: Record<EntityId, Transport>;
   shafts: Record<ShaftId, Shaft>;
   grid: GridState;

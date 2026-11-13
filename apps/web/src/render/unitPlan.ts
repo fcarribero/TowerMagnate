@@ -21,6 +21,8 @@ export interface UnitDrawing {
   height: number;
   /** Checker color drawn over the sprite, or null when it is drawn normally. */
   overlay: OverlayColor | null;
+  /** Percent built while the unit is a construction site; undefined once it is built. */
+  construction?: number;
 }
 
 export interface TransportSource {
@@ -32,7 +34,7 @@ export interface TransportSource {
 
 export type UnitSource = Pick<
   UnitView,
-  'id' | 'type' | 'x' | 'level' | 'occupied' | 'variant' | 'price'
+  'id' | 'type' | 'x' | 'level' | 'occupied' | 'variant' | 'price' | 'construction'
 >;
 
 /** Units that are drawn here. Floors and lobbies are structure, elevators are shafts. */
@@ -55,7 +57,8 @@ export function planUnit(
     return null;
   }
   const state = unitState(unit, openVenues);
-  return footprint(unit.id, `units/${unit.type}`, unit, { state, time }, overlay);
+  const drawing = footprint(unit.id, `units/${unit.type}`, unit, { state, time }, overlay);
+  return unit.construction === undefined ? drawing : { ...drawing, construction: unit.construction };
 }
 
 const HOTEL_ROOMS: readonly UnitType[] = ['single-room', 'double-room', 'suite'];

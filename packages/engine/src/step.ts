@@ -18,6 +18,7 @@ import { createHotelSystem } from './hotel';
 import { createHotelGuests } from './hotel-guests';
 import { infestationHook } from './infestation';
 import { isLayoutCommand } from './layout-changes';
+import { constructionEndHook, createConstructionSystem } from './construction';
 import { createMaidSystem, maidArrivalHook, maidLeaveHook } from './housekeeping';
 import { createLeaseSystem } from './leases';
 import { parkingAssignmentHook } from './parking';
@@ -281,6 +282,7 @@ export const namedTowerSystems: readonly { name: string; system: SimulationSyste
       customers.nightHook,
       weddingAttemptHook,
       maidArrivalHook,
+      constructionEndHook,
       maidLeaveHook,
     ]),
   },
@@ -294,6 +296,7 @@ export const namedTowerSystems: readonly { name: string; system: SimulationSyste
   { name: 'resident routine', system: residentRoutine.system },
   { name: 'hotel guests', system: hotelGuests.system },
   { name: 'housekeeping', system: createMaidSystem() },
+  { name: 'construction', system: createConstructionSystem() },
   { name: 'customers', system: customers.system },
   { name: 'weddings', system: weddingSystem },
   { name: 'elevators', system: createElevatorSystem() },

@@ -1,3 +1,4 @@
+import { finishSites } from '../testing/finish-sites';
 import type { Command, QueuedCommand, TowerState } from '@tower-magnate/shared';
 import { hashState } from '../hash';
 import { step } from '../step';
@@ -19,10 +20,10 @@ export function fullSiteTower(shafts: readonly PlannedShaft[] = []): TowerState 
 
 export function run(tower: TowerState, command: Command) {
   const queued: QueuedCommand = { id: 'c1', command };
-  const { state, results } = step(tower, [queued], 0);
+  const { state: stepped, results } = step(tower, [queued], 0);
   const [result] = results;
   if (!result) throw new Error('Expected one command result');
-  return { state, result };
+  return { state: finishSites(stepped), result };
 }
 
 /** Runs a command that must succeed and returns the new state and the money it took. */
