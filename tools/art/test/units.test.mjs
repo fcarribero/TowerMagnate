@@ -226,3 +226,13 @@ describe('rental units', () => {
     }
   });
 });
+
+describe('for rent ribbon', () => {
+  it('stretches a green ribbon across the bare office and condo only', () => {
+    for (const subject of rentals) {
+      expect(byId[`units/${subject}/empty_day`].get(3, 16)).toBe(colorIndex('leaf'));
+      expect(byId[`units/${subject}/closed_day`].get(3, 16)).not.toBe(colorIndex('leaf'));
+      expect(byId[`units/${subject}/occupied_day`].get(3, 16)).not.toBe(colorIndex('leaf'));
+    }
+  });
+});

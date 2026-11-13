@@ -93,6 +93,22 @@ export function drawOpenCurtains(room, { left, top, width, height }) {
   room.hline(left, top, width, 'gray');
 }
 
+const RIBBON_TOP = 14;
+const RIBBON_HEIGHT = 5;
+
+// A green tape stretched across the bare room that says it is for rent: white
+// dashes stand for the lettering, with a darker lower edge.
+export function drawRentRibbon(room) {
+  const left = 1;
+  const width = room.width - 2;
+  room.fillRect(left, RIBBON_TOP, width, RIBBON_HEIGHT, 'leaf');
+  room.hline(left, RIBBON_TOP, width, 'leaf-dark');
+  room.hline(left, RIBBON_TOP + RIBBON_HEIGHT - 1, width, 'leaf-dark');
+  for (let x = left + 4; x < left + width - 4; x += 6) {
+    room.hline(x, RIBBON_TOP + 2, 3, 'white');
+  }
+}
+
 export const RENTAL_STATES = ['empty', 'closed', 'occupied'];
 
 // Returns the six sprites of a unit that people rent or buy, day and night each:
@@ -105,6 +121,9 @@ export function rentalSprites(subject, { windows, drawDay }) {
     // A closed unit has its curtains drawn over the windows and its lights off, so even
     // by day its room is one step darker.
     const closed = state === 'closed';
+    if (state === 'empty') {
+      drawRentRibbon(lit);
+    }
     if (closed) {
       windows.forEach((window) => drawCurtains(lit, window));
     }
