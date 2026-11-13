@@ -299,6 +299,57 @@ function buildRain(): TilingSprite | null {
 }
 
 const OVERCAST_TINT = 0x8d96a8;
+const OVERCAST_COLOR = 0x4a5268;
+/** Highest share of the sky the grey overcast covers when it rains hard. */
+const OVERCAST_ALPHA = 0.5;
+const STORM_TINT = 0x6b7388;
+const STORM_SPACING = 170;
+
+function buildOvercast(): Graphics {
+  const overcast = new Graphics();
+  overcast.rect(0, SKY_TOP, WORLD_WIDTH, SKY_HEIGHT).fill({ color: OVERCAST_COLOR });
+  overcast.alpha = 0;
+  overcast.visible = false;
+  return overcast;
+}
+
+/**
+ * Two staggered rows of big dark clouds along the top edge of the rain, so the drops seem to
+ * fall out of them instead of starting at a visible line.
+ */
+function buildStorm(): Container {
+  const layer = new Container();
+  layer.alpha = 0;
+  layer.visible = false;
+  const texture = cloudTexture();
+  if (texture === null) {
+    return layer;
+  }
+  const edge = SKY_TOP + SKY_HEIGHT * (1 - CLOUD_MAX_ALTITUDE);
+  const rows = [
+    { y: edge + 14, scale: 2.4, offset: 0 },
+    { y: edge - 18, scale: 2.9, offset: STORM_SPACING / 2 },
+    { y: edge - 52, scale: 2.2, offset: STORM_SPACING / 4 },
+  ];
+  let seed = 90210;
+  const next = (): number => {
+    seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
+    return seed / 4294967296;
+  };
+  for (const row of rows) {
+    for (let x = -STORM_SPACING; x < WORLD_WIDTH + 2 * STORM_SPACING; x += STORM_SPACING) {
+      const sprite = new Sprite(texture);
+      const scale = row.scale * (0.85 + next() * 0.4);
+      sprite.anchor.set(0.5, 0.8);
+      sprite.scale.set(next() < 0.5 ? -scale : scale, scale);
+      sprite.x = x + row.offset + (next() - 0.5) * 40;
+      sprite.y = row.y + (next() - 0.5) * 10;
+      sprite.tint = STORM_TINT;
+      layer.addChild(sprite);
+    }
+  }
+  return layer;
+}
 
 /** Advances the weather: now and then it rains, fading in and out, and clouds darken. */
 export function updateWeather(sky: Sky, seconds: number): void {
@@ -321,6 +372,14 @@ export function updateWeather(sky: Sky, seconds: number): void {
     rain.tilePosition.y += RAIN_SPEED * seconds;
     rain.tilePosition.x -= RAIN_SPEED * RAIN_SLANT * seconds;
   }
+  const k = weather.intensity;
+  sky.overcast.visible = k > 0;
+  sky.overcast.alpha = k * OVERCAST_ALPHA;
+  sky.stormLayer.visible = k > 0;
+  sky.stormLayer.alpha = Math.min(1, k * 1.4);
+  // Stars and moon are hidden behind the cover.
+  sky.starLayer.alpha = 1 - k * 0.95;
+  sky.moon.alpha = 1 - k * 0.95;
   tintClouds(sky);
 }
 
@@ -330,6 +389,9 @@ export interface Sky {
   glow: Graphics;
   cloudLayer: Container;
   rain: TilingSprite | null;
+  /** Dark overcast over the whole sky, and the storm bank that hides where the rain starts. */
+  overcast: Graphics;
+  stormLayer: Container;
   weather: Weather;
   moon: Graphics;
   starLayer: Graphics;
@@ -394,6 +456,14 @@ const CLOUD_SPEED = 3;
 /** Moves the clouds slowly to the right, wrapping around the edges of the world. */
 export function driftClouds(sky: Sky, seconds: number): void {
   const margin = 200;
+  // The storm bank moves as one slab, so its row spacing is kept.
+  const slab = (CLOUD_SPEED / 2) * seconds;
+  for (const child of sky.stormLayer.children) {
+    child.x += slab;
+    if (child.x > WORLD_WIDTH + 2 * STORM_SPACING) {
+      child.x -= WORLD_WIDTH + 3 * STORM_SPACING;
+    }
+  }
   for (const child of sky.cloudLayer.children) {
     const size = Math.abs(child.scale.x);
     child.x += (CLOUD_SPEED / size) * seconds * (0.6 + child.alpha);
@@ -438,11 +508,13 @@ export function createSky(
   const cloudLayer = new Container();
   const view = new Container();
   const rain = buildRain();
-  view.addChild(gradient, starLayer, moon, glow);
+  const overcast = buildOvercast();
+  const stormLayer = buildStorm();
+  view.addChild(gradient, starLayer, moon, glow, overcast);
   if (rain !== null) {
     view.addChild(rain);
   }
-  view.addChild(cloudLayer);
+  view.addChild(cloudLayer, stormLayer);
   const weather: Weather = { raining: false, intensity: 0, timer: randomBetween(DRY_SECONDS) };
   const sky: Sky = {
     view,
@@ -450,6 +522,8 @@ export function createSky(
     glow,
     cloudLayer,
     rain,
+    overcast,
+    stormLayer,
     weather,
     moon,
     starLayer,
