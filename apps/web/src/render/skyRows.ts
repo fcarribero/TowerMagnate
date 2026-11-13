@@ -1,4 +1,4 @@
-import { Container, Graphics, Sprite, Texture } from 'pixi.js';
+import { Container, Graphics, Sprite, Texture, TilingSprite } from 'pixi.js';
 import { HIGHEST_LEVEL, WORLD_WIDTH, levelToIndex, levelTop } from './levels';
 import { FLOOR_HEIGHT } from './metrics';
 import type { SkyTime } from './timeOfDay';
@@ -217,11 +217,120 @@ function cloudTexture(): Texture | null {
   return cloudCache.texture;
 }
 
+export interface Weather {
+  raining: boolean;
+  /** 0 when dry, 1 in full rain; eases between the two. */
+  intensity: number;
+  /** Seconds until the weather changes. */
+  timer: number;
+}
+
+const DRY_SECONDS: readonly [number, number] = [90, 240];
+const RAIN_SECONDS: readonly [number, number] = [30, 80];
+const RAIN_FADE_SECONDS = 6;
+const RAIN_SPEED = 900;
+const RAIN_SLANT = 0.18;
+
+function randomBetween(range: readonly [number, number]): number {
+  return range[0] + Math.random() * (range[1] - range[0]);
+}
+
+const rainCache: { texture: Texture | null | undefined } = { texture: undefined };
+
+/** A seamless tile of thin slanted streaks; null without a canvas. */
+function rainTexture(): Texture | null {
+  if (rainCache.texture !== undefined) {
+    return rainCache.texture;
+  }
+  rainCache.texture = null;
+  if (typeof document === 'undefined') {
+    return null;
+  }
+  const size = 256;
+  const canvas = document.createElement('canvas');
+  canvas.width = size;
+  canvas.height = size;
+  const context = canvas.getContext('2d');
+  if (context === null) {
+    return null;
+  }
+  let seed = 424242;
+  const next = (): number => {
+    seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
+    return seed / 4294967296;
+  };
+  context.lineCap = 'round';
+  for (let i = 0; i < 90; i += 1) {
+    const x = next() * size;
+    const y = next() * size;
+    const length = 10 + next() * 16;
+    context.strokeStyle = `rgba(210,225,245,${0.25 + next() * 0.45})`;
+    context.lineWidth = next() < 0.2 ? 1.5 : 1;
+    // Draw each streak at the wrapped offsets so the tile repeats without seams.
+    for (const dx of [-size, 0, size]) {
+      for (const dy of [-size, 0, size]) {
+        context.beginPath();
+        context.moveTo(x + dx, y + dy);
+        context.lineTo(x + dx - length * RAIN_SLANT, y + dy + length);
+        context.stroke();
+      }
+    }
+  }
+  rainCache.texture = Texture.from(canvas);
+  return rainCache.texture;
+}
+
+/** Rain falls under the clouds; with a texture it is one scrolling tile. */
+function buildRain(): TilingSprite | null {
+  const texture = rainTexture();
+  if (texture === null) {
+    return null;
+  }
+  const rain = new TilingSprite({
+    texture,
+    width: WORLD_WIDTH,
+    height: SKY_HEIGHT * CLOUD_MAX_ALTITUDE,
+  });
+  rain.x = 0;
+  rain.y = SKY_TOP + SKY_HEIGHT * (1 - CLOUD_MAX_ALTITUDE);
+  rain.alpha = 0;
+  rain.visible = false;
+  return rain;
+}
+
+const OVERCAST_TINT = 0x8d96a8;
+
+/** Advances the weather: now and then it rains, fading in and out, and clouds darken. */
+export function updateWeather(sky: Sky, seconds: number): void {
+  const weather = sky.weather;
+  weather.timer -= seconds;
+  if (weather.timer <= 0) {
+    weather.raining = !weather.raining;
+    weather.timer = randomBetween(weather.raining ? RAIN_SECONDS : DRY_SECONDS);
+  }
+  const target = weather.raining ? 1 : 0;
+  const step = seconds / RAIN_FADE_SECONDS;
+  weather.intensity =
+    weather.intensity < target
+      ? Math.min(target, weather.intensity + step)
+      : Math.max(target, weather.intensity - step);
+  const rain = sky.rain;
+  if (rain !== null) {
+    rain.visible = weather.intensity > 0;
+    rain.alpha = weather.intensity * (sky.time === 'night' ? 0.35 : 0.6);
+    rain.tilePosition.y += RAIN_SPEED * seconds;
+    rain.tilePosition.x -= RAIN_SPEED * RAIN_SLANT * seconds;
+  }
+  tintClouds(sky);
+}
+
 export interface Sky {
   view: Container;
   gradient: Sprite;
   glow: Graphics;
   cloudLayer: Container;
+  rain: TilingSprite | null;
+  weather: Weather;
   moon: Graphics;
   starLayer: Graphics;
   stars: Star[];
@@ -295,9 +404,22 @@ export function driftClouds(sky: Sky, seconds: number): void {
 }
 
 function tintClouds(sky: Sky): void {
+  const base = CLOUD_TINT[sky.time];
+  const k = sky.weather.intensity;
+  const tint = k === 0 ? base : mixTint(base, OVERCAST_TINT, k * 0.7);
   for (const child of sky.cloudLayer.children) {
-    (child as Sprite).tint = CLOUD_TINT[sky.time];
+    (child as Sprite).tint = tint;
   }
+}
+
+function mixTint(a: number, b: number, k: number): number {
+  let out = 0;
+  for (const shift of [16, 8, 0]) {
+    const ca = (a >> shift) & 255;
+    const cb = (b >> shift) & 255;
+    out |= Math.round(ca + (cb - ca) * k) << shift;
+  }
+  return out;
 }
 
 /** One sprite with the whole gradient, with stars, moon, horizon glow and clouds over it. */
@@ -315,8 +437,25 @@ export function createSky(
   const moon = new Graphics();
   const cloudLayer = new Container();
   const view = new Container();
-  view.addChild(gradient, starLayer, moon, glow, cloudLayer);
-  const sky: Sky = { view, gradient, glow, cloudLayer, moon, starLayer, stars: makeStars(), time };
+  const rain = buildRain();
+  view.addChild(gradient, starLayer, moon, glow);
+  if (rain !== null) {
+    view.addChild(rain);
+  }
+  view.addChild(cloudLayer);
+  const weather: Weather = { raining: false, intensity: 0, timer: randomBetween(DRY_SECONDS) };
+  const sky: Sky = {
+    view,
+    gradient,
+    glow,
+    cloudLayer,
+    rain,
+    weather,
+    moon,
+    starLayer,
+    stars: makeStars(),
+    time,
+  };
   drawStars(sky);
   drawGlow(sky);
   drawMoon(sky);
