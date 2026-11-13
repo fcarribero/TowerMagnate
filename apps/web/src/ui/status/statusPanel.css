@@ -126,6 +126,14 @@
   background: var(--obra-yellow);
 }
 
+.status-panel__money {
+  cursor: pointer;
+}
+
+.status-panel .status-panel__money.is-open {
+  box-shadow: inset 0 calc(2 * var(--tm-px)) 0 rgb(0 0 0 / 25%);
+}
+
 .status-panel__money.is-negative {
   color: var(--obra-paper);
   background: var(--obra-red);

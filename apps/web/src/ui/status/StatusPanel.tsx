@@ -53,14 +53,13 @@ export interface StatusPanelProps {
 const MAX_BADGE_COUNT = 9;
 
 interface WindowButton {
-  id: Exclude<StatusWindowId, 'stars' | 'weather'>;
+  id: Exclude<StatusWindowId, 'stars' | 'weather' | 'finance'>;
   label: StringKey;
   icon: ObraIconName;
 }
 
 const WINDOW_BUTTONS: readonly WindowButton[] = [
   { id: 'map', label: 'ui.windowMap', icon: 'map' },
-  { id: 'finance', label: 'ui.windowFinance', icon: 'finance' },
   { id: 'followed', label: 'ui.windowFollowed', icon: 'eye' },
   { id: 'notices', label: 'ui.windowNotices', icon: 'bell' },
 ];
@@ -140,6 +139,8 @@ export function StatusPanel({
             onOpenStars={() => onOpenWindow('stars')}
             onOpenWeather={() => onOpenWindow('weather')}
             weatherOpen={openWindows.has('weather')}
+            onOpenFinance={() => onOpenWindow('finance')}
+            financeOpen={openWindows.has('finance')}
           />
         )}
         <span class="status-panel__spacer" />
@@ -186,6 +187,8 @@ function StatusValuesView({
   onOpenStars,
   onOpenWeather,
   weatherOpen,
+  onOpenFinance,
+  financeOpen,
 }: {
   status: StatusValues;
   infiniteMoney: boolean;
@@ -193,13 +196,19 @@ function StatusValuesView({
   onOpenStars: () => void;
   onOpenWeather: () => void;
   weatherOpen: boolean;
+  onOpenFinance: () => void;
+  financeOpen: boolean;
 }) {
   const step = stepOfGameMinute(status.minute);
   const date = formatGameDate(step);
   const money = infiniteMoney ? '∞' : formatMoney(status.money);
-  const moneyClass = money.startsWith('-')
-    ? 'status-panel__money is-negative'
-    : 'status-panel__money';
+  const moneyClass = [
+    'status-panel__money',
+    money.startsWith('-') ? 'is-negative' : '',
+    financeOpen ? 'is-open' : '',
+  ]
+    .filter(Boolean)
+    .join(' ');
   const population = formatPopulation(status.population);
   const labelEnd = population.lastIndexOf(' ');
   return (
@@ -218,7 +227,16 @@ function StatusValuesView({
         </span>
         {belowClock}
       </div>
-      <span class={moneyClass}>{money}</span>
+      <button
+        type="button"
+        class={moneyClass}
+        aria-label={t('ui.windowFinance')}
+        aria-pressed={financeOpen}
+        title={t('ui.windowFinance')}
+        onClick={onOpenFinance}
+      >
+        {money}
+      </button>
       <span class="status-panel__population">
         <span class="status-panel__label">{population.slice(0, labelEnd)}</span>
         {population.slice(labelEnd)}
