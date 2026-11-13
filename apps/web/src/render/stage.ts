@@ -113,7 +113,7 @@ export interface Stage {
   /** Marks the followed people on the floor with a lamp above the head. */
   showFollowed(followed: ReadonlySet<string>): void;
   /** Draws elevator shafts; later calls change only the shafts that differ. */
-  showShafts(shafts: Iterable<ShaftView>): void;
+  showShafts(shafts: Iterable<ShaftView>, structure: ReadonlyMap<Level, string>): void;
   /**
    * Asks `source` for the cars and riders to draw on every frame. It returns
    * null while there is nothing to draw, and `shafts` says where each car runs.
@@ -377,8 +377,8 @@ export async function mountStage(host: HTMLElement, options: StageOptions = {}):
       people.markFollowed(followed);
       elevators.markFollowed(followed);
     },
-    showShafts(shafts) {
-      elevators.showShafts(shafts);
+    showShafts(shafts, structure) {
+      elevators.showShafts(shafts, structure);
     },
     feedCars(source) {
       carSource = source;

@@ -93,7 +93,8 @@ async function start(): Promise<void> {
   }
   const readDrawCalls = countDrawCalls(canvas);
 
-  stage.showStructure(fullWidthTestTower(settings.floors));
+  const structure = fullWidthTestTower(settings.floors);
+  stage.showStructure(structure);
   stage.showUnits({
     units: offices(settings.floors),
     transports: [],
@@ -107,7 +108,7 @@ async function start(): Promise<void> {
     riders: 0.05,
     churn: 0.01,
   });
-  stage.showShafts(crowd.shafts);
+  stage.showShafts(crowd.shafts, structure.structure);
 
   let stepArrivedAt = performance.now();
   window.setInterval(() => {

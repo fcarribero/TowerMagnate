@@ -8,6 +8,7 @@ import {
   isColumn,
   isLevel,
   levelAbove,
+  levelToIndex,
   LOWEST_BUILDABLE_LEVEL,
   SHAFT_UNIT_TYPES,
   TOWER_LAYOUT,
@@ -162,7 +163,10 @@ export function shaftRangeError(
     return 'CELL_OCCUPIED';
   }
   // A resize may reach levels that have no floor yet; only a new shaft needs structure (C-34).
-  if (self === null && levels.some((level) => cellsWithoutStructure(grid, level, range.x, x1) > 0)) {
+  if (
+    self === null &&
+    levels.some((level) => cellsWithoutStructure(grid, level, range.x, x1) > 0)
+  ) {
     return 'NO_FLOOR';
   }
 
@@ -178,10 +182,44 @@ export function shaftRangeError(
   return tooClose ? 'SHAFT_TOO_CLOSE' : null;
 }
 
-/** Elevators 5: every level of the range is a stop; an express shaft stops only at express levels. */
-export function defaultStops(type: ShaftType, range: ShaftRange): Level[] {
-  const levels = shaftLevels(range);
+/** Whether every cell behind the shaft on `level` has structure. */
+export function isBacked(
+  grid: GridState,
+  type: ShaftType,
+  range: ShaftRange,
+  level: Level,
+): boolean {
+  return cellsWithoutStructure(grid, level, range.x, range.x + shaftWidth(type) - 1) === 0;
+}
+
+/**
+ * Elevators 5: every level of the range with structure behind it is a stop; an express shaft
+ * stops only at express levels. Levels without structure start disabled.
+ */
+export function defaultStops(type: ShaftType, range: ShaftRange, grid?: GridState): Level[] {
+  const levels = shaftLevels(range).filter(
+    (level) => grid === undefined || isBacked(grid, type, range, level),
+  );
   return type === 'express' ? levels.filter(isExpressStop) : levels;
+}
+
+/**
+ * Enables the stop of every shaft level that has structure behind it after a command and had
+ * none before. Stops the player turned off on levels that were already built stay off.
+ */
+export function enableNewlyBackedStops(before: TowerState, after: TowerState): void {
+  for (const shaft of Object.values(after.shafts)) {
+    const added = shaftLevels(shaft).filter(
+      (level) =>
+        (shaft.type !== 'express' || isExpressStop(level)) &&
+        !shaft.stops.includes(level) &&
+        isBacked(after.grid, shaft.type, shaft, level) &&
+        !isBacked(before.grid, shaft.type, shaft, level),
+    );
+    if (added.length > 0) {
+      shaft.stops = [...shaft.stops, ...added].sort((a, b) => levelToIndex(a) - levelToIndex(b));
+    }
+  }
 }
 
 function defaultBand(): ShaftBand {

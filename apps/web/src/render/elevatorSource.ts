@@ -1,4 +1,4 @@
-import type { ShaftView } from '@tower-magnate/shared';
+import type { Level, ShaftView } from '@tower-magnate/shared';
 import type { ClientStore } from '../model/clientStore';
 import { drawnFrame, progressSince } from '../model/interpolation';
 import type { CarSource } from './stage';
@@ -18,13 +18,13 @@ export function carSourceOf(
   };
 }
 
-/** Feeds `show` with the shafts whenever a delta adds, changes or removes one. */
+/** Feeds `show` with the shafts and the tower structure whenever either changes. */
 export function bindShafts(
   store: ClientStore,
-  show: (shafts: Iterable<ShaftView>) => void,
+  show: (shafts: Iterable<ShaftView>, structure: ReadonlyMap<Level, string>) => void,
 ): () => void {
   return store.select(
-    (state) => ({ shafts: state.shafts }),
-    (selected) => show(selected.shafts.values()),
+    (state) => ({ shafts: state.shafts, structure: state.structure }),
+    (selected) => show(selected.shafts.values(), selected.structure),
   );
 }

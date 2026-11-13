@@ -286,11 +286,16 @@ describe('transport walkways and landings', () => {
     }
   });
 
-  it('backs a shaft level with no stop with a brick wall', () => {
+  it('backs a shaft level with no structure with brick and any other level with flat gray', () => {
     for (const type of types) {
-      const shaft = sprites[`transport/${type}-shaft/body`];
-      expect(shaft.pixels.includes(colorIndex('skin-dark')), type).toBe(true);
-      expect(shaft.pixels.includes(colorIndex('concrete-dark')), type).toBe(true);
+      const brick = sprites[`transport/${type}-shaft/brick`];
+      const plain = sprites[`transport/${type}-shaft/body`];
+      expect(brick.width, type).toBe(plain.width);
+      expect(brick.height, type).toBe(plain.height);
+      expect(brick.pixels.includes(colorIndex('skin-dark')), type).toBe(true);
+      expect(brick.pixels.includes(colorIndex('concrete-dark')), type).toBe(true);
+      expect(plain.pixels.includes(colorIndex('skin-dark')), type).toBe(false);
+      expect(plain.get(plain.width / 4, 5), type).toBe(colorIndex('slate'));
     }
   });
 

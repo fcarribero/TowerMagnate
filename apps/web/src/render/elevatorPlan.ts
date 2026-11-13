@@ -1,5 +1,5 @@
-import type { PersonKind, PersonView, ShaftType, ShaftView } from '@tower-magnate/shared';
-import { levelToIndex, levelTop } from './levels';
+import type { Level, PersonKind, PersonView, ShaftType, ShaftView } from '@tower-magnate/shared';
+import { indexToLevel, levelToIndex, levelTop } from './levels';
 import { FLOOR_HEIGHT, TILE_WIDTH } from './metrics';
 
 const SHAFT_TILES: Record<ShaftType, number> = { standard: 4, service: 4, express: 6 };
@@ -25,15 +25,36 @@ export interface ShaftPiece {
   y: number;
 }
 
+/** Whether the structure rows have something built behind every column of the shaft on `level`. */
+export function isBackedLevel(
+  shaft: ShaftView,
+  level: Level,
+  structure: ReadonlyMap<Level, string>,
+): boolean {
+  const row = structure.get(level);
+  if (row === undefined) return false;
+  return !row.slice(shaft.x, shaft.x + SHAFT_TILES[shaft.type]).includes('.');
+}
+
+/** Changes whenever the backdrop of any level of the shaft does, so a drawn shaft knows to redraw. */
+export function backdropKey(shaft: ShaftView, structure: ReadonlyMap<Level, string>): string {
+  let key = '';
+  for (let index = levelToIndex(shaft.bottom); index <= levelToIndex(shaft.top); index += 1) {
+    key += isBackedLevel(shaft, indexToLevel(index), structure) ? 'b' : 'o';
+  }
+  return key;
+}
+
 export function shaftWidthPixels(type: ShaftType): number {
   return SHAFT_TILES[type] * TILE_WIDTH;
 }
 
 /**
- * The static parts of a shaft: a body on every level from bottom to top, a hall
+ * The static parts of a shaft: a body on every level from bottom to top (brick where no
+ * structure is built behind it, flat gray elsewhere), a hall
  * door frame on each stop, the machine room above the top level and the pit below the bottom one.
  */
-export function planShaft(shaft: ShaftView): ShaftPiece[] {
+export function planShaft(shaft: ShaftView, structure: ReadonlyMap<Level, string>): ShaftPiece[] {
   const x = shaft.x * TILE_WIDTH;
   const prefix = `transport/${shaft.type}-shaft`;
   const bottom = levelToIndex(shaft.bottom);
@@ -41,7 +62,8 @@ export function planShaft(shaft: ShaftView): ShaftPiece[] {
   const stops = new Set(shaft.stops.map(levelToIndex));
   const pieces: ShaftPiece[] = [];
   for (let index = bottom; index <= top; index += 1) {
-    pieces.push({ sprite: `${prefix}/body`, index, x, y: 0 });
+    const backed = isBackedLevel(shaft, indexToLevel(index), structure);
+    pieces.push({ sprite: `${prefix}/${backed ? 'body' : 'brick'}`, index, x, y: 0 });
     if (stops.has(index)) {
       pieces.push({ sprite: `${prefix}/landing`, index, x, y: 0 });
     }

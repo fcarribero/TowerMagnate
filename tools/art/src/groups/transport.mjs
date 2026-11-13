@@ -76,7 +76,7 @@ function drawBeam(tile, type) {
 const BRICK_HEIGHT = 4;
 const BRICK_LENGTH = 8;
 
-// Brick wall behind the shaft on a level where the elevator does not stop. Rows
+// Brick wall behind the shaft on a level with no structure. Rows
 // of bricks offset by half a brick, with a mortar line under each row.
 function drawBrickWall(tile) {
   tile.fillRect(0, 0, tile.width, tile.height, 'concrete-dark');
@@ -94,10 +94,15 @@ function drawBrickWall(tile) {
   }
 }
 
-// One level of a shaft with no stop. The car is drawn on top of it.
-function shaftBody(type) {
+// One level of a shaft, drawn under the hall doors and the car. `brick` is for a level with
+// no structure behind the shaft; otherwise the back is a flat neutral gray.
+function shaftBody(type, backdrop) {
   const tile = new PixelCanvas(shaftWidth(type), floorHeight);
-  drawBrickWall(tile);
+  if (backdrop === 'brick') {
+    drawBrickWall(tile);
+  } else {
+    tile.fillRect(0, 0, tile.width, tile.height, 'slate');
+  }
   drawShaftWalls(tile);
   drawGuideRails(tile, 0, tile.height);
   drawCables(tile, 0, tile.height);
@@ -333,7 +338,8 @@ function byTime(dayCanvas, time) {
 
 function elevatorSprites() {
   return TYPES.flatMap((type) => [
-    { id: `transport/${type}-shaft/body`, canvas: shaftBody(type) },
+    { id: `transport/${type}-shaft/body`, canvas: shaftBody(type, 'plain') },
+    { id: `transport/${type}-shaft/brick`, canvas: shaftBody(type, 'brick') },
     { id: `transport/${type}-shaft/top`, canvas: shaftTop(type) },
     { id: `transport/${type}-shaft/bottom`, canvas: shaftBottom(type) },
     { id: `transport/${type}-shaft/landing`, canvas: landingFrame(type) },

@@ -2,6 +2,7 @@ import {
   ShaftTypeSchema,
   levelToIndex,
   TOWER_LIMITS,
+  type GridState,
   type Level,
   type OccupantRef,
   type Shaft,
@@ -47,9 +48,11 @@ function clampLevel(level: Level, range: ShaftRange): Level {
 }
 
 /** Elevators 9.3: new levels join the stops, levels outside the new range leave them. */
-function resizedStops(shaft: Shaft, previous: ShaftRange): Level[] {
+function resizedStops(shaft: Shaft, previous: ShaftRange, grid: GridState): Level[] {
   const kept = shaft.stops.filter((level) => isInsideShaft(shaft, level));
-  const added = defaultStops(shaft.type, shaft).filter((level) => !isInsideShaft(previous, level));
+  const added = defaultStops(shaft.type, shaft, grid).filter(
+    (level) => !isInsideShaft(previous, level),
+  );
   return [...kept, ...added].sort((a, b) => levelToIndex(a) - levelToIndex(b));
 }
 
@@ -95,7 +98,7 @@ export const buildShaft: CommandHandler<'buildShaft'> = (context, command) => {
     type: type.data,
     ...range,
     cars: [idleCar(bottom, prices.car, state.step)],
-    stops: defaultStops(type.data, range),
+    stops: defaultStops(type.data, range, state.grid),
     schedule: defaultSchedule(),
     queues: {},
     paid: prices.shaft,
@@ -138,7 +141,7 @@ export const resizeShaft: CommandHandler<'resizeShaft'> = (context, command) => 
   vacate(state, shaft);
   shaft.bottom = bottom;
   shaft.top = top;
-  applyStops(shaft, resizedStops(shaft, previous));
+  applyStops(shaft, resizedStops(shaft, previous, state.grid));
   for (const car of shaft.cars) {
     car.homeLevel = nearestStop(shaft.stops, car.homeLevel);
     car.level = clampLevel(car.level, range);

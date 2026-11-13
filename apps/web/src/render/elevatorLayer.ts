@@ -1,4 +1,4 @@
-import type { ShaftView } from '@tower-magnate/shared';
+import type { Level, ShaftView } from '@tower-magnate/shared';
 import { Container, Sprite, Texture } from 'pixi.js';
 import type { DrawnCar, DrawnFrame, DrawnPerson } from '../model/interpolation';
 import { carKey } from '../model/gameState';
@@ -9,6 +9,7 @@ import {
   carOrigin,
   carSize,
   doorLeafWidth,
+  backdropKey,
   doorOpeningOf,
   planShaft,
   riderPlace,
@@ -58,6 +59,8 @@ export class ElevatorLayer {
   private readonly levelContainers = new Map<number, Container>();
   private readonly shaftPieces = new Map<string, Sprite[]>();
   private readonly shaftsDrawn = new Map<string, ShaftView>();
+  /** Backdrop key each drawn shaft was planned with. */
+  private readonly backdrops = new Map<string, string>();
   private readonly cars = new Map<string, DrawnShaftCar>();
   /** Rider sprites no car is using, kept so doors opening and closing do not create new ones. */
   private readonly spareRiders: Sprite[] = [];
@@ -85,19 +88,24 @@ export class ElevatorLayer {
     this.followed = followed;
   }
 
-  showShafts(shafts: Iterable<ShaftView>): void {
+  /** A shaft is redrawn when it changes or when structure is built or lost behind it. */
+  showShafts(shafts: Iterable<ShaftView>, structure: ReadonlyMap<Level, string>): void {
     const keep = new Map<string, ShaftView>();
     for (const shaft of shafts) {
       keep.set(shaft.id, shaft);
     }
     for (const id of [...this.shaftsDrawn.keys()]) {
-      if (keep.get(id) !== this.shaftsDrawn.get(id)) {
+      const shaft = keep.get(id);
+      if (
+        shaft !== this.shaftsDrawn.get(id) ||
+        (shaft !== undefined && backdropKey(shaft, structure) !== this.backdrops.get(id))
+      ) {
         this.removeShaft(id);
       }
     }
     for (const [id, shaft] of keep) {
       if (!this.shaftsDrawn.has(id)) {
-        this.addShaft(shaft);
+        this.addShaft(shaft, structure);
       }
     }
   }
@@ -132,9 +140,9 @@ export class ElevatorLayer {
     }
   }
 
-  private addShaft(shaft: ShaftView): void {
+  private addShaft(shaft: ShaftView, structure: ReadonlyMap<Level, string>): void {
     const sprites: Sprite[] = [];
-    for (const piece of planShaft(shaft)) {
+    for (const piece of planShaft(shaft, structure)) {
       const sprite = new Sprite(this.sprites.variant(piece.sprite, {}));
       sprite.position.set(piece.x, piece.y);
       this.containerFor(piece.index).addChild(sprite);
@@ -142,6 +150,7 @@ export class ElevatorLayer {
     }
     this.shaftPieces.set(shaft.id, sprites);
     this.shaftsDrawn.set(shaft.id, shaft);
+    this.backdrops.set(shaft.id, backdropKey(shaft, structure));
   }
 
   private removeShaft(id: string): void {
@@ -150,6 +159,7 @@ export class ElevatorLayer {
     }
     this.shaftPieces.delete(id);
     this.shaftsDrawn.delete(id);
+    this.backdrops.delete(id);
   }
 
   private containerFor(index: number): Container {

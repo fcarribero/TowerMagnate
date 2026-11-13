@@ -129,7 +129,7 @@ function placeShaft(state: TowerState, shaft: PlannedShaft): EntityId {
     bottom: shaft.bottom,
     top: shaft.top,
     cars,
-    stops: defaultStops(shaft.type, shaft),
+    stops: defaultStops(shaft.type, shaft, state.grid),
     schedule: defaultSchedule(),
     queues: {},
     paid: 0,

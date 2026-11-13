@@ -196,7 +196,9 @@ export function App({ developer = false, onLogout, onRestartTower, onSessionLost
     const unbindSky = bindSky(connection.store, (phase) => stage.showSky(phase));
     const unbindUnits = bindUnits(connection.store, overlay, (input) => stage.showUnits(input));
     const unbindStructure = bindStructure(connection.store, (input) => stage.showStructure(input));
-    const unbindShafts = bindShafts(connection.store, (shafts) => stage.showShafts(shafts));
+    const unbindShafts = bindShafts(connection.store, (shafts, structure) =>
+      stage.showShafts(shafts, structure),
+    );
     const unbindFollowed = bindFollowed(connection.store, (followed) =>
       stage.showFollowed(followed),
     );

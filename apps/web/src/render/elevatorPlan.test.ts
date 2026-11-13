@@ -20,8 +20,11 @@ const shaft: ShaftView = {
   stops: [-1, 1],
 };
 
+const BUILT_ROW = 'f'.repeat(200);
+const structure = new Map([-1, 1, 2].map((level) => [level, BUILT_ROW] as const));
+
 describe('planShaft', () => {
-  const pieces = planShaft(shaft);
+  const pieces = planShaft(shaft, structure);
 
   it('draws one body per level and never a level 0', () => {
     const bodies = pieces.filter((piece) => piece.sprite.endsWith('/body'));
@@ -29,6 +32,20 @@ describe('planShaft', () => {
       levelToIndex(-1),
       levelToIndex(1),
       levelToIndex(2),
+    ]);
+  });
+
+  it('backs a level with brick where nothing is built behind the shaft', () => {
+    const partial = new Map(structure);
+    partial.set(2, '.'.repeat(200));
+    partial.set(1, `${'f'.repeat(101)}${'.'.repeat(99)}`);
+    const backdrops = planShaft(shaft, partial)
+      .filter((piece) => piece.sprite.endsWith('/body') || piece.sprite.endsWith('/brick'))
+      .map((piece) => [piece.index, piece.sprite.split('/')[2]]);
+    expect(backdrops).toEqual([
+      [levelToIndex(-1), 'body'],
+      [levelToIndex(1), 'brick'],
+      [levelToIndex(2), 'brick'],
     ]);
   });
 
@@ -49,7 +66,7 @@ describe('planShaft', () => {
   });
 
   it('uses the sprites of the shaft type at the shaft column', () => {
-    const express = planShaft({ ...shaft, type: 'express' });
+    const express = planShaft({ ...shaft, type: 'express' }, structure);
     expect(express.every((piece) => piece.sprite.startsWith('transport/express-shaft/'))).toBe(
       true,
     );

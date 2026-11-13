@@ -17,11 +17,12 @@ import {
   recordFloorPurchase,
 } from './structure';
 
-/** Cells of the run that would get new floor: no structure and nothing on them. */
+/** Cells of the run that would get new floor: no structure and nothing on them but a shaft. */
 function newFloorColumns(grid: GridState, level: Level, x0: number, x1: number): number[] {
-  return columnsBetween(x0, x1).filter(
-    (x) => structureAt(grid, level, x) === null && occupantAt(grid, level, x) === null,
-  );
+  return columnsBetween(x0, x1).filter((x) => {
+    const occupant = occupantAt(grid, level, x);
+    return structureAt(grid, level, x) === null && (occupant === null || occupant.kind === 'shaft');
+  });
 }
 
 export const buildFloor: CommandHandler<'buildFloor'> = (context, command) => {

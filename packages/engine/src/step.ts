@@ -9,6 +9,7 @@ import type {
 } from '@tower-magnate/shared';
 import { STEPS_PER_DAY } from './clock';
 import { towerCommandHandlers } from './commands';
+import { enableNewlyBackedStops } from './commands/shafts';
 import { rollBasementTreasure } from './events/treasure';
 import { createElevatorSystem } from './elevators';
 import { eventsPhase, vipBookingHook } from './events';
@@ -179,6 +180,7 @@ export function createEngine(rules: EngineRules): Engine {
     if (!outcome.ok) {
       return { id, ok: false, step: currentStep, error: outcome.error };
     }
+    enableNewlyBackedStops(context.state, draft.state);
     outcome.events.push(...rollBasementTreasure(draft.state, context.state.grid));
     outcome.events.push(...balanceNegativeNews(draft.state, context.state.money));
     context.state = draft.state;

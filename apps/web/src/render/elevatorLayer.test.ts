@@ -9,6 +9,7 @@ import { SpriteRegistry } from './spriteRegistry';
 
 const SPRITES = [
   'transport/standard-shaft/body',
+  'transport/standard-shaft/brick',
   'transport/standard-shaft/top',
   'transport/standard-shaft/bottom',
   'transport/standard-shaft/landing',
@@ -31,6 +32,8 @@ function layerWithArt(now?: () => number) {
 
 const shaft: ShaftView = { ...fixtureShaft, bottom: 1, top: 3, stops: [1, 3] };
 const shafts = new Map([[shaft.id, shaft]]);
+const BUILT_ROW = 'f'.repeat(200);
+const structure = new Map([1, 2, 3, 4].map((level) => [level, BUILT_ROW] as const));
 
 function frameOf(
   position: number,
@@ -54,21 +57,38 @@ const rider: PersonView = {
 describe('ElevatorLayer shafts', () => {
   it('draws a shaft once and removes it when it is gone', () => {
     const { layer, missing } = layerWithArt();
-    layer.showShafts([shaft]);
-    layer.showShafts([shaft]);
+    layer.showShafts([shaft], structure);
+    layer.showShafts([shaft], structure);
     expect(layer.shaftCount).toBe(1);
     expect(layer.shaftView.children.length).toBe(3);
-    layer.showShafts([]);
+    layer.showShafts([], structure);
     expect(layer.shaftCount).toBe(0);
     expect(missing).toEqual([]);
   });
 
   it('redraws a shaft that changed its range', () => {
     const { layer } = layerWithArt();
-    layer.showShafts([shaft]);
-    layer.showShafts([{ ...shaft, top: 4 }]);
+    layer.showShafts([shaft], structure);
+    layer.showShafts([{ ...shaft, top: 4 }], structure);
     expect(layer.shaftCount).toBe(1);
     expect(layer.shaftView.children.length).toBe(4);
+  });
+});
+
+describe('ElevatorLayer backdrop', () => {
+  it('redraws a shaft when structure is built behind it', () => {
+    const { layer, missing } = layerWithArt();
+    const tall = { ...shaft, top: 4 };
+    const partial = new Map(structure);
+    partial.delete(4);
+    layer.showShafts([tall], partial);
+    const before = layer.shaftView.children.length;
+    layer.showShafts([tall], partial);
+    expect(layer.shaftView.children.length).toBe(before);
+    layer.showShafts([tall], structure);
+    expect(layer.shaftCount).toBe(1);
+    expect(layer.shaftView.children.length).toBe(before);
+    expect(missing).toEqual([]);
   });
 });
 
