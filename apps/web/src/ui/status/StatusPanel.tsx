@@ -27,7 +27,6 @@ export type StatusWindowId = 'map' | 'finance' | 'followed' | 'notices' | 'stars
 
 export interface StatusPanelProps {
   store: ClientStore;
-  offline?: boolean;
   /** The overlay selector goes here. */
   overlaySlot?: ComponentChildren;
   onOpenWindow: (id: StatusWindowId) => void;
@@ -75,7 +74,6 @@ const NO_WINDOWS: ReadonlySet<StatusWindowId> = new Set();
 
 export function StatusPanel({
   store,
-  offline = false,
   overlaySlot,
   onOpenWindow,
   onLogout,
@@ -108,7 +106,6 @@ export function StatusPanel({
         {status !== null && (
           <StatusValuesView status={status} onOpenStars={() => onOpenWindow('stars')} />
         )}
-        {offline && <span class="status-panel__offline">{t('ui.serverOffline')}</span>}
         <span class="status-panel__spacer" />
         {overlaySlot !== undefined && <div class="status-panel__overlay">{overlaySlot}</div>}
         {showWindows && (

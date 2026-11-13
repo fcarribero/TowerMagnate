@@ -344,7 +344,6 @@ export function App({ onLogout, onRestartTower, onSessionLost }: AppProps) {
       <div class="ui-layer" onClick={onUiClick}>
         <StatusPanel
           store={connection.store}
-          offline={connectionStatus !== 'live'}
           onOpenWindow={onOpenWindow}
           openWindows={openWindows}
           unreadNotices={unreadNotices}

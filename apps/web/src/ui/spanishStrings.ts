@@ -128,7 +128,6 @@ export const SPANISH_STRINGS = {
   'ui.columns': 'casilleros {x0} a {x1}',
   'ui.increase': 'Aumentar',
   'ui.decrease': 'Disminuir',
-  'ui.serverOffline': 'Sin conexión con el servidor',
 
   'calendar.weekday.0': 'Lunes',
   'calendar.weekday.1': 'Martes',

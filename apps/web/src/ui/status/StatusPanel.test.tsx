@@ -141,9 +141,8 @@ describe('StatusPanel', () => {
 
   it('shows the menu but no values before the first snapshot', () => {
     const store = new ClientStore({ requestResync: () => undefined });
-    renderPanel(store, { offline: true });
+    renderPanel(store);
     expect(screen.getByRole('button', { name: 'Menú' })).toBeTruthy();
     expect(document.querySelector('.status-panel__date')).toBeNull();
-    expect(screen.getByText('Sin conexión con el servidor')).toBeTruthy();
   });
 });

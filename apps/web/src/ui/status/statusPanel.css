@@ -47,7 +47,6 @@
 .status-panel__date,
 .status-panel__money,
 .status-panel__population,
-.status-panel__offline,
 .status-panel__stars,
 .status-panel__window,
 .status-panel__logo,
@@ -137,12 +136,6 @@
   font: 700 calc(6.5 * var(--tm-px)) / 1 var(--font-text);
   text-transform: uppercase;
   letter-spacing: 0.1em;
-}
-
-.status-panel__offline {
-  font: 700 calc(7 * var(--tm-px)) / 1 var(--font-text);
-  color: var(--obra-paper);
-  background: var(--obra-red);
 }
 
 .status-panel__stars {
