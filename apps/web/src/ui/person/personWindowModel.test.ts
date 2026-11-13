@@ -32,6 +32,7 @@ describe('person window text', () => {
     expect(personTitle('officeWorker', null)).toBe('Oficinista');
     expect(kindName('guard')).toBe('Guardia de seguridad');
     expect(kindName('courier')).toBe('Mensajero');
+    expect(kindName('child')).toBe('Niño');
     expect(personTitle('courier', null)).toBe('Mensajero');
   });
 
@@ -48,6 +49,9 @@ describe('person window text', () => {
 
   it('names what the person is doing', () => {
     expect(stateText('walk', undefined)).toBe('Caminando');
+    expect(stateText('walk', undefined, 'child')).toBe('Con un adulto');
+    expect(stateText('ride', undefined, 'child')).toBe('Con un adulto');
+    expect(stateText('outside', undefined, 'child')).toBe('Fuera de la torre');
     expect(stateText('wait', undefined)).toBe('Esperando el ascensor');
     expect(stateText('ride', undefined)).toBe('En el ascensor');
     expect(stateText('stairs', undefined)).toBe('En la escalera');

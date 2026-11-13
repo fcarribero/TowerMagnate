@@ -340,10 +340,24 @@ describe('placement preview agrees with the server', () => {
 
   it('exercises both green and red for every kind of tool', () => {
     const probes = allProbes(richTower());
-    for (const kind of ['stairs', 'escalator', 'office', 'floor', 'lobby', 'standard shaft', 'resize']) {
+    for (const kind of [
+      'stairs',
+      'escalator',
+      'office',
+      'floor',
+      'lobby',
+      'standard shaft',
+      'resize',
+    ]) {
       const ofKind = probes.filter((probe) => probe.label.startsWith(kind));
-      expect(ofKind.some((probe) => probe.client === null), `${kind} has a green`).toBe(true);
-      expect(ofKind.some((probe) => probe.client !== null), `${kind} has a red`).toBe(true);
+      expect(
+        ofKind.some((probe) => probe.client === null),
+        `${kind} has a green`,
+      ).toBe(true);
+      expect(
+        ofKind.some((probe) => probe.client !== null),
+        `${kind} has a red`,
+      ).toBe(true);
     }
   }, 300_000);
 
@@ -370,7 +384,11 @@ describe('placement preview agrees with the server', () => {
       command: { type: 'resizeShaft', shaftId: shaft.id, bottom, top: 10 } as Command,
       client: checkShaft(shaft.type, shaft.x, bottom, 10, world, shaft.id),
     }));
-    expect(probes.map((probe) => probe.client)).toEqual(['SHAFT_IN_USE', 'SHAFT_IN_USE', 'SHAFT_IN_USE']);
+    expect(probes.map((probe) => probe.client)).toEqual([
+      'SHAFT_IN_USE',
+      'SHAFT_IN_USE',
+      'SHAFT_IN_USE',
+    ]);
     expect(mismatches(state, probes)).toEqual([]);
   });
 
@@ -396,9 +414,9 @@ describe('placement preview agrees with the server', () => {
     const world = worldOf(state);
     // Level 8 holds an office next to a fast-food, so an escalator ending there must be red.
     expect(checkPlacement('escalator', 20, 8, world).problem).toBe('ESCALATOR_FLOOR_TYPE');
-    expect(serverSays(state, { type: 'buildTransport', transportType: 'escalator', x: 20, level: 8 })).toBe(
-      'ESCALATOR_FLOOR_TYPE',
-    );
+    expect(
+      serverSays(state, { type: 'buildTransport', transportType: 'escalator', x: 20, level: 8 }),
+    ).toBe('ESCALATOR_FLOOR_TYPE');
   });
 
   it('keeps the site width in step with the engine', () => {

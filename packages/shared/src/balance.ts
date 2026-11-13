@@ -740,6 +740,8 @@ export const CALL_PATIENCE_STEPS = 30;
 /** Office hours that bound the couriers (people spec 23): offices are open on weekdays, in minutes since midnight. */
 export const COURIER_OFFICE_OPEN_MINUTE = 9 * 60;
 export const COURIER_OFFICE_CLOSE_MINUTE = 17 * 60;
+/** Each office opens and closes up to this many minutes earlier or later than the hours above, a new draw per day. */
+export const COURIER_HOURS_JITTER_MINUTES = 30;
 /** No courier is sent in the first or the last this many minutes of the office hours. */
 export const COURIER_MARGIN_MINUTES = 120;
 /** Length in minutes of the block an office rolls once in for a courier. */
@@ -750,5 +752,3 @@ export const COURIER_CHANCE_PER_BLOCK = 0.4;
 export const COURIER_DWELL_STEPS = 3;
 /** A courier that has not left this many blocks after being sent gives up and is removed. */
 export const COURIER_GIVE_UP_BLOCKS = 3;
-/** Each office opens and closes up to this many minutes earlier or later than the hours above, a new draw per day. */
-export const COURIER_HOURS_JITTER_MINUTES = 30;

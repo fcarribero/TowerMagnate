@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { COMMAND_TYPES, CommandSchema, ElevatorScheduleSchema } from './commands';
 import { SOCKET_ERROR_CODES } from '../errors';
+import { PERSON_KINDS } from '../people';
 import { ErrorCodeSchema, ServerErrorCodeSchema } from './errors';
 import {
   ClientMessageSchema,
@@ -10,7 +11,7 @@ import {
   serverMessage,
 } from './messages';
 import { packCar, packPerson, unpackCar, unpackPerson } from './packed';
-import { LevelSchema, NameSchema } from './primitives';
+import { LevelSchema, NameSchema, PersonKindSchema } from './primitives';
 import {
   sampleClientMessages,
   sampleCommands,
@@ -200,7 +201,6 @@ describe('packed people and cars', () => {
     expect(unpackCar(packCar(car))).toEqual(car);
   });
 
-  it('survive JSON inside a delta', () => {
   it('carry the courier kind, stored right after staff', () => {
     const courier = { ...walker, id: 'p9', kind: 'courier' } as const;
     expect(unpackPerson(packPerson(courier))).toEqual(courier);
@@ -210,6 +210,7 @@ describe('packed people and cars', () => {
     expect(ServerMessageSchema.parse(throughJson(delta))).toEqual(delta);
   });
 
+  it('survive JSON inside a delta', () => {
     const delta = serverMessage('delta', {
       step: 2,
       cars: [packCar(car)],

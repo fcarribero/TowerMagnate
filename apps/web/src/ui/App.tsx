@@ -324,21 +324,21 @@ export function App({ developer = false, onLogout, onRestartTower, onSessionLost
           ? (connection.store.current?.latest.mainLobbyHeight ?? null)
           : null,
       shaftAt: (cell) => grabShaft(connection.store.current?.latest.shafts.values(), cell),
+      worldAt: () => {
+        const state = connection.store.current?.latest;
+        return state === undefined ? null : worldOf(state);
+      },
       onDragLabel: setDragLabel,
+      onCancelTool: () => setTool(DEFAULT_TOOL),
       onOutcome: (outcome, _command, at) => report(outcome, at),
     });
     return () => {
       unbind();
-      onCancelTool: () => setTool(DEFAULT_TOOL),
       stage.setPrimaryDragPans(true);
     };
   }, [stage, connection, commandApi, tool, lobbyHeight, report]);
 
   useEffect(() => {
-      worldAt: () => {
-        const state = connection.store.current?.latest;
-        return state === undefined ? null : worldOf(state);
-      },
     if (stage === null) {
       return;
     }

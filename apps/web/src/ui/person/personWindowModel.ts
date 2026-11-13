@@ -22,6 +22,7 @@ const KIND_KEYS: Readonly<Record<PersonKind, StringKey>> = {
   builder: 'value.person.builder',
   staff: 'value.person.staff',
   courier: 'value.person.courier',
+  child: 'value.person.child',
 };
 
 const STRESS_KEYS: Readonly<Record<StressLevel, StringKey>> = {
@@ -32,6 +33,7 @@ const STRESS_KEYS: Readonly<Record<StressLevel, StringKey>> = {
 
 const HOME_ROW_KEYS: Partial<Record<PersonKind, StringKey>> = {
   resident: 'window.person.livesIn',
+  child: 'window.person.livesIn',
   officeWorker: 'window.person.worksIn',
   hotelGuest: 'window.person.staysIn',
 };
@@ -80,6 +82,13 @@ export function stateText(
 ): string {
   if (kind === 'courier' && (state === 'walk' || state === 'inside')) {
     return t('value.personState.delivering');
+  }
+  // A child has no plans: wherever it is on a trip, it is with the adult it follows.
+  if (
+    kind === 'child' &&
+    (state === 'walk' || state === 'wait' || state === 'ride' || state === 'stairs')
+  ) {
+    return t('value.personState.withAdult');
   }
   switch (state) {
     case 'walk':

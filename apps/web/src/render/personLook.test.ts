@@ -4,8 +4,12 @@ import {
   FRAME_HEIGHT,
   FRAME_WIDTH,
   HAIR_COLORS,
+  MAX_CHILD_SCALE_X,
+  MAX_CHILD_SCALE_Y,
   MAX_SCALE_X,
   MAX_SCALE_Y,
+  MIN_CHILD_SCALE_X,
+  MIN_CHILD_SCALE_Y,
   MIN_SCALE_X,
   MIN_SCALE_Y,
   SHIRT_COLORS,
@@ -31,6 +35,7 @@ const KINDS: PersonKind[] = [
   'prospect',
   'builder',
   'staff',
+  'child',
 ];
 
 describe('personLook', () => {
@@ -79,6 +84,28 @@ describe('personLook', () => {
     const women = looks.filter((look) => look.model === 'woman').length;
     expect(women).toBeGreaterThan(IDS.length * 0.4);
     expect(women).toBeLessThan(IDS.length * 0.6);
+  });
+
+  it('draws a child with the same models, 56 to 69% of an adult height and a narrow build', () => {
+    for (const id of IDS) {
+      const child = computeLook(id, 'child');
+      const adult = computeLook(id, 'officeWorker');
+      expect(child.scaleY).toBeGreaterThanOrEqual(MIN_CHILD_SCALE_Y);
+      expect(child.scaleY).toBeLessThanOrEqual(MAX_CHILD_SCALE_Y);
+      expect(child.scaleX).toBeGreaterThanOrEqual(MIN_CHILD_SCALE_X);
+      expect(child.scaleX).toBeLessThanOrEqual(MAX_CHILD_SCALE_X);
+      expect(Number.isInteger(child.scaleY * FRAME_HEIGHT)).toBe(true);
+      expect(Number.isInteger(child.scaleX * FRAME_WIDTH)).toBe(true);
+      expect(child.scaleY).toBeLessThan(adult.scaleY);
+      expect(child.scaleX).toBeLessThan(adult.scaleX);
+      expect(child.model).toBe(adult.model);
+      expect(child.skin).toBe(adult.skin);
+    }
+    expect(MAX_CHILD_SCALE_Y).toBeLessThan(MIN_SCALE_Y);
+    const heights = IDS.map((id) => computeLook(id, 'child').scaleY);
+    const mean = heights.reduce((sum, value) => sum + value, 0) / heights.length;
+    expect(mean).toBeGreaterThan(0.6);
+    expect(mean).toBeLessThan(0.68);
   });
 
   it('gives neighbors different looks', () => {

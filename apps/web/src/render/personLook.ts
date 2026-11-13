@@ -46,6 +46,8 @@ export const SPRITE_NAME_OF_KIND: Record<PersonKind, string> = {
   staff: 'staff',
   // TODO: couriers wear a customer's outfit until the person art gets a delivery palette and a package.
   courier: 'customer',
+  // Children use the same models and clothes as everyone, drawn smaller (see CHILD_* below).
+  child: 'customer',
 };
 
 export const SKIN_TONES: readonly number[] = [
@@ -97,6 +99,12 @@ export const MAX_SCALE_Y = 18 / FRAME_HEIGHT;
 export const MIN_SCALE_X = 7 / FRAME_WIDTH;
 export const MAX_SCALE_X = 10 / FRAME_WIDTH;
 
+/** Children are about 60 to 65% of an adult's height: 9 to 11 pixels of the 16-pixel frame, and narrow. */
+export const MIN_CHILD_SCALE_Y = 9 / FRAME_HEIGHT;
+export const MAX_CHILD_SCALE_Y = 11 / FRAME_HEIGHT;
+export const MIN_CHILD_SCALE_X = 5 / FRAME_WIDTH;
+export const MAX_CHILD_SCALE_X = 6 / FRAME_WIDTH;
+
 /** FNV-1a over the id, then a final mix so ids that differ by one character are far apart. */
 export function hashId(id: string): number {
   let hash = 0x811c9dc5;
@@ -137,6 +145,14 @@ function widthPixels(value: number): number {
   return pick(steps, value);
 }
 
+function childHeightPixels(value: number): number {
+  return pick([9, 10, 10, 11], value);
+}
+
+function childWidthPixels(value: number): number {
+  return pick([5, 6], value);
+}
+
 interface Clothes {
   shirt: number;
   pants: number;
@@ -171,8 +187,9 @@ export function computeLook(id: string, kind: PersonKind, carrying = false): Per
   const name = carrying ? 'staffbag' : SPRITE_NAME_OF_KIND[kind];
   const model: PersonModel = name === 'maid' || unit(hash, 0) < 0.5 ? 'woman' : 'man';
   const clothes = clothesOf(name, model, hash);
-  const height = heightPixels(unit(hash, 6), model);
-  const width = widthPixels(unit(hash, 7));
+  const child = kind === 'child';
+  const height = child ? childHeightPixels(unit(hash, 6)) : heightPixels(unit(hash, 6), model);
+  const width = child ? childWidthPixels(unit(hash, 7)) : widthPixels(unit(hash, 7));
   return {
     model,
     skin: pick(SKIN_TONES, unit(hash, 1)),
