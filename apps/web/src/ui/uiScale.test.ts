@@ -8,20 +8,11 @@ function resizeTo(width: number, height: number): void {
 }
 
 describe('uiScaleFor', () => {
-  it('is 1.5 at the design size of 1280 x 800', () => {
+  it('is 1.5 whatever the viewport size', () => {
     expect(uiScaleFor(1280, 800)).toBe(1.5);
-  });
-
-  it('follows the smaller side in quarter steps', () => {
-    expect(uiScaleFor(1024, 640)).toBe(1.25);
-    expect(uiScaleFor(1920, 1080)).toBe(2);
-    expect(uiScaleFor(1920, 1200)).toBe(2.25);
-    expect(uiScaleFor(4000, 1000)).toBe(2);
-  });
-
-  it('stays between 1 and 4.5', () => {
-    expect(uiScaleFor(800, 500)).toBe(1);
-    expect(uiScaleFor(8000, 5000)).toBe(4.5);
+    expect(uiScaleFor(1024, 640)).toBe(1.5);
+    expect(uiScaleFor(1920, 1080)).toBe(1.5);
+    expect(uiScaleFor(8000, 5000)).toBe(1.5);
   });
 });
 
@@ -43,10 +34,10 @@ describe('useUiScale', () => {
     expect(document.documentElement.style.getPropertyValue('--tm-ui-scale')).toBe('1.5');
 
     act(() => resizeTo(2560, 1440));
-    expect(result.current).toEqual({ scale: 2.75, tooSmall: false });
-    expect(document.documentElement.style.getPropertyValue('--tm-ui-scale')).toBe('2.75');
+    expect(result.current).toEqual({ scale: 1.5, tooSmall: false });
+    expect(document.documentElement.style.getPropertyValue('--tm-ui-scale')).toBe('1.5');
 
     act(() => resizeTo(900, 600));
-    expect(result.current).toEqual({ scale: 1, tooSmall: true });
+    expect(result.current).toEqual({ scale: 1.5, tooSmall: true });
   });
 });
