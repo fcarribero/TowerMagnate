@@ -45,6 +45,23 @@ describe('bindUnits', () => {
   });
 });
 
+describe('bindUnits venue crew', () => {
+  it('passes the crew and garbage fields of a unit through to the layer', () => {
+    const store = new ClientStore({ requestResync: () => {} });
+    store.applySnapshot(snapshot);
+    const shown: UnitsInput[] = [];
+    bindUnits(store, 'normal', (input) => shown.push(input));
+    store.applyDelta(
+      delta({
+        step: snapshot.step + 1,
+        unitsUpserted: [{ ...office, staffed: false, garbage: 4 }],
+      }),
+    );
+    const unit = [...(shown[1]?.units ?? [])].find((candidate) => candidate.id === office.id);
+    expect(unit).toMatchObject({ staffed: false, garbage: 4 });
+  });
+});
+
 describe('debugUnits', () => {
   it('has every placed unit type empty and occupied', () => {
     const { units, transports } = debugUnits(12);

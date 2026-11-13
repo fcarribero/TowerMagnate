@@ -163,6 +163,18 @@ export {
   venuePayoutHooks,
 } from './venues';
 export type { FoodVenueSummary, VisitSource } from './venues';
+export {
+  addCrew,
+  createVenueStaff,
+  crewOf,
+  decodeStaffRoutine,
+  encodeStaffRoutine,
+  isCarryingBag,
+  isStaffOutside,
+  isVenueStaffed,
+  staffRoutineAt,
+} from './venue-staff';
+export type { StaffPhase, StaffRoutine, VenueStaffSystems } from './venue-staff';
 export { createCustomers, outsideCustomerCount } from './customers';
 export type { CustomerSystems, OutsideCustomerFactors } from './customers';
 export { startWeddingAttempt, startWeddingNow, weddingAttemptHook, weddingSystem } from './wedding';

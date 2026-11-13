@@ -7,6 +7,7 @@ import {
   planShaft,
   riderPlace,
   riderSlotCount,
+  floorSprite,
   riderSprite,
 } from './elevatorPlan';
 import { levelToIndex, levelTop } from './levels';
@@ -132,6 +133,17 @@ describe('riders', () => {
     expect(riderSprite({ ...walker, id: 'p4', kind: 'guard', stress: 'veryStressed' })).toEqual({
       subject: 'people/security-a',
       state: 'stand-red',
+    });
+  });
+
+  it('draws staff with their own look and with a garbage bag while they carry one', () => {
+    const staff = { ...walker, id: 'p4', kind: 'staff', stress: 'normal' } as const;
+    expect(riderSprite(staff).subject).toBe('people/staff-a');
+    expect(riderSprite({ ...staff, carrying: true }).subject).toBe('people/staffbag-a');
+    expect(floorSprite({ ...staff, carrying: true, mode: 'walk' }, 3)).toEqual({
+      subject: 'people/staffbag-a',
+      state: 'walk',
+      frame: 1,
     });
   });
 });

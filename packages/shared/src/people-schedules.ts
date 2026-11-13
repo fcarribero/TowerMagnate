@@ -46,6 +46,27 @@ export const VENUE_CANDIDATES_DRAWN = 3;
 /** A required trip with no route is tried again after this many steps (people spec 4). */
 export const ROUTE_RETRY_STEPS = 720;
 
+/**
+ * Venue crews: how many staff each commercial unit needs, how many black garbage bags its
+ * closing leaves, and its opening hours in minutes since midnight. A venue is open only inside
+ * its hours and with its whole crew inside the unit.
+ */
+export const VENUE_STAFF = {
+  'retail-shop': { crew: 3, bags: 0, open: minutes(10), close: minutes(20) },
+  'fast-food': { crew: 4, bags: 3, open: minutes(8), close: minutes(20) },
+  restaurant: { crew: 6, bags: 5, open: minutes(17), close: minutes(23) },
+  cinema: { crew: 5, bags: 10, open: minutes(14), close: minutes(21) },
+  'party-hall': { crew: 4, bags: 4, open: minutes(13), close: minutes(17) },
+} as const;
+
+export type StaffedVenueType = keyof typeof VENUE_STAFF;
+
+/** Staff reach their venue between this many minutes before it opens. */
+export const STAFF_EARLY_ARRIVAL = { from: 30, to: 60 } as const;
+
+/** Where the garbage pile stands, as a fraction of the venue's width from its left edge. */
+export const GARBAGE_PILE_POSITION = 0.75;
+
 /** Residents (people spec 7), shares as fractions. */
 export const RESIDENT_WORKDAY_CHANCE = 0.7;
 

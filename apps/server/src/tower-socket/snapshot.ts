@@ -10,7 +10,9 @@ import {
   STEPS_PER_DAY,
   DAYS_PER_WEEK,
   isAsleep,
+  isCarryingBag,
   isOutsideTower,
+  isVenueStaffed,
   occupantAt,
   routineAt,
   trekPhaseAt,
@@ -24,6 +26,7 @@ import {
   STRESS_ALTO_FROM,
   STRESS_MUY_ALTO_FROM,
   TOWER_LAYOUT,
+  VENUE_STAFF,
   type FinanceSummary,
   type FinanceWeek,
   type CarView,
@@ -81,6 +84,7 @@ export function buildSnapshot(
   const units = [
     ...Object.values(state.units).map((unit) =>
       unitView(
+        state,
         unit,
         homes.has(unit.id),
         disconnected.has(unit.id),
@@ -165,6 +169,7 @@ function siteView(site: TowerState['sites'][string], disconnected: boolean): Uni
 }
 
 function unitView(
+  state: TowerState,
   unit: TowerUnit,
   occupied: boolean,
   disconnected: boolean,
@@ -182,6 +187,10 @@ function unitView(
     variant: unitVariant(unit, occupied, disconnected, sleeping),
     ...(inside ? { inside } : {}),
     ...(unit.lease !== null ? { leased: true } : {}),
+    ...(unit.type in VENUE_STAFF && !isVenueStaffed(state, unit)
+      ? { staffed: false as const }
+      : {}),
+    ...(unit.venue && unit.venue.garbage > 0 ? { garbage: unit.venue.garbage } : {}),
   };
 }
 
@@ -224,7 +233,7 @@ function carViews(shaft: Shaft): CarView[] {
 function occupiedUnits(people: EnginePerson[]): Set<string> {
   const homes = new Set<string>();
   for (const person of people) {
-    if (person.homeUnit !== null) {
+    if (person.homeUnit !== null && person.kind !== 'staff') {
       homes.add(person.homeUnit);
     }
   }
@@ -392,6 +401,7 @@ function personView(
     mode: modeOfPhase(phase, standsStill(state, slot, place)),
     carRef: ride?.carRef ?? null,
     stress: stressLevel(person.stress),
+    ...(isCarryingBag(state.people, slot) ? { carrying: true } : {}),
   };
 }
 

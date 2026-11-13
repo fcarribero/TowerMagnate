@@ -98,3 +98,19 @@ describe('availability tape', () => {
     );
   });
 });
+
+describe('garbage pile', () => {
+  it('draws ten piles that grow, sit on the floor and fit the narrowest venue', () => {
+    let previous = 0;
+    for (let bags = 1; bags <= 10; bags++) {
+      const pile = byId[`effects/garbage/pile_${bags}`];
+      expect(pile, `pile_${bags}`).toBeDefined();
+      expect(pile.width).toBeLessThanOrEqual(32);
+      const bottomRow = pile.pixels.subarray((pile.height - 1) * pile.width);
+      expect(bottomRow.some((index) => index !== 0)).toBe(true);
+      const filled = pile.pixels.filter((index) => index !== 0).length;
+      expect(filled).toBeGreaterThan(previous);
+      previous = filled;
+    }
+  });
+});

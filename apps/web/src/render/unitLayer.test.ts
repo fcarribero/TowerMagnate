@@ -194,3 +194,56 @@ describe('UnitLayer flat sprite', () => {
     expect(spriteOf(layer)).toMatchObject({ texture: textures['units/office/empty_day'] });
   });
 });
+
+describe('UnitLayer garbage pile', () => {
+  const pileIds = [
+    'units/restaurant/open_day',
+    'effects/garbage/pile_3',
+    'effects/garbage/pile_10',
+  ];
+  const restaurant: UnitSource = {
+    id: 'r1',
+    type: 'restaurant',
+    x: 4,
+    level: 3,
+    occupied: false,
+    price: 'normal',
+    variant: 'empty',
+    leased: true,
+  };
+  const show = (layer: UnitLayer, unit: UnitSource) =>
+    layer.update({ units: [unit], transports: [], time: 'day', openVenues: ALL_VENUES_OPEN });
+
+  it('puts the pile on the floor at three quarters of the unit width, above the unit sprite', () => {
+    const { layer, textures } = layerWith(pileIds);
+    show(layer, { ...restaurant, garbage: 3 });
+    const children = layer.view.children[0]?.children ?? [];
+    expect(children).toHaveLength(2);
+    const pile = children[1];
+    expect(pile).toMatchObject({ texture: textures['effects/garbage/pile_3'] });
+    const width = UNIT_CATALOG.restaurant.width * TILE_WIDTH;
+    expect((pile?.x ?? 0) + (pile?.width ?? 0) / 2).toBeCloseTo(
+      4 * TILE_WIDTH + width * 0.75,
+      -0.5,
+    );
+    expect((pile?.y ?? 0) + (pile?.height ?? 0)).toBe(FLOOR_HEIGHT - 3);
+  });
+
+  it('swaps the pile when the count changes, caps it at ten and removes it at none', () => {
+    const { layer, textures } = layerWith(pileIds);
+    show(layer, { ...restaurant, garbage: 3 });
+    show(layer, { ...restaurant, garbage: 25 });
+    const children = layer.view.children[0]?.children ?? [];
+    expect(children).toHaveLength(2);
+    expect(children[1]).toMatchObject({ texture: textures['effects/garbage/pile_10'] });
+    show(layer, restaurant);
+    expect(layer.view.children[0]?.children).toHaveLength(1);
+  });
+
+  it('removes the pile with its unit', () => {
+    const { layer } = layerWith(pileIds);
+    show(layer, { ...restaurant, garbage: 3 });
+    layer.update({ units: [], transports: [], time: 'day', openVenues: ALL_VENUES_OPEN });
+    expect(layer.view.children[0]?.children ?? []).toHaveLength(0);
+  });
+});

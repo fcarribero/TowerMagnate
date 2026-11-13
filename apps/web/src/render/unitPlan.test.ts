@@ -93,6 +93,32 @@ describe('planUnit', () => {
     expect(restaurant?.variant).toEqual({ state: 'busy', time: 'night' });
   });
 
+  it('draws a venue closed while its crew is not all inside, whatever the hour', () => {
+    for (const type of ['fast-food', 'restaurant', 'retail-shop'] as const) {
+      const unit = { ...base, type, leased: true };
+      expect(planUnit({ ...unit, staffed: false }, 'day')?.variant.state, type).toBe('closed');
+      expect(planUnit(unit, 'day')?.variant.state, type).toBe('open');
+    }
+    for (const type of ['cinema', 'party-hall'] as const) {
+      const closed = planUnit({ ...base, type, staffed: false, occupied: true }, 'day');
+      expect(closed?.variant.state, type).toBe('empty');
+      expect(planUnit({ ...base, type, occupied: true }, 'day')?.variant.state, type).not.toBe(
+        'empty',
+      );
+    }
+    const open = openVenuesAt(stepAtHour(12));
+    const office = planUnit({ ...base, type: 'office', staffed: false }, 'day', null, open);
+    expect(office?.variant.state).toBe('empty');
+  });
+
+  it('carries the garbage pile of a built unit into the drawing', () => {
+    expect(planUnit({ ...base, type: 'fast-food', garbage: 3 }, 'day')?.garbage).toBe(3);
+    expect(planUnit({ ...base, type: 'fast-food' }, 'day')?.garbage).toBeUndefined();
+    expect(
+      planUnit({ ...base, type: 'fast-food', garbage: 3, construction: 20 }, 'day')?.garbage,
+    ).toBeUndefined();
+  });
+
   it('draws venues closed outside their opening hours', () => {
     const midnight = openVenuesAt(0);
     const evening = openVenuesAt(stepAtHour(21));

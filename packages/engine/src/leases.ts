@@ -13,6 +13,7 @@ import { DAYS_PER_WEEK } from './calendar';
 import { STEPS_PER_DAY } from './clock';
 import { creditMoney, pushUnitMoney } from './money';
 import { removePeopleOfUnit } from './people';
+import { addCrew } from './venue-staff';
 import type { SimulationSystem, StepContext } from './step';
 import { writableUnit } from './step-copy';
 import { unitNumber } from './units';
@@ -53,6 +54,7 @@ function startTerm(context: StepContext, unit: LeasedUnit, event: 'leaseSigned' 
   unit.used = true;
   const rent = creditMoney(context.state, 'rent', weeklyRent(unit));
   pushUnitMoney(context, unit.id, rent, 'rent');
+  addCrew(context.state, unit.id);
   context.events.push({ type: event, step, unitId: unit.id });
 }
 

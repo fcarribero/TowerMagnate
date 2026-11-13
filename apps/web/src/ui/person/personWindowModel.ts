@@ -20,6 +20,7 @@ const KIND_KEYS: Readonly<Record<PersonKind, StringKey>> = {
   weddingGuest: 'value.person.weddingGuest',
   prospect: 'value.person.prospect',
   builder: 'value.person.builder',
+  staff: 'value.person.staff',
 };
 
 const STRESS_KEYS: Readonly<Record<StressLevel, StringKey>> = {

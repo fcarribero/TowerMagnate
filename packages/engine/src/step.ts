@@ -30,6 +30,7 @@ import { endStepCopy, stepCopy } from './step-copy';
 import { ledgerWeekRollHook } from './money';
 import { createOfficeRoutine } from './office-routine';
 import { createResidentRoutine } from './resident-routine';
+import { createVenueStaff } from './venue-staff';
 import { createProspectDemand } from './prospects';
 import { createScheduler } from './scheduler';
 import { cancelTrek, createTrekSystem, isOnTrek, plannedTripSteps } from './trek';
@@ -249,6 +250,8 @@ const residentRoutine = createResidentRoutine(
   { treks: true },
 );
 
+const venueStaff = createVenueStaff();
+
 const prospects = createProspectDemand();
 
 const customers = createCustomers();
@@ -272,6 +275,7 @@ export const namedTowerSystems: readonly { name: string; system: SimulationSyste
       ...venuePayoutHooks,
       filmNewsHook,
       officeRoutine.planHook,
+      venueStaff.planHook,
       parkingAssignmentHook,
       residentRoutine.planHook,
       hotelGuests.planHook,
@@ -295,6 +299,7 @@ export const namedTowerSystems: readonly { name: string; system: SimulationSyste
   { name: 'trek', system: createTrekSystem() },
   { name: 'prospects', system: prospects.system },
   { name: 'office routine', system: officeRoutine.system },
+  { name: 'venue staff', system: venueStaff.system },
   { name: 'resident routine', system: residentRoutine.system },
   { name: 'hotel guests', system: hotelGuests.system },
   { name: 'housekeeping', system: createMaidSystem() },

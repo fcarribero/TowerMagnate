@@ -20,6 +20,7 @@ import { basementRuleError } from './basement-rules';
 import { escalatorLevels, isEscalatorUnit } from './escalator-floors';
 import { isBuiltByCrew } from '../construction';
 import { addPeopleForUnit } from '../people';
+import { addCrew } from '../venue-staff';
 import { newUnit } from '../units';
 import { bombLockError, limitError, starLockError } from './unit-limits';
 import {
@@ -187,7 +188,15 @@ export const buildUnit: CommandHandler<'buildUnit'> = (context, command) => {
     addOccupant(grid, row, footprint.x0, footprint.x1, { kind: 'unit', id });
   }
   if (isBuiltByCrew(definition.type)) {
-    state.sites[id] = { id, type: definition.type, x, level, paid: cost, placedAtStep: state.step, points: 0 };
+    state.sites[id] = {
+      id,
+      type: definition.type,
+      x,
+      level,
+      paid: cost,
+      placedAtStep: state.step,
+      points: 0,
+    };
     return { ok: true, cost, refund: 0, events: [] };
   }
   state.units[id] = {
@@ -196,5 +205,6 @@ export const buildUnit: CommandHandler<'buildUnit'> = (context, command) => {
     placedAtStep: state.step,
   };
   if (definition.type === 'security') addPeopleForUnit(state, id);
+  addCrew(state, id);
   return { ok: true, cost, refund: 0, events: [] };
 };

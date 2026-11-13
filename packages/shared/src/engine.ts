@@ -128,6 +128,10 @@ export interface VenueDay {
   customers: number[];
   /** Step of the last film change of a cinema; null while it shows its first film. */
   filmChangedAtStep: number | null;
+  /** Black garbage bags in the pile left when the venue closed; 0 when there is no pile. */
+  garbage: number;
+  /** Day number (step divided by steps per day) the pile was last made; -1 before the first. */
+  garbageDay: number;
   /**
    * Counted visits of today by hour of the day (24 entries); missing in saves made before the
    * unit window chart, which read it as all zero.
@@ -540,6 +544,16 @@ export type EngineEvent =
     }
   | { type: 'tripFinished'; step: number; person: EntityId; arrived: boolean }
   | { type: 'routeSearchFailed'; step: number; person: EntityId }
+  /** Money that moved because of one unit: positive is income, negative is spent or lost. */
+  | { type: 'unitMoney'; step: number; unitId: UnitId; amount: number; reason: MoneyReason }
+  | {
+      type: 'unitMoney';
+      step: number;
+      commandId: string;
+      unitId: UnitId;
+      amount: number;
+      reason: MoneyReason;
+    }
   | { type: 'hotelCheckIn'; step: number; unitId: UnitId; nights: number; paid: number }
   | { type: 'hotelCheckOut'; step: number; unitId: UnitId }
   | { type: 'roomStateChanged'; step: number; unitId: UnitId; state: HotelRoomState }
@@ -551,16 +565,6 @@ export type EngineEvent =
       eventId: EventId;
       kind: DecisionKind;
       deadlineStep: number;
-  /** Money that moved because of one unit: positive is income, negative is spent or lost. */
-  | { type: 'unitMoney'; step: number; unitId: UnitId; amount: number; reason: MoneyReason }
-  | {
-      type: 'unitMoney';
-      step: number;
-      commandId: string;
-      unitId: UnitId;
-      amount: number;
-      reason: MoneyReason;
-    }
       options: string[];
     }
   | { type: 'decisionClosed'; step: number; eventId: EventId; choice: string }

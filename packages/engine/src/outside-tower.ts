@@ -4,9 +4,11 @@ import { routineAt } from './office-routine';
 import { decodeResidentRoutine } from './resident-routine';
 import { isOnTrek } from './trek';
 import { NO_TRIP } from './people';
+import { isStaffOutside } from './venue-staff';
 
 const OFFICE_WORKER_KIND = PERSON_KINDS.indexOf('officeWorker');
 const RESIDENT_KIND = PERSON_KINDS.indexOf('resident');
+const STAFF_KIND = PERSON_KINDS.indexOf('staff');
 
 /**
  * A worker is out of the tower before arriving, after giving up, and whenever they have no
@@ -39,5 +41,6 @@ export function isOutsideTower(pool: PersonPool, slot: number): boolean {
   const kind = pool.kind[slot];
   if (kind === OFFICE_WORKER_KIND) return officeWorkerIsOutside(pool, slot);
   if (kind === RESIDENT_KIND) return residentIsOutside(pool, slot);
+  if (kind === STAFF_KIND) return isStaffOutside(pool, slot);
   return guestRoutineAt(pool, slot)?.phase === 'outside';
 }

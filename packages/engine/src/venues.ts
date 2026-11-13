@@ -210,6 +210,7 @@ function payOut(context: StepContext, unit: VenueUnit): void {
     }
     if (result < 0) {
       chargeMoney(state, 'venues', -result);
+      pushUnitMoney(context, unit.id, result, 'dailyPayout');
       const lossNews = LOSS_NEWS[unit.type];
       if (lossNews) context.events.push(...emitNews(state, lossNews, { unitId: unit.id }));
     }
@@ -230,7 +231,6 @@ function payoutHook(type: VenueType): ScheduledHook {
     run(context) {
       for (const unit of Object.values(context.state.units)) {
         if (unit.type === type && isVenue(unit)) payOut(context, writableUnit(context.state, unit));
-      pushUnitMoney(context, unit.id, result, 'dailyPayout');
       }
     },
   };

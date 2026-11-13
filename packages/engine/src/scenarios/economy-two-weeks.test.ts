@@ -93,7 +93,7 @@ function economyTower(): { tower: TowerState; units: EconomyUnits } {
 }
 
 /** Seed 1 draws these stay lengths, in the order of the successful check-ins below. */
-const SEED_ONE_NIGHTS = [2, 2, 3, 4, 1, 1, 2, 2, 2, 1, 1, 1];
+const SEED_ONE_NIGHTS = [2, 2, 3, 4, 1, 1, 2, 2, 3, 1, 1, 1];
 
 interface VenueVisits {
   fastFood: number;
@@ -197,7 +197,7 @@ function economyScript(units: EconomyUnits): EconomyScript {
  * Hotel: day 0 single 2 x 2,000, double 2 x 3,000, suite 3 x 6,000 at 23:00; day 1 single
  * refused (occupied); day 2 single 4 x 2,000; day 3 double refused at 11:59, then 1 x 3,000;
  * day 4 suite 1 x 6,000; day 5 double 2 x 3,000; day 6 single 2 x 3,000 (alto), suite refused
- * at 23:01; day 7 suite 2 x 6,000; day 8 double 1 x 3,000; day 9 single 1 x 3,000; day 11 suite
+ * at 23:01; day 7 suite 3 x 6,000; day 8 double 1 x 3,000; day 9 single 1 x 3,000; day 11 suite
  * 1 x 4,000 (bajo).
  * Venues per day are fast food + restaurant + party hall + cinema brackets for the visit tables.
  */
@@ -212,13 +212,13 @@ const EXPECTED_DAYS: ExpectedDay[] = [
     balance: 2_301_000,
     changes: { rent: 15_000, hotel: 6_000, venues: 19_000, upkeep: -89_000 },
   },
-  { balance: 2_346_000, changes: { rent: 10_000, hotel: 12_000, venues: 23_000 } },
-  { balance: 2_352_000, changes: { hotel: 3_000, venues: 3_000 } },
-  { balance: 2_387_000, changes: { rent: 5_000, hotel: 3_000, venues: 27_000 } },
-  { balance: 2_633_000, changes: { condoSales: 230_000, venues: 16_000 } },
-  { balance: 2_666_000, changes: { hotel: 4_000, venues: 29_000 } },
-  { balance: 2_672_000, changes: { venues: 6_000 } },
-  { balance: 2_638_000, changes: { rent: 15_000, venues: 40_000, upkeep: -89_000 } },
+  { balance: 2_352_000, changes: { rent: 10_000, hotel: 18_000, venues: 23_000 } },
+  { balance: 2_358_000, changes: { hotel: 3_000, venues: 3_000 } },
+  { balance: 2_393_000, changes: { rent: 5_000, hotel: 3_000, venues: 27_000 } },
+  { balance: 2_639_000, changes: { condoSales: 230_000, venues: 16_000 } },
+  { balance: 2_672_000, changes: { hotel: 4_000, venues: 29_000 } },
+  { balance: 2_678_000, changes: { venues: 6_000 } },
+  { balance: 2_644_000, changes: { rent: 15_000, venues: 40_000, upkeep: -89_000 } },
 ];
 
 type PartialWeek = Partial<Record<LedgerCategory, { income?: number; expense?: number }>>;
@@ -243,7 +243,7 @@ const WEEK_ONE = weekTotals({
 
 const WEEK_TWO = weekTotals({
   rent: { income: 30_000 },
-  hotel: { income: 22_000 },
+  hotel: { income: 28_000 },
   condoSales: { income: 230_000 },
   venues: { income: 165_000, expense: -21_000 },
   upkeep: { expense: -89_000 },

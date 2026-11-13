@@ -34,6 +34,8 @@ describe('people group', () => {
       'wedding-guest',
       'groom',
       'builder',
+      'staff',
+      'staffbag',
     ]);
     expect(subjects.length).toBeGreaterThanOrEqual(8);
     expect(PERSON_VARIANTS).toEqual(['a', 'b', 'c', 'd']);
@@ -61,6 +63,20 @@ describe('people group', () => {
         bottomRow.some((pixel) => pixel !== 0),
         id,
       ).toBe(true);
+    }
+  });
+
+  it('gives the bag carrier a black bag the plain crew does not have', () => {
+    const ink = colorIndex('ink');
+    for (const variant of PERSON_VARIANTS) {
+      for (const pose of ['walk_01', 'walk_02', 'stand']) {
+        const plain = byId[`people/staff-${variant}/${pose}`];
+        const carrier = byId[`people/staffbag-${variant}/${pose}`];
+        expect(
+          countColor(carrier, ink) - countColor(plain, ink),
+          `${variant} ${pose}`,
+        ).toBeGreaterThanOrEqual(4);
+      }
     }
   });
 

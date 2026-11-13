@@ -21,7 +21,7 @@ const index = (length: number) =>
     .min(0)
     .max(length - 1);
 
-/** [id, kind, x, level, facing, mode, stress, shaft, car]; shaft is 0 when not in a car. */
+/** [id, kind, x, level, facing, mode, stress, shaft, car, carrying]; shaft is 0 when not in a car, carrying is 1 with a garbage bag. */
 export const PackedPersonSchema = z.tuple([
   z.int().positive(),
   index(PERSON_KINDS.length),
@@ -32,6 +32,7 @@ export const PackedPersonSchema = z.tuple([
   index(STRESS_LEVELS.length),
   z.int().nonnegative(),
   index(MAX_CARS_PER_SHAFT),
+  index(2),
 ]);
 
 /** [shaft, car, position, direction, doors, load]. */
@@ -56,6 +57,7 @@ interface PersonFields {
   mode: (typeof PERSON_MODES)[number];
   carRef: { shaftId: string; index: number } | null;
   stress: (typeof STRESS_LEVELS)[number];
+  carrying?: boolean;
 }
 
 interface CarFields {
@@ -90,10 +92,22 @@ export function packPerson(person: PersonFields): PackedPerson {
     STRESS_LEVELS.indexOf(person.stress),
     person.carRef ? entityNumber(person.carRef.shaftId) : 0,
     person.carRef?.index ?? 0,
+    person.carrying ? 1 : 0,
   ];
 }
 
-export function unpackPerson([id, kind, x, level, facing, mode, stress, shaft, car]: PackedPerson) {
+export function unpackPerson([
+  id,
+  kind,
+  x,
+  level,
+  facing,
+  mode,
+  stress,
+  shaft,
+  car,
+  carrying,
+]: PackedPerson) {
   return {
     id: `p${id}`,
     kind: at(PERSON_KINDS, kind),
@@ -103,6 +117,7 @@ export function unpackPerson([id, kind, x, level, facing, mode, stress, shaft, c
     mode: at(PERSON_MODES, mode),
     carRef: shaft === 0 ? null : { shaftId: `s${shaft}`, index: car },
     stress: at(STRESS_LEVELS, stress),
+    ...(carrying === 1 ? { carrying: true } : {}),
   };
 }
 

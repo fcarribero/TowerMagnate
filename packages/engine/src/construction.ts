@@ -15,6 +15,7 @@ import { STEPS_PER_MINUTE, WEEKDAYS, weekdayOfDay } from './calendar';
 import { STEPS_PER_DAY } from './clock';
 import { entrancePlace } from './office-routine';
 import { addPeopleForUnit, addPerson, NO_TRIP, removePerson } from './people';
+import { addCrew } from './venue-staff';
 import { chance, nextInt } from './rng';
 import type { ScheduledHook } from './scheduler';
 import type { SimulationSystem, StepContext } from './step';
@@ -71,6 +72,7 @@ export function completeSite(state: TowerState, id: UnitId): void {
     placedAtStep: state.step,
   };
   if (site.type === 'security') addPeopleForUnit(state, id);
+  addCrew(state, id);
 }
 
 /** What a builder is doing; kept in the person's `trip` number. */

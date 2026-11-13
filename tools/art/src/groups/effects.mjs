@@ -465,6 +465,60 @@ function noAccessSticker() {
   return canvas;
 }
 
+// Garbage pile ---------------------------------------------------------------
+
+export const GARBAGE_PILE_MAX = 10;
+const PILE_WIDTH = 26;
+const PILE_HEIGHT = 20;
+const BAG_WIDTH = 7;
+const BAG_HEIGHT = 6;
+const BAG_ROW_STEP = 4;
+
+// Left edge and row of each bag, in the order the pile fills: the bottom row from the middle
+// out, then three bags on top of it, two, and one on the peak.
+const PILE_SLOTS = [
+  [6, 0],
+  [12, 0],
+  [0, 0],
+  [18, 0],
+  [9, 1],
+  [3, 1],
+  [15, 1],
+  [6, 2],
+  [12, 2],
+  [9, 3],
+];
+
+// One black bag: a tied neck, a rounded body with a gray shine and a lighter rim on top so
+// it separates from the bag below. Each bag moves the neck and the shine a little.
+function drawBag(canvas, left, bottom, index) {
+  const top = bottom - BAG_HEIGHT;
+  const neck = left + 2 + (index % 3);
+  canvas.set(neck, top, 'ink');
+  canvas.hline(left + 1, top + 1, 5, 'charcoal');
+  canvas.hline(left, top + 2, BAG_WIDTH, 'ink');
+  canvas.hline(left, top + 3, BAG_WIDTH, 'ink');
+  canvas.hline(left, top + 4, BAG_WIDTH, 'ink');
+  canvas.hline(left + 1, top + 5, 5, 'ink');
+  canvas.set(left + 1 + (index % 3), top + 2, 'slate');
+  canvas.set(left + 5 - (index % 2), top + 4, 'charcoal');
+}
+
+function garbagePile(bags) {
+  const canvas = new PixelCanvas(PILE_WIDTH, PILE_HEIGHT);
+  PILE_SLOTS.slice(0, bags).forEach(([left, row], index) => {
+    drawBag(canvas, left, PILE_HEIGHT - row * BAG_ROW_STEP, index);
+  });
+  return canvas;
+}
+
+function garbageSprites() {
+  return Array.from({ length: GARBAGE_PILE_MAX }, (_, index) => ({
+    id: `effects/garbage/pile_${index + 1}`,
+    canvas: garbagePile(index + 1),
+  }));
+}
+
 // Availability tape ------------------------------------------------------------
 
 const TAPE_WIDTH = 96;
@@ -567,6 +621,7 @@ export const effectsGroup = {
       { id: 'effects/no-access/sticker', canvas: noAccessSticker() },
       { id: 'effects/for-rent/sticker', canvas: availabilityTape('SE RENTA') },
       { id: 'effects/for-sale/sticker', canvas: availabilityTape('SE VENDE') },
+      ...garbageSprites(),
     ];
   },
 };

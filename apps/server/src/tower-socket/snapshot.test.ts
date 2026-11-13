@@ -1,5 +1,7 @@
 import {
+  addCrew,
   addPerson,
+  encodeStaffRoutine,
   chargeMoney,
   createTower,
   creditMoney,
@@ -373,6 +375,41 @@ describe('snapshot from tower state', () => {
     state.people.trek[0] = TREK_PHASES.indexOf('idle');
     state.people.trip[0] = routine('atOffice');
     expect(buildSnapshot(state, LOBBY_VIEW).people.map((person) => person.id)).toEqual(['p1']);
+  });
+
+  it('marks a venue as unstaffed until its whole crew is working, and shows its pile and bag carriers', () => {
+    const state = createTower(7);
+    setStructure(state.grid, 1, 0, 9, 'lobby');
+    setStructure(state.grid, 2, 0, 29, 'floor');
+    state.units.u7 = newUnit('u7', 'restaurant', 0, 2);
+    state.units.u5 = office('u5', 20, null);
+    const unitView = () =>
+      buildSnapshot(structuredClone(state), LOBBY_VIEW).units.find((unit) => unit.id === 'u7');
+    expect(unitView()?.staffed).toBeUndefined();
+
+    addCrew(state, 'u7', { planToday: false });
+    const crew = state.people.kind.map((_, slot) => slot);
+    expect(crew).toHaveLength(6);
+    expect(unitView()?.staffed).toBe(false);
+
+    for (const slot of crew) {
+      state.people.trip[slot] = encodeStaffRoutine({ phase: 'working', entranceOnRight: false });
+    }
+    expect(unitView()?.staffed).toBeUndefined();
+    expect(
+      buildSnapshot(structuredClone(state), LOBBY_VIEW).units.find((unit) => unit.id === 'u5')
+        ?.staffed,
+    ).toBe(undefined);
+
+    (state.units.u7?.venue as { garbage: number }).garbage = 3;
+    state.people.trip[0] = encodeStaffRoutine({ phase: 'carrying', entranceOnRight: true });
+    const snapshot = buildSnapshot(structuredClone(state), LOBBY_VIEW);
+    expect(snapshot.units.find((unit) => unit.id === 'u7')?.garbage).toBe(3);
+    expect(snapshot.units.find((unit) => unit.id === 'u7')?.staffed).toBe(false);
+    expect(snapshot.people.filter((person) => person.carrying).map((person) => person.id)).toEqual([
+      'p1',
+    ]);
+    expect(SnapshotSchema.safeParse(snapshot).success).toBe(true);
   });
 
   it('keeps the last horizontal facing while the person is not walking', () => {

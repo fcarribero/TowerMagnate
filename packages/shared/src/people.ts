@@ -12,6 +12,7 @@ export const PERSON_KINDS = [
   'weddingGuest',
   'prospect',
   'builder',
+  'staff',
 ] as const;
 
 /**
@@ -69,9 +70,9 @@ export interface PersonPool {
   leftShafts: number[];
   /** 1 when the last horizontal move was to the left, otherwise 0. */
   facing: number[];
-  /** Ids of followed people, in increasing order, at most MAX_FOLLOWED_PEOPLE. Each has a name. */
   /** Energy in thousandths of a level, from 1,000 (level 1) to 10,000 (level 10). */
   energy: number[];
+  /** Ids of followed people, in increasing order, at most MAX_FOLLOWED_PEOPLE. Each has a name. */
   followed: number[];
   /** Names the player gave, by person id. People without an entry are unnamed. */
   names: Record<number, string>;

@@ -99,6 +99,7 @@ const MIGRATIONS: readonly Migration[] = [
   addVipDryDays,
   addPersonNames,
   addConstructionSites,
+  addVenueGarbage,
 ];
 
 /** Version 2 records each unit's price level, what was paid for it and when it was placed. */
@@ -511,6 +512,22 @@ function dropOrphanLedgerEntries(raw: Record<string, unknown>): Record<string, u
   return { ...raw, schemaVersion: 33, unitLedger: Object.fromEntries(kept) };
 }
 
+/** Version 38 gives every venue an empty garbage pile; crews come with the next 00:00 plan. */
+function addVenueGarbage(raw: Record<string, unknown>): Record<string, unknown> {
+  if (!isRecord(raw.units)) {
+    return { ...raw, schemaVersion: 38 };
+  }
+  const units: Record<string, unknown> = {};
+  for (const [id, unit] of Object.entries(raw.units)) {
+    units[id] = isRecord(unit) && isRecord(unit.venue) ? withGarbage(unit) : unit;
+  }
+  return { ...raw, schemaVersion: 38, units };
+}
+
+function withGarbage(unit: Record<string, unknown>): Record<string, unknown> {
+  return { ...unit, venue: { garbage: 0, garbageDay: -1, ...(unit.venue as object) } };
+}
+
 /** Version 37 adds the construction sites; every saved unit is already built. */
 function addConstructionSites(raw: Record<string, unknown>): Record<string, unknown> {
   return { sites: {}, ...raw, schemaVersion: 37 };
@@ -632,7 +649,10 @@ function isVenueDay(value: unknown): value is VenueDay {
     isNonNegativeInteger(value.stressTrips) &&
     Array.isArray(value.customers) &&
     value.customers.every(isNonNegativeInteger) &&
-    (value.filmChangedAtStep === null || isNonNegativeInteger(value.filmChangedAtStep))
+    (value.filmChangedAtStep === null || isNonNegativeInteger(value.filmChangedAtStep)) &&
+    isNonNegativeInteger(value.garbage) &&
+    Number.isSafeInteger(value.garbageDay) &&
+    (value.garbageDay as number) >= -1
   );
 }
 

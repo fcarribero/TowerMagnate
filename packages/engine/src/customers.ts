@@ -47,6 +47,7 @@ import {
   type CustomerPhase,
 } from './venue-visitors';
 import { countVenueVisit, rollVenueDay } from './venues';
+import { isVenueStaffed } from './venue-staff';
 
 const CUSTOMER_VENUE_TYPES: readonly string[] = Object.keys(CUSTOMER_ARRIVAL);
 
@@ -223,7 +224,8 @@ function minuteOfDay(state: TowerState): number {
   return Math.floor((state.step % STEPS_PER_DAY) / STEPS_PER_MINUTE);
 }
 
-function isOpen(unit: CustomerVenue, minute: number): boolean {
+function isOpen(state: TowerState, unit: CustomerVenue, minute: number): boolean {
+  if (!isVenueStaffed(state, unit)) return false;
   const hours = VENUE_HOURS[unit.type];
   const hasTenant = unit.type !== 'retail-shop' || unit.lease !== null;
   return hasTenant && minute >= hours.open && minute < hours.close;
@@ -286,7 +288,7 @@ function arriveAtShow(
   }
   const venue = unitNumber(unit.id);
   const full = customersInsideVenue(state, venue) >= showCapacity(state, unit);
-  if (entry.kind === 'turnAway' || full) {
+  if (entry.kind === 'turnAway' || full || !isVenueStaffed(state, unit)) {
     leaveTower(context, slot, entrance);
     return;
   }
@@ -308,7 +310,7 @@ function arriveAtVenue(context: StepContext, slot: number, entrance: CustomerEnt
   if (unit) fileShopVisit(state, unit, state.people.id[slot] as number);
   const canEnter =
     unit !== null &&
-    isOpen(unit, minuteOfDay(state)) &&
+    isOpen(state, unit, minuteOfDay(state)) &&
     visitorsAt(state, unit.type, unitNumber(unit.id)) < VENUE_CAPACITY[unit.type];
   if (!unit || !canEnter) {
     leaveTower(context, slot, entrance);

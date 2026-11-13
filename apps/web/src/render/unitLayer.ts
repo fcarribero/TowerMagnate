@@ -1,10 +1,10 @@
-import type { OverlayData } from '@tower-magnate/shared';
+import { GARBAGE_PILE_POSITION, type OverlayData } from '@tower-magnate/shared';
 import { Container, Graphics, Sprite, TilingSprite } from 'pixi.js';
 import { buildStageFor, siteRects } from './constructionStages';
 import { CulledRows } from './culledRows';
 import type { LevelRange, WorldRect } from './camera';
 import { levelTop } from './levels';
-import { SLAB_HEIGHT } from './metrics';
+import { FLOOR_HEIGHT, SLAB_HEIGHT } from './metrics';
 import { checkerTexture } from './overlayChecker';
 import { overlayColorOf, transportOverlayColor, type OverlayId } from './overlayColors';
 import type { SpriteRegistry } from './spriteRegistry';
@@ -46,6 +46,23 @@ function stickerId(drawing: UnitDrawing): StickerId | null {
   return drawing.availability === 'rent' ? FOR_RENT_STICKER : FOR_SALE_STICKER;
 }
 
+/** Piles are drawn for 1 to 10 bags; a bigger count shows the biggest pile. */
+const MAX_PILE_BAGS = 10;
+const PILE_SPRITES = [
+  'effects/garbage/pile_1',
+  'effects/garbage/pile_2',
+  'effects/garbage/pile_3',
+  'effects/garbage/pile_4',
+  'effects/garbage/pile_5',
+  'effects/garbage/pile_6',
+  'effects/garbage/pile_7',
+  'effects/garbage/pile_8',
+  'effects/garbage/pile_9',
+  'effects/garbage/pile_10',
+] as const;
+/** Row of the bottom level where the pile's bottom edge rests: the floor, above the slab. */
+const PILE_FLOOR_ROW = FLOOR_HEIGHT - SLAB_HEIGHT;
+
 /** The tallest footprint is 4 floors, so a unit can show while its bottom level is just off screen. */
 const MAX_FOOTPRINT_FLOORS = 4;
 
@@ -68,6 +85,8 @@ interface DrawnUnit {
   checker: TilingSprite | null;
   /** The no-access sign, centered on the footprint; null when the unit can be reached. */
   sticker: Sprite | null;
+  /** The pile of garbage bags on the floor of the bottom level; null when there is none. */
+  garbage: Sprite | null;
   construction: Construction | null;
 }
 
@@ -150,6 +169,7 @@ export class UnitLayer {
         entry.sprite.destroy();
         entry.checker?.destroy();
         entry.sticker?.destroy();
+        entry.garbage?.destroy();
         this.drawn.delete(id);
       }
     }
@@ -171,6 +191,7 @@ export class UnitLayer {
     this.place(existing.sprite, drawing);
     this.showChecker(existing, drawing);
     this.showSticker(existing, drawing);
+    this.showGarbage(existing, drawing);
     const key = this.textureKey(drawing, textureId);
     if (existing.textureId !== key) {
       this.applyTextures(existing, drawing);
@@ -189,10 +210,12 @@ export class UnitLayer {
       textureId: this.textureKey(drawing, textureId),
       checker: null,
       sticker: null,
+      garbage: null,
       construction: null,
     };
     this.showChecker(entry, drawing);
     this.showSticker(entry, drawing);
+    this.showGarbage(entry, drawing);
     this.showConstruction(entry, drawing);
     this.applyTextures(entry, drawing);
     return entry;
@@ -291,6 +314,26 @@ export class UnitLayer {
       drawing.y + Math.round((drawing.height - SLAB_HEIGHT - sticker.height) / 2),
     );
     entry.container.addChild(sticker);
+  }
+
+  /** The pile stands above the unit sprite in the same container, so it is culled with it. */
+  private showGarbage(entry: DrawnUnit, drawing: UnitDrawing): void {
+    if (drawing.garbage === undefined || drawing.garbage < 1) {
+      entry.garbage?.destroy();
+      entry.garbage = null;
+      return;
+    }
+    const texture = this.sprites.texture(
+      PILE_SPRITES[Math.min(drawing.garbage, MAX_PILE_BAGS) - 1] ?? PILE_SPRITES[0],
+    );
+    const pile = entry.garbage ?? new Sprite(texture);
+    pile.texture = texture;
+    entry.garbage = pile;
+    pile.position.set(
+      drawing.x + Math.round(drawing.width * GARBAGE_PILE_POSITION - pile.width / 2),
+      PILE_FLOOR_ROW - pile.height,
+    );
+    entry.container.addChild(pile);
   }
 
   /** Changes when the picture does, so textures are swapped only then. */

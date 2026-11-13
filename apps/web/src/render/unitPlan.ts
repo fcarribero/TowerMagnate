@@ -1,4 +1,4 @@
-import { UNIT_CATALOG, type UnitType, type UnitView } from '@tower-magnate/shared';
+import { UNIT_CATALOG, VENUE_STAFF, type UnitType, type UnitView } from '@tower-magnate/shared';
 import type { OverlayColor } from './overlayColors';
 import type { SpriteVariant } from './spriteRegistry';
 import { levelToIndex, levelTop } from './levels';
@@ -29,6 +29,8 @@ export interface UnitDrawing {
   noAccess?: boolean;
   /** Set on a built unit nobody has taken: the layer sticks a for rent or for sale tape on it. */
   availability?: 'rent' | 'sale';
+  /** Black garbage bags in the pile left in the unit; undefined when there is no pile. */
+  garbage?: number;
   /**
    * Set when the sprite is bigger than the footprint: it is drawn at its own size, never
    * scaled, this many pixels from the footprint corner. The footprint still sizes the rest.
@@ -59,6 +61,8 @@ export type UnitSource = Pick<
   | 'construction'
   | 'inside'
   | 'leased'
+  | 'staffed'
+  | 'garbage'
 >;
 
 /** Units that are drawn here. Floors and lobbies are structure, elevators are shafts. */
@@ -89,7 +93,9 @@ export function planUnit(
   const open = !building && state === 'empty' ? AVAILABILITY[unit.type] : undefined;
   const offered = open === undefined ? drawing : { ...drawing, availability: open };
   const marked = unit.variant === 'disconnected' ? { ...offered, noAccess: true } : offered;
-  return unit.construction === undefined ? marked : { ...marked, construction: unit.construction };
+  const piled =
+    unit.garbage === undefined || building ? marked : { ...marked, garbage: unit.garbage };
+  return unit.construction === undefined ? piled : { ...piled, construction: unit.construction };
 }
 
 /** What the tape on an untaken unit says: condos are sold, the rest are rented. */
@@ -102,6 +108,15 @@ const AVAILABILITY: Partial<Record<UnitType, 'rent' | 'sale'>> = {
   'retail-shop': 'rent',
 };
 
+/** The look of a venue whose crew is not all inside: shops and food have a closed sprite, the halls their empty one. */
+const CREWLESS_STATES: Record<keyof typeof VENUE_STAFF, string> = {
+  'retail-shop': 'closed',
+  'fast-food': 'closed',
+  restaurant: 'closed',
+  cinema: 'empty',
+  'party-hall': 'empty',
+};
+
 const HOTEL_ROOMS: readonly UnitType[] = ['single-room', 'double-room', 'suite'];
 
 function unitState(unit: UnitSource, openVenues: OpenVenues): string {
@@ -111,6 +126,9 @@ function unitState(unit: UnitSource, openVenues: OpenVenues): string {
   }
   if (isVenue(type) && !openVenues.has(type)) {
     return 'closed';
+  }
+  if (unit.staffed === false && type in VENUE_STAFF) {
+    return CREWLESS_STATES[type as keyof typeof VENUE_STAFF];
   }
   if ((variant === 'dirty' || variant === 'infested') && HOTEL_ROOMS.includes(type)) {
     return variant;

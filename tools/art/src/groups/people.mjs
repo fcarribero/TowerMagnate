@@ -96,6 +96,14 @@ const PROPS = {
     person.set(6, handRow, 'leaf');
     person.set(6, handRow + 1, 'leaf-dark');
   },
+  // A black garbage bag hanging from the hand: tied neck, round body with a gray shine so it
+  // still reads against dark interiors.
+  trashBag(person, { handRow }) {
+    person.set(6, handRow, 'slate');
+    person.fillRect(5, handRow + 1, 3, 3, 'ink');
+    person.set(5, handRow + 1, 'slate');
+    person.set(7, handRow + 3, 'charcoal');
+  },
 };
 
 // Details on top of the base figure. Clothing details take the stress tint,
@@ -147,6 +155,10 @@ const DETAILS = {
   boutonniere(person, { torsoTop }) {
     person.set(2, torsoTop + 1, 'white');
   },
+  serviceCap(person, { headTop }) {
+    person.hline(HEAD_LEFT, headTop, 3, 'cloth-red');
+    person.set(HEAD_LEFT + 3, headTop, 'cloth-red');
+  },
 };
 
 function drawPerson(type, variant, pose, tint) {
@@ -173,6 +185,12 @@ function tinted(look, tint) {
   }
   return { ...look, top: tint.color, legs: tint.color, accent: tint.color };
 }
+
+// Venue crew in service clothes: a red cap and an apron over work clothes.
+const STAFF_OUTFITS = [
+  { top: 'slate', legs: 'ink', accent: 'wood' },
+  { top: 'cloth-blue', legs: 'night-deep', accent: 'charcoal' },
+];
 
 // Calm clothes stay dark so pink and red stand out.
 const TYPES = {
@@ -269,6 +287,18 @@ const TYPES = {
       { top: 'dusk', legs: 'concrete-dark' },
       { top: 'dusk', legs: 'wood-dark' },
     ],
+  },
+  staff: {
+    lowerBody: 'trousers',
+    details: ['apron', 'serviceCap'],
+    outfits: STAFF_OUTFITS,
+  },
+  // The same crew carrying a garbage bag out of the building.
+  staffbag: {
+    lowerBody: 'trousers',
+    details: ['apron', 'serviceCap'],
+    prop: 'trashBag',
+    outfits: STAFF_OUTFITS,
   },
 };
 

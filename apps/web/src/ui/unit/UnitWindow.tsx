@@ -27,10 +27,10 @@ import './unit.css';
 export interface UnitWindowProps {
   unitId: string;
   connection: Pick<GameConnection, 'store' | 'inspect' | 'commands'>;
-}
-
   /** The Lupa's panel: fixed to the unit, no close button, no dragging. Esc still closes it. */
   anchored?: boolean;
+}
+
 interface TowerFacts {
   loaded: boolean;
   view: UnitView | undefined;
@@ -101,12 +101,12 @@ export function UnitWindow({ unitId, connection, anchored = false }: UnitWindowP
   };
 
   const close = (): void => {
-    connection.inspect.forget(unitId);
-    manager.close(windowId);
     if (anchored) {
       connection.inspect.clearAnchor();
       return;
     }
+    connection.inspect.forget(unitId);
+    manager.close(windowId);
   };
 
   const filmChange = filmChangeState(money, gone);
@@ -129,10 +129,10 @@ export function UnitWindow({ unitId, connection, anchored = false }: UnitWindowP
         title={title}
         subtitle={found?.name == null ? undefined : unitSubtitle(found)}
         onClose={close}
-        width={200}
-      >
         showCloseButton={!anchored}
         draggable={!anchored}
+        width={200}
+      >
         {gone && <p class="tm-unit__gone">{t('ui.goneFromTower')}</p>}
         <div class="tm-field">
           <label class="tm-field__label" for={`${windowId}-name`}>
@@ -162,6 +162,7 @@ export function UnitWindow({ unitId, connection, anchored = false }: UnitWindowP
             ))}
           </div>
         )}
+        {found?.details?.group === 'venue' && <VenueChartView chart={venueChart(found.details)} />}
         {found !== undefined && (
           <dl class="tm-unit__rows">
             <Row label={t('window.unit.location')} value={locationText(found)} />
@@ -170,7 +171,6 @@ export function UnitWindow({ unitId, connection, anchored = false }: UnitWindowP
             ))}
           </dl>
         )}
-        {found?.details?.group === 'venue' && <VenueChartView chart={venueChart(found.details)} />}
         {found !== undefined && priceLabel !== null && price !== null && (
           <>
             <PriceTiles
@@ -241,14 +241,6 @@ function StatTile({ row }: { row: UnitRow }) {
   );
 }
 
-interface PriceTilesProps {
-  name: string;
-  label: string;
-  options: readonly PriceOption[];
-  value: PriceLevel;
-  disabled: boolean;
-  onChange: (value: PriceLevel) => void;
-}
 /** Customers per hour: today in red, the average of the last 7 days in blue. */
 function VenueChartView({ chart }: { chart: VenueChart }) {
   return (
@@ -283,6 +275,14 @@ function VenueChartView({ chart }: { chart: VenueChart }) {
   );
 }
 
+interface PriceTilesProps {
+  name: string;
+  label: string;
+  options: readonly PriceOption[];
+  value: PriceLevel;
+  disabled: boolean;
+  onChange: (value: PriceLevel) => void;
+}
 
 /** Four big tiles that behave as one radio group. */
 function PriceTiles({ name, label, options, value, disabled, onChange }: PriceTilesProps) {

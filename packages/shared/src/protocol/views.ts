@@ -70,6 +70,10 @@ export const UnitViewSchema = z.object({
   leased: z.boolean().optional(),
   /** Percent built, 0 to 100, while the unit is a construction site; left out once it is built. */
   construction: z.int().min(0).max(100).optional(),
+  /** False while a venue's crew is not all inside, so it stays closed; left out otherwise. */
+  staffed: z.literal(false).optional(),
+  /** Black garbage bags piled in the venue after closing; left out when there are none. */
+  garbage: z.int().min(1).optional(),
 });
 
 export const TransportViewSchema = z.object({
@@ -110,6 +114,8 @@ export const PersonViewSchema = z.object({
   mode: z.enum(PERSON_MODES),
   carRef: CarRefSchema.nullable(),
   stress: StressLevelSchema,
+  /** True while the person carries a black garbage bag; left out otherwise. */
+  carrying: z.boolean().optional(),
 });
 
 export const FollowedViewSchema = z.object({
@@ -345,12 +351,6 @@ const InspectedUnitDetailsSchema = z.discriminatedUnion('group', [
     filmAgeDays: z.int().nonnegative().nullable(),
     price: PriceLevelSchema,
   }),
-  /** A unit the crew has not finished; the points it needs are never sent. */
-  z.object({ group: z.literal('construction') }),
-  z.object({
-    group: z.literal('housekeeping'),
-    maidsWorking: z.int().nonnegative(),
-    maids: z.int().nonnegative(),
   z.object({
     group: z.literal('venue'),
     /** Customers served today. */
@@ -367,6 +367,12 @@ const InspectedUnitDetailsSchema = z.discriminatedUnion('group', [
     /** Average customers per hour of the last 7 days, over all the open hours; empty before day 1. */
     average: z.array(z.number().nonnegative()),
   }),
+  /** A unit the crew has not finished; the points it needs are never sent. */
+  z.object({ group: z.literal('construction') }),
+  z.object({
+    group: z.literal('housekeeping'),
+    maidsWorking: z.int().nonnegative(),
+    maids: z.int().nonnegative(),
     /** Sucia rooms in the whole tower. */
     dirtyRooms: z.int().nonnegative(),
   }),

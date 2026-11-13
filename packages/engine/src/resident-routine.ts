@@ -53,6 +53,7 @@ import { fileShopVisit } from './unit-evaluation';
 import { unitNumber } from './units';
 import { customersInsideVenue } from './venue-visitors';
 import { countVenueVisit } from './venues';
+import { isVenueStaffed } from './venue-staff';
 
 export type ResidentPlanKind = 'works' | 'staysHome' | 'weekend';
 
@@ -389,7 +390,9 @@ export function visitorsAt(state: TowerState, type: VisitedVenueType, venue: num
   return count;
 }
 
+/** A venue takes visitors only while its whole crew is inside and it has room. */
 export function venueHasRoom(state: TowerState, unit: Unit, type: VisitedVenueType): boolean {
+  if (!isVenueStaffed(state, unit)) return false;
   return visitorsAt(state, type, unitNumber(unit.id)) < VENUE_CAPACITY[type];
 }
 

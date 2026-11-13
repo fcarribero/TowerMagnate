@@ -145,6 +145,7 @@ const SPRITE_NAME_OF_KIND: Record<PersonKind, string> = {
   weddingGuest: 'guest',
   prospect: 'customer',
   builder: 'builder',
+  staff: 'staff',
 };
 
 const LOOKS = ['a', 'b', 'c', 'd'];
@@ -156,7 +157,8 @@ const STRESS_SUFFIX: Record<PersonView['stress'], string> = {
 
 function personSubject(person: PersonView): string {
   const look = LOOKS[Number(person.id.slice(1)) % LOOKS.length] ?? 'a';
-  return `people/${SPRITE_NAME_OF_KIND[person.kind]}-${look}`;
+  const name = person.carrying === true ? 'staffbag' : SPRITE_NAME_OF_KIND[person.kind];
+  return `people/${name}-${look}`;
 }
 
 /** Sprite subject and state of a person standing, with the look picked from the id. */

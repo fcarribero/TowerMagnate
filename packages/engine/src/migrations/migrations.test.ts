@@ -110,6 +110,8 @@ describe('migrateState unit leases', () => {
         stressTrips: 12,
         customers: [],
         filmChangedAtStep: 9_000,
+        garbage: 4,
+        garbageDay: 2,
       },
     };
     expect(migratedUnit(JSON.parse(JSON.stringify(cinema)))).toEqual(cinema);
@@ -633,6 +635,19 @@ describe('migrateState unit evaluation', () => {
     delete (raw.units.u3?.venue as { filmChangedAtStep?: number }).filmChangedAtStep;
     const migrated = migrateState({ ...raw, schemaVersion: 33 });
     expect(migrated.units.u3?.venue?.filmChangedAtStep).toBeNull();
+    expect(migrated).toEqual(tower);
+  });
+
+  it('gives a venue saved before version 38 an empty garbage pile', () => {
+    const tower = createTower(5);
+    tower.units.u3 = newUnit('u3', 'restaurant', 10, 2);
+    const raw = JSON.parse(JSON.stringify(tower)) as { units: Record<string, { venue: object }> };
+    const venue = raw.units.u3?.venue as { garbage?: number; garbageDay?: number };
+    delete venue.garbage;
+    delete venue.garbageDay;
+    const migrated = migrateState({ ...raw, schemaVersion: 37 });
+    expect(migrated.units.u3?.venue?.garbage).toBe(0);
+    expect(migrated.units.u3?.venue?.garbageDay).toBe(-1);
     expect(migrated).toEqual(tower);
   });
 

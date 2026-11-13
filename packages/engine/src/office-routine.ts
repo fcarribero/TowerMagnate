@@ -31,6 +31,7 @@ import { addFailedSearch, hasPendingTrip, recordTrip, stressOfTripEndedNow } fro
 import { unitNumber } from './units';
 import { customersInsideVenue } from './venue-visitors';
 import { countVenueVisit } from './venues';
+import { isVenueStaffed } from './venue-staff';
 import { emitNews } from './news';
 
 export interface Place {
@@ -279,7 +280,8 @@ function openFastFoods(state: TowerState, minuteOfDay: number): Unit[] {
   if (!isFastFoodOpen(minuteOfDay)) return [];
   const eating = diners(state);
   return unitsOfType(state, 'fast-food').filter(
-    (unit) => (eating.get(unitNumber(unit.id)) ?? 0) < FAST_FOOD_CAPACITY,
+    (unit) =>
+      (eating.get(unitNumber(unit.id)) ?? 0) < FAST_FOOD_CAPACITY && isVenueStaffed(state, unit),
   );
 }
 
@@ -585,6 +587,7 @@ function arriveAtFastFood(worker: Worker, routes: RoutePlanner): void {
     (diners(state).get(routine.venue) ?? 0) + customersInsideVenue(state, routine.venue);
   const canEnter =
     venue?.type === 'fast-food' &&
+    isVenueStaffed(state, venue) &&
     isFastFoodOpen(minuteOfDay(worker)) &&
     inside < FAST_FOOD_CAPACITY;
   if (canEnter) {
