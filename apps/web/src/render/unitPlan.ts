@@ -69,12 +69,11 @@ export function planUnit(
   if (!isPlacedUnit(unit.type)) {
     return null;
   }
-  const state = unitState(unit, openVenues);
+  const building = unit.construction !== undefined;
+  const state = unitState(building ? { ...unit, variant: 'empty' } : unit, openVenues);
   const drawing = footprint(unit.id, `units/${unit.type}`, unit, { state, time }, overlay);
-  if (unit.construction !== undefined) {
-    return { ...drawing, construction: unit.construction };
-  }
-  return unit.variant === 'disconnected' ? { ...drawing, noAccess: true } : drawing;
+  const marked = unit.variant === 'disconnected' ? { ...drawing, noAccess: true } : drawing;
+  return unit.construction === undefined ? marked : { ...marked, construction: unit.construction };
 }
 
 const HOTEL_ROOMS: readonly UnitType[] = ['single-room', 'double-room', 'suite'];

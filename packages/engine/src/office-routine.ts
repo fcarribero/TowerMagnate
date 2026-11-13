@@ -201,7 +201,7 @@ function isFastFoodOpen(minuteOfDay: number): boolean {
   return minuteOfDay >= FAST_FOOD_HOURS.open && minuteOfDay < FAST_FOOD_HOURS.close;
 }
 
-export function unitPlace(unit: Unit): Place {
+export function unitPlace(unit: Pick<Unit, 'level' | 'x' | 'type'>): Place {
   return { level: unit.level, column: unit.x + Math.floor(UNIT_CATALOG[unit.type].width / 2) };
 }
 

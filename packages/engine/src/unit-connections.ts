@@ -3,14 +3,19 @@ import { entrancePlace, unitPlace } from './office-routine';
 import { connectedSpaces } from './parking';
 import { TransportGraph, TripPlanner } from './routing';
 
+/** A built unit or a construction site: both show the sign when no route reaches them. */
+type Placed = Pick<Unit, 'id' | 'type' | 'level' | 'x'>;
+
 /** Maids appear at their unit's door, so a housekeeping unit needs no route from the street. */
-function isVisitedFromOutside(unit: Unit): boolean {
+function isVisitedFromOutside(unit: Placed): boolean {
   const { capacity } = UNIT_CATALOG[unit.type];
   return capacity !== null && capacity.role !== 'passengers-per-car' && capacity.role !== 'maids';
 }
 
 function unitsWithoutRoute(state: TowerState): Set<UnitId> {
-  const visited = Object.values(state.units).filter(isVisitedFromOutside);
+  const visited: Placed[] = [...Object.values(state.units), ...Object.values(state.sites)].filter(
+    isVisitedFromOutside,
+  );
   const entrance = entrancePlace(state, false);
   if (!entrance) return new Set(visited.map((unit) => unit.id));
 

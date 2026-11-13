@@ -77,7 +77,7 @@ export function buildSnapshot(
     ...Object.values(state.units).map((unit) =>
       unitView(unit, homes.has(unit.id), disconnected.has(unit.id)),
     ),
-    ...Object.values(state.sites).map(siteView),
+    ...Object.values(state.sites).map((site) => siteView(site, disconnected.has(site.id))),
   ];
   return {
     step: state.step,
@@ -137,7 +137,7 @@ function unitVariant(
   return occupied ? 'occupied' : 'empty';
 }
 
-function siteView(site: TowerState['sites'][string]): UnitView {
+function siteView(site: TowerState['sites'][string], disconnected: boolean): UnitView {
   return {
     id: site.id,
     type: site.type,
@@ -146,7 +146,7 @@ function siteView(site: TowerState['sites'][string]): UnitView {
     name: null,
     price: DEFAULT_PRICE_LEVEL,
     occupied: false,
-    variant: 'empty',
+    variant: disconnected ? 'disconnected' : 'empty',
     construction: Math.floor(siteProgress(site) * 100),
   };
 }

@@ -47,7 +47,13 @@ describe('planUnit', () => {
     expect(cut?.noAccess).toBe(true);
     expect(cut?.variant.state).toBe('empty');
     expect(reached?.noAccess).toBeUndefined();
+    const cutSite = planUnit(
+      { ...base, type: 'office', variant: 'disconnected', construction: 40 },
+      'day',
+    );
     expect(site?.noAccess).toBeUndefined();
+    expect(cutSite?.noAccess).toBe(true);
+    expect(cutSite?.construction).toBe(40);
   });
 
   it('falls back to empty for a variant the unit has no sprite for', () => {

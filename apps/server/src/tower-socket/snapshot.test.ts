@@ -550,6 +550,15 @@ describe('room states and disconnected units', () => {
     expect(variantOf(state, 'u6')).toBe('empty');
   });
 
+  it('draws an office site with no route to the street as disconnected', () => {
+    const state = createTower(7);
+    setStructure(state.grid, 1, 0, 9, 'lobby');
+    setStructure(state.grid, 2, 0, 19, 'floor');
+    state.sites.u5 = { id: 'u5', type: 'office', x: 0, level: 2, paid: 0, placedAtStep: 0, points: 0 };
+
+    expect(variantOf(state, 'u5')).toBe('disconnected');
+  });
+
   it('draws every visited unit as disconnected when there is no lobby', () => {
     const state = createTower(7);
     setStructure(state.grid, 2, 0, 19, 'floor');
