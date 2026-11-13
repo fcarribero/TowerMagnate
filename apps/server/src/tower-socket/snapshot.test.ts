@@ -30,6 +30,7 @@ import { describe, expect, it } from 'vitest';
 import { toClientEvents } from './client-events';
 import { diffSnapshots } from './delta';
 import { buildSnapshot } from './snapshot';
+import { addOfficeWorker } from './testPeople';
 
 const STEPS_PER_WEEK = 7 * STEPS_PER_DAY;
 const LOBBY_VIEW = { levelFrom: 1, levelTo: 3, xFrom: 0, xTo: 50 };
@@ -60,8 +61,8 @@ function towerWithPeople(): TowerState {
   state.units.u5 = office('u5', 0, 'Oficina');
   state.units.u6 = office('u6', 9, null);
   state.transports.t1 = { id: 't1', type: 'stairs', x: 4, level: 1, paid: 0, placedAtStep: 0 };
-  addPerson(state, { kind: 'officeWorker', homeUnit: 5, level: 2, column: 3 });
-  addPerson(state, { kind: 'officeWorker', homeUnit: 5, level: 2, column: 80 });
+  addOfficeWorker(state, { homeUnit: 5, level: 2, column: 3 });
+  addOfficeWorker(state, { homeUnit: 5, level: 2, column: 80 });
   addPerson(state, { kind: 'maid', homeUnit: 0, level: 30, column: 4 });
   return state;
 }
@@ -554,7 +555,15 @@ describe('room states and disconnected units', () => {
     const state = createTower(7);
     setStructure(state.grid, 1, 0, 9, 'lobby');
     setStructure(state.grid, 2, 0, 19, 'floor');
-    state.sites.u5 = { id: 'u5', type: 'office', x: 0, level: 2, paid: 0, placedAtStep: 0, points: 0 };
+    state.sites.u5 = {
+      id: 'u5',
+      type: 'office',
+      x: 0,
+      level: 2,
+      paid: 0,
+      placedAtStep: 0,
+      points: 0,
+    };
 
     expect(variantOf(state, 'u5')).toBe('disconnected');
   });

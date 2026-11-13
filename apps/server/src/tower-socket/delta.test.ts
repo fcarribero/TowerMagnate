@@ -1,6 +1,5 @@
 import {
   addPeopleForUnit,
-  addPerson,
   createTower,
   defaultSchedule,
   newUnit,
@@ -21,6 +20,7 @@ import {
 import { describe, expect, it } from 'vitest';
 import { diffSnapshots, needsFreshSnapshot } from './delta';
 import { buildSnapshot } from './snapshot';
+import { addOfficeWorker, seatPeopleOfUnit } from './testPeople';
 
 const VIEW = { levelFrom: 1, levelTo: 3, xFrom: 0, xTo: 50 };
 const WIDE_VIEW = { levelFrom: 1, levelTo: 100, xFrom: 0, xTo: 374 };
@@ -31,6 +31,7 @@ function towerWithOffices(count: number): TowerState {
     const id = `u${index}`;
     state.units[id] = newUnit(id, 'office', 0, 2);
     addPeopleForUnit(state, id);
+    seatPeopleOfUnit(state, index);
   }
   return state;
 }
@@ -42,7 +43,7 @@ function byId(a: { id: string }, b: { id: string }): number {
 function tower(): TowerState {
   const state = createTower(3);
   setStructure(state.grid, 1, 0, 9, 'lobby');
-  addPerson(state, { kind: 'officeWorker', homeUnit: 0, level: 1, column: 3 });
+  addOfficeWorker(state, { homeUnit: 0, level: 1, column: 3 });
   return state;
 }
 
@@ -244,8 +245,7 @@ describe('delta between snapshots', () => {
   it('frames a crowded delta of 250 people and 192 cars under 50 KB', () => {
     const state = createTower(40);
     for (let index = 0; index < 250; index += 1) {
-      addPerson(state, {
-        kind: 'officeWorker',
+      addOfficeWorker(state, {
         homeUnit: index,
         level: 1 + (index % 40),
         column: 3 + (index % 90),

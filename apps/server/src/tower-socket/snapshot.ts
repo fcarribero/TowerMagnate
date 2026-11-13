@@ -11,6 +11,7 @@ import {
   DAYS_PER_WEEK,
   isOutsideTower,
   occupantAt,
+  routineAt,
   trekPhaseAt,
   type TrekPhase,
   siteProgress,
@@ -281,6 +282,24 @@ function ridePlaces(state: TowerState): Map<string, RidePlace> {
   return places;
 }
 
+/** An office worker sitting at the desk, at lunch or at the clinic is not walking, even with a plan. */
+const RESTING_PHASES: readonly string[] = ['atOffice', 'atLunch', 'atMedical'];
+
+/**
+ * True when an idle person stands still at a place of their own: they have no pending trip, sit in
+ * a resting office phase, or stand inside a unit. Only then do they show as inside, not walking.
+ */
+export function standsStill(
+  state: TowerState,
+  slot: number,
+  place: { level: number; column: number },
+): boolean {
+  if (state.people.trip[slot] === NO_TRIP) return true;
+  if (occupantAt(state.grid, place.level, place.column)?.kind === 'unit') return true;
+  const phase = routineAt(state.people, slot)?.phase;
+  return phase !== undefined && RESTING_PHASES.includes(phase);
+}
+
 export function modeOfPhase(phase: TrekPhase, atHome: boolean): PersonView['mode'] {
   switch (phase) {
     case 'idle':
@@ -338,7 +357,7 @@ function personView(
     x: place.column,
     level: place.level,
     facing: facingOf(state, slot),
-    mode: modeOfPhase(phase, person.trip === NO_TRIP),
+    mode: modeOfPhase(phase, standsStill(state, slot, place)),
     carRef: ride?.carRef ?? null,
     stress: stressLevel(person.stress),
   };

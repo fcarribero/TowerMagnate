@@ -17,6 +17,7 @@ import {
 } from '@tower-magnate/shared';
 import { describe, expect, it } from 'vitest';
 import { inspectPerson, inspectShaft, inspectUnit } from './inspect';
+import { addOfficeWorker } from './testPeople';
 
 const STEPS_PER_WEEK = 7 * STEPS_PER_DAY;
 
@@ -36,7 +37,7 @@ function unitOf(state: TowerState): Unit {
 
 function addOfficeWorkers(state: TowerState, unitNumber: number, count: number): void {
   for (let index = 0; index < count; index += 1) {
-    addPerson(state, { kind: 'officeWorker', homeUnit: unitNumber, level: 4, column: 10 });
+    addOfficeWorker(state, { homeUnit: unitNumber, level: 4, column: 10 });
   }
 }
 
@@ -220,7 +221,15 @@ describe('inspecting a unit', () => {
 
   it('shows a construction site as a unit that is being built, with no points', () => {
     const state = createTower(3);
-    state.sites.u8 = { id: 'u8', type: 'office', x: 10, level: 4, paid: 100, placedAtStep: 0, points: 5 };
+    state.sites.u8 = {
+      id: 'u8',
+      type: 'office',
+      x: 10,
+      level: 4,
+      paid: 100,
+      placedAtStep: 0,
+      points: 5,
+    };
     expect(inspectUnit(state, 'u8')).toEqual({
       kind: 'unit',
       id: 'u8',
@@ -248,7 +257,7 @@ describe('inspecting a unit', () => {
   it('answers in under a millisecond in a 15,000 person tower', () => {
     const { state, id } = towerWith('office');
     for (let index = 0; index < 15_000; index += 1) {
-      addPerson(state, { kind: 'officeWorker', homeUnit: 1 + (index % 2500), level: 2, column: 5 });
+      addOfficeWorker(state, { homeUnit: 1 + (index % 2500), level: 2, column: 5 });
     }
     inspectUnit(state, id);
 
@@ -379,7 +388,7 @@ describe('inspecting a person', () => {
 
   function towerWithWorker(): { state: TowerState; id: string } {
     const { state } = towerWith('office');
-    addPerson(state, { kind: 'officeWorker', homeUnit: 7, level: 4, column: 12 });
+    addOfficeWorker(state, { homeUnit: 7, level: 4, column: 12 });
     return { state, id: 'p1' };
   }
 
@@ -475,7 +484,7 @@ describe('inspecting a person', () => {
   it('answers in under a millisecond in a tower of 15,000 people', () => {
     const state = createTower(3);
     for (let index = 0; index < 15_000; index += 1) {
-      addPerson(state, { kind: 'officeWorker', homeUnit: 0, level: 2, column: index % 300 });
+      addOfficeWorker(state, { homeUnit: 0, level: 2, column: index % 300 });
     }
     renamePerson(state.people, 14_000, 'Ana');
     const started = performance.now();

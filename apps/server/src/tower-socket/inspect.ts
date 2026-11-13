@@ -3,7 +3,6 @@ import {
   filmAgeDays as engineFilmAgeDays,
   housekeepingSummary,
   isOutsideTower,
-  NO_TRIP,
   occupantAt,
   parsePersonId,
   personAt,
@@ -20,7 +19,7 @@ import {
   type Unit,
 } from '@tower-magnate/shared';
 
-import { modeOfPhase, stressLevel } from './snapshot';
+import { modeOfPhase, standsStill, stressLevel } from './snapshot';
 
 type PersonInspection = Extract<InspectData, { kind: 'person'; status: 'ok' }>;
 type ShaftInspection = Extract<InspectData, { kind: 'shaft'; status: 'ok' }>;
@@ -105,7 +104,7 @@ export function inspectPerson(state: TowerState, personId: string): InspectData 
     status: 'ok',
     name: person.name,
     personKind: person.kind,
-    state: personState(state, slot, phase, person.trip),
+    state: personState(state, slot, phase),
     destination: phase === 'idle' ? null : destinationOf(state, slot),
     stressMinutes: person.stress / STEPS_PER_MINUTE,
     stress: stressLevel(person.stress),
@@ -118,12 +117,18 @@ function personState(
   state: TowerState,
   slot: number,
   phase: ReturnType<typeof trekPhaseAt>,
-  trip: number,
 ): PersonInspection['state'] {
   if (isOutsideTower(state.people, slot)) {
     return 'outside';
   }
-  return phase === 'noRoute' ? 'noRoute' : modeOfPhase(phase, trip === NO_TRIP);
+  if (phase === 'noRoute') {
+    return 'noRoute';
+  }
+  const place = {
+    level: state.people.level[slot] as number,
+    column: state.people.column[slot] as number,
+  };
+  return modeOfPhase(phase, standsStill(state, slot, place));
 }
 
 /** The unit the person's trip ends in, or the exit when it ends anywhere else. */
