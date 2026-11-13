@@ -24,13 +24,21 @@ export const WARMEST_HOUR = 15;
 const DAYTIME_FIRST_HOUR = 6;
 const DAYTIME_END_HOUR = 20;
 
-/** Seasonal daily mean: a cosine through the year, warmest on day 200 (mid July). */
-const YEAR_MEAN_C = 15;
-const YEAR_SWING_C = 9;
-const WARMEST_DAY_OF_YEAR = 200;
-/** Half of the usual gap between the night low and the afternoon high. */
-const DAILY_HALF_RANGE_C = 5.5;
-const DAY_OFFSET_SPAN_C = 5;
+/*
+ * The climate is a temperate one in the southern hemisphere: hot summers around January, mild
+ * winters around July, rain all year that is heaviest in late summer and autumn and lightest in
+ * winter. The tower never says where it is; these are only the values.
+ */
+
+/** Seasonal daily mean: a cosine through the year, warmest on day 20 (mid January). */
+const YEAR_MEAN_C = 18;
+const YEAR_SWING_C = 6.5;
+const WARMEST_DAY_OF_YEAR = 20;
+/** Half of the usual gap between the night low and the afternoon high: wider in summer, narrower in winter. */
+const DAILY_HALF_RANGE_C = 4.2;
+const DAILY_HALF_RANGE_SWING_C = 0.8;
+/** Width of the swing of a single day's mean around the season, as fronts pass. */
+const DAY_OFFSET_SPAN_C = 8;
 
 /** Added to the afternoon high, and to the dawn low, by the condition at that time. */
 const HIGH_ADJUST_C: Record<WeatherCondition, number> = { sunny: 2, cloudy: -1, rain: -3.5 };
@@ -38,10 +46,10 @@ const LOW_ADJUST_C: Record<WeatherCondition, number> = { sunny: -1.5, cloudy: 1,
 
 /** A block of cloudiness above these is cloudy, and above the second is rain. */
 const THRESHOLDS: Record<Season, { cloudy: number; rain: number }> = {
-  winter: { cloudy: 0.44, rain: 0.66 },
-  spring: { cloudy: 0.46, rain: 0.65 },
-  summer: { cloudy: 0.52, rain: 0.73 },
-  autumn: { cloudy: 0.44, rain: 0.64 },
+  winter: { cloudy: 0.51, rain: 0.75 },
+  spring: { cloudy: 0.53, rain: 0.7 },
+  summer: { cloudy: 0.55, rain: 0.69 },
+  autumn: { cloudy: 0.51, rain: 0.68 },
 };
 
 export interface WeatherReading {
@@ -65,12 +73,12 @@ export interface ForecastDay {
   rainChance: number;
 }
 
-/** Northern hemisphere, by calendar month: spring starts in March, summer in June, and so on. */
+/** Southern hemisphere, by calendar month: summer is December to February, autumn March to May. */
 export function seasonOfMonth(month: number): Season {
-  if (month >= 3 && month <= 5) return 'spring';
-  if (month >= 6 && month <= 8) return 'summer';
-  if (month >= 9 && month <= 11) return 'autumn';
-  return 'winter';
+  if (month >= 3 && month <= 5) return 'autumn';
+  if (month >= 6 && month <= 8) return 'winter';
+  if (month >= 9 && month <= 11) return 'spring';
+  return 'summer';
 }
 
 export function seasonOfStep(step: number): Season {
@@ -134,16 +142,28 @@ function dayMean(dayNumber: number, seed: number): number {
   return YEAR_MEAN_C + YEAR_SWING_C * Math.cos(phase) + offset;
 }
 
+/** Half the gap between the low and the high of a day: wider near the warmest day of the year. */
+function dayHalfRange(dayNumber: number): number {
+  const phase = (2 * Math.PI * (dayOfYear(dayNumber) - WARMEST_DAY_OF_YEAR)) / 365;
+  return DAILY_HALF_RANGE_C + DAILY_HALF_RANGE_SWING_C * Math.cos(phase);
+}
+
 /** The afternoon high of a day. */
 function dayHigh(dayNumber: number, seed: number): number {
   const block = dayNumber * BLOCKS_PER_DAY + Math.floor(WARMEST_HOUR / 6);
-  return dayMean(dayNumber, seed) + DAILY_HALF_RANGE_C + HIGH_ADJUST_C[conditionOfBlock(block, seed)];
+  return (
+    dayMean(dayNumber, seed) +
+    dayHalfRange(dayNumber) +
+    HIGH_ADJUST_C[conditionOfBlock(block, seed)]
+  );
 }
 
 /** The low just before dawn of a day. */
 function dayLow(dayNumber: number, seed: number): number {
   const block = dayNumber * BLOCKS_PER_DAY + Math.floor(COLDEST_HOUR / 6);
-  return dayMean(dayNumber, seed) - DAILY_HALF_RANGE_C + LOW_ADJUST_C[conditionOfBlock(block, seed)];
+  return (
+    dayMean(dayNumber, seed) - dayHalfRange(dayNumber) + LOW_ADJUST_C[conditionOfBlock(block, seed)]
+  );
 }
 
 /**
@@ -204,10 +224,6 @@ export function forecastDay(dayNumber: number, seed: number = WEATHER_SALT): For
 }
 
 /** `count` days starting at `firstDay`. */
-export function forecast(
-  firstDay: number,
-  count = 7,
-  seed: number = WEATHER_SALT,
-): ForecastDay[] {
+export function forecast(firstDay: number, count = 7, seed: number = WEATHER_SALT): ForecastDay[] {
   return Array.from({ length: count }, (_, index) => forecastDay(firstDay + index, seed));
 }

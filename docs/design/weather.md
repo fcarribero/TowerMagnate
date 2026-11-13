@@ -6,7 +6,7 @@ The code is `packages/engine/src/weather.ts`, exported to the client as `@tower-
 
 ## Seasons
 
-The calendar is the Gregorian one in `calendar.ts` (365 or 366 days, real months), and the tower starts on 1 January of year 1. The weather is for the northern, temperate hemisphere. A season is set by the month: winter is December to February, spring March to May, summer June to August, autumn September to November. Spanish names: Invierno, Primavera, Verano, Otoño.
+The calendar is the Gregorian one in `calendar.ts` (365 or 366 days, real months), and the tower starts on 1 January of year 1. The weather follows a temperate climate of the southern hemisphere, used only as a reference for the dates of the seasons and the ranges of temperature and rain; the game never says where the tower is. A season is set by the month: summer is December to February, autumn March to May, winter June to August, spring September to November. Spanish names: Verano, Otoño, Invierno, Primavera.
 
 ## Conditions
 
@@ -14,10 +14,12 @@ The day is cut into 4 blocks of 6 hours (00:00, 06:00, 12:00, 18:00). Each block
 
 | Season | Cloudy from | Rain from | Rain share of blocks, about |
 |---|---|---|---|
-| Winter | 0.44 | 0.66 | 20% |
-| Spring | 0.46 | 0.65 | 22% |
-| Summer | 0.52 | 0.73 | 10% |
-| Autumn | 0.44 | 0.64 | 24% |
+| Summer | 0.55 | 0.69 | 14% |
+| Autumn | 0.51 | 0.68 | 16% |
+| Winter | 0.51 | 0.75 | 8% |
+| Spring | 0.53 | 0.70 | 13% |
+
+Rain falls all year, is heaviest in late summer and autumn and lightest in winter.
 
 The salt is the fixed constant `WEATHER_SALT`, so every tower has the same weather. All functions take an optional seed in case a tower seed is wanted later.
 
@@ -27,9 +29,9 @@ A sunny night is shown as a clear night (moon icon, text Despejado). Night is be
 
 Each day has a daily mean, a dawn low at 05:00 and an afternoon high at 15:00.
 
-The mean is `15 + 9 * cos(2 * pi * (dayOfYear - 200) / 365)`, which is warmest in mid July and coldest in mid January (about 6 to 24 degrees), plus a per-day offset of up to 2.5 degrees either way from a hash of the day number.
+The mean is `18 + 6.5 * cos(2 * pi * (dayOfYear - 20) / 365)`, which is warmest in mid January and coldest in mid July (about 11.5 to 24.5 degrees), plus a per-day offset of up to 4 degrees either way from a hash of the day number.
 
-The low is the mean minus 5.5 and the high is the mean plus 5.5, then adjusted by the condition of the block that holds that hour (block 1 at 05:00, block 2 at 15:00):
+The low is the mean minus the half range and the high is the mean plus it, where the half range is `4.2 + 0.8 * cos(2 * pi * (dayOfYear - 20) / 365)` (wider in summer, narrower in winter), then adjusted by the condition of the block that holds that hour (block 1 at 05:00, block 2 at 15:00):
 
 | Condition | Added to the afternoon high | Added to the dawn low |
 |---|---|---|

@@ -19,25 +19,27 @@ const at = (month: number, day: number, hour = 0) =>
   stepOfDate({ year: 1, month, day, hour, minute: 0, second: 0 });
 
 describe('seasons', () => {
-  it('follow the calendar month in the northern hemisphere', () => {
-    expect([12, 1, 2].map(seasonOfMonth)).toEqual(['winter', 'winter', 'winter']);
-    expect([3, 4, 5].map(seasonOfMonth)).toEqual(['spring', 'spring', 'spring']);
-    expect([6, 7, 8].map(seasonOfMonth)).toEqual(['summer', 'summer', 'summer']);
-    expect([9, 10, 11].map(seasonOfMonth)).toEqual(['autumn', 'autumn', 'autumn']);
+  it('follow the calendar month in the southern hemisphere', () => {
+    expect([12, 1, 2].map(seasonOfMonth)).toEqual(['summer', 'summer', 'summer']);
+    expect([3, 4, 5].map(seasonOfMonth)).toEqual(['autumn', 'autumn', 'autumn']);
+    expect([6, 7, 8].map(seasonOfMonth)).toEqual(['winter', 'winter', 'winter']);
+    expect([9, 10, 11].map(seasonOfMonth)).toEqual(['spring', 'spring', 'spring']);
   });
 
   it('are read from the date of a step', () => {
-    expect(seasonOfStep(0)).toBe('winter');
-    expect(seasonOfStep(at(3, 1))).toBe('spring');
-    expect(seasonOfStep(at(8, 31, 23))).toBe('summer');
-    expect(seasonOfStep(at(12, 1))).toBe('winter');
+    expect(seasonOfStep(0)).toBe('summer');
+    expect(seasonOfStep(at(3, 1))).toBe('autumn');
+    expect(seasonOfStep(at(8, 31, 23))).toBe('winter');
+    expect(seasonOfStep(at(12, 1))).toBe('summer');
   });
 });
 
 describe('temperature', () => {
   function hourlyDay(month: number, day: number): number[] {
     const first = at(month, day);
-    return Array.from({ length: 24 * 6 }, (_, i) => temperatureAt(first + i * (STEPS_PER_HOUR / 6)));
+    return Array.from({ length: 24 * 6 }, (_, i) =>
+      temperatureAt(first + i * (STEPS_PER_HOUR / 6)),
+    );
   }
 
   it('is coldest just before dawn and warmest mid afternoon', () => {
@@ -68,15 +70,20 @@ describe('temperature', () => {
 
   it('is warmer in summer than in winter', () => {
     const mean = (month: number) => {
-      const values = Array.from({ length: 28 }, (_, i) =>
-        hourlyDay(month, i + 1).reduce((a, b) => a + b, 0) / 144,
+      const values = Array.from(
+        { length: 28 },
+        (_, i) => hourlyDay(month, i + 1).reduce((a, b) => a + b, 0) / 144,
       );
       return values.reduce((a, b) => a + b, 0) / values.length;
     };
-    expect(mean(7)).toBeGreaterThan(mean(1) + 10);
-    expect(mean(7)).toBeGreaterThan(mean(4));
-    expect(mean(4)).toBeGreaterThan(mean(1));
-    expect(mean(10)).toBeGreaterThan(mean(1));
+    expect(mean(1)).toBeGreaterThan(mean(7) + 9);
+    expect(mean(1)).toBeGreaterThan(mean(4));
+    expect(mean(4)).toBeGreaterThan(mean(7));
+    expect(mean(10)).toBeGreaterThan(mean(7));
+    expect(mean(1)).toBeGreaterThan(21);
+    expect(mean(1)).toBeLessThan(28);
+    expect(mean(7)).toBeGreaterThan(8);
+    expect(mean(7)).toBeLessThan(15);
   });
 
   it('stays in a realistic range over a year', () => {
@@ -129,7 +136,7 @@ describe('conditions', () => {
     expect(runs.some((length) => length >= 2)).toBe(true);
   });
 
-  it('rain more often in autumn than in summer', () => {
+  it('rain more often in autumn than in winter', () => {
     const share = (months: number[]) => {
       let rain = 0;
       let total = 0;
@@ -144,7 +151,7 @@ describe('conditions', () => {
       }
       return rain / total;
     };
-    expect(share([9, 10, 11])).toBeGreaterThan(share([6, 7, 8]));
+    expect(share([3, 4, 5])).toBeGreaterThan(share([6, 7, 8]));
   });
 
   it('are cooler under rain than under sun on the afternoon of similar days', () => {
@@ -164,7 +171,10 @@ describe('determinism and seed', () => {
   it('gives the same reading for the same step, in any order', () => {
     const steps = [0, 5000, 123_456, STEPS_PER_DAY * 400 + 77];
     const forward = steps.map((step) => weatherAt(step));
-    const backward = [...steps].reverse().map((step) => weatherAt(step)).reverse();
+    const backward = [...steps]
+      .reverse()
+      .map((step) => weatherAt(step))
+      .reverse();
     expect(backward).toEqual(forward);
   });
 
