@@ -26,6 +26,8 @@ export interface InspectWindowOpeners {
   person: (personId: string) => void;
   unit: (unitId: string) => void;
   shaft: (shaftId: string) => void;
+  /** A click that lands on no unit: the fixed unit panel goes away. */
+  clearUnit?: () => void;
 }
 
 function shaftAt(shafts: Iterable<ShaftView>, cell: Cell): ShaftView | null {
@@ -75,7 +77,7 @@ export function bindUnitClicks(
     }
     const started = press;
     press = null;
-    if (input.kind !== 'up' || started === null || input.cell === null) {
+    if (input.kind !== 'up' || started === null) {
       return;
     }
     const moved = Math.hypot(input.clientX - started.clientX, input.clientY - started.clientY);
@@ -83,11 +85,13 @@ export function bindUnitClicks(
       return;
     }
     const latest = store.current?.latest;
-    if (latest === undefined) {
+    if (input.cell === null || latest === undefined) {
+      open.clearUnit?.();
       return;
     }
     const person = personAt(latest.people.values(), input.cell);
     if (person !== null) {
+      open.clearUnit?.();
       open.person(person.id);
       return;
     }
@@ -96,6 +100,7 @@ export function bindUnitClicks(
       open.unit(unit.id);
       return;
     }
+    open.clearUnit?.();
     const shaft = shaftAt(latest.shafts.values(), input.cell);
     if (shaft !== null) {
       open.shaft(shaft.id);

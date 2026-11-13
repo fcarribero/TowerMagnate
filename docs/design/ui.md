@@ -392,6 +392,8 @@ Window limits:
 | Elevator | 2, same rule |
 | Every other window | 1 |
 
+With the Lupa, a click on a unit shows its unit window as a fixed panel instead of a normal window. It has no close button and cannot be dragged. It sits at the top right corner of the unit on screen (the top left corner when there is no room on the right) and stays attached while the camera pans or zooms, always inside the view. Clicking another unit moves the panel to it. A click on anything else (empty space, a person, an elevator, the toolbar, another window), Esc, or leaving the Lupa closes it. Units opened from a list (Avisos) still use the normal draggable window with a close button, and the two can be open at the same time.
+
 Inspection windows refresh with the `inspect` messages (about once per second). When the inspected thing is demolished or leaves the tower, its window shows "Ya no está en la torre." and its controls are disabled; it stays until closed.
 
 Level labels used everywhere: levels 1 to 100 are "Piso {n}", basements are "S{n}", levels 101 to 104 are "Catedral".
