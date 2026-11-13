@@ -216,8 +216,8 @@ function lobbyDoors(run: Run): StructurePiece[] {
   }
   const y = FLOOR_HEIGHT - SLAB_HEIGHT;
   return [
-    { subject: 'lobby-door', x: run.from * TILE_WIDTH, y, anchorBottom: true },
-    { subject: 'lobby-door', x: (run.to + 1 - DOOR_TILES) * TILE_WIDTH, y, anchorBottom: true },
+    { subject: 'lobby-door-left', x: run.from * TILE_WIDTH, y, anchorBottom: true },
+    { subject: 'lobby-door-right', x: (run.to + 1 - DOOR_TILES) * TILE_WIDTH, y, anchorBottom: true },
   ];
 }
 

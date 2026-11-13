@@ -328,26 +328,36 @@ function parapet(side) {
   return tile;
 }
 
-// The door at each end of the main lobby, seen from the side: an open doorway with the
-// glass leaf swung back against the wall, so only its thin edge shows.
+// The door at each end of the main lobby, standing open and ajar. The leaf is seen from
+// the side, swung toward the left or the right and never facing the back of the lobby, so
+// it shrinks in height toward its free edge.
 const DOOR_WIDTH = 16;
 const DOOR_HEIGHT = 24;
+const LEAF_LENGTH = 9;
 
-function lobbyDoor() {
+function lobbyDoor(side) {
   const tile = new PixelCanvas(DOOR_WIDTH, DOOR_HEIGHT);
   tile.fillRect(0, 0, DOOR_WIDTH, DOOR_HEIGHT, 'slate');
   tile.strokeRect(0, 0, DOOR_WIDTH, DOOR_HEIGHT, 'ink');
   // The opening: daylight outside, a lit strip on the floor.
-  tile.fillRect(2, 2, 9, DOOR_HEIGHT - 2, 'sky-light');
-  tile.hline(2, DOOR_HEIGHT - 3, 9, 'silver');
-  tile.vline(2, 2, DOOR_HEIGHT - 4, 'ink');
-  tile.hline(2, 2, 9, 'ink');
-  // The open leaf, seen edge on beside the opening: metal frame with a glass strip.
-  tile.fillRect(11, 2, 3, DOOR_HEIGHT - 2, 'gray');
-  tile.fillRect(12, 4, 1, DOOR_HEIGHT - 8, 'glass');
-  tile.vline(11, 2, DOOR_HEIGHT - 2, 'silver');
-  tile.vline(13, 2, DOOR_HEIGHT - 2, 'ink');
-  tile.vline(10, 11, 4, 'lamp');
+  tile.fillRect(2, 2, DOOR_WIDTH - 4, DOOR_HEIGHT - 2, 'sky-light');
+  tile.hline(2, DOOR_HEIGHT - 3, DOOR_WIDTH - 4, 'silver');
+  tile.hline(2, 2, DOOR_WIDTH - 4, 'ink');
+  // The leaf, hinged on the inner jamb and swung out toward `side`.
+  const hinge = side === 'left' ? DOOR_WIDTH - 3 : 2;
+  const step = side === 'left' ? -1 : 1;
+  for (let i = 0; i < LEAF_LENGTH; i += 1) {
+    const x = hinge + step * i;
+    const shrink = Math.floor(i / 3);
+    const top = 3 + shrink;
+    const height = DOOR_HEIGHT - 5 - 2 * shrink;
+    tile.vline(x, top, height, i === LEAF_LENGTH - 1 ? 'ink' : 'gray');
+    if (i > 0 && i < LEAF_LENGTH - 1) {
+      tile.vline(x, top + 2, height - 5, 'glass');
+    }
+  }
+  tile.hline(Math.min(hinge, hinge + step * (LEAF_LENGTH - 1)), 3, LEAF_LENGTH, 'silver');
+  tile.vline(hinge, 3, DOOR_HEIGHT - 5, 'ink');
   tile.hline(0, 0, DOOR_WIDTH, 'ink');
   return tile;
 }
@@ -404,7 +414,8 @@ const subjects = [
   { subject: 'roof', draw: roof },
   { subject: 'roof-left', draw: () => roofCorner('left') },
   { subject: 'roof-right', draw: () => roofCorner('right') },
-  { subject: 'lobby-door', draw: lobbyDoor },
+  { subject: 'lobby-door-left', draw: () => lobbyDoor('left') },
+  { subject: 'lobby-door-right', draw: () => lobbyDoor('right') },
   { subject: 'parapet-left', draw: () => parapet('left') },
   { subject: 'parapet-right', draw: () => parapet('right') },
 ];
