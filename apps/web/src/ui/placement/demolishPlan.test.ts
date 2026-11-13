@@ -80,10 +80,19 @@ describe('pickDemolition', () => {
       shaftId: 's1',
       carIndex: 0,
     });
-    expect(pickDemolition(world({ shafts, cars }), { x: 40, level: 4 })?.command).toEqual({
-      type: 'demolish',
-      target: { kind: 'shaft', id: 's1' },
-    });
+    const top = pickDemolition(world({ shafts, cars }), { x: 40, level: 5 });
+    expect(top?.command).toEqual({ type: 'demolish', target: { kind: 'shaft', id: 's1' } });
+    expect(top?.confirmation).not.toBeNull();
+  });
+
+  it('demolishes a shaft only from its base or its top, with a confirmation', () => {
+    const shafts = [shaft];
+    const base = pickDemolition(world({ shafts }), { x: 41, level: 1 });
+    expect(base?.command).toEqual({ type: 'demolish', target: { kind: 'shaft', id: 's1' } });
+    expect(base?.confirmation).toMatchObject({ kind: 'expensive' });
+    expect(pickDemolition(world({ shafts }), { x: 41, level: 5 })?.confirmation).not.toBeNull();
+    expect(pickDemolition(world({ shafts }), { x: 41, level: 3 })).toBeNull();
+    expect(pickDemolition(world({ shafts }), { x: 41, level: 2 })).toBeNull();
   });
 
   it('picks a transport', () => {
@@ -101,10 +110,7 @@ describe('pickDemolition', () => {
       type: 'demolish',
       target: { kind: 'ruins', level: 2, x: 41 },
     });
-    expect(pickDemolition(ruined, { x: 40, level: 2 })?.command).toEqual({
-      type: 'demolish',
-      target: { kind: 'shaft', id: 's1' },
-    });
+    expect(pickDemolition(ruined, { x: 40, level: 2 })).toBeNull();
   });
 
   it('picks a unit before ruins, and ruins before lobby and floor', () => {

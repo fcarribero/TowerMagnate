@@ -143,12 +143,32 @@ function pickFrontLayer(world: DemolishWorld, cell: Cell): DemolishPick | null {
   }
   for (const shaft of world.shafts) {
     const footprint = footprintOfShaft(shaft);
-    if (coversCell(footprint, cell)) {
-      const confirmation = confirmationFor(SHAFT_UNIT_TYPES[shaft.type], false);
+    if (coversCell(footprint, cell) && isShaftEnd(shaft, cell)) {
+      const unitType = SHAFT_UNIT_TYPES[shaft.type];
+      const confirmation: Confirmation = {
+        kind: 'expensive',
+        unitType,
+        price: buildPrice(unitType),
+      };
       return targetPick({ kind: 'shaft', id: shaft.id }, footprint, confirmation);
     }
   }
   return null;
+}
+
+/** A shaft is demolished only from its base or its top, and always after a confirmation. */
+function isShaftEnd(shaft: ShaftView, cell: Cell): boolean {
+  return cell.level === shaft.bottom || cell.level === shaft.top;
+}
+
+/** The middle of a shaft: nothing there can be demolished, not even the floor behind it. */
+function inShaftMiddle(world: DemolishWorld, cell: Cell): boolean {
+  for (const shaft of world.shafts) {
+    if (coversCell(footprintOfShaft(shaft), cell) && !isShaftEnd(shaft, cell)) {
+      return true;
+    }
+  }
+  return false;
 }
 
 function pickStructure(world: DemolishWorld, cell: Cell): DemolishPick | null {
@@ -179,7 +199,11 @@ export function pickDemolition(world: DemolishWorld, cell: Cell): DemolishPick |
   if (structure?.run === 'ruins') {
     return pickCar(world, cell) ?? pickUnit(world, cell) ?? structure;
   }
-  return pickCar(world, cell) ?? pickUnit(world, cell) ?? pickFrontLayer(world, cell) ?? structure;
+  const front = pickCar(world, cell) ?? pickUnit(world, cell) ?? pickFrontLayer(world, cell);
+  if (front !== null) {
+    return front;
+  }
+  return inShaftMiddle(world, cell) ? null : structure;
 }
 
 /**

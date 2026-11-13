@@ -61,6 +61,7 @@ export function bindDemolishInput(options: DemolishInputOptions): () => void {
   const keyTarget = options.keyTarget ?? window;
   let hovered: Cell | null = null;
   let drag: RunDrag | null = null;
+  let batches = 0;
 
   const pickAt = (cell: Cell | null): DemolishPick | null => {
     const current = world();
@@ -73,12 +74,14 @@ export function bindDemolishInput(options: DemolishInputOptions): () => void {
 
   const sendPaced = async (commands: readonly Command[]): Promise<CommandOutcome[]> => {
     const outcomes: CommandOutcome[] = [];
+    batches += 1;
+    const batch = `demolish-run-${batches}`;
     for (let start = 0; start < commands.length; start += RUN_CHUNK_SIZE) {
       if (start > 0) {
         await pause(RUN_CHUNK_INTERVAL_MS);
       }
       const chunk = commands.slice(start, start + RUN_CHUNK_SIZE);
-      outcomes.push(...(await Promise.all(chunk.map((command) => api.send(command)))));
+      outcomes.push(...(await Promise.all(chunk.map((command) => api.send(command, { batch })))));
     }
     return outcomes;
   };

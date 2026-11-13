@@ -11,8 +11,11 @@ export interface CommandChannel {
 }
 
 export interface CommandApi {
-  /** Resolves when the server answers. Resolves at once with a failure when the socket is down. */
-  send(command: Command): Promise<CommandOutcome>;
+  /**
+   * Resolves when the server answers. Resolves at once with a failure when the socket is down.
+   * Commands sent with the same `batch` are one action for the player and share one sound.
+   */
+  send(command: Command, options?: { batch?: string }): Promise<CommandOutcome>;
   /** Feed every server message here so answers reach their commands. */
   receive(message: ServerMessage): void;
 }
@@ -20,7 +23,7 @@ export interface CommandApi {
 export interface CommandApiOptions {
   channel: CommandChannel;
   /** Told about each command as it goes out, for the sound director. */
-  onSent?: (queued: { id: string; command: Command }) => void;
+  onSent?: (queued: { id: string; command: Command; batch?: string }) => void;
   newId?: () => string;
 }
 
@@ -30,7 +33,7 @@ export function createCommandApi({ channel, onSent, newId }: CommandApiOptions):
   const nextId = newId ?? ((): string => `c${(counter += 1)}`);
 
   return {
-    send(command) {
+    send(command, options) {
       const queued = { id: nextId(), command };
       return new Promise((resolve) => {
         pending.set(queued.id, resolve);
@@ -39,7 +42,7 @@ export function createCommandApi({ channel, onSent, newId }: CommandApiOptions):
           resolve({ ok: false, error: NOT_SENT_ERROR });
           return;
         }
-        onSent?.(queued);
+        onSent?.({ ...queued, batch: options?.batch });
       });
     },
     receive(message) {

@@ -195,12 +195,13 @@ describe('SfxDirector', () => {
     expect(play).toHaveBeenCalledWith('build.demolish');
   });
 
-  it('plays one demolition sound for the cells of one cleared area', () => {
+  it('plays one sound for the commands of one batch', () => {
     const { play, director } = setup();
     for (let index = 0; index < 10; index++) {
       director.commandSent({
         id: `r${index}`,
         command: { type: 'demolish', target: { kind: 'ruins', level: 3, x: 100 + index } },
+        batch: 'b1',
       });
     }
     for (let index = 0; index < 10; index++) {

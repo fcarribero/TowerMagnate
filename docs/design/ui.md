@@ -325,16 +325,17 @@ What the Topadora and the Lupa pick under the cursor, first match wins:
 
 1. A person (Lupa only).
 2. An elevator car.
-3. A unit, stair, escalator, shaft or ruins.
+3. A unit, ruins, stair, escalator or shaft. Ruins come before a stair, escalator or shaft because they can lie behind one. A shaft is picked only on its base or top level; its middle levels pick nothing.
 4. Lobby.
 5. Floor.
 
 Demolition asks for confirmation (dialog 9.3) only when:
 
 - the target is a sold condo, because the player pays the sale price back, or
-- the target's build price is $500.000 or more (cinema, medical center, recycling center, subway station, cathedral, express shafts).
+- the target's build price is $500.000 or more (cinema, medical center, recycling center, subway station, cathedral, express shafts), or
+- the target is any elevator shaft.
 
-Every other demolition is immediate. Design call: the game has no pause and a 1-hour full refund for mistakes (TM-8 8.4), so constant confirmations would slow building more than they protect.
+Every other demolition is immediate. Clearing a run of cells sends one command per cell as one batch, and the batch plays the demolition sound once. Design call: the game has no pause and a 1-hour full refund for mistakes (TM-8 8.4), so constant confirmations would slow building more than they protect.
 
 ### 5.5 Feedback after a command
 

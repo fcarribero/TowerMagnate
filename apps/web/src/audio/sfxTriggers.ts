@@ -131,9 +131,6 @@ function carKey(car: CarView): string {
   return `${car.shaftId}:${car.index}`;
 }
 
-/** Demolish results closer together than this play the destruction sound once. */
-const DEMOLISH_SOUND_WINDOW_MS = 600;
-
 export interface SfxSink {
   play(trigger: SfxTrigger): void;
   startLoop(trigger: SfxTrigger): void;
@@ -150,19 +147,18 @@ interface Alarm {
  * `commandSent` for each queued command and `serverMessage` for each message.
  */
 export class SfxDirector {
-  private readonly pendingCommands = new Map<string, CommandType>();
+  private readonly pendingCommands = new Map<string, { type: CommandType; batch?: string }>();
   private readonly carDoors = new Map<string, CarView['doors']>();
   private readonly alarms = new Map<DecisionKind, Alarm>();
 
-  private lastDemolishAt = Number.NEGATIVE_INFINITY;
+  /** The batch whose sound already played; batches are sent one after another. */
+  private soundedBatch: string | undefined;
 
-  constructor(
-    private readonly sink: SfxSink,
-    private readonly now: () => number = () => Date.now(),
-  ) {}
+  constructor(private readonly sink: SfxSink) {}
 
-  commandSent(queued: QueuedCommand): void {
-    this.pendingCommands.set(queued.id, queued.command.type);
+  /** Commands with the same `batch` are one player action and sound once. */
+  commandSent(queued: QueuedCommand & { batch?: string }): void {
+    this.pendingCommands.set(queued.id, { type: queued.command.type, batch: queued.batch });
   }
 
   serverMessage(message: ServerMessage): void {
@@ -193,25 +189,19 @@ export class SfxDirector {
   }
 
   private commandResult(id: string, ok: boolean): void {
-    const type = this.pendingCommands.get(id);
+    const pending = this.pendingCommands.get(id);
     this.pendingCommands.delete(id);
-    const trigger = ok && type !== undefined ? triggerForCommand(type) : null;
-    if (trigger === 'build.demolish' && !this.demolishSoundDue()) {
+    const trigger = ok && pending !== undefined ? triggerForCommand(pending.type) : null;
+    if (trigger === null) {
       return;
     }
-    if (trigger !== null) {
-      this.sink.play(trigger);
+    if (pending?.batch !== undefined) {
+      if (this.soundedBatch === pending.batch) {
+        return;
+      }
+      this.soundedBatch = pending.batch;
     }
-  }
-
-  /** Clearing an area sends one command per cell; those results share one destruction sound. */
-  private demolishSoundDue(): boolean {
-    const now = this.now();
-    if (now - this.lastDemolishAt < DEMOLISH_SOUND_WINDOW_MS) {
-      return false;
-    }
-    this.lastDemolishAt = now;
-    return true;
+    this.sink.play(trigger);
   }
 
   private events(events: ClientEvent[]): void {

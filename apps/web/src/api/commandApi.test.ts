@@ -26,6 +26,24 @@ describe('createCommandApi', () => {
     await expect(outcome).resolves.toEqual({ ok: true, cost: 2000, refund: 0 });
   });
 
+  it('tells the sound director the batch of a command without sending it to the server', () => {
+    const sent: unknown[] = [];
+    const told: unknown[] = [];
+    const api = createCommandApi({
+      channel: {
+        send: (message) => {
+          sent.push(message);
+          return true;
+        },
+      },
+      onSent: (queued) => told.push(queued),
+      newId: () => 'b1',
+    });
+    void api.send(FLOOR, { batch: 'run-1' });
+    expect(told).toEqual([{ id: 'b1', command: FLOOR, batch: 'run-1' }]);
+    expect(JSON.stringify(sent)).not.toContain('run-1');
+  });
+
   it('resolves with the error code when the server refuses', async () => {
     const api = createCommandApi({ channel: { send: () => true }, newId: () => 'a2' });
     const outcome = api.send(FLOOR);
