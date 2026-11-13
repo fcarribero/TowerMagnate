@@ -131,6 +131,9 @@ function carKey(car: CarView): string {
   return `${car.shaftId}:${car.index}`;
 }
 
+/** Demolish results closer together than this play the destruction sound once. */
+const DEMOLISH_SOUND_WINDOW_MS = 600;
+
 export interface SfxSink {
   play(trigger: SfxTrigger): void;
   startLoop(trigger: SfxTrigger): void;
@@ -151,7 +154,12 @@ export class SfxDirector {
   private readonly carDoors = new Map<string, CarView['doors']>();
   private readonly alarms = new Map<DecisionKind, Alarm>();
 
-  constructor(private readonly sink: SfxSink) {}
+  private lastDemolishAt = Number.NEGATIVE_INFINITY;
+
+  constructor(
+    private readonly sink: SfxSink,
+    private readonly now: () => number = () => Date.now(),
+  ) {}
 
   commandSent(queued: QueuedCommand): void {
     this.pendingCommands.set(queued.id, queued.command.type);
@@ -188,9 +196,22 @@ export class SfxDirector {
     const type = this.pendingCommands.get(id);
     this.pendingCommands.delete(id);
     const trigger = ok && type !== undefined ? triggerForCommand(type) : null;
+    if (trigger === 'build.demolish' && !this.demolishSoundDue()) {
+      return;
+    }
     if (trigger !== null) {
       this.sink.play(trigger);
     }
+  }
+
+  /** Clearing an area sends one command per cell; those results share one destruction sound. */
+  private demolishSoundDue(): boolean {
+    const now = this.now();
+    if (now - this.lastDemolishAt < DEMOLISH_SOUND_WINDOW_MS) {
+      return false;
+    }
+    this.lastDemolishAt = now;
+    return true;
   }
 
   private events(events: ClientEvent[]): void {

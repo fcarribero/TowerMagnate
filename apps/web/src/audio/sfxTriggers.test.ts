@@ -195,6 +195,22 @@ describe('SfxDirector', () => {
     expect(play).toHaveBeenCalledWith('build.demolish');
   });
 
+  it('plays one demolition sound for the cells of one cleared area', () => {
+    const { play, director } = setup();
+    for (let index = 0; index < 10; index++) {
+      director.commandSent({
+        id: `r${index}`,
+        command: { type: 'demolish', target: { kind: 'ruins', level: 3, x: 100 + index } },
+      });
+    }
+    for (let index = 0; index < 10; index++) {
+      director.serverMessage(
+        serverMessage('commandResult', { id: `r${index}`, ok: true, step: 3, cost: 0, refund: 0 }),
+      );
+    }
+    expect(play.mock.calls.filter(([trigger]) => trigger === 'build.demolish')).toHaveLength(1);
+  });
+
   it('plays nothing for a rejected or unknown command', () => {
     const { play, director } = setup();
     director.commandSent({ id: 'c3', command: buildFloor });
