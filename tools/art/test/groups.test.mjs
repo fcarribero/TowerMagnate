@@ -26,8 +26,8 @@ describe('structure group', () => {
         'lobby-3',
         'sky-lobby',
         'basement',
-        'ground',
-        'dirt',
+        'soil-1',
+        'soil-9',
         'edge-left',
         'edge-right',
         'roof',
@@ -65,11 +65,18 @@ describe('structure group', () => {
     expect(night.get(3, 4)).toBe(colorIndex('lamp-glow'));
   });
 
-  it('draws soil strata as wide tiles one level tall', () => {
-    for (const subject of ['ground', 'dirt', 'clay', 'dirt-deep', 'bedrock']) {
-      expect(sprites[`structure/${subject}/day`].width, subject).toBe(32);
-      expect(sprites[`structure/${subject}/day`].height, subject).toBe(metrics.floorHeight);
+  it('draws the soil as nine wide tiles one level tall that blend from level to level', () => {
+    for (let level = 1; level <= 9; level += 1) {
+      const sprite = sprites[`structure/soil-${level}/day`];
+      expect(sprite.width, `soil-${level}`).toBe(512);
+      expect(sprite.height, `soil-${level}`).toBe(metrics.floorHeight);
     }
+    const share = (level, color) => {
+      const { pixels } = sprites[`structure/soil-${level}/day`];
+      return pixels.filter((pixel) => pixel === colorIndex(color)).length / pixels.length;
+    };
+    expect(share(2, 'wood')).toBeGreaterThan(share(9, 'wood'));
+    expect(share(9, 'charcoal')).toBeGreaterThan(share(2, 'charcoal'));
   });
 
   it('draws the subway tunnel one tile wide with rails and a lit lamp', () => {

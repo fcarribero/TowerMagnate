@@ -23,7 +23,7 @@ import {
   type ShaftType,
   type TowerState,
 } from '@tower-magnate/shared';
-import { cellsWithoutStructure, levelError, overlappingOccupants } from '../grid';
+import { cellsWithoutStructure, isOverlay, levelError, overlappingOccupants } from '../grid';
 
 /** The cells a shaft would cover: columns x..x + width - 1 on levels bottom..top. */
 export interface ShaftRange {
@@ -105,7 +105,7 @@ export function idleCar(homeLevel: Level, paid: number, placedAtStep: number): E
   };
 }
 
-/** C-35: free, or already taken by the shaft being resized. */
+/** C-35: free, in the back layer, or already taken by the shaft being resized. */
 function isFreeForShaft(
   grid: GridState,
   level: Level,
@@ -114,7 +114,7 @@ function isFreeForShaft(
   self: ShaftId | null,
 ): boolean {
   return overlappingOccupants(grid, level, x0, x1).every(
-    ({ occupant }) => occupant.kind === 'shaft' && occupant.id === self,
+    ({ occupant }) => !isOverlay(occupant) || (occupant.kind === 'shaft' && occupant.id === self),
   );
 }
 

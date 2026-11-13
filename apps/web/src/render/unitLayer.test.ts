@@ -131,3 +131,58 @@ describe('UnitLayer', () => {
     expect(layer.view.children[0]?.children.some((c) => c instanceof TilingSprite)).toBe(true);
   });
 });
+
+describe('UnitLayer construction', () => {
+  function layerWithClock() {
+    const registry = new SpriteRegistry(new Texture(), () => undefined);
+    registry.addSheet({ 'units/office/empty_day': new Texture() });
+    let now = 0;
+    const layer = new UnitLayer(registry, () => now);
+    return {
+      layer,
+      at(ms: number) {
+        now = ms;
+        layer.animate();
+      },
+    };
+  }
+
+  const input = (units: UnitSource[]) => ({
+    units,
+    transports: [],
+    time: 'day' as const,
+    openVenues: ALL_VENUES_OPEN,
+  });
+
+  it('draws what is already built at once and builds a unit that arrives later', () => {
+    const { layer, at } = layerWithClock();
+    layer.update(input([office]));
+    expect(layer.buildingCount).toBe(0);
+    layer.update(input([office, { ...office, id: 'u2', x: 20 }]));
+    expect(layer.buildingCount).toBe(1);
+    at(100);
+    expect(layer.buildingCount).toBe(1);
+  });
+
+  it('shows the new unit only up to a height that grows, then lets it go whole', () => {
+    const { layer, at } = layerWithClock();
+    layer.update(input([]));
+    layer.update(input([office]));
+    const sprite = spriteOf(layer) as { mask: unknown };
+    expect(sprite.mask).toBeTruthy();
+    at(300);
+    expect(layer.buildingCount).toBe(1);
+    at(700);
+    expect(layer.buildingCount).toBe(0);
+    expect(sprite.mask).toBeFalsy();
+  });
+
+  it('stops building a unit that is demolished halfway', () => {
+    const { layer } = layerWithClock();
+    layer.update(input([]));
+    layer.update(input([office]));
+    layer.update(input([]));
+    expect(layer.buildingCount).toBe(0);
+    expect(layer.count).toBe(0);
+  });
+});

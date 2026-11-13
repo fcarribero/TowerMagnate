@@ -101,6 +101,12 @@ export function priceText(unit: UnitDefinition): string {
   }
 }
 
+/** The price as drawn on a tool tile: the amount of one unit, one cell or the shaft. */
+export function priceTileText(unit: UnitDefinition): string {
+  const { cost } = unit;
+  return formatMoney(cost.kind === 'shaft' ? cost.shaftAmount : cost.amount);
+}
+
 /** Line 1 name and price, line 2 size, line 3 the unlock stars when locked. */
 export function tooltipLines(tool: ToolId, stars: StarRating): string[] {
   if (isFixedTool(tool)) {
@@ -112,6 +118,12 @@ export function tooltipLines(tool: ToolId, stars: StarRating): string[] {
     lines.push(t('ui.lockedStars', { n: unit.unlockStars }));
   }
   return lines;
+}
+
+/** The key that picks the tool, as the letter drawn on its button. */
+export function fixedToolKey(tool: FixedTool): string {
+  const entry = Object.entries(FIXED_TOOL_SHORTCUTS).find(([, id]) => id === tool);
+  return (entry?.[0] ?? '').toUpperCase();
 }
 
 export function fixedToolForKey(key: string): FixedTool | null {

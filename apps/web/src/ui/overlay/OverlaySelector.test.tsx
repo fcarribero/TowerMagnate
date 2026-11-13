@@ -22,9 +22,14 @@ describe('OverlaySelector', () => {
     );
   });
 
-  it('shows the keys 1 to 4', () => {
+  it('shows the name of each overlay', () => {
     render(<OverlaySelector overlay="normal" onSelect={() => undefined} />);
-    expect(screen.getAllByRole('button').map((b) => b.textContent)).toEqual(['1', '2', '3', '4']);
+    expect(screen.getAllByRole('button').map((b) => b.textContent)).toEqual([
+      'Normal',
+      'Evaluación',
+      'Precios',
+      'Hotel',
+    ]);
   });
 
   it('reports the clicked overlay', () => {
@@ -51,9 +56,9 @@ describe('OverlayLegend', () => {
 });
 
 describe('OverlayLegend layout', () => {
-  it('sits 4 UI px above the 20 px news line', () => {
+  it('sits one gap above the build bar', () => {
     const css = readFileSync(resolve(__dirname, 'overlay.css'), 'utf8');
     const legendRule = css.match(/\.overlay-legend \{[^}]*\}/)?.[0] ?? '';
-    expect(legendRule).toContain('bottom: calc(24 * var(--tm-px));');
+    expect(legendRule).toContain('bottom: calc(var(--chrome-bottom-edge) + var(--chrome-gap));');
   });
 });

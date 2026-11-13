@@ -8,9 +8,19 @@ body,
   background: var(--obra-ink);
 }
 
+/* The tower view ends where the build bar starts; the soil colour fills the rest behind the bar. */
 .stage-host {
   position: absolute;
-  inset: 0;
+  inset: 0 0 var(--chrome-stage-bottom);
+}
+
+.stage-ground {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: var(--chrome-stage-bottom);
+  background: var(--tm-soil);
 }
 
 .stage-host canvas {
@@ -33,9 +43,9 @@ body,
 
 .connection-banner {
   position: absolute;
-  top: calc(24 * var(--tm-px));
+  top: calc(var(--chrome-top-height) + 2 * var(--chrome-gap));
   right: 0;
-  left: calc(80 * var(--tm-px));
+  left: 0;
   box-sizing: border-box;
   height: calc(18 * var(--tm-px));
   padding: 0 var(--space-2);
@@ -51,7 +61,7 @@ body,
 .connection-dialog {
   position: absolute;
   top: calc(50% + 2 * var(--tm-px));
-  left: calc(50% + 40 * var(--tm-px));
+  left: 50%;
   transform: translate(-50%, -50%);
   color: var(--obra-ink);
   background: var(--obra-paper);
@@ -113,19 +123,6 @@ body,
   box-shadow: var(--shadow-window);
 }
 
-.render-stats {
-  position: absolute;
-  right: calc(8 * var(--tm-px));
-  bottom: calc(28 * var(--tm-px));
-  padding: var(--space-1);
-  font: var(--text-status-label);
-  color: var(--obra-yellow);
-  white-space: nowrap;
-  background: var(--obra-ink);
-  border: var(--border-control);
-  pointer-events: none;
-}
-
 .viewport-too-small {
   position: absolute;
   inset: 0;
@@ -161,10 +158,10 @@ body,
 }
 
 .ui-windows {
-  top: calc(24 * var(--tm-px));
+  top: calc(var(--chrome-top-height) + 2 * var(--chrome-gap));
   right: 0;
-  bottom: calc(20 * var(--tm-px));
-  left: calc(80 * var(--tm-px));
+  bottom: var(--chrome-bottom-edge);
+  left: 0;
   pointer-events: none;
 }
 
@@ -175,8 +172,8 @@ body,
 .ui-layer > .level-ruler {
   position: absolute;
   top: 0;
-  bottom: 0;
-  left: calc(80 * var(--tm-px));
+  bottom: var(--chrome-stage-bottom);
+  left: var(--chrome-gap);
   width: calc(20 * var(--tm-px));
   overflow: hidden;
   pointer-events: none;

@@ -11,7 +11,7 @@ export interface OverlaySelectorProps {
 export function OverlaySelector({ overlay, onSelect }: OverlaySelectorProps) {
   return (
     <div class="overlay-selector" role="group" aria-label={t('overlay.name')}>
-      {OVERLAY_IDS.map((id, index) => (
+      {OVERLAY_IDS.map((id) => (
         <button
           key={id}
           type="button"
@@ -21,7 +21,7 @@ export function OverlaySelector({ overlay, onSelect }: OverlaySelectorProps) {
           title={t(`overlay.${id}` as StringKey)}
           onClick={() => onSelect(id)}
         >
-          {index + 1}
+          {t(`overlay.${id}` as StringKey)}
         </button>
       ))}
     </div>

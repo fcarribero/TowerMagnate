@@ -12,6 +12,17 @@ const FEET_ROW = 28;
 const PERSON_HEIGHT = 16;
 const GUEST_TINT = 0xffe9a8;
 const NO_TINT = 0xffffff;
+/** Render frames each idle frame is shown for, about half a second at 60 frames a second. */
+const IDLE_FRAME_LENGTH = 30;
+
+/** A small number from the person id, so people who stand together do not breathe in step. */
+function idlePhase(id: string): number {
+  let hash = 0;
+  for (let index = 0; index < id.length; index += 1) {
+    hash = (hash * 31 + id.charCodeAt(index)) % 1009;
+  }
+  return hash;
+}
 
 interface DrawnWalker {
   sprite: Sprite;
@@ -77,7 +88,7 @@ export class PeopleLayer {
       const walker = this.drawn.get(person.id) ?? this.create(person.id);
       walker.seenIn = this.frameNumber;
       const sprite = walker.sprite;
-      const look = floorSprite(person, x);
+      const look = this.animated(floorSprite(person, x), person.id);
       if (
         look.subject !== walker.subject ||
         look.state !== walker.state ||
@@ -100,6 +111,22 @@ export class PeopleLayer {
       sprite.position.set(Math.round(x * TILE_WIDTH + sprite.texture.width / 2), top);
     }
     this.releaseMissing();
+  }
+
+  /** A standing person alternates two idle frames; a walking one keeps the walk frame. */
+  private animated(
+    look: { subject: string; state: string; frame?: number },
+    id: string,
+  ): { subject: string; state: string; frame?: number } {
+    if (!look.state.startsWith('stand')) {
+      return look;
+    }
+    const tick = Math.floor(this.frameNumber / IDLE_FRAME_LENGTH) + idlePhase(id);
+    return {
+      subject: look.subject,
+      state: look.state.replace('stand', 'idle'),
+      frame: (tick % 2) + 1,
+    };
   }
 
   /** People who come into the range get their sprite on the next frame. */

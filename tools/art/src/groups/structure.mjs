@@ -7,7 +7,7 @@ import { pixelNoise } from '../noise.mjs';
 const { tileWidth, floorHeight, slabHeight } = metrics;
 const EDGE_WIDTH = 3;
 const ROOF_HEIGHT = 4;
-const SOIL_TILE_WIDTH = 32;
+const SOIL_TILE_WIDTH = 512;
 
 function slabTopOf(tile) {
   return tile.height - slabHeight;
@@ -151,22 +151,6 @@ function basement() {
   return tile;
 }
 
-function drawStone(tile, left, top) {
-  tile.drawMap(left, top, ['LB.', 'BBD', '.DD'], {
-    L: 'concrete-light',
-    B: 'concrete',
-    D: 'concrete-dark',
-  });
-}
-
-function scatterStones(tile, top, count, seed) {
-  for (let index = 0; index < count; index++) {
-    const left = Math.floor(pixelNoise(index, 0, seed) * (tile.width - 3));
-    const stoneTop = top + Math.floor(pixelNoise(index, 1, seed) * (tile.height - top - 3));
-    drawStone(tile, left, stoneTop);
-  }
-}
-
 function speckle(tile, top, color, chance, seed) {
   for (let y = top; y < tile.height; y++) {
     for (let x = 0; x < tile.width; x++) {
@@ -177,84 +161,89 @@ function speckle(tile, top, color, chance, seed) {
   }
 }
 
-// The soil level right under ground level, with grass on top.
-function ground() {
-  const tile = new PixelCanvas(SOIL_TILE_WIDTH, floorHeight);
-  tile.fillRect(0, 0, tile.width, tile.height, 'wood-dark');
+// The soil is one picture cut into nine levels, S1 at the top. A level tile is 512 px wide so the
+// pattern repeats about six times across the site, and its rows continue the rows of the level
+// above, so the colors blend from level to level instead of changing in steps.
+const SOIL_LEVELS = 9;
+const SOIL_COLORS = ['wood', 'wood-dark', 'concrete-dark', 'charcoal'];
+const SOIL_DEPTH_ROWS = SOIL_LEVELS * floorHeight;
+
+// A smooth value between 0 and 1 along x that wraps at the tile width: the soil gets a little
+// lighter and darker from side to side without any visible repeat of a small tile.
+function soilWave(x, width, seed) {
+  const cell = 64;
+  const cells = width / cell;
+  const left = Math.floor(x / cell);
+  const blend = (x % cell) / cell;
+  const soft = blend * blend * (3 - 2 * blend);
+  const a = pixelNoise(left % cells, 0, seed);
+  const b = pixelNoise((left + 1) % cells, 0, seed);
+  return a + (b - a) * soft;
+}
+
+function soilColorAt(x, y, depthRow) {
+  const sideways = (soilWave(x, SOIL_TILE_WIDTH, 71) - 0.5) * 0.12;
+  const t = Math.min(Math.max(depthRow / SOIL_DEPTH_ROWS + sideways, 0), 1);
+  const position =
+    t * (SOIL_COLORS.length - 1) + (pixelNoise(Math.floor(x / 2), y, 72) - 0.5) * 0.6;
+  const index = Math.min(Math.max(Math.round(position), 0), SOIL_COLORS.length - 1);
+  return SOIL_COLORS[index];
+}
+
+// Soft streaks that wander sideways, a few over the whole depth.
+function drawStrata(tile, level) {
+  const first = (level - 1) * floorHeight;
+  for (const seamRow of [34, 79, 128, 177, 221, 262]) {
+    const phase = seamRow * 0.37;
+    for (let x = 0; x < tile.width; x++) {
+      const wave = Math.sin((x / tile.width) * 2 * Math.PI * 3 + phase) * 2.5;
+      const y = Math.round(seamRow + wave) - first;
+      if (y < 0 || y >= tile.height || pixelNoise(Math.floor(x / 4), seamRow, 73) > 0.6) {
+        continue;
+      }
+      tile.set(x, y, pixelNoise(x, seamRow, 74) < 0.5 ? 'wood-dark' : 'slate');
+    }
+  }
+}
+
+function drawSoilStones(tile, level) {
+  const first = (level - 1) * floorHeight;
+  const count = 6 + level * 2;
+  for (let index = 0; index < count; index++) {
+    const left = Math.floor(pixelNoise(index, level, 75) * (tile.width - 3));
+    const top = Math.floor(pixelNoise(index, level, 76) * (tile.height - 3));
+    const darkness = (first + top) / SOIL_DEPTH_ROWS;
+    const rock =
+      darkness > 0.5 ? ['gray', 'slate', 'charcoal'] : ['concrete', 'concrete-dark', 'wood-dark'];
+    tile.drawMap(left, top, ['LB.', 'BBD', '.DD'], { L: rock[0], B: rock[1], D: rock[2] });
+  }
+}
+
+function drawGrass(tile) {
   for (let x = 0; x < tile.width; x++) {
-    const topsoilBottom = 8 + Math.floor(pixelNoise(x, 0, 11) * 3);
-    tile.vline(x, 2, topsoilBottom - 2, 'wood');
     tile.set(x, 0, pixelNoise(x, 0, 12) < 0.3 ? 'leaf-dark' : 'leaf');
     tile.set(x, 1, 'leaf-dark');
     if (pixelNoise(x, 2, 13) < 0.25) {
       tile.set(x, 2, 'leaf-dark');
     }
   }
-  speckle(tile, 3, 'wood-light', 0.04, 14);
-  speckle(tile, 12, 'charcoal', 0.06, 15);
-  scatterStones(tile, 14, 3, 16);
-  return tile;
 }
 
-function dirt() {
+function soilLevel(level) {
   const tile = new PixelCanvas(SOIL_TILE_WIDTH, floorHeight);
-  tile.fillRect(0, 0, tile.width, tile.height, 'wood-dark');
-  speckle(tile, 0, 'charcoal', 0.08, 21);
-  speckle(tile, 0, 'wood', 0.03, 22);
-  scatterStones(tile, 0, 4, 23);
-  return tile;
-}
-
-// Deeper soil for the lowest basement levels: darker, with more rock.
-function deepDirt() {
-  const tile = new PixelCanvas(SOIL_TILE_WIDTH, floorHeight);
-  tile.fillRect(0, 0, tile.width, tile.height, 'charcoal');
-  speckle(tile, 0, 'wood-dark', 0.1, 31);
-  speckle(tile, 0, 'slate', 0.04, 32);
-  scatterStones(tile, 0, 7, 33);
-  return tile;
-}
-
-// Middle strata, S4 to S6: packed clay with broken streaks that run sideways.
-function clay() {
-  const tile = new PixelCanvas(SOIL_TILE_WIDTH, floorHeight);
-  tile.fillRect(0, 0, tile.width, tile.height, 'wood');
-  for (let y = 1; y < tile.height; y += 5) {
-    const color = pixelNoise(0, y, 41) < 0.6 ? 'wood-dark' : 'wood-light';
+  const first = (level - 1) * floorHeight;
+  for (let y = 0; y < tile.height; y++) {
     for (let x = 0; x < tile.width; x++) {
-      if (pixelNoise(Math.floor(x / 3), y, 42) < 0.55) {
-        tile.set(x, y, color);
-      }
+      tile.set(x, y, soilColorAt(x, y, first + y));
     }
   }
-  speckle(tile, 0, 'wood-dark', 0.07, 43);
-  scatterStones(tile, 0, 2, 44);
-  return tile;
-}
-
-function drawCrack(tile, left, top, length, seed) {
-  let x = left;
-  for (let y = top; y < top + length; y++) {
-    tile.set(x, y, 'ink');
-    x += pixelNoise(x, y, seed) < 0.5 ? 0 : 1;
+  drawStrata(tile, level);
+  speckle(tile, 0, 'wood-light', Math.max(0.05 - level * 0.006, 0.004), 77 + level);
+  speckle(tile, 0, 'ink', 0.004 + level * 0.002, 90 + level);
+  drawSoilStones(tile, level);
+  if (level === 1) {
+    drawGrass(tile);
   }
-}
-
-// The rock under the soil, S9: slate beds with wavy seams and thin cracks.
-function bedrock() {
-  const tile = new PixelCanvas(SOIL_TILE_WIDTH, floorHeight);
-  tile.fillRect(0, 0, tile.width, tile.height, 'slate');
-  for (const seamTop of [3, 13, 24]) {
-    for (let x = 0; x < tile.width; x++) {
-      const y = seamTop + Math.round(2 * Math.sin((x / tile.width) * 2 * Math.PI + seamTop));
-      tile.set(x, y, 'charcoal');
-      tile.set(x, y + 1, 'gray');
-    }
-  }
-  speckle(tile, 0, 'charcoal', 0.07, 51);
-  speckle(tile, 0, 'gray', 0.03, 52);
-  drawCrack(tile, 6, 6, 6, 53);
-  drawCrack(tile, 21, 16, 7, 54);
   return tile;
 }
 
@@ -360,11 +349,10 @@ const subjects = [
   { subject: 'sky-lobby', draw: () => skyLobby({ column: false }), lightUp: lightSkyLobby },
   { subject: 'sky-lobby-column', draw: () => skyLobby({ column: true }) },
   { subject: 'basement', draw: basement },
-  { subject: 'ground', draw: ground },
-  { subject: 'dirt', draw: dirt },
-  { subject: 'dirt-deep', draw: deepDirt },
-  { subject: 'clay', draw: clay },
-  { subject: 'bedrock', draw: bedrock },
+  ...Array.from({ length: SOIL_LEVELS }, (_, index) => ({
+    subject: `soil-${index + 1}`,
+    draw: () => soilLevel(index + 1),
+  })),
   { subject: 'subway-tunnel', draw: () => subwayTunnel({ lamp: false }) },
   { subject: 'subway-tunnel-lamp', draw: () => subwayTunnel({ lamp: true }) },
   { subject: 'subway-tunnel-edge-left', draw: () => subwayTunnelEdge('left') },

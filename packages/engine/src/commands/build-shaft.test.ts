@@ -2,7 +2,7 @@ import type { Command, Level, ShaftType } from '@tower-magnate/shared';
 import { describe, expect, it } from 'vitest';
 import { clearStructure, occupantAt } from '../grid';
 import { buildTower, plainTowerPlan } from '../testing';
-import { accept, fullSiteTower, rejection } from './shaft-test-helpers';
+import { accept, fullSiteTower, rejection, run } from './shaft-test-helpers';
 
 function shaft(shaftType: ShaftType, x: number, bottom: Level, top: Level): Command {
   return { type: 'buildShaft', shaftType, x, bottom, top };
@@ -117,6 +117,23 @@ describe('buildShaft', () => {
     const busy = fullSiteTower([{ type: 'standard', x: 60, bottom: 1, top: 3 }]);
     accept(busy, shaft('standard', 58, 4, 10));
     expect(rejection(busy, shaft('standard', 58, 3, 10))).toBe('CELL_OCCUPIED');
+  });
+
+  it('passes over units in the back layer but not over a stair or another shaft', () => {
+    const plan = plainTowerPlan(20, 0, 374);
+    plan.units = [{ type: 'office', level: 3, x: 40 }];
+    const { state: withOffice } = buildTower(plan);
+    withOffice.money = 10_000_000;
+    const { state } = accept(withOffice, shaft('standard', 42, 1, 10));
+    expect(Object.keys(state.units)).toHaveLength(1);
+    expect(occupantAt(state.grid, 3, 42)?.kind).toBe('unit');
+    const stairs = run(withOffice, {
+      type: 'buildTransport',
+      transportType: 'stairs',
+      x: 60,
+      level: 2,
+    }).state;
+    expect(rejection(stairs, shaft('standard', 62, 1, 10))).toBe('CELL_OCCUPIED');
   });
 
   it('rejects ranges off the grid', () => {

@@ -74,9 +74,20 @@ export function clearStructure(grid: GridState, level: Level, x0: number, x1: nu
   dropRowIfEmpty(grid, level);
 }
 
+/**
+ * The grid has two layers. The back layer holds units, lobbies and ruins. The front layer holds
+ * stairs, escalators and elevator shafts, which pass over the back layer. Things of the same layer
+ * never share a cell.
+ */
+export function isOverlay(occupant: OccupantRef): boolean {
+  return occupant.kind === 'transport' || occupant.kind === 'shaft';
+}
+
+/** What fills a cell: the back layer first (unit or ruins), then a stair or shaft over it. */
 export function occupantAt(grid: GridState, level: Level, x: number): OccupantRef | null {
-  const span = grid.levels[level]?.occupants.find((candidate) => covers(candidate, x));
-  return span?.occupant ?? null;
+  const spans = (grid.levels[level]?.occupants ?? []).filter((candidate) => covers(candidate, x));
+  const base = spans.find((span) => !isOverlay(span.occupant));
+  return (base ?? spans[0])?.occupant ?? null;
 }
 
 /** Every occupant on the level that shares at least one cell with x0..x1. */
@@ -106,7 +117,10 @@ export function addOccupant(
   occupant: OccupantRef,
 ): void {
   assertSpan(level, x0, x1);
-  if (!isSpanFree(grid, level, x0, x1)) {
+  const clashes = overlappingOccupants(grid, level, x0, x1).some(
+    (span) => !isOverlay(occupant) || isOverlay(span.occupant),
+  );
+  if (clashes) {
     throw new Error(`Cells ${x0}..${x1} on level ${level} are already occupied`);
   }
   const row = rowFor(grid, level);

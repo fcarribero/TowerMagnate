@@ -56,7 +56,6 @@ export function DemoStatusPanel() {
           overlaySlot={<OverlaySelector overlay={overlay} onSelect={setOverlay} />}
           unreadNotices={2}
           onOpenWindow={(id) => setLastAction(`ventana ${id}`)}
-          onZoom={(direction) => setLastAction(`zoom ${direction}`)}
           onLogout={() => setLastAction('salir')}
         />
       </div>

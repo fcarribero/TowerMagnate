@@ -7,10 +7,10 @@ const screens = [
 ];
 
 describe('ui sweep plan', () => {
-  it('sizes the viewport from the UI scale', () => {
+  it('gives each step its own viewport', () => {
     expect(viewportFor(1)).toEqual({ width: 1024, height: 640 });
-    expect(viewportFor(2)).toEqual({ width: 2048, height: 1280 });
-    expect(viewportFor(3)).toEqual({ width: 3072, height: 1920 });
+    expect(viewportFor(2)).toEqual({ width: 1920, height: 1200 });
+    expect(viewportFor(3)).toEqual({ width: 2560, height: 1600 });
   });
 
   it('names files screen-scale-fonts', () => {

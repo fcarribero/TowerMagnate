@@ -670,7 +670,7 @@
 /* Toast: the one slot, above the tower. */
 .tm-toasts {
   position: absolute;
-  bottom: calc(24 * var(--tm-px));
+  bottom: calc(var(--chrome-bottom-edge) + var(--chrome-gap));
   left: 50%;
   display: flex;
   flex-direction: column;

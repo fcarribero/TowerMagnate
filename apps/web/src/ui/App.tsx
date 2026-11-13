@@ -351,7 +351,6 @@ export function App({ onLogout, onRestartTower, onSessionLost }: AppProps) {
           openWindows={openWindows}
           unreadNotices={unreadNotices}
           overlaySlot={<OverlaySelector overlay={overlay} onSelect={setOverlay} />}
-          onZoom={(direction) => stage?.zoomStep(direction)}
           onLogout={onLogout}
           extraMenuItems={[
             {
@@ -372,6 +371,7 @@ export function App({ onLogout, onRestartTower, onSessionLost }: AppProps) {
           lockedLobbyHeight={onMainLobbyLevel ? (mainLobbyHeight ?? undefined) : undefined}
           showMainLobbyWarning={onMainLobbyLevel && mainLobbyHeight === null}
           disabled={!connected}
+          onZoom={(direction) => stage?.zoomStep(direction)}
         />
         <BuildFeedback floats={floats} dragLabel={dragLabel} />
         <IncomeFloaters floaters={incomeFloats} />

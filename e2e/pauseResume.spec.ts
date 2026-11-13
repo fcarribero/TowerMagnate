@@ -9,7 +9,7 @@ const MAX_DRIFT_MINUTES = 5;
 async function readGameMinutes(page: Page): Promise<number> {
   const bar = page.getByRole('toolbar', { name: 'Barra de estado' });
   const dayOfMonth = Number(
-    /(\d+) de/.exec(await bar.locator('.status-panel__date').innerText())?.[1],
+    /(\d+) de/i.exec(await bar.locator('.status-panel__day').innerText())?.[1],
   );
   const [hours = 0, minutes = 0] = (await bar.locator('.status-panel__time').innerText())
     .split(':')

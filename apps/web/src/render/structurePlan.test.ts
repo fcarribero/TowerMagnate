@@ -38,16 +38,16 @@ function subjects(pieces: StructurePiece[]): string[] {
 }
 
 describe('soilSubject', () => {
-  it('follows the art guide from S1 to S9', () => {
+  it('gives each level from S1 to S9 its own picture', () => {
     expect([-1, -2, -3, -4, -6, -7, -8, -9].map(soilSubject)).toEqual([
-      'ground',
-      'dirt',
-      'dirt',
-      'clay',
-      'clay',
-      'dirt-deep',
-      'dirt-deep',
-      'bedrock',
+      'soil-1',
+      'soil-2',
+      'soil-3',
+      'soil-4',
+      'soil-6',
+      'soil-7',
+      'soil-8',
+      'soil-9',
     ]);
   });
 });
@@ -112,10 +112,10 @@ describe('planStructureRow', () => {
 
   it('draws soil under a basement run with retaining walls', () => {
     const pieces = planStructureRow(-2, source({ '-2': row(span(0, 3, 'f')) }));
-    expect(pieces[0]).toEqual({ subject: 'dirt', x: 0, y: 0, width: 3000 });
+    expect(pieces[0]).toEqual({ subject: 'soil-2', x: 0, y: 0, width: 3000 });
     expect(pieces).toContainEqual({ subject: 'basement', x: 0, y: 0, width: 32 });
     expect(subjects(pieces)).toEqual([
-      'dirt',
+      'soil-2',
       'basement',
       'basement-edge-left',
       'basement-edge-right',

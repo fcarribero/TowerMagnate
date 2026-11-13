@@ -9,16 +9,7 @@ import { GameMenu, type MenuItem } from '../menu/GameMenu';
 import { formatMoney } from '../money';
 import { currentRankLabel } from '../stars/starsModel';
 import { t, type StringKey } from '../strings';
-import {
-  FINANCE_ICON,
-  FOLLOWED_ICON,
-  MAP_ICON,
-  NOTICES_ICON,
-  PixelIcon,
-  STAR_FILLED,
-  STAR_OUTLINE,
-  type PixelPattern,
-} from './pixelIcons';
+import { ObraIcon, type ObraIconName } from '../icons/ObraIcon';
 import {
   STAR_SLOTS,
   filledStars,
@@ -29,11 +20,10 @@ import {
   isTowerRank,
   stepOfGameMinute,
 } from './statusFormat';
-import { statusCollapse, type StatusCollapse } from './statusLayout';
+import { statusFits } from './statusLayout';
 import './statusPanel.css';
 
 export type StatusWindowId = 'map' | 'finance' | 'followed' | 'notices' | 'stars';
-export type ZoomDirection = 1 | -1;
 
 export interface StatusPanelProps {
   store: ClientStore;
@@ -41,7 +31,6 @@ export interface StatusPanelProps {
   /** The overlay selector goes here. */
   overlaySlot?: ComponentChildren;
   onOpenWindow: (id: StatusWindowId) => void;
-  onZoom: (direction: ZoomDirection) => void;
   onLogout: () => void;
   /** Menu entries shown after the ones the bar could not fit. */
   extraMenuItems?: readonly MenuItem[];
@@ -56,14 +45,14 @@ const MAX_BADGE_COUNT = 9;
 interface WindowButton {
   id: Exclude<StatusWindowId, 'stars'>;
   label: StringKey;
-  icon: PixelPattern;
+  icon: ObraIconName;
 }
 
 const WINDOW_BUTTONS: readonly WindowButton[] = [
-  { id: 'map', label: 'ui.windowMap', icon: MAP_ICON },
-  { id: 'finance', label: 'ui.windowFinance', icon: FINANCE_ICON },
-  { id: 'followed', label: 'ui.windowFollowed', icon: FOLLOWED_ICON },
-  { id: 'notices', label: 'ui.windowNotices', icon: NOTICES_ICON },
+  { id: 'map', label: 'ui.windowMap', icon: 'map' },
+  { id: 'finance', label: 'ui.windowFinance', icon: 'finance' },
+  { id: 'followed', label: 'ui.windowFollowed', icon: 'eye' },
+  { id: 'notices', label: 'ui.windowNotices', icon: 'bell' },
 ];
 
 interface StatusValues {
@@ -89,7 +78,6 @@ export function StatusPanel({
   offline = false,
   overlaySlot,
   onOpenWindow,
-  onZoom,
   onLogout,
   extraMenuItems = [],
   openWindows = NO_WINDOWS,
@@ -98,11 +86,8 @@ export function StatusPanel({
   const status = useStoreSelect(store, selectStatus);
   const panelRef = useRef<HTMLDivElement>(null);
   const rowRef = useRef<HTMLDivElement>(null);
-  const zoomRef = useRef<HTMLDivElement>(null);
   const windowsRef = useRef<HTMLDivElement>(null);
-  const collapse = useStatusCollapse(panelRef, rowRef, zoomRef, windowsRef);
-  const showZoom = collapse !== 'windowsAndZoom';
-  const showWindows = collapse === 'none';
+  const showWindows = useWindowsFit(panelRef, rowRef, windowsRef);
 
   const menuItems: MenuItem[] = [];
   if (!showWindows) {
@@ -114,11 +99,6 @@ export function StatusPanel({
       });
     }
   }
-  if (!showZoom) {
-    menuItems.push({ id: 'zoomOut', label: t('ui.zoomOut'), onSelect: () => onZoom(-1) });
-    menuItems.push({ id: 'zoomIn', label: t('ui.zoomIn'), onSelect: () => onZoom(1) });
-  }
-
   menuItems.push(...extraMenuItems);
 
   return (
@@ -129,13 +109,8 @@ export function StatusPanel({
           <StatusValuesView status={status} onOpenStars={() => onOpenWindow('stars')} />
         )}
         {offline && <span class="status-panel__offline">{t('ui.serverOffline')}</span>}
+        <span class="status-panel__spacer" />
         {overlaySlot !== undefined && <div class="status-panel__overlay">{overlaySlot}</div>}
-        {showZoom && (
-          <div class="status-panel__group" ref={zoomRef}>
-            <ZoomButton direction={-1} onZoom={onZoom} />
-            <ZoomButton direction={1} onZoom={onZoom} />
-          </div>
-        )}
         {showWindows && (
           <div class="status-panel__group" ref={windowsRef}>
             {WINDOW_BUTTONS.map((button) => (
@@ -151,7 +126,7 @@ export function StatusPanel({
                   aria-pressed={openWindows.has(button.id)}
                   onClick={() => onOpenWindow(button.id)}
                 >
-                  <PixelIcon pattern={button.icon} class="status-panel__icon" />
+                  <ObraIcon name={button.icon} class="status-panel__icon" />
                   {button.id === 'notices' && unreadNotices > 0 && (
                     <span class="status-panel__badge" aria-label={unreadLabel(unreadNotices)}>
                       {unreadNotices > MAX_BADGE_COUNT ? `${MAX_BADGE_COUNT}+` : unreadNotices}
@@ -169,27 +144,6 @@ export function StatusPanel({
 
 function unreadLabel(count: number): string {
   return t('ui.unreadNotices', { n: count });
-}
-
-function ZoomButton({
-  direction,
-  onZoom,
-}: {
-  direction: ZoomDirection;
-  onZoom: (direction: ZoomDirection) => void;
-}) {
-  const label = direction === 1 ? t('ui.zoomIn') : t('ui.zoomOut');
-  return (
-    <button
-      type="button"
-      class="status-panel__zoom"
-      aria-label={label}
-      title={label}
-      onClick={() => onZoom(direction)}
-    >
-      {direction === 1 ? '+' : '-'}
-    </button>
-  );
 }
 
 function StatusValuesView({
@@ -210,12 +164,16 @@ function StatusValuesView({
   return (
     <>
       <span class="status-panel__date">
-        <span class={date.isWeekend ? 'status-panel__weekday is-weekend' : 'status-panel__weekday'}>
-          {date.weekday}
+        <span class="status-panel__time">{formatGameTime(step)}</span>
+        <span class="status-panel__day">
+          <span
+            class={date.isWeekend ? 'status-panel__weekday is-weekend' : 'status-panel__weekday'}
+          >
+            {date.weekday}
+          </span>
+          {date.rest}
         </span>
-        {date.rest}
       </span>
-      <span class="status-panel__time">{formatGameTime(step)}</span>
       <span class={moneyClass}>{money}</span>
       <span class="status-panel__population">
         <span class="status-panel__label">{population.slice(0, labelEnd)}</span>
@@ -225,6 +183,8 @@ function StatusValuesView({
     </>
   );
 }
+
+const STAR_POINTS = '12,2 15,9 22,9.5 16.5,14.5 18.5,22 12,18 5.5,22 7.5,14.5 2,9.5 9,9';
 
 function StarsButton({ stars, onClick }: { stars: StarRating; onClick: () => void }) {
   const filled = filledStars(stars);
@@ -238,30 +198,29 @@ function StarsButton({ stars, onClick }: { stars: StarRating; onClick: () => voi
       title={label}
       onClick={onClick}
     >
-      {Array.from({ length: STAR_SLOTS }, (_, index) => {
-        const isFilled = index < filled;
-        return (
-          <PixelIcon
-            key={index}
-            pattern={isFilled ? STAR_FILLED : STAR_OUTLINE}
-            class={isFilled ? 'status-panel__star is-filled' : 'status-panel__star'}
-          />
-        );
-      })}
+      {Array.from({ length: STAR_SLOTS }, (_, index) => (
+        <svg
+          key={index}
+          class={index < filled ? 'status-panel__star is-filled' : 'status-panel__star'}
+          viewBox="0 0 24 24"
+          aria-hidden="true"
+        >
+          <polygon points={STAR_POINTS} />
+        </svg>
+      ))}
       {tower && <span class="status-panel__tower">{t('ui.towerRank')}</span>}
     </button>
   );
 }
 
-/** Measures the bar and moves groups into the menu when they do not fit. */
-function useStatusCollapse(
+/** Measures the bar and says whether the window buttons fit; if not, they move into the menu. */
+function useWindowsFit(
   panelRef: MutableRef<HTMLDivElement | null>,
   rowRef: MutableRef<HTMLDivElement | null>,
-  zoomRef: MutableRef<HTMLDivElement | null>,
   windowsRef: MutableRef<HTMLDivElement | null>,
-): StatusCollapse {
-  const [collapse, setCollapse] = useState<StatusCollapse>('none');
-  const groupWidths = useRef({ zoom: 0, windows: 0 });
+): boolean {
+  const [fits, setFits] = useState(true);
+  const groupWidth = useRef(0);
 
   useLayoutEffect(() => {
     const panel = panelRef.current;
@@ -271,28 +230,37 @@ function useStatusCollapse(
     }
     const measure = (): void => {
       const gap = parseFloat(getComputedStyle(row).columnGap) || 0;
-      const widths = groupWidths.current;
-      const zoom = zoomRef.current;
       const windows = windowsRef.current;
-      if (zoom !== null) {
-        widths.zoom = zoom.offsetWidth + gap;
-      }
       if (windows !== null) {
-        widths.windows = windows.offsetWidth + gap;
+        groupWidth.current = windows.offsetWidth + gap;
       }
-      const shownGroups =
-        (zoom === null ? 0 : widths.zoom) + (windows === null ? 0 : widths.windows);
-      const fixed = row.offsetWidth - shownGroups;
-      setCollapse(statusCollapse(contentWidth(panel), { fixed, ...widths }));
+      const shown = windows === null ? 0 : groupWidth.current;
+      const fixed = minRowWidth(row) - shown;
+      setFits(statusFits(contentWidth(panel), { fixed, windows: groupWidth.current }));
     };
     measure();
     const observer = new ResizeObserver(measure);
     observer.observe(panel);
     observer.observe(row);
     return () => observer.disconnect();
-  }, [panelRef, rowRef, zoomRef, windowsRef]);
+  }, [panelRef, rowRef, windowsRef]);
 
-  return collapse;
+  return fits;
+}
+
+/** The width of the items of the row, with the spacer left out. */
+function minRowWidth(row: HTMLElement): number {
+  const gap = parseFloat(getComputedStyle(row).columnGap) || 0;
+  let width = 0;
+  let count = 0;
+  for (const child of Array.from(row.children) as HTMLElement[]) {
+    if (child.classList.contains('status-panel__spacer')) {
+      continue;
+    }
+    width += child.offsetWidth;
+    count += 1;
+  }
+  return width + gap * Math.max(count - 1, 0);
 }
 
 function contentWidth(element: HTMLElement): number {

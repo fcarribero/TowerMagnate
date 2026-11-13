@@ -4,10 +4,15 @@ export type UiScale = (typeof UI_SCALES)[number];
 export const FONT_MODES = ['fonts', 'nofonts'] as const;
 export type FontMode = (typeof FONT_MODES)[number];
 
-const BASE_VIEWPORT = { width: 1024, height: 640 };
+/** One viewport for each step: the smallest one, then two sizes that give a larger UI scale. */
+const VIEWPORTS: Record<UiScale, { width: number; height: number }> = {
+  1: { width: 1024, height: 640 },
+  2: { width: 1920, height: 1200 },
+  3: { width: 2560, height: 1600 },
+};
 
 export function viewportFor(scale: UiScale): { width: number; height: number } {
-  return { width: BASE_VIEWPORT.width * scale, height: BASE_VIEWPORT.height * scale };
+  return VIEWPORTS[scale];
 }
 
 export interface ScreenInfo {
