@@ -8,10 +8,10 @@ body,
   background: var(--obra-ink);
 }
 
-/* The tower view ends where the build bar starts. */
+/* The tower view runs behind the build bar and ends at the news ticker, the only black strip. */
 .stage-host {
   position: absolute;
-  inset: 0 0 var(--chrome-stage-bottom);
+  inset: 0 0 var(--chrome-news-height);
 }
 
 .stage-host canvas {
