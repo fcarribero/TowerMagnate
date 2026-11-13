@@ -105,6 +105,8 @@ export interface Stage {
   showGhost(ghost: GhostInput | null): void;
   /** Frames a footprint, such as the unit under the pointer; null removes the frame. */
   showHighlight(highlight: Footprint | null, color?: number): void;
+  /** Marks the drawn units with these ids as selected; ids that are not drawn are skipped. */
+  showSelection(unitIds: string[]): void;
   /** CSS pixels per canvas device pixel, to place DOM overlays over the canvas. */
   cssPerDevicePixel(): number;
   /** Draws the tower structure; later calls redraw only the levels that changed. */
@@ -365,6 +367,14 @@ export async function mountStage(host: HTMLElement, options: StageOptions = {}):
     },
     showHighlight(input, color) {
       ghost.showHighlight(input, color);
+    },
+    showSelection(unitIds) {
+      ghost.showSelection(
+        unitIds.flatMap((id) => {
+          const rect = units.rectOf(id);
+          return rect === undefined ? [] : [rect];
+        }),
+      );
     },
     cssPerDevicePixel,
     showStructure(input) {

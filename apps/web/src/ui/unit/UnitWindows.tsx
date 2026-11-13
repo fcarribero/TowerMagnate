@@ -21,7 +21,8 @@ const FIRST_WINDOW_POSITION = { x: 40, y: 40 };
 const CASCADE_STEP = 12;
 
 /** The part of the stage the fixed panel needs to follow a unit on screen. */
-export type PanelStage = Pick<Stage, 'unitScreenRect' | 'cssPerDevicePixel' | 'onCameraChange'>;
+export type PanelStage = Pick<Stage, 'unitScreenRect' | 'cssPerDevicePixel' | 'onCameraChange'> &
+  Partial<Pick<Stage, 'showSelection'>>;
 
 interface UnitWindowsProps {
   connection: GameConnection;
@@ -139,6 +140,21 @@ export function UnitWindows({ connection, stage = null }: UnitWindowsProps) {
 
   // The panel changes size when its data arrives, and the view can be resized.
   useEffect(followUnit);
+
+  // Frame every unit whose panel or window is open, so the selection is visible on the tower.
+  const selectedIds = [
+    ...unitWindows.map((window) => entityOfWindow(window.id)),
+    ...(anchoredId === null ? [] : [anchoredId]),
+  ];
+  const selectedKey = selectedIds.join(',');
+  useEffect(() => {
+    stage?.showSelection?.(selectedIds);
+    const stopInspect = inspect.subscribe(() => stage?.showSelection?.(selectedIds));
+    return () => {
+      stopInspect();
+      stage?.showSelection?.([]);
+    };
+  }, [stage, inspect, selectedKey]);
 
   useEffect(
     () =>

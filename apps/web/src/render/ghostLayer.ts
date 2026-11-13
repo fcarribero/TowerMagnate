@@ -8,6 +8,9 @@ export const GHOST_VALID_COLOR = 0x7ec850;
 export const GHOST_INVALID_COLOR = 0xb0353a;
 export const HOVER_COLOR = 0xf4f1e8;
 const GHOST_ALPHA = 0.65;
+export const SELECTION_COLOR = 0xf2d36b;
+const SELECTION_FILL_ALPHA = 0.18;
+const SELECTION_LINE = 2;
 
 /** A footprint whose bottom-left cell is (x, level), sized in tiles and levels. */
 export interface Footprint {
@@ -30,7 +33,7 @@ export interface RunInput extends Footprint {
   valid: boolean;
 }
 
-interface Area {
+export interface Area {
   x: number;
   y: number;
   width: number;
@@ -62,9 +65,11 @@ export class GhostLayer {
   private ghost: GhostInput | null = null;
   private highlight: Footprint | null = null;
   private highlightColor = HOVER_COLOR;
+  private selection: Area[] = [];
+  private readonly selectionFrame = new Graphics();
 
   constructor() {
-    this.view.addChild(this.runShape, this.ghostFrame, this.hoverFrame);
+    this.view.addChild(this.runShape, this.ghostFrame, this.selectionFrame, this.hoverFrame);
   }
 
   setZoom(zoom: number): void {
@@ -90,10 +95,23 @@ export class GhostLayer {
     this.drawFrames();
   }
 
+  /** Frames the units whose information panel is open, in world pixels. */
+  showSelection(areas: Area[]): void {
+    this.selection = areas;
+    this.drawFrames();
+  }
+
   private drawFrames(): void {
     this.ghostFrame.clear();
     this.hoverFrame.clear();
     this.runShape.clear();
+    this.selectionFrame.clear();
+    for (const area of this.selection) {
+      this.selectionFrame
+        .rect(area.x, area.y, area.width, area.height)
+        .fill({ color: SELECTION_COLOR, alpha: SELECTION_FILL_ALPHA });
+      outline(this.selectionFrame, area, SELECTION_COLOR, this.zoom, SELECTION_LINE);
+    }
     if (this.run !== null) {
       const color = this.run.valid ? GHOST_VALID_COLOR : GHOST_INVALID_COLOR;
       const area = areaOf(this.run);
@@ -116,8 +134,8 @@ export class GhostLayer {
   }
 }
 
-function outline(frame: Graphics, area: Area, color: number, zoom: number): void {
-  const line = 1 / zoom;
+function outline(frame: Graphics, area: Area, color: number, zoom: number, pixels = 1): void {
+  const line = pixels / zoom;
   frame
     .rect(area.x + line / 2, area.y + line / 2, area.width - line, area.height - line)
     .stroke({ width: line, color });
