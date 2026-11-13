@@ -420,6 +420,27 @@ function burntOverlay() {
   return canvas;
 }
 
+// No-access sticker ----------------------------------------------------------
+
+const STICKER_SIZE = 16;
+
+// A red no-entry sign: the client sticks it on a unit that no route reaches.
+function noAccessSticker() {
+  const canvas = new PixelCanvas(STICKER_SIZE, STICKER_SIZE);
+  const center = (STICKER_SIZE - 1) / 2;
+  for (let y = 0; y < STICKER_SIZE; y++) {
+    for (let x = 0; x < STICKER_SIZE; x++) {
+      const distance = Math.hypot(x - center, y - center);
+      if (distance <= 7.6) {
+        canvas.set(x, y, distance <= 6.2 ? 'cloth-red' : 'ink');
+      }
+    }
+  }
+  canvas.fillRect(3, 6, 10, 4, 'white');
+  canvas.hline(3, 10, 10, 'cloud');
+  return canvas;
+}
+
 export const effectsGroup = {
   name: 'effects',
   draw() {
@@ -432,6 +453,7 @@ export const effectsGroup = {
       ...santaSprites(),
       ...treasureSprites(),
       { id: 'effects/burnt/overlay', canvas: burntOverlay() },
+      { id: 'effects/no-access/sticker', canvas: noAccessSticker() },
     ];
   },
 };

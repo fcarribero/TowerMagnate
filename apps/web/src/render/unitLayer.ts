@@ -4,6 +4,7 @@ import { buildStageFor, siteRects } from './constructionStages';
 import { CulledRows } from './culledRows';
 import type { LevelRange, WorldRect } from './camera';
 import { levelTop } from './levels';
+import { SLAB_HEIGHT } from './metrics';
 import { checkerTexture } from './overlayChecker';
 import { overlayColorOf, transportOverlayColor, type OverlayId } from './overlayColors';
 import type { SpriteRegistry } from './spriteRegistry';
@@ -27,6 +28,8 @@ export interface UnitsInput {
   overlay?: { id: OverlayId; data: OverlayData };
 }
 
+const NO_ACCESS_STICKER = 'effects/no-access/sticker';
+
 /** The tallest footprint is 4 floors, so a unit can show while its bottom level is just off screen. */
 const MAX_FOOTPRINT_FLOORS = 4;
 
@@ -47,6 +50,8 @@ interface DrawnUnit {
   container: Container;
   textureId: string;
   checker: TilingSprite | null;
+  /** The no-access sign, centered on the footprint; null when the unit can be reached. */
+  sticker: Sprite | null;
   construction: Construction | null;
 }
 
@@ -128,6 +133,7 @@ export class UnitLayer {
         this.endConstruction(entry);
         entry.sprite.destroy();
         entry.checker?.destroy();
+        entry.sticker?.destroy();
         this.drawn.delete(id);
       }
     }
@@ -148,6 +154,7 @@ export class UnitLayer {
     }
     this.place(existing.sprite, drawing);
     this.showChecker(existing, drawing);
+    this.showSticker(existing, drawing);
     const key = this.textureKey(drawing, textureId);
     if (existing.textureId !== key) {
       this.applyTextures(existing, drawing);
@@ -165,9 +172,11 @@ export class UnitLayer {
       container,
       textureId: this.textureKey(drawing, textureId),
       checker: null,
+      sticker: null,
       construction: null,
     };
     this.showChecker(entry, drawing);
+    this.showSticker(entry, drawing);
     this.showConstruction(entry, drawing);
     this.applyTextures(entry, drawing);
     return entry;
@@ -246,6 +255,22 @@ export class UnitLayer {
     checker.height = drawing.height;
     entry.container.addChild(checker);
     entry.container.setChildIndex(checker, entry.container.children.length - 1);
+  }
+
+  /** The sign sits above its sprite in the same container, so it is culled with it. */
+  private showSticker(entry: DrawnUnit, drawing: UnitDrawing): void {
+    if (drawing.noAccess !== true) {
+      entry.sticker?.destroy();
+      entry.sticker = null;
+      return;
+    }
+    const sticker = entry.sticker ?? new Sprite(this.sprites.texture(NO_ACCESS_STICKER));
+    entry.sticker = sticker;
+    sticker.position.set(
+      drawing.x + Math.round((drawing.width - sticker.width) / 2),
+      drawing.y + Math.round((drawing.height - SLAB_HEIGHT - sticker.height) / 2),
+    );
+    entry.container.addChild(sticker);
   }
 
   /** Changes when the picture does, so textures are swapped only then. */

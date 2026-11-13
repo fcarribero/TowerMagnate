@@ -25,6 +25,8 @@ export interface UnitDrawing {
   construction?: number;
   /** Drawn in front of the units on its level, as stairs and escalators are. */
   front?: boolean;
+  /** Set when no route reaches the unit: the layer sticks a no-access sign on it. */
+  noAccess?: boolean;
   /**
    * Set when the sprite is bigger than the footprint: it is drawn at its own size, never
    * scaled, this many pixels from the footprint corner. The footprint still sizes the rest.
@@ -69,7 +71,10 @@ export function planUnit(
   }
   const state = unitState(unit, openVenues);
   const drawing = footprint(unit.id, `units/${unit.type}`, unit, { state, time }, overlay);
-  return unit.construction === undefined ? drawing : { ...drawing, construction: unit.construction };
+  if (unit.construction !== undefined) {
+    return { ...drawing, construction: unit.construction };
+  }
+  return unit.variant === 'disconnected' ? { ...drawing, noAccess: true } : drawing;
 }
 
 const HOTEL_ROOMS: readonly UnitType[] = ['single-room', 'double-room', 'suite'];

@@ -40,6 +40,16 @@ describe('planUnit', () => {
     expect(cut?.variant).toEqual({ state: 'disconnected', time: 'day' });
   });
 
+  it('marks a disconnected unit for the no-access sticker and leaves others unmarked', () => {
+    const cut = planUnit({ ...base, type: 'office', variant: 'disconnected' }, 'day');
+    const reached = planUnit({ ...base, type: 'office' }, 'day');
+    const site = planUnit({ ...base, type: 'office', construction: 40 }, 'day');
+    expect(cut?.noAccess).toBe(true);
+    expect(cut?.variant.state).toBe('empty');
+    expect(reached?.noAccess).toBeUndefined();
+    expect(site?.noAccess).toBeUndefined();
+  });
+
   it('falls back to empty for a variant the unit has no sprite for', () => {
     const office = planUnit({ ...base, type: 'office', variant: 'dirty' }, 'day');
     expect(office?.variant.state).toBe('empty');
