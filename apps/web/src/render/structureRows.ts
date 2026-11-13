@@ -10,6 +10,8 @@ import {
 export interface StructureInput {
   structure: ReadonlyMap<Level, string>;
   mainLobbyHeight: LobbyHeight | null;
+  /** Cells under a placed unit, per level; no floor is drawn there. */
+  covered?: ReadonlyMap<Level, string>;
 }
 
 export type RowDrawer = (level: Level, pieces: StructurePiece[]) => void;
@@ -31,6 +33,7 @@ export class StructureRows {
     const source = {
       row: (level: Level) => input.structure.get(level),
       mainLobbyHeight: input.mainLobbyHeight,
+      covered: (level: Level) => input.covered?.get(level),
     };
     for (const level of levels) {
       this.draw(level, planStructureRow(level, source));
@@ -63,6 +66,14 @@ export function changedLevels(before: StructureInput, after: StructureInput): Le
     for (const level of levels) {
       if (before.structure.get(level) !== after.structure.get(level)) {
         markWithNeighbours(level);
+      }
+    }
+  }
+  if (before.covered !== after.covered) {
+    const levels = new Set([...(before.covered?.keys() ?? []), ...(after.covered?.keys() ?? [])]);
+    for (const level of levels) {
+      if (before.covered?.get(level) !== after.covered?.get(level)) {
+        changed.add(level);
       }
     }
   }

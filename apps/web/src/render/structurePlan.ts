@@ -23,6 +23,8 @@ export type LobbyHeight = 1 | 2 | 3;
 export interface StructureSource {
   row(level: Level): string | undefined;
   mainLobbyHeight: LobbyHeight | null;
+  /** Cells under a placed unit; floor and basement are not drawn there. */
+  covered?(level: Level): string | undefined;
 }
 
 const EDGE_WIDTH = 3;
@@ -53,7 +55,7 @@ export function planStructureRow(level: Level, source: StructureSource): Structu
     return planSubwayTunnel();
   }
   if (level < 0) {
-    return planBasement(level, source.row(level));
+    return planBasement(level, source.row(level), source.covered?.(level));
   }
   return planAboveGround(level, source);
 }
@@ -92,12 +94,22 @@ function planSubwayTunnel(): StructurePiece[] {
   return pieces;
 }
 
-function planBasement(level: Level, row: string | undefined): StructurePiece[] {
+function planBasement(
+  level: Level,
+  row: string | undefined,
+  covered: string | undefined,
+): StructurePiece[] {
   const pieces: StructurePiece[] = [
     { subject: soilSubject(level), x: 0, y: 0, width: WORLD_WIDTH },
   ];
   for (const run of builtRuns(row)) {
-    pieces.push(tiledRun(run.cell === 'r' ? 'ruins' : 'basement', run));
+    pieces.push(
+      ...bareRun(
+        run.cell === 'r' ? 'ruins' : 'basement',
+        run,
+        run.cell === 'r' ? undefined : covered,
+      ),
+    );
     pieces.push({ subject: 'basement-edge-left', x: run.from * TILE_WIDTH - EDGE_WIDTH, y: 0 });
     pieces.push({ subject: 'basement-edge-right', x: (run.to + 1) * TILE_WIDTH, y: 0 });
   }
@@ -114,7 +126,11 @@ function planAboveGround(level: Level, source: StructureSource): StructurePiece[
     pieces.push(
       ...(run.cell === 'l'
         ? lobbyRun(level, run, source)
-        : [tiledRun(floorSubject(run.cell), run)]),
+        : bareRun(
+            floorSubject(run.cell),
+            run,
+            run.cell === 'r' ? undefined : source.covered?.(level),
+          )),
     );
   }
   for (const run of runsWhere([...row].map(isBuilt))) {
@@ -158,6 +174,24 @@ function withColumns(subject: StructureSubject, run: Run, y: number): StructureP
     }
   }
   return pieces;
+}
+
+/** A run without the cells that a unit covers; its sprite brings its own floor. */
+function bareRun(
+  subject: StructureSubject,
+  run: { from: number; to: number },
+  covered: string | undefined,
+): StructurePiece[] {
+  if (covered === undefined) {
+    return [tiledRun(subject, run)];
+  }
+  const open: boolean[] = [];
+  for (let column = run.from; column <= run.to; column += 1) {
+    open.push(covered[column] !== 'u');
+  }
+  return runsWhere(open).map((piece) =>
+    tiledRun(subject, { from: run.from + piece.from, to: run.from + piece.to }),
+  );
 }
 
 function tiledRun(

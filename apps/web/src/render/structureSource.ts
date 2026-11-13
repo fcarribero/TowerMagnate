@@ -4,9 +4,26 @@ import type { GameState } from '../model/gameState';
 import { placeholderTowerContent } from './placeholderTower';
 import { TOWER_WIDTH_TILES } from './metrics';
 import type { StructureInput } from './structureRows';
+import { coveredRows, reuseEqualRows } from './unitCover';
+
+let lastCovered: { units: GameState['units']; rows: ReadonlyMap<Level, string> } | null = null;
+
+/** Cells under units, recomputed only when the unit map changes and reused while the cells stay the same. */
+function coveredOf(state: GameState): ReadonlyMap<Level, string> {
+  if (lastCovered?.units === state.units) {
+    return lastCovered.rows;
+  }
+  const rows = reuseEqualRows(lastCovered?.rows, coveredRows(state.units.values()));
+  lastCovered = { units: state.units, rows };
+  return rows;
+}
 
 export function structureOf(state: GameState): StructureInput {
-  return { structure: state.structure, mainLobbyHeight: state.mainLobbyHeight };
+  return {
+    structure: state.structure,
+    mainLobbyHeight: state.mainLobbyHeight,
+    covered: coveredOf(state),
+  };
 }
 
 /**
