@@ -94,7 +94,7 @@ export function leaveQueues(state: TowerState, people: readonly EntityId[]): voi
 
 /**
  * Boards people from the front of a queue into a car, in queue order, until the queue is empty
- * or the car is full (elevators 4.1 and 4.3). Returns who boarded.
+ * or the car is full, at most `limit` people (elevators 4.1 and 4.3). Returns who boarded.
  */
 export function boardFromQueue(
   shaft: Shaft,
@@ -102,12 +102,13 @@ export function boardFromQueue(
   level: Level,
   direction: HallDirection,
   step: number,
+  limit = Number.POSITIVE_INFINITY,
 ): EntityId[] {
   const car = shaft.cars[carIndex];
   if (!car) {
     return [];
   }
-  const room = Math.max(0, carCapacity(shaft.type) - car.riders.length);
+  const room = Math.min(limit, Math.max(0, carCapacity(shaft.type) - car.riders.length));
   const queue = queueAt(shaft, level, direction);
   const boarding = queue.slice(0, room);
   if (boarding.length > 0) {

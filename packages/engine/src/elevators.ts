@@ -209,55 +209,68 @@ function chooseTarget(shaft: Shaft, car: ElevatorCar, step: number): Level | nul
   return nextStop(car, opposite(direction));
 }
 
-/** Elevators 4.1: riders get off, the car picks its direction, then people board. */
+/**
+ * Elevators 4.1: the doors open and the first rider gets off and the first person in line boards.
+ * The car picks its direction first. The exchange goes on at one person per step while the doors
+ * stay open (4.3).
+ */
 function openDoors(context: StepContext, shaft: Shaft, carIndex: number): void {
   const car = shaft.cars[carIndex] as ElevatorCar;
-  letRidersOut(context, shaft, carIndex);
+  letOneRiderOut(context, shaft, carIndex);
   car.direction = directionAtStop(shaft, car);
   const direction = travelDirection(car);
   boardPeople(context, shaft, carIndex, direction);
   car.assigned = car.assigned.filter((call) => call.level !== car.level);
   const dwellSteps = bandAt(shaft, context.state.step).dwellSeconds / SECONDS_PER_STEP;
-  car.phase = dwellSteps > 0 ? 'dwelling' : 'closing';
+  car.phase = dwellSteps > 0 || exchangePending(shaft, car, direction) ? 'dwelling' : 'closing';
   car.phaseStepsLeft = dwellSteps;
 }
 
+/** Somebody still has to get off here, or is in line for the car and there is room. */
+function exchangePending(shaft: Shaft, car: ElevatorCar, direction: HallDirection): boolean {
+  return (
+    car.trips.some((trip) => trip.destination === car.level) ||
+    (!isFull(shaft, car) && queueLength(shaft, car.level, direction) > 0)
+  );
+}
+
+/** At most one person boards per step: the front of the line, who has walked to the door. */
 function boardPeople(
   context: StepContext,
   shaft: Shaft,
   carIndex: number,
   direction: HallDirection,
-): void {
+): boolean {
   const car = shaft.cars[carIndex] as ElevatorCar;
-  const boarded = boardFromQueue(shaft, carIndex, car.level, direction, context.state.step);
+  const boarded = boardFromQueue(shaft, carIndex, car.level, direction, context.state.step, 1);
   for (const person of boarded) boardRider(context, person);
   if (boarded.length > 0) realignQueue(context, shaft, car.level, direction);
+  return boarded.length > 0;
 }
 
-function letRidersOut(context: StepContext, shaft: Shaft, carIndex: number): void {
+/** At most one rider per step gets off at the car's level, the one who boarded first. */
+function letOneRiderOut(context: StepContext, shaft: Shaft, carIndex: number): boolean {
   const car = shaft.cars[carIndex] as ElevatorCar;
-  const staying: number[] = [];
-  car.riders.forEach((person, index) => {
-    const trip = car.trips[index];
-    if (trip && trip.destination === car.level) {
-      context.events.push({
-        type: 'rideFinished',
-        step: context.state.step,
-        person,
-        shaftId: shaft.id,
-        carIndex,
-        level: car.level,
-        waitSteps: trip.waitSteps,
-        rideSteps: context.state.step - trip.boardedStep,
-      });
-    } else {
-      staying.push(index);
-    }
+  const index = car.trips.findIndex((trip) => trip.destination === car.level);
+  const trip = car.trips[index];
+  const person = car.riders[index];
+  if (trip === undefined || person === undefined) {
+    return false;
+  }
+  context.events.push({
+    type: 'rideFinished',
+    step: context.state.step,
+    person,
+    shaftId: shaft.id,
+    carIndex,
+    level: car.level,
+    waitSteps: trip.waitSteps,
+    rideSteps: context.state.step - trip.boardedStep,
   });
-  const leaving = car.riders.filter((_, index) => !staying.includes(index));
-  car.riders = staying.map((index) => car.riders[index] as string);
-  car.trips = staying.map((index) => car.trips[index] as ElevatorCar['trips'][number]);
-  for (const person of leaving) alightRider(context, person, car.level);
+  car.riders.splice(index, 1);
+  car.trips.splice(index, 1);
+  alightRider(context, person, car.level);
+  return true;
 }
 
 /** Elevators 4.2: keep going with work ahead, else turn for work behind, else wait to be free. */
@@ -272,9 +285,14 @@ function directionAtStop(shaft: Shaft, car: ElevatorCar): ElevatorCar['direction
   return direction;
 }
 
+/** The doors stay open while people get off or board; the dwell time counts the quiet steps. */
 function dwell(context: StepContext, shaft: Shaft, carIndex: number): void {
   const car = shaft.cars[carIndex] as ElevatorCar;
-  boardPeople(context, shaft, carIndex, travelDirection(car));
+  const alighted = letOneRiderOut(context, shaft, carIndex);
+  const boarded = boardPeople(context, shaft, carIndex, travelDirection(car));
+  if (alighted || boarded) {
+    return;
+  }
   car.phaseStepsLeft -= 1;
   if (car.phaseStepsLeft <= 0) {
     car.phase = 'closing';

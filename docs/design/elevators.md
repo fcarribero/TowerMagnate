@@ -89,9 +89,9 @@ A hall call is a non-empty queue: the pair (level, direction). Its age is the nu
 
 When a car opens at level L with direction `d`:
 
-1. Riders whose destination is L get off, in the order they boarded. Each one finishes the ride and re-plans (routing 5.1).
+1. The first rider whose destination is L gets off. The ride finishes and the rider re-plans (routing 5.1). The others follow one per step (4.3).
 2. The car picks its direction for the stop (4.2).
-3. People board from the queue at L in that direction, from the front, until the queue is empty or the car is full.
+3. The person at the front of the queue at L in that direction boards, if the car has room. The others follow one per step (4.3).
 4. If that queue is now empty, the hall call is gone. If people are left in it, the hall call stays, without a car assigned (section 6).
 
 A rider's destination is the level where the ride planned by routing ends. It is always an enabled stop of the shaft when the rider boards.
@@ -108,7 +108,7 @@ A car that reached the end of its range always has nothing ahead, so it reverses
 
 ### 4.3 Boarding during dwell
 
-At the end of each Dwelling step, people who joined the queue at L in the car's direction board from the front while the car has room. Nobody boards during Closing. A person who reaches the shaft during Closing waits for the next car.
+In each Dwelling step one rider whose destination is L gets off and one person from the front of the queue at L in the car's direction boards, while the car has room. The line shifts one place each time, so a person walks one cell a step to the shaft before boarding. The dwell time counts only steps in which nobody got off or boarded, so a car stays at a floor for the people it exchanges plus the dwell of the band. Nobody boards during Closing. A person who reaches the shaft during Closing waits for the next car.
 
 ### 4.4 Sweep
 

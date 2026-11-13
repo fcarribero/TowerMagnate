@@ -32,7 +32,7 @@ export const FORCED_BOMB_DAY = 13;
 export const VERTICAL_SLICE_STEP_BUDGET_MS = 1.0;
 export const VERTICAL_SLICE_P99_BUDGET_MS = 5.0;
 
-const SHAFT_CARS = 2;
+const SHAFT_CARS = 3;
 const STAIR_COLUMNS = [194, 202] as const;
 const TOWER_X1 = 209;
 const TOP_LEVEL = 10;

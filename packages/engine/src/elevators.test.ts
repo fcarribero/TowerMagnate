@@ -185,21 +185,49 @@ describe('dispatch', () => {
     expect(carOf(tower, 0).assigned).toEqual([{ level: 30, direction: 'up' }]);
   });
 
-  it('boards 21 into a standard car and leaves the rest for the next car', () => {
+  it('never boards more than 21 into a standard car and takes everyone', () => {
     const tower = shaftTower('standard', 20, [1, 1]);
     tower.state.step = 999;
-    const queue = Array.from({ length: 25 }, () => {
-      const person = personEntityId(nextPerson++);
-      joinQueue(shaftOf(tower), 1, 'up', person, 10, 1000);
-      return person;
-    });
+    for (let count = 0; count < 25; count++) {
+      joinQueue(shaftOf(tower), 1, 'up', personEntityId(nextPerson++), 10, 1000);
+    }
 
     const finished = rides(runTo(tower, 1100));
 
     expect(finished).toHaveLength(25);
-    const carFor = (person: EntityId) => finished.find((ride) => ride.person === person)?.carIndex;
-    expect(new Set(queue.slice(0, 21).map(carFor))).toEqual(new Set([0]));
-    expect(new Set(queue.slice(21).map(carFor))).toEqual(new Set([1]));
+    const perCar = [0, 1].map((index) => finished.filter((ride) => ride.carIndex === index).length);
+    expect(Math.max(...perCar)).toBeLessThanOrEqual(21);
+    expect(perCar[0] + perCar[1]).toBe(25);
+  });
+
+  it('boards one person per step and keeps the doors open until the line is in', () => {
+    const tower = shaftTower('standard', 20);
+    tower.state.step = 999;
+    for (let count = 0; count < 6; count++) {
+      joinQueue(shaftOf(tower), 1, 'up', personEntityId(nextPerson++), 10, 1000);
+    }
+    const loads: number[] = [];
+    for (let count = 0; count < 7; count++) {
+      run(tower, 1);
+      loads.push(carOf(tower).riders.length);
+    }
+    expect(loads).toEqual([0, 1, 2, 3, 4, 5, 6]);
+    expect(carOf(tower).phase).toBe('dwelling');
+  });
+
+  it('lets riders off one per step', () => {
+    const tower = shaftTower('standard', 20);
+    const car = carOf(tower);
+    car.level = 10;
+    car.phase = 'idle';
+    car.direction = 'up';
+    loadRiders(car, [10, 10, 10, 10]);
+    const loads: number[] = [];
+    for (let count = 0; count < 4; count++) {
+      run(tower, 1);
+      loads.push(carOf(tower).riders.length);
+    }
+    expect(loads).toEqual([3, 2, 1, 0]);
   });
 
   it('returns a free car to its home level and idles there', () => {
