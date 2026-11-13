@@ -1,6 +1,6 @@
 import { metrics } from '../metrics.mjs';
 import { toNight } from '../night.mjs';
-import { FLOOR_ROW, drawDoor, drawWindow, nightVersion, roomShell } from './shell.mjs';
+import { FLOOR_ROW, drawWindow, nightVersion, roomShell } from './shell.mjs';
 
 const { floorHeight, slabHeight, tileWidth } = metrics;
 const FLOORS = 2;
@@ -153,20 +153,19 @@ function drawSeats(canvas, showing) {
   });
 }
 
-function drawLobby(canvas, showing) {
+function drawLobby(canvas) {
   const wallHeight = HEIGHT - slabHeight;
   canvas.fillRect(LOBBY_WIDTH, 0, 4, wallHeight, 'slate');
   canvas.vline(LOBBY_WIDTH, 0, wallHeight, 'ink');
   [10, 26, 42].forEach((x) => canvas.drawMap(x, 40, poster, legend));
   standOnFloor(canvas, 8, ticketBooth);
   standOnFloor(canvas, 56, popcorn);
-  drawDoor(canvas, { left: 2, top: 14, width: 5, height: 14 }, { open: showing, sign: !showing });
 }
 
 function drawCinema(showing) {
   const canvas = roomShell(31, cinemaPalette, FLOORS);
   openMidFloor(canvas, cinemaPalette);
-  drawLobby(canvas, showing);
+  drawLobby(canvas);
   drawScreen(canvas, showing);
   if (showing) {
     drawProjectorBeam(canvas);
@@ -270,11 +269,6 @@ function drawPartyHall(partying) {
   const canvas = roomShell(24, partyPalette, FLOORS);
   openMidFloor(canvas, partyPalette);
   PARTY_WINDOWS.forEach((window) => drawWindow(canvas, window));
-  drawDoor(
-    canvas,
-    { left: 90, top: 46, width: 12, height: 14 },
-    { open: partying, sign: !partying },
-  );
   drawDanceFloor(canvas, partying);
   standOnFloor(canvas, 150, bar);
   canvas.drawMap(152, floorRow(1) - bar.length - bottles.length + 1, bottles, legend);

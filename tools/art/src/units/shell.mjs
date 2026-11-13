@@ -40,30 +40,6 @@ export function drawWindow(room, { left, top, width, height }) {
   room.set(left + 1, top + 2, 'sky-light');
 }
 
-export function drawDoor(room, { left, top, width, height }, { open, sign }) {
-  room.fillRect(left - 1, top - 1, width + 2, height + 1, 'wood-dark');
-  if (open) {
-    room.fillRect(left, top, width, height, 'charcoal');
-    room.fillRect(left, top, 2, height, 'wood');
-    room.vline(left, top, height, 'wood-light');
-    return;
-  }
-  room.fillRect(left, top, width, height, 'wood');
-  room.vline(left, top, height, 'wood-light');
-  room.set(left + width - 2, top + Math.floor(height / 2), 'lamp');
-  if (sign) {
-    drawForRentSign(room, left + 1, top + 3, width - 2);
-  }
-}
-
-function drawForRentSign(room, left, top, width) {
-  room.fillRect(left, top, width, 4, 'leaf');
-  room.hline(left, top + 3, width, 'leaf-dark');
-  for (let x = left + 1; x < left + width - 1; x += 2) {
-    room.set(x, top + 1, 'white');
-  }
-}
-
 // Night keeps the layout: materials step down their ramp, and window glass shows
 // lamp light with a glowing centre when someone is in, or dark glass when empty.
 export function nightVersion(daySprite, windows, occupied) {

@@ -1,11 +1,10 @@
-import { FLOOR_ROW, drawDoor, drawWindow, roomShell, unitSprites } from './shell.mjs';
+import { FLOOR_ROW, drawWindow, roomShell, unitSprites } from './shell.mjs';
 
 const WIDTH_TILES = 16;
 const WINDOWS = [
   { left: 35, top: 4, width: 14, height: 8 },
   { left: 93, top: 4, width: 14, height: 8 },
 ];
-const DOOR = { left: 4, top: 10, width: 6, height: FLOOR_ROW - 12 };
 const PARTITION_LEFT = 84;
 
 const look = {
@@ -171,7 +170,6 @@ function drawCondo(occupied) {
     drawLivingRoom(room, occupied);
     drawBedroom(room, occupied);
   }
-  drawDoor(room, DOOR, { open: occupied, sign: !occupied });
   return room;
 }
 

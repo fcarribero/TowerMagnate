@@ -1,6 +1,6 @@
 import { toBurnt } from '../burnt.mjs';
 import { metrics } from '../metrics.mjs';
-import { FLOOR_ROW, drawDoor, drawWindow, nightVersion, roomShell } from './shell.mjs';
+import { FLOOR_ROW, drawWindow, nightVersion, roomShell } from './shell.mjs';
 
 const { floorHeight, slabHeight } = metrics;
 const STATES = ['empty', 'occupied'];
@@ -140,7 +140,6 @@ function ceilingLamp(room, left) {
 }
 
 const SECURITY_WINDOWS = [{ left: 6, top: 4, width: 12, height: 7 }];
-const SECURITY_DOOR = { left: 117, top: 10, width: 6, height: FLOOR_ROW - 12 };
 const securityLook = {
   wall: 'concrete-light',
   wallLight: 'cloud',
@@ -185,7 +184,6 @@ function drawLocker(room, left) {
 function drawSecurity(occupied) {
   const room = roomShell(16, securityLook);
   SECURITY_WINDOWS.forEach((window) => drawWindow(room, window));
-  drawDoor(room, SECURITY_DOOR, { open: occupied, sign: false });
   room.drawMap(22, 5, shield, legend);
   drawMonitorWall(room, occupied);
 
@@ -209,7 +207,6 @@ const MEDICAL_WINDOWS = [
   { left: 56, top: 4, width: 14, height: 8 },
   { left: 150, top: 4, width: 14, height: 8 },
 ];
-const MEDICAL_DOOR = { left: 196, top: 10, width: 6, height: FLOOR_ROW - 12 };
 const medicalLook = {
   wall: 'white',
   wallLight: 'white',
@@ -243,7 +240,6 @@ function drawBed(room, left, patientSkin) {
 function drawMedical(occupied) {
   const room = roomShell(26, medicalLook);
   MEDICAL_WINDOWS.forEach((window) => drawWindow(room, window));
-  drawDoor(room, MEDICAL_DOOR, { open: occupied, sign: false });
   drawRedCross(room, 100, 5);
 
   drawBed(room, 14, occupied ? 'skin-light' : null);
@@ -357,7 +353,6 @@ const RECYCLING_WINDOWS = [
   { left: 40, top: 4, width: 14, height: 8 },
   { left: 130, top: 4, width: 14, height: 8 },
 ];
-const RECYCLING_DOOR = { left: 188, top: floorHeight + 10, width: 6, height: FLOOR_ROW - 12 };
 const recyclingLook = {
   wall: 'concrete-light',
   wallLight: 'cloud',
@@ -455,7 +450,6 @@ function drawHopper(room) {
 function drawRecycling(occupied) {
   const room = roomShell(25, recyclingLook, RECYCLING_FLOORS);
   RECYCLING_WINDOWS.forEach((window) => drawWindow(room, window));
-  drawDoor(room, RECYCLING_DOOR, { open: occupied, sign: false });
   drawRecyclingSign(room, 150, 6);
   drawHopper(room);
   drawBin(room, 160, floorRowOf(0) - 15, 'leaf');

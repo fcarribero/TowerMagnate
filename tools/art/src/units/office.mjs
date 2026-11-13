@@ -1,11 +1,10 @@
-import { FLOOR_ROW, drawDoor, drawWindow, roomShell, unitSprites } from './shell.mjs';
+import { FLOOR_ROW, drawWindow, roomShell, unitSprites } from './shell.mjs';
 
 const WIDTH_TILES = 9;
 const WINDOWS = [
   { left: 5, top: 4, width: 14, height: 8 },
   { left: 33, top: 4, width: 14, height: 8 },
 ];
-const DOOR = { left: 63, top: 10, width: 6, height: FLOOR_ROW - 12 };
 const DESKS = [6, 34];
 
 const look = {
@@ -91,7 +90,6 @@ function drawOffice(occupied) {
     room.drawMap(55, FLOOR_ROW - cabinet.length + 1, cabinet, legend);
     room.drawMap(27, FLOOR_ROW - plant.length + 1, plant, legend);
   }
-  drawDoor(room, DOOR, { open: occupied, sign: !occupied });
   return room;
 }
 

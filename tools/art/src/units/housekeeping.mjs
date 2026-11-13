@@ -1,11 +1,10 @@
-import { FLOOR_ROW, drawDoor, drawWindow, roomShell, unitSprites } from './shell.mjs';
+import { FLOOR_ROW, drawWindow, roomShell, unitSprites } from './shell.mjs';
 
 const WIDTH_TILES = 15;
 const WINDOWS = [
   { left: 49, top: 4, width: 12, height: 7 },
   { left: 81, top: 4, width: 12, height: 7 },
 ];
-const DOOR = { left: 3, top: 10, width: 6, height: FLOOR_ROW - 12 };
 
 const look = {
   wall: 'concrete-light',
@@ -108,7 +107,6 @@ function standOnFloor(room, left, map) {
 function drawHousekeeping(occupied) {
   const room = roomShell(WIDTH_TILES, look);
   WINDOWS.forEach((window) => drawWindow(room, window));
-  drawDoor(room, DOOR, { open: occupied, sign: false });
   room.drawMap(12, 9, timeClock, legend);
 
   standOnFloor(room, 19, linenShelf);

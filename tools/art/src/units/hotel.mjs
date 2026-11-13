@@ -1,10 +1,9 @@
-import { FLOOR_ROW, drawDoor, drawWindow, nightVersion, roomShell } from './shell.mjs';
+import { FLOOR_ROW, drawWindow, nightVersion, roomShell } from './shell.mjs';
 
 export const HOTEL_STATES = ['empty', 'occupied', 'dirty', 'infested'];
 const TIMES = ['day', 'night'];
 const WAINSCOT_TOP = 18;
 const PARTITION_LEFT = 47;
-const DOOR = { left: 3, top: 10, width: 6, height: FLOOR_ROW - 12 };
 
 const look = {
   wall: 'cloud',
@@ -75,16 +74,6 @@ function drawWainscot(room) {
   }
 }
 
-function drawHotelDoor(room, occupied) {
-  drawDoor(room, DOOR, { open: false, sign: false });
-  room.hline(DOOR.left + 2, DOOR.top - 4, 2, 'lamp');
-  if (occupied) {
-    const tagLeft = DOOR.left + DOOR.width - 3;
-    const tagTop = DOOR.top + Math.floor(DOOR.height / 2) + 1;
-    room.fillRect(tagLeft, tagTop, 2, 3, 'cloth-red');
-  }
-}
-
 // A bed seen from the side with the headboard on the right. A made bed has a white
 // fold over a blue spread; a used one has the spread pulled back and creased sheets.
 function drawBed(room, left, width, { made, pillows }) {
@@ -140,7 +129,6 @@ function roomSprites(subject, { widthTiles, windows, drawFurniture, grime, roach
     const room = roomShell(widthTiles, look);
     drawWainscot(room);
     windows.forEach((window) => drawWindow(room, window));
-    drawHotelDoor(room, state === 'occupied');
     drawFurniture(room, state);
     if (state === 'dirty' || state === 'infested') {
       drawGrime(room, grime);

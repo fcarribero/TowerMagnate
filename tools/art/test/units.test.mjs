@@ -72,11 +72,6 @@ describe('units group', () => {
     }
   });
 
-  it('hangs a for rent sign on the door only while empty', () => {
-    const plantLeaf = countColor(byId['units/office/occupied_day'], 'leaf');
-    expect(countColor(byId['units/office/empty_day'], 'leaf')).toBeGreaterThan(plantLeaf);
-  });
-
   it('leaves grime on the floor of dirty and infested hotel rooms', () => {
     for (const room of hotelRooms) {
       const clean = countColor(byId[`units/${room}/empty_day`], 'leaf-dark');
