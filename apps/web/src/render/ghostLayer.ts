@@ -1,10 +1,8 @@
 import type { Level, UnitType } from '@tower-magnate/shared';
-import { Container, Graphics, Sprite } from 'pixi.js';
+import { Container, Graphics } from 'pixi.js';
 import { levelToIndex, levelTop } from './levels';
 import { FLOOR_HEIGHT, TILE_WIDTH } from './metrics';
-import type { SpriteRegistry } from './spriteRegistry';
 import type { TimeOfDay } from './structurePlan';
-import { spriteState } from './unitPlan';
 
 export const GHOST_VALID_COLOR = 0x7ec850;
 export const GHOST_INVALID_COLOR = 0xb0353a;
@@ -56,7 +54,6 @@ export function areaOf(footprint: Footprint): Area {
  */
 export class GhostLayer {
   readonly view = new Container();
-  private readonly sprite = new Sprite();
   private readonly ghostFrame = new Graphics();
   private readonly hoverFrame = new Graphics();
   private readonly runShape = new Graphics();
@@ -66,10 +63,8 @@ export class GhostLayer {
   private highlight: Footprint | null = null;
   private highlightColor = HOVER_COLOR;
 
-  constructor(private readonly sprites: SpriteRegistry) {
-    this.sprite.alpha = GHOST_ALPHA;
-    this.sprite.visible = false;
-    this.view.addChild(this.runShape, this.sprite, this.ghostFrame, this.hoverFrame);
+  constructor() {
+    this.view.addChild(this.runShape, this.ghostFrame, this.hoverFrame);
   }
 
   setZoom(zoom: number): void {
@@ -81,18 +76,6 @@ export class GhostLayer {
 
   showGhost(ghost: GhostInput | null): void {
     this.ghost = ghost;
-    this.sprite.visible = ghost !== null;
-    if (ghost !== null) {
-      const area = areaOf({ ...ghost, floors: ghost.frameFloors ?? ghost.floors });
-      this.sprite.texture = this.sprites.variant(`units/${ghost.type}`, {
-        state: spriteState(ghost.type, false),
-        time: ghost.time,
-      });
-      this.sprite.position.set(area.x, area.y);
-      this.sprite.width = area.width;
-      this.sprite.height = area.height;
-      this.sprite.tint = ghost.valid ? GHOST_VALID_COLOR : GHOST_INVALID_COLOR;
-    }
     this.drawFrames();
   }
 
@@ -122,7 +105,10 @@ export class GhostLayer {
     if (this.ghost !== null) {
       const color = this.ghost.valid ? GHOST_VALID_COLOR : GHOST_INVALID_COLOR;
       const floors = this.ghost.frameFloors ?? this.ghost.floors;
-      outline(this.ghostFrame, areaOf({ ...this.ghost, floors }), color, this.zoom);
+      const area = areaOf({ ...this.ghost, floors });
+      this.ghostFrame
+        .rect(area.x, area.y, area.width, area.height)
+        .fill({ color, alpha: GHOST_ALPHA });
     }
     if (this.highlight !== null) {
       outline(this.hoverFrame, areaOf(this.highlight), this.highlightColor, this.zoom);

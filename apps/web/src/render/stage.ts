@@ -159,7 +159,7 @@ export async function mountStage(host: HTMLElement, options: StageOptions = {}):
   world.addChild(people.view);
   const events = new EventLayer(sprites);
   world.addChild(events.view);
-  const ghost = new GhostLayer(sprites);
+  const ghost = new GhostLayer();
   world.addChild(ghost.view);
   app.stage.addChild(world);
 
