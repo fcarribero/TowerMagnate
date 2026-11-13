@@ -1,7 +1,7 @@
 import { TOWER_LAYOUT, type Level } from '@tower-magnate/shared';
 import { LOWEST_LEVEL, WORLD_WIDTH } from './levels';
 import { FLOOR_HEIGHT, TILE_WIDTH, TOWER_WIDTH_TILES } from './metrics';
-import { planRooftopProps } from './rooftopPlan';
+import { planRooftopProps, planRooftopWalls } from './rooftopPlan';
 
 export type TimeOfDay = 'day' | 'night';
 
@@ -224,14 +224,14 @@ function roofs(level: Level, row: string, source: StructureSource): StructurePie
   return pieces;
 }
 
-/** Props stand on the parapet of every free roof span; ruins get none. */
+/** A short wall at each corner and props stand on the parapet of every free roof span; ruins get none. */
 function rooftopProps(level: Level, row: string, above: string, roofY: number): StructurePiece[] {
   const free = [...row].map(
     (cell, column) => isBuilt(cell) && cell !== 'r' && !isBuilt(above[column] ?? '.'),
   );
   const pieces: StructurePiece[] = [];
   for (const run of runsWhere(free)) {
-    for (const prop of planRooftopProps(level, run)) {
+    for (const prop of [...planRooftopWalls(run), ...planRooftopProps(level, run)]) {
       pieces.push({
         subject: `${ROOFTOP_SUBJECT_PREFIX}${prop.kind}`,
         x: prop.column * TILE_WIDTH,

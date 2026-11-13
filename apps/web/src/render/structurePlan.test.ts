@@ -100,6 +100,16 @@ describe('planStructureRow', () => {
     expect(covered).toEqual([]);
   });
 
+  it('puts a short wall on each corner of a free roof', () => {
+    const rows = { 3: row(span(10, 49, 'f')), 4: row(span(10, 24, 'f')) };
+    const walls = planStructureRow(3, source(rows)).filter(
+      (piece) => piece.subject === 'rooftop/corner-wall',
+    );
+    expect(walls.map((piece) => piece.x)).toEqual([25 * 8, 48 * 8]);
+    const covered = planStructureRow(3, source({ ...rows, 4: row(span(10, 49, 'f')) }));
+    expect(covered.some((piece) => piece.subject === 'rooftop/corner-wall')).toBe(false);
+  });
+
   it('gives ruins no rooftop props', () => {
     const pieces = planStructureRow(3, source({ 3: row(span(10, 49, 'r')) }));
     expect(pieces.some((piece) => piece.subject.startsWith('rooftop/'))).toBe(false);

@@ -24,8 +24,10 @@ export interface RooftopProp {
   widthTiles: number;
 }
 
-/** Tiles left empty at both ends of a roof, where the parapet corners are. */
-const END_MARGIN_TILES = 1;
+/** Width in tiles of the short wall at each roof corner; its sprite is `rooftop/corner-wall`. */
+export const CORNER_WALL_TILES = 2;
+/** Tiles left empty at both ends of a roof, where the corner walls stand. */
+const END_MARGIN_TILES = CORNER_WALL_TILES;
 /** Tiles left empty after each prop. */
 const GAP_TILES = 1;
 /** Chance that a free tile is left bare instead of starting a prop. */
@@ -38,6 +40,17 @@ export function rooftopNoise(level: number, column: number, salt: number): numbe
   hash = Math.imul(hash ^ (hash >>> 13), 1274126177);
   hash ^= hash >>> 16;
   return (hash >>> 0) / 4294967296;
+}
+
+/** The short wall at each end of a free roof span, `from` to `to` in tile columns, both included. */
+export function planRooftopWalls(span: { from: number; to: number }): RooftopProp[] {
+  if (span.to - span.from + 1 < 2 * CORNER_WALL_TILES) {
+    return [];
+  }
+  return [
+    { kind: 'corner-wall', column: span.from, widthTiles: CORNER_WALL_TILES },
+    { kind: 'corner-wall', column: span.to - CORNER_WALL_TILES + 1, widthTiles: CORNER_WALL_TILES },
+  ];
 }
 
 /**

@@ -439,6 +439,7 @@ describe('rooftop group', () => {
       }
       expect(filled, id).toBeGreaterThan(0);
     }
+    expect(sprites['rooftop/corner-wall/day'].height).toBeLessThan(metrics.floorHeight / 2);
     expect(sprites['rooftop/antenna/night'].get(4, 0)).toBe(colorIndex('lamp'));
     expect(sprites['rooftop/antenna/day'].get(4, 0)).not.toBe(colorIndex('lamp'));
   });
