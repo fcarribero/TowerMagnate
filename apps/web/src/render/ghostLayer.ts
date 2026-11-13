@@ -20,7 +20,7 @@ export interface Footprint {
 }
 
 export interface GhostInput extends Footprint {
-  /** Levels the outline covers when it is taller than the sprite; only the drawing changes. */
+  /** Levels the ghost (fill and outline) covers when taller than the footprint; only the drawing changes. */
   frameFloors?: number;
   type: UnitType;
   valid: boolean;
@@ -83,7 +83,7 @@ export class GhostLayer {
     this.ghost = ghost;
     this.sprite.visible = ghost !== null;
     if (ghost !== null) {
-      const area = areaOf(ghost);
+      const area = areaOf({ ...ghost, floors: ghost.frameFloors ?? ghost.floors });
       this.sprite.texture = this.sprites.variant(`units/${ghost.type}`, {
         state: spriteState(ghost.type, false),
         time: ghost.time,
