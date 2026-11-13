@@ -84,6 +84,49 @@ function runSteps(state: TowerState, steps: number): TowerState {
   return engine.step(state, [], steps).state;
 }
 
+describe('walking in a crowd', () => {
+  function columnOf(state: TowerState, id: number): number {
+    return view(state, id).column;
+  }
+
+  it('lets two people walking in opposite directions cross', () => {
+    const state = buildTestTower({ floors: 2 });
+    const east = addWalker(state, 1, 10);
+    const west = addWalker(state, 1, 14);
+    sendTo(state, east, { level: 1, column: 14 });
+    sendTo(state, west, { level: 1, column: 10 });
+    const after = runSteps(state, 4);
+    expect(columnOf(after, east)).toBe(14);
+    expect(columnOf(after, west)).toBe(10);
+  });
+
+  it('keeps a walker behind the one ahead going the same way and never shares a cell', () => {
+    const state = buildTestTower({ floors: 2 });
+    const front = addWalker(state, 1, 11);
+    const back = addWalker(state, 1, 10);
+    sendTo(state, front, { level: 1, column: 30 });
+    sendTo(state, back, { level: 1, column: 30 });
+    let now = state;
+    for (let step = 0; step < 8; step++) {
+      now = runSteps(now, 1);
+      expect(columnOf(now, back)).toBeLessThan(columnOf(now, front));
+    }
+    expect(columnOf(now, front)).toBe(19);
+    expect(columnOf(now, back)).toBe(18);
+  });
+
+  it('makes a walker wait while the one ahead is stopped by a one-cell gap', () => {
+    const state = buildTestTower({ floors: 2 });
+    const front = addWalker(state, 1, 10);
+    const back = addWalker(state, 1, 10);
+    sendTo(state, front, { level: 1, column: 20 });
+    sendTo(state, back, { level: 1, column: 20 });
+    const after = runSteps(state, 1);
+    expect(columnOf(after, front)).toBe(11);
+    expect(columnOf(after, back)).toBe(10);
+  });
+});
+
 describe('walking', () => {
   it('moves one column per step and arrives on the exact step', () => {
     const state = buildTestTower({ floors: 2 });

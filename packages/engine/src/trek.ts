@@ -11,7 +11,6 @@ import {
   PERSON_KINDS,
   ROUTE_RETRY_STEPS,
   STAIR_FLIGHT_STEPS,
-  WALK_COLUMNS_PER_STEP,
   type EntityId,
   type HallDirection,
   type Level,
@@ -171,6 +170,12 @@ interface TrekPass {
   /** Lobby height by `placeKey`; the grid does not change during a trek pass. */
   lobbyHeights: Map<number, number | null>;
   plans: Map<number, Map<number, RecheckResult>>;
+  /** The walker in each lane cell (see `laneKey`), and the cell each walker is registered in. */
+  lane: Map<number, number>;
+  laneOf: Map<number, number>;
+  /** Slots already moved in this pass, so that a walker is never moved twice in one step. */
+  done: Uint8Array;
+  advance: (slot: number) => void;
 }
 
 const trekPasses = new WeakMap<StepContext, TrekPass>();
@@ -746,13 +751,56 @@ function finishFlight(context: StepContext, slot: number): void {
   replan(context, slot);
 }
 
-/** Moves one column toward the leg's column; true when the person is there. */
-function walk(pool: PersonPool, slot: number): boolean {
+/**
+ * The cell a walking person occupies: one lane per direction on each level, so two people walking
+ * in opposite directions pass through each other and two walking the same way never share a cell.
+ * Null for a person who is not walking.
+ */
+function laneKey(pool: PersonPool, slot: number): number | null {
+  const phase = pool.trek[slot] as number;
+  if (phase === IDLE || phase > WALKING_TO_SHAFT) return null;
   const column = pool.column[slot] as number;
   const target = pool.legColumn[slot] as number;
-  const distance = Math.min(WALK_COLUMNS_PER_STEP, Math.abs(target - column));
-  pool.column[slot] = column + Math.sign(target - column) * distance;
-  if (distance > 0) pool.facing[slot] = target < column ? 1 : 0;
+  if (column === target) return null;
+  return placeKey(pool.level[slot] as number, column) * 2 + (target < column ? 1 : 0);
+}
+
+/** Keeps the lane registry in line with where the person now is and what they are doing. */
+function syncLane(pass: TrekPass, pool: PersonPool, slot: number): void {
+  const next = laneKey(pool, slot);
+  const old = pass.laneOf.get(slot) ?? null;
+  if (next === old) return;
+  if (old !== null) {
+    if (pass.lane.get(old) === slot) pass.lane.delete(old);
+    pass.laneOf.delete(slot);
+  }
+  if (next !== null) {
+    if (!pass.lane.has(next)) pass.lane.set(next, slot);
+    pass.laneOf.set(slot, next);
+  }
+}
+
+/**
+ * Moves one column toward the leg's column; true when the person is there. A person whose next
+ * cell is held by someone walking the same way waits. A person right behind someone who has not
+ * moved yet this step lets that person move first.
+ */
+function walk(context: StepContext, slot: number, pass: TrekPass): boolean {
+  const pool = context.state.people;
+  const column = pool.column[slot] as number;
+  const target = pool.legColumn[slot] as number;
+  const direction = Math.sign(target - column);
+  const level = pool.level[slot] as number;
+  const nextKey = placeKey(level, column + direction) * 2 + (direction < 0 ? 1 : 0);
+  let ahead = pass.lane.get(nextKey);
+  if (ahead !== undefined && ahead !== slot && ahead > slot && !pass.done[ahead]) {
+    pass.advance(ahead);
+    ahead = pass.lane.get(nextKey);
+  }
+  pool.facing[slot] = direction < 0 ? 1 : 0;
+  if (ahead !== undefined && ahead !== slot) return false;
+  pool.column[slot] = column + direction;
+  syncLane(pass, pool, slot);
   return pool.column[slot] === target;
 }
 
@@ -914,7 +962,7 @@ function stepPerson(context: StepContext, slot: number, pass: TrekPass): void {
   const phase = pool.trek[slot] as number;
   if (phase === IDLE || phase === QUEUED || phase === RIDING) return;
   if (phase <= WALKING_TO_SHAFT) {
-    if (walk(pool, slot)) reachLegStart(context, slot);
+    if (walk(context, slot, pass)) reachLegStart(context, slot);
   } else if (pool.legStep[slot] === context.state.step) {
     if (phase === WAITING_BESIDE_QUEUE) recheckFullQueue(context, slot, pass);
     else if (phase === NO_ROUTE) replan(context, slot);
@@ -934,24 +982,34 @@ export function createTrekSystem(): SimulationSystem {
       sweptGraphs.add(graph);
       replanBrokenLegs(context);
     }
+    const checkpoints = checkpointsOf(pool);
+    const now = context.state.step;
+    const advance = (slot: number): void => {
+      pass.done[slot] = 1;
+      const phase = pool.trek[slot] as number;
+      if (phase === IDLE) return;
+      const legStep = pool.legStep[slot] as number;
+      if (legStep !== now && waitsForLegStep(phase)) return;
+      const sum = pool.tripSum[slot] as number;
+      stepPerson(context, slot, pass);
+      syncLane(pass, pool, slot);
+      if (isOnTrek(pool, slot) && stressMayHaveMoved(pool, slot, phase, sum, legStep)) {
+        refreshTravellerStress(context, slot, checkpoints);
+      }
+    };
     const pass: TrekPass = {
       planner: plannerFor(graph),
       lobbyHeights: new Map(),
       plans: new Map(),
+      lane: new Map(),
+      laneOf: new Map(),
+      done: new Uint8Array(pool.id.length),
+      advance,
     };
     trekPasses.set(context, pass);
-    const checkpoints = checkpointsOf(pool);
-    const now = context.state.step;
+    for (let slot = 0; slot < pool.id.length; slot++) syncLane(pass, pool, slot);
     for (let slot = 0; slot < pool.id.length; slot++) {
-      const phase = pool.trek[slot] as number;
-      if (phase === IDLE) continue;
-      const legStep = pool.legStep[slot] as number;
-      if (legStep !== now && waitsForLegStep(phase)) continue;
-      const sum = pool.tripSum[slot] as number;
-      stepPerson(context, slot, pass);
-      if (isOnTrek(pool, slot) && stressMayHaveMoved(pool, slot, phase, sum, legStep)) {
-        refreshTravellerStress(context, slot, checkpoints);
-      }
+      if (!pass.done[slot]) advance(slot);
     }
     trekPasses.delete(context);
   };

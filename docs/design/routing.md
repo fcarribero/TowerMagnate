@@ -167,6 +167,8 @@ When people.md section 5 compares venue candidates by "route cost", it uses the 
 
 A person walks to the flight's middle column, spends the flight time on the flight (state "En la escalera"), arrives at the same column on the other level and continues. Walking from one end of a 375-column site to the other takes 375 steps, about 62 game minutes or 39 real seconds.
 
+A person who walks takes up one cell of a level, and each direction has its own lane. Two people walking in opposite directions cross each other. Two people walking the same way never share a cell and nobody passes the person ahead: a person whose next cell is held by someone walking the same way waits a step and tries again. People standing in a queue, on a flight or in a car are not walking and do not block anyone.
+
 Design call on walking speed: 1 column is 8 art pixels (style guide), so a walking person moves about 77 pixels a real second at zoom 1, which reads as a walk next to a standard car that crosses 30 floors in about 4 real seconds. TM-13 decides which of these times count as stress; the GDD names the elevator wait, the ride and the floors climbed on foot, not horizontal walking.
 
 ### 8.2 Elevator legs
