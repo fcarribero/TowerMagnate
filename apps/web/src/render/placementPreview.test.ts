@@ -33,6 +33,28 @@ describe('planPreview', () => {
     expect(ghost).toMatchObject({ floors: 1, frameFloors: 2 });
   });
 
+  it('marks the ghost invalid when the cash cannot pay for it', () => {
+    const tool = { kind: 'build', type: 'office' } as const;
+    const cell = { x: 20, level: 3 };
+    expect(planPreview(tool, cell, { ...world, money: 0 }, 'day').ghost?.valid).toBe(false);
+    expect(planPreview(tool, cell, { ...world, money: 10_000_000 }, 'day').ghost?.valid).toBe(true);
+  });
+
+  it('reads one-shot iterators of the world once and still checks stairs spacing', () => {
+    const rows = new Map([
+      [3, '.'.repeat(10) + 'f'.repeat(40) + '.'.repeat(325)],
+      [4, '.'.repeat(10) + 'f'.repeat(40) + '.'.repeat(325)],
+    ]);
+    const stairs = [{ type: 'stairs', x: 10, level: 3 }] as const;
+    const iterating: PlacementWorld = {
+      structure: rows,
+      units: [][Symbol.iterator](),
+      transports: stairs[Symbol.iterator](),
+    };
+    const tool = { kind: 'build', type: 'stairs' } as const;
+    expect(planPreview(tool, { x: 20, level: 3 }, iterating, 'day').ghost?.valid).toBe(false);
+  });
+
   it('marks the ghost invalid over a unit and over a missing floor', () => {
     const tool = { kind: 'build', type: 'office' } as const;
     expect(planPreview(tool, { x: 12, level: 3 }, world, 'day').ghost?.valid).toBe(false);

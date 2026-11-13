@@ -19,6 +19,7 @@ export function worldOf(state: GameState): PlacementWorld {
     units: state.units.values(),
     transports: state.transports.values(),
     shafts: state.shafts.values(),
+    money: state.money,
   };
 }
 
@@ -67,6 +68,7 @@ export function bindPreview(
       units: state.units,
       transports: state.transports,
       shafts: state.shafts,
+      money: state.money,
     }),
     redraw,
   );

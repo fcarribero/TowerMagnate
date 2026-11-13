@@ -36,6 +36,8 @@ export interface PlacementWorld {
   transports: Iterable<PlacedThing>;
   /** Elevator shafts, which block stairs and escalators. */
   shafts?: Iterable<PlacedShaft>;
+  /** The player's cash; with it, a build the player cannot pay for shows as not placeable. */
+  money?: number;
 }
 
 export interface PlacedShaft {
@@ -103,6 +105,13 @@ export function checkPlacement(
   bottom: Level,
   world: PlacementWorld,
 ): PlacementCheck {
+  // The world may hold one-shot iterators; read each of them once.
+  world = {
+    ...world,
+    units: [...world.units],
+    transports: [...world.transports],
+    shafts: [...(world.shafts ?? [])],
+  };
   const x0 = x;
   const x1 = x + footprintWidth(type) - 1;
   const levels = footprintLevels(type, bottom);

@@ -1,4 +1,4 @@
-import type { UnitType } from '@tower-magnate/shared';
+import { UNIT_CATALOG, type UnitType } from '@tower-magnate/shared';
 import type { Cell } from './cellAtPoint';
 import type { Footprint, GhostInput } from './ghostLayer';
 import {
@@ -64,9 +64,15 @@ function planGhost(
     width: footprintWidth(type),
     floors: footprintFloors(type),
     frameFloors: type === 'stairs' ? STAIRS_FRAME_FLOORS : footprintFloors(type),
-    valid: check.problem === null,
+    valid: check.problem === null && canAfford(type, world.money),
     time,
   };
+}
+
+/** Units and stairs are paid up front; a build the cash cannot cover is not placeable. */
+function canAfford(type: UnitType, money: number | undefined): boolean {
+  const { cost } = UNIT_CATALOG[type];
+  return money === undefined || cost.kind !== 'per-unit' || money >= cost.amount;
 }
 
 function planHighlight(cell: Cell, world: PlacementWorld): Footprint | null {
