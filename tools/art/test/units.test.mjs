@@ -64,7 +64,7 @@ describe('units group', () => {
       expect(day.get(0, 0)).toBe(colorIndex('ink'));
       expect(day.get(day.width - 1, slabTop - 1)).toBe(colorIndex('ink'));
       expect(day.get(0, slabTop)).toBe(colorIndex('concrete-light'));
-      expect(night.get(0, slabTop)).toBe(colorIndex('concrete'));
+      expect(night.get(0, slabTop)).toBe(colorIndex('concrete-dark'));
     }
   });
 

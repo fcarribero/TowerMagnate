@@ -44,10 +44,10 @@ export function drawWindow(room, { left, top, width, height }) {
 }
 
 // Night keeps the layout. A unit with someone inside is lit: its room keeps the day
-// colors and lamps. Any other unit is dark: materials step down their ramp and the
-// lamps go out. Window glass is transparent in both, so the sky shows through.
+// colors and lamps. Any other unit is dark: walls and furniture step down their ramp
+// twice and the lamps go out. Window glass is transparent in both, so the sky shows through.
 export function nightVersion(daySprite, windows, occupied) {
-  const night = occupied ? daySprite.clone() : lightsOff(toNight(daySprite));
+  const night = occupied ? daySprite.clone() : lightsOff(toNight(toNight(daySprite)));
   for (const { left, top, width, height } of windows) {
     night.fillRect(left, top, width, height, 0);
     night.vline(left + Math.floor(width / 2), top, height, occupied ? 'silver' : 'gray');
@@ -80,9 +80,11 @@ export const RENTAL_STATES = ['empty', 'closed', 'occupied'];
 export function rentalSprites(subject, { windows, drawDay }) {
   const sprites = [];
   for (const state of RENTAL_STATES) {
-    const day = drawDay(state);
+    const lit = drawDay(state);
+    // A closed unit has its lights off even by day, so its room is one step darker.
+    const day = state === 'closed' ? lightsOff(toNight(lit)) : lit;
     for (const time of TIMES) {
-      const canvas = time === 'day' ? day : nightVersion(day, windows, state === 'occupied');
+      const canvas = time === 'day' ? day : nightVersion(lit, windows, state === 'occupied');
       sprites.push({ id: `units/${subject}/${state}_${time}`, canvas });
     }
   }
