@@ -81,6 +81,97 @@ function lock() {
   return canvas;
 }
 
+const WEATHER_LEGEND = {
+  k: 'obra-ink',
+  y: 'obra-yellow',
+  p: 'obra-paper',
+  b: 'obra-blue',
+  s: 'obra-paper-shade',
+};
+
+function fromMap(rows) {
+  const canvas = icon();
+  canvas.drawMap(0, 0, rows, WEATHER_LEGEND);
+  return canvas;
+}
+
+// Weather icons for the top bar: a sun, a cloud, a cloud with rain and a moon.
+const WEATHER_SUN = [
+  '.......kk.......',
+  '.......kk.......',
+  '..kk...kk...kk..',
+  '...kk.kkkk.kk...',
+  '....kkyyyykk....',
+  '.....kyyyyk.....',
+  '.kk.kyyyyyyk.kk.',
+  '.kk.kyyyyyyk.kk.',
+  '.....kyyyyk.....',
+  '....kkyyyykk....',
+  '...kk.kkkk.kk...',
+  '..kk...kk...kk..',
+  '.......kk.......',
+  '.......kk.......',
+  '................',
+  '................',
+];
+
+const WEATHER_CLOUD = [
+  '................',
+  '................',
+  '.......kkkk.....',
+  '.....kkppppkk...',
+  '....kpppppppkk..',
+  '..kkkpppppppppk.',
+  '.kpppppppppppppk',
+  '.kpppppppppppppk',
+  '.kpppppppppppppk',
+  '.kssssssssssssk.',
+  '..kkkkkkkkkkkk..',
+  '................',
+  '................',
+  '................',
+  '................',
+  '................',
+];
+
+const WEATHER_RAIN = [
+  '................',
+  '.......kkkk.....',
+  '.....kkppppkk...',
+  '....kpppppppkk..',
+  '..kkkpppppppppk.',
+  '.kpppppppppppppk',
+  '.kssssssssssssk.',
+  '..kkkkkkkkkkkk..',
+  '................',
+  '..bb...bb...bb..',
+  '..bb...bb...bb..',
+  '.bb...bb...bb...',
+  '.bb...bb...bb...',
+  '................',
+  '................',
+  '................',
+];
+
+const WEATHER_MOON = [
+  '................',
+  '.....kkkk.......',
+  '....kyyykk......',
+  '...kyyyk........',
+  '..kyyyk.........',
+  '..kyyyk.........',
+  '..kyyyk.........',
+  '..kyyyk.........',
+  '..kyyyyk......k.',
+  '...kyyyykk..kkk.',
+  '....kyyyyyyykk..',
+  '.....kkyyyykk...',
+  '.......kkkk.....',
+  '................',
+  '................',
+  '................',
+];
+
 export function windowAndAlertIcons() {
   return [
     { id: 'ui/window-map', canvas: map() },
@@ -89,5 +180,9 @@ export function windowAndAlertIcons() {
     { id: 'ui/window-news', canvas: news() },
     { id: 'ui/alarm', canvas: alarm() },
     { id: 'ui/lock', canvas: lock() },
+    { id: 'ui/weather-sun', canvas: fromMap(WEATHER_SUN) },
+    { id: 'ui/weather-cloud', canvas: fromMap(WEATHER_CLOUD) },
+    { id: 'ui/weather-rain', canvas: fromMap(WEATHER_RAIN) },
+    { id: 'ui/weather-moon', canvas: fromMap(WEATHER_MOON) },
   ];
 }

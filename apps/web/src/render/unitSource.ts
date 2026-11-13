@@ -4,6 +4,7 @@ import type { GameState } from '../model/gameState';
 import type { OverlayId } from './overlayColors';
 import { fullWidthTestTower } from './structureSource';
 import type { StructureInput } from './structureRows';
+import { conditionAt, type WeatherCondition } from '@tower-magnate/engine/weather';
 import { skyPhaseAt, stepAtHour, timeOfDayAt, type SkyPhase } from './timeOfDay';
 import type { UnitsInput } from './unitLayer';
 import { isPlacedUnit, type TransportSource } from './unitPlan';
@@ -50,6 +51,14 @@ export function bindUnits(
 /** Feeds `show` the sky phase, and only when it changes. */
 export function bindSky(store: ClientStore, show: (phase: SkyPhase) => void): () => void {
   return store.select((state) => skyPhaseAt(state.step), show);
+}
+
+/** Feeds `show` what the sky is doing (sunny, cloudy, rain), and only when it changes. */
+export function bindWeather(
+  store: ClientStore,
+  show: (condition: WeatherCondition) => void,
+): () => void {
+  return store.select((state) => conditionAt(state.step), show);
 }
 
 const DEBUG_ROW_SPACING = 5;

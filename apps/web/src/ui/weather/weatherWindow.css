@@ -1,0 +1,52 @@
+.weather-window p {
+  margin: 0 0 var(--space-2);
+  font: var(--text-body);
+}
+
+.weather-window .weather-window__today {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  font: var(--text-body-strong);
+}
+
+.weather-window__icon {
+  flex: none;
+  width: calc(14 * var(--tm-px));
+  height: calc(14 * var(--tm-px));
+}
+
+.weather-window__days {
+  padding: 0;
+  margin: var(--space-3) 0 0;
+  list-style: none;
+}
+
+.weather-window__day {
+  display: grid;
+  grid-template-columns: 1fr calc(20 * var(--tm-px)) calc(60 * var(--tm-px));
+  gap: var(--space-3);
+  align-items: center;
+  padding: var(--space-1) 0;
+  font: var(--text-body);
+  border-top: 1px solid var(--obra-rule);
+}
+
+.weather-window__condition {
+  display: flex;
+  justify-content: center;
+}
+
+.weather-window__range {
+  display: flex;
+  gap: var(--space-3);
+  justify-content: flex-end;
+}
+
+.weather-window__min {
+  color: var(--obra-blue);
+}
+
+.weather-window__max {
+  font: var(--text-body-strong);
+}

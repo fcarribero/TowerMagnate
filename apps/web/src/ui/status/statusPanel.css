@@ -54,6 +54,7 @@
 .status-panel__money,
 .status-panel__population,
 .status-panel__stars,
+.status-panel__weather,
 .status-panel__window,
 .status-panel__logo,
 .status-panel .overlay-selector {
@@ -150,6 +151,20 @@
   cursor: pointer;
 }
 
+.status-panel__weather {
+  gap: var(--space-2);
+  cursor: pointer;
+}
+
+.status-panel .status-panel__weather.is-open {
+  background: var(--obra-yellow);
+}
+
+.status-panel__temperature {
+  min-width: calc(20 * var(--tm-px));
+  font: 400 calc(12 * var(--tm-px)) / 1 var(--font-display);
+}
+
 .status-panel__star {
   flex: none;
   width: calc(12 * var(--tm-px));
@@ -208,6 +223,7 @@
 
 .status-panel__logo:active,
 .status-panel__stars:active,
+.status-panel__weather:active,
 .status-panel .status-panel__window:active {
   transform: translate(var(--size-press-offset), var(--size-press-offset));
 }

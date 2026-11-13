@@ -1,6 +1,7 @@
 import { Container, Graphics, Sprite, Texture, TilingSprite } from 'pixi.js';
 import { HIGHEST_LEVEL, WORLD_WIDTH, levelToIndex, levelTop } from './levels';
 import { FLOOR_HEIGHT } from './metrics';
+import type { WeatherCondition } from '@tower-magnate/engine/weather';
 import type { SkyPhase, SkyTime } from './timeOfDay';
 
 /** Colour behind the sky, so any gap matches the time of day. */
@@ -226,34 +227,22 @@ export interface Weather {
   intensity: number;
   /** 0 with a clear sky, 1 with the usual clouds; eases between the two. */
   cover: number;
-  /** Seconds until the weather changes. */
-  timer: number;
 }
 
-const WEATHER_SECONDS: Record<WeatherKind, readonly [number, number]> = {
-  clear: [60, 150],
-  cloudy: [90, 240],
-  rain: [30, 80],
-};
 const RAIN_FADE_SECONDS = 6;
 const COVER_FADE_SECONDS = 14;
 const RAIN_SPEED = 900;
 const RAIN_SLANT = 0.18;
 
-/** What follows `kind`: rain needs clouds, so it starts and ends under them. */
-function nextWeather(kind: WeatherKind): WeatherKind {
-  if (kind !== 'cloudy') {
-    return 'cloudy';
-  }
-  const roll = Math.random();
-  if (roll < 0.4) {
-    return 'clear';
-  }
-  return roll < 0.75 ? 'rain' : 'cloudy';
+/** The sky of a weather condition: sunny is clear, and the others keep their name. */
+export function skyWeatherOf(condition: WeatherCondition): WeatherKind {
+  return condition === 'sunny' ? 'clear' : condition;
 }
 
-function randomBetween(range: readonly [number, number]): number {
-  return range[0] + Math.random() * (range[1] - range[0]);
+/** Sets what the sky eases toward; the game weather (engine/weather) decides it, not chance. */
+export function setSkyWeather(sky: Sky, condition: WeatherCondition): void {
+  sky.weather.kind = skyWeatherOf(condition);
+  sky.weather.raining = condition === 'rain';
 }
 
 const rainCache: { texture: Texture | null | undefined } = { texture: undefined };
@@ -372,15 +361,9 @@ function buildStorm(): Container {
   return layer;
 }
 
-/** Advances the weather: clear, cloudy or rain, fading between them, with the clouds darkening in rain. */
+/** Fades toward the weather set with `setSkyWeather`: clear, cloudy or rain, with the clouds darkening in rain. */
 export function updateWeather(sky: Sky, seconds: number): void {
   const weather = sky.weather;
-  weather.timer -= seconds;
-  if (weather.timer <= 0) {
-    weather.kind = nextWeather(weather.kind);
-    weather.raining = weather.kind === 'rain';
-    weather.timer = randomBetween(WEATHER_SECONDS[weather.kind]);
-  }
   weather.intensity = approach(
     weather.intensity,
     weather.raining ? 1 : 0,
@@ -571,7 +554,6 @@ export function createSky(
     raining: false,
     intensity: 0,
     cover: 1,
-    timer: randomBetween(WEATHER_SECONDS.cloudy),
   };
   const sky: Sky = {
     view,

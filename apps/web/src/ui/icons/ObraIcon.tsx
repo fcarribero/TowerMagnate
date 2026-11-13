@@ -40,6 +40,13 @@ export const OBRA_ICON_PATHS = {
   medical: '<rect x="4" y="4" width="16" height="16"/><path d="M12 8v8M8 12h8"/>',
   housekeeping: '<path d="M6 21h12M9 21V9h6v12M10 9V4h4v5"/>',
   parking: '<rect x="4" y="3" width="16" height="18"/><path d="M10 17V8h3a3 3 0 0 1 0 6h-3"/>',
+  // Weather, for the top bar and the forecast window.
+  weatherSun:
+    '<circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2"/>',
+  weatherCloud: '<path d="M7 18a4 4 0 0 1-.5-8A6 6 0 0 1 18 9.5 4.3 4.3 0 0 1 17.5 18z"/>',
+  weatherRain:
+    '<path d="M7 15a4 4 0 0 1-.5-8A6 6 0 0 1 18 6.5 4.3 4.3 0 0 1 17.5 15z"/><path d="M8 18l-1 3M12 18l-1 3M16 18l-1 3"/>',
+  weatherMoon: '<path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/>',
 } as const;
 
 export type ObraIconName = keyof typeof OBRA_ICON_PATHS;

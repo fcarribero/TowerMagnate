@@ -1,3 +1,4 @@
+import type { WeatherCondition } from '@tower-magnate/engine/weather';
 import type { StarRating } from '@tower-magnate/shared';
 import type { ComponentChildren } from 'preact';
 import { useLayoutEffect, useRef, useState, type MutableRef } from 'preact/hooks';
@@ -8,6 +9,12 @@ import { Tooltip } from '../kit';
 import { GameMenu, type MenuItem } from '../menu/GameMenu';
 import { formatMoney } from '../money';
 import { currentRankLabel } from '../stars/starsModel';
+import {
+  conditionLabel,
+  currentWeather,
+  formatTemperature,
+  weatherIcon,
+} from '../weather/weatherModel';
 import { t, type StringKey } from '../strings';
 import { ObraIcon, type ObraIconName } from '../icons/ObraIcon';
 import {
@@ -23,7 +30,7 @@ import {
 import { statusFits } from './statusLayout';
 import './statusPanel.css';
 
-export type StatusWindowId = 'map' | 'finance' | 'followed' | 'notices' | 'stars';
+export type StatusWindowId = 'map' | 'finance' | 'followed' | 'notices' | 'stars' | 'weather';
 
 export interface StatusPanelProps {
   store: ClientStore;
@@ -46,7 +53,7 @@ export interface StatusPanelProps {
 const MAX_BADGE_COUNT = 9;
 
 interface WindowButton {
-  id: Exclude<StatusWindowId, 'stars'>;
+  id: Exclude<StatusWindowId, 'stars' | 'weather'>;
   label: StringKey;
   icon: ObraIconName;
 }
@@ -63,6 +70,15 @@ interface StatusValues {
   money: number;
   population: number;
   stars: StarRating;
+  condition: WeatherCondition;
+  isNight: boolean;
+  temperature: number;
+}
+
+interface WeatherValues {
+  condition: WeatherCondition;
+  isNight: boolean;
+  temperature: number;
 }
 
 function selectStatus(state: GameState): StatusValues {
@@ -71,7 +87,14 @@ function selectStatus(state: GameState): StatusValues {
     money: state.money,
     population: state.population,
     stars: state.stars,
+    ...selectWeather(state.step),
   };
+}
+
+/** Spread into the status values, which are compared field by field. */
+function selectWeather(step: number): WeatherValues {
+  const { condition, isNight, temperature } = currentWeather(step);
+  return { condition, isNight, temperature };
 }
 
 const NO_WINDOWS: ReadonlySet<StatusWindowId> = new Set();
@@ -115,6 +138,8 @@ export function StatusPanel({
             infiniteMoney={infiniteMoney}
             belowClock={belowClock}
             onOpenStars={() => onOpenWindow('stars')}
+            onOpenWeather={() => onOpenWindow('weather')}
+            weatherOpen={openWindows.has('weather')}
           />
         )}
         <span class="status-panel__spacer" />
@@ -159,11 +184,15 @@ function StatusValuesView({
   infiniteMoney,
   belowClock,
   onOpenStars,
+  onOpenWeather,
+  weatherOpen,
 }: {
   status: StatusValues;
   infiniteMoney: boolean;
   belowClock: ComponentChildren;
   onOpenStars: () => void;
+  onOpenWeather: () => void;
+  weatherOpen: boolean;
 }) {
   const step = stepOfGameMinute(status.minute);
   const date = formatGameDate(step);
@@ -195,6 +224,15 @@ function StatusValuesView({
         {population.slice(labelEnd)}
       </span>
       <StarsButton stars={status.stars} onClick={onOpenStars} />
+      <WeatherButton
+        weather={{
+          condition: status.condition,
+          isNight: status.isNight,
+          temperature: status.temperature,
+        }}
+        open={weatherOpen}
+        onClick={onOpenWeather}
+      />
     </>
   );
 }
@@ -224,6 +262,34 @@ function StarsButton({ stars, onClick }: { stars: StarRating; onClick: () => voi
         </svg>
       ))}
       {tower && <span class="status-panel__tower">{t('ui.towerRank')}</span>}
+    </button>
+  );
+}
+
+function WeatherButton({
+  weather,
+  open,
+  onClick,
+}: {
+  weather: WeatherValues;
+  open: boolean;
+  onClick: () => void;
+}) {
+  const label = t('ui.weather', {
+    condition: t(conditionLabel(weather.condition, weather.isNight)),
+    temperature: weather.temperature,
+  });
+  return (
+    <button
+      type="button"
+      class={open ? 'status-panel__weather is-open' : 'status-panel__weather'}
+      aria-label={label}
+      aria-pressed={open}
+      title={label}
+      onClick={onClick}
+    >
+      <ObraIcon name={weatherIcon(weather.condition, weather.isNight)} class="status-panel__icon" />
+      <span class="status-panel__temperature">{formatTemperature(weather.temperature)}</span>
     </button>
   );
 }

@@ -543,6 +543,10 @@ Design call: the GDD lists the stars in the status panel but no way to see what 
 
 Title "Estrellas". Rows: "Rango actual: {n} estrellas" ("Rango actual: 1 estrella" at 1 star, or "Torre"), then "Para {n+1} estrellas:" (or "Para el rango Torre:") and the requirements of the next step as plain text from 13.10, with a progress bar for population `{population} de {target}`: 10 tall, `border.control`, `obra.field` background, filled with `obra.green` up to the share reached, with the text in `text.body-strong` under it. Requirement lines are `text.body`, one per line. At the top rank the body says "La torre llegó al rango máximo."
 
+### 6.8.1 Pronóstico window
+
+A weather block sits right of the stars in the top bar: a line icon of 14 (sun, cloud, rain or, for a sunny night, moon) and the temperature in whole degrees, for example `18°`, in `font.display` 12. Click opens the Pronóstico window, 240 wide: today's condition and temperature with its icon, the season, and one row per day for the next 7 days (weekday name, icon, minimum in `obra.blue`, maximum in `text.body-strong`). Rules, formulas and Spanish texts are in `docs/design/weather.md`.
+
 ### 6.9 Avisos window
 
 Title "Avisos". The last 50 notices and news, newest first, each `{weekday abbr} {HH:MM}  {text}`. Each row has the `{weekday abbr} {HH:MM}` stamp in a tag (`text.status-label`, `obra.ink` background, `obra.yellow` text) and the text in `text.body`; alert notices have an `obra.red` stamp with `obra.paper` text. The list is 200 tall at most and scrolls. Notices tied to a unit have a "Ver" button (a plain button, 24 wide) that centers the view on it and opens its unit window.

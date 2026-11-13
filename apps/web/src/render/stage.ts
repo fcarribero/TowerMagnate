@@ -32,9 +32,11 @@ import {
   createSky,
   driftClouds,
   setSkyPhase,
+  setSkyWeather,
   skyBackgroundAt,
   updateWeather,
 } from './skyRows';
+import type { WeatherCondition } from '@tower-magnate/engine/weather';
 import type { SkyPhase } from './timeOfDay';
 import type { SpriteRegistry } from './spriteRegistry';
 import { StructureLayer } from './structureLayer';
@@ -109,6 +111,8 @@ export interface Stage {
   showStructure(input: StructureInput): void;
   /** Draws the sky of the given phase of the day behind the tower. */
   showSky(phase: SkyPhase): void;
+  /** Sets the weather of the sky: sun, clouds or rain fade in and out toward it. */
+  showWeather(condition: WeatherCondition): void;
   /** Draws units and transports; later calls change only what differs. */
   showUnits(input: UnitsInput): void;
   /** Marks the followed people on the floor with a lamp above the head. */
@@ -369,6 +373,9 @@ export async function mountStage(host: HTMLElement, options: StageOptions = {}):
     showSky(phase) {
       setSkyPhase(sky, phase);
       app.renderer.background.color = skyBackgroundAt(phase);
+    },
+    showWeather(condition) {
+      setSkyWeather(sky, condition);
     },
     showUnits(input) {
       const placed = [...input.units];

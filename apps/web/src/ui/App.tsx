@@ -17,6 +17,7 @@ import { bindStructure, fullWidthTestTower, testTowerFromQuery } from '../render
 import { skyPhaseAt, stepAtHour } from '../render/timeOfDay';
 import {
   bindSky,
+  bindWeather,
   bindUnits,
   debugStructure,
   debugUnits,
@@ -44,6 +45,7 @@ import { StageHost } from './StageHost';
 import { WindowLayer } from './kit';
 import { RestartTowerDialogs, type RestartStep } from './menu/RestartTowerDialogs';
 import { StarsWindow } from './stars/StarsWindow';
+import { WeatherWindow } from './weather/WeatherWindow';
 import { StatusPanel, type StatusWindowId } from './status/StatusPanel';
 import { debugStarsFromQuery } from './toolbar/debugStars';
 import { t } from './strings';
@@ -87,6 +89,7 @@ export function App({ developer = false, onLogout, onRestartTower, onSessionLost
   const [financeOpen, setFinanceOpen] = useState(false);
   const [avisosOpen, setAvisosOpen] = useState(false);
   const [starsOpen, setStarsOpen] = useState(false);
+  const [weatherOpen, setWeatherOpen] = useState(false);
   const [followedOpen, setFollowedOpen] = useState(false);
   const [restartStep, setRestartStep] = useState<RestartStep | null>(null);
   const [overlay, setOverlay] = useState<OverlayId>('normal');
@@ -106,6 +109,9 @@ export function App({ developer = false, onLogout, onRestartTower, onSessionLost
     }
     if (id === 'stars') {
       setStarsOpen((open) => !open);
+    }
+    if (id === 'weather') {
+      setWeatherOpen((open) => !open);
     }
     if (id === 'followed') {
       setFollowedOpen((open) => !open);
@@ -136,6 +142,7 @@ export function App({ developer = false, onLogout, onRestartTower, onSessionLost
       ['finance', financeOpen],
       ['notices', avisosOpen],
       ['stars', starsOpen],
+      ['weather', weatherOpen],
       ['followed', followedOpen],
     ];
     for (const [id, isOpen] of flags) {
@@ -144,7 +151,7 @@ export function App({ developer = false, onLogout, onRestartTower, onSessionLost
       }
     }
     return open;
-  }, [mapOpen, financeOpen, avisosOpen, starsOpen, followedOpen]);
+  }, [mapOpen, financeOpen, avisosOpen, starsOpen, weatherOpen, followedOpen]);
   const incomeFloats = useIncomeFloaters(stage, connection);
   const [pendingDemolition, setPendingDemolition] = useState<{
     confirmation: Confirmation;
@@ -200,6 +207,9 @@ export function App({ developer = false, onLogout, onRestartTower, onSessionLost
       return;
     }
     const unbindSky = bindSky(connection.store, (phase) => stage.showSky(phase));
+    const unbindWeather = bindWeather(connection.store, (condition) =>
+      stage.showWeather(condition),
+    );
     const unbindUnits = bindUnits(connection.store, overlay, (input) => stage.showUnits(input));
     const unbindStructure = bindStructure(connection.store, (input) => stage.showStructure(input));
     const unbindShafts = bindShafts(connection.store, (shafts, structure) =>
@@ -216,6 +226,7 @@ export function App({ developer = false, onLogout, onRestartTower, onSessionLost
       unbindEvents();
       unbindEffects();
       unbindSky();
+      unbindWeather();
       unbindUnits();
       unbindStructure();
       unbindShafts();
@@ -443,6 +454,9 @@ export function App({ developer = false, onLogout, onRestartTower, onSessionLost
           )}
           {starsOpen && (
             <StarsWindow store={connection.store} onClose={() => setStarsOpen(false)} />
+          )}
+          {weatherOpen && (
+            <WeatherWindow store={connection.store} onClose={() => setWeatherOpen(false)} />
           )}
           {followedOpen && (
             <FollowedWindow
