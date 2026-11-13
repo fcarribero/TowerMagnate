@@ -304,13 +304,19 @@ describe('hotel guests over a week', () => {
     expect(watch.dirtyBookings).toBe(0);
   });
 
-  it('ends every stay at 10:00 with guests walking out from 06:00 to 10:00', () => {
+  it('ends every stay between 07:00 and 10:00 with guests walking out from 06:50 to 10:00', () => {
     expect(watch.checkOuts.length).toBeGreaterThan(5);
-    for (const { step: checkOut } of watch.checkOuts) expect(minuteOf(checkOut)).toBe(10 * 60);
+    const minutes = new Set<number>();
+    for (const { step: checkOut } of watch.checkOuts) {
+      expect(minuteOf(checkOut)).toBeGreaterThanOrEqual(7 * 60);
+      expect(minuteOf(checkOut)).toBeLessThanOrEqual(10 * 60);
+      minutes.add(minuteOf(checkOut));
+    }
+    expect(minutes.size).toBeGreaterThan(1);
     expect(departureSteps.length).toBeGreaterThan(5);
     for (const departure of departureSteps) {
-      expect(minuteOf(departure)).toBeGreaterThanOrEqual(6 * 60);
-      expect(minuteOf(departure)).toBeLessThan(10 * 60);
+      expect(minuteOf(departure)).toBeGreaterThanOrEqual(6 * 60 + 50);
+      expect(minuteOf(departure)).toBeLessThanOrEqual(10 * 60);
     }
   });
 

@@ -15,7 +15,7 @@ const KIND_KEYS: Readonly<Record<PersonKind, StringKey>> = {
   audience: 'value.person.audience',
   partyGuest: 'value.person.partyGuest',
   maid: 'value.person.maid',
-  guard: 'value.person.securityGuard',
+  police: 'value.person.police',
   vip: 'value.person.vip',
   weddingGuest: 'value.person.weddingGuest',
   prospect: 'value.person.prospect',

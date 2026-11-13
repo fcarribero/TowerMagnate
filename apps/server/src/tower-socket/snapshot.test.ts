@@ -1,6 +1,7 @@
 import {
   addCrew,
   addPerson,
+  encodePoliceRoutine,
   encodeStaffRoutine,
   chargeMoney,
   createTower,
@@ -438,6 +439,29 @@ describe('snapshot from tower state', () => {
     expect(snapshot.units.find((unit) => unit.id === 'u7')?.staffed).toBe(false);
     expect(snapshot.people.filter((person) => person.carrying).map((person) => person.id)).toEqual([
       'p1',
+    ]);
+    expect(SnapshotSchema.safeParse(snapshot).success).toBe(true);
+  });
+
+  it('sends outfit uniform for police and maids only while they wear the work clothes', () => {
+    const state = towerWithPeople();
+    const police = addPerson(state, { kind: 'police', homeUnit: 5, level: 2, column: 10 });
+    const slot = state.people.id.indexOf(police);
+    const outfitOf = () =>
+      buildSnapshot(structuredClone(state), LOBBY_VIEW).people.find(
+        (person) => person.id === `p${police}`,
+      )?.outfit;
+    for (const phase of ['arriving', 'changingIn', 'leaving'] as const) {
+      state.people.trip[slot] = encodePoliceRoutine({ phase, entranceOnRight: false });
+      expect(outfitOf(), phase).toBeUndefined();
+    }
+    for (const phase of ['working', 'patrolling', 'lingering', 'changingOut'] as const) {
+      state.people.trip[slot] = encodePoliceRoutine({ phase, entranceOnRight: false });
+      expect(outfitOf(), phase).toBe('uniform');
+    }
+    const snapshot = buildSnapshot(structuredClone(state), LOBBY_VIEW);
+    expect(snapshot.people.filter((person) => person.outfit).map((person) => person.id)).toEqual([
+      `p${police}`,
     ]);
     expect(SnapshotSchema.safeParse(snapshot).success).toBe(true);
   });

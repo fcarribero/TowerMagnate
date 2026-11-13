@@ -11,6 +11,7 @@ import { STEPS_PER_HOUR } from '../calendar';
 import { STEPS_PER_DAY } from '../clock';
 import { occupantAt, structureAt } from '../grid';
 import { addPeopleForUnit, countPeopleOfUnit, parseUnitNumber, peopleCount } from '../people';
+import { seatShiftOnDuty } from '../police';
 import { createRng } from '../rng';
 import { step, type StepContext } from '../step';
 import { isOnTrek } from '../trek';
@@ -235,6 +236,8 @@ describe('bomb search outcome', () => {
     state.stars = 2;
     const securityId = unitIds[0] as string;
     addPeopleForUnit(state, securityId);
+    state.step = NINE_AM;
+    seatShiftOnDuty(state, 6);
     return { state, securityId };
   }
 

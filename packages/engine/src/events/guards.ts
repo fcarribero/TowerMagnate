@@ -1,26 +1,34 @@
+import { UNIT_CATALOG, type GridState, type Level, type PersonPool } from '@tower-magnate/shared';
+import { NO_TRIP, NOTHING_DUE } from '../people';
+import { policeBasePlace } from '../police';
 import {
-  PERSON_KINDS,
-  UNIT_CATALOG,
-  type GridState,
-  type Level,
-  type PersonPool,
-} from '@tower-magnate/shared';
-import { unitPlace } from '../office-routine';
+  decodePoliceRoutine,
+  encodePoliceRoutine,
+  isPoliceOnDuty,
+} from '../police-phase';
 import type { StepContext } from '../step';
 import { cancelTrek, isOnTrek, startTrek, type TrekPlace } from '../trek';
 
-const GUARD_KIND = PERSON_KINDS.indexOf('guard');
+/** Marks the officer as taken over by an event, so the shift routine leaves them alone. */
+function summon(pool: PersonPool, slot: number): void {
+  const routine = decodePoliceRoutine(pool.trip[slot] ?? NO_TRIP);
+  pool.trip[slot] = encodePoliceRoutine({
+    phase: 'summoned',
+    entranceOnRight: routine?.entranceOnRight ?? false,
+  });
+  pool.dueStep[slot] = NOTHING_DUE;
+}
 
 /** Removes a person's entry from a record keyed by person number. */
 export function forget(record: Record<number, unknown>, person: number): void {
   Reflect.deleteProperty(record, person);
 }
 
-/** Slots of every guard in the tower, in increasing person id. */
+/** Slots of the police on duty in the tower (in uniform, inside it), in increasing person id. */
 export function guardSlots(pool: PersonPool): number[] {
   const slots: number[] = [];
   for (let slot = 0; slot < pool.kind.length; slot++) {
-    if (pool.kind[slot] === GUARD_KIND) slots.push(slot);
+    if (isPoliceOnDuty(pool, slot)) slots.push(slot);
   }
   return slots;
 }
@@ -28,6 +36,8 @@ export function guardSlots(pool: PersonPool): number[] {
 /** Sends the guard to `to`, dropping whatever trip it was on. False when there is no route. */
 export function sendGuard(context: StepContext, slot: number, to: TrekPlace): boolean {
   cancelTrek(context, slot);
+  // An officer sent by an event may ride the elevators, unlike one on patrol.
+  summon(context.state.people, slot);
   return startTrek(context, slot, to);
 }
 
@@ -48,7 +58,7 @@ export function sendGuardHome(context: StepContext, slot: number): void {
     column >= office.x &&
     column < office.x + UNIT_CATALOG[office.type].width;
   if (inOffice && !isOnTrek(pool, slot)) return;
-  sendGuard(context, slot, unitPlace(office));
+  sendGuard(context, slot, policeBasePlace(pool, slot, office));
 }
 
 export function sendGuardsHome(context: StepContext): void {

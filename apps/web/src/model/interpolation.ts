@@ -105,7 +105,7 @@ export function flightBetween(
   const past = before?.flight;
   if (before !== undefined && past !== undefined && before.level !== person.level) {
     // The flight ended during this delta: finish it, then walk to where the person is now.
-    return landing(before, past, person, Math.max(gap, 1), progress);
+    return landing(before, past, Math.max(gap, 1), progress);
   }
   const now = person.flight;
   if (now === undefined) return null;
@@ -118,7 +118,6 @@ export function flightBetween(
 function landing(
   before: PersonView,
   past: NonNullable<PersonView['flight']>,
-  person: PersonView,
   gap: number,
   progress: number,
 ): DrawnFlight {

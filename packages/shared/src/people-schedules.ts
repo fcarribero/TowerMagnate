@@ -378,19 +378,17 @@ export const HOTEL_EVENING_OUTING: readonly WindowPart[] = [
   { from: minutes(19), to: HOTEL_OUTING_END_MINUTE, weight: 100 },
 ];
 
-export const HOTEL_CHECK_OUT_LEAVE: readonly WindowPart[] = [
-  { from: minutes(7), to: minutes(8), weight: 15 },
-  { from: minutes(8), to: minutes(9), weight: 35 },
-  { from: minutes(9), to: minutes(10), weight: 50 },
-];
+/** Minutes before its check-out time that a guest on the last day leaves the room. */
+export const HOTEL_CHECK_OUT_LEAVE_BEFORE_MINUTES = 10;
 
 /** Hotel guests go to bed and wake in these windows every day of the week. */
 export const HOTEL_BED: readonly WindowPart[] = [
   { from: minutes(22), to: minutes(24), weight: 100 },
 ];
 
+/** Early enough that a guest is up before the earliest check-out time, 07:00. */
 export const HOTEL_WAKE: readonly WindowPart[] = [
-  { from: minutes(7), to: minutes(9), weight: 100 },
+  { from: minutes(5), to: minutes(6, 30), weight: 100 },
 ];
 
 /** A guest never goes to bed sooner than this after arriving. */
@@ -415,17 +413,20 @@ export const HOTEL_OUTING_VENUES: readonly { type: VisitedVenueType; weight: num
 ];
 
 /** Maids and housekeeping (people spec 10, hotel spec 3 to 6). */
-/** The maids of every housekeeping unit appear at its door at this minute of the day. */
-export const MAID_APPEAR_MINUTE = minutes(9, 30);
+/** The maids of every housekeeping unit come in from the street at this minute of the day. */
+export const MAID_APPEAR_MINUTE = minutes(6);
 
-/** Every maid leaves the simulation at this minute, wherever she is. */
-export const MAID_LEAVE_MINUTE = minutes(17);
+/** The shift ends at this minute: the maids change back in the room and walk out to the street. */
+export const MAID_LEAVE_MINUTE = minutes(13);
 
 /** A maid may ask for a room from this minute of the day. */
-export const CLEANING_START_FROM_MINUTE = minutes(10);
+export const CLEANING_START_FROM_MINUTE = minutes(6);
 
-/** A cleaning starts only before this minute; it is also the end of the asking window. */
-export const CLEANING_START_BEFORE_MINUTE = minutes(16);
+/** A cleaning starts only before this minute, so it ends by the end of the shift. */
+export const CLEANING_START_BEFORE_MINUTE = minutes(12, 30);
+
+/** Changing between civilian clothes and the uniform takes this many steps, inside the unit. */
+export const CHANGE_CLOTHES_STEPS = 2;
 
 /** One cleaning, for single rooms, double rooms and suites alike. */
 export const CLEANING_MINUTES = 30;
@@ -434,7 +435,7 @@ export const CLEANING_MINUTES = 30;
 export const MAID_DAILY_CLEANINGS = 8;
 
 /** An idle maid asks again at every multiple of this many minutes. */
-export const MAID_RETRY_MINUTES = 30;
+export const MAID_RETRY_MINUTES = 5;
 
 /** Infestation (hotel spec 7). The daily check runs at 00:00. */
 export const INFESTATION_CHECK_MINUTE = minutes(0);

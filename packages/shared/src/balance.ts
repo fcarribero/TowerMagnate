@@ -67,6 +67,28 @@ function perUnit(amount: number): UnitCost {
   return { kind: 'per-unit', amount };
 }
 
+/** Security offices run three 8-hour shifts; each shift has one police officer per spot. */
+export const SECURITY_SHIFTS = 3;
+export const SECURITY_SHIFT_HOURS = 8;
+export const SECURITY_SPOTS = 7;
+/** Spots 0 to 2 stay inside the office; the others patrol the floors. */
+export const SECURITY_OFFICE_SPOTS = 3;
+/** Police walk at half the speed of everyone else: one column every this many steps. */
+export const POLICE_STEPS_PER_COLUMN = 2;
+/** A relief starts walking in this long before the shift it takes over begins. */
+export const SECURITY_ARRIVAL_LEAD_MINUTES = 120;
+/** An officer whose relief has not arrived goes home anyway this long after the shift ends. */
+export const SECURITY_RELIEF_GRACE_MINUTES = 120;
+/** A patrolling officer stays this many minutes at each stop, drawn from the range. */
+export const SECURITY_PATROL_STOP_MINUTES = { min: 3, max: 10 } as const;
+/** Patrol stops are drawn with these weights by unit type; every other unit has weight 1. */
+export const SECURITY_PATROL_WEIGHTS: Readonly<Record<string, number>> = {
+  'fast-food': 6,
+  restaurant: 6,
+  'retail-shop': 6,
+  cinema: 6,
+};
+
 export const UNIT_CATALOG: Readonly<Record<UnitType, UnitDefinition>> = {
   floor: {
     type: 'floor',
@@ -227,7 +249,7 @@ export const UNIT_CATALOG: Readonly<Record<UnitType, UnitDefinition>> = {
     width: 16,
     height: fixedHeight(1),
     cost: perUnit(100_000),
-    capacity: { role: 'guards', people: 6 },
+    capacity: { role: 'guards', people: SECURITY_SHIFTS * SECURITY_SPOTS },
     unlockStars: 2,
     placement: { zone: 'any' },
     limitGroup: 'security',
@@ -436,7 +458,9 @@ export const HOTEL_BOOKING_CHANCE = {
 } as const;
 
 export const HOTEL_CHECK_IN_HOURS = { from: 12, until: 23 } as const;
+/** The latest hour a guest can stay in the room; each stay draws its own check-out from 07:00. */
 export const HOTEL_CHECK_OUT_HOUR = 10;
+export const HOTEL_CHECK_OUT_EARLIEST_HOUR = 7;
 
 export const CONDO_SALE_PRICE: PriceTable = {
   high: 230_000,

@@ -141,9 +141,12 @@ describe('riders', () => {
     expect(calm.look).toBe(personLook('p6', 'officeWorker'));
   });
 
-  it('draws a guard with the uniform sprites and a free-clothes worker with the worker ones', () => {
-    expect(riderSprite({ ...walker, id: 'p4', kind: 'guard' }).look.subjects.fixed).toMatch(
-      /^people\/fixed-security-(man|woman)$/,
+  it('draws police in uniform only when the outfit says so, and a worker with the worker sprites', () => {
+    expect(
+      riderSprite({ ...walker, id: 'p4', kind: 'police', outfit: 'uniform' }).look.subjects.fixed,
+    ).toMatch(/^people\/fixed-security-(man|woman)$/);
+    expect(riderSprite({ ...walker, id: 'p4', kind: 'police' }).look.subjects.fixed).toMatch(
+      /^people\/fixed-customer-(man|woman)$/,
     );
     expect(riderSprite({ ...walker, id: 'p4' }).look.subjects.fixed).toMatch(
       /^people\/fixed-worker-(man|woman)$/,

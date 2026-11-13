@@ -1,4 +1,4 @@
-import type { EngineEvent, Level, TowerState, UnitId, UnitType } from '@tower-magnate/shared';
+import { LAST_COLUMN, type EngineEvent, type Level, type TowerState, type UnitId, type UnitType } from '@tower-magnate/shared';
 import { describe, expect, it } from 'vitest';
 import { STEPS_PER_MINUTE } from './calendar';
 import { STEPS_PER_DAY } from './clock';
@@ -9,6 +9,7 @@ import {
   maidTaskAt,
   type MaidTask,
 } from './housekeeping';
+import { outfitOf } from './outfit';
 import { removePeopleOfUnit } from './people';
 import { populationOf } from './population';
 import { deserializeState, serializeState } from './serialization';
@@ -109,7 +110,10 @@ describe('maid task encoding', () => {
       { phase: 'cleaning', room: 12, cleanings: 8 },
       { phase: 'finished', room: 0, cleanings: 8 },
     ];
-    for (const task of tasks) {
+    const walking: MaidTask[] = (['arriving', 'changingIn', 'changingOut', 'leaving'] as const).map(
+      (phase) => ({ phase, room: 0, cleanings: 3 }),
+    );
+    for (const task of [...tasks, ...walking]) {
       expect(encodeMaidTask(task)).toBeGreaterThan(0);
       expect(decodeMaidTask(encodeMaidTask(task))).toEqual(task);
     }
@@ -118,7 +122,7 @@ describe('maid task encoding', () => {
 });
 
 describe('maid shift', () => {
-  it('brings 6 maids per unit to the door at 09:30 and removes them at 17:00', () => {
+  it('starts 6 maids per unit at 06:00 at their door when no route leads in from the street', () => {
     const { state, units } = hotelTower({
       rooms: [],
       housekeeping: [
@@ -126,9 +130,9 @@ describe('maid shift', () => {
         { level: 12, x: 0 },
       ],
     });
-    const before = runUntil(state, at(0, 9, 29, 50)).state;
+    const before = runUntil(state, at(0, 5, 59, 50)).state;
     expect(maidCount(before)).toBe(0);
-    const appeared = runUntil(before, at(0, 9, 30)).state;
+    const appeared = runUntil(before, at(0, 6)).state;
     expect(maidCount(appeared)).toBe(12);
     for (let slot = 0; slot < 6; slot++) {
       expect(appeared.people.level[slot]).toBe(10);
@@ -141,8 +145,8 @@ describe('maid shift', () => {
       maids: 6,
       dirtyRooms: 0,
     });
-    const evening = runUntil(appeared, at(0, 17)).state;
-    expect(maidCount(evening)).toBe(0);
+    const afternoon = runUntil(appeared, at(0, 13, 30)).state;
+    expect(maidCount(afternoon)).toBe(0);
   });
 
   it('does not count maids in population and records no stress', () => {
@@ -233,10 +237,10 @@ describe('hotel spec 9.1, morning shift on two floors', () => {
     const { state, rooms } = hotelTower({ rooms: EXAMPLE_ROOMS });
     const before = runUntil(state, at(0, 11, 29));
     for (const id of Object.values(rooms)) setRoom(before.state, id, 'dirty');
-    const straight = runUntil(deserializeState(serializeState(before.state)), at(0, 16, 30));
+    const straight = runUntil(deserializeState(serializeState(before.state)), at(0, 13, 30));
     const noon = runUntil(before.state, at(0, 12));
     expect(maidTasks(noon.state).some((task) => task.phase === 'cleaning')).toBe(true);
-    const resumed = runUntil(deserializeState(serializeState(noon.state)), at(0, 16, 30));
+    const resumed = runUntil(deserializeState(serializeState(noon.state)), at(0, 13, 30));
     expect(JSON.parse(serializeState(resumed.state))).toEqual(
       JSON.parse(serializeState(straight.state)),
     );
@@ -283,7 +287,7 @@ describe('room choice', () => {
   it('asks again at once when the claimed room is demolished', () => {
     const { state, rooms } = hotelTower({ rooms: EXAMPLE_ROOMS });
     setRoom(state, rooms.r5 as UnitId, 'dirty');
-    const claimed = runUntil(state, at(0, 10, 1));
+    const claimed = runUntil(state, at(0, 6, 1));
     expect(maidTasks(claimed.state)[0]?.room).toBe(roomNumber(rooms.r5 as UnitId));
     setRoom(claimed.state, rooms.r4 as UnitId, 'dirty');
     const demolished = step(
@@ -309,20 +313,20 @@ describe('room choice', () => {
   it('removes the maids of a demolished unit and leaves their room dirty', () => {
     const { state, rooms, units } = hotelTower({ rooms: EXAMPLE_ROOMS });
     setRoom(state, rooms.r5 as UnitId, 'dirty');
-    const claimed = runUntil(state, at(0, 10, 1)).state;
+    const claimed = runUntil(state, at(0, 6, 1)).state;
     removePeopleOfUnit(claimed, units[0] as UnitId);
-    const later = runUntil(claimed, at(0, 11));
+    const later = runUntil(claimed, at(0, 7));
     expect(later.state.units[rooms.r5 as UnitId]?.hotel?.state).toBe('dirty');
     expect(maidCount(later.state)).toBe(0);
   });
 });
 
-describe('hotel spec 9.4, the 16:00 cut and the cap', () => {
-  it('does not start a room reached at 16:00 or later and leaves its dirty checks alone', () => {
+describe('hotel spec 9.4, the 12:30 cut and the cap', () => {
+  it('does not start a room reached at 12:30 or later and leaves its dirty checks alone', () => {
     const rooms: RoomPlan[] = [{ name: 'far', type: 'single-room', level: 11, x: 280 }];
     const { state, rooms: ids } = hotelTower({ rooms });
     const far = roomNumber(ids.far as UnitId);
-    let run = runUntil(state, at(0, 15, 29));
+    let run = runUntil(state, at(0, 12, 9, 50));
     const room = run.state.units[ids.far as UnitId]?.hotel;
     if (!room) throw new Error('room missing');
     room.state = 'dirty';
@@ -331,15 +335,15 @@ describe('hotel spec 9.4, the 16:00 cut and the cap', () => {
     room.arrivalStep = null;
     let claimedAt: number | null = null;
     let releasedAt: number | null = null;
-    while (run.state.step < at(0, 16, 30)) {
+    while (run.state.step < at(0, 13, 30)) {
       run = step(run.state, [], 1);
       const holder = maidTasks(run.state).find((task) => task.room === far);
       expect(holder?.phase).not.toBe('cleaning');
       if (holder && claimedAt === null) claimedAt = run.state.step;
       if (!holder && claimedAt !== null && releasedAt === null) releasedAt = run.state.step;
     }
-    expect(claimedAt).toBe(at(0, 15, 30));
-    expect(releasedAt).toBeGreaterThanOrEqual(at(0, 16));
+    expect(claimedAt).toBe(at(0, 12, 10));
+    expect(releasedAt).toBeGreaterThanOrEqual(at(0, 12, 30));
     expect(run.state.units[ids.far as UnitId]?.hotel).toMatchObject({
       state: 'dirty',
       dirtyChecks: 2,
@@ -360,7 +364,7 @@ describe('hotel spec 9.4, the 16:00 cut and the cap', () => {
       housekeeping: [{ level: 10, x: 0 }],
     });
     for (const id of Object.values(ids)) setRoom(state, id, 'dirty');
-    const run = runUntil(state, at(0, 16, 30));
+    const run = runUntil(state, at(0, 12, 30));
     const cleaned = Object.values(ids).filter(
       (id) => run.state.units[id]?.hotel?.state === 'clean',
     );
@@ -368,7 +372,136 @@ describe('hotel spec 9.4, the 16:00 cut and the cap', () => {
     expect(maidTasks(run.state).every((task) => task.cleanings === 8)).toBe(true);
     expect(maidTasks(run.state).every((task) => task.phase === 'finished')).toBe(true);
     const leftOver = Object.values(ids).filter((id) => !cleaned.includes(id));
-    const nextDay = runUntil(run.state, at(1, 16, 30));
+    const nextDay = runUntil(run.state, at(1, 12, 30));
     for (const id of leftOver) expect(cleanedAt(nextDay.events, id)).not.toBeNull();
+  });
+});
+
+/** A 3-floor hotel with stairs from the lobby to level 2, where the housekeeping room and two rooms are. */
+function connectedHotel() {
+  const { state, unitIds } = buildTower({
+    ...plainTowerPlan(3, 0, 119),
+    units: [
+      { type: 'housekeeping', level: 2, x: 20 },
+      { type: 'single-room', level: 2, x: 60 },
+      { type: 'single-room', level: 2, x: 70 },
+    ],
+    flights: [{ type: 'stairs', x: 10, level: 1 }],
+  });
+  return { state, unit: unitIds[0] as UnitId, rooms: [unitIds[1], unitIds[2]] as UnitId[] };
+}
+
+function maidSlots(state: TowerState): number[] {
+  const slots: number[] = [];
+  for (let slot = 0; slot < state.people.id.length; slot++) {
+    if (maidTaskAt(state.people, slot)) slots.push(slot);
+  }
+  return slots;
+}
+
+describe('maids walk in from the street and change in their room', () => {
+  it('appear at a map edge at 06:00 in civilian clothes, never inside the tower', () => {
+    const { state } = connectedHotel();
+    const before = runUntil(state, at(0, 6) - 1).state;
+    expect(maidCount(before)).toBe(0);
+    const appeared = runUntil(before, at(0, 6)).state;
+    expect(maidCount(appeared)).toBe(6);
+    for (const slot of maidSlots(appeared)) {
+      expect(appeared.people.level[slot]).toBe(1);
+      // They have taken at most their first step along the ground.
+      const column = appeared.people.column[slot] as number;
+      expect(column <= 1 || column >= LAST_COLUMN - 1).toBe(true);
+      expect(maidTaskAt(appeared.people, slot)?.phase).toBe('arriving');
+      expect(outfitOf(appeared.people, slot)).toBeUndefined();
+    }
+  });
+
+  it('reach the door, spend 2 steps changing in civilian clothes, then work in uniform', () => {
+    const { state } = connectedHotel();
+    let current = runUntil(state, at(0, 6)).state;
+    const door = { level: 2, column: 27 };
+    const changing = new Map<number, number>();
+    for (let count = 0; count < 900; count++) {
+      current = step(current, [], 1).state;
+      for (const slot of maidSlots(current)) {
+        const task = maidTaskAt(current.people, slot);
+        const id = current.people.id[slot] as number;
+        if (task?.phase === 'changingIn') {
+          changing.set(id, (changing.get(id) ?? 0) + 1);
+          expect(current.people.level[slot]).toBe(door.level);
+          expect(current.people.column[slot]).toBe(door.column);
+          expect(outfitOf(current.people, slot)).toBeUndefined();
+        }
+        if (task?.phase === 'waiting') expect(outfitOf(current.people, slot)).toBe('uniform');
+      }
+    }
+    expect(changing.size).toBe(6);
+    for (const steps of changing.values()) expect(steps).toBe(2);
+    expect(maidTasks(current).every((task) => task.phase === 'waiting')).toBe(true);
+  });
+
+  it('clean each room one by one as it is freed by a check-out', () => {
+    const { state, rooms } = connectedHotel();
+    const ends = [at(0, 7, 30), at(0, 9)];
+    rooms.forEach((id, index) => {
+      const hotel = state.units[id]?.hotel;
+      if (!hotel) throw new Error('room missing');
+      hotel.state = 'occupied';
+      hotel.rollDue = false;
+      hotel.stayEndStep = ends[index] as number;
+    });
+    const run = runUntil(state, at(0, 11));
+    rooms.forEach((id, index) => {
+      const cleaned = cleanedAt(run.events, id);
+      expect(cleaned).not.toBeNull();
+      expect(cleaned as number).toBeGreaterThan((ends[index] as number) + 30 * STEPS_PER_MINUTE);
+      expect(cleaned as number).toBeLessThan((ends[index] as number) + 45 * STEPS_PER_MINUTE);
+    });
+  });
+
+  it('change back at 13:00 in their room and walk out to a map edge, never vanishing', () => {
+    const { state } = connectedHotel();
+    let current = runUntil(state, at(0, 12, 59, 50)).state;
+    const ids = maidSlots(current).map((slot) => current.people.id[slot] as number);
+    expect(ids).toHaveLength(6);
+    const lastSeen = new Map<number, { level: number; column: number; phase: string }>();
+    const firstGone = new Map<number, number>();
+    const uniformSteps = new Map<number, number>();
+    const sawCivilianLeaving = new Set<number>();
+    for (let count = 0; count < 3000 && maidCount(current) > 0; count++) {
+      current = step(current, [], 1).state;
+      const present = new Set<number>();
+      for (const slot of maidSlots(current)) {
+        const id = current.people.id[slot] as number;
+        present.add(id);
+        const phase = maidTaskAt(current.people, slot)?.phase as string;
+        lastSeen.set(id, {
+          level: current.people.level[slot] as number,
+          column: current.people.column[slot] as number,
+          phase,
+        });
+        if (phase === 'changingOut') {
+          uniformSteps.set(id, (uniformSteps.get(id) ?? 0) + 1);
+          expect(outfitOf(current.people, slot)).toBe('uniform');
+          expect(current.people.level[slot]).toBe(2);
+          expect(current.people.column[slot]).toBe(27);
+        }
+        if (phase === 'leaving') {
+          expect(outfitOf(current.people, slot)).toBeUndefined();
+          sawCivilianLeaving.add(id);
+        }
+      }
+      for (const id of ids) if (!present.has(id) && !firstGone.has(id)) firstGone.set(id, current.step);
+    }
+    expect(maidCount(current)).toBe(0);
+    for (const id of ids) {
+      expect(uniformSteps.get(id)).toBe(2);
+      expect(sawCivilianLeaving.has(id)).toBe(true);
+      // Gone only once they stood on the ground level at a map edge, long after 13:00.
+      const seen = lastSeen.get(id);
+      expect(seen?.level).toBe(1);
+      expect((seen?.column as number) <= 1 || (seen?.column as number) >= LAST_COLUMN - 1).toBe(true);
+      expect(firstGone.get(id) as number).toBeGreaterThan(at(0, 13) + 30);
+    }
   });
 });

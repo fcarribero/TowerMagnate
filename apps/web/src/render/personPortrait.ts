@@ -36,7 +36,8 @@ export function drawPortrait(canvas: HTMLCanvasElement, id: string, kind: Person
   if (context === null) {
     return false;
   }
-  const look = personLook(id, kind);
+  // The portrait shows the work uniform of police and maids.
+  const look = personLook(id, kind, false, 'uniform');
   const { width, height } = portraitSize(look);
   canvas.width = width;
   canvas.height = height;

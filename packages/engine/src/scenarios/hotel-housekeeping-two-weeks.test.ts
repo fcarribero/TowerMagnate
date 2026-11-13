@@ -140,14 +140,14 @@ function newsDays(events: readonly EngineEvent[], key: string): number[] {
 describe('3-star hotel with 10 rooms and one housekeeping unit over 14 days (TM-139 playtest)', () => {
   const start = threeStarHotel();
   const unitsAtStart = Object.keys(start.units).length;
-  const saveSteps = [at(CHECK_DAY, 10, 20), at(CHECK_DAY, 12)];
+  const saveSteps = [at(CHECK_DAY, 8, 15), at(CHECK_DAY, 12, 55)];
   const straight = play(start, at(DAYS, 0), saveSteps);
 
   it('keeps every unit standing, so the run tests housekeeping only', () => {
     expect(straight.log.unitsAtEnd).toBe(unitsAtStart);
   });
 
-  it('cleans every room left at check-out by 16:30 the same day', () => {
+  it('cleans every room left at check-out by 13:00 the same day, when the shift ends', () => {
     const checkOuts = straight.log.events.filter((event) => event.type === 'hotelCheckOut');
     expect(checkOuts.length).toBeGreaterThan(20);
     for (const checkOut of checkOuts) {
@@ -160,7 +160,7 @@ describe('3-star hotel with 10 rooms and one housekeeping unit over 14 days (TM-
           event.step > checkOut.step,
       );
       expect(cleaned?.step, `${checkOut.unitId} left on day ${day}`).toBeLessThanOrEqual(
-        at(day, 16, 30),
+        at(day, 13),
       );
     }
   });
@@ -179,7 +179,7 @@ describe('3-star hotel with 10 rooms and one housekeeping unit over 14 days (TM-
 
   it.each(saveSteps)('gives the same 14 days after a save and restore at step %i', (saveStep) => {
     const before = play(start, saveStep, saveSteps);
-    if (saveStep === at(CHECK_DAY, 10, 20)) expect(maidsCleaning(before.state)).toBeGreaterThan(0);
+    if (saveStep === at(CHECK_DAY, 8, 15)) expect(maidsCleaning(before.state)).toBeGreaterThan(0);
     const restored = deserializeState(serializeState(before.state));
     const after = play(restored, at(DAYS, 0), saveSteps);
     expect(JSON.parse(serializeState(after.state))).toEqual(

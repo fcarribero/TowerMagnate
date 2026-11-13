@@ -30,7 +30,7 @@ const RUNS = 3;
 
 /**
  * 40 floors of 160 columns: `securityOffices` security offices from level 2 up and an office on
- * each of levels 4 to 40, 252 people with 5 security offices. Two elevator banks meet at level 30.
+ * each of levels 4 to 40, 327 people with 5 security offices (21 police each). Two elevator banks meet at level 30.
  */
 export function securityTower(securityOffices: number): TowerState {
   const shafts: PlannedShaft[] = [

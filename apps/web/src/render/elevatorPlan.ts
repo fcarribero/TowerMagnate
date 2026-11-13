@@ -138,12 +138,12 @@ export function riderPlace(type: ShaftType, n: number): { x: number; y: number }
 
 /** A person standing, with the look worked out from their id. */
 export function riderSprite(person: PersonView): PersonPose {
-  return { look: personLook(person.id, person.kind, person.carrying === true), state: 'stand' };
+  return { look: personLook(person.id, person.kind, person.carrying === true, person.outfit), state: 'stand' };
 }
 
 /** A person on a floor: standing while waiting, otherwise one of two walk frames. */
 export function floorSprite(person: PersonView, column: number): PersonPose {
-  const look = personLook(person.id, person.kind, person.carrying === true);
+  const look = personLook(person.id, person.kind, person.carrying === true, person.outfit);
   if (person.mode === 'wait') {
     return { look, state: 'stand' };
   }

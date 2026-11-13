@@ -1,10 +1,17 @@
 import type { EngineEvent, HotelRoom, TowerState, UnitId } from '@tower-magnate/shared';
 import { describe, expect, it } from 'vitest';
-import { stepOfDate, WEEKDAYS, weekdayOfDay } from './calendar';
+import { STEPS_PER_MINUTE, stepOfDate, WEEKDAYS, weekdayOfDay } from './calendar';
 import { STEPS_PER_DAY } from './clock';
-import { checkIn, createHotelSystem, drawStayNights, type CheckInResult } from './hotel';
+import {
+  checkIn,
+  checkOutMinuteOf,
+  createHotelSystem,
+  drawStayNights,
+  type CheckInResult,
+} from './hotel';
 import { createRng } from './rng';
 import { createEngine, type StepContext } from './step';
+import { unitNumber } from './units';
 import { buildTower, plainTowerPlan } from './testing';
 
 type RoomType = 'single-room' | 'double-room' | 'suite';
@@ -51,8 +58,14 @@ function checkInForNights(nights: number, tower: TowerState, roomId: UnitId, ste
   return tryCheckIn(seeded, roomId, step);
 }
 
+/** The check-out step of a stay checked in at `checkInStep` for `nights` nights, from the drawn minute. */
+function checkOutStep(roomId: UnitId, checkInStep: number, nights: number): number {
+  const day = Math.floor(checkInStep / STEPS_PER_DAY) + nights;
+  return day * STEPS_PER_DAY + checkOutMinuteOf(unitNumber(roomId), checkInStep) * STEPS_PER_MINUTE;
+}
+
 describe('hotel check-in', () => {
-  it('charges nothing at check-in and the whole 3-night stay at check-out on Saturday at 10:00', () => {
+  it('charges nothing at check-in and the whole 3-night stay at the drawn check-out time on Saturday', () => {
     const { tower, roomIds } = towerWithRooms(['suite']);
     const roomId = roomIds[0] as UnitId;
     const { result, state, events } = checkInForNights(3, tower, roomId, at(WEDNESDAY, 15));
@@ -63,7 +76,7 @@ describe('hotel check-in', () => {
     expect(state.units[roomId]?.used).toBe(true);
     expect(state.units[roomId]?.hotel).toEqual({
       state: 'occupied',
-      stayEndStep: at(WEDNESDAY + 3, 10),
+      stayEndStep: checkOutStep(roomId, at(WEDNESDAY, 15), 3),
       checkInStep: at(WEDNESDAY, 15),
       paidRatio: 1,
       stayRate: 6_000,
@@ -75,11 +88,12 @@ describe('hotel check-in', () => {
     expect(events.map((event) => event.type)).toEqual(['hotelCheckIn', 'roomStateChanged']);
 
     const engine = createEngine({ commandHandlers: {}, systems: [createHotelSystem()] });
-    const justBefore = engine.step(state, [], at(WEDNESDAY + 3, 10) - 1 - state.step);
+    const checkOut = checkOutStep(roomId, at(WEDNESDAY, 15), 3);
+    const justBefore = engine.step(state, [], checkOut - 1 - state.step);
     expect(justBefore.state.units[roomId]?.hotel?.state).toBe('occupied');
 
     const atCheckOut = engine.step(justBefore.state, [], 1);
-    expect(atCheckOut.state.step).toBe(at(WEDNESDAY + 3, 10));
+    expect(atCheckOut.state.step).toBe(checkOut);
     expect(atCheckOut.state.units[roomId]?.hotel).toMatchObject({
       state: 'dirty',
       stayEndStep: null,
@@ -186,6 +200,42 @@ describe('hotel check-in', () => {
       units: [{ type: 'office', x: 0, level: 2 }],
     });
     expect(() => checkIn({ state, events: [] }, unitIds[0] as UnitId)).toThrow(/not a hotel room/);
+  });
+});
+
+describe('hotel check-out time', () => {
+  it('draws each stay a check-out time between 07:00 and 10:00 from the room and the check-in step', () => {
+    const { tower, roomIds } = towerWithRooms(['single-room', 'double-room', 'suite']);
+    const minutes = new Set<number>();
+    for (const roomId of roomIds) {
+      for (let day = 0; day < 40; day++) {
+        const attempt = checkInForNights(2, tower, roomId, at(day, 12 + (day % 10)));
+        const end = attempt.state.units[roomId]?.hotel?.stayEndStep as number;
+        const minute = (end % STEPS_PER_DAY) / STEPS_PER_MINUTE;
+        expect(minute).toBeGreaterThanOrEqual(7 * 60);
+        expect(minute).toBeLessThanOrEqual(10 * 60);
+        expect(Math.floor(end / STEPS_PER_DAY)).toBe(day + 2);
+        minutes.add(minute);
+      }
+    }
+    expect(minutes.size).toBeGreaterThan(30);
+  });
+
+  it('draws the same minute for the same room and check-in step and frees the room at it', () => {
+    const { tower, roomIds } = towerWithRooms(['single-room']);
+    const roomId = roomIds[0] as UnitId;
+    const first = checkInForNights(1, tower, roomId, at(WEDNESDAY, 14));
+    const second = checkInForNights(1, tower, roomId, at(WEDNESDAY, 14));
+    expect(first.state.units[roomId]?.hotel?.stayEndStep).toBe(
+      second.state.units[roomId]?.hotel?.stayEndStep,
+    );
+    const end = first.state.units[roomId]?.hotel?.stayEndStep as number;
+    const engine = createEngine({ commandHandlers: {}, systems: [createHotelSystem()] });
+    const before = engine.step(first.state, [], end - 1 - first.state.step);
+    expect(before.state.units[roomId]?.hotel?.state).toBe('occupied');
+    const at10 = engine.step(before.state, [], 1);
+    expect(at10.state.units[roomId]?.hotel?.state).toBe('dirty');
+    expect(at10.events.some((event) => event.type === 'hotelCheckOut')).toBe(true);
   });
 });
 

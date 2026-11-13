@@ -169,7 +169,7 @@ describe('population from hotel stays', () => {
     expect(populationOf(state).hotel).toBe(0);
   });
 
-  it('counts a double from its check-in step until 10:00 on the check-out day', () => {
+  it('counts a double from its check-in step until its drawn check-out time on the check-out day', () => {
     const { state, ids } = towerWithUnits(['double-room']);
     const roomId = ids[0] as UnitId;
     const checkInStep = at(WEDNESDAY, 15);
@@ -187,8 +187,12 @@ describe('population from hotel stays', () => {
 
     expect(hotelAt(checkInStep - 1)).toBe(0);
     expect(hotelAt(checkInStep)).toBe(2);
-    expect(hotelAt(at(THURSDAY, 10) - 1)).toBe(2);
-    expect(hotelAt(at(THURSDAY, 10))).toBe(0);
+    const checkOut = engine.step(state, [], checkInStep - state.step).state.units[roomId]?.hotel
+      ?.stayEndStep as number;
+    expect(checkOut).toBeGreaterThanOrEqual(at(THURSDAY, 7));
+    expect(checkOut).toBeLessThanOrEqual(at(THURSDAY, 10));
+    expect(hotelAt(checkOut - 1)).toBe(2);
+    expect(hotelAt(checkOut)).toBe(0);
   });
 });
 

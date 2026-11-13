@@ -5,7 +5,7 @@ import { PersonViewSchema } from './views';
 
 const walker = {
   id: 'p7',
-  kind: 'worker',
+  kind: 'officeWorker',
   x: 10,
   level: 2,
   facing: 'right',

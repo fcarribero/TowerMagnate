@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { CONDO_HOUSEHOLD_SIZES, CONDO_PAIR_CHILD_CHANCE, CONDO_TRIO_CHILDREN } from './balance';
 import { PERSON_KINDS } from './people';
-import { packPerson, unpackPerson } from './protocol/packed';
+import { packPerson, PackedPersonSchema, unpackPerson } from './protocol/packed';
 import { PersonKindSchema } from './protocol/primitives';
 
 describe('child kind', () => {
@@ -25,6 +25,28 @@ describe('child kind', () => {
       stress: 'normal',
     } as const;
     expect(unpackPerson(packPerson(child))).toEqual(child);
+  });
+
+  it('keeps police in the stored slot of the old guard kind and packs the uniform outfit', () => {
+    expect(PERSON_KINDS.indexOf('police')).toBe(7);
+    const officer = {
+      id: 'p9',
+      kind: 'police',
+      x: 4,
+      level: 2,
+      facing: 'left',
+      mode: 'walk',
+      carRef: null,
+      stress: 'normal',
+      outfit: 'uniform',
+    } as const;
+    const packed = packPerson(officer);
+    expect(PackedPersonSchema.parse(JSON.parse(JSON.stringify(packed)))).toEqual(packed);
+    expect(unpackPerson(packed)).toEqual(officer);
+    const civilian = { ...officer, outfit: undefined };
+    expect(unpackPerson(packPerson(civilian))).not.toHaveProperty('outfit');
+    const bagAndUniform = { ...officer, carrying: true };
+    expect(unpackPerson(packPerson(bagAndUniform))).toEqual(bagAndUniform);
   });
 
   it('has household constants that give 1 to 3 people', () => {

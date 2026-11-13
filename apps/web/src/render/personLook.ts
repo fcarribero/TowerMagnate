@@ -38,7 +38,7 @@ export const SPRITE_NAME_OF_KIND: Record<PersonKind, string> = {
   audience: 'guest',
   partyGuest: 'guest',
   maid: 'maid',
-  guard: 'security',
+  police: 'security',
   vip: 'vip',
   weddingGuest: 'guest',
   prospect: 'customer',
@@ -181,11 +181,28 @@ function clothesOf(name: string, model: PersonModel, hash: number): Clothes {
   }
 }
 
-/** The look of a person, from their id and kind. Pure: the same inputs always give the same look. */
-export function computeLook(id: string, kind: PersonKind, carrying = false): PersonLook {
+/** Police and maids are drawn as ordinary civilians until the engine says they wear the uniform. */
+export type Outfit = 'uniform' | undefined;
+
+function spriteNameOf(kind: PersonKind, carrying: boolean, outfit: Outfit): string {
+  if (carrying) return 'staffbag';
+  if ((kind === 'police' || kind === 'maid') && outfit !== 'uniform') return 'customer';
+  return SPRITE_NAME_OF_KIND[kind];
+}
+
+/**
+ * The look of a person, from their id, kind and outfit. Pure: the same inputs always give the same
+ * look. A maid keeps the woman model in civilian clothes so changing does not change who she is.
+ */
+export function computeLook(
+  id: string,
+  kind: PersonKind,
+  carrying = false,
+  outfit: Outfit = undefined,
+): PersonLook {
   const hash = hashId(id);
-  const name = carrying ? 'staffbag' : SPRITE_NAME_OF_KIND[kind];
-  const model: PersonModel = name === 'maid' || unit(hash, 0) < 0.5 ? 'woman' : 'man';
+  const name = spriteNameOf(kind, carrying, outfit);
+  const model: PersonModel = kind === 'maid' || unit(hash, 0) < 0.5 ? 'woman' : 'man';
   const clothes = clothesOf(name, model, hash);
   const child = kind === 'child';
   const height = child ? childHeightPixels(unit(hash, 6)) : heightPixels(unit(hash, 6), model);
@@ -209,19 +226,32 @@ export function computeLook(id: string, kind: PersonKind, carrying = false): Per
 }
 
 const MAX_CACHED = 20000;
-const cache = new Map<string, { kind: PersonKind; carrying: boolean; look: PersonLook }>();
+const cache = new Map<
+  string,
+  { kind: PersonKind; carrying: boolean; outfit: Outfit; look: PersonLook }
+>();
 
 /** `computeLook` remembered by id, so a person keeps the same look object between frames. */
-export function personLook(id: string, kind: PersonKind, carrying = false): PersonLook {
+export function personLook(
+  id: string,
+  kind: PersonKind,
+  carrying = false,
+  outfit: Outfit = undefined,
+): PersonLook {
   const cached = cache.get(id);
-  if (cached !== undefined && cached.kind === kind && cached.carrying === carrying) {
+  if (
+    cached !== undefined &&
+    cached.kind === kind &&
+    cached.carrying === carrying &&
+    cached.outfit === outfit
+  ) {
     return cached.look;
   }
   if (cache.size >= MAX_CACHED) {
     cache.clear();
   }
-  const look = computeLook(id, kind, carrying);
-  cache.set(id, { kind, carrying, look });
+  const look = computeLook(id, kind, carrying, outfit);
+  cache.set(id, { kind, carrying, outfit, look });
   return look;
 }
 

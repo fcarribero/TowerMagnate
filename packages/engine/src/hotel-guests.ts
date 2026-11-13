@@ -4,7 +4,7 @@ import {
   HOTEL_CHECK_IN_OUTING_DELAY_MINUTES,
   HOTEL_BED,
   HOTEL_BED_AFTER_ARRIVAL_MINUTES,
-  HOTEL_CHECK_OUT_LEAVE,
+  HOTEL_CHECK_OUT_LEAVE_BEFORE_MINUTES,
   HOTEL_DAY_OUT_CHANCE,
   HOTEL_DAY_OUT_LEAVE,
   HOTEL_DAY_OUT_RETURN,
@@ -690,11 +690,22 @@ function runGuest(context: StepContext, slot: number): void {
   }
 }
 
-function drawDayPlan(state: TowerState, checkOutDay: boolean, vip: boolean): GuestSlots {
-  if (checkOutDay) {
-    const leave = windowSlot(state, vip ? VIP_LEAVE : HOTEL_CHECK_OUT_LEAVE);
-    return [leave, NO_SLOT, NO_SLOT];
-  }
+/**
+ * The leave slot of a check-out day: the VIP draws from its own window; everyone else leaves a few
+ * minutes before the check-out time the stay drew at check-in, so the room is freed as they go.
+ */
+function checkOutLeaveSlot(state: TowerState, vip: boolean, stayEnd: number): number {
+  if (vip) return windowSlot(state, VIP_LEAVE);
+  return Math.max(0, minuteOfDay(stayEnd) - HOTEL_CHECK_OUT_LEAVE_BEFORE_MINUTES) + 1;
+}
+
+function drawDayPlan(
+  state: TowerState,
+  checkOutDay: boolean,
+  vip: boolean,
+  stayEnd: number,
+): GuestSlots {
+  if (checkOutDay) return [checkOutLeaveSlot(state, vip, stayEnd), NO_SLOT, NO_SLOT];
   let leave = NO_SLOT;
   let back = NO_SLOT;
   if (chance(state.rng, HOTEL_DAY_OUT_CHANCE)) {
@@ -736,7 +747,7 @@ function drawPlans(context: StepContext): void {
     const keptBed = sleeping ? null : bedTimeOf(pool, slot, state.step - STEPS_PER_DAY);
     if (!sleeping && keptBed === null && isOnTrek(pool, slot)) cancelTrek(context, slot);
     const checkOutDay = dayStartOf(stayEnd) === dayStartOf(state.step);
-    const slots = drawDayPlan(state, checkOutDay, isVip(pool, slot));
+    const slots = drawDayPlan(state, checkOutDay, isVip(pool, slot), stayEnd);
     if (keptWake !== null) {
       save(state, slot, { phase: 'sleeping', venue: 0, slots }, keptWake);
       continue;

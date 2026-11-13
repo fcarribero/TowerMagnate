@@ -1,6 +1,7 @@
 import {
   HOTEL_BOOKING_CHANCE,
   HOTEL_CHECK_IN_HOURS,
+  HOTEL_CHECK_OUT_EARLIEST_HOUR,
   HOTEL_CHECK_OUT_HOUR,
   HOTEL_NIGHTLY_PRICE,
   HOTEL_STAY_NIGHT_WEIGHTS,
@@ -9,7 +10,7 @@ import {
   type Unit,
   type UnitId,
 } from '@tower-magnate/shared';
-import { dateOfStep, STEPS_PER_HOUR } from './calendar';
+import { dateOfStep, STEPS_PER_MINUTE } from './calendar';
 import { STEPS_PER_DAY } from './clock';
 import { releaseStayGuests } from './hotel-guest-trip';
 import { creditMoney, pushUnitMoney } from './money';
@@ -57,9 +58,27 @@ function isCheckInTime(step: number): boolean {
   return hour >= from && (hour < until || (hour === until && minute === 0));
 }
 
-function stayEndStep(checkInStep: number, nights: number): number {
+/**
+ * The minute of the day a stay ends on its last day, drawn from the room and the check-in step
+ * alone (no rng draw): between 07:00 and 10:00, both included.
+ */
+export function checkOutMinuteOf(roomNumber: number, checkInStep: number): number {
+  let hash = Math.imul(roomNumber ^ 0x9e3779b9, 0x85ebca6b) ^ Math.imul(checkInStep, 0xc2b2ae35);
+  hash = Math.imul(hash ^ (hash >>> 15), 0x2c1b3c6d);
+  hash = Math.imul(hash ^ (hash >>> 12), 0x297a2d39);
+  hash = (hash ^ (hash >>> 15)) >>> 0;
+  const earliest = HOTEL_CHECK_OUT_EARLIEST_HOUR * 60;
+  return earliest + (hash % (HOTEL_CHECK_OUT_HOUR * 60 - earliest + 1));
+}
+
+/** The step a stay ends: the check-out minute of the last day, `nights` days after check-in. */
+export function stayEndStep(
+  checkInStep: number,
+  nights: number,
+  checkOutMinute = HOTEL_CHECK_OUT_HOUR * 60,
+): number {
   const checkInDay = Math.floor(checkInStep / STEPS_PER_DAY);
-  return (checkInDay + nights) * STEPS_PER_DAY + HOTEL_CHECK_OUT_HOUR * STEPS_PER_HOUR;
+  return (checkInDay + nights) * STEPS_PER_DAY + checkOutMinute * STEPS_PER_MINUTE;
 }
 
 export function setRoomState(context: StepContext, room: RoomUnit, state: HotelRoomState): void {
@@ -93,7 +112,10 @@ export function checkIn(context: StepContext, roomId: UnitId, nights?: number): 
   const room = writableUnit(context.state, found);
   const stayNights = nights ?? drawStayNights(context.state.rng);
   room.hotel.stayRate = room.price;
-  room.hotel.stayEndStep = stayEndStep(step, stayNights);
+  // The VIP keeps the latest hour; every other stay draws its own check-out time.
+  const checkOutMinute =
+    nights === undefined ? checkOutMinuteOf(unitNumber(room.id), step) : undefined;
+  room.hotel.stayEndStep = stayEndStep(step, stayNights, checkOutMinute);
   room.hotel.checkInStep = step;
   room.hotel.paidRatio = priceRatio(room);
   room.hotel.arrivalStep = null;

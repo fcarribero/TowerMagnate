@@ -5,6 +5,7 @@ import { decodeResidentRoutine } from './resident-routine';
 import { CHILD_KIND } from './children';
 import { isOnTrek } from './trek';
 import { NO_TRIP } from './people';
+import { isPolice, policePhaseAt } from './police-phase';
 import { isStaffOutside } from './venue-staff';
 
 const OFFICE_WORKER_KIND = PERSON_KINDS.indexOf('officeWorker');
@@ -44,5 +45,6 @@ export function isOutsideTower(pool: PersonPool, slot: number): boolean {
   if (kind === OFFICE_WORKER_KIND) return officeWorkerIsOutside(pool, slot);
   if (kind === RESIDENT_KIND || kind === CHILD_KIND) return residentIsOutside(pool, slot);
   if (kind === STAFF_KIND) return isStaffOutside(pool, slot);
+  if (isPolice(pool, slot)) return policePhaseAt(pool, slot) === 'off';
   return guestRoutineAt(pool, slot)?.phase === 'outside';
 }

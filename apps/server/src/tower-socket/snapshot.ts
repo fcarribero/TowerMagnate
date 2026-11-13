@@ -11,6 +11,7 @@ import {
   DAYS_PER_WEEK,
   isAsleep,
   isCarryingBag,
+  outfitOf,
   isOutsideTower,
   isVenueStaffed,
   occupantAt,
@@ -109,7 +110,7 @@ export function buildSnapshot(
       levels: structureRows(state),
       mainLobbyHeight: state.grid.mainLobbyHeight,
       ...(Object.keys(state.grid.skyLobbyHeights).length > 0
-        ? { skyLobbyHeights: { ...state.grid.skyLobbyHeights } }
+        ? { skyLobbyHeights: skyLobbyHeightsOf(state.grid.skyLobbyHeights) }
         : {}),
     },
     units,
@@ -125,7 +126,7 @@ export function buildSnapshot(
       price: Object.fromEntries(
         units
           .filter((unit) => isPricedType(unit.type))
-          .map((unit) => [unit.id, priceBand(unit.price, unit.appraisal)]),
+          .map((unit) => [unit.id, priceBand(unit.price, unit.appraisal ?? unit.price)]),
       ),
       hotel: hotelOverlay(state),
     },
@@ -134,6 +135,17 @@ export function buildSnapshot(
 }
 
 /** The stored grade of every evaluated unit; null shows "Sin evaluar". */
+/** The sky lobby heights as a plain record keyed by level. */
+function skyLobbyHeightsOf(
+  heights: TowerState['grid']['skyLobbyHeights'],
+): Record<string, 1 | 2 | 3> {
+  const record: Record<string, 1 | 2 | 3> = {};
+  for (const [level, height] of Object.entries(heights)) {
+    if (height !== undefined) record[level] = height;
+  }
+  return record;
+}
+
 function evaluationOverlay(state: TowerState): Snapshot['overlays']['evaluation'] {
   const grades: Snapshot['overlays']['evaluation'] = {};
   for (const unit of Object.values(state.units)) {
@@ -428,6 +440,7 @@ function personView(
     carRef: ride?.carRef ?? null,
     stress: stressLevel(person.stress),
     ...(isCarryingBag(state.people, slot) ? { carrying: true } : {}),
+    ...(outfitOf(state.people, slot) === 'uniform' ? { outfit: 'uniform' as const } : {}),
     ...flightOf(state, slot, phase),
   };
 }

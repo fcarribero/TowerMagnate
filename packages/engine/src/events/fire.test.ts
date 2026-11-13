@@ -12,6 +12,7 @@ import { STEPS_PER_HOUR, STEPS_PER_MINUTE } from '../calendar';
 import { STEPS_PER_DAY } from '../clock';
 import { occupantAt } from '../grid';
 import { addPeopleForUnit, listPeople, slotOfPerson } from '../people';
+import { seatShiftOnDuty } from '../police';
 import { createRng } from '../rng';
 import { step, type StepContext } from '../step';
 import { buildTower, plainTowerPlan, type PlannedUnit } from '../testing';
@@ -327,6 +328,7 @@ describe('end of the fire', () => {
     });
     state.stars = 3;
     addPeopleForUnit(state, unitIds[0] as string);
+    seatShiftOnDuty(state, 6);
     const { context, fire } = exampleFire(state);
     advance(context, minutes(7));
     expect(span(fire, 40)).toEqual([143, 157]);
@@ -334,14 +336,16 @@ describe('end of the fire', () => {
     advance(context, STEPS_PER_MINUTE / 2);
     const pool = state.people;
     const sides = ['left', 'right'] as const;
-    listPeople(pool).forEach((guard, index) => {
-      const slot = slotOfPerson(pool, Number(guard.id.slice(1)));
-      cancelTrek(context, slot);
-      pool.level[slot] = 40;
-      pool.column[slot] = 142;
-      const side = sides[index % 2] as (typeof sides)[number];
-      fire.guards[Number(guard.id.slice(1))] = { level: 40, side, arrivedStep: state.step };
-    });
+    listPeople(pool)
+      .slice(0, 6)
+      .forEach((guard, index) => {
+        const slot = slotOfPerson(pool, Number(guard.id.slice(1)));
+        cancelTrek(context, slot);
+        pool.level[slot] = 40;
+        pool.column[slot] = 142;
+        const side = sides[index % 2] as (typeof sides)[number];
+        fire.guards[Number(guard.id.slice(1))] = { level: 40, side, arrivedStep: state.step };
+      });
 
     advance(context, STEPS_PER_MINUTE / 2);
     expect(span(fire, 40)).toEqual([142, 158]);

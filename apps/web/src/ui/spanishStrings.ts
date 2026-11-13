@@ -373,7 +373,7 @@ export const SPANISH_STRINGS = {
   'value.person.courier': 'Mensajero',
   'value.person.child': 'Niño',
   'value.construction.inProgress': 'En construcción',
-  'value.person.securityGuard': 'Guardia de seguridad',
+  'value.person.police': 'Policía',
   'value.person.vip': 'VIP',
   'value.person.weddingGuest': 'Invitado a la boda',
   'value.person.prospect': 'Interesado',

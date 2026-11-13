@@ -29,7 +29,7 @@ const KINDS: PersonKind[] = [
   'audience',
   'partyGuest',
   'maid',
-  'guard',
+  'police',
   'vip',
   'weddingGuest',
   'prospect',
@@ -134,7 +134,7 @@ describe('personLook', () => {
   });
 
   it('keeps the uniform colors of each uniform type and varies the rest', () => {
-    const guards = IDS.map((id) => computeLook(id, 'guard'));
+    const guards = IDS.map((id) => computeLook(id, 'police', false, 'uniform'));
     expect(new Set(guards.map((look) => look.shirt))).toEqual(new Set([0x4f86d8]));
     expect(new Set(guards.map((look) => look.pants))).toEqual(new Set([0x2f3a6a]));
     expect(new Set(guards.map((look) => look.skin)).size).toBe(SKIN_TONES.length);
@@ -146,9 +146,24 @@ describe('personLook', () => {
     expect(new Set(builders.map((look) => look.shirt))).toEqual(new Set([0xe0875a]));
   });
 
+  it('draws police and maids as civilians until they wear the uniform', () => {
+    for (const id of IDS.slice(0, 100)) {
+      for (const kind of ['police', 'maid'] as const) {
+        const civil = computeLook(id, kind);
+        const uniform = computeLook(id, kind, false, 'uniform');
+        expect(civil.subjects.fixed).toMatch(/^people\/fixed-customer-/);
+        expect(SHIRT_COLORS).toContain(civil.shirt);
+        expect(uniform.subjects.fixed).toMatch(kind === 'maid' ? /fixed-maid-/ : /fixed-security-/);
+        expect(uniform.model).toBe(civil.model);
+        expect(uniform.skin).toBe(civil.skin);
+        expect(personLook(id, kind, false, 'uniform')).not.toBe(personLook(id, kind));
+      }
+    }
+  });
+
   it('dresses the maid as a woman and the bag carrier as the crew with a bag', () => {
     for (const id of IDS.slice(0, 100)) {
-      const maid = computeLook(id, 'maid');
+      const maid = computeLook(id, 'maid', false, 'uniform');
       expect(maid.model).toBe('woman');
       expect(maid.subjects.fixed).toBe('people/fixed-maid-woman');
       expect(computeLook(id, 'staff', true).subjects.fixed).toMatch(/^people\/fixed-staffbag-/);

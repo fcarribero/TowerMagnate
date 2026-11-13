@@ -14,6 +14,7 @@ import {
   MAX_RIDES_PER_TRIP,
   MAX_STAIR_FLOORS_PER_TRIP,
   PERSON_KINDS,
+  POLICE_STEPS_PER_COLUMN,
   ROUTE_RETRY_STEPS,
   STAIR_FLIGHT_STEPS,
   UNIT_CATALOG,
@@ -43,7 +44,8 @@ import {
 } from './trip-ledger';
 import { CHILD_KIND, householdIndexOf, isChild } from './children';
 import { NOTHING_DUE, parsePersonId, personEntityId, removePerson, slotOfPerson } from './people';
-import { floorIndex } from './routing/transport-graph';
+import { isPatrolling, POLICE_KIND } from './police-phase';
+import { floorIndex, type UserClass } from './routing/transport-graph';
 import { mainLobbyEnds, nearestStreetColumn, STREET_LEVEL } from './street';
 import {
   spendBudget,
@@ -92,6 +94,12 @@ const APPROACHING = TREK_PHASES.indexOf('approaching');
 const DEPARTING = TREK_PHASES.indexOf('departing');
 
 const MAID_KIND = PERSON_KINDS.indexOf('maid');
+
+/** Maids keep to stairs and service shafts; police on patrol keep to stairs and escalators. */
+function userClassOf(pool: PersonPool, slot: number): UserClass {
+  if (pool.kind[slot] === MAID_KIND) return 'maid';
+  return isPatrolling(pool, slot) ? 'police' : 'other';
+}
 
 export interface TrekPlace {
   level: Level;
@@ -166,7 +174,7 @@ function directionBetween(from: Level, to: Level): HallDirection {
 
 function planFrom(context: StepContext, slot: number): RoutePlan | null {
   const pool = context.state.people;
-  const userClass = pool.kind[slot] === MAID_KIND ? 'maid' : 'other';
+  const userClass = userClassOf(pool, slot);
   return plannerFor(graphOf(context)).plan(
     context.state,
     {
@@ -233,7 +241,7 @@ function destinationGroupOf(pass: TrekPass, pool: PersonPool, slot: number): num
   const to = { level: pool.trekLevel[slot] as Level, x: pool.trekColumn[slot] as number };
   return pass.planner.destinationGroup(
     to,
-    pool.kind[slot] === MAID_KIND ? 'maid' : 'other',
+    userClassOf(pool, slot),
     energyLevelOf(pool, slot),
   );
 }
@@ -258,7 +266,7 @@ function recheckFrom(
   leftShafts: readonly number[],
 ): RecheckResult {
   const pool = context.state.people;
-  const userClass = pool.kind[slot] === MAID_KIND ? 'maid' : 'other';
+  const userClass = userClassOf(pool, slot);
   const found = plannerFor(graphOf(context)).planRecheck(
     context.state,
     {
@@ -970,6 +978,8 @@ function laneKey(context: StepContext, slot: number): number | null {
   const pool = context.state.people;
   const phase = pool.trek[slot] as number;
   if (phase === IDLE || !isWalkingPhase(phase) || pool.kind[slot] === CHILD_KIND) return null;
+  // Police never take a lane: they neither block anyone nor are blocked, and others pass through.
+  if (pool.kind[slot] === POLICE_KIND) return null;
   const column = pool.column[slot] as number;
   const target = targetColumn(context, slot);
   if (column === target) return null;
@@ -1020,6 +1030,13 @@ function walk(context: StepContext, slot: number, pass: TrekPass): boolean {
   const target = targetColumn(context, slot);
   const direction = Math.sign(target - column);
   if (direction === 0) return true;
+  if (pool.kind[slot] === POLICE_KIND) {
+    // Half speed: one column every POLICE_STEPS_PER_COLUMN steps, on a fixed phase of the clock.
+    if (context.state.step % POLICE_STEPS_PER_COLUMN !== 0) return false;
+    pool.facing[slot] = direction < 0 ? 1 : 0;
+    pool.column[slot] = column + direction;
+    return pool.column[slot] === target;
+  }
   const level = pool.level[slot] as number;
   const nextKey = placeKey(level, column + direction) * 2 + (direction < 0 ? 1 : 0);
   let ahead = pass.lane.get(nextKey);

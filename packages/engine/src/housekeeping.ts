@@ -1,4 +1,5 @@
 import {
+  CHANGE_CLOTHES_STEPS,
   CLEANING_MINUTES,
   CLEANING_START_BEFORE_MINUTE,
   CLEANING_START_FROM_MINUTE,
@@ -17,6 +18,9 @@ import { STEPS_PER_MINUTE } from './calendar';
 import { STEPS_PER_DAY } from './clock';
 import { finishCleaning } from './hotel';
 import { addPerson, NO_TRIP, NOTHING_DUE, removePerson } from './people';
+import { entrancePlace } from './office-routine';
+import { chance } from './rng';
+import { nearestStreetColumn, streetColumn, streetPlace } from './street';
 import { floorIndex } from './routing/transport-graph';
 import type { ScheduledHook } from './scheduler';
 import type { SimulationSystem, StepContext } from './step';
@@ -33,13 +37,45 @@ const LEAVE_STEP = MAID_LEAVE_MINUTE * STEPS_PER_MINUTE;
 
 /**
  * What a maid is doing (hotel spec 4 and 5). `waiting` has no claim and may ask for a room;
- * `finished` has started every cleaning of the day and does not ask again.
+ * `finished` has started every cleaning of the day and does not ask again. She walks in from the
+ * street in civilian clothes (`arriving`), changes in her room (`changingIn`), works in uniform,
+ * changes back (`changingOut`) and walks out (`leaving`). Phases are stored by their index, so the
+ * first four keep the numbers they always had.
  */
-export type MaidPhase = 'waiting' | 'toRoom' | 'cleaning' | 'finished';
+export type MaidPhase =
+  | 'waiting'
+  | 'toRoom'
+  | 'cleaning'
+  | 'finished'
+  | 'arriving'
+  | 'changingIn'
+  | 'changingOut'
+  | 'leaving';
 
-const PHASES: readonly MaidPhase[] = ['waiting', 'toRoom', 'cleaning', 'finished'];
+const PHASES: readonly MaidPhase[] = [
+  'waiting',
+  'toRoom',
+  'cleaning',
+  'finished',
+  'arriving',
+  'changingIn',
+  'changingOut',
+  'leaving',
+];
 const PHASE_RANGE = PHASES.length;
 const CLEANINGS_RANGE = MAID_DAILY_CLEANINGS + 1;
+
+/** True while the maid wears her uniform: from the end of changing in to the end of changing out. */
+export function maidWearsUniform(task: MaidTask | null): boolean {
+  if (task === null) return false;
+  return (
+    task.phase === 'waiting' ||
+    task.phase === 'toRoom' ||
+    task.phase === 'cleaning' ||
+    task.phase === 'finished' ||
+    task.phase === 'changingOut'
+  );
+}
 
 /** A maid's task, kept in the person's `trip` number. */
 export interface MaidTask {
@@ -102,7 +138,13 @@ function isAskingWindow(step: number): boolean {
   return time >= ASK_FROM_STEP && time < ASK_BEFORE_STEP;
 }
 
-/** 10:00 and every half hour after it while the window is open (hotel spec 4.1). */
+/** The shift is over from the leave minute until the next morning's arrival. */
+function isShiftOver(step: number): boolean {
+  const time = stepOfDay(step);
+  return time >= LEAVE_STEP || time < APPEAR_STEP;
+}
+
+/** Every retry minute while the window is open (hotel spec 4.1). */
 function isRetryStep(step: number): boolean {
   return isAskingWindow(step) && (stepOfDay(step) - ASK_FROM_STEP) % RETRY_STEPS === 0;
 }
@@ -247,6 +289,11 @@ function advanceToRoom(maid: Maid, task: MaidTask): void {
     ask(maid, task.cleanings);
     return;
   }
+  if (isShiftOver(maid.context.state.step)) {
+    dropClaim(maid, task);
+    goBack(maid, { phase: 'waiting', room: 0, cleanings: task.cleanings });
+    return;
+  }
   if (trekPhaseAt(pool, maid.slot) === 'noRoute') {
     dropClaim(maid, task);
     stopTrek(maid);
@@ -276,10 +323,89 @@ function advanceCleaning(maid: Maid, task: MaidTask): void {
   ask(maid, task.cleanings);
 }
 
+/** The housekeeping unit of the maid, or null when it is gone. */
+function homeOf(maid: Maid): Unit | null {
+  const { state } = maid.context;
+  return state.units[`u${state.people.homeUnit[maid.slot]}`] ?? null;
+}
+
+function startChanging(maid: Maid, phase: 'changingIn' | 'changingOut', task: MaidTask): void {
+  const pool = maid.context.state.people;
+  save(maid, { ...task, phase });
+  pool.dueStep[maid.slot] = maid.context.state.step + CHANGE_CLOTHES_STEPS;
+}
+
+function removeMaid(maid: Maid): void {
+  const { state } = maid.context;
+  removePerson(state, state.people.id[maid.slot] as number);
+}
+
+/** She is out of uniform and walks to the nearest lobby end and on to the map edge, then home. */
+function startLeaving(maid: Maid, task: MaidTask): void {
+  const { state } = maid.context;
+  const pool = state.people;
+  const near = nearestStreetColumn(pool.column[maid.slot] as number) !== 0;
+  save(maid, { ...task, phase: 'leaving', room: 0 });
+  pool.dueStep[maid.slot] = NOTHING_DUE;
+  for (const onRight of [near, !near]) {
+    const exit = entrancePlace(state, onRight);
+    if (exit && startTrek(maid.context, maid.slot, exit, streetColumn(onRight))) return;
+  }
+  // No way out of the tower: she is let go where she stands.
+  removeMaid(maid);
+}
+
+/** The shift is over and she is waiting at her door: she changes back before walking out. */
+function endShift(maid: Maid, task: MaidTask): void {
+  const pool = maid.context.state.people;
+  const unit = homeOf(maid);
+  if (!unit) {
+    startLeaving(maid, task);
+    return;
+  }
+  const door = doorOf(unit);
+  if (isAt(pool, maid.slot, door) && !isOnTrek(pool, maid.slot)) {
+    startChanging(maid, 'changingOut', task);
+    return;
+  }
+  if (!isHeadingTo(pool, maid.slot, door)) goBack(maid, { ...task, phase: 'waiting', room: 0 });
+}
+
+/** She has walked in from the street and stands at her door, or her walk failed. */
+function advanceArriving(maid: Maid, task: MaidTask): void {
+  const pool = maid.context.state.people;
+  const unit = homeOf(maid);
+  if (!unit) {
+    removeMaid(maid);
+    return;
+  }
+  if (isOnTrek(pool, maid.slot)) return;
+  const door = doorOf(unit);
+  if (isAt(pool, maid.slot, door)) {
+    startChanging(maid, 'changingIn', task);
+    return;
+  }
+  if (!startTrek(maid.context, maid.slot, door)) removeMaid(maid);
+}
+
 function advanceMaid(maid: Maid): void {
   const task = maidTaskAt(maid.context.state.people, maid.slot);
   if (!task) return;
+  const { state } = maid.context;
+  const pool = state.people;
   switch (task.phase) {
+    case 'arriving':
+      advanceArriving(maid, task);
+      return;
+    case 'changingIn':
+      if (state.step >= (pool.dueStep[maid.slot] as number)) ask(maid, task.cleanings);
+      return;
+    case 'changingOut':
+      if (state.step >= (pool.dueStep[maid.slot] as number)) startLeaving(maid, task);
+      return;
+    case 'leaving':
+      if (!isOnTrek(pool, maid.slot)) removeMaid(maid);
+      return;
     case 'toRoom':
       advanceToRoom(maid, task);
       return;
@@ -287,31 +413,31 @@ function advanceMaid(maid: Maid): void {
       advanceCleaning(maid, task);
       return;
     case 'waiting':
-      if (isRetryStep(maid.context.state.step)) ask(maid, task.cleanings);
+      if (isShiftOver(state.step)) endShift(maid, task);
+      else if (isRetryStep(state.step)) ask(maid, task.cleanings);
       return;
     case 'finished':
+      if (isShiftOver(state.step)) endShift(maid, task);
       return;
   }
 }
 
-function hasMaidsOnDuty(step: number): boolean {
-  const time = stepOfDay(step);
-  return time >= APPEAR_STEP && time < LEAVE_STEP;
-}
-
 /**
  * Moves every maid on by one step in increasing person id, after the trek system has moved her,
- * so a maid with a lower id claims first (hotel spec 4.1).
+ * so a maid with a lower id claims first (hotel spec 4.1). Maids exist from the morning arrival
+ * until they have walked out after the shift.
  */
 export function createMaidSystem(): SimulationSystem {
   return (context) => {
-    if (!hasMaidsOnDuty(context.state.step)) return;
     const pool = context.state.people;
     let claimed: Set<number> | null = null;
     for (let slot = 0; slot < pool.id.length; slot++) {
       if (!isMaid(pool, slot)) continue;
       claimed ??= claimedRooms(pool);
+      const id = pool.id[slot] as number;
       advanceMaid({ context, slot, claimed });
+      // A maid who walked out removed herself, which moved the next person into her slot.
+      if (pool.id[slot] !== id) slot -= 1;
     }
   };
 }
@@ -322,33 +448,37 @@ function housekeepingUnits(state: TowerState): Unit[] {
     .sort((a, b) => unitNumber(a.id) - unitNumber(b.id));
 }
 
-/** People spec 10: at 09:30 the maids of every housekeeping unit appear at its door. */
+/**
+ * At the arrival minute the maids of every housekeeping unit come in from the street: each one
+ * appears at a map edge in civilian clothes and walks to the door of her unit.
+ */
 function bringMaids(context: StepContext): void {
   const { state } = context;
+  const pool = state.people;
+  // Anyone left from an earlier day, or from a save made before the shift changed, goes first.
+  for (let slot = pool.id.length - 1; slot >= 0; slot--) {
+    if (isMaid(pool, slot)) removePerson(state, pool.id[slot] as number);
+  }
   const count = UNIT_CATALOG.housekeeping.capacity?.people ?? 0;
   for (const unit of housekeepingUnits(state)) {
     const door = doorOf(unit);
     for (let index = 0; index < count; index++) {
+      const onRight = chance(state.rng, 0.5);
+      const street = streetPlace(onRight);
       addPerson(state, {
         kind: 'maid',
         homeUnit: unitNumber(unit.id),
-        level: door.level,
-        column: door.column,
+        level: street.level,
+        column: street.column,
       });
       const slot = state.people.id.length - 1;
-      state.people.trip[slot] = encodeMaidTask({ phase: 'waiting', room: 0, cleanings: 0 });
+      state.people.trip[slot] = encodeMaidTask({ phase: 'arriving', room: 0, cleanings: 0 });
+      if (startTrek(context, slot, door)) continue;
+      // No route in from the street (no lobby): she starts in her room instead.
+      state.people.level[slot] = door.level;
+      state.people.column[slot] = door.column;
     }
   }
-}
-
-/** People spec 10: at 17:00 every maid leaves wherever she is, and every claim goes with her. */
-function sendMaidsAway(context: StepContext): void {
-  const pool = context.state.people;
-  const maids: number[] = [];
-  for (let slot = 0; slot < pool.id.length; slot++) {
-    if (isMaid(pool, slot)) maids.push(pool.id[slot] as number);
-  }
-  for (const id of maids) removePerson(context.state, id);
 }
 
 export const maidArrivalHook: ScheduledHook = {
@@ -359,16 +489,6 @@ export const maidArrivalHook: ScheduledHook = {
     minute: MAID_APPEAR_MINUTE % 60,
   },
   run: bringMaids,
-};
-
-export const maidLeaveHook: ScheduledHook = {
-  name: 'maid-leave',
-  schedule: {
-    every: 'day',
-    hour: Math.floor(MAID_LEAVE_MINUTE / 60),
-    minute: MAID_LEAVE_MINUTE % 60,
-  },
-  run: sendMaidsAway,
 };
 
 export interface HousekeepingSummary {

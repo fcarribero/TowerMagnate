@@ -144,6 +144,17 @@ export {
 } from './office-routine';
 export type { OfficeRoutine, Place, RoutePlanner, RoutinePhase } from './office-routine';
 export { isAsleep, isOutsideTower } from './outside-tower';
+export { outfitOf } from './outfit';
+export {
+  createPoliceSystem,
+  currentShiftOf,
+  policeRosterOf,
+  seatShiftOnDuty,
+  spotKindOf,
+} from './police';
+export type { PoliceSpot } from './police';
+export { decodePoliceRoutine, encodePoliceRoutine, policePhaseAt, POLICE_PHASES } from './police-phase';
+export type { PolicePhase } from './police-phase';
 export { encodeResidentRoutine } from './resident-routine';
 export { createCouriers } from './couriers';
 export type { CourierDemand } from './couriers';

@@ -47,7 +47,7 @@ describe('people per unit type', () => {
     ['double-room', 'hotelGuest', 2],
     ['suite', 'hotelGuest', 2],
     ['housekeeping', 'maid', 6],
-    ['security', 'guard', 6],
+    ['security', 'police', 21],
   ] as const)('a %s holds %s x%i from the catalog', (type, kind, count) => {
     expect(unitPeople(type)).toEqual({ kind, count });
     const { state, unitId } = towerWithUnit(type);

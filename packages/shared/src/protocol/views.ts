@@ -134,6 +134,8 @@ export const PersonViewSchema = z.object({
   stress: StressLevelSchema,
   /** True while the person carries a black garbage bag; left out otherwise. */
   carrying: z.boolean().optional(),
+  /** `uniform` for police and maids while they wear their work clothes; left out for civilian clothes. */
+  outfit: z.literal('uniform').optional(),
   /** Progress along the stair or escalator flight the person is on; left out otherwise. */
   flight: FlightProgressSchema.optional(),
 });

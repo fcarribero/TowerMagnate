@@ -44,7 +44,7 @@ export function drainEnergy(pool: PersonPool, slot: number, amount: number): voi
 }
 
 const WORKER_KINDS = new Set<number>(
-  (['officeWorker', 'staff', 'maid', 'guard', 'builder'] as const).map((kind) =>
+  (['officeWorker', 'staff', 'maid', 'police', 'builder'] as const).map((kind) =>
     PERSON_KINDS.indexOf(kind),
   ),
 );

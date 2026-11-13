@@ -62,7 +62,13 @@ interface Who {
   profile: number;
 }
 
-const PROFILES = 2 * MAX_ENERGY_LEVEL;
+const CLASSES = 3;
+const PROFILES = CLASSES * MAX_ENERGY_LEVEL;
+
+function classIndex(userClass: UserClass): number {
+  if (userClass === 'maid') return 1;
+  return userClass === 'police' ? 2 : 0;
+}
 
 function whoOf(userClass: UserClass, energy: number | undefined): Who {
   const level = Math.min(
@@ -72,7 +78,7 @@ function whoOf(userClass: UserClass, energy: number | undefined): Who {
   return {
     userClass,
     energy: level,
-    profile: (userClass === 'maid' ? 1 : 0) + 2 * (level - MIN_ENERGY_LEVEL),
+    profile: classIndex(userClass) + CLASSES * (level - MIN_ENERGY_LEVEL),
   };
 }
 

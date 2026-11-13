@@ -2,6 +2,8 @@ import { type Fire, type Level, type TowerState } from '@tower-magnate/shared';
 import { describe, expect, it } from 'vitest';
 import { occupantAt, setStructure } from '../grid';
 import { addPeopleForUnit, listPeople } from '../people';
+import { seatShiftOnDuty } from '../police';
+import { encodePoliceRoutine, policePhaseAt } from '../police-phase';
 import { step, type StepContext } from '../step';
 import { buildTower, plainTowerPlan } from '../testing';
 import { searchSteps, startBombSearch } from './bomb-search';
@@ -32,7 +34,21 @@ function towerWithSecurity(
   const { state, unitIds } = buildTower({ ...plainTowerPlan(TOP, 0, 63), units, shafts });
   const officeId = unitIds[0] as string;
   addPeopleForUnit(state, officeId);
+  seatSixOnDuty(state);
   return { state, officeId } satisfies Tower;
+}
+
+/** Puts six officers of the first shift on duty in the office, so the tests keep their numbers. */
+function seatSixOnDuty(state: TowerState): void {
+  seatShiftOnDuty(state, 6);
+}
+
+function onDutySlots(state: TowerState): number[] {
+  const slots: number[] = [];
+  for (let slot = 0; slot < state.people.id.length; slot++) {
+    if (policePhaseAt(state.people, slot) !== 'off') slots.push(slot);
+  }
+  return slots;
 }
 
 function contextOf(state: TowerState): StepContext {
@@ -108,14 +124,20 @@ describe('bomb search', () => {
     const { state, officeId } = towerWithSecurity();
     const bomb = bombOf(state);
     startBombSearch(contextOf(state), bomb, 4);
-    const result = step(state, [], 1500);
-    expect(result.state.activeEvents).toEqual([]);
-    expect(result.events.filter((event) => event.type === 'news')).toContainEqual(
-      expect.objectContaining({ key: 'news.bombFound' }),
-    );
-    const office = result.state.units[officeId];
-    for (const guard of listPeople(result.state.people)) {
-      expect(guard.level).toBe(office?.level);
+    let current = state;
+    const news: string[] = [];
+    for (let count = 0; count < 1500 && current.activeEvents.length > 0; count++) {
+      const result = step(current, [], 1);
+      current = result.state;
+      for (const event of result.events) if (event.type === 'news') news.push(event.key);
+    }
+    expect(current.activeEvents).toEqual([]);
+    expect(news).toContain('news.bombFound');
+    const office = current.units[officeId];
+    for (const slot of onDutySlots(current)) {
+      const pool = current.people;
+      const heading = pool.trekLevel[slot] === office?.level;
+      expect(pool.level[slot] === office?.level || heading).toBe(true);
     }
   });
 
@@ -141,6 +163,7 @@ describe('bomb search', () => {
       shafts: [{ type: 'service', x: 40, bottom: 1, top: TOP }],
     });
     addPeopleForUnit(state, 'u1');
+    seatSixOnDuty(state);
     const bomb = bombOf(state);
     startBombSearch(contextOf(state), bomb, 5);
     const ids = listPeople(state.people).map((person) => Number(person.id.slice(1)));
@@ -167,9 +190,11 @@ function ignite(fire: Fire, level: Level, step: number, column: number): void {
 
 function placeGuardsAt(state: TowerState, level: Level, column: number): void {
   const pool = state.people;
-  for (let slot = 0; slot < pool.id.length; slot++) {
+  for (const slot of onDutySlots(state)) {
     pool.level[slot] = level;
     pool.column[slot] = column;
+    // They are at the fire as if an event had sent them, so the shift routine leaves them alone.
+    pool.trip[slot] = encodePoliceRoutine({ phase: 'summoned', entranceOnRight: false });
   }
 }
 
@@ -209,8 +234,8 @@ describe('fire guards', () => {
     burnCell(state, 5, 30, noDamage());
     burnCell(state, 7, 30, noDamage());
     placeGuardsAt(state, 5, 29);
-    for (const person of listPeople(state.people)) {
-      fire.guards[Number(person.id.slice(1))] = { level: 5, side: null, arrivedStep: null };
+    for (const slot of onDutySlots(state)) {
+      fire.guards[state.people.id[slot] as number] = { level: 5, side: null, arrivedStep: null };
     }
     const result = run(state, 24);
     const live = result.activeEvents[0] as Fire;
@@ -235,7 +260,12 @@ describe('fire guards', () => {
     ignite(fire, 5, 0, 30);
     placeGuardsAt(state, 5, 30);
     endDisaster(contextOf(state), fire.id);
-    const home = run(state, 1500);
-    expect(listPeople(home.people).map((guard) => guard.level)).toEqual([2, 2, 2, 2, 2, 2]);
+    const home = step(state, [], 1);
+    const pool = home.state.people;
+    // Every officer on duty is walking back to the office or already there.
+    for (const slot of onDutySlots(home.state)) {
+      expect(pool.level[slot] === 2 || pool.trekLevel[slot] === 2).toBe(true);
+    }
+    expect(onDutySlots(home.state)).toHaveLength(6);
   });
 });

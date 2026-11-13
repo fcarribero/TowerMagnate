@@ -33,7 +33,7 @@ const KIND_BY_CAPACITY_ROLE: Partial<Record<CapacityRole, PersonKind>> = {
   residents: 'resident',
   'hotel-guests': 'hotelGuest',
   maids: 'maid',
-  guards: 'guard',
+  guards: 'police',
 };
 
 export interface NewPerson {

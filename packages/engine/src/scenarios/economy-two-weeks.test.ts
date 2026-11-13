@@ -196,7 +196,8 @@ function economyScript(units: EconomyUnits): EconomyScript {
  * Rent: office A 10,000 on days 0 and 7; office B 15,000 (alto) on day 2 and again on day 9,
  * because the rent is locked in the lease and the bajo price of day 8 waits for the renewal; shop 15,000 on days 6 and 13 at 23:59, with 90 visits in between so it stays.
  * Condos: A 175,000 on day 1; B 230,000 (alto) on day 10.
- * Hotel, charged at check-out (10:00) for every night, at the price set at check-in: day 0
+ * Hotel, charged at check-out (a time between 07:00 and 10:00 drawn at check-in, so always the
+ * same day) for every night, at the price set at check-in: day 0
  * single 2 x 2,000 and double 2 x 3,000 (out on day 2), suite 3 x 6,000 (out on day 3); day 1
  * single refused (occupied); day 2 single 4 x 2,000 (out on day 6); day 3 double refused at
  * 11:59, then 1 x 3,000 (out on day 4); day 4 suite 1 x 6,000 (out on day 5); day 5 double

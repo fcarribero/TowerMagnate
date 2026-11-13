@@ -7,7 +7,7 @@ export const PERSON_KINDS = [
   'audience',
   'partyGuest',
   'maid',
-  'guard',
+  'police',
   'vip',
   'weddingGuest',
   'prospect',

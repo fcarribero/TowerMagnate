@@ -130,7 +130,7 @@ describe('demolish', () => {
     const { state, id } = build(towerReadyToBuild(), 'security', 10, -1);
     const guarded = structuredClone(state);
     addPeopleForUnit(guarded, id);
-    expect(listPeople(guarded.people).filter((p) => p.kind === 'guard')).not.toEqual([]);
+    expect(listPeople(guarded.people).filter((p) => p.kind === 'police')).not.toEqual([]);
 
     const { state: after } = run(guarded, demolishUnit(id));
 

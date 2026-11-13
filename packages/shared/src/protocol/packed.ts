@@ -16,13 +16,17 @@ export const CAR_DOORS = ['open', 'closed'] as const;
 
 const MAX_CAR_LOAD = 42;
 
+/** Bits of the clothes item of a packed person. */
+const CARRYING_BIT = 1;
+const UNIFORM_BIT = 2;
+
 const index = (length: number) =>
   z
     .int()
     .min(0)
     .max(length - 1);
 
-/** [id, kind, x, level, facing, mode, stress, shaft, car, carrying, flight]; shaft is 0 when not in a car, carrying is 1 with a garbage bag, flight is the packed stair or escalator progress and is left off when there is none. */
+/** [id, kind, x, level, facing, mode, stress, shaft, car, clothes, flight]; shaft is 0 when not in a car, clothes is a bit set (1 with a garbage bag, 2 in a work uniform), flight is the packed stair or escalator progress and is left off when there is none. */
 export const PackedPersonSchema = z.tuple([
   z.int().positive(),
   index(PERSON_KINDS.length),
@@ -33,7 +37,7 @@ export const PackedPersonSchema = z.tuple([
   index(STRESS_LEVELS.length),
   z.int().nonnegative(),
   index(MAX_CARS_PER_SHAFT),
-  index(2),
+  index(4),
   z.int().min(0).max(MAX_FLIGHT_CODE).optional(),
 ]);
 
@@ -60,6 +64,7 @@ interface PersonFields {
   carRef: { shaftId: string; index: number } | null;
   stress: (typeof STRESS_LEVELS)[number];
   carrying?: boolean;
+  outfit?: 'uniform';
   flight?: FlightProgress;
 }
 
@@ -95,7 +100,7 @@ export function packPerson(person: PersonFields): PackedPerson {
     STRESS_LEVELS.indexOf(person.stress),
     person.carRef ? entityNumber(person.carRef.shaftId) : 0,
     person.carRef?.index ?? 0,
-    person.carrying ? 1 : 0,
+    (person.carrying ? CARRYING_BIT : 0) + (person.outfit === 'uniform' ? UNIFORM_BIT : 0),
     ...(person.flight ? [packFlight(person.flight)] : []),
   ] as PackedPerson;
 }
@@ -110,7 +115,7 @@ export function unpackPerson([
   stress,
   shaft,
   car,
-  carrying,
+  clothes,
   flight,
 ]: PackedPerson) {
   return {
@@ -122,7 +127,8 @@ export function unpackPerson([
     mode: at(PERSON_MODES, mode),
     carRef: shaft === 0 ? null : { shaftId: `s${shaft}`, index: car },
     stress: at(STRESS_LEVELS, stress),
-    ...(carrying === 1 ? { carrying: true } : {}),
+    ...((clothes & CARRYING_BIT) !== 0 ? { carrying: true } : {}),
+    ...((clothes & UNIFORM_BIT) !== 0 ? { outfit: 'uniform' as const } : {}),
     ...flightField(flight),
   };
 }

@@ -15,7 +15,7 @@ export interface PersonPortraitProps {
 /** One standing person drawn the way the tower draws them. */
 export function PersonPortrait({ id, kind, scale = PORTRAIT_SCALE }: PersonPortraitProps) {
   const canvas = useRef<HTMLCanvasElement>(null);
-  const size = portraitSize(personLook(id, kind));
+  const size = portraitSize(personLook(id, kind, false, 'uniform'));
   useEffect(() => {
     if (canvas.current !== null) {
       drawPortrait(canvas.current, id, kind);

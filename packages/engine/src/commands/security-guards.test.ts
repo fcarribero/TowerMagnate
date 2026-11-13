@@ -31,12 +31,12 @@ function threeOffices(): TowerState {
 }
 
 describe('security guards', () => {
-  it('creates 6 guards per security office, 18 for 3 offices', () => {
+  it('creates 21 police per security office (3 shifts of 7), 63 for 3 offices', () => {
     const tower = threeOffices();
-    expect(countPeopleByKind(tower.people)).toEqual({ guard: 18 });
+    expect(countPeopleByKind(tower.people)).toEqual({ police: 63 });
   });
 
-  it('keeps guards on duty in their office with no trip scheduled', () => {
+  it('keeps police off duty in their office with no trip scheduled until a shift starts', () => {
     for (const guard of listPeople(threeOffices().people)) {
       expect(guard.trip).toBe(0);
       expect(guard.dueStep).toBe(NOTHING_DUE);
@@ -54,14 +54,14 @@ describe('security guards', () => {
     if (!demolished) throw new Error('No unit was built');
     const before = populationOf(tower).total;
     removePeopleOfUnit(tower, demolished);
-    expect(countPeopleByKind(tower.people)).toEqual({ guard: 12 });
+    expect(countPeopleByKind(tower.people)).toEqual({ police: 42 });
     expect(populationOf(tower).total).toBe(before);
   });
 
   it('gives guards increasing ids in creation order', () => {
     const ids = listPeople(threeOffices().people).map((guard) => Number(guard.id.slice(1)));
     expect(ids).toEqual([...ids].sort((a, b) => a - b));
-    expect(new Set(ids).size).toBe(18);
+    expect(new Set(ids).size).toBe(63);
   });
 
   it('keeps guard ids after a snapshot copy', () => {

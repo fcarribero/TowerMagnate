@@ -24,14 +24,14 @@ import { cappedStress, finishedTripStress, tallLobbyCut } from './trip-stress';
 import { fileUnitTrip } from './unit-evaluation';
 
 const MAID_KIND = PERSON_KINDS.indexOf('maid');
-const GUARD_KIND = PERSON_KINDS.indexOf('guard');
+const POLICE_KIND = PERSON_KINDS.indexOf('police');
 const BUILDER_KIND = PERSON_KINDS.indexOf('builder');
 const COURIER_KIND = PERSON_KINDS.indexOf('courier');
 
 function recordsStress(pool: PersonPool, slot: number): boolean {
   return (
     pool.kind[slot] !== MAID_KIND &&
-    pool.kind[slot] !== GUARD_KIND &&
+    pool.kind[slot] !== POLICE_KIND &&
     pool.kind[slot] !== BUILDER_KIND &&
     pool.kind[slot] !== COURIER_KIND
   );
@@ -156,7 +156,7 @@ function stillInWindow(state: TowerState, flat: readonly number[]): number[] {
 
 /**
  * Files the trip the person is on, or has pending after failed searches, into their ledger at
- * the current step. Maids and guards record nothing. The trip parts start again from zero.
+ * the current step. Maids and police record nothing. The trip parts start again from zero.
  */
 export function recordTrip(
   state: TowerState,

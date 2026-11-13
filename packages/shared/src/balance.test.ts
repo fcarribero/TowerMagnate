@@ -134,7 +134,7 @@ const GDD_UNIT_TABLE: GddUnitRow[] = [
     width: 16,
     floors: 1,
     cost: unit(100_000),
-    people: 6,
+    people: 21,
     stars: 2,
   },
   {
