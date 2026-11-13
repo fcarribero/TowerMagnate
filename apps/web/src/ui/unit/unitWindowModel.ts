@@ -306,6 +306,74 @@ function housekeepingRows(housekeeping: Details<'housekeeping'>): UnitRow[] {
   ];
 }
 
+function twoDigits(n: number): string {
+  return String(n).padStart(2, '0');
+}
+
+function venueRows(venue: Details<'venue'>): UnitRow[] {
+  return [
+    { id: 'served', label: t('window.unit.served'), value: String(venue.served), tone: 'plain' },
+    { id: 'inside', label: t('window.unit.inside'), value: String(venue.inside), tone: 'plain' },
+    {
+      id: 'result',
+      label: t('window.unit.resultToday'),
+      value: formatMoney(venue.resultToday),
+      tone: venue.resultToday > 0 ? 'good' : venue.resultToday < 0 ? 'bad' : 'plain',
+    },
+    {
+      id: 'hours',
+      label: t('window.unit.hours'),
+      value: t('window.unit.hoursValue', {
+        from: `${twoDigits(venue.opens)}:00`,
+        to: `${twoDigits(venue.closes)}:00`,
+      }),
+      tone: 'plain',
+    },
+  ];
+}
+
+export interface VenueChart {
+  width: number;
+  height: number;
+  /** SVG `points` of today's line; empty before the venue opens. */
+  today: string;
+  /** SVG `points` of the 7-day average line; empty before the first finished day. */
+  average: string;
+  /** Hour labels under the chart: the opening and the closing hour. */
+  from: string;
+  to: string;
+  /** The largest value on the vertical axis. */
+  max: number;
+}
+
+const CHART_WIDTH = 160;
+const CHART_HEIGHT = 48;
+
+function linePoints(values: readonly number[], hours: number, max: number): string {
+  return values
+    .map((value, index) => {
+      const x = hours === 1 ? 0 : (index / (hours - 1)) * CHART_WIDTH;
+      const y = CHART_HEIGHT - (value / max) * CHART_HEIGHT;
+      return `${Math.round(x * 10) / 10},${Math.round(y * 10) / 10}`;
+    })
+    .join(' ');
+}
+
+/** Both lines share one vertical scale: a point per open hour, from the opening to the last. */
+export function venueChart(venue: Details<'venue'>): VenueChart {
+  const hours = Math.max(1, venue.closes - venue.opens);
+  const max = Math.max(1, ...venue.today, ...venue.average);
+  return {
+    width: CHART_WIDTH,
+    height: CHART_HEIGHT,
+    today: linePoints(venue.today, hours, max),
+    average: linePoints(venue.average, hours, max),
+    from: `${twoDigits(venue.opens)}:00`,
+    to: `${twoDigits(venue.closes)}:00`,
+    max,
+  };
+}
+
 function constructionRows(): UnitRow[] {
   return [
     {
@@ -340,6 +408,8 @@ function detailRows(details: InspectedUnitDetails): UnitRow[] {
       return cinemaRows(details);
     case 'housekeeping':
       return housekeepingRows(details);
+    case 'venue':
+      return venueRows(details);
     case 'construction':
       return constructionRows();
   }
@@ -361,7 +431,7 @@ export interface UnitRowGroups {
   rows: UnitRow[];
 }
 
-const TILE_IDS: readonly string[] = ['status', 'people', 'residents', 'guests', 'evaluation'];
+const TILE_IDS: readonly string[] = ['status', 'people', 'residents', 'guests', 'evaluation', 'served', 'inside', 'result'];
 const CHIP_IDS: readonly string[] = ['lease', 'nextPayment'];
 
 export function groupUnitRows(rows: readonly UnitRow[]): UnitRowGroups {

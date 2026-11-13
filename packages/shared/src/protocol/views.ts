@@ -351,6 +351,22 @@ const InspectedUnitDetailsSchema = z.discriminatedUnion('group', [
     group: z.literal('housekeeping'),
     maidsWorking: z.int().nonnegative(),
     maids: z.int().nonnegative(),
+  z.object({
+    group: z.literal('venue'),
+    /** Customers served today. */
+    served: z.int().nonnegative(),
+    /** Outside customers inside right now. */
+    inside: z.int().nonnegative(),
+    /** Opening and closing hour of the day. */
+    opens: z.int().min(0).max(23),
+    closes: z.int().min(1).max(24),
+    /** What today pays if it ended now; negative is a loss. */
+    resultToday: z.int(),
+    /** Customers per hour from the opening hour to the current one. */
+    today: z.array(z.int().nonnegative()),
+    /** Average customers per hour of the last 7 days, over all the open hours; empty before day 1. */
+    average: z.array(z.number().nonnegative()),
+  }),
     /** Sucia rooms in the whole tower. */
     dirtyRooms: z.int().nonnegative(),
   }),

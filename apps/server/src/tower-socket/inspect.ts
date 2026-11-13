@@ -1,6 +1,7 @@
 import {
   countPeopleOfUnit,
   filmAgeDays as engineFilmAgeDays,
+  foodVenueSummary,
   housekeepingSummary,
   isOutsideTower,
   occupantAt,
@@ -155,6 +156,9 @@ function unitDetails(state: TowerState, unit: Unit): UnitDetails {
       return hotelDetails(state, unit);
     case 'cinema':
       return cinemaDetails(state, unit);
+    case 'fast-food':
+    case 'restaurant':
+      return venueDetails(state, unit);
     case 'housekeeping':
       return housekeepingDetails(state, unit);
     default:
@@ -170,6 +174,11 @@ function cinemaDetails(state: TowerState, unit: Unit): UnitDetails {
     filmAgeDays,
     price: unit.priceLevel,
   };
+}
+
+function venueDetails(state: TowerState, unit: Unit): UnitDetails {
+  const summary = foodVenueSummary(state, unit);
+  return summary === null ? null : { group: 'venue', ...summary };
 }
 
 function capacityOf(unit: Unit): number {

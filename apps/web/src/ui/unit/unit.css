@@ -177,3 +177,62 @@
 .tm-unit__primary .tm-button:not(:disabled) {
   background: var(--obra-yellow);
 }
+
+.tm-unit__chart {
+  margin: 0 0 var(--space-3);
+}
+
+.tm-unit__chart-title {
+  font: var(--text-tile-label);
+  text-transform: uppercase;
+}
+
+.tm-unit__chart-svg {
+  display: block;
+  width: 100%;
+  background: var(--obra-paper);
+  border: var(--border-control);
+  box-sizing: border-box;
+}
+
+.tm-unit__chart-axis {
+  stroke: var(--obra-rule);
+  stroke-width: 1;
+}
+
+.tm-unit__chart-today,
+.tm-unit__chart-average {
+  fill: none;
+  stroke-width: 2;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+
+.tm-unit__chart-today {
+  stroke: var(--obra-red);
+}
+
+.tm-unit__chart-average {
+  stroke: var(--obra-blue);
+}
+
+.tm-unit__chart-hours,
+.tm-unit__chart-legend {
+  display: flex;
+  justify-content: space-between;
+  font: var(--text-tile-label);
+}
+
+.tm-unit__chart-key::before {
+  display: inline-block;
+  width: 8px;
+  height: 2px;
+  margin-right: 3px;
+  vertical-align: middle;
+  content: '';
+  background: var(--obra-red);
+}
+
+.tm-unit__chart-key.is-average::before {
+  background: var(--obra-blue);
+}

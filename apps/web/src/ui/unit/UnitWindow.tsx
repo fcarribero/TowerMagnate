@@ -17,8 +17,10 @@ import {
   unitRows,
   unitSubtitle,
   unitTitle,
+  venueChart,
   type PriceOption,
   type UnitRow,
+  type VenueChart,
 } from './unitWindowModel';
 import './unit.css';
 
@@ -160,6 +162,7 @@ export function UnitWindow({ unitId, connection }: UnitWindowProps) {
             ))}
           </dl>
         )}
+        {found?.details?.group === 'venue' && <VenueChartView chart={venueChart(found.details)} />}
         {found !== undefined && priceLabel !== null && price !== null && (
           <>
             <PriceTiles
@@ -238,6 +241,40 @@ interface PriceTilesProps {
   disabled: boolean;
   onChange: (value: PriceLevel) => void;
 }
+/** Customers per hour: today in red, the average of the last 7 days in blue. */
+function VenueChartView({ chart }: { chart: VenueChart }) {
+  return (
+    <figure class="tm-unit__chart">
+      <figcaption class="tm-unit__chart-title">{t('window.unit.chartTitle')}</figcaption>
+      <svg
+        class="tm-unit__chart-svg"
+        viewBox={`-2 -2 ${chart.width + 4} ${chart.height + 4}`}
+        role="img"
+        aria-label={t('window.unit.chartLabel')}
+      >
+        <line
+          class="tm-unit__chart-axis"
+          x1="0"
+          y1={chart.height}
+          x2={chart.width}
+          y2={chart.height}
+        />
+        {chart.average !== '' && <polyline class="tm-unit__chart-average" points={chart.average} />}
+        {chart.today !== '' && <polyline class="tm-unit__chart-today" points={chart.today} />}
+      </svg>
+      <div class="tm-unit__chart-hours">
+        <span>{chart.from}</span>
+        <span>{t('ui.chartMax', { n: chart.max })}</span>
+        <span>{chart.to}</span>
+      </div>
+      <div class="tm-unit__chart-legend">
+        <span class="tm-unit__chart-key is-today">{t('window.unit.chartToday')}</span>
+        <span class="tm-unit__chart-key is-average">{t('window.unit.chartAverage')}</span>
+      </div>
+    </figure>
+  );
+}
+
 
 /** Four big tiles that behave as one radio group. */
 function PriceTiles({ name, label, options, value, disabled, onChange }: PriceTilesProps) {

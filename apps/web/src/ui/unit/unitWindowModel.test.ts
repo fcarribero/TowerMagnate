@@ -12,6 +12,7 @@ import {
   priceOptions,
   unitRows,
   unitSubtitle,
+  venueChart,
   unitTitle,
 } from './unitWindowModel';
 
@@ -184,8 +185,40 @@ describe('unit window model', () => {
     expect(unitRows(cinema)).toEqual([]);
   });
 
+  it('shows served, inside, result and hours of a fast food, and charts both lines', () => {
+    const venue = {
+      group: 'venue',
+      served: 30,
+      inside: 4,
+      opens: 8,
+      closes: 20,
+      resultToday: -3_000,
+      today: [0, 10],
+      average: [5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 20],
+    } as const;
+    const food: UnitInspect = { ...office, type: 'fast-food', details: venue };
+    expect(unitRows(food)).toEqual([
+      { id: 'served', label: 'Atendidos', value: '30', tone: 'plain' },
+      { id: 'inside', label: 'Adentro', value: '4', tone: 'plain' },
+      { id: 'result', label: 'Resultado', value: '-$3.000', tone: 'bad' },
+      { id: 'hours', label: 'Horario', value: '08:00 a 20:00', tone: 'plain' },
+    ]);
+    expect(groupUnitRows(unitRows(food)).tiles).toHaveLength(3);
+
+    const chart = venueChart(venue);
+    expect(chart.max).toBe(20);
+    expect(chart.today).toBe('0,48 14.5,24');
+    expect(chart.average.split(' ')).toHaveLength(12);
+    expect(chart.average.endsWith('160,0')).toBe(true);
+    expect([chart.from, chart.to]).toEqual(['08:00', '20:00']);
+    expect(venueChart({ ...venue, today: [], average: [] })).toMatchObject({
+      today: '',
+      average: '',
+    });
+  });
+
   it('has no rows or price for a type without details', () => {
-    expect(unitRows({ ...office, type: 'fast-food', details: null })).toEqual([]);
+    expect(unitRows({ ...office, type: 'cinema', details: null })).toEqual([]);
     expect(priceOf({ details: null })).toBeNull();
     expect(priceOf(office)).toBe('normal');
   });

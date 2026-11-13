@@ -187,6 +187,32 @@ describe('inspecting a unit', () => {
     });
   });
 
+  it('answers a fast food with its customers, hours, result and hourly chart', () => {
+    const { state, id } = towerWith('fast-food');
+    state.step = 2 * STEPS_PER_DAY + 10 * 60 * STEPS_PER_MINUTE;
+    const venue = unitOf(state).venue;
+    if (!venue) throw new Error('not a venue');
+    venue.visits = 30;
+    venue.hourly = [0, 0, 0, 0, 0, 0, 0, 0, 5, 12, 13];
+    venue.pastHourly = [[0, 0, 0, 0, 0, 0, 0, 0, 10, 20]];
+    const data = inspectUnit(state, id);
+
+    expect(throughTheWire(data)).toBe(true);
+    expect(data).toMatchObject({
+      details: {
+        group: 'venue',
+        served: 30,
+        inside: 0,
+        opens: 8,
+        closes: 20,
+        resultToday: 2_000,
+        today: [5, 12, 13],
+      },
+    });
+    const details = data.status === 'ok' ? data.details : null;
+    expect(details?.group === 'venue' && details.average).toHaveLength(12);
+  });
+
   it('answers a housekeeping unit with its working maids and the dirty rooms of the tower', () => {
     const { state, id } = towerWith('housekeeping');
     const dirtyRoom = newUnit('u8', 'single-room', 40, 4);

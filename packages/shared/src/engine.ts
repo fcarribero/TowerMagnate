@@ -128,6 +128,13 @@ export interface VenueDay {
   customers: number[];
   /** Step of the last film change of a cinema; null while it shows its first film. */
   filmChangedAtStep: number | null;
+  /**
+   * Counted visits of today by hour of the day (24 entries); missing in saves made before the
+   * unit window chart, which read it as all zero.
+   */
+  hourly?: number[];
+  /** `hourly` of the last 7 finished days, oldest first; missing in older saves. */
+  pastHourly?: number[][];
 }
 
 export interface HotelRoom {

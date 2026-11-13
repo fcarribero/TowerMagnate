@@ -156,12 +156,13 @@ export { chargeWeeklyUpkeep, weeklyUpkeepHook } from './upkeep';
 export { cinemaShowCap, filmAgeDays, filmNewsHook } from './films';
 export {
   countVenueVisit,
+  foodVenueSummary,
   observeVenueVisits,
   recordVenueVisit,
   rollVenueDay,
   venuePayoutHooks,
 } from './venues';
-export type { VisitSource } from './venues';
+export type { FoodVenueSummary, VisitSource } from './venues';
 export { createCustomers, outsideCustomerCount } from './customers';
 export type { CustomerSystems, OutsideCustomerFactors } from './customers';
 export { startWeddingAttempt, startWeddingNow, weddingAttemptHook, weddingSystem } from './wedding';

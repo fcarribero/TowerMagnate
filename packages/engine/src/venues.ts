@@ -21,7 +21,8 @@ import { emitNews } from './news';
 import type { ScheduledHook } from './scheduler';
 import type { StepContext } from './step';
 import { writableUnit } from './step-copy';
-import { isVenueType } from './units';
+import { isVenueType, unitNumber } from './units';
+import { customersInsideVenue } from './venue-visitors';
 
 type VenueType = keyof typeof VENUE_PAYOUT_HOURS;
 type VenueUnit = Unit & { type: VenueType; venue: VenueDay };
@@ -84,6 +85,20 @@ function addPayoutVisit(unit: VenueUnit, stepOfDay: number): void {
   else unit.venue.visits += 1;
 }
 
+const HOURS_PER_DAY = 24;
+const HOURLY_DAYS_KEPT = 7;
+
+function emptyHours(): number[] {
+  return new Array<number>(HOURS_PER_DAY).fill(0);
+}
+
+function withVisitAt(hourly: number[] | undefined, stepOfDay: number): number[] {
+  const hours = hourly ? [...hourly] : emptyHours();
+  const hour = Math.floor(stepOfDay / STEPS_PER_HOUR);
+  hours[hour] = (hours[hour] ?? 0) + 1;
+  return hours;
+}
+
 /**
  * Counts a visit that starts now in a venue or retail shop. Visits outside the counting hours,
  * entries to a cinema between its shows and visits to a shop without a tenant are not counted.
@@ -104,6 +119,7 @@ export function countVenueVisit(
   if (isVenue(unit)) addPayoutVisit(unit, stepOfDay);
   unit.used = true;
   venue.countToday += 1;
+  venue.hourly = withVisitAt(venue.hourly, stepOfDay);
   recordShopVisit(state, unit);
   visitObserver?.(source, unit.type);
   if (tripStress !== null) {
@@ -134,6 +150,10 @@ export function recordVenueVisit(
 export function rollVenueDay(venue: VenueDay): number | null {
   const averageStress =
     venue.stressTrips === 0 ? null : Math.floor(venue.stressSum / venue.stressTrips);
+  venue.pastHourly = [...(venue.pastHourly ?? []), venue.hourly ?? emptyHours()].slice(
+    -HOURLY_DAYS_KEPT,
+  );
+  venue.hourly = emptyHours();
   venue.previousDayCount = venue.countToday;
   venue.countToday = 0;
   venue.stressSum = 0;
@@ -218,3 +238,47 @@ function payoutHook(type: VenueType): ScheduledHook {
 
 /** One daily hook per venue type, each at the type's payout time. */
 export const venuePayoutHooks: readonly ScheduledHook[] = VENUE_TYPES.map(payoutHook);
+
+function averageOf(days: readonly number[][], hour: number): number {
+  const total = days.reduce((sum, day) => sum + (day[hour] ?? 0), 0);
+  return Math.round((total / days.length) * 10) / 10;
+}
+
+export interface FoodVenueSummary {
+  /** Customers served today. */
+  served: number;
+  /** Outside customers inside right now. */
+  inside: number;
+  /** Counting hours: the venue opens at `opens` and closes at `closes`. */
+  opens: number;
+  closes: number;
+  /** What the day pays if it ended now. */
+  resultToday: number;
+  /** Visits per hour from `opens` up to the current hour; the whole day once it is closed. */
+  today: number[];
+  /** Average visits per hour of the last finished days, over the same hours; empty before the first. */
+  average: number[];
+}
+
+/** Today's numbers of a fast food or restaurant, for its unit window. */
+export function foodVenueSummary(state: TowerState, unit: Unit): FoodVenueSummary | null {
+  if (!isVenue(unit) || (unit.type !== 'fast-food' && unit.type !== 'restaurant')) return null;
+  const { opens, pays } = VENUE_PAYOUT_HOURS[unit.type];
+  const stepOfDay = state.step % STEPS_PER_DAY;
+  const lastHour = Math.min(pays - 1, Math.floor(stepOfDay / STEPS_PER_HOUR));
+  const hours = (counts: readonly number[] | undefined): number[] =>
+    Array.from({ length: pays - opens }, (_, index) => counts?.[opens + index] ?? 0);
+  const past = unit.venue.pastHourly ?? [];
+  const average = hours(undefined).map((_, index) =>
+    past.length === 0 ? 0 : averageOf(past, opens + index),
+  );
+  return {
+    served: unit.venue.visits,
+    inside: customersInsideVenue(state, unitNumber(unit.id)),
+    opens,
+    closes: pays,
+    resultToday: amountFor(DAILY_INCOME_BRACKETS[unit.type], unit.venue.visits),
+    today: lastHour < opens ? [] : hours(unit.venue.hourly).slice(0, lastHour - opens + 1),
+    average: past.length === 0 ? [] : average,
+  };
+}

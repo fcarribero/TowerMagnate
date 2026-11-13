@@ -2,8 +2,10 @@ import {
   DAILY_INCOME_BRACKETS,
   VENUE_PAYOUT_HOURS,
   type TowerState,
+  type Unit,
   type UnitId,
   type UnitType,
+  type VenueDay,
 } from '@tower-magnate/shared';
 import { describe, expect, it } from 'vitest';
 import { STEPS_PER_HOUR } from './calendar';
@@ -11,8 +13,8 @@ import { STEPS_PER_DAY } from './clock';
 import { createScheduler } from './scheduler';
 import { createEngine, step } from './step';
 import { buildTower, plainTowerPlan } from './testing';
-import { newVenueDay } from './units';
-import { recordVenueVisit, rollVenueDay, venuePayoutHooks } from './venues';
+import { newUnit, newVenueDay } from './units';
+import { foodVenueSummary, recordVenueVisit, rollVenueDay, venuePayoutHooks } from './venues';
 
 type VenueType = keyof typeof VENUE_PAYOUT_HOURS;
 
@@ -359,5 +361,43 @@ describe('a scenario day with one venue of each type', () => {
       -6_000, 3_000, 10_000, 10_000,
     ]);
     expect(new Set(money.map((item) => item.unitId))).toEqual(new Set(unitIds));
+  });
+});
+
+describe('food venue summary', () => {
+  it('counts visits by hour and averages the last finished days', () => {
+    const { tower, id } = towerWith('fast-food');
+    const venue = tower.units[id]?.venue as VenueDay;
+    tower.step = at(1, 9, 10);
+    recordVenueVisit(tower, id);
+    recordVenueVisit(tower, id);
+    tower.step = at(1, 11);
+    recordVenueVisit(tower, id);
+    expect(foodVenueSummary(tower, tower.units[id] as Unit)).toMatchObject({
+      served: 3,
+      opens: 8,
+      closes: 20,
+      resultToday: -3_000,
+      today: [0, 2, 0, 1],
+      average: [],
+    });
+
+    rollVenueDay(venue);
+    venue.hourly = [];
+    venue.hourly[9] = 4;
+    rollVenueDay(venue);
+    tower.step = at(2, 10);
+    const summary = foodVenueSummary(tower, tower.units[id] as Unit);
+    expect(summary?.average.slice(0, 3)).toEqual([0, 3, 0]);
+    expect(summary?.today).toEqual([0, 0, 0]);
+    expect(summary?.average).toHaveLength(12);
+  });
+
+  it('reads a venue saved without hourly counts as empty', () => {
+    const { tower, id } = towerWith('restaurant');
+    tower.step = at(1, 18);
+    const summary = foodVenueSummary(tower, tower.units[id] as Unit);
+    expect(summary?.today).toEqual([0, 0]);
+    expect(foodVenueSummary(tower, newUnit('u9', 'office', 0, 1))).toBeNull();
   });
 });
