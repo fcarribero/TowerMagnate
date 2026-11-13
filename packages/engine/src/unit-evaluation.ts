@@ -1,14 +1,15 @@
 import {
   STRESS_WINDOW_STEPS,
-  type PriceLevel,
   type TenantEvaluation,
   type TowerState,
   type Unit,
   type UnitId,
   type UnitType,
 } from '@tower-magnate/shared';
+import { storeDailyAppraisals } from './appraisal';
 import { STEPS_PER_DAY } from './clock';
 import { evaluateUnit } from './evaluation';
+import { priceRatio } from './pricing';
 import { isNoisy, noisyUnitIds } from './noise';
 import type { SimulationSystem } from './step';
 import { writableUnit, writableUnitLedger } from './step-copy';
@@ -70,12 +71,12 @@ export function unitBase(state: TowerState, unit: Unit, step = state.step): numb
 }
 
 /**
- * The price level the grade uses (SE-15). A sold condo cannot change its level, so the unit's
- * level is the sale level; a room uses what its stay paid.
+ * The price over appraisal the grade uses (SE-15). A sold condo cannot change its price, so it
+ * is the sale price; a room uses what its stay paid.
  */
-function priceOf(unit: Unit): PriceLevel {
-  if (isHotelRoom(unit)) return unit.hotel?.paidLevel ?? unit.priceLevel;
-  return unit.priceLevel;
+function ratioOf(unit: Unit): number {
+  if (isHotelRoom(unit)) return unit.hotel?.paidRatio ?? priceRatio(unit);
+  return priceRatio(unit);
 }
 
 /** The grade of the unit at `state.step` from its ledger, price, noise and the tower rating. */
@@ -86,7 +87,8 @@ export function gradeUnit(
 ): TenantEvaluation {
   return evaluateUnit({
     base: unitBase(state, unit),
-    price: priceOf(unit),
+    priceRatio: ratioOf(unit),
+    type: unit.type,
     noisy,
     stars: state.stars,
   }).grade;
@@ -184,4 +186,5 @@ export function storeDailyGrades(state: TowerState): void {
   const noisy = noisyUnitIds(state);
   const units = Object.values(state.units).sort((a, b) => unitNumber(a.id) - unitNumber(b.id));
   for (const unit of units) storeDailyGrade(state, unit, noisy.has(unit.id));
+  storeDailyAppraisals(state);
 }

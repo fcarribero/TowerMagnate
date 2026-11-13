@@ -10,6 +10,7 @@ import {
   UNIT_CATALOG,
   type ErrorCode,
   type GridState,
+  type Unit,
   type Level,
   type PlacementZone,
   type UnitDefinition,
@@ -21,6 +22,7 @@ import { escalatorLevels, isEscalatorUnit } from './escalator-floors';
 import { isBuiltByCrew } from '../construction';
 import { addPeopleForUnit } from '../people';
 import { addCrew } from '../venue-staff';
+import { startAtAppraisal } from '../appraisal';
 import { newUnit } from '../units';
 import { bombLockError, limitError, starLockError } from './unit-limits';
 import {
@@ -199,11 +201,13 @@ export const buildUnit: CommandHandler<'buildUnit'> = (context, command) => {
     };
     return { ok: true, cost, refund: 0, events: [] };
   }
-  state.units[id] = {
+  const built: Unit = {
     ...newUnit(id, definition.type, x, level),
     paid: cost,
     placedAtStep: state.step,
   };
+  startAtAppraisal(state, built);
+  state.units[id] = built;
   if (definition.type === 'security') addPeopleForUnit(state, id);
   addCrew(state, id);
   return { ok: true, cost, refund: 0, events: [] };

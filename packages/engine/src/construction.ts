@@ -7,6 +7,7 @@ import {
   UNIT_CATALOG,
   type ConstructionSite,
   type PersonPool,
+  type Unit,
   type TowerState,
   type UnitId,
   type UnitType,
@@ -14,12 +15,14 @@ import {
 import { STEPS_PER_MINUTE, WEEKDAYS, weekdayOfDay } from './calendar';
 import { STEPS_PER_DAY } from './clock';
 import { entrancePlace } from './office-routine';
+import { streetColumn, streetPlace } from './street';
 import { addPeopleForUnit, addPerson, NO_TRIP, removePerson } from './people';
 import { addCrew } from './venue-staff';
 import { chance, nextInt } from './rng';
 import type { ScheduledHook } from './scheduler';
 import type { SimulationSystem, StepContext } from './step';
 import { cancelTrek, isOnTrek, startTrek, trekPhaseAt, type TrekPlace } from './trek';
+import { startAtAppraisal } from './appraisal';
 import { newUnit, unitNumber } from './units';
 
 const BUILDER_KIND = PERSON_KINDS.indexOf('builder');
@@ -66,11 +69,14 @@ export function completeSite(state: TowerState, id: UnitId): void {
   const site = state.sites[id];
   if (!site) return;
   Reflect.deleteProperty(state.sites, id);
-  state.units[id] = {
+  const built: Unit = {
     ...newUnit(id, site.type, site.x, site.level),
     paid: site.paid,
     placedAtStep: state.step,
+    listed: site.listed ?? false,
   };
+  startAtAppraisal(state, built);
+  state.units[id] = built;
   if (site.type === 'security') addPeopleForUnit(state, id);
   addCrew(state, id);
 }
@@ -157,11 +163,7 @@ function leave(builder: Builder): void {
     const exit = entrancePlace(state, side);
     if (!exit) break;
     save(builder, { phase: 'leaving', site: 0 });
-    if (isAt(builder, exit)) {
-      removePerson(state, pool.id[builder.slot] as number);
-      return;
-    }
-    if (startTrek(builder.context, builder.slot, exit)) return;
+    if (startTrek(builder.context, builder.slot, exit, streetColumn(side))) return;
   }
   removePerson(state, pool.id[builder.slot] as number);
 }
@@ -275,11 +277,14 @@ function bringCrew(context: StepContext): void {
   const low = Math.min(left.column, right.column);
   const high = Math.max(left.column, right.column);
   for (let index = 0; index < BUILDER_CREW_SIZE; index++) {
+    // Each builder comes from the edge of the map on the side of the lobby end nearer a random column.
+    const onRight = nextInt(state.rng, low, high) * 2 > low + high;
+    const street = streetPlace(onRight);
     addPerson(state, {
       kind: 'builder',
       homeUnit: 0,
-      level: left.level,
-      column: nextInt(state.rng, low, high),
+      level: street.level,
+      column: street.column,
     });
     const slot = state.people.id.length - 1;
     state.people.trip[slot] = encodeBuilderTask({ phase: 'choosing', site: 0 });

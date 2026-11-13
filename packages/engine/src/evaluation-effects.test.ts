@@ -53,6 +53,7 @@ function leaseEndingNext(type: 'office' | 'retail-shop', stress: number, ...othe
     anchorStep: 0,
     nextDueStep: TERM_END,
     weekVisits: SHOP_EARLY_LEAVE_MIN_VISITS,
+    rent: 10_000,
   };
   fileTrips(state, unit, TERM_END, stress);
   state.step = TERM_END - 1;
@@ -98,6 +99,7 @@ describe('office lease end by grade (E-12)', () => {
       anchorStep: TERM_END,
       nextDueStep: TERM_END + STEPS_PER_WEEK,
       weekVisits: 0,
+      rent: 10_000,
     });
     expect(result.state.money - state.money).toBe(WEEKLY_RENT.office.normal);
     expect(newsKeys(result)).toEqual([]);
@@ -115,7 +117,7 @@ describe('office lease end by grade (E-12)', () => {
 
   it('renews an office moved to minimo before its lease end and charges the minimo week', () => {
     const { state, unit } = leaseEndingNext('office', 300);
-    unit.priceLevel = 'minimum';
+    unit.price = WEEKLY_RENT.office.minimum;
     const result = stepOnce(state);
     expect(result.state.units[unit.id]?.lease?.anchorStep).toBe(TERM_END);
     expect(result.state.units[unit.id]?.evaluation).toBe('good');

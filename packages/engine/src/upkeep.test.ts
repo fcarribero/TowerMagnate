@@ -89,6 +89,7 @@ describe('weekly upkeep', () => {
       ],
     });
     tower.stars = 2;
+    for (const unit of Object.values(tower.units)) unit.listed = false;
     const { state } = runToStep(tower, FIRST_MONDAY);
     expect(2_000_000 - state.money).toBe(2_000 + 3_000 + 10_000 + 20_000);
   });

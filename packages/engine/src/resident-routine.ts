@@ -24,6 +24,8 @@ import {
   VENUE_CANDIDATES_DRAWN,
   VENUE_CAPACITY,
   VENUE_HOURS,
+  venueHoursOf,
+  type VenueHours,
   VENUE_VISIT_MINUTES,
   type PersonPool,
   type TowerState,
@@ -41,11 +43,13 @@ import {
   type RoutePlanner,
 } from './office-routine';
 import { createPeopleSystem, NO_TRIP, NOTHING_DUE } from './people';
+import { byPriceRatio, priceRatio } from './pricing';
 import { chance, nextInt } from './rng';
 import type { HookOccurrence, ScheduledHook } from './scheduler';
 import { drawBedStep, drawWakeDelay, drawWakeStep, type SleepWindows } from './sleep';
 import type { SimulationSystem, StepContext } from './step';
 import { drawMinuteFromWindow } from './time-windows';
+import { streetColumn, streetPlace } from './street';
 import { cancelTrek, isOnTrek, startTrek } from './trek';
 import { isGuestAtVenue } from './hotel-guest-trip';
 import { stressOfTripEndedNow } from './trip-ledger';
@@ -347,6 +351,8 @@ function beginTravel(
   from: Place,
   to: Place,
   estimatedSteps: number,
+  /** For a trip out of the tower: the side of the street the person walks out to after the door. */
+  streetOnRight?: boolean,
 ): boolean {
   const { state, slot, routine } = resident;
   const previous = routine.phase;
@@ -357,7 +363,8 @@ function beginTravel(
     return true;
   }
   save(resident, NOTHING_DUE);
-  if (startTrek(resident.context, slot, to)) return true;
+  const street = streetOnRight === undefined ? undefined : streetColumn(streetOnRight);
+  if (startTrek(resident.context, slot, to, street)) return true;
   routine.phase = previous;
   state.people.trip[slot] = encodeResidentRoutine(routine);
   return false;
@@ -371,8 +378,13 @@ function minuteOfStep(step: number): number {
   return Math.floor((step % STEPS_PER_DAY) / STEPS_PER_MINUTE);
 }
 
-export function isVenueOpen(type: VisitedVenueType, minute: number): boolean {
-  const hours = VENUE_HOURS[type];
+export function isVenueOpen(
+  type: VisitedVenueType,
+  minute: number,
+  unit?: { type: string; hours?: VenueHours | null; activeToday?: boolean },
+): boolean {
+  if (unit?.activeToday === false) return false;
+  const hours = unit ? venueHoursOf(unit) : VENUE_HOURS[type];
   return minute >= hours.open && minute < hours.close;
 }
 
@@ -397,16 +409,16 @@ export function venueHasRoom(state: TowerState, unit: Unit, type: VisitedVenueTy
 }
 
 function openVenues(state: TowerState, type: VisitedVenueType, minute: number): Unit[] {
-  if (!isVenueOpen(type, minute)) return [];
   return Object.values(state.units)
     .filter((unit) => unit.type === type)
+    .filter((unit) => isVenueOpen(type, minute, unit))
     .filter((unit) => type !== 'retail-shop' || unit.lease !== null)
     .filter((unit) => venueHasRoom(state, unit, type))
     .sort((a, b) => unitNumber(a.id) - unitNumber(b.id));
 }
 
 function attraction(unit: Unit): number {
-  return unit.type === 'retail-shop' ? RETAIL_PRICE_ATTRACTION[unit.priceLevel] : 1;
+  return unit.type === 'retail-shop' ? byPriceRatio('retail-shop', RETAIL_PRICE_ATTRACTION, priceRatio(unit)) : 1;
 }
 
 function drawByAttraction(state: TowerState, units: readonly Unit[]): Unit {
@@ -476,9 +488,12 @@ function startVisit(resident: Resident, kind: Intention): void {
 /** A resident who cannot get out stays home and skips the evening return as well. */
 function startLeaving(resident: Resident): void {
   const { state, routine } = resident;
-  const exit = entrancePlace(state, chance(state.rng, 0.5));
+  const onRight = chance(state.rng, 0.5);
+  const exit = entrancePlace(state, onRight);
   const steps = exit ? resident.routes(state, resident.home, exit, resident.context) : null;
-  if (exit && steps !== null && beginTravel(resident, 'toExit', resident.home, exit, steps)) return;
+  if (exit && steps !== null) {
+    if (beginTravel(resident, 'toExit', resident.home, exit, steps, onRight)) return;
+  }
   routine.slots = withSlot(routine.slots, RETURN_SLOT, NO_SLOT);
   settle(resident);
 }
@@ -486,13 +501,14 @@ function startLeaving(resident: Resident): void {
 /** The way home is required, so with no route it is tried again later. */
 function startReturnHome(resident: Resident): void {
   const { state, routine } = resident;
-  const entrance = entrancePlace(state, chance(state.rng, 0.5));
+  const onRight = chance(state.rng, 0.5);
+  const entrance = entrancePlace(state, onRight);
   const steps = entrance ? resident.routes(state, entrance, resident.home, resident.context) : null;
   routine.slots = withSlot(routine.slots, RETURN_SLOT, NO_SLOT);
   const walking =
     entrance !== null &&
     steps !== null &&
-    beginTravel(resident, 'toHome', entrance, resident.home, steps);
+    beginTravel(resident, 'toHome', streetPlace(onRight), resident.home, steps);
   if (walking) return;
   routine.phase = 'outside';
   save(resident, state.step + ROUTE_RETRY_STEPS);
@@ -514,7 +530,7 @@ function arriveAtVenue(resident: Resident): void {
   if (
     !venue ||
     !type ||
-    !isVenueOpen(type, minuteOfDay(resident)) ||
+    !isVenueOpen(type, minuteOfDay(resident), venue) ||
     !venueHasRoom(state, venue, type)
   ) {
     startWalkHome(resident, venue ? unitPlace(venue) : resident.home);

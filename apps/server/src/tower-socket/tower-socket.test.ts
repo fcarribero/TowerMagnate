@@ -173,14 +173,14 @@ describe('tower socket against postgres', () => {
       JSON.stringify(
         clientMessage('command', {
           id: 'c1',
-          command: { type: 'setPrice', unitId: 'u900', price: 'low' },
+          command: { type: 'setPrice', unitId: 'u900', price: 5_000 },
         }),
       ),
     );
     const changed = await client.next('inspect');
 
-    expect(first.p).toMatchObject({ id: 'u900', status: 'ok', details: { price: 'normal' } });
-    expect(changed.p).toMatchObject({ id: 'u900', status: 'ok', details: { price: 'low' } });
+    expect(first.p).toMatchObject({ id: 'u900', status: 'ok', details: { price: 10_000 } });
+    expect(changed.p).toMatchObject({ id: 'u900', status: 'ok', details: { price: 5_000 } });
   });
 
   it('answers gone for an unknown unit and then stops inspecting', async () => {

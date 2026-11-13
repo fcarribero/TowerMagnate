@@ -1,3 +1,4 @@
+import { listingCommands } from './listing';
 import {
   CATHEDRAL_BOTTOM_LEVEL,
   STAR_POPULATION_THRESHOLDS,
@@ -383,7 +384,7 @@ export class ProgressionBot {
 
   private decide(): Command[] {
     const budget = { money: this.state.money };
-    const commands: Command[] = [...this.answerDecisions()];
+    const commands: Command[] = [...this.answerDecisions(), ...listingCommands(this.state)];
     const take = (action: Action | null, reserve: number): boolean => {
       if (!action || action.commands.length === 0) return false;
       if (budget.money - action.cost < reserve) return false;

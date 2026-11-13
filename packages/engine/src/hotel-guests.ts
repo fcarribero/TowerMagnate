@@ -52,7 +52,14 @@ import {
   type GuestSlots,
 } from './hotel-guest-trip';
 import { entrancePlace, unitPlace, type Place, type RoutePlanner } from './office-routine';
-import { drawEntrance, entranceDoor, streetEntrance, subwayStation } from './outside-entrances';
+import {
+  drawEntrance,
+  entranceDoor,
+  entranceStart,
+  entranceStreetColumn,
+  streetEntrance,
+  subwayStation,
+} from './outside-entrances';
 import {
   addPerson,
   createPeopleSystem,
@@ -71,6 +78,7 @@ import type { SimulationSystem, StepContext } from './step';
 import { writableUnit } from './step-copy';
 import { drawBedStep, drawWakeDelay, drawWakeStep, type SleepWindows } from './sleep';
 import { drawMinuteFromWindow } from './time-windows';
+import { streetPlace } from './street';
 import { cancelTrek, isOnTrek, plannedTripSteps, startTrek } from './trek';
 import { stressOfTripEndedNow } from './trip-ledger';
 import { fileShopVisit, fileUnitTrip } from './unit-evaluation';
@@ -230,12 +238,12 @@ function sendGuest(
   entrance: CustomerEntrance,
 ): number {
   const { state } = context;
-  const door = entranceDoor(state, entrance) as Place;
+  const start = entranceStart(state, entrance) as Place;
   const personId = addPerson(state, {
     kind,
     homeUnit: unitNumber(room.id),
-    level: door.level,
-    column: door.column,
+    level: start.level,
+    column: start.column,
   });
   const slot = slotOfPerson(state.people, personId);
   const routine: GuestRoutine = {
@@ -392,18 +400,24 @@ interface Guest {
   routine: GuestRoutine;
 }
 
-function travel(guest: Guest, phase: GuestPhase, from: Place, to: Place): boolean {
+function travel(
+  guest: Guest,
+  phase: GuestPhase,
+  from: Place,
+  to: Place,
+  outTo?: number,
+): boolean {
   const { state, slot, routine } = guest;
   standAt(state, slot, from);
   save(state, slot, { ...routine, phase }, NOTHING_DUE);
-  if (startTrek(guest.context, slot, to)) return true;
+  if (startTrek(guest.context, slot, to, outTo)) return true;
   state.people.trip[slot] = encodeGuestRoutine(routine);
   return false;
 }
 
 function travelFrom(guest: Guest, phase: GuestPhase, entrance: CustomerEntrance): boolean {
-  const door = entranceDoor(guest.state, entrance);
-  return door !== null && travel(guest, phase, door, unitPlace(guest.room));
+  const start = entranceStart(guest.state, entrance);
+  return start !== null && travel(guest, phase, start, unitPlace(guest.room));
 }
 
 /** Walks in from the entrance to the room; with no route from the subway, from the street at once. */
@@ -419,7 +433,7 @@ function travelTo(
   entrance: CustomerEntrance,
 ): boolean {
   const door = entranceDoor(guest.state, entrance);
-  return door !== null && travel(guest, phase, from, door);
+  return door !== null && travel(guest, phase, from, door, entranceStreetColumn(entrance));
 }
 
 /** Walks out to a drawn entrance; with no route to the subway, to the street at once. */
@@ -587,7 +601,7 @@ function arriveAtVenue(guest: Guest): void {
   if (venue) fileShopVisit(state, venue, state.people.id[guest.slot] as number);
   const type = venue?.type as VisitedVenueType | undefined;
   const minute = minuteOfDay(state.step);
-  if (!venue || !type || !isVenueOpen(type, minute) || !venueHasRoom(state, venue, type)) {
+  if (!venue || !type || !isVenueOpen(type, minute, venue) || !venueHasRoom(state, venue, type)) {
     walkBack(guest, venue ? unitPlace(venue) : unitPlace(guest.room));
     return;
   }
@@ -639,9 +653,13 @@ function advance(guest: Guest): void {
 
 function isAtEntrance(state: TowerState, slot: number): boolean {
   const pool = state.people;
-  return [entrancePlace(state, false), entrancePlace(state, true)].some(
-    (place) => place?.level === pool.level[slot] && place?.column === pool.column[slot],
-  );
+  // Walking out ends at the map edge, past the lobby door.
+  return [
+    entrancePlace(state, false),
+    entrancePlace(state, true),
+    streetPlace(false),
+    streetPlace(true),
+  ].some((place) => place?.level === pool.level[slot] && place?.column === pool.column[slot]);
 }
 
 /** The guest reached an entrance on the way out. The VIP's visit is judged before they go. */

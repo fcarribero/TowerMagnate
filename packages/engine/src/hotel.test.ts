@@ -52,34 +52,27 @@ function checkInForNights(nights: number, tower: TowerState, roomId: UnitId, ste
 }
 
 describe('hotel check-in', () => {
-  it('credits a 3-night suite stay once and turns it dirty on Saturday at 10:00', () => {
+  it('charges nothing at check-in and the whole 3-night stay at check-out on Saturday at 10:00', () => {
     const { tower, roomIds } = towerWithRooms(['suite']);
     const roomId = roomIds[0] as UnitId;
     const { result, state, events } = checkInForNights(3, tower, roomId, at(WEDNESDAY, 15));
 
-    expect(result).toEqual({ checkedIn: true, nights: 3, paid: 18_000 });
-    expect(state.money - tower.money).toBe(18_000);
-    expect(state.ledger.currentWeek.hotel.income).toBe(18_000);
+    expect(result).toEqual({ checkedIn: true, nights: 3 });
+    expect(state.money).toBe(tower.money);
+    expect(state.ledger.currentWeek.hotel.income).toBe(0);
     expect(state.units[roomId]?.used).toBe(true);
     expect(state.units[roomId]?.hotel).toEqual({
       state: 'occupied',
       stayEndStep: at(WEDNESDAY + 3, 10),
       checkInStep: at(WEDNESDAY, 15),
-      paidLevel: 'normal',
+      paidRatio: 1,
+      stayRate: 6_000,
       arrivalStep: null,
       rollDue: false,
       dirtyChecks: 0,
     });
     expect(weekdayOfDay(WEDNESDAY + 3)).toBe(WEEKDAYS.saturday);
-    expect(events.map((event) => event.type)).toEqual([
-      'hotelCheckIn',
-      'unitMoney',
-      'roomStateChanged',
-    ]);
-    expect(events.find((event) => event.type === 'unitMoney')).toMatchObject({
-      unitId: roomId,
-      reason: 'hotel',
-    });
+    expect(events.map((event) => event.type)).toEqual(['hotelCheckIn', 'roomStateChanged']);
 
     const engine = createEngine({ commandHandlers: {}, systems: [createHotelSystem()] });
     const justBefore = engine.step(state, [], at(WEDNESDAY + 3, 10) - 1 - state.step);
@@ -94,21 +87,32 @@ describe('hotel check-in', () => {
     expect(atCheckOut.state.units[roomId]?.evaluation).toBe('good');
     expect(atCheckOut.events.map((event) => event.type)).toEqual([
       'hotelCheckOut',
+      'unitMoney',
       'roomStateChanged',
     ]);
-    expect(atCheckOut.state.money).toBe(state.money);
+    expect(atCheckOut.events.find((event) => event.type === 'hotelCheckOut')).toMatchObject({
+      nights: 3,
+      paid: 18_000,
+    });
+    expect(atCheckOut.events.find((event) => event.type === 'unitMoney')).toMatchObject({
+      unitId: roomId,
+      reason: 'hotel',
+    });
+    expect(atCheckOut.state.money - state.money).toBe(18_000);
+    expect(atCheckOut.state.ledger.currentWeek.hotel.income).toBe(18_000);
   });
 
   it.each([
     ['single-room', 'minimum', 500],
     ['double-room', 'low', 2_000],
     ['single-room', 'high', 3_000],
-  ] as const)('charges one night in a %s at level %s $%i', (type, priceLevel, price) => {
+  ] as const)('locks the $%i nightly price of a %s at check-in', (type, _label, price) => {
     const { tower, roomIds } = towerWithRooms([type]);
     const roomId = roomIds[0] as UnitId;
-    (tower.units[roomId] as { priceLevel: string }).priceLevel = priceLevel;
-    const { result } = checkInForNights(1, tower, roomId, at(WEDNESDAY, 12));
-    expect(result).toMatchObject({ checkedIn: true, paid: price });
+    tower.units[roomId]!.price = price;
+    const { result, state } = checkInForNights(1, tower, roomId, at(WEDNESDAY, 12));
+    expect(result).toEqual({ checkedIn: true, nights: 1 });
+    expect(state.units[roomId]?.hotel?.stayRate).toBe(price);
   });
 
   it('accepts 12:00 and 23:00 and refuses 11:59 and 23:01', () => {
@@ -141,7 +145,7 @@ describe('hotel check-in', () => {
       state,
       stayEndStep: state === 'occupied' ? 99_999 : null,
       checkInStep: null,
-      paidLevel: null,
+      paidRatio: null,
       arrivalStep: null,
       rollDue: false,
       dirtyChecks: 0,
@@ -158,7 +162,7 @@ describe('hotel check-in', () => {
       state: 'dirty',
       stayEndStep: null,
       checkInStep: null,
-      paidLevel: null,
+      paidRatio: null,
       arrivalStep: null,
       rollDue: false,
       dirtyChecks: 0,
@@ -168,7 +172,7 @@ describe('hotel check-in', () => {
       state: 'clean',
       stayEndStep: null,
       checkInStep: null,
-      paidLevel: null,
+      paidRatio: null,
       arrivalStep: null,
       rollDue: false,
       dirtyChecks: 0,
@@ -219,7 +223,7 @@ describe('hotel check-out order', () => {
         state: 'occupied',
         stayEndStep: end,
         checkInStep: null,
-        paidLevel: null,
+        paidRatio: null,
         arrivalStep: null,
         rollDue: false,
         dirtyChecks: 0,
@@ -241,17 +245,25 @@ describe('hotel week scenario', () => {
     const nightly = [2_000, 3_000, 6_000];
     const engine = createEngine({ commandHandlers: {}, systems: [createHotelSystem()] });
     let state = tower;
+    const pending = new Map<string, number>();
     let expected = 0;
     let stays = 0;
-    for (let day = 0; day < 7; day++) {
+    for (let day = 0; day < 8; day++) {
       const noon = at(day, 12);
-      state = engine.step(state, [], noon - state.step).state;
+      const stepped = engine.step(state, [], noon - state.step);
+      state = stepped.state;
+      for (const event of stepped.events) {
+        if (event.type !== 'hotelCheckOut') continue;
+        expect(event.paid).toBe(pending.get(event.unitId));
+        expected += event.paid;
+      }
+      if (day === 7) break;
       for (const [index, roomId] of roomIds.entries()) {
         if (state.units[roomId]?.hotel?.state === 'dirty') setHotel(state, roomId, cleanRoom());
         const context: StepContext = { state, events: [] };
         const result = checkIn(context, roomId);
         if (result.checkedIn) {
-          expected += result.nights * (nightly[index] as number);
+          pending.set(roomId, result.nights * (nightly[index] as number));
           stays++;
         }
       }
@@ -267,7 +279,7 @@ function cleanRoom(): HotelRoom {
     state: 'clean',
     stayEndStep: null,
     checkInStep: null,
-    paidLevel: null,
+    paidRatio: null,
     arrivalStep: null,
     rollDue: false,
     dirtyChecks: 0,

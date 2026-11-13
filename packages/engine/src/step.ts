@@ -30,7 +30,7 @@ import { endStepCopy, stepCopy } from './step-copy';
 import { ledgerWeekRollHook } from './money';
 import { createOfficeRoutine } from './office-routine';
 import { createResidentRoutine } from './resident-routine';
-import { createVenueStaff } from './venue-staff';
+import { createVenueStaff, venueSwitchHook } from './venue-staff';
 import { createCouriers } from './couriers';
 import { createProspectDemand } from './prospects';
 import { createScheduler } from './scheduler';
@@ -277,6 +277,7 @@ export const namedTowerSystems: readonly { name: string; system: SimulationSyste
   {
     name: 'scheduler (plans, rolls, payouts)',
     system: createScheduler([
+      venueSwitchHook,
       infestationHook,
       ledgerWeekRollHook,
       nightReset,

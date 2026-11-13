@@ -46,7 +46,12 @@ function office(id: string, x: number, name: string | null): Unit {
     x,
     level: 2,
     name,
-    priceLevel: 'normal',
+    price: 10_000,
+    appraisal: 10_000,
+    listed: false,
+    enabled: true,
+    activeToday: true,
+    hours: null,
     paid: 0,
     placedAtStep: 0,
     used: false,
@@ -255,7 +260,7 @@ describe('snapshot from tower state', () => {
     const state = towerWithPeople();
     const empty = state.units['u6'];
     if (!empty) throw new Error('u6 is part of the fixture');
-    state.units['u6'] = { ...empty, lease: { anchorStep: 0, nextDueStep: 100, weekVisits: 0 } };
+    state.units['u6'] = { ...empty, lease: { anchorStep: 0, nextDueStep: 100, weekVisits: 0, rent: 10_000 } };
     const snapshot = buildSnapshot(state, null);
     expect(snapshot.units).toContainEqual(
       expect.objectContaining({ id: 'u6', occupied: true, variant: 'occupied' }),
@@ -272,16 +277,17 @@ describe('snapshot from tower state', () => {
     expect(snapshot.overlays.price).toEqual({ u5: 'normal', u6: 'normal' });
   });
 
-  it('sends the stored price level of each unit in its view and the price overlay', () => {
+  it('sends the price, appraisal and listing of each unit in its view and the price band overlay', () => {
     const state = towerWithPeople();
-    (state.units.u5 as Unit).priceLevel = 'high';
-    (state.units.u6 as Unit).priceLevel = 'low';
+    (state.units.u5 as Unit).price = 15_000;
+    (state.units.u6 as Unit).price = 5_000;
+    (state.units.u6 as Unit).listed = true;
 
     const snapshot = buildSnapshot(state, null);
 
     expect(snapshot.units).toEqual([
-      expect.objectContaining({ id: 'u5', price: 'high' }),
-      expect.objectContaining({ id: 'u6', price: 'low' }),
+      expect.objectContaining({ id: 'u5', price: 15_000, appraisal: 10_000, listed: false }),
+      expect.objectContaining({ id: 'u6', price: 5_000, appraisal: 10_000, listed: true }),
     ]);
     expect(snapshot.overlays.price).toEqual({ u5: 'high', u6: 'low' });
   });
@@ -351,6 +357,8 @@ describe('snapshot from tower state', () => {
       waitingBesideQueue: 'wait',
       riding: 'ride',
       noRoute: 'walk',
+      approaching: 'walk',
+      departing: 'walk',
     };
     for (const phase of TREK_PHASES) {
       const state = towerWithPeople();
@@ -359,6 +367,17 @@ describe('snapshot from tower state', () => {
       const snapshot = buildSnapshot(state, wide);
       expect(snapshot.people[0]?.mode, phase).toBe(expected[phase]);
     }
+  });
+
+  it('keeps a person walking in from the map edge, where there is no structure', () => {
+    const wide = { levelFrom: 1, levelTo: 40, xFrom: 0, xTo: 374 };
+    const state = towerWithPeople();
+    state.people.trek[0] = TREK_PHASES.indexOf('approaching');
+    state.people.trip[0] = 1;
+    state.people.level[0] = 1;
+    state.people.column[0] = 374;
+    const snapshot = buildSnapshot(state, wide);
+    expect(snapshot.people[0]).toMatchObject({ level: 1, x: 374, mode: 'walk' });
   });
 
   it('leaves out office workers who are still outside the tower or gave up coming in', () => {
@@ -513,6 +532,7 @@ describe('snapshot from tower state', () => {
       anchorStep: 0,
       nextDueStep: 60480,
       weekVisits: 0,
+      rent: 10_000,
     };
     expect(buildSnapshot(state, null).population).toBe(6);
   });

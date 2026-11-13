@@ -69,7 +69,7 @@ describe('scenario: vertical slice part A, tenants, commute and rent over 7 days
       expect(offices(tower).filter((unit) => unit.level === level)).toHaveLength(10);
     }
     expect(offices(tower)).toHaveLength(90);
-    expect(offices(tower).every((unit) => unit.priceLevel === 'normal')).toBe(true);
+    expect(offices(tower).every((unit) => unit.price === OFFICE_RENT)).toBe(true);
     expect(leases(tower)).toEqual([]);
     expect(tower.people.id).toEqual([]);
   });
@@ -80,7 +80,8 @@ describe('scenario: vertical slice part A, tenants, commute and rent over 7 days
     expect(byFivePm.length).toBeGreaterThanOrEqual(50);
     for (const { lease } of signed) {
       expect(isWeekday(dayOf(lease.anchorStep))).toBe(true);
-      expect(minuteOfDay(lease.anchorStep)).toBeGreaterThanOrEqual(8 * 60);
+      // Rent is counted from 07:00, the start of the window new contracts start in.
+      expect(minuteOfDay(lease.anchorStep)).toBe(7 * 60);
     }
   });
 
@@ -124,7 +125,10 @@ describe('scenario: vertical slice part A, tenants, commute and rent over 7 days
       }
       firstDay.set(unitId, Math.min(firstDay.get(unitId) ?? Infinity, day));
     }
-    expect(firstDay.size).toBe(moveInDay.size);
+    // A lease signed on the last weekday of the run sends its workers on the Monday after it.
+    // Prospects now walk in from the map edge, so a lease can land that late.
+    const comingInRun = [...moveInDay.values()].filter((day) => nextWeekday(day) < PART_A_DAYS);
+    expect(firstDay.size).toBe(comingInRun.length);
     for (const [unitId, day] of firstDay) {
       expect(day).toBe(nextWeekday(moveInDay.get(unitId) as number));
     }

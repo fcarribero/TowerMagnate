@@ -1,4 +1,11 @@
-import type { PriceLevel, TenantEvaluation, TowerState, Unit, UnitId } from '@tower-magnate/shared';
+import {
+  priceOfLevel,
+  type PriceLevel,
+  type TenantEvaluation,
+  type TowerState,
+  type Unit,
+  type UnitId,
+} from '@tower-magnate/shared';
 import { describe, expect, it } from 'vitest';
 import { createCondoSystem, sellCondo } from './condos';
 import { STEPS_PER_WEEK } from './leases';
@@ -43,7 +50,7 @@ describe('condo sale', () => {
     ['minimum', 45_000],
   ])('credits the %s price once and records it', (priceLevel, price) => {
     const { tower, unitId, engine } = condoRun();
-    condoOf(tower, unitId).priceLevel = priceLevel;
+    condoOf(tower, unitId).price = price;
     const { state, events } = engine.step(tower, [], SALE_STEP + 100);
     expect(state.money - tower.money).toBe(price);
     expect(state.ledger.currentWeek.condoSales.income).toBe(price);
@@ -99,7 +106,7 @@ describe('condo owner evaluation', () => {
     const { tower, unitId, engine } = condoRun({ evaluate: () => 'poor' });
     const sold = engine.step(tower, [], SALE_STEP + 1).state;
     sold.money = 0;
-    condoOf(sold, unitId).priceLevel = 'minimum';
+    condoOf(sold, unitId).price = priceOfLevel('condo', 'minimum');
     const { state, events } = engine.step(sold, [], CHECK);
     expect(state.money).toBe(-175_000);
     expect(state.ledger.currentWeek.condoBuybacks.expense).toBe(-175_000);

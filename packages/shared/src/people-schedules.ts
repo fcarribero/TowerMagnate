@@ -61,6 +61,41 @@ export const VENUE_STAFF = {
 
 export type StaffedVenueType = keyof typeof VENUE_STAFF;
 
+/** Opening hours a player chose for a fast food, in whole hours of the day. */
+export interface VenueHours {
+  open: number;
+  close: number;
+}
+
+/** What a new fast food uses until the player sets other hours. */
+export const DEFAULT_FAST_FOOD_HOURS: VenueHours = { open: 8, close: 20 };
+
+/** Whole hours a fast food can open or close at, `close` after `open`. */
+export function isValidVenueHours(hours: VenueHours): boolean {
+  return (
+    Number.isInteger(hours.open) &&
+    Number.isInteger(hours.close) &&
+    hours.open >= 0 &&
+    hours.close <= 24 &&
+    hours.close > hours.open
+  );
+}
+
+/**
+ * Opening and closing minute of the day of a staffed venue. A fast food uses the hours the
+ * player set; every other venue uses its listed hours.
+ */
+export function venueHoursOf(unit: {
+  type: string;
+  hours?: VenueHours | null;
+}): { open: number; close: number } {
+  if (unit.type === 'fast-food' && unit.hours) {
+    return { open: minutes(unit.hours.open), close: minutes(unit.hours.close) };
+  }
+  const listed = VENUE_STAFF[unit.type as StaffedVenueType];
+  return { open: listed.open, close: listed.close };
+}
+
 /** A fast food closes up to this many minutes before or after its listed closing time. */
 export const FAST_FOOD_CLOSING_MARGIN_MINUTES = 5;
 
@@ -81,7 +116,8 @@ export function closingMinute(
     hash = Math.imul(hash ^ code.charCodeAt(0), 16777619) >>> 0;
   }
   const span = 2 * FAST_FOOD_CLOSING_MARGIN_MINUTES + 1;
-  return listedClose + ((hash >>> 8) % span) - FAST_FOOD_CLOSING_MARGIN_MINUTES;
+  const closing = listedClose + ((hash >>> 8) % span) - FAST_FOOD_CLOSING_MARGIN_MINUTES;
+  return Math.min(closing, 24 * 60);
 }
 
 /** Staff reach their venue between this many minutes before it opens. */

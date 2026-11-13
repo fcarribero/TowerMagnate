@@ -87,11 +87,11 @@ function midnightRolls(stars: StarRating, days: number) {
 
 function checkIns(events: readonly EngineEvent[]) {
   return events.flatMap((event) =>
-    event.type === 'hotelCheckIn' ? [{ nights: event.nights, paid: event.paid }] : [],
+    event.type === 'hotelCheckIn' ? [{ nights: event.nights }] : [],
   );
 }
 
-const ONE_SUITE_NIGHT = { nights: 1, paid: HOTEL_NIGHTLY_PRICE.suite.normal };
+const ONE_SUITE_NIGHT = { nights: 1 };
 
 function vipSlot(state: TowerState): number {
   const personId = state.vipVisit?.personId;
@@ -364,8 +364,12 @@ describe('VIP stay', () => {
     const { state, events } = step(start, [], at(TUESDAY, 22) - start.step);
     expect(state.vipVisit?.personId).not.toBeNull();
     expect(checkIns(events)).toEqual([ONE_SUITE_NIGHT]);
-    const after = step(state, [], at(TUESDAY + 1, 11) - state.step).state;
-    expect(after.vipApproved).toBe(true);
+    const later = step(state, [], at(TUESDAY + 1, 11) - state.step);
+    expect(later.state.vipApproved).toBe(true);
+    const checkOuts = later.events.flatMap((event) =>
+      event.type === 'hotelCheckOut' ? [{ nights: event.nights, paid: event.paid }] : [],
+    );
+    expect(checkOuts).toEqual([{ nights: 1, paid: HOTEL_NIGHTLY_PRICE.suite.normal }]);
   });
 
   it('never uses the subway, arriving or leaving, with a station in the tower', () => {

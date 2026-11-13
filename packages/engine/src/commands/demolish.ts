@@ -1,4 +1,5 @@
 import {
+  DEMOLITION_INDEMNITY_WEEKS,
   levelAbove,
   levelBelow,
   TOWER_LAYOUT,
@@ -22,6 +23,7 @@ import {
 import { siteProgress } from '../construction';
 import { chargeMoney, creditMoney } from '../money';
 import { removePeopleOfUnit, setDueStep, parsePersonId } from '../people';
+import { sendToStreet } from '../trek';
 import type { CommandHandler, CommandOutcome } from '../step';
 import { heightOnLevel, lobbyRows, SKY_LOBBY_LEVELS } from './build-lobby';
 import {
@@ -62,6 +64,20 @@ export function unitLevels(unit: Pick<Unit, 'type' | 'level'>): Level[] {
   return levels;
 }
 
+/**
+ * What demolishing these units costs in indemnities: each rented office or shop owes its tenant
+ * the rent locked in the lease for DEMOLITION_INDEMNITY_WEEKS week. Like a condo buyback it is
+ * charged in full even into a negative balance. Unknown ids and unrented units cost nothing.
+ */
+export function demolitionIndemnity(state: TowerState, unitIds: readonly string[]): number {
+  let total = 0;
+  for (const id of new Set(unitIds)) {
+    const unit = Object.hasOwn(state.units, id) ? state.units[id] : undefined;
+    if (unit?.lease) total += unit.lease.rent * DEMOLITION_INDEMNITY_WEEKS;
+  }
+  return total;
+}
+
 /** C-46: parking ramps stack downward from S1, and only the lowest one can go. */
 function isLowestRamp(state: TowerState, unit: Unit): boolean {
   return !Object.values(state.units).some(
@@ -100,6 +116,8 @@ function planUnit(state: TowerState, unitId: string): Plan {
       const width = UNIT_CATALOG[unit.type].width;
       const x1 = unit.x + width - 1;
       if (unit.sale) chargeMoney(state, 'condoBuybacks', unit.sale.price);
+      const indemnity = demolitionIndemnity(state, [unit.id]);
+      if (indemnity > 0) chargeMoney(state, 'rent', indemnity);
       removePeopleOfUnit(state, unit.id);
       for (const level of unitLevels(unit)) {
         removeOccupant(state.grid, level, { kind: 'unit', id: unit.id });
@@ -199,15 +217,73 @@ function baseLevelOfLobby(
   return null;
 }
 
-/** C-21 and 8.3: the main lobby is protected; sky lobby columns turn into floor on every row. */
+/**
+ * The main lobby can go when nothing is built above it in the columns removed, and only from
+ * the ends of its run, so it is never split. Its columns become empty ground.
+ */
+function planMainLobby(state: TowerState, columns: readonly number[]): Plan {
+  const grid = state.grid;
+  const height = grid.mainLobbyHeight as LobbyHeight;
+  const rows = lobbyRows(TOWER_LAYOUT.mainLobbyFloor, height);
+  const first = rows[0] as Level;
+  const isLobby = (x: number) => structureAt(grid, first, x) === 'lobby';
+  const sorted = [...columns].sort((a, b) => a - b);
+  const left = sorted[0] as number;
+  const right = sorted[sorted.length - 1] as number;
+  let runStart = left;
+  while (isLobby(runStart - 1)) runStart -= 1;
+  let runEnd = right;
+  while (isLobby(runEnd + 1)) runEnd += 1;
+  const contiguous = sorted.every((x, index) => index === 0 || x === (sorted[index - 1] as number) + 1);
+  if (!contiguous || (left !== runStart && right !== runEnd)) return reject('MAIN_LOBBY_INNER');
+  let above: Level | null = levelAbove(rows[rows.length - 1] as Level);
+  for (; above !== null; above = levelAbove(above)) {
+    for (const x of sorted) {
+      if (structureAt(grid, above, x) !== null || occupantAt(grid, above, x) !== null) {
+        return reject('MAIN_LOBBY_COVERED');
+      }
+    }
+  }
+  for (const row of rows) {
+    if (sorted.some((x) => occupantAt(grid, row, x) !== null)) return reject('CELL_OCCUPIED');
+  }
+
+  return {
+    ok: true,
+    apply() {
+      for (const row of rows) {
+        for (const run of columnRuns(sorted)) clearStructure(grid, row, run.x0, run.x1);
+      }
+      sendPeopleToStreet(state, first, sorted);
+      const stillThere = (grid.levels[first]?.structure ?? []).some((span) => span.kind === 'lobby');
+      if (!stillThere) grid.mainLobbyHeight = null;
+      return refundLobby(state, TOWER_LAYOUT.mainLobbyFloor, sorted);
+    },
+  };
+}
+
+/** People standing on demolished lobby cells are outside now: they come back in from the edge of the map. */
+function sendPeopleToStreet(state: TowerState, level: Level, columns: readonly number[]): void {
+  const pool = state.people;
+  const first = columns[0] as number;
+  const last = columns[columns.length - 1] as number;
+  for (let slot = 0; slot < pool.id.length; slot++) {
+    if (pool.level[slot] !== level) continue;
+    const column = pool.column[slot] as number;
+    if (column >= first && column <= last) sendToStreet(state, slot);
+  }
+}
+
+/** C-21 and 8.3: the main lobby goes only from its ends with nothing above it (planMainLobby); sky lobby columns turn into floor on every row. */
 function planLobby(state: TowerState, level: Level, x0: number, x1: number): Plan {
   const grid = state.grid;
   const lobbyColumns = columnsBetween(x0, x1).filter(
     (x) => structureAt(grid, level, x) === 'lobby',
   );
   if (lobbyColumns.length === 0) return NOTHING;
-  if (lobbyColumns.some((x) => isMainLobbyRow(grid, level, x)))
-    return reject('MAIN_LOBBY_PROTECTED');
+  if (lobbyColumns.some((x) => isMainLobbyRow(grid, level, x))) {
+    return planMainLobby(state, lobbyColumns);
+  }
   const sky = baseLevelOfLobby(grid, level);
   if (!sky) return NOTHING;
 

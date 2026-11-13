@@ -12,7 +12,9 @@ import { addCar, removeCar } from './elevator-cars';
 import { followPersonCommand, unfollowPersonCommand } from './follow-person';
 import { renamePerson } from './rename-person';
 import { renameUnit } from './rename-unit';
+import { setListed } from './set-listed';
 import { setPrice } from './set-price';
+import { setVenueEnabled, setVenueHours } from './set-venue-hours';
 
 export const towerCommandHandlers: CommandHandlers = {
   answerEvent,
@@ -29,6 +31,9 @@ export const towerCommandHandlers: CommandHandlers = {
   renameUnit,
   renamePerson,
   setPrice,
+  setListed,
+  setVenueHours,
+  setVenueEnabled,
   changeFilm,
   followPerson: followPersonCommand,
   unfollowPerson: unfollowPersonCommand,

@@ -8,7 +8,8 @@ import type {
   TransportType,
 } from './protocol/primitives';
 import type { PersonPool } from './people';
-import type { PriceLevel, ShaftType, StarRating, UnitType } from './units';
+import type { VenueHours } from './people-schedules';
+import type { ShaftType, StarRating, UnitType } from './units';
 
 /** Id of a placed unit, transport or shaft, with a type prefix: `u12`, `t3`, `s4`. */
 export type EntityId = string;
@@ -72,7 +73,27 @@ export interface Unit {
   level: Level;
   /** Player-chosen name; null shows the default name. */
   name: string | null;
-  priceLevel: PriceLevel;
+  /**
+   * What the player charges, in whole money: the sale price of a condo, the weekly rent of an
+   * office or shop, the nightly rate of a hotel room. 0 for types with no price.
+   */
+  price: number;
+  /** What the tower thinks the unit is worth today; recomputed at every 00:00 (appraisal.ts). */
+  appraisal: number;
+  /**
+   * For a condo, office or shop: on the market ("en venta" / "en renta"). Prospects only take a
+   * listed unit, and an unlisted rented unit's lease ends at its term end. False when built.
+   */
+  listed: boolean;
+  /**
+   * Fast food only: the player's switch. A change applies from the next 00:00; true for every
+   * other unit.
+   */
+  enabled: boolean;
+  /** What `enabled` was at the last 00:00: a venue that is not active today stays shut all day. */
+  activeToday: boolean;
+  /** Opening hours the player set for a fast food; null uses the default and for other units. */
+  hours: VenueHours | null;
   /** Whole dollars charged at placement, automatic floor included. */
   paid: number;
   placedAtStep: number;
@@ -107,6 +128,8 @@ export interface ConstructionSite {
   placedAtStep: number;
   /** Construction points the builders have added so far. */
   points: number;
+  /** Set by `setListed` before the unit is finished; the finished unit starts with it. */
+  listed?: boolean;
 }
 
 export interface VenueDay {
@@ -147,8 +170,10 @@ export interface HotelRoom {
   stayEndStep: number | null;
   /** Check-in step of the current or last stay; null before the first stay. */
   checkInStep: number | null;
-  /** Price level the current or last stay paid at check-in; null before the first stay. */
-  paidLevel: PriceLevel | null;
+  /** Nightly price over the appraisal at the current or last check-in; null before the first stay. */
+  paidRatio: number | null;
+  /** Nightly price agreed at check-in and charged at check-out; missing in a stay from an older save, which was paid at check-in. */
+  stayRate?: number | null;
   /** Arrival step of the booked party until it checks in or gives up; null with no booking. */
   arrivalStep: number | null;
   /** The room just became clean and rolls for a booking at once if the clock allows it. */
@@ -282,12 +307,17 @@ export interface Shaft {
 }
 
 export interface Lease {
-  /** Move-in or last renewal step. Payments fall on whole weeks after it. */
+  /**
+   * 07:00 of the day the term started (the start step itself when that is earlier). Payments fall
+   * on whole weeks after it, so rent is always charged at 07:00 on the start weekday.
+   */
   anchorStep: number;
   /** The next payment or, at the end of the term, the evaluation. */
   nextDueStep: number;
   /** Customer visits that started since the last payment or move-in; only shops count them. */
   weekVisits: number;
+  /** Weekly rent locked in when the term started or renewed. */
+  rent: number;
 }
 
 export interface CondoSale {
@@ -554,8 +584,8 @@ export type EngineEvent =
       amount: number;
       reason: MoneyReason;
     }
-  | { type: 'hotelCheckIn'; step: number; unitId: UnitId; nights: number; paid: number }
-  | { type: 'hotelCheckOut'; step: number; unitId: UnitId }
+  | { type: 'hotelCheckIn'; step: number; unitId: UnitId; nights: number }
+  | { type: 'hotelCheckOut'; step: number; unitId: UnitId; nights: number; paid: number }
   | { type: 'roomStateChanged'; step: number; unitId: UnitId; state: HotelRoomState }
   | { type: 'starsChanged'; step: number; stars: StarRating; unlocked: UnitType[] }
   | { type: 'weddingCompleted'; step: number }

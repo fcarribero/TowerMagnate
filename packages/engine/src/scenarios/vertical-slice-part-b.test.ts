@@ -142,14 +142,17 @@ describe('scenario: vertical slice part B, stars, forced bomb and 14 days', () =
     expect(ruinedOffices).toBeGreaterThan(0);
   });
 
-  it('charges the day 7 rent like the day 0 rent', () => {
+  it('charges the day 7 rent like the day 0 rent, plus any office signed that day', () => {
     const signedOnMonday = run.days[0]?.rentIncome ?? 0;
     expect(signedOnMonday).toBeGreaterThan(0);
-    expect(run.days[7]?.rentIncome).toBe(signedOnMonday);
+    // Rent counts from 07:00 of the start day, so each week-0 lease pays again on day 7.
+    const extra = (run.days[7]?.rentIncome ?? 0) - signedOnMonday;
+    expect(extra).toBeGreaterThanOrEqual(0);
+    expect(extra % OFFICE_RENT).toBe(0);
     const weekRent = (from: number) =>
       run.days.slice(from, from + 7).reduce((sum, day) => sum + day.rentIncome, 0);
-    expect(weekRent(7)).toBe(weekRent(0));
-    expect(weekRent(0)).toBe(OFFICE_RENT * 90);
+    expect(weekRent(7)).toBeGreaterThanOrEqual(weekRent(0));
+    expect(weekRent(0)).toBeLessThanOrEqual(OFFICE_RENT * 90);
   });
 
   it(

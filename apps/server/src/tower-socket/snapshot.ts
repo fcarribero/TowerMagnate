@@ -52,7 +52,8 @@ import {
   type UnitView,
   type Viewport,
   type WeekTotals,
-  DEFAULT_PRICE_LEVEL,
+  isPricedType,
+  priceBand,
 } from '@tower-magnate/shared';
 import { noticeParamTexts } from './notice-params';
 
@@ -121,7 +122,11 @@ export function buildSnapshot(
     notices: state.notices.map(noticeView),
     overlays: {
       evaluation: evaluationOverlay(state),
-      price: Object.fromEntries(units.map((unit) => [unit.id, unit.price])),
+      price: Object.fromEntries(
+        units
+          .filter((unit) => isPricedType(unit.type))
+          .map((unit) => [unit.id, priceBand(unit.price, unit.appraisal)]),
+      ),
       hotel: hotelOverlay(state),
     },
     finances: financeSummary(state),
@@ -148,6 +153,10 @@ function hotelOverlay(state: TowerState): Snapshot['overlays']['hotel'] {
 
 type TowerUnit = TowerState['units'][string];
 
+function isListable(type: TowerUnit['type']): boolean {
+  return type === 'condo' || type === 'office' || type === 'retail-shop';
+}
+
 /** A unit with a tenant, owners or a guest is taken even before anyone of its household is in the tower. */
 function isTaken(unit: TowerUnit): boolean {
   return unit.lease !== null || unit.sale !== null || unit.hotel?.state === 'occupied';
@@ -173,7 +182,7 @@ function siteView(site: TowerState['sites'][string], disconnected: boolean): Uni
     x: site.x,
     level: site.level,
     name: null,
-    price: DEFAULT_PRICE_LEVEL,
+    price: 0,
     occupied: false,
     variant: disconnected ? 'disconnected' : 'empty',
     construction: Math.floor(siteProgress(site) * 100),
@@ -194,7 +203,12 @@ function unitView(
     x: unit.x,
     level: unit.level,
     name: unit.name,
-    price: unit.priceLevel,
+    price: unit.price,
+    ...(isPricedType(unit.type) ? { appraisal: unit.appraisal } : {}),
+    ...(unit.lease ? { rent: unit.lease.rent } : {}),
+    ...(isListable(unit.type) ? { listed: unit.listed } : {}),
+    ...(unit.type === 'fast-food' ? { enabled: unit.enabled } : {}),
+    ...(unit.type === 'fast-food' && !unit.activeToday ? { closedToday: true as const } : {}),
     occupied,
     variant: unitVariant(unit, occupied, disconnected, sleeping),
     ...(inside ? { inside } : {}),

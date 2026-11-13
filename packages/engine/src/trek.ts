@@ -44,6 +44,7 @@ import {
 import { CHILD_KIND, householdIndexOf, isChild } from './children';
 import { NOTHING_DUE, parsePersonId, personEntityId, removePerson, slotOfPerson } from './people';
 import { floorIndex } from './routing/transport-graph';
+import { mainLobbyEnds, nearestStreetColumn, STREET_LEVEL } from './street';
 import {
   spendBudget,
   TransportGraph,
@@ -68,6 +69,10 @@ export const TREK_PHASES = [
   'waitingBesideQueue',
   'riding',
   'noRoute',
+  // A person who comes in from the street, or leaves to it, walks along the ground outside the
+  // lobby. Appended last so saved phase numbers keep their meaning.
+  'approaching',
+  'departing',
 ] as const;
 
 export type TrekPhase = (typeof TREK_PHASES)[number];
@@ -83,6 +88,8 @@ const QUEUED = TREK_PHASES.indexOf('queued');
 const WAITING_BESIDE_QUEUE = TREK_PHASES.indexOf('waitingBesideQueue');
 const RIDING = TREK_PHASES.indexOf('riding');
 const NO_ROUTE = TREK_PHASES.indexOf('noRoute');
+const APPROACHING = TREK_PHASES.indexOf('approaching');
+const DEPARTING = TREK_PHASES.indexOf('departing');
 
 const MAID_KIND = PERSON_KINDS.indexOf('maid');
 
@@ -109,7 +116,25 @@ function packBudget(budget: TripBudget): number {
   );
 }
 
-function unpackBudget(packed: number): TripBudget {
+/**
+ * The budget number also carries where the person walks to after the destination: 0 for nowhere,
+ * 1 for the left edge of the map and 2 for the right edge, as multiples of BUDGET_RANGE.
+ */
+function streetFlagOf(stored: number): number {
+  return Math.floor(stored / BUDGET_RANGE);
+}
+
+function streetFlagFor(column: number | undefined): number {
+  if (column === undefined) return 0;
+  return column === 0 ? 1 : 2;
+}
+
+function repackBudget(budget: TripBudget, previous: number): number {
+  return packBudget(budget) + streetFlagOf(previous) * BUDGET_RANGE;
+}
+
+function unpackBudget(stored: number): TripBudget {
+  const packed = stored % BUDGET_RANGE;
   const rest = Math.floor(packed / STAIR_RANGE);
   return {
     stairFloors: packed % STAIR_RANGE,
@@ -201,7 +226,7 @@ function placeKey(level: number, column: number): number {
 
 function recheckStart(pool: PersonPool, slot: number): number {
   const place = placeKey(pool.level[slot] as number, pool.column[slot] as number);
-  return place * BUDGET_RANGE + (pool.trekBudget[slot] as number);
+  return place * BUDGET_RANGE + ((pool.trekBudget[slot] as number) % BUDGET_RANGE);
 }
 
 function destinationGroupOf(pass: TrekPass, pool: PersonPool, slot: number): number | null {
@@ -452,12 +477,13 @@ function startLeg(context: StepContext, slot: number, leg: FirstLeg): void {
  * Plans the next leg from where the person stands and starts it (routing 5.1). The person ends
  * idle when there is no route. A leg that starts where the person already is begins at once.
  */
-function planNextLeg(
-  context: StepContext,
-  slot: number,
-  plan: RoutePlan | null = planFrom(context, slot),
-): boolean {
+function planNextLeg(context: StepContext, slot: number, given?: RoutePlan | null): boolean {
   const pool = context.state.people;
+  if (given === undefined && !isChild(pool, slot)) {
+    const door = streetDoorOf(context.state, pool, slot);
+    if (door !== null) return approach(context, slot, door);
+  }
+  const plan = given === undefined ? planFrom(context, slot) : given;
   if (!plan) {
     pool.trek[slot] = IDLE;
     return false;
@@ -475,6 +501,69 @@ function planNextLeg(
   return true;
 }
 
+/**
+ * The lobby end a person on the ground level has to walk to first, when they stand outside the
+ * lobby: just come in from the street, or left standing where the lobby was demolished. Null when
+ * they are inside the lobby run or on another level; -1 when the tower has no lobby.
+ */
+function streetDoorOf(state: TowerState, pool: PersonPool, slot: number): number | null {
+  if (pool.level[slot] !== STREET_LEVEL) return null;
+  const column = pool.column[slot] as number;
+  const ends = mainLobbyEnds(state);
+  if (!ends) return -1;
+  if (column < ends.left) return ends.left;
+  if (column > ends.right) return ends.right;
+  return null;
+}
+
+/**
+ * Walks the person along the ground to the lobby end `door`, where the planned trip starts. With
+ * no lobby, or no route from its door, nothing changes and false is returned.
+ */
+function approach(context: StepContext, slot: number, door: number): boolean {
+  const pool = context.state.people;
+  if (door < 0) {
+    pool.trek[slot] = IDLE;
+    return false;
+  }
+  const column = pool.column[slot] as number;
+  pool.column[slot] = door;
+  const plan = planFrom(context, slot);
+  pool.column[slot] = column;
+  if (!plan) {
+    pool.trek[slot] = IDLE;
+    return false;
+  }
+  setLeg(pool, slot, APPROACHING, { via: 0, level: STREET_LEVEL, column: door });
+  return true;
+}
+
+/** The person stands at the destination and still has the street to walk out to. */
+function startDeparture(context: StepContext, slot: number, flag: number): void {
+  const pool = context.state.people;
+  const edge = flag === 1 ? 0 : LAST_COLUMN;
+  setLeg(pool, slot, DEPARTING, { via: 0, level: STREET_LEVEL, column: edge });
+  if (pool.column[slot] === edge) arrive(context, slot);
+}
+
+/**
+ * A person who stood in the lobby when it was demolished is outside from then on: they are put at
+ * the nearest edge of the map and walk in again from there, to the same place as before. Someone
+ * walking out just finishes their walk. Works on the state alone, for the demolish command.
+ */
+export function sendToStreet(state: TowerState, slot: number): void {
+  const pool = state.people;
+  const phase = pool.trek[slot] as number;
+  if (phase === DEPARTING) {
+    pool.column[slot] = pool.legColumn[slot] as number;
+    return;
+  }
+  pool.column[slot] = nearestStreetColumn(pool.column[slot] as number);
+  if (phase === IDLE || phase === QUEUED || phase === RIDING) return;
+  pool.trek[slot] = NO_ROUTE;
+  pool.legStep[slot] = state.step + 1;
+}
+
 function entityOf(pool: PersonPool, slot: number): EntityId {
   return personEntityId(pool.id[slot] as number);
 }
@@ -486,7 +575,7 @@ function entityOf(pool: PersonPool, slot: number): EntityId {
 function replan(
   context: StepContext,
   slot: number,
-  plan: RoutePlan | null = planFrom(context, slot),
+  plan?: RoutePlan | null,
 ): void {
   if (isChild(context.state.people, slot)) {
     // A child never plans: it is let go here and the child system copies the guardian again.
@@ -509,12 +598,19 @@ function replan(
  * Sends a person on a trip to `to` with an empty budget. Returns false, and changes nothing,
  * when no route exists. When the person gets there, their due step is set to that step.
  */
-export function startTrek(context: StepContext, slot: number, to: TrekPlace): boolean {
+export function startTrek(
+  context: StepContext,
+  slot: number,
+  to: TrekPlace,
+  streetColumn?: number,
+): boolean {
   const pool = context.state.people;
   leaveHome(pool, slot);
   pool.trekLevel[slot] = to.level;
   pool.trekColumn[slot] = to.column;
-  pool.trekBudget[slot] = packBudget({ stairFloors: 0, escalatorFloors: 0, rides: 0 });
+  pool.trekBudget[slot] =
+    packBudget({ stairFloors: 0, escalatorFloors: 0, rides: 0 }) +
+    streetFlagFor(streetColumn) * BUDGET_RANGE;
   const started = planNextLeg(context, slot);
   if (!started) clearTrek(pool, slot);
   else if (isOnTrek(pool, slot)) refreshPersonStress(context.state, slot, true);
@@ -790,7 +886,13 @@ function recheckFullQueue(context: StepContext, slot: number, pass: TrekPass): v
 function reachLegStart(context: StepContext, slot: number): void {
   const phase = context.state.people.trek[slot];
   if (phase === WALKING_TO_DESTINATION) {
+    const flag = streetFlagOf(context.state.people.trekBudget[slot] as number);
+    if (flag > 0) startDeparture(context, slot, flag);
+    else arrive(context, slot);
+  } else if (phase === DEPARTING) {
     arrive(context, slot);
+  } else if (phase === APPROACHING) {
+    replan(context, slot);
   } else if (phase === WALKING_TO_STAIRS || phase === WALKING_TO_ESCALATOR) {
     const onStairs = phase === WALKING_TO_STAIRS;
     if (!flightExists(context, slot)) {
@@ -825,7 +927,10 @@ export function alightRider(context: StepContext, person: EntityId, level: Level
   if (slot < 0 || pool.trek[slot] !== RIDING) return;
   const budget = unpackBudget(pool.trekBudget[slot] as number);
   const ride = { kind: 'standard', via: '', from: 0, to: 0, floors: 1 } as const;
-  pool.trekBudget[slot] = packBudget(spendBudget(budget, ride));
+  pool.trekBudget[slot] = repackBudget(
+    spendBudget(budget, ride),
+    pool.trekBudget[slot] as number,
+  );
   finishRide(
     context.state,
     slot,
@@ -841,7 +946,10 @@ function finishFlight(context: StepContext, slot: number): void {
   const kind = pool.trek[slot] === ON_STAIRS ? 'stairs' : 'escalator';
   const budget = unpackBudget(pool.trekBudget[slot] as number);
   const flight = { kind, via: '', from: 0, to: 0, floors: 1 } as const;
-  pool.trekBudget[slot] = packBudget(spendBudget(budget, flight));
+  pool.trekBudget[slot] = repackBudget(
+    spendBudget(budget, flight),
+    pool.trekBudget[slot] as number,
+  );
   addFlight(pool, slot, kind);
   const transport = context.state.transports[transportKey(pool.legVia[slot] as number)];
   if (transport) {
@@ -861,7 +969,7 @@ function finishFlight(context: StepContext, slot: number): void {
 function laneKey(context: StepContext, slot: number): number | null {
   const pool = context.state.people;
   const phase = pool.trek[slot] as number;
-  if (phase === IDLE || phase > WALKING_TO_SHAFT || pool.kind[slot] === CHILD_KIND) return null;
+  if (phase === IDLE || !isWalkingPhase(phase) || pool.kind[slot] === CHILD_KIND) return null;
   const column = pool.column[slot] as number;
   const target = targetColumn(context, slot);
   if (column === target) return null;
@@ -928,6 +1036,11 @@ function walk(context: StepContext, slot: number, pass: TrekPass): boolean {
   pool.column[slot] = column + direction;
   syncLane(pass, slot);
   return pool.column[slot] === target;
+}
+
+/** True while the person is walking along a level, whatever for. */
+function isWalkingPhase(phase: number): boolean {
+  return phase <= WALKING_TO_SHAFT || phase === APPROACHING || phase === DEPARTING;
 }
 
 function usesShaft(phase: number): boolean {
@@ -1092,14 +1205,14 @@ function drainWhileWaiting(pool: PersonPool, slot: number, phase: number): void 
 
 /** Phases in which nothing happens until the leg step: flights, a full queue, no route. */
 function waitsForLegStep(phase: number): boolean {
-  return phase > WALKING_TO_SHAFT && phase !== QUEUED && phase !== RIDING;
+  return !isWalkingPhase(phase) && phase !== QUEUED && phase !== RIDING;
 }
 
 function stepPerson(context: StepContext, slot: number, pass: TrekPass): void {
   const pool = context.state.people;
   const phase = pool.trek[slot] as number;
   if (phase === IDLE || phase === QUEUED || phase === RIDING) return;
-  if (phase <= WALKING_TO_SHAFT) {
+  if (isWalkingPhase(phase)) {
     if (walk(context, slot, pass)) reachLegStart(context, slot);
   } else if (pool.legStep[slot] === context.state.step) {
     if (phase === WAITING_BESIDE_QUEUE) recheckFullQueue(context, slot, pass);

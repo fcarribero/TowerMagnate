@@ -29,7 +29,7 @@ function venueTower(type: VenueType): { state: TowerState; id: UnitId } {
   const id = unitIds[0] as UnitId;
   const unit = state.units[id];
   if (type === 'retail-shop' && unit) {
-    unit.lease = { anchorStep: 0, nextDueStep: STEPS_PER_DAY * 30, weekVisits: 0 };
+    unit.lease = { anchorStep: 0, nextDueStep: STEPS_PER_DAY * 30, weekVisits: 0, rent: 10_000 };
   }
   addCrew(state, id, { planToday: false });
   return { state, id };
@@ -101,7 +101,8 @@ describe('a venue crew', () => {
     const { state, id } = venueTower('cinema');
     let firstStaffed = -1;
     let sawPartial = false;
-    runDay(state, 14, (now, minute) => {
+    // The crew walks in from the map edge, up to about an hour after their arrival time.
+    runDay(state, 16, (now, minute) => {
       const unit = now.units[id];
       if (!unit) return;
       const nowPhases = phases(now);
@@ -115,7 +116,7 @@ describe('a venue crew', () => {
       });
     });
     expect(firstStaffed).toBeGreaterThanOrEqual(VENUE_STAFF.cinema.open - 60);
-    expect(firstStaffed).toBeLessThanOrEqual(VENUE_STAFF.cinema.open);
+    expect(firstStaffed).toBeLessThanOrEqual(VENUE_STAFF.cinema.open + 120);
     expect(sawPartial).toBe(true);
   });
 });

@@ -5,6 +5,7 @@ import {
   type TowerState,
   type Unit,
   type UnitType,
+  priceOfLevel,
 } from '@tower-magnate/shared';
 import { describe, expect, it } from 'vitest';
 import { STEPS_PER_HOUR } from './calendar';
@@ -63,7 +64,7 @@ describe('condo evaluation (10.4)', () => {
       { type: 'single-room', level: 20, x: 240 },
     );
     const condo = units[0] as Unit;
-    condo.priceLevel = 'low';
+    condo.price = priceOfLevel('condo', 'low');
     condo.sale = { price: 1, anchorStep: 0, nextEvaluationStep: EVALUATION_STEP };
     return { state, condo };
   }
@@ -100,12 +101,12 @@ describe('hotel room evaluation (10.5)', () => {
       state: 'occupied',
       stayEndStep: at(WEDNESDAY, 10),
       checkInStep: at(MONDAY, 17),
-      paidLevel: 'high',
+      paidRatio: 1.5,
       arrivalStep: null,
       rollDue: false,
       dirtyChecks: 0,
     };
-    room.priceLevel = 'low';
+    room.price = priceOfLevel('double-room', 'low');
     const trips: [number, number][] = [
       [at(MONDAY, 18, 40), 40],
       [at(MONDAY, 20, 5), 30],
@@ -128,7 +129,7 @@ describe('hotel room evaluation (10.5)', () => {
 
   it('uses the level paid at check-in, not the level set now', () => {
     const { state, room } = stayedRoom(70);
-    room.priceLevel = 'minimum';
+    room.price = priceOfLevel('double-room', 'minimum');
     expect(storeGrade(state, room)).toBe('fair');
   });
 
@@ -147,7 +148,7 @@ describe('retail shop evaluation (10.6)', () => {
   function leasedShop() {
     const { state, units } = towerWith({ type: 'retail-shop', level: 3, x: 40 });
     const shop = units[0] as Unit;
-    shop.lease = { anchorStep: 0, nextDueStep: EVALUATION_STEP, weekVisits: 0 };
+    shop.lease = { anchorStep: 0, nextDueStep: EVALUATION_STEP, weekVisits: 0, rent: 10_000 };
     fileTrips(state, shop, 180, 14_580);
     return { state, shop };
   }
@@ -155,11 +156,11 @@ describe('retail shop evaluation (10.6)', () => {
   it('is fair at alto and good at normal and minimo with B = 81', () => {
     const { state, shop } = leasedShop();
     expect(unitBase(state, shop)).toBe(81);
-    shop.priceLevel = 'high';
+    shop.price = priceOfLevel('retail-shop', 'high');
     expect(storeGrade(state, shop)).toBe('fair');
-    shop.priceLevel = 'normal';
+    shop.price = priceOfLevel('retail-shop', 'normal');
     expect(storeGrade(state, shop)).toBe('good');
-    shop.priceLevel = 'minimum';
+    shop.price = priceOfLevel('retail-shop', 'minimum');
     expect(storeGrade(state, shop)).toBe('good');
   });
 });
@@ -205,6 +206,7 @@ describe('daily grade at 00:00', () => {
       anchorStep: 0,
       nextDueStep: EVALUATION_STEP + 7 * STEPS_PER_DAY,
       weekVisits: 0,
+      rent: 10_000,
     };
     return { state, office };
   }
@@ -240,7 +242,7 @@ describe('daily grade at 00:00', () => {
     expect(first.units[office.id]?.evaluation).toBe('good');
 
     const raised = first.units[office.id] as Unit;
-    raised.priceLevel = 'high';
+    raised.price = priceOfLevel('office', 'high');
     const beforeMidnight = engine.step(first, [], STEPS_PER_DAY - 1).state;
     expect(beforeMidnight.units[office.id]?.evaluation).toBe('good');
     const atMidnight = engine.step(beforeMidnight, [], 1).state;
@@ -316,7 +318,7 @@ describe('grades at lease end, condo evaluation and stay end', () => {
     const { state, units } = towerWith({ type: 'office', level: 3, x: 40 });
     const office = units[0] as Unit;
     const termEnd = LEASE_CONTRACT_WEEKS * WEEK;
-    office.lease = { anchorStep: 0, nextDueStep: termEnd, weekVisits: 0 };
+    office.lease = { anchorStep: 0, nextDueStep: termEnd, weekVisits: 0, rent: 10_000 };
     state.step = termEnd - 1;
     const engine = createEngine({ commandHandlers: {}, systems: [createLeaseSystem()] });
     const after = engine.step(state, [], 1).state;

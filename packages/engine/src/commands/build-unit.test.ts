@@ -1,3 +1,4 @@
+import { computeAppraisal } from '../appraisal';
 import { finishSites } from '../testing/finish-sites';
 import {
   UNIT_CATALOG,
@@ -135,7 +136,7 @@ describe('buildUnit', () => {
     expect(result.ok && result.cost).toBe(44_500);
   });
 
-  it('records the unit for rent at normal price with what was paid and when', () => {
+  it('records the unit unlisted at its appraisal as price with what was paid and when', () => {
     const tower = towerWithMainLobby(0, 20);
     tower.step = 500;
     const { state } = run(tower, unit('office', 3, 2));
@@ -145,7 +146,12 @@ describe('buildUnit', () => {
       x: 3,
       level: 2,
       name: null,
-      priceLevel: 'normal',
+      price: state.units.u1?.appraisal,
+      appraisal: computeAppraisal(tower, { type: 'office', evaluation: null }),
+      listed: false,
+      enabled: true,
+      activeToday: true,
+      hours: null,
       paid: 44_500,
       placedAtStep: 500,
       used: false,
@@ -155,6 +161,7 @@ describe('buildUnit', () => {
       evaluation: null,
       venue: null,
     });
+    expect(state.units.u1?.price).toBe(state.units.u1?.appraisal);
     expect(state.nextId).toBe(2);
   });
 

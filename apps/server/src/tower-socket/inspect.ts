@@ -1,5 +1,7 @@
 import {
   countPeopleOfUnit,
+  peopleOfUnit,
+  venuePeople,
   filmAgeDays as engineFilmAgeDays,
   foodVenueSummary,
   housekeepingSummary,
@@ -14,6 +16,8 @@ import {
 } from '@tower-magnate/engine';
 import {
   LEASE_CONTRACT_WEEKS,
+  priceBand,
+  priceBounds,
   UNIT_CATALOG,
   type InspectData,
   type TowerState,
@@ -172,13 +176,37 @@ function cinemaDetails(state: TowerState, unit: Unit): UnitDetails {
     group: 'cinema',
     filmWeek: filmAgeDays === null ? null : Math.floor(filmAgeDays / 7) + 1,
     filmAgeDays,
-    price: unit.priceLevel,
   };
 }
 
 function venueDetails(state: TowerState, unit: Unit): UnitDetails {
   const summary = foodVenueSummary(state, unit);
-  return summary === null ? null : { group: 'venue', ...summary };
+  if (summary === null) return null;
+  const people = venuePeople(state, unit);
+  const { inside: _outside, ...rest } = summary;
+  return {
+    group: 'venue',
+    ...rest,
+    workers: people.workers,
+    workersInside: people.workersInside,
+    customers: people.customers,
+    inside: people.customers.length + people.workersInside,
+    hours: unit.hours ?? { open: summary.opens, close: summary.closes },
+    enabled: unit.enabled,
+    activeToday: unit.activeToday,
+  };
+}
+
+function pricing(unit: Unit) {
+  const { min, max } = priceBounds(unit);
+  return {
+    price: unit.price,
+    appraisal: unit.appraisal,
+    priceBand: priceBand(unit.price, unit.appraisal),
+    priceMin: min,
+    priceMax: max,
+    priceStep: 1 as const,
+  };
 }
 
 function capacityOf(unit: Unit): number {
@@ -194,9 +222,13 @@ function leaseDetails(state: TowerState, unit: Unit): UnitDetails {
     persons: countPeopleOfUnit(state.people, unit.id),
     capacity: capacityOf(unit),
     evaluation: unit.evaluation,
-    price: unit.priceLevel,
+    ...pricing(unit),
+    listed: unit.listed,
+    weeklyRent: lease?.rent ?? null,
     leaseWeek: weeksIn === null ? null : Math.min(weeksIn, LEASE_CONTRACT_WEEKS),
     nextPaymentStep: lease?.nextDueStep ?? null,
+    workers: peopleOfUnit(state, unit).workers,
+    customers: unit.type === 'retail-shop' ? venuePeople(state, unit).customers : [],
   };
 }
 
@@ -204,10 +236,12 @@ function condoDetails(state: TowerState, unit: Unit): UnitDetails {
   return {
     group: 'condo',
     state: unit.sale ? 'sold' : 'forSale',
-    residents: countPeopleOfUnit(state.people, unit.id),
+    residents: peopleOfUnit(state, unit).residents,
+    residentCount: countPeopleOfUnit(state.people, unit.id),
     capacity: capacityOf(unit),
     evaluation: unit.evaluation,
-    price: unit.priceLevel,
+    ...pricing(unit),
+    listed: unit.listed,
     nextEvaluationStep: unit.sale?.nextEvaluationStep ?? null,
   };
 }
@@ -219,9 +253,10 @@ function hotelDetails(state: TowerState, unit: Unit): UnitDetails {
     group: 'hotel',
     state: room?.state ?? 'clean',
     guests: countPeopleOfUnit(state.people, unit.id),
+    tenants: peopleOfUnit(state, unit).residents,
     capacity: capacityOf(unit),
     evaluation: unit.evaluation,
-    price: unit.priceLevel,
+    ...pricing(unit),
     checkoutStep: occupied ? (room?.stayEndStep ?? null) : null,
   };
 }

@@ -13,6 +13,8 @@ import { createEngine, type SimulationSystem } from './step';
 import { buildTower, plainTowerPlan } from './testing';
 
 const TUESDAY_09_12 = 8_640 + 9 * 360 + 12 * 6;
+/** Rent is counted from 07:00 of the day the contract starts. */
+const TUESDAY_07 = 8_640 + 7 * 360;
 const TERM = 4 * STEPS_PER_WEEK;
 
 interface Setup {
@@ -84,7 +86,7 @@ describe('office and shop leases', () => {
     const payments: number[] = [];
     let state = tower;
     for (let s = 0; s < 4; s++) {
-      const due = TUESDAY_09_12 + s * STEPS_PER_WEEK;
+      const due = s === 0 ? TUESDAY_09_12 : TUESDAY_07 + s * STEPS_PER_WEEK;
       const before = engine.step(state, [], stepsTo(state, due - 1)).state;
       const after = engine.step(before, [], 1).state;
       expect(after.money - before.money).toBe(10_000);
@@ -92,21 +94,25 @@ describe('office and shop leases', () => {
       state = after;
     }
     expect(payments.map((step) => dateOfStep(step).weekday)).toEqual([1, 1, 1, 1]);
-    expect(payments.map((step) => step % 8_640)).toEqual(Array(4).fill(TUESDAY_09_12 % 8_640));
-    expect(payments).toEqual([0, 1, 2, 3].map((week) => TUESDAY_09_12 + week * STEPS_PER_WEEK));
+    expect(payments.slice(1).map((step) => step % 8_640)).toEqual(Array(3).fill(TUESDAY_07 % 8_640));
+    expect(payments).toEqual([
+      TUESDAY_09_12,
+      ...[1, 2, 3].map((week) => TUESDAY_07 + week * STEPS_PER_WEEK),
+    ]);
   });
 
   it('collects five payments and one renewal over five weeks', () => {
     const { tower, unitId, engine } = leaseRun();
-    const run = engine.step(tower, [], TUESDAY_09_12 + 5 * STEPS_PER_WEEK - 1);
+    const run = engine.step(tower, [], TUESDAY_07 + 5 * STEPS_PER_WEEK - 1);
     const types = run.events.map((event) => event.type);
     expect(types.filter((type) => type === 'leaseSigned')).toHaveLength(1);
     expect(types.filter((type) => type === 'leaseRenewed')).toHaveLength(1);
     expect(run.state.money - tower.money).toBe(5 * 10_000);
     expect(run.state.units[unitId]?.lease).toEqual({
-      anchorStep: TUESDAY_09_12 + TERM,
-      nextDueStep: TUESDAY_09_12 + TERM + STEPS_PER_WEEK,
+      anchorStep: TUESDAY_07 + TERM,
+      nextDueStep: TUESDAY_07 + TERM + STEPS_PER_WEEK,
       weekVisits: 0,
+      rent: 10_000,
     });
   });
 
@@ -124,14 +130,15 @@ describe('office and shop leases', () => {
     expect(run.events).toContainEqual(expect.objectContaining({ type: 'unitMoney', unitId, reason: 'rent' }));
   });
 
-  it('applies a price change from the next payment, not the current week', () => {
+  it('keeps charging the rent locked at move-in after the price changes', () => {
     const { tower, unitId, engine } = leaseRun({ moveInAt: 10 });
     const signed = engine.step(tower, [], 20).state;
-    unitOf(signed, unitId).priceLevel = 'high';
+    unitOf(signed, unitId).price = 15_000;
     const before = engine.step(signed, [], stepsTo(signed, 10 + STEPS_PER_WEEK - 1)).state;
     expect(before.money - tower.money).toBe(10_000);
     const after = engine.step(before, [], 1).state;
-    expect(after.money - before.money).toBe(15_000);
+    expect(after.money - before.money).toBe(10_000);
+    expect(after.units[unitId]?.lease?.rent).toBe(10_000);
   });
 
   it('renews on good or fair and pays week 1 of the new term at once', () => {
@@ -174,7 +181,7 @@ describe('office and shop leases', () => {
       moveInAt: 10,
       evaluate: () => 'poor',
     });
-    unitOf(tower, unitId).priceLevel = 'low';
+    unitOf(tower, unitId).price = 10_000;
     const run = engine.step(tower, [], 10 + TERM);
     expect(run.state.money - tower.money).toBe(4 * 10_000);
     expect(run.events.at(-1)).toEqual({
@@ -202,6 +209,7 @@ describe('office and shop leases', () => {
       anchorStep: leaveAt + 360,
       nextDueStep: leaveAt + 360 + STEPS_PER_WEEK,
       weekVisits: 0,
+      rent: 10_000,
     });
   });
 
@@ -257,7 +265,7 @@ describe('shop early leave (economy 4.3)', () => {
     });
     const firstWeek = engine.step(tower, [], MOVE_IN + STEPS_PER_WEEK);
     expect(firstWeek.state.money - tower.money).toBe(2 * 15_000);
-    expect(firstWeek.state.units[unitId]?.lease).toMatchObject({ weekVisits: 0 });
+    expect(firstWeek.state.units[unitId]?.lease).toMatchObject({ weekVisits: 0, rent: 15_000 });
     const secondWeek = engine.step(firstWeek.state, [], STEPS_PER_WEEK);
     expect(secondWeek.state.money).toBe(firstWeek.state.money);
     expect(newsOf(secondWeek.events)).toEqual(['news.shopLeftNoCustomers']);

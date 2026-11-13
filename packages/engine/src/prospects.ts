@@ -1,4 +1,6 @@
 import {
+  LEASE_PROSPECT_ROLL_MINUTES,
+  LEASE_WINDOW_HOURS,
   PERSON_KINDS,
   PROSPECT_CHANCE,
   PROSPECT_ROLL_HOURS,
@@ -8,8 +10,10 @@ import {
 import { isWeekendDay } from './calendar';
 import { childNameSeed, rollCondoHousehold } from './children';
 import { sellCondo } from './condos';
-import { isLeasable, moveInTenant } from './leases';
+import { isInLeaseWindow, isLeasable, moveInTenant } from './leases';
+import { byPriceRatio, priceRatio } from './pricing';
 import { entrancePlace, unitPlace } from './office-routine';
+import { streetPlace, streetWalkAllowance } from './street';
 import {
   addPeopleForUnit,
   rollParkingHolder,
@@ -33,6 +37,11 @@ const CONDO_HOUSEHOLD = unitPeople('condo')?.count ?? 1;
 function isVacant(unit: Unit): boolean {
   if (unit.type === 'condo') return !unit.sale;
   return isLeasable(unit) && !unit.lease;
+}
+
+/** Free and listed: only a unit on the market gets prospects and can be sold or rented. */
+function isOnMarket(unit: Unit): boolean {
+  return unit.listed && isVacant(unit);
 }
 
 function rollsToday(unit: Unit, occurrence: HookOccurrence): boolean {
@@ -59,8 +68,8 @@ function unitsWithProspects(state: TowerState): Set<number> {
 function sendProspect(context: StepContext, unit: Unit): void {
   const { state } = context;
   const onRight = chance(state.rng, 0.5);
-  const entrance = entrancePlace(state, onRight);
-  if (!entrance) return;
+  if (!entrancePlace(state, onRight)) return;
+  const entrance = streetPlace(onRight);
   const household =
     unit.type === 'condo'
       ? rollCondoHousehold(unitNumber(unit.id), state.step)
@@ -96,15 +105,20 @@ function sendProspect(context: StepContext, unit: Unit): void {
 }
 
 /** One hourly roll: every vacant unit without a prospect rolls once, in increasing unit id. */
-function rollForProspects(context: StepContext, occurrence: HookOccurrence): void {
+function rollForProspects(
+  context: StepContext,
+  occurrence: HookOccurrence,
+  leasing: boolean,
+): void {
   const { state } = context;
   const waiting = unitsWithProspects(state);
   const vacant = Object.values(state.units)
-    .filter((unit) => isVacant(unit) && rollsToday(unit, occurrence))
+    .filter((unit) => (unit.type !== 'condo') === leasing)
+    .filter((unit) => isOnMarket(unit) && rollsToday(unit, occurrence))
     .filter((unit) => !waiting.has(unitNumber(unit.id)))
     .sort((a, b) => unitNumber(a.id) - unitNumber(b.id));
   for (const unit of vacant) {
-    const odds = PROSPECT_CHANCE[unit.priceLevel];
+    const odds = byPriceRatio(unit.type, PROSPECT_CHANCE, priceRatio(unit));
     if (chance(state.rng, odds)) sendProspect(context, unit);
   }
 }
@@ -135,7 +149,7 @@ function settleProspect(context: StepContext, slot: number): void {
     pool.dueStep[slot] = NOTHING_DUE;
     return;
   }
-  if (!unit || !isVacant(unit)) {
+  if (!unit || !isOnMarket(unit)) {
     removePerson(state, personId);
     return;
   }
@@ -144,6 +158,12 @@ function settleProspect(context: StepContext, slot: number): void {
     rollParkingHolder(state, personId, 'condo');
     pool.kind[slot] = RESIDENT_KIND;
     pool.dueStep[slot] = NOTHING_DUE;
+    return;
+  }
+  if (!isInLeaseWindow(state.step - streetWalkAllowance(state))) {
+    // New contracts only start inside the lease window; a prospect who comes late goes away.
+    // The walk in from the map edge does not count against the prospect.
+    removePerson(state, personId);
     return;
   }
   moveInTenant(context, unit.id);
@@ -173,7 +193,17 @@ export function createProspectDemand(): ProspectDemand {
     rollHooks.push({
       name: `prospect-rolls-${hour}`,
       schedule: { every: 'day', hour, minute: 0 },
-      run: rollForProspects,
+      run: (context, occurrence) => rollForProspects(context, occurrence, false),
+    });
+  }
+  const { from, until } = LEASE_WINDOW_HOURS;
+  for (let at = from * 60; at < until * 60 - 30; at += LEASE_PROSPECT_ROLL_MINUTES) {
+    const hour = Math.floor(at / 60);
+    const minute = at % 60;
+    rollHooks.push({
+      name: `prospect-lease-rolls-${hour}-${minute}`,
+      schedule: { every: 'day', hour, minute },
+      run: (context, occurrence) => rollForProspects(context, occurrence, true),
     });
   }
   const system = createPeopleSystem((context, slot) => {

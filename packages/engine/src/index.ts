@@ -51,6 +51,10 @@ export {
 export { hashState } from './hash';
 export { migrateState, StateMigrationError } from './migrations';
 export { createCondoSystem, sellCondo } from './condos';
+export { demolitionIndemnity } from './commands/demolish';
+export { computeAppraisal } from './appraisal';
+export { priceRatio } from './pricing';
+export { venuePeople, peopleOfUnit } from './venue-people';
 export {
   bookingChance,
   checkIn,

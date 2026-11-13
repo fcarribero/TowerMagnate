@@ -115,7 +115,8 @@ describe('construction sites', () => {
     for (const x of [10, 20, 30, 50, 60, 70]) state = buildOffice(state, x);
     state = advance(state, 9.5 * STEPS_PER_HOUR);
     expect(builders(state).length).toBeGreaterThan(0);
-    state = advance(state, 1.25 * STEPS_PER_HOUR);
+    // The crew also has to walk out to the map edge before it is gone.
+    state = advance(state, 2.5 * STEPS_PER_HOUR);
     expect(builders(state)).toHaveLength(0);
     expect(Object.keys(state.sites).length).toBeGreaterThan(0);
     state = advance(state, 15 * STEPS_PER_HOUR);

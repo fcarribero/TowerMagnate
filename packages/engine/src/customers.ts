@@ -6,8 +6,9 @@ import {
   SUBWAY_VISITOR_FACTOR,
   VENUE_CAPACITY,
   VENUE_HOURS,
+  venueHoursOf,
+  type WindowPart,
   closingMinute,
-  type PriceLevel,
   type TowerState,
   type Unit,
   type VenueDay,
@@ -16,9 +17,17 @@ import {
 import { isWeekendDay, STEPS_PER_MINUTE } from './calendar';
 import { STEPS_PER_DAY } from './clock';
 import { unitPlace } from './office-routine';
-import { drawEntrance, entranceDoor, streetEntrance, subwayStation } from './outside-entrances';
+import {
+  drawEntrance,
+  entranceDoor,
+  entranceStart,
+  entranceStreetColumn,
+  streetEntrance,
+  subwayStation,
+} from './outside-entrances';
 import { addPerson, createPeopleSystem, NOTHING_DUE, removePerson, slotOfPerson } from './people';
 import { venueStressFactor } from './person-stress';
+import { byPriceRatio, priceRatio } from './pricing';
 import { visitorsAt } from './resident-routine';
 import type { HookOccurrence, ScheduledHook } from './scheduler';
 import type { SimulationSystem, StepContext } from './step';
@@ -60,7 +69,8 @@ function isCustomerVenueType(type: string): type is VisitedVenueType {
 
 export interface OutsideCustomerFactors {
   type: VisitedVenueType;
-  priceLevel: PriceLevel;
+  /** Price over appraisal (pricing.ts). */
+  priceRatio: number;
   weekend: boolean;
   /** Average trip stress of yesterday's visits in steps, or null when nobody walked there. */
   averageStress: number | null;
@@ -78,7 +88,9 @@ function percent(factor: number): number {
 export function outsideCustomerCount(factors: OutsideCustomerFactors): number {
   const base = OUTSIDE_CUSTOMER_BASE[factors.type][factors.weekend ? 'weekend' : 'weekday'];
   const price =
-    factors.type === 'retail-shop' ? RETAIL_PRICE_CUSTOMER_FACTOR[factors.priceLevel] : 1;
+    factors.type === 'retail-shop'
+      ? byPriceRatio('retail-shop', RETAIL_PRICE_CUSTOMER_FACTOR, factors.priceRatio)
+      : 1;
   const stress = factors.averageStress === null ? 1 : venueStressFactor(factors.averageStress);
   const subway = factors.subway ? SUBWAY_VISITOR_FACTOR : 1;
   const product = base * percent(price) * percent(stress) * percent(subway);
@@ -96,20 +108,45 @@ function venuesById(state: TowerState): Unit[] {
 }
 
 function getsCustomers(unit: Unit): unit is CustomerVenue {
-  if (!unit.venue || !isCustomerVenueType(unit.type)) return false;
+  if (!unit.venue || !isCustomerVenueType(unit.type) || !unit.activeToday) return false;
   return unit.type !== 'retail-shop' || unit.lease !== null;
+}
+
+/**
+ * When customers appear at a venue. A fast food with hours the player changed gets the standard
+ * windows stretched or squeezed over its own open hours, leaving the last 30 minutes before
+ * closing free of new arrivals.
+ */
+function arrivalWindows(unit: CustomerVenue): readonly WindowPart[] {
+  const standard = CUSTOMER_ARRIVAL[unit.type];
+  if (unit.type !== 'fast-food') return standard;
+  const hours = venueHoursOf(unit);
+  const first = standard[0] as WindowPart;
+  const last = standard[standard.length - 1] as WindowPart;
+  if (hours.open === first.from && hours.close === VENUE_HOURS['fast-food'].close) return standard;
+  const to = Math.max(hours.open + 1, hours.close - 30);
+  const scale = (to - hours.open) / (last.to - first.from);
+  return standard.map((part) => ({
+    ...part,
+    from: Math.round(hours.open + (part.from - first.from) * scale),
+    to: Math.max(
+      Math.round(hours.open + (part.from - first.from) * scale) + 1,
+      Math.round(hours.open + (part.to - first.from) * scale),
+    ),
+  }));
 }
 
 /** Appearance steps for `count` customers, drawn from the venue's window, earliest first. */
 function drawAppearanceSteps(
   state: TowerState,
-  type: VisitedVenueType,
+  unit: CustomerVenue,
   count: number,
   dayStart: number,
 ): number[] {
+  const windows = arrivalWindows(unit);
   const minutes: number[] = [];
   for (let index = 0; index < count; index++) {
-    minutes.push(drawMinuteFromWindow(state.rng, CUSTOMER_ARRIVAL[type]));
+    minutes.push(drawMinuteFromWindow(state.rng, windows));
   }
   minutes.sort((a, b) => a - b);
   return minutes.map((minute) => dayStart + minute * STEPS_PER_MINUTE);
@@ -148,12 +185,12 @@ function planCustomers(context: StepContext, occurrence: HookOccurrence): void {
     if (!getsCustomers(unit)) continue;
     const count = outsideCustomerCount({
       type: unit.type,
-      priceLevel: unit.priceLevel,
+      priceRatio: priceRatio(unit),
       weekend,
       averageStress,
       subway,
     });
-    venue.customers = drawAppearanceSteps(state, unit.type, count, occurrence.step);
+    venue.customers = drawAppearanceSteps(state, unit, count, occurrence.step);
   }
 }
 
@@ -174,10 +211,10 @@ function enterBy(
   entrance: CustomerEntrance,
 ): boolean {
   const { state } = context;
-  const door = entranceDoor(state, entrance);
-  if (!door) return false;
-  state.people.level[slot] = door.level;
-  state.people.column[slot] = door.column;
+  const start = entranceStart(state, entrance);
+  if (!start) return false;
+  state.people.level[slot] = start.level;
+  state.people.column[slot] = start.column;
   setPhase(state, slot, 'toVenue', entrance);
   return startTrek(context, slot, unitPlace(unit));
 }
@@ -189,13 +226,13 @@ function enterBy(
 function sendCustomer(context: StepContext, unit: Unit, station: Unit | null): void {
   const { state } = context;
   const entrance = drawEntrance(state, station);
-  const door = entranceDoor(state, entrance);
-  if (!door) return;
+  const start = entranceStart(state, entrance);
+  if (!start) return;
   const personId = addPerson(state, {
     kind: isShowVenue(unit) ? showVisitorKind(unit.type) : 'customer',
     homeUnit: unitNumber(unit.id),
-    level: door.level,
-    column: door.column,
+    level: start.level,
+    column: start.column,
   });
   const slot = slotOfPerson(state.people, personId);
   if (enterBy(context, slot, unit, entrance)) return;
@@ -227,12 +264,12 @@ function minuteOfDay(state: TowerState): number {
 
 function closingMinuteOf(state: TowerState, unit: CustomerVenue): number {
   const day = Math.floor(state.step / STEPS_PER_DAY);
-  return closingMinute(unit.type, VENUE_HOURS[unit.type].close, unit.id, day);
+  return closingMinute(unit.type, venueHoursOf(unit).close, unit.id, day);
 }
 
 function isOpen(state: TowerState, unit: CustomerVenue, minute: number): boolean {
-  if (!isVenueStaffed(state, unit)) return false;
-  const hours = VENUE_HOURS[unit.type];
+  if (!unit.activeToday || !isVenueStaffed(state, unit)) return false;
+  const hours = venueHoursOf(unit);
   const hasTenant = unit.type !== 'retail-shop' || unit.lease !== null;
   return hasTenant && minute >= hours.open && minute < closingMinuteOf(state, unit);
 }
@@ -252,7 +289,7 @@ function exitBy(context: StepContext, slot: number, entrance: CustomerEntrance):
   const { state } = context;
   setPhase(state, slot, 'leaving', entrance);
   const door = entranceDoor(state, entrance);
-  return door !== null && startTrek(context, slot, door);
+  return door !== null && startTrek(context, slot, door, entranceStreetColumn(entrance));
 }
 
 /**

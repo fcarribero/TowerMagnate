@@ -1,4 +1,9 @@
 import {
+  basePrice,
+  basePriceTable,
+  DEFAULT_FAST_FOOD_HOURS,
+  isValidVenueHours,
+  priceOfLevel,
   CAR_DIRECTIONS,
   CAR_PHASES,
   DWELL_SECONDS_OPTIONS,
@@ -17,6 +22,8 @@ import {
   type CondoSale,
   type HallCall,
   type HotelRoom,
+  type PriceLevel,
+  type VenueHours,
   type Lease,
   type QueueEntry,
   type RiderTrip,
@@ -33,6 +40,7 @@ import {
   type TenantEvaluation,
   type TowerState,
   type Unit,
+  type UnitType,
   type UnitId,
   type VenueDay,
 } from '@tower-magnate/shared';
@@ -100,6 +108,7 @@ const MIGRATIONS: readonly Migration[] = [
   addPersonNames,
   addConstructionSites,
   addVenueGarbage,
+  addFreePrices,
 ];
 
 /** Version 2 records each unit's price level, what was paid for it and when it was placed. */
@@ -431,7 +440,7 @@ function addUnitEvaluation(raw: Record<string, unknown>): Record<string, unknown
 
 function withUnitEvaluation(unit: Record<string, unknown>): Record<string, unknown> {
   const hotel = isRecord(unit.hotel)
-    ? { checkInStep: null, paidLevel: null, ...unit.hotel }
+    ? { checkInStep: null, paidRatio: null, ...unit.hotel }
     : unit.hotel;
   return { evaluation: null, ...unit, hotel };
 }
@@ -510,6 +519,56 @@ function dropOrphanLedgerEntries(raw: Record<string, unknown>): Record<string, u
   }
   const kept = Object.entries(unitLedger).filter(([unitId]) => Object.hasOwn(units, unitId));
   return { ...raw, schemaVersion: 33, unitLedger: Object.fromEntries(kept) };
+}
+
+/**
+ * Version 39 turns the four price levels into money. A unit keeps the price its level had, its
+ * appraisal starts at the base price, every existing unit is listed and every fast food is on.
+ * A lease locks the rent its level charged and a hotel stay keeps the ratio it paid.
+ */
+function addFreePrices(raw: Record<string, unknown>): Record<string, unknown> {
+  if (!isRecord(raw.units)) {
+    return { ...raw, schemaVersion: 39 };
+  }
+  const units: Record<string, unknown> = {};
+  for (const [id, unit] of Object.entries(raw.units)) {
+    units[id] = isRecord(unit) ? withFreePrice(unit) : unit;
+  }
+  return { ...raw, schemaVersion: 39, units };
+}
+
+function withFreePrice(unit: Record<string, unknown>): Record<string, unknown> {
+  const { priceLevel, ...rest } = unit;
+  const type = unit.type as UnitType;
+  // A level that is not one of the four is a damaged save; leave it for the unit check to refuse.
+  if (priceLevel !== undefined && !(PRICE_LEVELS as readonly unknown[]).includes(priceLevel)) {
+    return unit;
+  }
+  const level = (PRICE_LEVELS as readonly unknown[]).includes(priceLevel)
+    ? (priceLevel as PriceLevel)
+    : 'normal';
+  const price = priceOfLevel(type, level);
+  const table = basePriceTable(type);
+  const lease = isRecord(unit.lease) ? { rent: price, ...unit.lease } : unit.lease;
+  let hotel = unit.hotel;
+  if (isRecord(unit.hotel)) {
+    const { paidLevel, ...room } = unit.hotel;
+    const paid = (PRICE_LEVELS as readonly unknown[]).includes(paidLevel)
+      ? (paidLevel as PriceLevel)
+      : null;
+    hotel = { paidRatio: paid === null || !table ? null : table[paid] / table.normal, ...room };
+  }
+  return {
+    price,
+    appraisal: basePrice(type),
+    listed: true,
+    enabled: true,
+    activeToday: true,
+    hours: type === 'fast-food' ? { ...DEFAULT_FAST_FOOD_HOURS } : null,
+    ...rest,
+    lease,
+    hotel,
+  };
 }
 
 /** Version 38 gives every venue an empty garbage pile; crews come with the next 00:00 plan. */
@@ -622,7 +681,12 @@ function isUnit(value: unknown): value is Unit {
     isNonNegativeInteger(value.x) &&
     isLevel(value.level) &&
     (value.name === null || typeof value.name === 'string') &&
-    (PRICE_LEVELS as readonly unknown[]).includes(value.priceLevel) &&
+    isNonNegativeInteger(value.price) &&
+    isNonNegativeInteger(value.appraisal) &&
+    typeof value.listed === 'boolean' &&
+    typeof value.enabled === 'boolean' &&
+    typeof value.activeToday === 'boolean' &&
+    (value.hours === null || isVenueHours(value.hours)) &&
     isNonNegativeInteger(value.paid) &&
     isNonNegativeInteger(value.placedAtStep) &&
     typeof value.used === 'boolean' &&
@@ -656,6 +720,10 @@ function isVenueDay(value: unknown): value is VenueDay {
   );
 }
 
+function isVenueHours(value: unknown): value is VenueHours {
+  return isRecord(value) && isValidVenueHours(value as unknown as VenueHours);
+}
+
 function isTenantEvaluation(value: unknown): value is TenantEvaluation {
   return value === 'good' || value === 'fair' || value === 'poor';
 }
@@ -667,7 +735,8 @@ function isHotelRoom(value: unknown): value is HotelRoom {
     (value.stayEndStep === null || isNonNegativeInteger(value.stayEndStep)) &&
     (value.state === 'occupied') === (value.stayEndStep !== null) &&
     (value.checkInStep === null || isNonNegativeInteger(value.checkInStep)) &&
-    (value.paidLevel === null || (PRICE_LEVELS as readonly unknown[]).includes(value.paidLevel)) &&
+    (value.paidRatio === null ||
+      (typeof value.paidRatio === 'number' && Number.isFinite(value.paidRatio))) &&
     (value.arrivalStep === null || isNonNegativeInteger(value.arrivalStep)) &&
     typeof value.rollDue === 'boolean' &&
     isNonNegativeInteger(value.dirtyChecks) &&
@@ -691,7 +760,8 @@ function isLease(value: unknown): value is Lease {
     isNonNegativeInteger(value.anchorStep) &&
     isNonNegativeInteger(value.nextDueStep) &&
     value.nextDueStep > value.anchorStep &&
-    isNonNegativeInteger(value.weekVisits)
+    isNonNegativeInteger(value.weekVisits) &&
+    isNonNegativeInteger(value.rent)
   );
 }
 
@@ -733,7 +803,12 @@ function readUnits(raw: unknown): Record<UnitId, Unit> {
       x: unit.x,
       level: unit.level,
       name: unit.name,
-      priceLevel: unit.priceLevel,
+      price: unit.price,
+      appraisal: unit.appraisal,
+      listed: unit.listed,
+      enabled: unit.enabled,
+      activeToday: unit.activeToday,
+      hours: unit.hours === null ? null : { ...unit.hours },
       paid: unit.paid,
       placedAtStep: unit.placedAtStep,
       used: unit.used,

@@ -16,3 +16,4 @@ export * from './messages';
 export * from './auth';
 export * from './account';
 export * from './protocol';
+export * from './pricing';

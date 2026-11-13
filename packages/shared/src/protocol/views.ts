@@ -27,7 +27,7 @@ import {
   MoneySchema,
   PersonEntityIdSchema,
   PersonKindSchema,
-  PriceLevelSchema,
+  PriceBandSchema,
   ShaftEntityIdSchema,
   ShaftTypeSchema,
   StarRatingSchema,
@@ -62,7 +62,18 @@ export const UnitViewSchema = z.object({
   x: ColumnSchema,
   level: LevelSchema,
   name: DisplayNameSchema.nullable(),
-  price: PriceLevelSchema,
+  /** What the player charges: sale price, weekly rent or nightly rate; 0 for units with no price. */
+  price: z.int().nonnegative(),
+  /** Today's appraisal of a priced unit; left out for units with no price and for sites. */
+  appraisal: z.int().positive().optional(),
+  /** For a condo, office or shop: whether it is listed for sale or rent; left out for other units. */
+  listed: z.boolean().optional(),
+  /** Fast food only: the player's on/off switch, which applies from the next 00:00. */
+  enabled: z.boolean().optional(),
+  /** True while a fast food is switched off for the whole day; left out otherwise. */
+  closedToday: z.literal(true).optional(),
+  /** Weekly rent locked in the lease of a rented office or shop; left out when not rented. */
+  rent: z.int().positive().optional(),
   occupied: z.boolean(),
   variant: z.enum(['empty', 'occupied', 'sleeping', 'dirty', 'infested', 'disconnected']),
   /** True while at least one person stands inside the unit; left out when nobody is. */
@@ -189,7 +200,8 @@ export const NoticeViewSchema = z.object({
 
 export const OverlayDataSchema = z.object({
   evaluation: z.record(UnitEntityIdSchema, EvaluationSchema.nullable()),
-  price: z.record(UnitEntityIdSchema, PriceLevelSchema),
+  /** Band of each priced unit's price against its appraisal. */
+  price: z.record(UnitEntityIdSchema, PriceBandSchema),
   hotel: z.record(UnitEntityIdSchema, HotelRoomStateSchema),
 });
 
@@ -329,6 +341,19 @@ const InspectedCarSchema = z.object({
   load: CarLoadSchema,
 });
 
+const PersonIdsSchema = z.array(PersonEntityIdSchema);
+
+/** What a priced unit's window shows about its price: the number, its appraisal and the limits. */
+const pricingFields = {
+  price: z.int().nonnegative(),
+  appraisal: z.int().nonnegative(),
+  priceBand: PriceBandSchema,
+  priceMin: z.int().positive(),
+  priceMax: z.int().positive(),
+  /** Whole money steps only. */
+  priceStep: z.literal(1),
+};
+
 const InspectedUnitDetailsSchema = z.discriminatedUnion('group', [
   z.object({
     group: z.literal('lease'),
@@ -336,43 +361,68 @@ const InspectedUnitDetailsSchema = z.discriminatedUnion('group', [
     persons: z.int().nonnegative(),
     capacity: z.int().positive(),
     evaluation: EvaluationSchema.nullable(),
-    price: PriceLevelSchema,
+    ...pricingFields,
+    /** On the market ("en renta"); false means the lease ends at its term end. */
+    listed: z.boolean(),
+    /** Rent locked in the lease; null while for rent. */
+    weeklyRent: z.int().positive().nullable(),
     leaseWeek: z.int().positive().nullable(),
     nextPaymentStep: StepSchema.nullable(),
+    /** Office workers or shop staff who belong to the unit. */
+    workers: PersonIdsSchema,
+    /** People inside a shop as customers right now; empty for offices. */
+    customers: PersonIdsSchema,
   }),
   z.object({
     group: z.literal('condo'),
     state: z.enum(['sold', 'forSale']),
-    residents: z.int().nonnegative(),
+    /** People living in the condo. */
+    residents: PersonIdsSchema,
+    residentCount: z.int().nonnegative(),
     capacity: z.int().positive(),
     evaluation: EvaluationSchema.nullable(),
-    price: PriceLevelSchema,
+    ...pricingFields,
+    /** On the market ("en venta"); a new condo is not. */
+    listed: z.boolean(),
     nextEvaluationStep: StepSchema.nullable(),
   }),
   z.object({
     group: z.literal('hotel'),
     state: HotelRoomStateSchema,
     guests: z.int().nonnegative(),
+    /** People staying in the room. */
+    tenants: PersonIdsSchema,
     capacity: z.int().positive(),
     evaluation: EvaluationSchema.nullable(),
-    price: PriceLevelSchema,
+    ...pricingFields,
     checkoutStep: StepSchema.nullable(),
   }),
   z.object({
     group: z.literal('cinema'),
     filmWeek: z.int().positive().nullable(),
     filmAgeDays: z.int().nonnegative().nullable(),
-    price: PriceLevelSchema,
   }),
   z.object({
     group: z.literal('venue'),
     /** Customers served today. */
     served: z.int().nonnegative(),
-    /** Outside customers inside right now. */
+    /** People inside right now: `customers` plus the crew working inside. */
     inside: z.int().nonnegative(),
+    /** Crew members who belong to the venue. */
+    workers: PersonIdsSchema,
+    /** Crew members working inside right now. */
+    workersInside: z.int().nonnegative(),
+    /** Everyone inside as a customer right now. */
+    customers: PersonIdsSchema,
     /** Opening and closing hour of the day. */
     opens: z.int().min(0).max(23),
     closes: z.int().min(1).max(24),
+    /** The hours a player can set (fast food only); the same as opens and closes. */
+    hours: z.object({ open: z.int().min(0).max(23), close: z.int().min(1).max(24) }),
+    /** The player's switch for a fast food; applies from the next 00:00. */
+    enabled: z.boolean(),
+    /** False while the venue stays shut all day because it was switched off at 00:00. */
+    activeToday: z.boolean(),
     /** What today pays if it ended now; negative is a loss. */
     resultToday: z.int(),
     /** Customers per hour from the opening hour to the current one. */

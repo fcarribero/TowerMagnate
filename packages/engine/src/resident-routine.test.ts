@@ -127,7 +127,7 @@ function condoTower(seed: number, condos: number): CondoTower {
   VENUE_LAYOUT.forEach((venue, index) => {
     const unit = state.units[unitIds[index] ?? ''];
     if (unit && venue.type === 'retail-shop') {
-      unit.lease = { anchorStep: 0, nextDueStep: Number.MAX_SAFE_INTEGER, weekVisits: 0 };
+      unit.lease = { anchorStep: 0, nextDueStep: Number.MAX_SAFE_INTEGER, weekVisits: 0, rent: 10_000 };
     }
   });
   return {

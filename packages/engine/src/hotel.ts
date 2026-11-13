@@ -13,6 +13,7 @@ import { dateOfStep, STEPS_PER_HOUR } from './calendar';
 import { STEPS_PER_DAY } from './clock';
 import { releaseStayGuests } from './hotel-guest-trip';
 import { creditMoney, pushUnitMoney } from './money';
+import { priceRatio } from './pricing';
 import { nextInt } from './rng';
 import type { SimulationSystem, StepContext } from './step';
 import { writableUnit } from './step-copy';
@@ -23,7 +24,7 @@ type RoomType = keyof typeof HOTEL_NIGHTLY_PRICE;
 export type RoomUnit = Unit & { type: RoomType; hotel: NonNullable<Unit['hotel']> };
 
 export type CheckInResult =
-  | { checkedIn: true; nights: number; paid: number }
+  | { checkedIn: true; nights: number }
   | { checkedIn: false; reason: 'outsideCheckInHours' | 'roomNotClean' };
 
 export function isRoom(unit: Unit): unit is RoomUnit {
@@ -72,7 +73,8 @@ export function setRoomState(context: StepContext, room: RoomUnit, state: HotelR
 }
 
 /**
- * Checks a party into a room at the current step and credits the whole stay at once. Called by the
+ * Checks a party into a room at the current step. The stay is charged at check-out, at the price
+ * set now. Called by the
  * guest routine and by tests. A refused check-in changes nothing. The VIP passes `nights` and
  * draws no stay length (economy E-23).
  */
@@ -90,22 +92,17 @@ export function checkIn(context: StepContext, roomId: UnitId, nights?: number): 
   }
   const room = writableUnit(context.state, found);
   const stayNights = nights ?? drawStayNights(context.state.rng);
-  const paid = creditMoney(
-    context.state,
-    'hotel',
-    stayNights * HOTEL_NIGHTLY_PRICE[room.type][room.priceLevel],
-  );
+  room.hotel.stayRate = room.price;
   room.hotel.stayEndStep = stayEndStep(step, stayNights);
   room.hotel.checkInStep = step;
-  room.hotel.paidLevel = room.priceLevel;
+  room.hotel.paidRatio = priceRatio(room);
   room.hotel.arrivalStep = null;
   room.hotel.rollDue = false;
   clearUnitLedger(context.state, room.id);
   room.used = true;
-  context.events.push({ type: 'hotelCheckIn', step, unitId: room.id, nights: stayNights, paid });
-  pushUnitMoney(context, room.id, paid, 'hotel');
+  context.events.push({ type: 'hotelCheckIn', step, unitId: room.id, nights: stayNights });
   setRoomState(context, room, 'occupied');
-  return { checkedIn: true, nights: stayNights, paid };
+  return { checkedIn: true, nights: stayNights };
 }
 
 /** A maid finished cleaning the room: it is clean, counts no dirty checks and may roll for a booking. */
@@ -120,10 +117,31 @@ export function finishCleaning(context: StepContext, roomId: UnitId): void {
   setRoomState(context, room, 'clean');
 }
 
+/** Nights between the check-in day and the check-out day of the stay that ends now. */
+function stayNightsOf(room: RoomUnit): number {
+  const { checkInStep, stayEndStep } = room.hotel;
+  if (checkInStep === null || stayEndStep === null) return 1;
+  const days = Math.floor(stayEndStep / STEPS_PER_DAY) - Math.floor(checkInStep / STEPS_PER_DAY);
+  return Math.max(1, days);
+}
+
+/** The guests leave in the morning and pay for every night they stayed. */
 function checkOut(context: StepContext, room: RoomUnit): void {
   storeGrade(context.state, room);
+  const nights = stayNightsOf(room);
+  // A stay from an older save has no rate: it was paid at check-in.
+  const rate = room.hotel.stayRate ?? 0;
+  const paid = rate > 0 ? creditMoney(context.state, 'hotel', nights * rate) : 0;
   room.hotel.stayEndStep = null;
-  context.events.push({ type: 'hotelCheckOut', step: context.state.step, unitId: room.id });
+  room.hotel.stayRate = null;
+  context.events.push({
+    type: 'hotelCheckOut',
+    step: context.state.step,
+    unitId: room.id,
+    nights,
+    paid,
+  });
+  if (paid > 0) pushUnitMoney(context, room.id, paid, 'hotel');
   setRoomState(context, room, 'dirty');
   releaseStayGuests(context, unitNumber(room.id));
 }

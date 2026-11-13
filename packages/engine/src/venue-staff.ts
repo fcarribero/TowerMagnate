@@ -5,6 +5,7 @@ import {
   STAFF_EARLY_ARRIVAL,
   UNIT_CATALOG,
   VENUE_STAFF,
+  venueHoursOf,
   closingMinute,
   type EntityId,
   type PersonPool,
@@ -18,6 +19,7 @@ import { STEPS_PER_DAY } from './clock';
 import { entrancePlace, unitPlace, type Place } from './office-routine';
 import {
   addPerson,
+  removePeopleOfUnit,
   createPeopleSystem,
   NO_TRIP,
   NOTHING_DUE,
@@ -28,6 +30,7 @@ import { chance, nextInt } from './rng';
 import type { HookOccurrence, ScheduledHook } from './scheduler';
 import type { SimulationSystem, StepContext } from './step';
 import { writableUnit } from './step-copy';
+import { streetColumn, streetPlace } from './street';
 import { cancelTrek, isOnTrek, startTrek } from './trek';
 import { unitNumber } from './units';
 
@@ -160,7 +163,7 @@ function dayStartOf(step: number): number {
 
 function closeStepOf(unit: Unit & { type: StaffedType }, step: number): number {
   const day = Math.floor(step / STEPS_PER_DAY);
-  const minute = closingMinute(unit.type, VENUE_STAFF[unit.type].close, unit.id, day);
+  const minute = closingMinute(unit.type, venueHoursOf(unit).close, unit.id, day);
   return dayStartOf(step) + minute * STEPS_PER_MINUTE;
 }
 
@@ -182,7 +185,7 @@ function planRestOfDay(state: TowerState, slot: number): void {
   if (!unit) return;
   const earlyStep =
     dayStartOf(state.step) +
-    (VENUE_STAFF[unit.type].open - drawEarlyMinutes(state)) * STEPS_PER_MINUTE;
+    (venueHoursOf(unit).open - drawEarlyMinutes(state)) * STEPS_PER_MINUTE;
   const arrival = Math.max(earlyStep, state.step + 1);
   if (arrival >= closeStepOf(unit, state.step)) return;
   pool.trip[slot] = encodeStaffRoutine({ phase: 'outside', entranceOnRight: false });
@@ -192,6 +195,7 @@ function planRestOfDay(state: TowerState, slot: number): void {
 /** Whether the unit should have a crew: a shop only has one while it has a tenant. */
 function needsCrew(unit: Unit): boolean {
   if (!isStaffedType(unit.type)) return false;
+  if (!unit.activeToday) return false;
   return unit.type !== 'retail-shop' || unit.lease !== null;
 }
 
@@ -237,7 +241,7 @@ function planDay(context: StepContext, occurrence: HookOccurrence): void {
     stayOutside(pool, slot);
     const unit = staffUnitOf(state, slot);
     if (!unit) continue;
-    const arrivalMinute = VENUE_STAFF[unit.type].open - drawEarlyMinutes(state);
+    const arrivalMinute = venueHoursOf(unit).open - drawEarlyMinutes(state);
     pool.trip[slot] = encodeStaffRoutine({ phase: 'outside', entranceOnRight: false });
     pool.dueStep[slot] = occurrence.step + arrivalMinute * STEPS_PER_MINUTE;
   }
@@ -261,7 +265,13 @@ function save(worker: Worker, dueStep: number): void {
 }
 
 /** Puts the person at `from`, then walks them to `to` in `phase`; false, with nothing changed, when there is no route. */
-function walk(worker: Worker, phase: StaffPhase, to: Place, from?: Place): boolean {
+function walk(
+  worker: Worker,
+  phase: StaffPhase,
+  to: Place,
+  from?: Place,
+  outTo?: number,
+): boolean {
   const { state, slot, routine } = worker;
   const pool = state.people;
   const previous = routine.phase;
@@ -273,7 +283,7 @@ function walk(worker: Worker, phase: StaffPhase, to: Place, from?: Place): boole
     pool.column[slot] = from.column;
   }
   save(worker, NOTHING_DUE);
-  if (startTrek(worker.context, slot, to)) return true;
+  if (startTrek(worker.context, slot, to, outTo)) return true;
   routine.phase = previous;
   if (previousLevel !== undefined) pool.level[slot] = previousLevel;
   if (previousColumn !== undefined) pool.column[slot] = previousColumn;
@@ -302,7 +312,8 @@ function startArrival(worker: Worker): void {
   }
   routine.entranceOnRight = chance(state.rng, 0.5);
   const entrance = entrancePlace(state, routine.entranceOnRight);
-  if (entrance && walk(worker, 'walkingIn', unitPlace(unit), entrance)) return;
+  const street = streetPlace(routine.entranceOnRight);
+  if (entrance && walk(worker, 'walkingIn', unitPlace(unit), street)) return;
   const retry = state.step + ROUTE_RETRY_STEPS;
   if (retry >= closeStep) stayOutside(state.people, worker.slot);
   else save(worker, retry);
@@ -319,7 +330,7 @@ function walkToExit(worker: Worker, phase: StaffPhase): boolean {
   const { state, routine } = worker;
   for (const onRight of [routine.entranceOnRight, !routine.entranceOnRight]) {
     const exit = entrancePlace(state, onRight);
-    if (exit && walk(worker, phase, exit)) return true;
+    if (exit && walk(worker, phase, exit, undefined, streetColumn(onRight))) return true;
   }
   return false;
 }
@@ -418,3 +429,28 @@ export function createVenueStaff(): VenueStaffSystems {
     system: createPeopleSystem(runWorker),
   };
 }
+
+/**
+ * At 00:00 a fast food takes on the player's switch for the whole day. One that goes inactive
+ * loses its crew and its pending customers; one that turns active gets a crew.
+ */
+export const venueSwitchHook: ScheduledHook = {
+  name: 'venue-switch',
+  schedule: { every: 'day', hour: 0, minute: 0 },
+  run({ state }) {
+    const changed = Object.values(state.units).filter(
+      (unit) => unit.type === 'fast-food' && unit.activeToday !== unit.enabled,
+    );
+    for (const shared of changed) {
+      const unit = writableUnit(state, shared);
+      unit.activeToday = unit.enabled;
+      if (unit.activeToday) {
+        addCrew(state, unit.id, { planToday: false });
+        continue;
+      }
+      removePeopleOfUnit(state, unit.id);
+      if (unit.venue) unit.venue.customers = [];
+      forgetCounts(state.people);
+    }
+  },
+};

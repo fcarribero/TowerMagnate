@@ -25,6 +25,7 @@ import {
 } from './people';
 import type { HookOccurrence, ScheduledHook } from './scheduler';
 import type { SimulationSystem, StepContext } from './step';
+import { streetColumn, streetPlace } from './street';
 import { cancelTrek, isOnTrek, startTrek, trekPhaseAt } from './trek';
 import { unitNumber } from './units';
 
@@ -141,13 +142,13 @@ function sendCourier(context: StepContext, unit: Unit, block: number): void {
   const day = Math.floor(state.step / STEPS_PER_DAY);
   const number = unitNumber(unit.id);
   const onRight = keyedHash(COURIER_SALT, number, day, block, 1) % 2 === 1;
-  const entrance = entrancePlace(state, onRight);
-  if (!entrance) return;
+  if (!entrancePlace(state, onRight)) return;
+  const street = streetPlace(onRight);
   const personId = addPerson(state, {
     kind: 'courier',
     homeUnit: number,
-    level: entrance.level,
-    column: entrance.column,
+    level: street.level,
+    column: street.column,
     nameSeed: keyedHash(COURIER_SALT, number, day, block, 2),
   });
   const slot = slotOfPerson(state.people, personId);
@@ -200,7 +201,7 @@ function walkOut(context: StepContext, slot: number, trip: CourierTrip): void {
   const entrance = entrancePlace(state, trip.onRight);
   setTrip(state, slot, { ...trip, phase: 'leaving' });
   pool.dueStep[slot] = NOTHING_DUE;
-  if (!entrance || !startTrek(context, slot, entrance))
+  if (!entrance || !startTrek(context, slot, entrance, streetColumn(trip.onRight)))
     removePerson(state, pool.id[slot] as number);
 }
 

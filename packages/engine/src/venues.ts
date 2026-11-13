@@ -180,7 +180,7 @@ function wasOpenToday(unit: VenueUnit, step: number): boolean {
   const openingStep =
     Math.floor(step / STEPS_PER_DAY) * STEPS_PER_DAY +
     hourStep(VENUE_PAYOUT_HOURS[unit.type].opens);
-  return unit.placedAtStep <= openingStep;
+  return unit.placedAtStep <= openingStep && unit.activeToday;
 }
 
 const LOSS_NEWS: Partial<Record<VenueType, 'news.fastFoodLoss' | 'news.restaurantLoss'>> = {

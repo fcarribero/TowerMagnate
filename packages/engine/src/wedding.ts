@@ -25,6 +25,7 @@ import { chance } from './rng';
 import type { HookOccurrence, ScheduledHook } from './scheduler';
 import type { SimulationSystem, StepContext } from './step';
 import { drawMinuteFromWindow } from './time-windows';
+import { streetPlace } from './street';
 import { startTrek } from './trek';
 import { addFailedSearch } from './trip-ledger';
 import { emitNews } from './news';
@@ -125,9 +126,9 @@ function admitGuests(state: TowerState, wedding: WeddingAttempt): void {
   const homeUnit = parseUnitNumber(wedding.cathedral) ?? 0;
   while (wedding.arrivals[0] === state.step) {
     wedding.arrivals.shift();
-    const entrance = entrancePlace(state, chance(state.rng, 0.5));
-    if (!entrance) continue;
-    addPerson(state, { kind: 'weddingGuest', homeUnit, ...entrance });
+    const onRight = chance(state.rng, 0.5);
+    if (!entrancePlace(state, onRight)) continue;
+    addPerson(state, { kind: 'weddingGuest', homeUnit, ...streetPlace(onRight) });
     const newestSlot = state.people.id.length - 1;
     state.people.trip[newestSlot] = GUEST_OUTSIDE;
     state.people.dueStep[newestSlot] = state.step;

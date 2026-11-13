@@ -1,6 +1,6 @@
 import {
   FAST_FOOD_CAPACITY,
-  FAST_FOOD_HOURS,
+  venueHoursOf,
   FAST_FOOD_LUNCH_MINUTES,
   MEDICAL_CENTER_DAILY_VISITS,
   MEDICAL_VISIT_CHANCE,
@@ -23,6 +23,7 @@ import { isWeekendDay, STEPS_PER_MINUTE } from './calendar';
 import { STEPS_PER_DAY } from './clock';
 import { createPeopleSystem, NO_TRIP, NOTHING_DUE } from './people';
 import { chance, nextInt } from './rng';
+import { mainLobbyEnds, streetColumn, streetPlace } from './street';
 import type { HookOccurrence, ScheduledHook } from './scheduler';
 import type { SimulationSystem, StepContext } from './step';
 import { drawMinuteFromWindow } from './time-windows';
@@ -181,25 +182,16 @@ function drawPlans(context: StepContext, occurrence: HookOccurrence): void {
   }
 }
 
-function mainLobbyEnds(state: TowerState): { left: number; right: number } | null {
-  let left: number | null = null;
-  let right: number | null = null;
-  for (const span of state.grid.levels[1]?.structure ?? []) {
-    if (span.kind !== 'lobby') continue;
-    left = left === null ? span.x0 : Math.min(left, span.x0);
-    right = right === null ? span.x1 : Math.max(right, span.x1);
-  }
-  return left === null || right === null ? null : { left, right };
-}
-
 export function entrancePlace(state: TowerState, onRight: boolean): Place | null {
   const ends = mainLobbyEnds(state);
   if (!ends) return null;
   return { level: 1, column: onRight ? ends.right : ends.left };
 }
 
-function isFastFoodOpen(minuteOfDay: number): boolean {
-  return minuteOfDay >= FAST_FOOD_HOURS.open && minuteOfDay < FAST_FOOD_HOURS.close;
+function isFastFoodOpen(unit: Unit, minuteOfDay: number): boolean {
+  if (!unit.activeToday) return false;
+  const hours = venueHoursOf(unit);
+  return minuteOfDay >= hours.open && minuteOfDay < hours.close;
 }
 
 export function unitPlace(unit: Pick<Unit, 'level' | 'x' | 'type'>): Place {
@@ -277,10 +269,10 @@ function isCurrentIn(state: TowerState): (unit: Unit) => boolean {
 }
 
 function openFastFoods(state: TowerState, minuteOfDay: number): Unit[] {
-  if (!isFastFoodOpen(minuteOfDay)) return [];
   const eating = diners(state);
   return unitsOfType(state, 'fast-food').filter(
     (unit) =>
+      isFastFoodOpen(unit, minuteOfDay) &&
       (eating.get(unitNumber(unit.id)) ?? 0) < FAST_FOOD_CAPACITY && isVenueStaffed(state, unit),
   );
 }
@@ -334,6 +326,8 @@ function beginTravel(
   from: Place,
   to: Place,
   estimatedSteps: number,
+  /** For a trip out of the tower: the side of the street the person walks out to after the door. */
+  streetOnRight?: boolean,
 ): boolean {
   const { state, slot, routine } = worker;
   if (!worker.treks) {
@@ -347,7 +341,8 @@ function beginTravel(
   pool.level[slot] = from.level;
   pool.column[slot] = from.column;
   save(worker, NOTHING_DUE);
-  if (startTrek(worker.context, slot, to)) return true;
+  const street = streetOnRight === undefined ? undefined : streetColumn(streetOnRight);
+  if (startTrek(worker.context, slot, to, street)) return true;
   routine.phase = previous;
   pool.trip[slot] = encodeRoutine(routine);
   return false;
@@ -401,7 +396,9 @@ function startArrival(worker: Worker, routes: RoutePlanner): void {
   }
   if (state.step + steps > leaveStep(worker)) {
     giveUpArrival(worker);
-  } else if (!beginTravel(worker, 'walkingIn', entrance, worker.desk, steps)) {
+  } else if (
+    !beginTravel(worker, 'walkingIn', streetPlace(routine.entranceOnRight), worker.desk, steps)
+  ) {
     countFailedSearch(worker);
     retryArrival(worker);
   }
@@ -457,7 +454,9 @@ function startLeaving(worker: Worker, routes: RoutePlanner, from: Place = worker
   for (const onRight of [routine.entranceOnRight, !routine.entranceOnRight]) {
     const exit = entrancePlace(state, onRight);
     const steps = exit ? routes(state, from, exit, worker.context) : null;
-    if (exit && steps !== null && beginTravel(worker, 'leaving', from, exit, steps)) return;
+    if (exit && steps !== null && beginTravel(worker, 'leaving', from, exit, steps, onRight)) {
+      return;
+    }
   }
   save(worker, state.step + ROUTE_RETRY_STEPS);
 }
@@ -588,7 +587,7 @@ function arriveAtFastFood(worker: Worker, routes: RoutePlanner): void {
   const canEnter =
     venue?.type === 'fast-food' &&
     isVenueStaffed(state, venue) &&
-    isFastFoodOpen(minuteOfDay(worker)) &&
+    isFastFoodOpen(venue, minuteOfDay(worker)) &&
     inside < FAST_FOOD_CAPACITY;
   if (canEnter) {
     countVenueVisit(state, venue, stressOfTripEndedNow(state, worker.slot), 'office-worker');

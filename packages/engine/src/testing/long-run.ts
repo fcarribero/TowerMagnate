@@ -1,3 +1,4 @@
+import { listingCommands } from './listing';
 import type { Command, CommandResult, QueuedCommand, TowerState } from '@tower-magnate/shared';
 import { STEPS_PER_DAY } from '../clock';
 import { hashState } from '../hash';
@@ -86,9 +87,14 @@ export function playLongRun(
   let snapshot: string | null = null;
   let state = tower;
   for (let day = fromDay; day < toDay; day++) {
-    const queued: QueuedCommand[] = script
-      .filter((entry) => entry.day === day)
-      .map((entry, index) => ({ id: `d${day}.${index}`, command: entry.command }));
+    const commands = [
+      ...listingCommands(state),
+      ...script.filter((entry) => entry.day === day).map((entry) => entry.command),
+    ];
+    const queued: QueuedCommand[] = commands.map((command, index) => ({
+      id: `d${day}.${index}`,
+      command,
+    }));
     const outcome = step(state, queued, STEPS_PER_DAY);
     state = outcome.state;
     results.push(...outcome.results);

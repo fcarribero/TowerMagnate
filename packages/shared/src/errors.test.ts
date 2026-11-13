@@ -58,6 +58,8 @@ describe('error codes', () => {
         "PARKING_NOT_CONNECTED",
         "RECYCLING_NOT_ADJACENT",
         "MAIN_LOBBY_PROTECTED",
+        "MAIN_LOBBY_COVERED",
+        "MAIN_LOBBY_INNER",
         "SUPPORTS_STRUCTURE",
         "SHAFT_IN_USE",
         "NOTHING_TO_DEMOLISH",

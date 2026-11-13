@@ -1,5 +1,7 @@
 import {
   LEASE_CONTRACT_WEEKS,
+  LEASE_RENT_HOUR,
+  LEASE_WINDOW_HOURS,
   SHOP_EARLY_LEAVE_MIN_VISITS,
   WEEKLY_RENT,
   type Lease,
@@ -9,7 +11,7 @@ import {
   type UnitId,
   type NewsId,
 } from '@tower-magnate/shared';
-import { DAYS_PER_WEEK } from './calendar';
+import { DAYS_PER_WEEK, dateOfStep, STEPS_PER_HOUR } from './calendar';
 import { STEPS_PER_DAY } from './clock';
 import { creditMoney, pushUnitMoney } from './money';
 import { removePeopleOfUnit } from './people';
@@ -39,8 +41,19 @@ export function isLeasable(unit: Unit): unit is LeasedUnit {
   return unit.type in WEEKLY_RENT;
 }
 
-function weeklyRent(unit: LeasedUnit): number {
-  return WEEKLY_RENT[unit.type][unit.priceLevel];
+/** New contracts only start from 07:00 up to 09:00. */
+export function isInLeaseWindow(step: number): boolean {
+  const { hour } = dateOfStep(step);
+  return hour >= LEASE_WINDOW_HOURS.from && hour < LEASE_WINDOW_HOURS.until;
+}
+
+/**
+ * The step weekly rent is counted from: 07:00 of the day the term starts, so rent is always
+ * charged at 07:00 on the start weekday. A start before 07:00 (old saves only) counts from itself.
+ */
+function rentAnchorStep(step: number): number {
+  const dayStart = step - (step % STEPS_PER_DAY);
+  return Math.min(step, dayStart + LEASE_RENT_HOUR * STEPS_PER_HOUR);
 }
 
 function termEndStep(lease: Lease): number {
@@ -50,22 +63,28 @@ function termEndStep(lease: Lease): number {
 /** E-10 and the renewal half of E-12: a new term anchored now, week 1 paid at once. */
 function startTerm(context: StepContext, unit: LeasedUnit, event: 'leaseSigned' | 'leaseRenewed') {
   const step = context.state.step;
-  unit.lease = { anchorStep: step, nextDueStep: step + STEPS_PER_WEEK, weekVisits: 0 };
+  const anchorStep = rentAnchorStep(step);
+  unit.lease = {
+    anchorStep,
+    nextDueStep: anchorStep + STEPS_PER_WEEK,
+    weekVisits: 0,
+    rent: unit.price,
+  };
   unit.used = true;
-  const rent = creditMoney(context.state, 'rent', weeklyRent(unit));
+  const rent = creditMoney(context.state, 'rent', unit.price);
   pushUnitMoney(context, unit.id, rent, 'rent');
   addCrew(context.state, unit.id);
   context.events.push({ type: event, step, unitId: unit.id });
 }
 
-function endLease(context: StepContext, unit: LeasedUnit, newsKey: NewsId): void {
+function endLease(context: StepContext, unit: LeasedUnit, newsKey: NewsId | null): void {
   const step = context.state.step;
   unit.lease = null;
   unit.evaluation = null;
   // The tenant's people leave with them, so the empty unit has no workers walking in and out.
   removePeopleOfUnit(context.state, unit.id);
   context.events.push({ type: 'leaseEnded', step, unitId: unit.id });
-  context.events.push(...emitNews(context.state, newsKey, { unitId: unit.id }));
+  if (newsKey !== null) context.events.push(...emitNews(context.state, newsKey, { unitId: unit.id }));
 }
 
 /**
@@ -103,7 +122,7 @@ function settleDueLease(context: StepContext, unit: LeasedUnit, evaluate: Tenant
     return;
   }
   if (lease.nextDueStep < termEndStep(lease)) {
-    const rent = creditMoney(context.state, 'rent', weeklyRent(unit));
+    const rent = creditMoney(context.state, 'rent', lease.rent);
     pushUnitMoney(context, unit.id, rent, 'rent');
     lease.nextDueStep += STEPS_PER_WEEK;
     lease.weekVisits = 0;
@@ -112,6 +131,9 @@ function settleDueLease(context: StepContext, unit: LeasedUnit, evaluate: Tenant
   storeGrade(context.state, unit);
   if (evaluate(context.state, unit) === 'poor') {
     endLease(context, unit, NEWS_ON_LEAVING[unit.type]);
+  } else if (!unit.listed) {
+    // The player took the unit off the market: the contract runs out and the tenant leaves.
+    endLease(context, unit, null);
   } else {
     startTerm(context, unit, 'leaseRenewed');
   }

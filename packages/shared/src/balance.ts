@@ -752,3 +752,56 @@ export const COURIER_CHANCE_PER_BLOCK = 0.4;
 export const COURIER_DWELL_STEPS = 3;
 /** A courier that has not left this many blocks after being sent gives up and is removed. */
 export const COURIER_GIVE_UP_BLOCKS = 3;
+
+/** Player prices run from this to that percent of the unit's base ("normal") table price. */
+export const PRICE_BOUNDS_PERCENT = { min: 40, max: 250 } as const;
+
+/** A price within this percent of the appraisal counts as normal; outside it is low or high. */
+export const PRICE_BAND_MARGIN_PERCENT = 5;
+
+/** The appraisal never leaves this percent range of the base price. */
+export const APPRAISAL_RANGE_PERCENT = { min: 60, max: 160 } as const;
+
+/** Percent of the base price by the unit's last grade; a unit with no grade counts as fair. */
+export const APPRAISAL_GRADE_PERCENT = { good: 120, fair: 100, poor: 80, ungraded: 100 } as const;
+
+/** Percent added to the appraisal for each star of the tower above the first. */
+export const APPRAISAL_STAR_PERCENT = 4;
+
+/** Units that make a tower worth more to live and work in. */
+export const APPRAISAL_AMENITY_TYPES: readonly UnitType[] = [
+  'retail-shop',
+  'fast-food',
+  'restaurant',
+  'cinema',
+  'party-hall',
+  'medical-center',
+];
+
+/** Percent added per amenity unit in the tower, up to the cap. */
+export const APPRAISAL_AMENITY_PERCENT_EACH = 1;
+export const APPRAISAL_AMENITY_PERCENT_CAP = 12;
+
+/**
+ * Percent added for the tower's average trip stress, in steps: `best` at 0 stress, nothing at
+ * `neutralAt`, falling in a straight line to `worst` at `worstAt` steps and above. A tower with
+ * no filed trips adds nothing.
+ */
+export const APPRAISAL_STRESS_PERCENT = {
+  best: 5,
+  neutralAt: 60,
+  worst: -15,
+  worstAt: STRESS_MUY_ALTO_FROM,
+} as const;
+
+/** New office and shop contracts can only start from this hour until the other, exclusive. */
+export const LEASE_WINDOW_HOURS = { from: 7, until: 9 } as const;
+
+/** Weekly rent is always charged at this hour, on the weekday the contract started. */
+export const LEASE_RENT_HOUR = 7;
+
+/** Minutes between the rolls for office and shop prospects inside the lease window. */
+export const LEASE_PROSPECT_ROLL_MINUTES = 15;
+
+/** Weeks of locked rent paid to the tenant when a rented office or shop is demolished. */
+export const DEMOLITION_INDEMNITY_WEEKS = 1;

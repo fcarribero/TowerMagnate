@@ -59,7 +59,12 @@ describe('migrateState units', () => {
     const tower = createTower(5);
     const valid = { id: 'u3', type: 'office', x: 0, level: 2, name: null };
     const purchase = {
-      priceLevel: 'normal',
+      price: 10_000,
+      appraisal: 10_000,
+      listed: false,
+      enabled: true,
+      activeToday: true,
+      hours: null,
       paid: 40_000,
       placedAtStep: 0,
       used: false,
@@ -69,10 +74,10 @@ describe('migrateState units', () => {
       { ...valid, ...purchase, type: 'castle' },
       { ...valid, ...purchase, level: 0 },
       { ...valid, ...purchase, id: 'u4' },
-      { ...valid, ...purchase, priceLevel: 'free' },
+      { ...valid, ...purchase, price: -1 },
       { ...valid, ...purchase, paid: -1 },
       { ...valid, ...purchase, placedAtStep: 1.5 },
-      { ...valid, priceLevel: 'normal', paid: 40_000, placedAtStep: 0 },
+      { ...valid, price: 10_000, paid: 40_000, placedAtStep: 0 },
       valid,
     ];
     for (const unit of badUnits) {
@@ -90,9 +95,9 @@ describe('migrateState unit leases', () => {
   it('keeps the price, used flag and lease of a rented unit', () => {
     const rented = {
       ...newUnit('u3', 'office', 0, 1),
-      priceLevel: 'high',
+      price: 15_000,
       used: true,
-      lease: { anchorStep: 100, nextDueStep: 60580, weekVisits: 0 },
+      lease: { anchorStep: 100, nextDueStep: 60580, weekVisits: 0, rent: 10_000 },
     };
     expect(migratedUnit(JSON.parse(JSON.stringify(rented)))).toEqual(rented);
   });
@@ -204,7 +209,12 @@ describe('migrateState fixtures', () => {
       x: 10,
       level: 1,
       name: 'Sur',
-      priceLevel: 'normal',
+      price: 10_000,
+      appraisal: 10_000,
+      listed: true,
+      enabled: true,
+      activeToday: true,
+      hours: null,
       paid: 0,
       placedAtStep: 0,
       used: false,
@@ -219,7 +229,8 @@ describe('migrateState fixtures', () => {
   it('loads a frozen version 2 save', () => {
     const tower = migrateState(JSON.parse(VERSION_2_SAVE));
     expect(tower.units.u1).toMatchObject({
-      priceLevel: 'normal',
+      price: 10_000,
+      listed: true,
       paid: 44_500,
       placedAtStep: 120,
       used: false,
@@ -231,9 +242,9 @@ describe('migrateState fixtures', () => {
   it('loads a frozen version 3 save', () => {
     const tower = migrateState(JSON.parse(VERSION_3_SAVE));
     expect(tower.units.u1).toMatchObject({
-      priceLevel: 'high',
+      price: 15_000,
       used: true,
-      lease: { anchorStep: 240, nextDueStep: 60_720 },
+      lease: { anchorStep: 240, nextDueStep: 60_720, rent: 15_000 },
     });
     expect(tower.shafts).toEqual({});
   });
@@ -458,7 +469,7 @@ describe('migrateState hotel rooms', () => {
       state: 'clean',
       stayEndStep: null,
       checkInStep: null,
-      paidLevel: null,
+      paidRatio: null,
       arrivalStep: null,
       rollDue: true,
       dirtyChecks: 0,
@@ -474,7 +485,7 @@ describe('migrateState hotel rooms', () => {
         state: 'occupied',
         stayEndStep: 12_960,
         checkInStep: null,
-        paidLevel: null,
+        paidRatio: null,
         arrivalStep: null,
         rollDue: false,
         dirtyChecks: 0,
@@ -596,7 +607,7 @@ describe('migrateState unit evaluation', () => {
       state: 'clean',
       stayEndStep: null,
       checkInStep: null,
-      paidLevel: null,
+      paidRatio: null,
       arrivalStep: null,
       rollDue: false,
       dirtyChecks: 0,
@@ -788,7 +799,12 @@ describe('migrateState shop week visits', () => {
       u4: newUnit('u4', 'retail-shop', 20, 2),
     };
     const tower = migrateState(old);
-    expect(tower.units.u3?.lease).toEqual({ anchorStep: 100, nextDueStep: 60_580, weekVisits: 70 });
+    expect(tower.units.u3?.lease).toEqual({
+      anchorStep: 100,
+      nextDueStep: 60_580,
+      weekVisits: 70,
+      rent: 15_000,
+    });
     expect(tower.units.u4?.lease).toBeNull();
   });
 });

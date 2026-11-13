@@ -2,6 +2,7 @@ import {
   addPerson,
   createTower,
   defaultSchedule,
+  encodeStaffRoutine,
   newUnit,
   removePerson,
   renamePerson,
@@ -68,9 +69,18 @@ describe('inspecting a unit', () => {
         persons: 0,
         capacity: 6,
         evaluation: null,
-        price: 'normal',
+        price: 10_000,
+        appraisal: 10_000,
+        priceBand: 'normal',
+        priceMin: 4_000,
+        priceMax: 25_000,
+        priceStep: 1,
+        listed: false,
+        weeklyRent: null,
         leaseWeek: null,
         nextPaymentStep: null,
+        workers: [],
+        customers: [],
       },
     });
   });
@@ -78,7 +88,7 @@ describe('inspecting a unit', () => {
   it('shows a let office with its persons, lease week and next payment', () => {
     const { state, id } = towerWith('office');
     unitOf(state).name = 'Oficinas';
-    unitOf(state).lease = { anchorStep: 0, nextDueStep: 2 * STEPS_PER_WEEK, weekVisits: 0 };
+    unitOf(state).lease = { anchorStep: 0, nextDueStep: 2 * STEPS_PER_WEEK, weekVisits: 0, rent: 10_000 };
     state.step = STEPS_PER_WEEK + 5;
     addOfficeWorkers(state, 7, 6);
 
@@ -98,7 +108,7 @@ describe('inspecting a unit', () => {
 
   it('caps the lease week at the length of the contract', () => {
     const { state, id } = towerWith('retail-shop');
-    unitOf(state).lease = { anchorStep: 0, nextDueStep: 4 * STEPS_PER_WEEK, weekVisits: 0 };
+    unitOf(state).lease = { anchorStep: 0, nextDueStep: 4 * STEPS_PER_WEEK, weekVisits: 0, rent: 10_000 };
     state.step = 4 * STEPS_PER_WEEK;
 
     expect(inspectUnit(state, id)).toMatchObject({ details: { group: 'lease', leaseWeek: 4 } });
@@ -126,7 +136,7 @@ describe('inspecting a unit', () => {
 
     expect(throughTheWire(forSale)).toBe(true);
     expect(forSale).toMatchObject({
-      details: { group: 'condo', state: 'forSale', residents: 0, capacity: 3 },
+      details: { group: 'condo', state: 'forSale', residents: [], residentCount: 0, capacity: 3 },
     });
 
     unitOf(state).sale = { price: 1, anchorStep: 0, nextEvaluationStep: 999 };
@@ -148,7 +158,7 @@ describe('inspecting a unit', () => {
       state: 'occupied',
       stayEndStep: 5000,
       checkInStep: null,
-      paidLevel: null,
+      paidRatio: null,
       arrivalStep: null,
       rollDue: false,
       dirtyChecks: 0,
@@ -164,7 +174,7 @@ describe('inspecting a unit', () => {
       state: 'dirty',
       stayEndStep: 5000,
       checkInStep: null,
-      paidLevel: null,
+      paidRatio: null,
       arrivalStep: null,
       rollDue: false,
       dirtyChecks: 0,
@@ -175,7 +185,7 @@ describe('inspecting a unit', () => {
     });
   });
 
-  it('answers a cinema with its price and the age of its film', () => {
+  it('answers a cinema with the age of its film', () => {
     const { state, id } = towerWith('cinema');
     state.step = 15 * STEPS_PER_DAY;
     const data = inspectUnit(state, id);
@@ -183,7 +193,53 @@ describe('inspecting a unit', () => {
     expect(throughTheWire(data)).toBe(true);
     expect(data).toMatchObject({
       type: 'cinema',
-      details: { group: 'cinema', filmWeek: 3, filmAgeDays: 15, price: 'normal' },
+      details: { group: 'cinema', filmWeek: 3, filmAgeDays: 15 },
+    });
+  });
+
+  it('lists the crew of a fast food and counts the ones working inside as inside', () => {
+    const { state, id } = towerWith('fast-food');
+    unitOf(state).hours = { open: 9, close: 18 };
+    unitOf(state).enabled = false;
+    for (const phase of ['working', 'working', 'outside'] as const) {
+      const person = addPerson(state, { kind: 'staff', homeUnit: 7, level: 4, column: 10 });
+      const slot = state.people.id.indexOf(person);
+      state.people.trip[slot] = encodeStaffRoutine({ phase, entranceOnRight: false });
+    }
+    const data = inspectUnit(state, id);
+
+    expect(throughTheWire(data)).toBe(true);
+    expect(data).toMatchObject({
+      details: {
+        group: 'venue',
+        workers: ['p1', 'p2', 'p3'],
+        workersInside: 2,
+        customers: [],
+        inside: 2,
+        hours: { open: 9, close: 18 },
+        enabled: false,
+        activeToday: true,
+      },
+    });
+  });
+
+  it('gives an office the appraisal, band, price bounds and locked rent', () => {
+    const { state, id } = towerWith('office');
+    unitOf(state).price = 12_000;
+    unitOf(state).appraisal = 10_000;
+    unitOf(state).listed = true;
+    unitOf(state).lease = { anchorStep: 0, nextDueStep: STEPS_PER_WEEK, weekVisits: 0, rent: 9_000 };
+
+    expect(inspectUnit(state, id)).toMatchObject({
+      details: {
+        appraisal: 10_000,
+        priceBand: 'high',
+        priceMin: 4_000,
+        priceMax: 25_000,
+        priceStep: 1,
+        listed: true,
+        weeklyRent: 9_000,
+      },
     });
   });
 
@@ -220,7 +276,7 @@ describe('inspecting a unit', () => {
       state: 'dirty',
       stayEndStep: null,
       checkInStep: null,
-      paidLevel: null,
+      paidRatio: null,
       arrivalStep: null,
       rollDue: false,
       dirtyChecks: 1,

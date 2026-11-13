@@ -2,6 +2,7 @@ import {
   CUSTOMER_ARRIVAL,
   PERSON_KINDS,
   STRESS_NO_ROUTE,
+  LAST_COLUMN,
   UNIT_CATALOG,
   PRICE_LEVELS,
   type PriceLevel,
@@ -9,11 +10,13 @@ import {
   type UnitId,
   type UnitType,
   type VisitedVenueType,
+  priceOfLevel,
 } from '@tower-magnate/shared';
 import { describe, expect, it } from 'vitest';
 import { STEPS_PER_HOUR, STEPS_PER_MINUTE } from './calendar';
 import { STEPS_PER_DAY } from './clock';
 import { createCustomers, outsideCustomerCount } from './customers';
+import { levelRatio } from './pricing';
 import { addPerson, slotOfPerson } from './people';
 import { createScheduler } from './scheduler';
 import { createEngine, step } from './step';
@@ -38,7 +41,7 @@ const planOnly = createEngine({
 function letShop(tower: TowerState, id: UnitId): void {
   const unit = tower.units[id];
   if (!unit) throw new Error(`no unit ${id}`);
-  unit.lease = { anchorStep: 0, nextDueStep: at(30, 0), weekVisits: 0 };
+  unit.lease = { anchorStep: 0, nextDueStep: at(30, 0), weekVisits: 0, rent: 10_000 };
 }
 
 function venueOf(tower: TowerState, id: UnitId) {
@@ -65,7 +68,7 @@ describe('outside customers a day', () => {
       minimum: { weekday: 28, weekend: 35 },
     };
     for (const priceLevel of PRICE_LEVELS) {
-      const shop = { ...base, type: 'retail-shop', priceLevel } as const;
+      const shop = { ...base, type: 'retail-shop', priceRatio: levelRatio('retail-shop', priceLevel) } as const;
       expect(outsideCustomerCount(shop)).toBe(expected[priceLevel].weekday);
       expect(outsideCustomerCount({ ...shop, weekend: true })).toBe(expected[priceLevel].weekend);
     }
@@ -73,15 +76,16 @@ describe('outside customers a day', () => {
 
   it('ignores the price level of food venues', () => {
     for (const priceLevel of PRICE_LEVELS) {
-      expect(outsideCustomerCount({ ...base, type: 'fast-food', priceLevel })).toBe(20);
-      expect(outsideCustomerCount({ ...base, type: 'restaurant', priceLevel, weekend: true })).toBe(
+      const priceRatio = levelRatio('retail-shop', priceLevel);
+      expect(outsideCustomerCount({ ...base, type: 'fast-food', priceRatio })).toBe(20);
+      expect(outsideCustomerCount({ ...base, type: 'restaurant', priceRatio, weekend: true })).toBe(
         30,
       );
     }
   });
 
   it('applies each stress band, with 1.0 when nobody came yesterday', () => {
-    const food = { ...base, type: 'fast-food', priceLevel: 'normal' } as const;
+    const food = { ...base, type: 'fast-food', priceRatio: 1 } as const;
     const cases: [number | null, number][] = [
       [null, 20],
       [0, 20],
@@ -98,11 +102,11 @@ describe('outside customers a day', () => {
 
   it('applies the subway factor on top, flooring once at the end', () => {
     const shop = { ...base, type: 'retail-shop', subway: true } as const;
-    expect(outsideCustomerCount({ ...shop, priceLevel: 'normal' })).toBe(24);
-    expect(outsideCustomerCount({ ...shop, priceLevel: 'minimum' })).toBe(33);
-    expect(outsideCustomerCount({ ...shop, priceLevel: 'high', averageStress: 200 })).toBe(10);
+    expect(outsideCustomerCount({ ...shop, priceRatio: levelRatio('retail-shop', 'normal') })).toBe(24);
+    expect(outsideCustomerCount({ ...shop, priceRatio: levelRatio('retail-shop', 'minimum') })).toBe(33);
+    expect(outsideCustomerCount({ ...shop, priceRatio: levelRatio('retail-shop', 'high'), averageStress: 200 })).toBe(10);
     expect(
-      outsideCustomerCount({ ...shop, priceLevel: 'low', weekend: true, averageStress: 100 }),
+      outsideCustomerCount({ ...shop, priceRatio: levelRatio('retail-shop', 'low'), weekend: true, averageStress: 100 }),
     ).toBe(28);
   });
 });
@@ -143,7 +147,7 @@ describe('the 00:00 customer plan', () => {
 
   it('plans 28 for a shop at minimum price on a weekday', () => {
     const { state, shop } = venueTower();
-    (state.units[shop] as { priceLevel: PriceLevel }).priceLevel = 'minimum';
+    (state.units[shop] as { price: number }).price = priceOfLevel('retail-shop', 'minimum');
     expect(venueOf(planDay(state, TUESDAY), shop).customers).toHaveLength(28);
   });
 
@@ -272,7 +276,10 @@ describe('customers in the tower', () => {
         countedAt.push(minute);
       }
     }
-    expect(countedAt).toHaveLength(20);
+    // Customers walk in from the map edge, up to about an hour from the right side, so the last
+    // ones can reach the venue after it has closed at 20:00.
+    expect(countedAt.length).toBeGreaterThanOrEqual(17);
+    expect(countedAt.length).toBeLessThanOrEqual(20);
     for (const minute of countedAt) {
       expect(minute).toBeGreaterThanOrEqual(8 * 60);
       expect(minute).toBeLessThanOrEqual(20 * 60);
@@ -280,7 +287,8 @@ describe('customers in the tower', () => {
     expect(customersIn(tower)).toBe(0);
 
     tower = step(tower, [], STEPS_PER_MINUTE).state;
-    expect(venueOf(tower, id)).toMatchObject({ previousDayCount: 20, countToday: 0 });
+    expect(venueOf(tower, id).previousDayCount).toBe(countedAt.length);
+    expect(venueOf(tower, id).countToday).toBe(0);
   });
 
   it('leave without a visit when they arrive after closing', () => {
@@ -322,7 +330,8 @@ describe('customers in the tower', () => {
 
   it('go in when one place is left, and record the trip stress', () => {
     const { state, id } = shopWithCustomersInside(24);
-    const tower = step(state, [], 30 * STEPS_PER_MINUTE).state;
+    // The customer walks in from the map edge first, about an hour at most.
+    const tower = step(state, [], 90 * STEPS_PER_MINUTE).state;
     expect(venueOf(tower, id)).toMatchObject({ countToday: 1, stressTrips: 1 });
     expect(customersIn(tower)).toBe(25);
   });
@@ -331,7 +340,7 @@ describe('customers in the tower', () => {
     const { state, id } = streetVenue('retail-shop');
     const shop = state.units[id];
     if (!shop) throw new Error(`no unit ${id}`);
-    shop.lease = { anchorStep: at(TUESDAY, 0), nextDueStep: at(TUESDAY + 7, 0), weekVisits: 0 };
+    shop.lease = { anchorStep: at(TUESDAY, 0), nextDueStep: at(TUESDAY + 7, 0), weekVisits: 0, rent: 10_000 };
     state.step = at(TUESDAY, 0) - 1;
     const beforeCheck = step(state, [], 7 * STEPS_PER_DAY).state;
     const weekVisits = beforeCheck.units[id]?.lease?.weekVisits ?? 0;
@@ -445,7 +454,8 @@ describe('customers by subway', () => {
     }
     for (const arrival of arrivals.filter((each) => each.entrance.kind === 'street')) {
       expect(arrival.level).toBe(1);
-      expect([0, LOBBY_RIGHT]).toContain(arrival.column);
+      // Street customers appear at the map edge on the side of their lobby end.
+      expect([0, LAST_COLUMN]).toContain(arrival.column);
     }
   });
 
@@ -526,7 +536,9 @@ describe('customers by subway', () => {
     }
     expect(failedSearches).toBe(0);
     const venue = venueOf(tower, food);
-    expect(venue.countToday).toBe(24);
+    // A customer who walks in from the map edge late in the day can reach a closed venue.
+    expect(venue.countToday).toBeGreaterThanOrEqual(22);
+    expect(venue.countToday).toBeLessThanOrEqual(24);
     expect(venue.stressSum).toBeLessThan(STRESS_NO_ROUTE);
   });
 });

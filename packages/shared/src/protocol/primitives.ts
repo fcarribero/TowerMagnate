@@ -30,6 +30,9 @@ export const StepSchema = z.int().nonnegative();
 export const MoneySchema = z.int();
 export const StarRatingSchema = z.literal([1, 2, 3, 4, 5, 6]);
 export const LobbyHeightSchema = z.literal([1, 2, 3]);
+/** A price in whole money; the engine checks it against the unit's bounds. */
+export const PriceSchema = z.int().positive();
+export const PriceBandSchema = z.enum(['low', 'normal', 'high']);
 export const PriceLevelSchema = z.enum(PRICE_LEVELS);
 export const UnitTypeSchema = z.enum(UNIT_TYPES);
 

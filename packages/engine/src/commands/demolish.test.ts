@@ -1,5 +1,6 @@
 import { MONEY_CAP, UNIT_CATALOG, type Command, type TowerState } from '@tower-magnate/shared';
 import { describe, expect, it } from 'vitest';
+import { demolitionIndemnity } from './demolish';
 import { occupantAt, structureAt } from '../grid';
 import { addPeopleForUnit, listPeople } from '../people';
 import { buildTower, plainTowerPlan } from '../testing';
@@ -115,7 +116,7 @@ describe('demolish', () => {
     const leased = structuredClone(state);
     const office = leased.units[id] as TowerState['units'][string];
     office.used = true;
-    office.lease = { anchorStep: 0, nextDueStep: 100, weekVisits: 0 };
+    office.lease = { anchorStep: 0, nextDueStep: 100, weekVisits: 0, rent: 10_000 };
     addPeopleForUnit(leased, id);
     expect(listPeople(leased.people).length).toBeGreaterThan(0);
 
@@ -148,7 +149,7 @@ describe('demolish', () => {
     expect(rejection(tower, ruins)).toBe('NOTHING_TO_DEMOLISH');
   });
 
-  it('rejects any main lobby cell with MAIN_LOBBY_PROTECTED', () => {
+  it('rejects a main lobby cell inside its run and any floor tool over it', () => {
     const tower = towerReadyToBuild();
     const lobby: Command = {
       type: 'demolish',
@@ -158,7 +159,7 @@ describe('demolish', () => {
       type: 'demolish',
       target: { kind: 'floor', level: 1, x0: 0, x1: 374 },
     };
-    expect(rejection(tower, lobby)).toBe('MAIN_LOBBY_PROTECTED');
+    expect(rejection(tower, lobby)).toBe('MAIN_LOBBY_INNER');
     expect(rejection(tower, floor)).toBe('MAIN_LOBBY_PROTECTED');
   });
 
@@ -435,12 +436,76 @@ describe('demolish refund for sky lobbies', () => {
     expect(result).toMatchObject({ refund: 100 });
   });
 
-  it('records no purchase for the main lobby and still refuses to demolish it', () => {
+  it('records no purchase for the main lobby and refuses its end while floor stands above', () => {
     const { state: tower } = buildTower(plainTowerPlan(2, 100, 200));
     tower.money = 10_000_000;
     const command: Command = { type: 'buildLobby', level: 1, x0: 201, x1: 210, height: 1 };
     const extended = accept(tower, command).state;
     expect(extended.lobbyPurchases).toEqual([]);
-    expect(rejection(extended, demolishLobby(1, 100, 100))).toBe('MAIN_LOBBY_PROTECTED');
+    expect(rejection(extended, demolishLobby(1, 100, 100))).toBe('MAIN_LOBBY_COVERED');
+  });
+});
+
+describe('demolish main lobby', () => {
+  function mainLobby(level: number, x0: number, x1: number): Command {
+    return { type: 'demolish', target: { kind: 'lobby', level: level as 1, x0, x1 } };
+  }
+
+  function lobbyOnly() {
+    const { state } = buildTower({ lobby: { x0: 0, x1: 19 } });
+    return state;
+  }
+
+  it('removes columns from either end and leaves empty ground', () => {
+    const left = accept(lobbyOnly(), mainLobby(1, 0, 4)).state;
+    expect(structureAt(left.grid, 1, 0)).toBeNull();
+    expect(structureAt(left.grid, 1, 4)).toBeNull();
+    expect(structureAt(left.grid, 1, 5)).toBe('lobby');
+    const both = accept(left, mainLobby(1, 15, 19)).state;
+    expect(structureAt(both.grid, 1, 19)).toBeNull();
+    expect(structureAt(both.grid, 1, 10)).toBe('lobby');
+  });
+
+  it('lets the whole lobby go when nothing stands above it', () => {
+    const { state } = run(lobbyOnly(), mainLobby(1, 0, 19));
+    expect(state.grid.mainLobbyHeight).toBeNull();
+    expect(structureAt(state.grid, 1, 10)).toBeNull();
+  });
+
+  it('rejects a part that does not touch an end or would split the lobby', () => {
+    expect(rejection(lobbyOnly(), mainLobby(1, 8, 9))).toBe('MAIN_LOBBY_INNER');
+    expect(rejection(lobbyOnly(), mainLobby(1, 1, 3))).toBe('MAIN_LOBBY_INNER');
+  });
+
+  it('rejects columns with structure on any level above', () => {
+    const { state } = buildTower({
+      lobby: { x0: 0, x1: 19 },
+      floors: [{ from: 5, to: 5, x0: 2, x1: 3 }],
+    });
+    expect(rejection(state, mainLobby(1, 0, 4))).toBe('MAIN_LOBBY_COVERED');
+    expect(run(state, mainLobby(1, 4, 19)).result.ok).toBe(true);
+  });
+});
+
+describe('demolish indemnity', () => {
+  it('charges the locked weekly rent of a rented office', () => {
+    const { state, id } = build(towerReadyToBuild(), 'office', 10, 5);
+    const leased = structuredClone(state);
+    const office = leased.units[id] as TowerState['units'][string];
+    office.lease = { anchorStep: 0, nextDueStep: 100, weekVisits: 0, rent: 12_000 };
+    leased.money = 100_000;
+    const { state: after } = run(leased, demolishUnit(id));
+    expect(demolitionIndemnity(leased, [id])).toBe(12_000);
+    expect(after.ledger.currentWeek.rent.expense).toBe(-12_000);
+  });
+
+  it('charges nothing for an unrented unit and sums a row of rented ones', () => {
+    const { state, id } = build(towerReadyToBuild(), 'office', 10, 5);
+    expect(demolitionIndemnity(state, [id])).toBe(0);
+    const other = structuredClone(state);
+    const first = other.units[id] as TowerState['units'][string];
+    first.lease = { anchorStep: 0, nextDueStep: 100, weekVisits: 0, rent: 7_000 };
+    other.units.u90 = { ...first, id: 'u90', lease: { ...(first.lease as object), rent: 5_000 } as never };
+    expect(demolitionIndemnity(other, [id, 'u90', id, 'u999'])).toBe(12_000);
   });
 });

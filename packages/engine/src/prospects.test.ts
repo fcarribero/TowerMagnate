@@ -1,4 +1,4 @@
-import { type PriceLevel, type TowerState, type UnitId } from '@tower-magnate/shared';
+import { priceOfLevel, type PriceLevel, type TowerState, type UnitId } from '@tower-magnate/shared';
 import { describe, expect, it } from 'vitest';
 import { STEPS_PER_HOUR } from './calendar';
 import { STEPS_PER_DAY } from './clock';
@@ -12,6 +12,8 @@ import { createTrekSystem } from './trek';
 import { createLeaseSystem } from './leases';
 
 const FIRST_ROLL = 8 * STEPS_PER_HOUR;
+/** Offices and shops roll from 07:00, inside the lease window. */
+const FIRST_LEASE_ROLL = 7 * STEPS_PER_HOUR;
 const SATURDAY = 5 * STEPS_PER_DAY;
 
 const demand = createProspectDemand();
@@ -41,7 +43,7 @@ function towerWithVacantUnit({ unit, priceLevel = 'normal', reachable = true, se
   const { state, unitIds } = buildTower(plan);
   if (reachable) addFlight(state, 'stairs', 20, 1);
   const id = unitIds[0] as UnitId;
-  (state.units[id] as { priceLevel: PriceLevel }).priceLevel = priceLevel;
+  (state.units[id] as { price: number }).price = priceOfLevel(unit, priceLevel);
   return { state, id };
 }
 
@@ -60,15 +62,15 @@ describe('prospect rolls', () => {
     let sent = 0;
     for (let seed = 1; seed <= seeds; seed++) {
       const { state } = towerWithVacantUnit({ unit: 'office', priceLevel, seed });
-      sent += prospectCount(engine.step(state, [], FIRST_ROLL).state);
+      sent += prospectCount(engine.step(state, [], FIRST_LEASE_ROLL).state);
     }
     expect(sent / seeds).toBeGreaterThan(expected - 0.06);
     expect(sent / seeds).toBeLessThan(expected + 0.06);
   });
 
-  it('do not happen before 08:00', () => {
+  it('do not happen before 07:00', () => {
     const { state } = towerWithVacantUnit({ unit: 'office', priceLevel: 'minimum' });
-    expect(prospectCount(engine.step(state, [], FIRST_ROLL - 1).state)).toBe(0);
+    expect(prospectCount(engine.step(state, [], FIRST_LEASE_ROLL - 1).state)).toBe(0);
   });
 
   it('skip offices at the weekend but not shops or condos', () => {
@@ -100,18 +102,21 @@ describe('prospect rolls', () => {
 
 describe('prospect move-in', () => {
   it('signs the lease at the step the prospect arrives and sends the prospect away', () => {
-    const { state, id } = towerWithVacantUnit({ unit: 'office', priceLevel: 'minimum' });
+    // The prospect walks in from the map edge first, so the lease is signed some time after the roll.
+    const { state, id } = towerWithVacantUnit({ unit: 'office', priceLevel: 'minimum', seed: 2 });
     const { state: after, events } = engine.step(state, [], STEPS_PER_DAY);
     const signed = events.filter((event) => event.type === 'leaseSigned');
     expect(signed).toHaveLength(1);
     const lease = after.units[id]?.lease;
-    expect(lease?.anchorStep).toBe(signed[0]?.step);
-    expect(lease?.anchorStep).toBeGreaterThan(FIRST_ROLL);
+    // Rent counts from 07:00 whatever minute the prospect arrived in the lease window.
+    expect(lease?.anchorStep).toBe(7 * STEPS_PER_HOUR);
+    expect(signed[0]?.step).toBeGreaterThanOrEqual(7 * STEPS_PER_HOUR);
+    expect(signed[0]?.step).toBeLessThan(9 * STEPS_PER_HOUR);
     expect(prospectCount(after)).toBe(0);
   });
 
   it('creates the office workers when the tenant moves in', () => {
-    const { state, id } = towerWithVacantUnit({ unit: 'office', priceLevel: 'minimum' });
+    const { state, id } = towerWithVacantUnit({ unit: 'office', priceLevel: 'minimum', seed: 2 });
     expect(countPeopleByKind(state.people).officeWorker ?? 0).toBe(0);
     const { state: after } = engine.step(state, [], STEPS_PER_DAY);
     expect(after.units[id]?.lease).toBeDefined();

@@ -1,6 +1,5 @@
 import {
   CONDO_EVALUATION_WEEKS,
-  CONDO_SALE_PRICE,
   type CondoSale,
   type UnitId,
   type Unit,
@@ -22,7 +21,7 @@ function isCondo(unit: Unit): unit is Condo {
   return unit.type === 'condo';
 }
 
-/** E-24: the buyer pays the price at the level in force now; the sale price is locked in. */
+/** E-24: the buyer pays the price set now; the sale price is locked in. */
 export function sellCondo(context: StepContext, unitId: UnitId): void {
   const shared = context.state.units[unitId];
   if (!shared || !isCondo(shared)) {
@@ -33,7 +32,7 @@ export function sellCondo(context: StepContext, unitId: UnitId): void {
   }
   const unit = writableUnit(context.state, shared);
   const step = context.state.step;
-  const price = CONDO_SALE_PRICE[unit.priceLevel];
+  const price = unit.price;
   clearUnitLedger(context.state, unitId);
   const paid = creditMoney(context.state, 'condoSales', price);
   pushUnitMoney(context, unitId, paid, 'sale');
