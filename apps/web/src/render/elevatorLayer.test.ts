@@ -137,12 +137,12 @@ describe('ElevatorLayer cars', () => {
     expect(layer.carCount).toBe(0);
   });
 
-  it('draws riders inside the car under the door leaves, doors open or closed', () => {
+  it('draws riders inside the car over the door leaves, with no veil, doors open or closed', () => {
     const { layer, textures } = layerWithArt();
     layer.showCars(frameOf(5, 'open', [rider]), shafts);
     const view = layer.carView.children[0];
     expect(view?.children.length).toBe(4);
-    expect(view?.children[1]).toMatchObject({ texture: textures['people/worker-b/stand'] });
+    expect(view?.children[3]).toMatchObject({ texture: textures['people/worker-b/stand'] });
 
     layer.showCars(frameOf(5, 'closed', [rider]), shafts);
     expect(view?.children.length).toBe(4);
@@ -154,10 +154,10 @@ describe('ElevatorLayer cars', () => {
     const { layer } = layerWithArt();
     layer.showCars(frameOf(5, 'open', [rider]), shafts);
     const view = layer.carView.children[0];
-    const sprite = view?.children[1];
+    const sprite = view?.children[3];
     layer.showCars(frameOf(5, 'closed', []), shafts);
     layer.showCars(frameOf(5, 'open', [{ ...rider, id: 'p6' }]), shafts);
-    expect(view?.children[1]).toBe(sprite);
+    expect(view?.children[3]).toBe(sprite);
     expect(sprite?.destroyed).toBe(false);
   });
 
@@ -177,7 +177,7 @@ describe('ElevatorLayer cars', () => {
     const { layer, textures } = layerWithArt();
     layer.showCars(frameOf(5, 'open', [{ ...rider, stress: 'stressed' }]), shafts);
     const view = layer.carView.children[0];
-    expect(view?.children[1]).toMatchObject({ texture: textures['people/worker-b/stand'] });
+    expect(view?.children[3]).toMatchObject({ texture: textures['people/worker-b/stand'] });
   });
 
   it('hides cars outside the visible levels', () => {
@@ -203,7 +203,7 @@ describe('ElevatorLayer followed riders', () => {
     const marker = view?.children.find((child) => (child as Sprite).tint === 0xf2d36b) as Sprite;
     expect(marker.visible).toBe(true);
     expect([marker.width, marker.height]).toEqual([3, 2]);
-    const head = view?.children[1] as Sprite;
+    const head = view?.children[3] as Sprite;
     expect(marker.y).toBe(head.y - 4);
 
     layer.showCars(frameOf(5, 'closed', [rider]), shafts);

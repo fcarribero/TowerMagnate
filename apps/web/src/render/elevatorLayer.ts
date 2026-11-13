@@ -44,8 +44,6 @@ interface DrawnShaftCar {
 const DOOR_COLOR = 0xa9a8b0;
 /** Milliseconds the doors take to go from closed to open or back. */
 const DOOR_MS = 450;
-/** Closed leaves are see-through so the riders show while the car moves. */
-const CLOSED_ALPHA = 0.55;
 
 /**
  * Draws elevator shafts, which change only when the tower does, and their cars,
@@ -180,7 +178,7 @@ export class ElevatorLayer {
     const origin = carOrigin(shaft, drawn.position);
     car.position = drawn.position;
     car.view.position.set(origin.x, origin.y);
-    // The body is always the open car, so the riders show inside; the leaves close over it.
+    // The body is always the open car and the riders stand over the leaves, so the inside is never veiled.
     const subject = `transport/${shaft.type}-car`;
     const bodyTextureId = this.sprites.idOf(subject, { state: 'open' });
     if (car.bodyTextureId !== bodyTextureId) {
@@ -200,15 +198,12 @@ export class ElevatorLayer {
     const opening = doorOpeningOf(carSize(shaft.type));
     const width = doorLeafWidth(shaft.type, car.openness);
     const [left, right] = car.leaves;
-    const alpha = CLOSED_ALPHA + (1 - CLOSED_ALPHA) * car.openness;
     left.position.set(opening.left, opening.top);
     left.width = width;
     left.height = opening.height;
     right.position.set(opening.left + opening.width - width, opening.top);
     right.width = width;
     right.height = opening.height;
-    left.alpha = alpha;
-    right.alpha = alpha;
   }
 
   private createCar(key: string, open: boolean): DrawnShaftCar {
@@ -283,7 +278,7 @@ export class ElevatorLayer {
       let rider = car.riders.get(person.id);
       if (rider === undefined) {
         rider = { sprite: this.takeRiderSprite(), textureId: '' };
-        car.view.addChildAt(rider.sprite, car.view.getChildIndex(car.leaves[0]));
+        car.view.addChildAt(rider.sprite, car.view.getChildIndex(car.leaves[1]) + 1);
         car.riders.set(person.id, rider);
       }
       if (rider.textureId !== textureId) {
