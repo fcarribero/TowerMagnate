@@ -71,7 +71,15 @@ describe('hotel check-in', () => {
       dirtyChecks: 0,
     });
     expect(weekdayOfDay(WEDNESDAY + 3)).toBe(WEEKDAYS.saturday);
-    expect(events.map((event) => event.type)).toEqual(['hotelCheckIn', 'roomStateChanged']);
+    expect(events.map((event) => event.type)).toEqual([
+      'hotelCheckIn',
+      'unitMoney',
+      'roomStateChanged',
+    ]);
+    expect(events.find((event) => event.type === 'unitMoney')).toMatchObject({
+      unitId: roomId,
+      reason: 'hotel',
+    });
 
     const engine = createEngine({ commandHandlers: {}, systems: [createHotelSystem()] });
     const justBefore = engine.step(state, [], at(WEDNESDAY + 3, 10) - 1 - state.step);

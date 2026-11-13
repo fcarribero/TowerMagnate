@@ -17,7 +17,7 @@ const space: FloaterSpace = {
 describe('incomeFloaters', () => {
   it('shows the amount over the top centre of a visible unit', () => {
     expect(incomeFloaters([income(25000, OFFICE)], space)).toEqual([
-      { text: '+$25.000', x: 10 + 120 * 0.5, y: 5 + 100 },
+      { text: '+$25.000', negative: false, x: 10 + 120 * 0.5, y: 5 + 100 },
     ]);
   });
 
@@ -25,9 +25,15 @@ describe('incomeFloaters', () => {
     expect(incomeFloaters([income(25000, 'unit-9')], space)).toEqual([]);
   });
 
-  it('skips income without a unit, zero amounts and expenses', () => {
-    const events = [income(500, null), income(0, OFFICE), income(-300, OFFICE)];
+  it('skips money without a unit and zero amounts', () => {
+    const events = [income(500, null), income(0, OFFICE), income(-300, null)];
     expect(incomeFloaters(events, space)).toEqual([]);
+  });
+
+  it('shows money spent or lost as a negative amount', () => {
+    expect(incomeFloaters([income(-40000, OFFICE)], space)).toEqual([
+      { text: '-$40.000', negative: true, x: 10 + 120 * 0.5, y: 5 + 100 },
+    ]);
   });
 
   it('shows one floater per income', () => {

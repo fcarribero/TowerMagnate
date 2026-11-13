@@ -37,6 +37,17 @@ export function toClientEvents(events: readonly EngineEvent[]): ClientEvent[] {
           params: noticeParamTexts(event.params),
         });
         break;
+      case 'unitMoney':
+        if (event.amount !== 0) {
+          result.push({
+            type: 'moneyChanged',
+            step: event.step,
+            amount: event.amount,
+            reason: event.reason,
+            unitId: event.unitId,
+          });
+        }
+        break;
       case 'weddingCompleted':
         result.push({ type: 'weddingCompleted', step: event.step });
         break;

@@ -7,7 +7,7 @@ export function IncomeFloaters({ floaters }: { floaters: readonly ShownFloater[]
       {floaters.map((item) => (
         <div
           key={item.id}
-          class="tm-float-income"
+          class={item.negative ? 'tm-float-income tm-float-expense' : 'tm-float-income'}
           style={{ left: `${item.x}px`, top: `${item.y}px` }}
         >
           {item.text}

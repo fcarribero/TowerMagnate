@@ -51,8 +51,6 @@ export interface WindowProps {
   dialogTone?: 'alert' | 'info';
   /** Small line above the title, for example the type and level of a unit. */
   subtitle?: string;
-  /** False pins the window where its owner puts it: the title bar no longer drags. */
-  draggable?: boolean;
 }
 
 export function Window({
@@ -68,7 +66,6 @@ export function Window({
   isDialog = false,
   dialogTone = 'alert',
   subtitle,
-  draggable = true,
 }: WindowProps) {
   const manager = useWindowManager();
   const frameRef = useRef<HTMLElement>(null);
@@ -202,14 +199,12 @@ export function Window({
   ]
     .filter(Boolean)
     .join(' ');
-  const dragHandlers = draggable
-    ? {
-        onPointerDown: onTitlePointerDown,
-        onPointerMove: onTitlePointerMove,
-        onPointerUp: onTitlePointerEnd,
-        onPointerCancel: onTitlePointerEnd,
-      }
-    : {};
+  const dragHandlers = {
+    onPointerDown: onTitlePointerDown,
+    onPointerMove: onTitlePointerMove,
+    onPointerUp: onTitlePointerEnd,
+    onPointerCancel: onTitlePointerEnd,
+  };
   const widthStyle = width === undefined ? undefined : `calc(${width} * var(--tm-px))`;
 
   return (

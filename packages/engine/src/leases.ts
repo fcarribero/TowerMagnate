@@ -11,7 +11,7 @@ import {
 } from '@tower-magnate/shared';
 import { DAYS_PER_WEEK } from './calendar';
 import { STEPS_PER_DAY } from './clock';
-import { creditMoney } from './money';
+import { creditMoney, pushUnitMoney } from './money';
 import { removePeopleOfUnit } from './people';
 import type { SimulationSystem, StepContext } from './step';
 import { writableUnit } from './step-copy';
@@ -51,7 +51,8 @@ function startTerm(context: StepContext, unit: LeasedUnit, event: 'leaseSigned' 
   const step = context.state.step;
   unit.lease = { anchorStep: step, nextDueStep: step + STEPS_PER_WEEK, weekVisits: 0 };
   unit.used = true;
-  creditMoney(context.state, 'rent', weeklyRent(unit));
+  const rent = creditMoney(context.state, 'rent', weeklyRent(unit));
+  pushUnitMoney(context, unit.id, rent, 'rent');
   context.events.push({ type: event, step, unitId: unit.id });
 }
 
@@ -100,7 +101,8 @@ function settleDueLease(context: StepContext, unit: LeasedUnit, evaluate: Tenant
     return;
   }
   if (lease.nextDueStep < termEndStep(lease)) {
-    creditMoney(context.state, 'rent', weeklyRent(unit));
+    const rent = creditMoney(context.state, 'rent', weeklyRent(unit));
+    pushUnitMoney(context, unit.id, rent, 'rent');
     lease.nextDueStep += STEPS_PER_WEEK;
     lease.weekVisits = 0;
     return;

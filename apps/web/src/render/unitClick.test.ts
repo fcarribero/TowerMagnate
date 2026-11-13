@@ -43,20 +43,16 @@ function setup() {
   store.applySnapshot({ ...snapshot, units: [office], shafts: [shaft], people: [walker, rider] });
   let input: (event: CellInput) => void = () => undefined;
   const opened: string[] = [];
-  const cleared = { count: 0 };
   bindUnitClicks({ onCellInput: (listener) => ((input = listener), () => undefined) }, store, {
     person: (id) => opened.push(`person:${id}`),
     unit: (id) => opened.push(id),
     shaft: (id) => opened.push(`shaft:${id}`),
-    clearUnit: () => {
-      cleared.count += 1;
-    },
   });
   const press = (cell: Cell | null, upOffset = 0): void => {
     input({ kind: 'down', cell, clientX: 100, clientY: 100 });
     input({ kind: 'up', cell, clientX: 100 + upOffset, clientY: 100 });
   };
-  return { click: (cell: Cell) => press(cell), press, opened, cleared };
+  return { click: (cell: Cell) => press(cell), press, opened };
 }
 
 describe('bindUnitClicks', () => {
@@ -97,19 +93,6 @@ describe('bindUnitClicks', () => {
     const { click, opened } = setup();
     click({ x: 0, level: 3 });
     expect(opened).toEqual([]);
-  });
-
-  it('clears the unit panel on a click away from a unit, not on a unit click or a drag', () => {
-    const { click, press, cleared } = setup();
-    click({ x: 10, level: 3 });
-    expect(cleared.count).toBe(0);
-    press({ x: 0, level: 3 }, 20);
-    expect(cleared.count).toBe(0);
-    click({ x: 0, level: 3 });
-    click({ x: 33, level: 4 });
-    click({ x: 14, level: 3 });
-    press(null);
-    expect(cleared.count).toBe(4);
   });
 
   it('ignores a press that dragged the view', () => {

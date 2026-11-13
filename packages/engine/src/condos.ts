@@ -5,7 +5,7 @@ import {
   type UnitId,
   type Unit,
 } from '@tower-magnate/shared';
-import { chargeMoney, creditMoney } from './money';
+import { chargeMoney, creditMoney, pushUnitMoney } from './money';
 import { STEPS_PER_WEEK } from './leases';
 import type { SimulationSystem, StepContext } from './step';
 import { writableUnit } from './step-copy';
@@ -35,7 +35,8 @@ export function sellCondo(context: StepContext, unitId: UnitId): void {
   const step = context.state.step;
   const price = CONDO_SALE_PRICE[unit.priceLevel];
   clearUnitLedger(context.state, unitId);
-  creditMoney(context.state, 'condoSales', price);
+  const paid = creditMoney(context.state, 'condoSales', price);
+  pushUnitMoney(context, unitId, paid, 'sale');
   const sale: CondoSale = {
     price,
     anchorStep: step,
@@ -50,6 +51,7 @@ export function sellCondo(context: StepContext, unitId: UnitId): void {
 function buyBackCondo(context: StepContext, unit: Condo, sale: CondoSale): void {
   const step = context.state.step;
   chargeMoney(context.state, 'condoBuybacks', sale.price);
+  pushUnitMoney(context, unit.id, -sale.price, 'condoBuyback');
   unit.sale = null;
   unit.evaluation = null;
   context.events.push({ type: 'condoVacated', step, unitId: unit.id });

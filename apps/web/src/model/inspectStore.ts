@@ -22,8 +22,6 @@ export class InspectStore {
   private readonly shaftOpenRequests = new Set<OpenRequestListener>();
   private readonly people = new Map<string, PersonInspect>();
   private readonly personOpenRequests = new Set<OpenRequestListener>();
-  private anchored: string | null = null;
-  private readonly anchorListeners = new Set<Listener>();
 
   receive(message: ServerMessage): void {
     if (message.t !== 'inspect') {
@@ -86,36 +84,6 @@ export class InspectStore {
     return () => {
       this.openRequests.delete(listener);
     };
-  }
-
-  /** The unit the Lupa is pointing at; its panel is fixed to the unit and has no close button. */
-  anchoredUnit(): string | null {
-    return this.anchored;
-  }
-
-  anchorUnit(unitId: string): void {
-    this.setAnchored(unitId);
-  }
-
-  clearAnchor(): void {
-    this.setAnchored(null);
-  }
-
-  onAnchorChange(listener: Listener): () => void {
-    this.anchorListeners.add(listener);
-    return () => {
-      this.anchorListeners.delete(listener);
-    };
-  }
-
-  private setAnchored(unitId: string | null): void {
-    if (this.anchored === unitId) {
-      return;
-    }
-    this.anchored = unitId;
-    for (const listener of this.anchorListeners) {
-      listener();
-    }
   }
 
   /** The Lupa asks for an elevator window; the window host answers. */

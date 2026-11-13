@@ -1,6 +1,12 @@
 import type { Ledger } from './ledger';
 import type { Level } from './levels';
-import type { CellRange, DecisionKind, HotelRoomState, TransportType } from './protocol/primitives';
+import type {
+  CellRange,
+  DecisionKind,
+  HotelRoomState,
+  MoneyReason,
+  TransportType,
+} from './protocol/primitives';
 import type { PersonPool } from './people';
 import type { PriceLevel, ShaftType, StarRating, UnitType } from './units';
 
@@ -538,6 +544,16 @@ export type EngineEvent =
       eventId: EventId;
       kind: DecisionKind;
       deadlineStep: number;
+  /** Money that moved because of one unit: positive is income, negative is spent or lost. */
+  | { type: 'unitMoney'; step: number; unitId: UnitId; amount: number; reason: MoneyReason }
+  | {
+      type: 'unitMoney';
+      step: number;
+      commandId: string;
+      unitId: UnitId;
+      amount: number;
+      reason: MoneyReason;
+    }
       options: string[];
     }
   | { type: 'decisionClosed'; step: number; eventId: EventId; choice: string }

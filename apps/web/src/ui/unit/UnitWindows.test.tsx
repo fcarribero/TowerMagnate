@@ -8,7 +8,7 @@ import type { GameConnection } from '../../net/gameConnection';
 import { useFakeLayoutSizes } from '../../testing/fakeLayout';
 import { snapshot } from '../../testing/protocolFixtures';
 import { WindowLayer } from '../kit';
-import { UnitWindows, type PanelStage } from './UnitWindows';
+import { UnitWindows } from './UnitWindows';
 
 useFakeLayoutSizes({ clientWidth: 800, clientHeight: 600, offsetWidth: 150, offsetHeight: 100 });
 
@@ -58,21 +58,7 @@ function inspectOf(id: string, fields: Partial<UnitInspect> = {}): UnitInspect {
   };
 }
 
-function fakeStage(rects: Record<string, { x: number; y: number; width: number; height: number }>) {
-  const listeners = new Set<(camera: unknown) => void>();
-  return {
-    rects,
-    unitScreenRect: (id: string) => rects[id] ?? null,
-    cssPerDevicePixel: () => 1,
-    onCameraChange: (listener: (camera: unknown) => void) => {
-      listeners.add(listener);
-      return () => listeners.delete(listener);
-    },
-    pan: () => listeners.forEach((listener) => listener({})),
-  };
-}
-
-function setup(units: UnitView[], money = 2_000_000, stage: PanelStage | null = null) {
+function setup(units: UnitView[], money = 2_000_000) {
   const sent: ClientMessage[] = [];
   const store = new ClientStore({ requestResync: () => undefined, now: () => 0 });
   store.applySnapshot({ ...snapshot, money, units });
@@ -86,7 +72,7 @@ function setup(units: UnitView[], money = 2_000_000, stage: PanelStage | null = 
   const connection = { store, inspect, commands } as unknown as GameConnection;
   render(
     <WindowLayer>
-      <UnitWindows connection={connection} stage={stage} />
+      <UnitWindows connection={connection} />
     </WindowLayer>,
   );
   const receive = (message: ServerMessage): void => {
@@ -264,83 +250,6 @@ describe('unit windows', () => {
         ':disabled',
       ),
     ).toBe(true);
-  });
-
-  describe('fixed panel of the Lupa', () => {
-    const at = (x: number, y: number) => ({ x, y, width: 40, height: 30 });
-
-    function panelSetup() {
-      const stage = fakeStage({ u1: at(100, 80), u2: at(300, 200) });
-      const world = setup([unitView('u1'), unitView('u2')], 2_000_000, stage as unknown as PanelStage);
-      const anchor = (id: string): void => {
-        act(() => world.inspect.anchorUnit(id));
-        world.show(inspectOf(id, { name: `Unidad ${id}` }));
-      };
-      const panel = (id: string) => screen.getByRole('dialog', { name: `Unidad ${id}` });
-      return { ...world, stage, anchor, panel };
-    }
-
-    it('shows next to the unit with no close button and no drag', () => {
-      const { anchor, panel, sent } = panelSetup();
-      anchor('u1');
-      const frame = panel('u1');
-      expect(within(frame).queryByRole('button', { name: /cerrar/i })).toBeNull();
-      expect(frame.style.left).toBe('148px');
-      expect(frame.style.top).toBe('80px');
-      const title = frame.querySelector('.tm-window__title') as HTMLElement;
-      fireEvent.pointerDown(title, { button: 0, clientX: 10, clientY: 10, pointerId: 1 });
-      fireEvent.pointerMove(title, { clientX: 300, clientY: 300, pointerId: 1 });
-      expect(frame.style.left).toBe('148px');
-      expect(sent.at(-1)).toMatchObject({ t: 'inspectAdd', p: { target: { kind: 'unit', id: 'u1' } } });
-    });
-
-    it('follows the unit when the camera moves', () => {
-      const { anchor, panel, stage } = panelSetup();
-      anchor('u1');
-      stage.rects.u1 = at(160, 120);
-      act(() => stage.pan());
-      expect(panel('u1').style.left).toBe('208px');
-      expect(panel('u1').style.top).toBe('120px');
-    });
-
-    it('moves to another unit and closes when the anchor clears', () => {
-      const { anchor, panel, inspect, sent } = panelSetup();
-      anchor('u1');
-      anchor('u2');
-      expect(screen.queryByRole('dialog', { name: 'Unidad u1' })).toBeNull();
-      expect(panel('u2').style.left).toBe('348px');
-      expect(sent.filter((message) => message.t === 'inspectRemove')).toHaveLength(1);
-      act(() => inspect.clearAnchor());
-      expect(screen.queryByRole('dialog')).toBeNull();
-    });
-
-    it('closes on a press outside, but not on a press inside it', () => {
-      const { anchor, panel, inspect } = panelSetup();
-      anchor('u1');
-      fireEvent.pointerDown(panel('u1'));
-      expect(inspect.anchoredUnit()).toBe('u1');
-      fireEvent.pointerDown(document.body);
-      expect(inspect.anchoredUnit()).toBeNull();
-      expect(screen.queryByRole('dialog')).toBeNull();
-    });
-
-    it('closes on Escape', () => {
-      const { anchor, inspect } = panelSetup();
-      anchor('u1');
-      fireEvent.keyDown(window, { key: 'Escape' });
-      expect(inspect.anchoredUnit()).toBeNull();
-    });
-
-    it('keeps the list-opened unit window as it was, with its close button', () => {
-      const { open, show, anchor, inspect } = panelSetup();
-      open('u1');
-      show(inspectOf('u1', { name: 'Lista' }));
-      anchor('u2');
-      const listed = screen.getByRole('dialog', { name: 'Lista' });
-      expect(within(listed).getByRole('button', { name: /cerrar/i })).toBeTruthy();
-      act(() => inspect.clearAnchor());
-      expect(screen.getByRole('dialog', { name: 'Lista' })).toBeTruthy();
-    });
   });
 
   describe('cinema', () => {

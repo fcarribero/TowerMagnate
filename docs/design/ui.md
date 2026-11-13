@@ -341,7 +341,7 @@ Every other demolition is immediate. Design call: the game has no pause and a 1-
 - Accepted construction: the construction sound plays at the spot, and a floating amount in `cloth-red` (`-$40.000`, in `text.price` with a 1 px `obra.ink` outline so it reads over any tile) rises 16 px over 1 real second from the top center of the new object.
 - Accepted demolition with a refund: the demolition sound, and a floating amount in `leaf` (`+$40.000`) if the refund is above $0.
 - Rejected command: a toast shows the code's message for 3 real seconds, and the error sound plays. Rejections are not written to the news line.
-- Income events (`moneyChanged` with a positive amount tied to a unit) show a floating `leaf` amount over that unit if it is on screen, and play the cash register sound at most once per real second.
+- Money events tied to a unit (`moneyChanged` with a unit id, sent by the server for rent, condo sales and buybacks, hotel check-ins and the daily result of a venue) show a floating amount over that unit if it is on screen: `leaf` `+$X` for income, `cloth-red` `-$X` for a loss such as a restaurant day that closes in the red. Accepted construction keeps its own `-$X` from the build point (above). The cash register sound plays for positive amounts, at most once per real second.
 
 ## 6. Inspection windows
 

@@ -16,7 +16,7 @@ import { STEPS_PER_HOUR, STEPS_PER_MINUTE } from './calendar';
 import { STEPS_PER_DAY } from './clock';
 import { filmAgeDays } from './films';
 import { recordShopVisit } from './leases';
-import { chargeMoney, creditMoney } from './money';
+import { chargeMoney, creditMoney, pushUnitMoney } from './money';
 import { emitNews } from './news';
 import type { ScheduledHook } from './scheduler';
 import type { StepContext } from './step';
@@ -184,7 +184,10 @@ function payOut(context: StepContext, unit: VenueUnit): void {
   let result: number | null = null;
   if (wasOpenToday(unit, state.step)) {
     result = amountFor(DAILY_INCOME_BRACKETS[unit.type], customers);
-    if (result > 0) creditMoney(state, 'venues', result);
+    if (result > 0) {
+      const paid = creditMoney(state, 'venues', result);
+      pushUnitMoney(context, unit.id, paid, 'dailyPayout');
+    }
     if (result < 0) {
       chargeMoney(state, 'venues', -result);
       const lossNews = LOSS_NEWS[unit.type];
@@ -207,6 +210,7 @@ function payoutHook(type: VenueType): ScheduledHook {
     run(context) {
       for (const unit of Object.values(context.state.units)) {
         if (unit.type === type && isVenue(unit)) payOut(context, writableUnit(context.state, unit));
+      pushUnitMoney(context, unit.id, result, 'dailyPayout');
       }
     },
   };

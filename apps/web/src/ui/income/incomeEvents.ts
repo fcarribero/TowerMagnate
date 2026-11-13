@@ -12,6 +12,8 @@ export interface ScreenBox {
 
 export interface IncomeFloater {
   text: string;
+  /** Money spent or lost, drawn in red. */
+  negative: boolean;
   x: number;
   y: number;
 }
@@ -23,14 +25,14 @@ export interface FloaterSpace {
   canvasOrigin: { x: number; y: number };
 }
 
-/** One floater per positive income tied to a unit that is on screen, placed over the unit's top centre. */
+/** One floater per money change tied to a unit that is on screen, placed over the unit's top centre. */
 export function incomeFloaters(
   events: readonly ClientEvent[],
   space: FloaterSpace,
 ): IncomeFloater[] {
   const floaters: IncomeFloater[] = [];
   for (const event of events) {
-    if (event.type !== 'moneyChanged' || event.amount <= 0 || event.unitId === null) {
+    if (event.type !== 'moneyChanged' || event.amount === 0 || event.unitId === null) {
       continue;
     }
     const rect = space.unitRect(event.unitId);
@@ -38,7 +40,8 @@ export function incomeFloaters(
       continue;
     }
     floaters.push({
-      text: `+${formatMoney(event.amount)}`,
+      text: event.amount > 0 ? `+${formatMoney(event.amount)}` : `-${formatMoney(-event.amount)}`,
+      negative: event.amount < 0,
       x: space.canvasOrigin.x + (rect.x + rect.width / 2) * space.cssPerDevicePixel,
       y: space.canvasOrigin.y + rect.y * space.cssPerDevicePixel,
     });

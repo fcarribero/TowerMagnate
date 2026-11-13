@@ -104,9 +104,16 @@ describe('condo owner evaluation', () => {
     expect(state.money).toBe(-175_000);
     expect(state.ledger.currentWeek.condoBuybacks.expense).toBe(-175_000);
     expect(condoOf(state, unitId).sale).toBeNull();
-    expect(events.map((event) => event.type)).toEqual(['condoVacated', 'news', 'news']);
-    expect(events[1]).toMatchObject({ key: 'news.condoBuyback', unitId });
-    expect(events[2]).toMatchObject({ key: 'news.balanceNegative' });
+    expect(events.map((event) => event.type)).toEqual([
+      'unitMoney',
+      'condoVacated',
+      'news',
+      'news',
+    ]);
+    expect(events[0]).toMatchObject({ unitId, reason: 'condoBuyback' });
+    expect(events[0]?.type === 'unitMoney' && events[0].amount).toBeLessThan(0);
+    expect(events[2]).toMatchObject({ key: 'news.condoBuyback', unitId });
+    expect(events[3]).toMatchObject({ key: 'news.balanceNegative' });
   });
 
   it('anchors a new sale at its own step', () => {

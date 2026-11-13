@@ -17,6 +17,19 @@ describe('toClientEvents', () => {
     ]);
   });
 
+  it('turns money tied to a unit into moneyChanged and drops zero amounts', () => {
+    const events: EngineEvent[] = [
+      { type: 'unitMoney', step: 2, unitId: 'u1', amount: 25_000, reason: 'rent' },
+      { type: 'unitMoney', step: 2, unitId: 'u2', amount: -6_000, reason: 'dailyPayout' },
+      { type: 'unitMoney', step: 2, unitId: 'u3', amount: 0, reason: 'rent' },
+    ];
+
+    expect(toClientEvents(events)).toEqual([
+      { type: 'moneyChanged', step: 2, amount: 25_000, reason: 'rent', unitId: 'u1' },
+      { type: 'moneyChanged', step: 2, amount: -6_000, reason: 'dailyPayout', unitId: 'u2' },
+    ]);
+  });
+
   it('passes a bomb blast on with its ruined cells', () => {
     const cells = [{ level: 5, x0: 100, x1: 139 }];
     const events: EngineEvent[] = [{ type: 'disaster', step: 7, kind: 'bomb', cells }];

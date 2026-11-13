@@ -1,10 +1,13 @@
 import {
   LEDGER_CATEGORIES,
   MONEY_CAP,
+  type EngineEvent,
   type ErrorCode,
   type Ledger,
   type LedgerCategory,
+  type MoneyReason,
   type TowerState,
+  type UnitId,
   type WeekTotals,
 } from '@tower-magnate/shared';
 import { WEEKDAYS } from './calendar';
@@ -46,6 +49,17 @@ export function chargeMoney(state: TowerState, category: LedgerCategory, amount:
   assertWholeDollars(amount);
   state.money -= amount;
   state.ledger.currentWeek[category].expense -= amount;
+}
+
+/** Reports money tied to a unit, so the screen can float the amount over it. Zero is not reported. */
+export function pushUnitMoney(
+  context: { state: TowerState; events: EngineEvent[] },
+  unitId: UnitId,
+  amount: number,
+  reason: MoneyReason,
+): void {
+  if (amount === 0) return;
+  context.events.push({ type: 'unitMoney', step: context.state.step, unitId, amount, reason });
 }
 
 /** Moves this week's totals to the previous week and starts the new week at zero. */

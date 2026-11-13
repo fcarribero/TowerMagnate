@@ -12,7 +12,7 @@ import {
 import { dateOfStep, STEPS_PER_HOUR } from './calendar';
 import { STEPS_PER_DAY } from './clock';
 import { releaseStayGuests } from './hotel-guest-trip';
-import { creditMoney } from './money';
+import { creditMoney, pushUnitMoney } from './money';
 import { nextInt } from './rng';
 import type { SimulationSystem, StepContext } from './step';
 import { writableUnit } from './step-copy';
@@ -103,6 +103,7 @@ export function checkIn(context: StepContext, roomId: UnitId, nights?: number): 
   clearUnitLedger(context.state, room.id);
   room.used = true;
   context.events.push({ type: 'hotelCheckIn', step, unitId: room.id, nights: stayNights, paid });
+  pushUnitMoney(context, room.id, paid, 'hotel');
   setRoomState(context, room, 'occupied');
   return { checkedIn: true, nights: stayNights, paid };
 }

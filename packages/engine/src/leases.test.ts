@@ -120,7 +120,8 @@ describe('office and shop leases', () => {
     const { tower, unitId, engine } = leaseRun({ moveInAt: 5 });
     const run = engine.step(tower, [], 5);
     expect(run.state.units[unitId]?.used).toBe(true);
-    expect(run.events).toEqual([{ type: 'leaseSigned', step: 5, unitId }]);
+    expect(run.events).toContainEqual({ type: 'leaseSigned', step: 5, unitId });
+    expect(run.events).toContainEqual(expect.objectContaining({ type: 'unitMoney', unitId, reason: 'rent' }));
   });
 
   it('applies a price change from the next payment, not the current week', () => {
@@ -139,7 +140,7 @@ describe('office and shop leases', () => {
       const before = engine.step(tower, [], 10 + TERM - 1);
       const after = engine.step(before.state, [], 1);
       expect(after.state.money - before.state.money).toBe(10_000);
-      expect(after.events).toEqual([{ type: 'leaseRenewed', step: 10 + TERM, unitId }]);
+      expect(after.events).toContainEqual({ type: 'leaseRenewed', step: 10 + TERM, unitId });
     }
   });
 

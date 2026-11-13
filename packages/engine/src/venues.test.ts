@@ -330,4 +330,34 @@ describe('a scenario day with one venue of each type', () => {
     ]);
     expect(tower.ledger.currentWeek.venues.income).toBe(23_000);
   });
+  it('reports each venue day result as unit money, negative for a loss', () => {
+    const { state, unitIds } = buildTower({
+      ...plainTowerPlan(10, 0, 120),
+      units: VENUE_TYPES.map((type, index) => ({
+        type: type as UnitType,
+        x: 0,
+        level: index * 2 + 2,
+      })),
+    });
+    state.money = START_MONEY;
+    const counts: Record<VenueType, [number, number]> = {
+      'fast-food': [40, 0],
+      restaurant: [10, 0],
+      'party-hall': [45, 0],
+      cinema: [90, 70],
+    };
+    VENUE_TYPES.forEach((type, index) =>
+      setCounts(state, unitIds[index] as UnitId, ...counts[type]),
+    );
+    state.step = at(1, 0);
+    const run = step(state, [], at(2, 0) - at(1, 0));
+    const money = run.events.flatMap((event) =>
+      event.type === 'unitMoney' ? [{ unitId: event.unitId, amount: event.amount }] : [],
+    );
+    expect(money).toHaveLength(4);
+    expect(money.map((item) => item.amount).sort((a, b) => a - b)).toEqual([
+      -6_000, 3_000, 10_000, 10_000,
+    ]);
+    expect(new Set(money.map((item) => item.unitId))).toEqual(new Set(unitIds));
+  });
 });

@@ -18,22 +18,6 @@ function storeWithThreeUnits(): InspectStore {
   return store;
 }
 
-describe('inspect store anchored unit', () => {
-  it('tells listeners when the anchored unit changes or clears, not when it repeats', () => {
-    const store = new InspectStore();
-    const listener = vi.fn();
-    store.onAnchorChange(listener);
-    store.anchorUnit('u1');
-    store.anchorUnit('u1');
-    expect(store.anchoredUnit()).toBe('u1');
-    store.anchorUnit('u2');
-    store.clearAnchor();
-    store.clearAnchor();
-    expect(store.anchoredUnit()).toBeNull();
-    expect(listener).toHaveBeenCalledTimes(3);
-  });
-});
-
 describe('inspect store with several unit windows', () => {
   it('keeps the latest data for each of three units', () => {
     const store = storeWithThreeUnits();

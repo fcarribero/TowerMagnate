@@ -8,6 +8,10 @@
   animation: tm-income-rise 1s steps(8) forwards;
 }
 
+.tm-float-expense {
+  color: var(--tm-cloth-red);
+}
+
 @keyframes tm-income-rise {
   to {
     transform: translate(-50%, calc(-100% - 16 * var(--tm-px)));
