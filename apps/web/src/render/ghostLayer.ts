@@ -91,7 +91,7 @@ export class GhostLayer {
       this.sprite.position.set(area.x, area.y);
       this.sprite.width = area.width;
       this.sprite.height = area.height;
-      this.sprite.tint = ghost.valid ? 0xffffff : GHOST_INVALID_COLOR;
+      this.sprite.tint = ghost.valid ? GHOST_VALID_COLOR : GHOST_INVALID_COLOR;
     }
     this.drawFrames();
   }
