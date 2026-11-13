@@ -23,6 +23,12 @@
   pointer-events: auto;
 }
 
+.status-panel__clock {
+  position: relative;
+  display: flex;
+  flex: none;
+}
+
 .status-panel__spacer {
   flex: 1;
   min-width: 0;

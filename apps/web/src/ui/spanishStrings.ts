@@ -114,6 +114,7 @@ export const SPANISH_STRINGS = {
   'ui.dev.debug': 'Debug',
   'ui.dev.infiniteMoney': 'Dinero infinito',
   'ui.dev.gameSpeed': 'Velocidad',
+  'ui.dev.pause': 'Pausa',
   'ui.logout': 'Cerrar sesión',
   'ui.viewportTooSmall': 'Agrandá la ventana del navegador para jugar.',
   'ui.close': 'Cerrar',

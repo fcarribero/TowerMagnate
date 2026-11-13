@@ -1,5 +1,11 @@
 export const GAME_SPEEDS = [1, 2, 5, 10, 20] as const;
 
+/** The speed that the keys 1 to 5 pick, or null for any other key. */
+export function speedForKey(key: string): number | null {
+  const index = key.length === 1 ? Number(key) - 1 : Number.NaN;
+  return Number.isInteger(index) ? (GAME_SPEEDS[index] ?? null) : null;
+}
+
 export interface DeveloperSettings {
   infiniteMoney: boolean;
   speed: number;

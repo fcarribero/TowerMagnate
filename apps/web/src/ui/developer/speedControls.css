@@ -1,0 +1,37 @@
+.status-panel .speed-controls {
+  position: absolute;
+  top: calc(100% + var(--space-3));
+  left: 0;
+  display: flex;
+  gap: var(--space-2);
+  pointer-events: auto;
+}
+
+.speed-controls__button {
+  box-sizing: border-box;
+  display: grid;
+  place-items: center;
+  min-width: calc(24 * var(--tm-px));
+  height: calc(20 * var(--tm-px));
+  padding: 0 var(--space-2);
+  margin: 0;
+  font: 700 calc(8 * var(--tm-px)) / 1 var(--font-text);
+  color: var(--obra-ink);
+  cursor: pointer;
+  background: var(--obra-paper);
+  border: var(--border-control);
+  box-shadow: var(--block-shadow);
+}
+
+.speed-controls__button.is-active {
+  background: var(--obra-yellow);
+}
+
+.speed-controls__button:active {
+  transform: translate(var(--size-press-offset), var(--size-press-offset));
+}
+
+.speed-controls__icon {
+  width: calc(10 * var(--tm-px));
+  height: calc(10 * var(--tm-px));
+}

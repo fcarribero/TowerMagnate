@@ -39,6 +39,8 @@ export interface StatusPanelProps {
   unreadNotices?: number;
   /** Developer setting: shows an infinity sign instead of the money. */
   infiniteMoney?: boolean;
+  /** Shown right under the clock. */
+  belowClock?: ComponentChildren;
 }
 
 const MAX_BADGE_COUNT = 9;
@@ -83,6 +85,7 @@ export function StatusPanel({
   openWindows = NO_WINDOWS,
   unreadNotices = 0,
   infiniteMoney = false,
+  belowClock,
 }: StatusPanelProps) {
   const status = useStoreSelect(store, selectStatus);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -110,6 +113,7 @@ export function StatusPanel({
           <StatusValuesView
             status={status}
             infiniteMoney={infiniteMoney}
+            belowClock={belowClock}
             onOpenStars={() => onOpenWindow('stars')}
           />
         )}
@@ -153,10 +157,12 @@ function unreadLabel(count: number): string {
 function StatusValuesView({
   status,
   infiniteMoney,
+  belowClock,
   onOpenStars,
 }: {
   status: StatusValues;
   infiniteMoney: boolean;
+  belowClock: ComponentChildren;
   onOpenStars: () => void;
 }) {
   const step = stepOfGameMinute(status.minute);
@@ -169,17 +175,20 @@ function StatusValuesView({
   const labelEnd = population.lastIndexOf(' ');
   return (
     <>
-      <span class="status-panel__date">
-        <span class="status-panel__time">{formatGameTime(step)}</span>
-        <span class="status-panel__day">
-          <span
-            class={date.isWeekend ? 'status-panel__weekday is-weekend' : 'status-panel__weekday'}
-          >
-            {date.weekday}
+      <div class="status-panel__clock">
+        <span class="status-panel__date">
+          <span class="status-panel__time">{formatGameTime(step)}</span>
+          <span class="status-panel__day">
+            <span
+              class={date.isWeekend ? 'status-panel__weekday is-weekend' : 'status-panel__weekday'}
+            >
+              {date.weekday}
+            </span>
+            {date.rest}
           </span>
-          {date.rest}
         </span>
-      </span>
+        {belowClock}
+      </div>
       <span class={moneyClass}>{money}</span>
       <span class="status-panel__population">
         <span class="status-panel__label">{population.slice(0, labelEnd)}</span>

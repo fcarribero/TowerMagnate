@@ -29,6 +29,7 @@ import { overlayForKey } from './overlay/overlayModel';
 import { FinanceWindow } from './finance/FinanceWindow';
 import { isFinanceToggleKey, isMapToggleKey, isPlainShortcut } from './keys';
 import { ConnectionOverlay } from './ConnectionOverlay';
+import { SpeedControls } from './developer/SpeedControls';
 import { useDeveloperMenu } from './developer/useDeveloperMenu';
 import { BuildFeedback } from './placement/BuildFeedback';
 import { bindBuildInput, type DragLabel } from './placement/bindBuildInput';
@@ -334,19 +335,22 @@ export function App({ developer = false, onLogout, onRestartTower, onSessionLost
         setFinanceOpen((open) => !open);
         return;
       }
-      const picked = isPlainShortcut(event) ? overlayForKey(event.key) : null;
+      // Developers use the keys 1 to 5 for the game speed.
+      const picked = isPlainShortcut(event) && !developer ? overlayForKey(event.key) : null;
       if (picked !== null) {
         setOverlay(picked);
       }
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, []);
+  }, [developer]);
 
-  const { items: developerMenuItems, settings: developerSettings } = useDeveloperMenu(
-    developer,
-    connectionStatus === 'live',
-    (type, payload) => connection.socket.sendDebug(type, payload),
+  const {
+    items: developerMenuItems,
+    settings: developerSettings,
+    speedControls,
+  } = useDeveloperMenu(developer, connectionStatus === 'live', (type, payload) =>
+    connection.socket.sendDebug(type, payload),
   );
 
   return (
@@ -361,6 +365,7 @@ export function App({ developer = false, onLogout, onRestartTower, onSessionLost
           overlaySlot={<OverlaySelector overlay={overlay} onSelect={setOverlay} />}
           onLogout={onLogout}
           infiniteMoney={developer && developerSettings.infiniteMoney}
+          belowClock={speedControls !== null && <SpeedControls {...speedControls} />}
           extraMenuItems={[
             {
               id: 'newTower',

@@ -59,7 +59,8 @@ export const DebugMessageSchema = z.discriminatedUnion('t', [
   ),
   debugMessage('setMoney', { amount: z.int().min(-MONEY_CAP).max(MONEY_CAP) }),
   debugMessage('setInfiniteMoney', { enabled: z.boolean() }),
-  debugMessage('setSpeed', { speed: z.int().min(1).max(MAX_GAME_SPEED) }),
+  /** 0 pauses the tower's clock. */
+  debugMessage('setSpeed', { speed: z.int().min(0).max(MAX_GAME_SPEED) }),
   debugMessage('loadScenario', { name: z.enum(DEBUG_SCENARIOS) }),
 ]);
 
