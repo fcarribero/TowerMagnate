@@ -26,8 +26,15 @@ import { ElevatorLayer } from './elevatorLayer';
 import { EventLayer } from './eventLayer';
 import type { EffectDrawing, TransientEffect } from './eventPlan';
 import { PeopleLayer } from './peopleLayer';
-import { SKY_BACKGROUND, createSky, driftClouds, setSkyTime, updateWeather } from './skyRows';
-import type { SkyTime } from './timeOfDay';
+import {
+  SKY_BACKGROUND,
+  createSky,
+  driftClouds,
+  setSkyPhase,
+  skyBackgroundAt,
+  updateWeather,
+} from './skyRows';
+import type { SkyPhase } from './timeOfDay';
 import type { SpriteRegistry } from './spriteRegistry';
 import { StructureLayer } from './structureLayer';
 import type { StructureInput } from './structureRows';
@@ -99,8 +106,8 @@ export interface Stage {
   cssPerDevicePixel(): number;
   /** Draws the tower structure; later calls redraw only the levels that changed. */
   showStructure(input: StructureInput): void;
-  /** Draws the sky of the given time of day behind the tower. */
-  showSky(time: SkyTime): void;
+  /** Draws the sky of the given phase of the day behind the tower. */
+  showSky(phase: SkyPhase): void;
   /** Draws units and transports; later calls change only what differs. */
   showUnits(input: UnitsInput): void;
   /** Marks the followed people on the floor with a lamp above the head. */
@@ -356,9 +363,9 @@ export async function mountStage(host: HTMLElement, options: StageOptions = {}):
     showStructure(input) {
       structure.update(input);
     },
-    showSky(time) {
-      setSkyTime(sky, time);
-      app.renderer.background.color = SKY_BACKGROUND[time];
+    showSky(phase) {
+      setSkyPhase(sky, phase);
+      app.renderer.background.color = skyBackgroundAt(phase);
     },
     showUnits(input) {
       const placed = [...input.units];

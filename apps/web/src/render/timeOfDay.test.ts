@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { skyTimeAt, stepAtHour, timeOfDayAt } from './timeOfDay';
+import { skyPhaseAt, skyTimeAt, stepAtHour, timeOfDayAt } from './timeOfDay';
 
 describe('timeOfDayAt', () => {
   it('is night from 20:00 to 06:00 and day between', () => {
@@ -31,5 +31,22 @@ describe('skyTimeAt', () => {
     expect(skyTimeAt(8640 - 1)).toBe('night');
     expect(skyTimeAt(8640)).toBe('night');
     expect(skyTimeAt(8640 * 2 + stepAtHour(12))).toBe('day');
+  });
+});
+
+describe('skyPhaseAt', () => {
+  it('holds still at full night and full day', () => {
+    expect(skyPhaseAt(stepAtHour(2))).toEqual({ from: 'night', to: 'night', mix: 0 });
+    expect(skyPhaseAt(stepAtHour(12))).toEqual({ from: 'day', to: 'day', mix: 0 });
+  });
+
+  it('fades from night through dusk to day in the morning', () => {
+    expect(skyPhaseAt(stepAtHour(5))).toEqual({ from: 'night', to: 'dusk', mix: 0.5 });
+    expect(skyPhaseAt(stepAtHour(7))).toEqual({ from: 'dusk', to: 'day', mix: 0.5 });
+  });
+
+  it('fades from day through dusk to night in the evening', () => {
+    expect(skyPhaseAt(stepAtHour(18))).toEqual({ from: 'day', to: 'dusk', mix: 0.5 });
+    expect(skyPhaseAt(stepAtHour(20))).toEqual({ from: 'dusk', to: 'night', mix: 0.5 });
   });
 });

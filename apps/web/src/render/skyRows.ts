@@ -1,7 +1,7 @@
 import { Container, Graphics, Sprite, Texture, TilingSprite } from 'pixi.js';
 import { HIGHEST_LEVEL, WORLD_WIDTH, levelToIndex, levelTop } from './levels';
 import { FLOOR_HEIGHT } from './metrics';
-import type { SkyTime } from './timeOfDay';
+import type { SkyPhase, SkyTime } from './timeOfDay';
 
 /** Colour behind the sky, so any gap matches the time of day. */
 export const SKY_BACKGROUND: Record<SkyTime, string> = {
@@ -217,19 +217,40 @@ function cloudTexture(): Texture | null {
   return cloudCache.texture;
 }
 
+export type WeatherKind = 'clear' | 'cloudy' | 'rain';
+
 export interface Weather {
+  kind: WeatherKind;
   raining: boolean;
   /** 0 when dry, 1 in full rain; eases between the two. */
   intensity: number;
+  /** 0 with a clear sky, 1 with the usual clouds; eases between the two. */
+  cover: number;
   /** Seconds until the weather changes. */
   timer: number;
 }
 
-const DRY_SECONDS: readonly [number, number] = [90, 240];
-const RAIN_SECONDS: readonly [number, number] = [30, 80];
+const WEATHER_SECONDS: Record<WeatherKind, readonly [number, number]> = {
+  clear: [60, 150],
+  cloudy: [90, 240],
+  rain: [30, 80],
+};
 const RAIN_FADE_SECONDS = 6;
+const COVER_FADE_SECONDS = 14;
 const RAIN_SPEED = 900;
 const RAIN_SLANT = 0.18;
+
+/** What follows `kind`: rain needs clouds, so it starts and ends under them. */
+function nextWeather(kind: WeatherKind): WeatherKind {
+  if (kind !== 'cloudy') {
+    return 'cloudy';
+  }
+  const roll = Math.random();
+  if (roll < 0.4) {
+    return 'clear';
+  }
+  return roll < 0.75 ? 'rain' : 'cloudy';
+}
 
 function randomBetween(range: readonly [number, number]): number {
   return range[0] + Math.random() * (range[1] - range[0]);
@@ -351,24 +372,29 @@ function buildStorm(): Container {
   return layer;
 }
 
-/** Advances the weather: now and then it rains, fading in and out, and clouds darken. */
+/** Advances the weather: clear, cloudy or rain, fading between them, with the clouds darkening in rain. */
 export function updateWeather(sky: Sky, seconds: number): void {
   const weather = sky.weather;
   weather.timer -= seconds;
   if (weather.timer <= 0) {
-    weather.raining = !weather.raining;
-    weather.timer = randomBetween(weather.raining ? RAIN_SECONDS : DRY_SECONDS);
+    weather.kind = nextWeather(weather.kind);
+    weather.raining = weather.kind === 'rain';
+    weather.timer = randomBetween(WEATHER_SECONDS[weather.kind]);
   }
-  const target = weather.raining ? 1 : 0;
-  const step = seconds / RAIN_FADE_SECONDS;
-  weather.intensity =
-    weather.intensity < target
-      ? Math.min(target, weather.intensity + step)
-      : Math.max(target, weather.intensity - step);
+  weather.intensity = approach(
+    weather.intensity,
+    weather.raining ? 1 : 0,
+    seconds / RAIN_FADE_SECONDS,
+  );
+  weather.cover = approach(
+    weather.cover,
+    weather.kind === 'clear' ? 0 : 1,
+    seconds / COVER_FADE_SECONDS,
+  );
   const rain = sky.rain;
   if (rain !== null) {
     rain.visible = weather.intensity > 0;
-    rain.alpha = weather.intensity * (sky.time === 'night' ? 0.35 : 0.6);
+    rain.alpha = weather.intensity * (0.35 + 0.25 * (1 - phaseWeight(sky.phase, 'night')));
     rain.tilePosition.y += RAIN_SPEED * seconds;
     rain.tilePosition.x -= RAIN_SPEED * RAIN_SLANT * seconds;
   }
@@ -377,10 +403,27 @@ export function updateWeather(sky: Sky, seconds: number): void {
   sky.overcast.alpha = k * OVERCAST_ALPHA;
   sky.stormLayer.visible = k > 0;
   sky.stormLayer.alpha = Math.min(1, k * 1.4);
-  // Stars and moon are hidden behind the cover.
-  sky.starLayer.alpha = 1 - k * 0.95;
-  sky.moon.alpha = 1 - k * 0.95;
+  sky.cloudLayer.visible = weather.cover > 0;
+  sky.cloudLayer.alpha = weather.cover;
+  applyCelestials(sky);
   tintClouds(sky);
+}
+
+function approach(value: number, target: number, step: number): number {
+  return value < target ? Math.min(target, value + step) : Math.max(target, value - step);
+}
+
+/** How much of `time` is in the sky now, from 0 to 1. */
+export function phaseWeight(phase: SkyPhase, time: SkyTime): number {
+  return (phase.from === time ? 1 - phase.mix : 0) + (phase.to === time ? phase.mix : 0);
+}
+
+/** Stars and moon fade in with the night and are hidden behind the overcast. */
+function applyCelestials(sky: Sky): void {
+  const cover = 1 - sky.weather.intensity * 0.95;
+  sky.starLayer.alpha = cover;
+  sky.moon.alpha = phaseWeight(sky.phase, 'night') * cover;
+  sky.moon.visible = sky.moon.alpha > 0;
 }
 
 export interface Sky {
@@ -393,6 +436,9 @@ export interface Sky {
   overcast: Graphics;
   stormLayer: Container;
   weather: Weather;
+  /** Second gradient, faded in over the first while the sky changes. */
+  blend: Sprite;
+  phase: SkyPhase;
   moon: Graphics;
   starLayer: Graphics;
   stars: Star[];
@@ -407,7 +453,9 @@ const GLOW: Record<SkyTime, { color: number; alpha: number }> = {
 };
 
 function drawGlow(sky: Sky): void {
-  const { color, alpha } = GLOW[sky.time];
+  const { from, to, mix } = sky.phase;
+  const color = mixTint(GLOW[from].color, GLOW[to].color, mix);
+  const alpha = GLOW[from].alpha + (GLOW[to].alpha - GLOW[from].alpha) * mix;
   const bands = 24;
   const height = SKY_HEIGHT * 0.16;
   sky.glow.clear();
@@ -420,7 +468,6 @@ function drawGlow(sky: Sky): void {
 
 function drawMoon(sky: Sky): void {
   sky.moon.clear();
-  sky.moon.visible = sky.time === 'night';
   const x = WORLD_WIDTH * 0.74;
   const y = SKY_TOP + SKY_HEIGHT * 0.42;
   for (let i = 6; i >= 1; i -= 1) {
@@ -445,7 +492,7 @@ function buildClouds(sky: Sky): void {
     sprite.x = cloud.x;
     sprite.y = cloud.y;
     sprite.alpha = cloud.alpha;
-    sprite.tint = CLOUD_TINT[sky.time];
+    sprite.tint = CLOUD_TINT[sky.phase.from];
     sky.cloudLayer.addChild(sprite);
   }
 }
@@ -474,7 +521,7 @@ export function driftClouds(sky: Sky, seconds: number): void {
 }
 
 function tintClouds(sky: Sky): void {
-  const base = CLOUD_TINT[sky.time];
+  const base = mixTint(CLOUD_TINT[sky.phase.from], CLOUD_TINT[sky.phase.to], sky.phase.mix);
   const k = sky.weather.intensity;
   const tint = k === 0 ? base : mixTint(base, OVERCAST_TINT, k * 0.7);
   for (const child of sky.cloudLayer.children) {
@@ -498,10 +545,14 @@ export function createSky(
   makeTexture: (time: SkyTime) => Texture = gradientTexture,
 ): Sky {
   const gradient = new Sprite(makeTexture(time));
-  gradient.x = 0;
-  gradient.y = SKY_TOP;
-  gradient.width = WORLD_WIDTH;
-  gradient.height = SKY_HEIGHT;
+  const blend = new Sprite(makeTexture(time));
+  for (const layer of [gradient, blend]) {
+    layer.x = 0;
+    layer.y = SKY_TOP;
+    layer.width = WORLD_WIDTH;
+    layer.height = SKY_HEIGHT;
+  }
+  blend.alpha = 0;
   const starLayer = new Graphics();
   const glow = new Graphics();
   const moon = new Graphics();
@@ -510,15 +561,23 @@ export function createSky(
   const rain = buildRain();
   const overcast = buildOvercast();
   const stormLayer = buildStorm();
-  view.addChild(gradient, starLayer, moon, glow, overcast);
+  view.addChild(gradient, blend, starLayer, moon, glow, overcast);
   if (rain !== null) {
     view.addChild(rain);
   }
   view.addChild(cloudLayer, stormLayer);
-  const weather: Weather = { raining: false, intensity: 0, timer: randomBetween(DRY_SECONDS) };
+  const weather: Weather = {
+    kind: 'cloudy',
+    raining: false,
+    intensity: 0,
+    cover: 1,
+    timer: randomBetween(WEATHER_SECONDS.cloudy),
+  };
   const sky: Sky = {
     view,
     gradient,
+    blend,
+    phase: { from: time, to: time, mix: 0 },
     glow,
     cloudLayer,
     rain,
@@ -533,13 +592,15 @@ export function createSky(
   drawStars(sky);
   drawGlow(sky);
   drawMoon(sky);
+  applyCelestials(sky);
   buildClouds(sky);
   return sky;
 }
 
-/** Stars show above a time-of-day height and grow brighter toward space. */
+/** Stars show above a height that falls as the night comes, and grow brighter toward space. */
 export function drawStars(sky: Sky): void {
-  const floor = STAR_FLOOR[sky.time];
+  const { from, to, mix } = sky.phase;
+  const floor = STAR_FLOOR[from] + (STAR_FLOOR[to] - STAR_FLOOR[from]) * mix;
   sky.starLayer.clear();
   for (const star of sky.stars) {
     if (star.altitude < floor) {
@@ -550,19 +611,45 @@ export function drawStars(sky: Sky): void {
   }
 }
 
-/** Switches the sky to the gradient and stars of `time`; a sky already showing it is left alone. */
+/** The colour behind the sky for a phase, so any gap matches the sky. */
+export function skyBackgroundAt(phase: SkyPhase): number {
+  const hex = (time: SkyTime): number => Number.parseInt(SKY_BACKGROUND[time].slice(1), 16);
+  return mixTint(hex(phase.from), hex(phase.to), phase.mix);
+}
+
+/**
+ * Shows the sky between two looks: the gradient of `from`, with the gradient of `to` faded over it.
+ * A sky already showing this phase is left alone.
+ */
+export function setSkyPhase(
+  sky: Sky,
+  phase: SkyPhase,
+  makeTexture: (time: SkyTime) => Texture = gradientTexture,
+): void {
+  const { from, to, mix } = sky.phase;
+  if (phase.from === from && phase.to === to && phase.mix === mix) {
+    return;
+  }
+  if (phase.from !== from) {
+    sky.gradient.texture = makeTexture(phase.from);
+  }
+  if (phase.to !== to) {
+    sky.blend.texture = makeTexture(phase.to);
+  }
+  sky.phase = { ...phase };
+  sky.time = phase.mix < 0.5 ? phase.from : phase.to;
+  sky.blend.alpha = phase.mix;
+  drawStars(sky);
+  drawGlow(sky);
+  applyCelestials(sky);
+  tintClouds(sky);
+}
+
+/** Switches the sky to the look of `time`; a sky already showing it is left alone. */
 export function setSkyTime(
   sky: Sky,
   time: SkyTime,
   makeTexture: (time: SkyTime) => Texture = gradientTexture,
 ): void {
-  if (sky.time === time) {
-    return;
-  }
-  sky.time = time;
-  sky.gradient.texture = makeTexture(time);
-  drawStars(sky);
-  drawGlow(sky);
-  drawMoon(sky);
-  tintClouds(sky);
+  setSkyPhase(sky, { from: time, to: time, mix: 0 }, makeTexture);
 }

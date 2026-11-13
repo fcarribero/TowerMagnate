@@ -4,7 +4,7 @@ import type { GameState } from '../model/gameState';
 import type { OverlayId } from './overlayColors';
 import { fullWidthTestTower } from './structureSource';
 import type { StructureInput } from './structureRows';
-import { skyTimeAt, stepAtHour, timeOfDayAt, type SkyTime } from './timeOfDay';
+import { skyPhaseAt, stepAtHour, timeOfDayAt, type SkyPhase } from './timeOfDay';
 import type { UnitsInput } from './unitLayer';
 import { isPlacedUnit, type TransportSource } from './unitPlan';
 import { openVenuesAt } from './venueHours';
@@ -47,9 +47,9 @@ export function bindUnits(
   );
 }
 
-/** Feeds `show` the sky time, and only when it changes. */
-export function bindSky(store: ClientStore, show: (time: SkyTime) => void): () => void {
-  return store.select((state) => skyTimeAt(state.step), show);
+/** Feeds `show` the sky phase, and only when it changes. */
+export function bindSky(store: ClientStore, show: (phase: SkyPhase) => void): () => void {
+  return store.select((state) => skyPhaseAt(state.step), show);
 }
 
 const DEBUG_ROW_SPACING = 5;
