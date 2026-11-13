@@ -55,22 +55,7 @@ export function nightVersion(daySprite, windows, occupied) {
   return night;
 }
 
-export const UNIT_STATES = ['empty', 'occupied'];
 export const TIMES = ['day', 'night'];
-
-// Returns the four sprites of a rentable unit: empty and occupied, day and night.
-export function unitSprites(subject, { windows, drawDay }) {
-  const sprites = [];
-  for (const state of UNIT_STATES) {
-    const occupied = state === 'occupied';
-    const day = drawDay(occupied);
-    for (const time of TIMES) {
-      const canvas = time === 'day' ? day : nightVersion(day, windows, occupied);
-      sprites.push({ id: `units/${subject}/${state}_${time}`, canvas });
-    }
-  }
-  return sprites;
-}
 
 // Closed curtains over a window: a rod on top, cloth in soft vertical folds and a hem.
 export function drawCurtains(room, { left, top, width, height }) {
@@ -93,45 +78,26 @@ export function drawOpenCurtains(room, { left, top, width, height }) {
   room.hline(left, top, width, 'gray');
 }
 
-const RIBBON_TOP = 14;
-const RIBBON_HEIGHT = 5;
-
-// A green tape stretched across the bare room that says it is for rent: white
-// dashes stand for the lettering, with a darker lower edge.
-export function drawRentRibbon(room) {
-  const left = 1;
-  const width = room.width - 2;
-  room.fillRect(left, RIBBON_TOP, width, RIBBON_HEIGHT, 'leaf');
-  room.hline(left, RIBBON_TOP, width, 'leaf-dark');
-  room.hline(left, RIBBON_TOP + RIBBON_HEIGHT - 1, width, 'leaf-dark');
-  for (let x = left + 4; x < left + width - 4; x += 6) {
-    room.hline(x, RIBBON_TOP + 2, 3, 'white');
-  }
-}
-
 export const RENTAL_STATES = ['empty', 'closed', 'occupied'];
 
-// Returns the six sprites of a unit that people rent or buy, day and night each:
-// `empty` is the bare room nobody has taken, `closed` is furnished, dark and curtained with
-// nobody inside, `occupied` is lit with someone inside. `drawDay(state)` draws one.
-export function rentalSprites(subject, { windows, drawDay }) {
+// Returns the day and night sprites of a unit with several looks: `empty` is the bare
+// room nobody has taken; `closed` is furnished, dark and curtained with nobody inside; `occupied` is
+// lit with open curtains and someone inside. Any other state in `states` is drawn as
+// `drawDay` makes it and is dark at night. `drawDay(state)` draws the lit day room.
+export function rentalSprites(subject, { windows, drawDay, states = RENTAL_STATES }) {
   const sprites = [];
-  for (const state of RENTAL_STATES) {
+  for (const state of states) {
     const lit = drawDay(state);
-    // A closed unit has its curtains drawn over the windows and its lights off, so even
-    // by day its room is one step darker.
     const closed = state === 'closed';
-    if (state === 'empty') {
-      drawRentRibbon(lit);
-    }
+    const occupied = state === 'occupied';
     if (closed) {
       windows.forEach((window) => drawCurtains(lit, window));
     }
-    const occupied = state === 'occupied';
     if (occupied) {
       windows.forEach((window) => drawOpenCurtains(lit, window));
     }
-    const day = closed ? lightsOff(toNight(lit)) : lit;
+    // A closed unit has its lights off even by day, so a room with windows is one step darker.
+    const day = closed && windows.length > 0 ? lightsOff(toNight(lit)) : lit;
     for (const time of TIMES) {
       const canvas = time === 'day' ? day : nightVersion(lit, closed ? [] : windows, occupied);
       if (occupied && time === 'night') {

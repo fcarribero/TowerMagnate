@@ -80,6 +80,7 @@ export function debugUnits(
         occupied,
         variant: occupied ? 'occupied' : 'empty',
         inside: occupied,
+        leased: true,
       });
       x += UNIT_CATALOG[type].width;
     }

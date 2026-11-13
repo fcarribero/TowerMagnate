@@ -19,13 +19,13 @@ const catalog = {
   'parking-space': [4, 1],
   'subway-station': [30, 3],
 };
-const variants = ['empty_day', 'empty_night', 'occupied_day', 'occupied_night', 'burnt'];
+const variants = ['closed_day', 'closed_night', 'occupied_day', 'occupied_night', 'burnt'];
 const disconnected = ['disconnected_day', 'disconnected_night'];
 const countColor = (canvas, color) =>
   canvas.pixels.filter((index) => index === colorIndex(color)).length;
 
 describe('service facility sprites', () => {
-  it('draws empty and occupied by day and night, plus one burnt sprite', () => {
+  it('draws closed and occupied by day and night, plus one burnt sprite', () => {
     for (const subject of Object.keys(catalog)) {
       const ids = Object.keys(byId).filter(
         (id) =>
@@ -36,8 +36,8 @@ describe('service facility sprites', () => {
     }
   });
 
-  it('draws a disconnected parking space that differs from the empty one', () => {
-    const empty = byId['units/parking-space/empty_day'];
+  it('draws a disconnected parking space that differs from the closed one', () => {
+    const empty = byId['units/parking-space/closed_day'];
     const cut = byId['units/parking-space/disconnected_day'];
     expect(cut.pixels).not.toEqual(empty.pixels);
     expect(countColor(cut, 'cloth-red')).toBeGreaterThan(countColor(empty, 'cloth-red'));
@@ -55,7 +55,7 @@ describe('service facility sprites', () => {
 
   it('frames each unit in ink and keeps the bare slab at the bottom', () => {
     for (const [subject, [, floors]] of Object.entries(catalog)) {
-      const day = byId[`units/${subject}/empty_day`];
+      const day = byId[`units/${subject}/occupied_day`];
       const slabTop = floors * metrics.floorHeight - metrics.slabHeight;
       expect(day.get(0, 0)).toBe(colorIndex('ink'));
       expect(day.get(day.width - 1, slabTop - 1)).toBe(colorIndex('ink'));
@@ -71,8 +71,10 @@ describe('service facility sprites', () => {
       'subway-station': [24, 8],
     };
     for (const [subject, [x, y]] of Object.entries(windowCentres)) {
-      expect(byId[`units/${subject}/empty_day`].get(x, y)).toBe(0);
-      expect(byId[`units/${subject}/empty_night`].get(x, y)).toBe(0);
+      // Closed units have their curtains drawn; occupied ones have clear glass.
+      expect(byId[`units/${subject}/closed_day`].get(x, y)).not.toBe(0);
+      expect(byId[`units/${subject}/closed_night`].get(x, y)).not.toBe(0);
+      expect(byId[`units/${subject}/occupied_day`].get(x, y)).toBe(0);
       expect(byId[`units/${subject}/occupied_night`].get(x, y)).toBe(0);
     }
   });
@@ -80,13 +82,15 @@ describe('service facility sprites', () => {
   it('shows people, cars and the train only in the occupied sprites', () => {
     const skin = (subject, state) =>
       countColor(byId[`units/${subject}/${state}_day`], 'skin-light');
-    expect(skin('security', 'occupied')).toBeGreaterThan(skin('security', 'empty'));
-    expect(skin('recycling-center', 'occupied')).toBeGreaterThan(skin('recycling-center', 'empty'));
+    expect(skin('security', 'occupied')).toBeGreaterThan(skin('security', 'closed'));
+    expect(skin('recycling-center', 'occupied')).toBeGreaterThan(
+      skin('recycling-center', 'closed'),
+    );
     const glass = (subject, state) => countColor(byId[`units/${subject}/${state}_day`], 'glass');
-    expect(glass('parking-space', 'occupied')).toBeGreaterThan(glass('parking-space', 'empty'));
-    expect(glass('parking-ramp', 'occupied')).toBeGreaterThan(glass('parking-ramp', 'empty'));
+    expect(glass('parking-space', 'occupied')).toBeGreaterThan(glass('parking-space', 'closed'));
+    expect(glass('parking-ramp', 'occupied')).toBeGreaterThan(glass('parking-ramp', 'closed'));
     const train = (state) => countColor(byId[`units/subway-station/${state}_day`], 'lamp-glow');
-    expect(train('occupied')).toBeGreaterThan(train('empty'));
+    expect(train('occupied')).toBeGreaterThan(train('closed'));
   });
 });
 
@@ -116,8 +120,8 @@ describe('burnt overlay', () => {
   });
 
   it('is deterministic', () => {
-    const first = toBurnt(byId['units/security/empty_day']);
-    const second = toBurnt(byId['units/security/empty_day']);
+    const first = toBurnt(byId['units/security/closed_day']);
+    const second = toBurnt(byId['units/security/closed_day']);
     expect(first.pixels).toEqual(second.pixels);
   });
 });

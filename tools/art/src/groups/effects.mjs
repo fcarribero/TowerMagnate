@@ -465,6 +465,93 @@ function noAccessSticker() {
   return canvas;
 }
 
+// Availability tape ------------------------------------------------------------
+
+const TAPE_WIDTH = 96;
+const TAPE_HEIGHT = 56;
+const TAPE_LENGTH = 88;
+const TAPE_THICKNESS = 26;
+const TAPE_ANGLE = (-18 * Math.PI) / 180;
+const GLYPH_SCALE = 2;
+
+// 5 x 7 capital letters, enough for SE RENTA and SE VENDE.
+const GLYPHS = {
+  S: ['.####', '#....', '#....', '.###.', '....#', '....#', '####.'],
+  E: ['#####', '#....', '#....', '####.', '#....', '#....', '#####'],
+  R: ['####.', '#...#', '#...#', '####.', '#.#..', '#..#.', '#...#'],
+  N: ['#...#', '##..#', '#.#.#', '#.#.#', '#..##', '#...#', '#...#'],
+  T: ['#####', '..#..', '..#..', '..#..', '..#..', '..#..', '..#..'],
+  A: ['.###.', '#...#', '#...#', '#####', '#...#', '#...#', '#...#'],
+  V: ['#...#', '#...#', '#...#', '#...#', '.#.#.', '.#.#.', '..#..'],
+  D: ['####.', '#...#', '#...#', '#...#', '#...#', '#...#', '####.'],
+};
+
+// Lays the text out as rows of on/off pixels at GLYPH_SCALE canvas pixels per font pixel.
+function textBitmap(text) {
+  const width = text.length * 6 * GLYPH_SCALE - GLYPH_SCALE;
+  const rows = Array.from({ length: 7 * GLYPH_SCALE }, () => Array(width).fill(false));
+  [...text].forEach((letter, index) => {
+    const glyph = GLYPHS[letter];
+    if (!glyph) {
+      return;
+    }
+    glyph.forEach((line, gy) => {
+      [...line].forEach((cell, gx) => {
+        if (cell !== '#') {
+          return;
+        }
+        for (let dy = 0; dy < GLYPH_SCALE; dy++) {
+          for (let dx = 0; dx < GLYPH_SCALE; dx++) {
+            rows[gy * GLYPH_SCALE + dy][(index * 6 + gx) * GLYPH_SCALE + dx] = true;
+          }
+        }
+      });
+    });
+  });
+  return rows;
+}
+
+// A strip of red adhesive tape stuck on at a slant, with torn ends, a glossy top edge,
+// a shaded lower edge and white lettering. It is drawn at twice the pixel density of
+// the units and shown at half size, so the lettering stays readable.
+function availabilityTape(text) {
+  const canvas = new PixelCanvas(TAPE_WIDTH, TAPE_HEIGHT);
+  const bitmap = textBitmap(text);
+  const textWidth = bitmap[0].length;
+  const textHeight = bitmap.length;
+  const cos = Math.cos(TAPE_ANGLE);
+  const sin = Math.sin(TAPE_ANGLE);
+  const cx = (TAPE_WIDTH - 1) / 2;
+  const cy = (TAPE_HEIGHT - 1) / 2;
+  for (let y = 0; y < TAPE_HEIGHT; y++) {
+    for (let x = 0; x < TAPE_WIDTH; x++) {
+      // Position along the tape (u) and across it (v).
+      const u = (x - cx) * cos + (y - cy) * sin;
+      const v = -(x - cx) * sin + (y - cy) * cos;
+      const tear = Math.floor(Math.abs(v) / 2) % 2 === 0 ? 0 : 2;
+      if (Math.abs(u) > TAPE_LENGTH / 2 - tear || Math.abs(v) > TAPE_THICKNESS / 2) {
+        continue;
+      }
+      const edge = TAPE_THICKNESS / 2 - Math.abs(v);
+      let color = 'cloth-red';
+      if (edge < 1.5) {
+        color = 'ink';
+      } else if (edge < 3 && v < 0) {
+        color = 'dusk';
+      } else if (edge < 3.5 && v > 0) {
+        color = 'wood-dark';
+      }
+      const tx = Math.round(u + textWidth / 2);
+      const ty = Math.round(v + textHeight / 2);
+      if (edge >= 3.5 && bitmap[ty]?.[tx]) {
+        color = 'white';
+      }
+      canvas.set(x, y, color);
+    }
+  }
+  return canvas;
+}
+
 export const effectsGroup = {
   name: 'effects',
   draw() {
@@ -478,6 +565,8 @@ export const effectsGroup = {
       ...treasureSprites(),
       { id: 'effects/burnt/overlay', canvas: burntOverlay() },
       { id: 'effects/no-access/sticker', canvas: noAccessSticker() },
+      { id: 'effects/for-rent/sticker', canvas: availabilityTape('SE RENTA') },
+      { id: 'effects/for-sale/sticker', canvas: availabilityTape('SE VENDE') },
     ];
   },
 };

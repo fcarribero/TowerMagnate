@@ -1,9 +1,9 @@
 import { toBurnt } from '../burnt.mjs';
 import { metrics } from '../metrics.mjs';
-import { FLOOR_ROW, drawWindow, nightVersion, roomShell } from './shell.mjs';
+import { FLOOR_ROW, drawWindow, nightVersion, rentalSprites, roomShell } from './shell.mjs';
 
 const { floorHeight, slabHeight } = metrics;
-const STATES = ['empty', 'occupied'];
+const STATES = ['closed', 'occupied'];
 
 const legend = {
   k: 'ink',
@@ -35,19 +35,14 @@ function standOnFloor(room, left, map, level = 0) {
   room.drawMap(left, floorRowOf(level) - map.length + 1, map, legend);
 }
 
-// Every service unit has an empty and an occupied sprite for day and night, and
+// Every service unit has a closed and an occupied sprite for day and night, and
 // one burnt sprite that is the same at any hour.
 function serviceSprites(subject, { windows = [], drawDay }) {
-  const sprites = [];
-  for (const state of STATES) {
-    const occupied = state === 'occupied';
-    const day = drawDay(occupied);
-    sprites.push({ id: `units/${subject}/${state}_day`, canvas: day });
-    sprites.push({
-      id: `units/${subject}/${state}_night`,
-      canvas: nightVersion(day, windows, occupied),
-    });
-  }
+  const sprites = rentalSprites(subject, {
+    windows,
+    drawDay: (state) => drawDay(state === 'occupied'),
+    states: STATES,
+  });
   sprites.push({
     id: `units/${subject}/burnt`,
     canvas: toBurnt(drawDay(false), { windows }),

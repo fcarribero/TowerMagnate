@@ -27,6 +27,8 @@ export interface UnitDrawing {
   front?: boolean;
   /** Set when no route reaches the unit: the layer sticks a no-access sign on it. */
   noAccess?: boolean;
+  /** Set on a built unit nobody has taken: the layer sticks a for rent or for sale tape on it. */
+  availability?: 'rent' | 'sale';
   /**
    * Set when the sprite is bigger than the footprint: it is drawn at its own size, never
    * scaled, this many pixels from the footprint corner. The footprint still sizes the rest.
@@ -47,7 +49,16 @@ export interface TransportSource {
 
 export type UnitSource = Pick<
   UnitView,
-  'id' | 'type' | 'x' | 'level' | 'occupied' | 'variant' | 'price' | 'construction' | 'inside'
+  | 'id'
+  | 'type'
+  | 'x'
+  | 'level'
+  | 'occupied'
+  | 'variant'
+  | 'price'
+  | 'construction'
+  | 'inside'
+  | 'leased'
 >;
 
 /** Units that are drawn here. Floors and lobbies are structure, elevators are shafts. */
@@ -70,16 +81,34 @@ export function planUnit(
     return null;
   }
   const building = unit.construction !== undefined;
-  const state = unitState(building ? { ...unit, variant: 'empty' } : unit, openVenues);
+  const state = unitState(
+    building ? { ...unit, variant: 'empty', leased: true } : unit,
+    openVenues,
+  );
   const drawing = footprint(unit.id, `units/${unit.type}`, unit, { state, time }, overlay);
-  const marked = unit.variant === 'disconnected' ? { ...drawing, noAccess: true } : drawing;
+  const open = !building && state === 'empty' ? AVAILABILITY[unit.type] : undefined;
+  const offered = open === undefined ? drawing : { ...drawing, availability: open };
+  const marked = unit.variant === 'disconnected' ? { ...offered, noAccess: true } : offered;
   return unit.construction === undefined ? marked : { ...marked, construction: unit.construction };
 }
+
+/** What the tape on an untaken unit says: condos are sold, the rest are rented. */
+const AVAILABILITY: Partial<Record<UnitType, 'rent' | 'sale'>> = {
+  office: 'rent',
+  condo: 'sale',
+  'single-room': 'rent',
+  'double-room': 'rent',
+  suite: 'rent',
+  'retail-shop': 'rent',
+};
 
 const HOTEL_ROOMS: readonly UnitType[] = ['single-room', 'double-room', 'suite'];
 
 function unitState(unit: UnitSource, openVenues: OpenVenues): string {
   const { type, variant } = unit;
+  if (type === 'retail-shop' && unit.leased !== true) {
+    return 'empty';
+  }
   if (isVenue(type) && !openVenues.has(type)) {
     return 'closed';
   }
@@ -97,14 +126,29 @@ function unitState(unit: UnitSource, openVenues: OpenVenues): string {
   return spriteState(type, taken);
 }
 
-/** Units with three looks: bare when untaken, `closed` when taken and empty, `occupied` with people inside. */
-const RENTAL_UNITS: readonly UnitType[] = ['office', 'condo'];
+/** Units with three looks: bare when untaken, `closed` when taken and empty, `occupied` with people inside. Shops have their own states. */
+const RENTAL_UNITS: readonly UnitType[] = [
+  'office',
+  'condo',
+  'single-room',
+  'double-room',
+  'suite',
+];
 
 /** Shops and food venues are drawn open or busy instead of empty or occupied. */
 const SHOP_STATES = { empty: 'open', occupied: 'busy' } as const;
 
 /** Units whose sprites name their states differently from `empty` and `occupied`. */
+const SERVICE_STATES = { empty: 'closed', occupied: 'occupied' } as const;
+
 const SPRITE_STATES: Partial<Record<UnitType, { empty: string; occupied: string }>> = {
+  security: SERVICE_STATES,
+  'medical-center': SERVICE_STATES,
+  'recycling-center': SERVICE_STATES,
+  'subway-station': SERVICE_STATES,
+  'parking-ramp': SERVICE_STATES,
+  'parking-space': SERVICE_STATES,
+  housekeeping: SERVICE_STATES,
   'fast-food': SHOP_STATES,
   restaurant: SHOP_STATES,
   'retail-shop': SHOP_STATES,

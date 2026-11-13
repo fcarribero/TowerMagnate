@@ -1,6 +1,6 @@
-import { FLOOR_ROW, drawWindow, nightVersion, roomShell } from './shell.mjs';
+import { FLOOR_ROW, drawWindow, rentalSprites, roomShell } from './shell.mjs';
 
-export const HOTEL_STATES = ['empty', 'occupied', 'dirty', 'infested'];
+export const HOTEL_STATES = ['empty', 'closed', 'occupied', 'dirty', 'infested'];
 const TIMES = ['day', 'night'];
 const WAINSCOT_TOP = 18;
 const PARTITION_LEFT = 47;
@@ -124,49 +124,52 @@ function drawRoaches(room, roaches) {
 }
 
 function roomSprites(subject, { widthTiles, windows, drawFurniture, grime, roaches }) {
-  const sprites = [];
-  for (const state of HOTEL_STATES) {
+  const drawDay = (state) => {
     const room = roomShell(widthTiles, look);
     drawWainscot(room);
     windows.forEach((window) => drawWindow(room, window));
-    drawFurniture(room, state);
+    // A room nobody has booked is bare; the furniture comes with the guest.
+    if (state !== 'empty') {
+      drawFurniture(room, state);
+    }
     if (state === 'dirty' || state === 'infested') {
       drawGrime(room, grime);
     }
     if (state === 'infested') {
       drawRoaches(room, roaches);
     }
-    for (const time of TIMES) {
-      const lit = state === 'occupied';
-      const canvas = time === 'day' ? room : nightVersion(room, windows, lit);
-      sprites.push({ id: `units/${subject}/${state}_${time}`, canvas });
-    }
-  }
-  return sprites;
+    return room;
+  };
+  return rentalSprites(subject, { windows, drawDay, states: HOTEL_STATES });
+}
+
+// A guest has checked in: the bed is made and the luggage is out, lit or not.
+function isGuestState(state) {
+  return state === 'closed' || state === 'occupied';
 }
 
 function drawSingleFurniture(room, state) {
-  const used = state !== 'empty';
-  drawBed(room, 13, 15, { made: state === 'empty' || state === 'occupied', pillows: 1 });
+  const guest = isGuestState(state);
+  drawBed(room, 13, 15, { made: guest, pillows: 1 });
   room.drawMap(27, 12, ['.c', 'cc'], legend);
   lampShade(room, 25, 9, state === 'occupied');
-  if (state === 'occupied') {
+  if (guest) {
     room.drawMap(12, FLOOR_ROW - suitcase.length + 1, suitcase, legend);
   }
-  if (used && state !== 'occupied') {
+  if (!guest) {
     room.drawMap(18, FLOOR_ROW - 1, towel, legend);
   }
 }
 
 function drawDoubleFurniture(room, state) {
-  const made = state === 'empty' || state === 'occupied';
+  const made = isGuestState(state);
   drawBed(room, 13, 22, { made, pillows: 2 });
   const standLeft = 36;
   room.drawMap(standLeft, FLOOR_ROW - nightstand.length + 1, nightstand, legend);
   room.drawMap(standLeft + 1, FLOOR_ROW - nightstand.length - 3, ['.c..', 'ccc.'], legend);
   lampShade(room, standLeft, FLOOR_ROW - nightstand.length - 6, state === 'occupied');
   room.drawMap(42, FLOOR_ROW - plant.length + 1, plant, legend);
-  if (state === 'occupied') {
+  if (made) {
     room.drawMap(10, FLOOR_ROW - suitcase.length + 1, suitcase, legend);
     room.drawMap(37, FLOOR_ROW - nightstand.length, ['bw'], legend);
   }
@@ -177,7 +180,7 @@ function drawDoubleFurniture(room, state) {
 }
 
 function drawSuiteFurniture(room, state) {
-  const made = state === 'empty' || state === 'occupied';
+  const made = isGuestState(state);
   const occupied = state === 'occupied';
 
   room.drawMap(11, FLOOR_ROW - armchair.length + 1, armchair, legend);
@@ -204,7 +207,7 @@ function drawSuiteFurniture(room, state) {
   room.drawMap(standLeft, FLOOR_ROW - nightstand.length + 1, nightstand, legend);
   room.drawMap(standLeft + 1, FLOOR_ROW - nightstand.length - 3, ['.c..', 'ccc.'], legend);
   lampShade(room, standLeft, FLOOR_ROW - nightstand.length - 6, occupied);
-  if (occupied) {
+  if (made) {
     room.drawMap(50, FLOOR_ROW - suitcase.length + 1, suitcase, legend);
   }
   if (!made) {

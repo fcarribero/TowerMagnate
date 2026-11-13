@@ -22,15 +22,15 @@ const catalogWidthTiles = {
 const hotelRooms = ['single-room', 'double-room', 'suite'];
 const rentals = ['office', 'condo'];
 const states = (subject) => {
-  if (hotelRooms.includes(subject)) return ['empty', 'occupied', 'dirty', 'infested'];
-  return rentals.includes(subject) ? ['empty', 'closed', 'occupied'] : ['empty', 'occupied'];
+  if (hotelRooms.includes(subject)) return ['empty', 'closed', 'occupied', 'dirty', 'infested'];
+  return rentals.includes(subject) ? ['empty', 'closed', 'occupied'] : ['closed', 'occupied'];
 };
 const variantsOf = (subject) =>
   states(subject).flatMap((state) => [`${state}_day`, `${state}_night`]);
 const windowCentre = {
   office: [11, 8],
   condo: [41, 8],
-  'single-room': [17, 7],
+  'single-room': [20, 7],
   'double-room': [21, 7],
   suite: [19, 7],
   housekeeping: [52, 7],
@@ -59,8 +59,8 @@ describe('units group', () => {
   it('frames the room in ink and keeps the floor slab of a bare tile', () => {
     const slabTop = metrics.floorHeight - metrics.slabHeight;
     for (const subject of Object.keys(catalogWidthTiles)) {
-      const day = byId[`units/${subject}/empty_day`];
-      const night = byId[`units/${subject}/empty_night`];
+      const day = byId[`units/${subject}/occupied_day`];
+      const night = byId[`units/${subject}/closed_night`];
       expect(day.get(0, 0)).toBe(colorIndex('ink'));
       expect(day.get(day.width - 1, slabTop - 1)).toBe(colorIndex('ink'));
       expect(day.get(0, slabTop)).toBe(colorIndex('concrete-light'));
@@ -70,18 +70,23 @@ describe('units group', () => {
 
   it('keeps window glass clear and lights it at night only when the unit is occupied', () => {
     for (const [subject, [x, y]] of Object.entries(windowCentre)) {
-      expect(byId[`units/${subject}/empty_day`].get(x, y)).toBe(0);
-      expect(byId[`units/${subject}/empty_night`].get(x, y)).toBe(0);
+      expect(byId[`units/${subject}/occupied_day`].get(x, y)).toBe(0);
       expect(byId[`units/${subject}/occupied_night`].get(x, y)).toBe(0);
+      expect(byId[`units/${subject}/closed_day`].get(x, y)).not.toBe(0);
+      expect(byId[`units/${subject}/closed_night`].get(x, y)).not.toBe(0);
+      if (states(subject).includes('empty')) {
+        expect(byId[`units/${subject}/empty_day`].get(x, y)).toBe(0);
+        expect(byId[`units/${subject}/empty_night`].get(x, y)).toBe(0);
+      }
     }
   });
 
   it('leaves grime on the floor of dirty and infested hotel rooms', () => {
     for (const room of hotelRooms) {
-      const clean = countColor(byId[`units/${room}/empty_day`], 'leaf-dark');
+      const clean = countColor(byId[`units/${room}/occupied_day`], 'leaf-dark');
       expect(countColor(byId[`units/${room}/dirty_day`], 'leaf-dark')).toBeGreaterThan(clean);
       expect(byId[`units/${room}/dirty_day`].pixels).not.toEqual(
-        byId[`units/${room}/empty_day`].pixels,
+        byId[`units/${room}/occupied_day`].pixels,
       );
     }
   });
@@ -98,8 +103,8 @@ describe('units group', () => {
 
   it('shows the maids in housekeeping only while occupied', () => {
     const apronBlue = (variant) => countColor(byId[`units/housekeeping/${variant}`], 'cloth-blue');
-    expect(apronBlue('occupied_day')).toBeGreaterThan(apronBlue('empty_day'));
-    expect(countColor(byId['units/housekeeping/empty_day'], 'skin-mid')).toBe(0);
+    expect(apronBlue('occupied_day')).toBeGreaterThan(apronBlue('closed_day'));
+    expect(countColor(byId['units/housekeeping/closed_day'], 'skin-mid')).toBe(0);
   });
 });
 
@@ -223,16 +228,6 @@ describe('rental units', () => {
       expect(dark.get(3, 20)).not.toBe(day.get(3, 20));
       expect(countColor(dark, 'lamp')).toBe(0);
       expect(countColor(dark, 'lamp-glow')).toBe(0);
-    }
-  });
-});
-
-describe('for rent ribbon', () => {
-  it('stretches a green ribbon across the bare office and condo only', () => {
-    for (const subject of rentals) {
-      expect(byId[`units/${subject}/empty_day`].get(3, 16)).toBe(colorIndex('leaf'));
-      expect(byId[`units/${subject}/closed_day`].get(3, 16)).not.toBe(colorIndex('leaf'));
-      expect(byId[`units/${subject}/occupied_day`].get(3, 16)).not.toBe(colorIndex('leaf'));
     }
   });
 });

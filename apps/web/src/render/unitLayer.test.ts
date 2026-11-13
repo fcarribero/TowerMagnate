@@ -62,7 +62,7 @@ describe('UnitLayer', () => {
     const { layer, placeholder, missing } = layerWith([]);
     layer.update({ units: [office], transports: [], time: 'day', openVenues: ALL_VENUES_OPEN });
     expect(spriteOf(layer)).toMatchObject({ texture: placeholder, height: 32 });
-    expect(missing).toEqual(['units/office/empty_day']);
+    expect(missing).toContain('units/office/empty_day');
   });
 
   it('removes units that are no longer in the tower', () => {
@@ -100,7 +100,8 @@ describe('UnitLayer', () => {
       overlay: { id: 'price', data },
     });
     const container = layer.view.children[0];
-    expect(container?.children).toHaveLength(2);
+    // The bare office also wears its for rent tape, drawn above the checker.
+    expect(container?.children).toHaveLength(3);
     expect(container?.children[1]).toBeInstanceOf(TilingSprite);
     expect(container?.children[1]).toMatchObject({
       width: UNIT_CATALOG.office.width * TILE_WIDTH,
@@ -114,7 +115,7 @@ describe('UnitLayer', () => {
       openVenues: ALL_VENUES_OPEN,
       overlay: { id: 'normal', data },
     });
-    expect(container?.children).toHaveLength(1);
+    expect(container?.children).toHaveLength(2);
   });
 
   it('covers stairs with a checker under any overlay but Normal', () => {
@@ -188,7 +189,8 @@ describe('UnitLayer flat sprite', () => {
       'units/office/front-empty_day',
     ]);
     layer.update({ units: [office], transports: [], time: 'day', openVenues: ALL_VENUES_OPEN });
-    expect(layer.view.children[0]?.children).toHaveLength(1);
+    // One picture of the room, plus the for rent tape on a bare office.
+    expect(layer.view.children[0]?.children).toHaveLength(2);
     expect(spriteOf(layer)).toMatchObject({ texture: textures['units/office/empty_day'] });
   });
 });

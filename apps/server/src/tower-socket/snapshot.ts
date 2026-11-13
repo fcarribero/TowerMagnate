@@ -169,6 +169,7 @@ function unitView(
     occupied,
     variant: unitVariant(unit, occupied, disconnected),
     ...(inside ? { inside } : {}),
+    ...(unit.lease !== null ? { leased: true } : {}),
   };
 }
 

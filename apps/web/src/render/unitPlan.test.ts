@@ -89,7 +89,7 @@ describe('planUnit', () => {
     const midnight = openVenuesAt(0);
     const evening = openVenuesAt(stepAtHour(21));
     for (const type of ['fast-food', 'restaurant', 'retail-shop'] as const) {
-      const busy = { ...base, type, occupied: true, variant: 'occupied' } as const;
+      const busy = { ...base, type, occupied: true, variant: 'occupied', leased: true } as const;
       expect(planUnit(busy, 'night', null, midnight)?.variant).toEqual({
         state: 'closed',
         time: 'night',
@@ -169,5 +169,27 @@ describe('planTransport', () => {
     expect(escalator.variant).toEqual({ time: 'night', frame: 1 });
     expect(stairs.variant).toEqual({ time: 'day' });
     expect(stairs.subject).toBe('transport/stairs');
+  });
+});
+
+describe('availability tape', () => {
+  it('marks untaken offices, hotel rooms and shops for rent and condos for sale', () => {
+    const rent = ['office', 'suite', 'single-room', 'double-room'] as const;
+    for (const type of rent) {
+      expect(planUnit({ ...base, type }, 'day')?.availability).toBe('rent');
+    }
+    expect(planUnit({ ...base, type: 'retail-shop' }, 'day')?.availability).toBe('rent');
+    expect(planUnit({ ...base, type: 'condo' }, 'day')?.availability).toBe('sale');
+  });
+
+  it('leaves taken units, construction sites and owned units without tape', () => {
+    const taken = { ...base, type: 'office', occupied: true, variant: 'occupied' } as const;
+    expect(planUnit(taken, 'day')?.availability).toBeUndefined();
+    expect(
+      planUnit({ ...base, type: 'office', construction: 40 }, 'day')?.availability,
+    ).toBeUndefined();
+    expect(planUnit({ ...base, type: 'security' }, 'day')?.availability).toBeUndefined();
+    const shop = { ...base, type: 'retail-shop', leased: true } as const;
+    expect(planUnit(shop, 'day')?.availability).toBeUndefined();
   });
 });

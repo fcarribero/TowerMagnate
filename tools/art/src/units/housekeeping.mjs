@@ -1,4 +1,4 @@
-import { FLOOR_ROW, drawWindow, roomShell, unitSprites } from './shell.mjs';
+import { FLOOR_ROW, drawWindow, rentalSprites, roomShell } from './shell.mjs';
 
 const WIDTH_TILES = 15;
 const WINDOWS = [
@@ -128,5 +128,9 @@ function drawHousekeeping(occupied) {
 }
 
 export function housekeepingSprites() {
-  return unitSprites('housekeeping', { windows: WINDOWS, drawDay: drawHousekeeping });
+  return rentalSprites('housekeeping', {
+    windows: WINDOWS,
+    drawDay: (state) => drawHousekeeping(state === 'occupied'),
+    states: ['closed', 'occupied'],
+  });
 }

@@ -66,6 +66,8 @@ export const UnitViewSchema = z.object({
   variant: z.enum(['empty', 'occupied', 'dirty', 'infested', 'disconnected']),
   /** True while at least one person stands inside the unit; left out when nobody is. */
   inside: z.boolean().optional(),
+  /** True while a shop has a tenant; left out when it has none. Shops without it are drawn bare. */
+  leased: z.boolean().optional(),
   /** Percent built, 0 to 100, while the unit is a construction site; left out once it is built. */
   construction: z.int().min(0).max(100).optional(),
 });

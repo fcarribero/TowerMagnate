@@ -1,7 +1,7 @@
 import { FLOOR_ROW, roomShell } from './shell.mjs';
 import { toNight } from '../night.mjs';
 
-export const SHOP_STATES = ['closed', 'open', 'busy'];
+export const SHOP_STATES = ['empty', 'closed', 'open', 'busy'];
 const TIMES = ['day', 'night'];
 
 const SIGN_TOP = 2;
@@ -107,6 +107,10 @@ function drawShop(widthTiles, look, state, lampsOn = true) {
   const room = roomShell(widthTiles, look.shell);
   drawSign(room, look, state !== 'closed');
   drawAwning(room, look.awning);
+  if (state === 'empty') {
+    // A shop nobody has rented is bare.
+    return room;
+  }
   if (state === 'closed') {
     drawShutter(room);
     return room;
@@ -126,7 +130,7 @@ export function shopSprites(subject, widthTiles, look) {
     const day = drawShop(widthTiles, look, state);
     for (const time of TIMES) {
       const canvas =
-        time === 'day' ? day : toNight(drawShop(widthTiles, look, state, state !== 'open'));
+        time === 'day' ? day : toNight(drawShop(widthTiles, look, state, state === 'busy'));
       sprites.push({ id: `units/${subject}/${state}_${time}`, canvas });
     }
   }

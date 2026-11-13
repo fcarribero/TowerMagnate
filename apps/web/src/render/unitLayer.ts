@@ -29,8 +29,22 @@ export interface UnitsInput {
 }
 
 const NO_ACCESS_STICKER = 'effects/no-access/sticker';
-/** The art is drawn at 24x24; the sign is shown at half that size. */
+const FOR_RENT_STICKER = 'effects/for-rent/sticker';
+const FOR_SALE_STICKER = 'effects/for-sale/sticker';
+type StickerId = typeof NO_ACCESS_STICKER | typeof FOR_RENT_STICKER | typeof FOR_SALE_STICKER;
+/** The signs are drawn at twice the unit pixel density and shown at half size. */
 const NO_ACCESS_STICKER_SCALE = 0.5;
+
+/** The sign a unit wears, if any: no access wins over the for rent or for sale tape. */
+function stickerId(drawing: UnitDrawing): StickerId | null {
+  if (drawing.noAccess === true) {
+    return NO_ACCESS_STICKER;
+  }
+  if (drawing.availability === undefined) {
+    return null;
+  }
+  return drawing.availability === 'rent' ? FOR_RENT_STICKER : FOR_SALE_STICKER;
+}
 
 /** The tallest footprint is 4 floors, so a unit can show while its bottom level is just off screen. */
 const MAX_FOOTPRINT_FLOORS = 4;
@@ -261,12 +275,15 @@ export class UnitLayer {
 
   /** The sign sits above its sprite in the same container, so it is culled with it. */
   private showSticker(entry: DrawnUnit, drawing: UnitDrawing): void {
-    if (drawing.noAccess !== true) {
+    const id = stickerId(drawing);
+    if (id === null) {
       entry.sticker?.destroy();
       entry.sticker = null;
       return;
     }
-    const sticker = entry.sticker ?? new Sprite(this.sprites.texture(NO_ACCESS_STICKER));
+    const texture = this.sprites.texture(id);
+    const sticker = entry.sticker ?? new Sprite(texture);
+    sticker.texture = texture;
     entry.sticker = sticker;
     sticker.scale.set(NO_ACCESS_STICKER_SCALE);
     sticker.position.set(

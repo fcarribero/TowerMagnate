@@ -82,3 +82,19 @@ describe('effects group', () => {
     expect(clear).toBeLessThan(overlay.pixels.length);
   });
 });
+
+describe('availability tape', () => {
+  it('draws a red tape with white lettering at twice the unit pixel density', () => {
+    for (const id of ['effects/for-rent/sticker', 'effects/for-sale/sticker']) {
+      const tape = byId[id];
+      expect(tape, id).toBeDefined();
+      const count = (color) => tape.pixels.filter((index) => index === colorIndex(color)).length;
+      expect(count('cloth-red')).toBeGreaterThan(count('white'));
+      expect(count('white')).toBeGreaterThan(40);
+      expect(tape.get(0, 0)).toBe(0);
+    }
+    expect(byId['effects/for-rent/sticker'].pixels).not.toEqual(
+      byId['effects/for-sale/sticker'].pixels,
+    );
+  });
+});
