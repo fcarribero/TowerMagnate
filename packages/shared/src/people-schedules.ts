@@ -61,6 +61,29 @@ export const VENUE_STAFF = {
 
 export type StaffedVenueType = keyof typeof VENUE_STAFF;
 
+/** A fast food closes up to this many minutes before or after its listed closing time. */
+export const FAST_FOOD_CLOSING_MARGIN_MINUTES = 5;
+
+/**
+ * The minute of the day a venue closes on a given day. Fast foods close a few minutes early or
+ * late, a different amount for each unit and day, worked out from the unit id and the day number
+ * so it needs no stored state. Other venues close at their listed time.
+ */
+export function closingMinute(
+  type: string,
+  listedClose: number,
+  unitId: string,
+  day: number,
+): number {
+  if (type !== 'fast-food') return listedClose;
+  let hash = 2166136261;
+  for (const code of `${unitId}:${day}`) {
+    hash = Math.imul(hash ^ code.charCodeAt(0), 16777619) >>> 0;
+  }
+  const span = 2 * FAST_FOOD_CLOSING_MARGIN_MINUTES + 1;
+  return listedClose + ((hash >>> 8) % span) - FAST_FOOD_CLOSING_MARGIN_MINUTES;
+}
+
 /** Staff reach their venue between this many minutes before it opens. */
 export const STAFF_EARLY_ARRIVAL = { from: 30, to: 60 } as const;
 

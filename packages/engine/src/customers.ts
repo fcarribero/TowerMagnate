@@ -6,6 +6,7 @@ import {
   SUBWAY_VISITOR_FACTOR,
   VENUE_CAPACITY,
   VENUE_HOURS,
+  closingMinute,
   type PriceLevel,
   type TowerState,
   type Unit,
@@ -224,16 +225,21 @@ function minuteOfDay(state: TowerState): number {
   return Math.floor((state.step % STEPS_PER_DAY) / STEPS_PER_MINUTE);
 }
 
+function closingMinuteOf(state: TowerState, unit: CustomerVenue): number {
+  const day = Math.floor(state.step / STEPS_PER_DAY);
+  return closingMinute(unit.type, VENUE_HOURS[unit.type].close, unit.id, day);
+}
+
 function isOpen(state: TowerState, unit: CustomerVenue, minute: number): boolean {
   if (!isVenueStaffed(state, unit)) return false;
   const hours = VENUE_HOURS[unit.type];
   const hasTenant = unit.type !== 'retail-shop' || unit.lease !== null;
-  return hasTenant && minute >= hours.open && minute < hours.close;
+  return hasTenant && minute >= hours.open && minute < closingMinuteOf(state, unit);
 }
 
 function closingStep(state: TowerState, unit: CustomerVenue): number {
   const dayStart = state.step - (state.step % STEPS_PER_DAY);
-  return dayStart + VENUE_HOURS[unit.type].close * STEPS_PER_MINUTE;
+  return dayStart + closingMinuteOf(state, unit) * STEPS_PER_MINUTE;
 }
 
 function customerVenueOf(state: TowerState, slot: number): CustomerVenue | null {

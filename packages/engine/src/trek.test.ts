@@ -32,7 +32,10 @@ const engine = createEngine({ commandHandlers: {}, systems: [createTrekSystem()]
 const LOBBY_LEFT = 0;
 const LOBBY_RIGHT = 99;
 const FLIGHT_X = 20;
-const FLIGHT_COLUMN = FLIGHT_X + 4;
+/** People walk to the left foot of a flight and get off at its right end. */
+const FLIGHT_FOOT = FLIGHT_X;
+const STAIRS_TOP = FLIGHT_X + 3;
+const ESCALATOR_TOP = FLIGHT_X + 7;
 
 interface Setup {
   floors: number;
@@ -191,13 +194,13 @@ describe('stairs and escalators', () => {
     expect(sendTo(state, id, { level: 3, column: 50 })).toBe(true);
 
     const atFlight = runSteps(state, 14);
-    expect(view(atFlight, id)).toMatchObject({ column: FLIGHT_COLUMN, phase: 'onStairs' });
+    expect(view(atFlight, id)).toMatchObject({ column: FLIGHT_FOOT, phase: 'onStairs' });
 
     const afterFirst = runSteps(state, 14 + STAIR_FLIGHT_STEPS);
     expect(view(afterFirst, id)).toMatchObject({ level: 2, phase: 'onStairs' });
 
     const walkingOn = runSteps(state, 14 + 2 * STAIR_FLIGHT_STEPS + 1);
-    expect(view(walkingOn, id)).toMatchObject({ level: 3, column: FLIGHT_COLUMN + 1 });
+    expect(view(walkingOn, id)).toMatchObject({ level: 3, column: STAIRS_TOP + 2 });
 
     const arrivalStep = 14 + 2 * STAIR_FLIGHT_STEPS + 26;
     expect(view(runSteps(state, arrivalStep), id)).toMatchObject({
@@ -216,14 +219,14 @@ describe('stairs and escalators', () => {
     const id = addWalker(state, 1, 90);
     const facing = (tower: TowerState) => tower.people.facing[slotOfPerson(tower.people, id)];
     expect(facing(state)).toBe(0);
-    sendTo(state, id, { level: 3, column: FLIGHT_COLUMN });
+    sendTo(state, id, { level: 3, column: STAIRS_TOP });
 
     const walking = runSteps(state, 5);
     expect(facing(walking)).toBe(1);
-    const onStairs = runSteps(state, 90 - FLIGHT_COLUMN + 2);
+    const onStairs = runSteps(state, 90 - FLIGHT_FOOT + 2);
     expect(view(onStairs, id).phase).toBe('onStairs');
     expect(facing(onStairs)).toBe(1);
-    const arrived = runSteps(state, 90 - FLIGHT_COLUMN + 2 * STAIR_FLIGHT_STEPS + 5);
+    const arrived = runSteps(state, 90 - FLIGHT_FOOT + 2 * STAIR_FLIGHT_STEPS + 3 + 5);
     expect(view(arrived, id).phase).toBe('idle');
     expect(facing(arrived)).toBe(1);
   });
@@ -233,8 +236,8 @@ describe('stairs and escalators', () => {
       floors: 2,
       flights: [{ type: 'escalator', from: 1, to: 2 }],
     });
-    const id = addWalker(state, 1, FLIGHT_COLUMN);
-    sendTo(state, id, { level: 2, column: FLIGHT_COLUMN });
+    const id = addWalker(state, 1, FLIGHT_FOOT);
+    sendTo(state, id, { level: 2, column: ESCALATOR_TOP });
 
     expect(view(runSteps(state, ESCALATOR_FLIGHT_STEPS - 1), id)).toMatchObject({
       level: 1,
@@ -242,6 +245,7 @@ describe('stairs and escalators', () => {
     });
     expect(view(runSteps(state, ESCALATOR_FLIGHT_STEPS), id)).toMatchObject({
       level: 2,
+      column: ESCALATOR_TOP,
       phase: 'idle',
       dueStep: ESCALATOR_FLIGHT_STEPS,
     });
@@ -273,9 +277,12 @@ describe('stairs and escalators', () => {
         { type: 'stairs', from: 6, to: 8 },
       ],
     });
-    const id = addWalker(state, 1, FLIGHT_COLUMN);
-    expect(sendTo(state, id, { level: 8, column: FLIGHT_COLUMN })).toBe(true);
-    const total = 5 * ESCALATOR_FLIGHT_STEPS + 2 * STAIR_FLIGHT_STEPS;
+    const id = addWalker(state, 1, FLIGHT_FOOT);
+    expect(sendTo(state, id, { level: 8, column: STAIRS_TOP })).toBe(true);
+    // Each flight after the first starts with a walk from the top of the last one back to its foot.
+    const backToFoot = (ESCALATOR_TOP - FLIGHT_FOOT) * 4 + (ESCALATOR_TOP - FLIGHT_FOOT);
+    const total =
+      5 * ESCALATOR_FLIGHT_STEPS + 2 * STAIR_FLIGHT_STEPS + backToFoot + (STAIRS_TOP - FLIGHT_FOOT);
     expect(view(runSteps(state, total), id)).toMatchObject({ level: 8, phase: 'idle' });
   });
 });
@@ -634,7 +641,7 @@ describe('broken legs', () => {
 
   it('puts a person on a demolished flight on its other level and re-plans there', () => {
     const state = buildTestTower({ floors: 3, flights: [{ type: 'stairs', from: 1, to: 3 }] });
-    const id = addWalker(state, 1, FLIGHT_COLUMN);
+    const id = addWalker(state, 1, FLIGHT_FOOT);
     sendTo(state, id, { level: 3, column: 30 });
     expect(view(state, id).phase).toBe('onStairs');
 

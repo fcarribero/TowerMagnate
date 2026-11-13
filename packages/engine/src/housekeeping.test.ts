@@ -155,6 +155,9 @@ describe('maid shift', () => {
   });
 });
 
+/** m2 and m3 get off the stairs at their right end, closer to their rooms than the old x + 4 stop (5 steps for r2, 3 for r4). */
+const R2_CLEANED = at(0, 10, 37, 50) + 1 - 5;
+
 describe('hotel spec 9.1, morning shift on two floors', () => {
   function morning() {
     const { state, rooms, units } = hotelTower({ rooms: EXAMPLE_ROOMS });
@@ -188,8 +191,8 @@ describe('hotel spec 9.1, morning shift on two floors', () => {
     const { state, rooms } = morning();
     const run = runUntil(state, at(0, 11));
     expect(cleanedAt(run.events, rooms.r5 as UnitId)).toBe(at(0, 10, 35, 50));
-    expect(cleanedAt(run.events, rooms.r2 as UnitId)).toBe(at(0, 10, 37, 50) + 1);
-    expect(cleanedAt(run.events, rooms.r4 as UnitId)).toBe(at(0, 10, 36, 10) + 2);
+    expect(cleanedAt(run.events, rooms.r2 as UnitId)).toBe(R2_CLEANED);
+    expect(cleanedAt(run.events, rooms.r4 as UnitId)).toBe(at(0, 10, 36, 10) + 2 - 3);
     for (const name of ['r2', 'r4', 'r5']) {
       expect(run.state.units[rooms[name] as UnitId]?.hotel).toMatchObject({
         dirtyChecks: 0,
@@ -220,7 +223,7 @@ describe('hotel spec 9.1, morning shift on two floors', () => {
     const half = runUntil(state, at(0, 10, 20));
     const restored = deserializeState(serializeState(half.state));
     const resumed = runUntil(restored, at(0, 11));
-    expect(cleanedAt(resumed.events, rooms.r2 as UnitId)).toBe(at(0, 10, 37, 50) + 1);
+    expect(cleanedAt(resumed.events, rooms.r2 as UnitId)).toBe(R2_CLEANED);
     expect(JSON.parse(serializeState(resumed.state))).toEqual(
       JSON.parse(serializeState(straight.state)),
     );

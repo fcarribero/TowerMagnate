@@ -15,12 +15,14 @@ import {
   PERSON_KINDS,
   ROUTE_RETRY_STEPS,
   STAIR_FLIGHT_STEPS,
+  UNIT_CATALOG,
   type EntityId,
   type HallDirection,
   type Level,
   type PersonPool,
   type Shaft,
   type TowerState,
+  type UnitType,
 } from '@tower-magnate/shared';
 import { SECONDS_PER_STEP, STEPS_PER_DAY } from './clock';
 import { drainEnergy, energyLevelOf, leaveHome, resetEnergy, restEnergy } from './energy';
@@ -353,6 +355,20 @@ function setLeg(
   pool.legColumn[slot] = leg.column;
 }
 
+/**
+ * A flight climbs from the left foot of the unit to the right end on the level above. People walk
+ * to the foot before they climb and stand at the top when they get off. Routing still prices a
+ * flight at its point at x + 4 (routing section 3).
+ */
+function flightFoot(context: StepContext, kind: string, via: string): number | undefined {
+  if (kind !== 'stairs' && kind !== 'escalator') return undefined;
+  return context.state.transports[via]?.x;
+}
+
+function flightTop(transport: { type: UnitType; x: number }): number {
+  return transport.x + UNIT_CATALOG[transport.type].width - 1;
+}
+
 function entityNumber(id: string): number {
   return Number(id.slice(1));
 }
@@ -405,7 +421,7 @@ function legStartOf(context: StepContext, leg: FirstLeg): LegStart {
     phase,
     via: entityNumber(first.via),
     level: graph.node(first.to).level,
-    column: graph.node(first.from).x,
+    column: flightFoot(context, leg.kind, first.via) ?? graph.node(first.from).x,
   };
   legStarts.set(leg, start);
   return start;
@@ -800,6 +816,12 @@ function finishFlight(context: StepContext, slot: number): void {
   const flight = { kind, via: '', from: 0, to: 0, floors: 1 } as const;
   pool.trekBudget[slot] = packBudget(spendBudget(budget, flight));
   addFlight(pool, slot, kind);
+  const transport = context.state.transports[transportKey(pool.legVia[slot] as number)];
+  if (transport) {
+    const climbing =
+      floorIndex(pool.legLevel[slot] as Level) > floorIndex(pool.level[slot] as Level);
+    pool.column[slot] = climbing ? flightTop(transport) : transport.x;
+  }
   pool.level[slot] = pool.legLevel[slot] as number;
   replan(context, slot);
 }

@@ -5,6 +5,7 @@ import {
   STAFF_EARLY_ARRIVAL,
   UNIT_CATALOG,
   VENUE_STAFF,
+  closingMinute,
   type EntityId,
   type PersonPool,
   type TowerState,
@@ -157,8 +158,10 @@ function dayStartOf(step: number): number {
   return Math.floor(step / STEPS_PER_DAY) * STEPS_PER_DAY;
 }
 
-function closeStepOf(type: StaffedType, step: number): number {
-  return dayStartOf(step) + VENUE_STAFF[type].close * STEPS_PER_MINUTE;
+function closeStepOf(unit: Unit & { type: StaffedType }, step: number): number {
+  const day = Math.floor(step / STEPS_PER_DAY);
+  const minute = closingMinute(unit.type, VENUE_STAFF[unit.type].close, unit.id, day);
+  return dayStartOf(step) + minute * STEPS_PER_MINUTE;
 }
 
 function drawEarlyMinutes(state: TowerState): number {
@@ -181,7 +184,7 @@ function planRestOfDay(state: TowerState, slot: number): void {
     dayStartOf(state.step) +
     (VENUE_STAFF[unit.type].open - drawEarlyMinutes(state)) * STEPS_PER_MINUTE;
   const arrival = Math.max(earlyStep, state.step + 1);
-  if (arrival >= closeStepOf(unit.type, state.step)) return;
+  if (arrival >= closeStepOf(unit, state.step)) return;
   pool.trip[slot] = encodeStaffRoutine({ phase: 'outside', entranceOnRight: false });
   pool.dueStep[slot] = arrival;
 }
@@ -292,7 +295,7 @@ function garbageOf(unit: Unit): number {
 
 function startArrival(worker: Worker): void {
   const { state, unit, routine } = worker;
-  const closeStep = closeStepOf(unit.type, state.step);
+  const closeStep = closeStepOf(unit, state.step);
   if (state.step >= closeStep) {
     stayOutside(state.people, worker.slot);
     return;
@@ -308,7 +311,7 @@ function startArrival(worker: Worker): void {
 function settleWorking(worker: Worker): void {
   const { state, unit, routine } = worker;
   routine.phase = 'working';
-  save(worker, Math.max(closeStepOf(unit.type, state.step), state.step));
+  save(worker, Math.max(closeStepOf(unit, state.step), state.step));
 }
 
 /** Walks out by the lobby end the worker came in by, or the other one; false when neither can be reached. */
