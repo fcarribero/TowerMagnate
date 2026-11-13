@@ -65,8 +65,10 @@ function drawMarbleColumn(tile) {
 }
 
 // One column of lobby, 1 to 3 floors tall. With `column`, a marble column
-// covers the window; the client places it every few tiles.
-function lobby(floors, { column }) {
+// covers the window; the client places it every few tiles. With `window: false`
+// the wall is solid: most of a lobby is wall and the client puts a pane of
+// windows only every few tiles.
+function lobby(floors, { column, window = true }) {
   const tile = new PixelCanvas(tileWidth, floors * floorHeight);
   const slabTop = slabTopOf(tile);
   const wainscotTop = slabTop - 6;
@@ -74,7 +76,11 @@ function lobby(floors, { column }) {
   tile.hline(0, 0, tileWidth, 'concrete');
   tile.hline(0, 1, tileWidth, 'concrete-dark');
   tile.hline(0, 6, tileWidth, 'concrete');
-  drawLobbyWindow(tile, 9, wainscotTop - 3);
+  if (window) {
+    drawLobbyWindow(tile, 9, wainscotTop - 3);
+  } else {
+    tile.vline(0, 7, wainscotTop - 7, 'concrete');
+  }
   tile.hline(0, wainscotTop, tileWidth, 'wood-light');
   tile.fillRect(0, wainscotTop + 1, tileWidth, 4, 'wood');
   tile.hline(0, slabTop - 1, tileWidth, 'wood-dark');
@@ -341,10 +347,25 @@ const subjects = [
   { subject: 'floor', draw: bareFloor },
   { subject: 'ruins', draw: () => toBurnt(bareFloor()) },
   { subject: 'lobby-1', draw: () => lobby(1, { column: false }), lightUp: lightPendantLamp },
+  {
+    subject: 'lobby-1-wall',
+    draw: () => lobby(1, { column: false, window: false }),
+    lightUp: lightPendantLamp,
+  },
   { subject: 'lobby-1-column', draw: () => lobby(1, { column: true }) },
   { subject: 'lobby-2', draw: () => lobby(2, { column: false }), lightUp: lightPendantLamp },
+  {
+    subject: 'lobby-2-wall',
+    draw: () => lobby(2, { column: false, window: false }),
+    lightUp: lightPendantLamp,
+  },
   { subject: 'lobby-2-column', draw: () => lobby(2, { column: true }) },
   { subject: 'lobby-3', draw: () => lobby(3, { column: false }), lightUp: lightPendantLamp },
+  {
+    subject: 'lobby-3-wall',
+    draw: () => lobby(3, { column: false, window: false }),
+    lightUp: lightPendantLamp,
+  },
   { subject: 'lobby-3-column', draw: () => lobby(3, { column: true }) },
   { subject: 'sky-lobby', draw: () => skyLobby({ column: false }), lightUp: lightSkyLobby },
   { subject: 'sky-lobby-column', draw: () => skyLobby({ column: true }) },

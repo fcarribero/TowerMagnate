@@ -36,6 +36,7 @@ export interface StructureSource {
 const EDGE_WIDTH = 3;
 const ROOF_HEIGHT = 4;
 const COLUMN_EVERY_TILES = 4;
+const LOBBY_WINDOW_EVERY_TILES = 8;
 const MAX_LOBBY_HEIGHT = 3;
 const SUBWAY_LEVEL = -TOWER_LAYOUT.subwayTunnelBasement;
 const MAIN_LOBBY_LEVEL = TOWER_LAYOUT.mainLobbyFloor;
@@ -166,18 +167,52 @@ function drawnRow(level: Level, source: StructureSource): string | undefined {
 function lobbyRun(level: Level, run: Run, source: StructureSource): StructurePiece[] {
   if (level === MAIN_LOBBY_LEVEL) {
     const height = source.mainLobbyHeight ?? 1;
-    return withColumns(`lobby-${height}`, run, FLOOR_HEIGHT - height * FLOOR_HEIGHT);
+    return withColumns(`lobby-${height}`, run, FLOOR_HEIGHT - height * FLOOR_HEIGHT, true);
   }
-  const subject = SKY_LOBBY_LEVELS.includes(level) ? 'sky-lobby' : 'lobby-1';
-  return withColumns(subject, run, 0);
+  if (SKY_LOBBY_LEVELS.includes(level)) {
+    return withColumns('sky-lobby', run, 0);
+  }
+  return withColumns('lobby-1', run, 0, true);
 }
 
-function withColumns(subject: StructureSubject, run: Run, y: number): StructurePiece[] {
-  const pieces: StructurePiece[] = [tiledRun(subject, run, y)];
+/** Lobby walls are solid except for a two-tile pane of windows every 8 tiles. */
+function hasLobbyWindow(column: number): boolean {
+  return column % LOBBY_WINDOW_EVERY_TILES >= 2 && column % LOBBY_WINDOW_EVERY_TILES <= 3;
+}
+
+function withColumns(
+  subject: StructureSubject,
+  run: Run,
+  y: number,
+  windowsSparse = false,
+): StructurePiece[] {
+  const pieces: StructurePiece[] = windowsSparse
+    ? sparseWindowRuns(subject, run, y)
+    : [tiledRun(subject, run, y)];
   for (let column = run.from; column <= run.to; column += 1) {
     if (column % COLUMN_EVERY_TILES === 0) {
       pieces.push({ subject: `${subject}-column`, x: column * TILE_WIDTH, y });
     }
+  }
+  return pieces;
+}
+
+/** The wall sprite along a lobby run, with the window sprite over the window tiles. */
+function sparseWindowRuns(subject: StructureSubject, run: Run, y: number): StructurePiece[] {
+  const windows: boolean[] = [];
+  for (let column = run.from; column <= run.to; column += 1) {
+    windows.push(hasLobbyWindow(column));
+  }
+  const pieces: StructurePiece[] = [];
+  let from = 0;
+  while (from < windows.length) {
+    let to = from;
+    while (to + 1 < windows.length && windows[to + 1] === windows[from]) {
+      to += 1;
+    }
+    const sprite = windows[from] ? subject : `${subject}-wall`;
+    pieces.push(tiledRun(sprite, { from: run.from + from, to: run.from + to }, y));
+    from = to + 1;
   }
   return pieces;
 }

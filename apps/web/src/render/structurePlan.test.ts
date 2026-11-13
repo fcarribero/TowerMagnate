@@ -119,7 +119,9 @@ describe('planStructureRow', () => {
     const lobby = row(span(8, 15, 'l'));
     const rows = { 1: lobby, 2: lobby, 3: lobby };
     const pieces = planStructureRow(1, source(rows, 3));
-    expect(pieces).toContainEqual({ subject: 'lobby-3', x: 64, y: -64, width: 64 });
+    expect(pieces).toContainEqual({ subject: 'lobby-3-wall', x: 64, y: -64, width: 16 });
+    expect(pieces).toContainEqual({ subject: 'lobby-3', x: 80, y: -64, width: 16 });
+    expect(pieces).toContainEqual({ subject: 'lobby-3-wall', x: 96, y: -64, width: 32 });
     expect(pieces.filter((piece) => piece.subject === 'lobby-3-column')).toEqual([
       { subject: 'lobby-3-column', x: 64, y: -64 },
       { subject: 'lobby-3-column', x: 96, y: -64 },

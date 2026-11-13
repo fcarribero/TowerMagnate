@@ -44,7 +44,7 @@ describe('structure group', () => {
     expect(sprites['structure/floor/day'].width).toBe(metrics.tileWidth);
     expect(sprites['structure/floor/day'].height).toBe(metrics.floorHeight);
     for (const floors of [1, 2, 3]) {
-      for (const subject of [`lobby-${floors}`, `lobby-${floors}-column`]) {
+      for (const subject of [`lobby-${floors}`, `lobby-${floors}-wall`, `lobby-${floors}-column`]) {
         expect(sprites[`structure/${subject}/day`].width).toBe(metrics.tileWidth);
         expect(sprites[`structure/${subject}/day`].height).toBe(floors * metrics.floorHeight);
       }
