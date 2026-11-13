@@ -2,6 +2,7 @@ import { PERSON_KINDS, type PersonPool } from '@tower-magnate/shared';
 import { guestRoutineAt } from './hotel-guest-trip';
 import { routineAt } from './office-routine';
 import { decodeResidentRoutine } from './resident-routine';
+import { CHILD_KIND } from './children';
 import { isOnTrek } from './trek';
 import { NO_TRIP } from './people';
 import { isStaffOutside } from './venue-staff';
@@ -26,7 +27,8 @@ function residentIsOutside(pool: PersonPool, slot: number): boolean {
 /** True for a resident or hotel guest who is in bed. */
 export function isAsleep(pool: PersonPool, slot: number): boolean {
   const kind = pool.kind[slot];
-  if (kind === RESIDENT_KIND) {
+  if (kind === RESIDENT_KIND || kind === CHILD_KIND) {
+    // A child's trip number is a copy of the guardian's, so the child sleeps and goes out with them.
     return decodeResidentRoutine(pool.trip[slot] ?? NO_TRIP)?.phase === 'sleeping';
   }
   return guestRoutineAt(pool, slot)?.phase === 'sleeping';
@@ -40,7 +42,7 @@ export function isOutsideTower(pool: PersonPool, slot: number): boolean {
   if (isOnTrek(pool, slot)) return false;
   const kind = pool.kind[slot];
   if (kind === OFFICE_WORKER_KIND) return officeWorkerIsOutside(pool, slot);
-  if (kind === RESIDENT_KIND) return residentIsOutside(pool, slot);
+  if (kind === RESIDENT_KIND || kind === CHILD_KIND) return residentIsOutside(pool, slot);
   if (kind === STAFF_KIND) return isStaffOutside(pool, slot);
   return guestRoutineAt(pool, slot)?.phase === 'outside';
 }

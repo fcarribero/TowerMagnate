@@ -34,7 +34,13 @@ import { createVenueStaff } from './venue-staff';
 import { createCouriers } from './couriers';
 import { createProspectDemand } from './prospects';
 import { createScheduler } from './scheduler';
-import { cancelTrek, createTrekSystem, isOnTrek, plannedTripSteps } from './trek';
+import {
+  cancelTrek,
+  createChildSystem,
+  createTrekSystem,
+  isOnTrek,
+  plannedTripSteps,
+} from './trek';
 import { createNightReset } from './trip-ledger';
 import { createDailyGradeSystem, storedGrade } from './unit-evaluation';
 import {
@@ -312,6 +318,7 @@ export const namedTowerSystems: readonly { name: string; system: SimulationSyste
   { name: 'customers', system: customers.system },
   { name: 'weddings', system: weddingSystem },
   { name: 'elevators', system: createElevatorSystem() },
+  { name: 'children', system: createChildSystem() },
   { name: 'scheduler (star check)', system: createScheduler([starCheckHook]) },
   { name: 'events', system: eventsPhase },
 ];

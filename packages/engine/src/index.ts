@@ -83,6 +83,7 @@ export {
 } from './money';
 export type { WeekSummary } from './money';
 export {
+  addCondoHousehold,
   addPeopleForUnit,
   addPerson,
   clonePersonPool,
@@ -142,6 +143,8 @@ export { isAsleep, isOutsideTower } from './outside-tower';
 export { encodeResidentRoutine } from './resident-routine';
 export { createCouriers } from './couriers';
 export type { CourierDemand } from './couriers';
+export { rollCondoHousehold } from './children';
+export type { CondoHousehold } from './children';
 export { createProspectDemand } from './prospects';
 export type { ProspectDemand } from './prospects';
 export { chance, createRng, nextFloat, nextInt, nextUint32 } from './rng';

@@ -6,6 +6,7 @@ import {
   type Unit,
 } from '@tower-magnate/shared';
 import { isWeekendDay } from './calendar';
+import { childNameSeed, rollCondoHousehold } from './children';
 import { sellCondo } from './condos';
 import { isLeasable, moveInTenant } from './leases';
 import { entrancePlace, unitPlace } from './office-routine';
@@ -60,9 +61,25 @@ function sendProspect(context: StepContext, unit: Unit): void {
   const onRight = chance(state.rng, 0.5);
   const entrance = entrancePlace(state, onRight);
   if (!entrance) return;
-  const household = unit.type === 'condo' ? (unitPeople('condo')?.count ?? 1) : 1;
+  const household =
+    unit.type === 'condo'
+      ? rollCondoHousehold(unitNumber(unit.id), state.step)
+      : { adults: 1, children: 0 };
   const arrived: number[] = [];
-  for (let index = 0; index < household; index++) {
+  // Children are made first so they exist when their guardian queues for a car; they never start
+  // a trek, they copy the guardian (children.ts).
+  for (let index = 0; index < household.children; index++) {
+    arrived.push(
+      addPerson(state, {
+        kind: 'child',
+        homeUnit: unitNumber(unit.id),
+        level: entrance.level,
+        column: entrance.column,
+        nameSeed: childNameSeed(unitNumber(unit.id), state.step, index),
+      }),
+    );
+  }
+  for (let index = 0; index < household.adults; index++) {
     const personId = addPerson(state, {
       kind: 'prospect',
       homeUnit: unitNumber(unit.id),

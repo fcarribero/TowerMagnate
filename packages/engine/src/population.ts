@@ -6,6 +6,7 @@ import {
   type Unit,
 } from '@tower-magnate/shared';
 import { isVipStay } from './events/vip';
+import { countPeopleOfUnit } from './people';
 
 export interface PopulationBreakdown {
   offices: number;
@@ -33,8 +34,10 @@ function officePopulation(unit: Unit): number {
   return unit.type === 'office' && unit.lease ? OFFICE_POPULATION : 0;
 }
 
-function condoPopulation(unit: Unit): number {
-  return unit.type === 'condo' && unit.sale ? CONDO_POPULATION : 0;
+/** The people of a sold condo, children included; CONDO_POPULATION when none are in the pool. */
+function condoPopulation(state: TowerState, unit: Unit): number {
+  if (unit.type !== 'condo' || !unit.sale) return 0;
+  return countPeopleOfUnit(state.people, unit.id) || CONDO_POPULATION;
 }
 
 function hotelPopulation(state: TowerState, unit: Unit): number {
@@ -56,7 +59,7 @@ export function populationOf(state: TowerState): PopulationBreakdown {
   const breakdown: PopulationBreakdown = { offices: 0, condos: 0, hotel: 0, venues: 0, total: 0 };
   for (const unit of Object.values(state.units)) {
     breakdown.offices += officePopulation(unit);
-    breakdown.condos += condoPopulation(unit);
+    breakdown.condos += condoPopulation(state, unit);
     breakdown.hotel += hotelPopulation(state, unit);
     breakdown.venues += venuePopulation(unit);
   }

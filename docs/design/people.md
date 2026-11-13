@@ -56,7 +56,8 @@ Design call: plans are drawn once a day instead of rolling a chance at every ste
 | Type | Id | Created by | Count | Counts in population (TM-14) | Transport allowed |
 |---|---|---|---|---|---|
 | Office worker | `officeWorker` | occupied office | 6 per office | yes, 6 per occupied office | stairs, escalators, standard and express elevators |
-| Resident | `resident` | sold condo | 3 per condo | yes, 3 per sold condo | same |
+| Resident | `resident` | sold condo | 1 or 2 adults per condo, section 7.5 | yes, with the children | same |
+| Child | `child` | sold condo | 0 or 1 per condo, section 7.5 | yes, with the residents | the same ride as the adult it follows |
 | Hotel guest | `hotelGuest` | hotel stay | 1 per single room, 2 per double room, 2 per suite | yes, from check-in until the stay ends (TM-14) | same |
 | Customer | `customer` | fast food, restaurant, retail shop | formula in section 11 | through the venue's previous-day count | same |
 | Cinema audience | `audience` | cinema | up to the show cap, section 12 | no | same |
@@ -151,9 +152,9 @@ Design call on lunch at fast food only: the GDD says lunch is at fast food or a 
 
 ## 7. Residents
 
-Three residents per sold condo. A resident's night place is the condo. Residents live in the tower every day of the week.
+A sold condo holds one to three people, section 7.5. A resident's night place is the condo. Residents live in the tower every day of the week.
 
-When a condo is sold, the prospect who bought it becomes resident 1 and stays in the condo; residents 2 and 3 appear in the condo at the same step. All three get their first plan at the next 00:00.
+When a condo is sold, the prospect who bought it becomes resident 1 and stays in the condo; the rest of the household walks in with the buyer and moves in as each one arrives. Each adult gets a first plan at the next 00:00. Children make no plan.
 
 ### 7.1 Weekday plan
 
@@ -181,6 +182,25 @@ Nobody goes out to work. Each resident draws two trips on its own:
 A trip whose time comes while the resident is not home (still on the previous trip) is skipped. Each visit lasts 45 minutes for retail and fast food and 60 minutes for the restaurant.
 
 Design call on residents leaving: the GDD says residents leave in the morning, shop during the day, more on weekends, and come back at night. Residents who go out to work give the morning and evening rush a second direction, and those who stay home are the daytime shoppers.
+
+### 7.5 Households and children
+
+Design call: a condo is not always full. When a condo prospect party is sent (section 18), the household is rolled once from a pure hash of the unit number and the step. The roll does not draw from the simulation RNG, so the seeded streams of everything else are unchanged. The size is 1, 2 or 3 people with weights 20, 40 and 40 (`CONDO_HOUSEHOLD_SIZES`).
+
+- One person is an adult.
+- Two people are two adults, or with 30% chance (`CONDO_PAIR_CHILD_CHANCE`) one adult and one child.
+- Three people are two adults and one child (`CONDO_TRIO_CHILDREN`).
+
+A child is a person of kind `child` (label "Niño"), appended at the end of `PERSON_KINDS`. Children have no free will: they have no daily plan, never pick a venue, never start a trip and are never due. A child copies its guardian, the adult of the same condo with the lowest person id, after the elevators have moved in each step.
+
+- When the guardian walks, queues, rides or climbs, the child has the same trip phase, destination and floor, and is drawn in the guardian's cell. The designated guardian is fixed, so when the other adult goes out and the guardian stays home, the child stays home.
+- In an elevator line the child takes the place right behind the guardian and boards on the next step. A guardian with a child steps into a car only when it has room for both, so they ride in the same car. Both get off at the guardian's floor. Each takes a car slot and a place in the line.
+- The child sleeps, is outside the tower and is home whenever the guardian is. The guardian's routine number is copied to the child, so a sleeping unit shows as sleeping.
+- When the guardian is removed, the next adult by id becomes the guardian. A child with no adult left is removed at the next step. When the condo is bought back or demolished, the child is removed with the household (P-08).
+
+Economy and stars: a condo is paid once, at the sale price, whatever its household. Children pay nothing and are not part of any per-person income. Population counts people, so a sold condo adds its real household to the population, children included (stars.md section 3); a sold condo with nobody in the pool counts `CONDO_POPULATION` (3). Children record no trips and no stress, so they do not move a condo's evaluation. Children are not employees or customers: they never enter a venue count and they do not stand in for staff.
+
+Saves: the kind is additive and the schema version does not change. A condo that already has residents keeps its people as they are.
 
 ## 8. Hotel guests
 
@@ -440,7 +460,10 @@ Design call: the original filled units as soon as someone reached them. The roll
 | Constant | Value |
 |---|---|
 | `OFFICE_WORKERS_PER_OFFICE` | 6 (catalog) |
-| `RESIDENTS_PER_CONDO` | 3 (catalog) |
+| `RESIDENTS_PER_CONDO` | 3 (catalog), the most a household can hold |
+| `CONDO_HOUSEHOLD_SIZES` | weights 20, 40, 40 for 1, 2, 3 people |
+| `CONDO_TRIO_CHILDREN` | 1 |
+| `CONDO_PAIR_CHILD_CHANCE` | 0.3 |
 | `HOTEL_PARTY_SIZE` | single 1, double 2, suite 2 (catalog) |
 | `MAIDS_PER_HOUSEKEEPING` | 6 (catalog) |
 | `GUARDS_PER_SECURITY` | 6 (new catalog entry) |
@@ -486,7 +509,7 @@ P-01. Every drawn time is a whole game minute. A weighted window is drawn by pic
 
 P-02. At 00:00 each day, daily plans are drawn in increasing person id. With the same seed and the same commands, two runs produce the same people, plans and positions at every step.
 
-P-03. Spawn counts: 6 workers per office with a tenant, 3 residents per sold condo, 1 guest per single room stay, 2 per double room stay, 2 per suite stay, 6 maids per housekeeping unit, 6 guards per security office, 40 wedding guests per attempt.
+P-03. Spawn counts: 6 workers per office with a tenant, 1 to 3 people per sold condo (section 7.5), 1 guest per single room stay, 2 per double room stay, 2 per suite stay, 6 maids per housekeeping unit, 6 guards per security office, 40 wedding guests per attempt.
 
 P-04. People from outside appear at the street entrance (level 1, either end of the main lobby, 50% each), at the subway entrance (level -7, inside the station) or at their assigned parking space.
 
@@ -592,7 +615,7 @@ P-42. At each whole hour from 08:00 to 18:00, each vacant office (weekdays only)
 
 P-43. A prospect who reaches a unit that is still vacant moves the tenant in at that step, which starts the lease or sale (economy E-10, E-24). A prospect with no route leaves and the unit keeps waiting. A unit with no route from the street never gets a tenant.
 
-P-44. A condo's prospect becomes resident 1 and the other 2 residents appear in the condo at the same step. Office and shop prospects leave the tower after the move-in.
+P-44. A condo's prospect becomes resident 1 and the rest of its household (section 7.5) walks in with it and moves in as each one arrives. Office and shop prospects leave the tower after the move-in.
 
 ### Draw order
 

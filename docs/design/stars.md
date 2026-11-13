@@ -25,7 +25,7 @@ Population is a whole number computed from the tower's state at any step:
 | Source | Counts | When |
 |---|---|---|
 | Office | 6 | the office has a tenant (lease active), from the move-in step |
-| Condo | 3 | the condo is sold, from the sale step until a buyback |
+| Condo | 1 to 3, the people of its household (people.md 7.5) | the condo is sold, from the sale step until a buyback |
 | Hotel room (single, double, suite) | the party size: 1, 2 or 2; the VIP counts 1 | from the party's check-in step until the stay ends at 10:00 on the check-out day |
 | Fast food, restaurant, retail shop | the unit's count for the previous calendar day | from 00:00 to 23:59, for every unit of these types that exists |
 
@@ -47,7 +47,7 @@ The status panel shows population at every delta (ui.md 4). The star check (sect
 
 ### 3.4 Expected share
 
-For balance planning, a 15,000 tower in the economy spec's mix (about 1,200 offices, 800 condos and 150 suites) gets about 7,200 from offices, 2,400 from condos, 600 to 900 from hotel rooms and 4,000 to 5,000 from about 100 venues at 35 to 50 visits a day. Commercial counts make up about a third in a hand-built tower. The progression bot's towers measure 40% at 3 stars and 51% to 55% at 4 and 5 stars (balance.md 8.4), and balance.md 8.6 sets the 5-star target at 45% to 55%. A tower with poor transport loses population through its shops even when every office is leased.
+For balance planning, a 15,000 tower in the economy spec's mix (about 1,200 offices, 800 condos and 150 suites) gets about 7,200 from offices, about 1,760 from condos (an average household of 2.2), 600 to 900 from hotel rooms and 4,000 to 5,000 from about 100 venues at 35 to 50 visits a day. Commercial counts make up about a third in a hand-built tower. The progression bot's towers measure 40% at 3 stars and 51% to 55% at 4 and 5 stars (balance.md 8.4), and balance.md 8.6 sets the 5-star target at 45% to 55%. A tower with poor transport loses population through its shops even when every office is leased.
 
 ## 4. The star check
 
@@ -300,7 +300,7 @@ The Estrellas window (ui.md 6.8) shows the requirement texts of ui.md 13.10, whi
 | 5 stars to Torre: 15,000, cathedral, a completed wedding | 7 | Kept |
 | Star check every weekday at 17:00 | 4.1 | Kept, one step per check |
 | Wedding: 40 guests in the cathedral on Saturday or Sunday before 12:30 | 7 | Kept |
-| Population: 6 per occupied office, 3 per sold condo, hotel guests present, previous-day customers | 3 | Kept; guests of active stays |
+| Population: 6 per occupied office, the household of each sold condo (1 to 3), hotel guests present, previous-day customers | 3 | Kept; guests of active stays |
 | From 3 stars, failed medical or parking blocks promotion that day | 5.5, 5.6, 6 | Adapted: blocks the next check |
 | Each recycling center covers up to 2,500 people | 5.4 | Kept |
 
@@ -322,7 +322,7 @@ The Estrellas window (ui.md 6.8) shows the requirement texts of ui.md 13.10, whi
 
 ### Population
 
-S-01. Population is the sum of: 6 per office with a tenant; 3 per sold condo; the party size of every hotel stay from check-in until the stay ends at 10:00 (single 1, double 2, suite 2, the VIP 1); and the previous-day visit count of every existing fast food, restaurant and retail shop. Nothing else counts.
+S-01. Population is the sum of: 6 per office with a tenant; the people of each sold condo's household, children included, 1 to 3 (3 when none are in the pool yet); the party size of every hotel stay from check-in until the stay ends at 10:00 (single 1, double 2, suite 2, the VIP 1); and the previous-day visit count of every existing fast food, restaurant and retail shop. Nothing else counts.
 
 S-02. A hotel party counts in full from its check-in step, whether its guests are in the room or out. A party that has not checked in does not count.
 

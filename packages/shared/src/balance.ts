@@ -18,7 +18,20 @@ import { SHAFT_UNIT_TYPES } from './units';
 export const STARTING_MONEY = 2_000_000;
 export const MONEY_CAP = 99_999_999;
 export const OFFICE_POPULATION = 6;
+/**
+ * Residents a sold condo is counted with when no person of the household exists yet; the real
+ * count is the household's people, 1 to CONDO_HOUSEHOLD_SIZES.length (condo households, people.md).
+ */
 export const CONDO_POPULATION = 3;
+/**
+ * Weights of a condo household having 1, 2 or 3 people, rolled when the buyer's party is sent. The
+ * weights are relative: 20, 40 and 40 give 20% singles, 40% pairs and 40% trios.
+ */
+export const CONDO_HOUSEHOLD_SIZES = [20, 40, 40] as const;
+/** A household of 3 always has exactly one child, so its adults are the other two. */
+export const CONDO_TRIO_CHILDREN = 1;
+/** Chance that a household of 2 is one adult and one child; otherwise it is two adults. */
+export const CONDO_PAIR_CHILD_CHANCE = 0.3;
 /** Party size of a hotel stay by room type (stars spec 3.1). */
 export const HOTEL_PARTY_SIZE = { 'single-room': 1, 'double-room': 2, suite: 2 } as const;
 

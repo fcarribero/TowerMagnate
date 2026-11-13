@@ -14,6 +14,7 @@ import {
   type UnitId,
   type UnitType,
 } from '@tower-magnate/shared';
+import { childNameSeed, rollCondoHousehold } from './children';
 import { startingEnergy } from './energy';
 import { leaveQueues } from './elevator-queues';
 import { stressBand, type StressBand } from './person-stress';
@@ -203,7 +204,10 @@ export function rollParkingHolder(
   if (chance(state.rng, PARKING_HOLDER_CHANCE[holder])) state.parking.spaces[personId] = 0;
 }
 
-/** The kind and number of people a unit of this type holds, or null if it holds none. */
+/**
+ * The kind and number of people a unit of this type holds, or null if it holds none. For a condo
+ * the count is the most it can hold; a condo's real household is rolled by `rollCondoHousehold`.
+ */
 export function unitPeople(unitType: UnitType): {
   kind: PersonKind;
   count: number;
@@ -238,6 +242,37 @@ export function addPeopleForUnit(state: TowerState, unitId: UnitId): EntityId[] 
     const id = addPerson(state, { kind: people.kind, homeUnit, level: unit.level, column });
     created.push(personEntityId(id));
     if (index === 0 && unit.type === 'office') rollParkingHolder(state, id, 'office');
+  }
+  return created;
+}
+
+/**
+ * Creates the household of a condo as if it had just been sold: 1 to 3 people rolled from the
+ * unit and the step (`rollCondoHousehold`), the adults as residents and the children after them.
+ * The game itself brings households in through prospects (prospects.ts); this is for tests and
+ * tools that need a lived-in condo. Returns the new person ids, adults first.
+ */
+export function addCondoHousehold(state: TowerState, unitId: UnitId): EntityId[] {
+  const unit = Object.hasOwn(state.units, unitId) ? state.units[unitId] : undefined;
+  const homeUnit = parseUnitNumber(unitId);
+  if (!unit || homeUnit === null || unit.type !== 'condo') {
+    throw new Error(`Unit ${unitId} is not a condo`);
+  }
+  const household = rollCondoHousehold(homeUnit, state.step);
+  const width = UNIT_CATALOG.condo.width;
+  const created: EntityId[] = [];
+  let firstColumn = unit.x;
+  for (let index = 0; index < household.adults; index++) {
+    const column = unit.x + nextInt(state.rng, 0, width - 1);
+    if (index === 0) firstColumn = column;
+    const id = addPerson(state, { kind: 'resident', homeUnit, level: unit.level, column });
+    created.push(personEntityId(id));
+  }
+  for (let index = 0; index < household.children; index++) {
+    const nameSeed = childNameSeed(homeUnit, state.step, index);
+    const column = firstColumn;
+    const id = addPerson(state, { kind: 'child', homeUnit, level: unit.level, column, nameSeed });
+    created.push(personEntityId(id));
   }
   return created;
 }

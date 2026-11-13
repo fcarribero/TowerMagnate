@@ -127,15 +127,19 @@ describe('prospect move-in', () => {
     expect(prospectCount(engine.step(state, [], 3 * STEPS_PER_HOUR).state)).toBe(0);
   });
 
-  it('sells a condo, keeps the prospect as resident 1 and adds two more residents', () => {
+  it('sells a condo, keeps the prospect as a resident and moves the rest of the household in', () => {
     const { state, id } = towerWithVacantUnit({ unit: 'condo', priceLevel: 'minimum' });
     const { state: after, events } = engine.step(state, [], STEPS_PER_DAY);
     const sold = events.filter((event) => event.type === 'condoSold');
     expect(sold).toHaveLength(1);
     expect(after.units[id]?.sale?.anchorStep).toBe(sold[0]?.step);
-    const residents = listPeople(after.people).filter((person) => person.kind === 'resident');
-    expect(residents).toHaveLength(3);
-    expect(residents.map((person) => person.homeUnit)).toEqual(['u1', 'u1', 'u1']);
+    const people = listPeople(after.people);
+    const residents = people.filter((person) => person.kind === 'resident');
+    const children = people.filter((person) => person.kind === 'child');
+    expect(residents.length).toBeGreaterThanOrEqual(1);
+    expect(residents.length).toBeLessThanOrEqual(2);
+    expect(residents.length + children.length).toBeLessThanOrEqual(3);
+    expect(people.every((person) => person.homeUnit === 'u1')).toBe(true);
     expect(prospectCount(after)).toBe(0);
   });
 
@@ -147,8 +151,10 @@ describe('prospect move-in', () => {
       if (prospectCount(afterRoll) > 0) walking = afterRoll;
     }
     if (walking === null) throw new Error('No seed sent a prospect');
-    expect(prospectCount(walking)).toBe(3);
-    expect(countPeopleByKind(walking.people).resident ?? 0).toBe(0);
+    const counts = countPeopleByKind(walking.people);
+    expect(prospectCount(walking)).toBeGreaterThanOrEqual(1);
+    expect(prospectCount(walking) + (counts.child ?? 0)).toBeLessThanOrEqual(3);
+    expect(counts.resident ?? 0).toBe(0);
   });
 
   it('removes a prospect on the way when the unit is demolished', () => {

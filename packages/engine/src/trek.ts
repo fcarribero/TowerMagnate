@@ -1,4 +1,5 @@
 import {
+  carCapacity,
   ELEVATOR_QUEUE_CAPACITY,
   ENERGY_STAIRS_DRAIN,
   ENERGY_WAIT_DRAIN,
@@ -40,7 +41,8 @@ import {
   startWait,
   type PartUnderWay,
 } from './trip-ledger';
-import { parsePersonId, personEntityId, slotOfPerson } from './people';
+import { CHILD_KIND, householdIndexOf, isChild } from './children';
+import { NOTHING_DUE, parsePersonId, personEntityId, removePerson, slotOfPerson } from './people';
 import { floorIndex } from './routing/transport-graph';
 import {
   spendBudget,
@@ -472,6 +474,11 @@ function replan(
   slot: number,
   plan: RoutePlan | null = planFrom(context, slot),
 ): void {
+  if (isChild(context.state.people, slot)) {
+    // A child never plans: it is let go here and the child system copies the guardian again.
+    releaseChild(context, slot);
+    return;
+  }
   if (planNextLeg(context, slot, plan)) return;
   const pool = context.state.people;
   pool.trek[slot] = NO_ROUTE;
@@ -529,6 +536,10 @@ export function cancelTrek(
   options: { nightReset?: boolean } = {},
 ): void {
   const pool = context.state.people;
+  if (isChild(pool, slot)) {
+    releaseChild(context, slot);
+    return;
+  }
   settlePartUnderWay(context.state, slot, partUnderWay(pool.trek[slot] as number));
   if (pool.trek[slot] === QUEUED) leaveQueueOf(context, slot);
   if (pool.trek[slot] === RIDING) leaveCarOf(context, slot);
@@ -562,6 +573,7 @@ function leaveQueueOf(context: StepContext, slot: number): void {
   const person = personEntityId(pool.id[slot] as number);
   const at = queue.findIndex((entry) => entry.person === person);
   if (at < 0) return;
+  if (!isChild(pool, slot)) dropChildrenFromQueue(context, slot, queue);
   const wasFull = isQueueFull(shaft, pool.level[slot] as Level, direction);
   queue.splice(at, 1);
   if (wasFull) forgetRecheckPlans(context);
@@ -629,6 +641,7 @@ function joinQueueAt(
   joinQueue(shaft, level, direction, person, pool.legLevel[slot] as Level, context.state.step);
   const place = queueLength(shaft, level, direction) - 1;
   pool.column[slot] = lineCell(context, level, pool.legColumn[slot] as number, direction, place);
+  queueChildrenBehind(context, slot, shaft, level, direction);
   if (isQueueFull(shaft, level, direction)) forgetPlansRidingFrom(context, shaft, level, direction);
 }
 
@@ -679,7 +692,7 @@ function enterQueueOrWait(context: StepContext, slot: number): void {
   const level = pool.level[slot] as Level;
   const destination = pool.legLevel[slot] as Level;
   const direction = directionBetween(level, destination);
-  if (isQueueFull(shaft, level, direction)) {
+  if (queueIsFullFor(context, slot, shaft, level, direction)) {
     pool.trek[slot] = WAITING_BESIDE_QUEUE;
     pool.queueRechecks[slot] = 0;
     pool.legStep[slot] = nextQueueCheckStep(state.step);
@@ -698,7 +711,7 @@ function joinFromBesideQueue(context: StepContext, slot: number): boolean {
   const shaft = state.shafts[shaftKey(pool.legVia[slot] as number)];
   const level = pool.level[slot] as Level;
   const direction = directionBetween(level, pool.legLevel[slot] as Level);
-  if (!shaft || isQueueFull(shaft, level, direction)) return false;
+  if (!shaft || queueIsFullFor(context, slot, shaft, level, direction)) return false;
   joinQueueAt(context, slot, shaft, direction);
   pool.trek[slot] = QUEUED;
   return true;
@@ -834,7 +847,7 @@ function finishFlight(context: StepContext, slot: number): void {
 function laneKey(context: StepContext, slot: number): number | null {
   const pool = context.state.people;
   const phase = pool.trek[slot] as number;
-  if (phase === IDLE || phase > WALKING_TO_SHAFT) return null;
+  if (phase === IDLE || phase > WALKING_TO_SHAFT || pool.kind[slot] === CHILD_KIND) return null;
   const column = pool.column[slot] as number;
   const target = targetColumn(context, slot);
   if (column === target) return null;
@@ -1098,6 +1111,7 @@ export function createTrekSystem(): SimulationSystem {
     if (now % STEPS_PER_DAY === NIGHT_RESET_STEP) resetEnergy(pool);
     const advance = (slot: number): void => {
       pass.done[slot] = 1;
+      if (pool.kind[slot] === CHILD_KIND) return;
       const phase = pool.trek[slot] as number;
       if (phase === IDLE) {
         restEnergy(pool, slot);
@@ -1129,5 +1143,197 @@ export function createTrekSystem(): SimulationSystem {
       if (!pass.done[slot]) advance(slot);
     }
     trekPasses.delete(context);
+  };
+}
+
+/** Slots of the children that follow this guardian, or an empty list. */
+function childrenOf(context: StepContext, guardian: number): readonly number[] {
+  const index = householdIndexOf(context.state.people, context.state.step);
+  return index.childrenOfGuardian.get(guardian) ?? [];
+}
+
+/** A guardian with children needs a place in the line for each of them as well as for themselves. */
+function queueIsFullFor(
+  context: StepContext,
+  slot: number,
+  shaft: Shaft,
+  level: Level,
+  direction: HallDirection,
+): boolean {
+  if (isChild(context.state.people, slot)) return isQueueFull(shaft, level, direction);
+  const needed = 1 + childrenOf(context, slot).length;
+  return queueLength(shaft, level, direction) + needed > ELEVATOR_QUEUE_CAPACITY;
+}
+
+/** Copies the guardian's leg onto the child, so the child is bound for the same shaft and floor. */
+function copyLeg(pool: PersonPool, child: number, guardian: number, phase: number): void {
+  pool.trek[child] = phase;
+  pool.level[child] = pool.level[guardian] as number;
+  pool.trekLevel[child] = pool.trekLevel[guardian] as number;
+  pool.trekColumn[child] = pool.trekColumn[guardian] as number;
+  pool.legVia[child] = pool.legVia[guardian] as number;
+  pool.legLevel[child] = pool.legLevel[guardian] as number;
+  pool.legColumn[child] = pool.legColumn[guardian] as number;
+  pool.legStep[child] = pool.legStep[guardian] as number;
+  pool.facing[child] = pool.facing[guardian] as number;
+  pool.trip[child] = pool.trip[guardian] as number;
+  pool.dueStep[child] = NOTHING_DUE;
+}
+
+/**
+ * Puts each child of the guardian in the line right behind them, in the same hall call, bound for
+ * the same floor. A child still riding out of an earlier car is added by the child system later.
+ */
+function queueChildrenBehind(
+  context: StepContext,
+  guardian: number,
+  shaft: Shaft,
+  level: Level,
+  direction: HallDirection,
+): void {
+  const pool = context.state.people;
+  for (const child of childrenOf(context, guardian)) {
+    if (pool.trek[child] === RIDING || pool.trek[child] === QUEUED) continue;
+    const person = personEntityId(pool.id[child] as number);
+    const destination = pool.legLevel[guardian] as Level;
+    if (!joinQueue(shaft, level, direction, person, destination, context.state.step)) continue;
+    copyLeg(pool, child, guardian, QUEUED);
+    const place = queueLength(shaft, level, direction) - 1;
+    pool.column[child] = lineCell(
+      context,
+      level,
+      pool.legColumn[guardian] as number,
+      direction,
+      place,
+    );
+  }
+}
+
+/** The guardian leaves a line: the children behind them leave it too. */
+function dropChildrenFromQueue(
+  context: StepContext,
+  guardian: number,
+  queue: { person: EntityId }[],
+): void {
+  const pool = context.state.people;
+  for (const child of childrenOf(context, guardian)) {
+    if (pool.trek[child] !== QUEUED) continue;
+    const person = personEntityId(pool.id[child] as number);
+    const at = queue.findIndex((entry) => entry.person === person);
+    if (at >= 0) queue.splice(at, 1);
+    clearTrek(pool, child);
+  }
+}
+
+/** A child leaves the line or the car it is in and goes back to following the guardian. */
+function releaseChild(context: StepContext, slot: number): void {
+  const pool = context.state.people;
+  if (pool.trek[slot] === QUEUED) leaveQueueOf(context, slot);
+  if (pool.trek[slot] === RIDING) leaveCarOf(context, slot);
+  clearTrek(pool, slot);
+}
+
+/**
+ * How many children a person at the front of a line would bring into the car with them. The car
+ * lets the guardian in only when it has room for all of them, so the household rides together.
+ */
+export function ridersBroughtBy(context: StepContext, person: EntityId): number {
+  const slot = slotOfEntity(context, person);
+  const pool = context.state.people;
+  if (slot < 0 || isChild(pool, slot)) return 0;
+  let queued = 0;
+  for (const child of childrenOf(context, slot)) if (pool.trek[child] === QUEUED) queued += 1;
+  return queued;
+}
+
+function isInCar(context: StepContext, slot: number): boolean {
+  const pool = context.state.people;
+  const shaft = context.state.shafts[shaftKey(pool.legVia[slot] as number)];
+  if (!shaft) return false;
+  const person = personEntityId(pool.id[slot] as number);
+  return shaft.cars.some((car) => car.riders.includes(person));
+}
+
+/** Puts a child who is not in the guardian's line right behind the guardian in it. */
+function queueChildAfter(context: StepContext, guardian: number, child: number): void {
+  const pool = context.state.people;
+  const shaft = context.state.shafts[shaftKey(pool.legVia[guardian] as number)];
+  if (!shaft) return;
+  const level = pool.level[guardian] as Level;
+  const direction = directionBetween(level, pool.legLevel[guardian] as Level);
+  const queue = shaft.queues[String(level)]?.[direction];
+  const self = personEntityId(pool.id[guardian] as number);
+  const at = queue?.findIndex((entry) => entry.person === self) ?? -1;
+  if (!queue || at < 0) return;
+  const front = queue[at];
+  queue.splice(at + 1, 0, {
+    person: personEntityId(pool.id[child] as number),
+    destination: pool.legLevel[guardian] as Level,
+    joinedStep: front?.joinedStep ?? context.state.step,
+  });
+  copyLeg(pool, child, guardian, QUEUED);
+  realignQueue(context, shaft, level, direction);
+}
+
+/** Puts a child into the car the guardian rides in, when there is room. */
+function seatChildWithGuardian(context: StepContext, guardian: number, child: number): void {
+  const pool = context.state.people;
+  const shaft = context.state.shafts[shaftKey(pool.legVia[guardian] as number)];
+  if (!shaft) return;
+  const self = personEntityId(pool.id[guardian] as number);
+  const car = shaft.cars.find((candidate) => candidate.riders.includes(self));
+  if (!car || car.riders.length >= carCapacity(shaft.type)) return;
+  const trip = car.trips[car.riders.indexOf(self)];
+  if (!trip) return;
+  car.riders.push(personEntityId(pool.id[child] as number));
+  car.trips.push({ ...trip, boardedStep: context.state.step, waitSteps: 0 });
+  copyLeg(pool, child, guardian, RIDING);
+  pool.column[child] = pool.legColumn[guardian] as number;
+}
+
+function followGuardian(context: StepContext, guardian: number, child: number): void {
+  const pool = context.state.people;
+  const guardianPhase = pool.trek[guardian] as number;
+  const childPhase = pool.trek[child] as number;
+  pool.trip[child] = pool.trip[guardian] as number;
+  const sameLeg =
+    pool.legVia[child] === pool.legVia[guardian] && pool.level[child] === pool.level[guardian];
+  if (childPhase === QUEUED) {
+    if ((guardianPhase === QUEUED || guardianPhase === RIDING) && sameLeg) return;
+    leaveQueueOf(context, child);
+    clearTrek(pool, child);
+  } else if (childPhase === RIDING) {
+    if (isInCar(context, child)) return;
+    clearTrek(pool, child);
+  }
+  if (guardianPhase === QUEUED) {
+    queueChildAfter(context, guardian, child);
+  } else if (guardianPhase === RIDING) {
+    seatChildWithGuardian(context, guardian, child);
+  } else {
+    copyLeg(pool, child, guardian, guardianPhase);
+    pool.column[child] = pool.column[guardian] as number;
+  }
+}
+
+/**
+ * Children have no will of their own. After the elevators move, each child copies the guardian
+ * (the adult of the home with the lowest id): the same place, the same trip, the same sleep or
+ * outing. In a hall line a child stands right behind the guardian and boards the same car on the
+ * next step; a child whose home has no adult left leaves the tower with it.
+ */
+export function createChildSystem(): SimulationSystem {
+  return (context) => {
+    const pool = context.state.people;
+    if (!pool.kind.includes(CHILD_KIND)) return;
+    const index = householdIndexOf(pool, context.state.step);
+    if (index.orphans.length > 0) {
+      const gone = index.orphans.map((slot) => pool.id[slot] as number);
+      for (const id of gone) removePerson(context.state, id);
+      return;
+    }
+    for (const [guardian, children] of index.childrenOfGuardian) {
+      for (const child of children) followGuardian(context, guardian, child);
+    }
   };
 }
