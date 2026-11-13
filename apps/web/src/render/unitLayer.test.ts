@@ -128,7 +128,7 @@ describe('UnitLayer', () => {
       openVenues: ALL_VENUES_OPEN,
       overlay: { id: 'hotel', data },
     });
-    expect(layer.view.children[0]?.children.some((c) => c instanceof TilingSprite)).toBe(true);
+    expect(layer.frontView.children[0]?.children.some((c) => c instanceof TilingSprite)).toBe(true);
   });
 });
 

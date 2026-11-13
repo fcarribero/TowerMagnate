@@ -150,9 +150,10 @@ export async function mountStage(host: HTMLElement, options: StageOptions = {}):
   world.addChild(structure.view);
   const units = new UnitLayer(sprites);
   const elevators = new ElevatorLayer(sprites);
-  world.addChild(elevators.shaftView);
   world.addChild(units.view);
+  world.addChild(elevators.shaftView);
   world.addChild(elevators.carView);
+  world.addChild(units.frontView);
   const people = new PeopleLayer(sprites);
   world.addChild(people.view);
   const events = new EventLayer(sprites);

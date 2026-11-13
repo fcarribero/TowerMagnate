@@ -61,8 +61,12 @@ interface DrawnUnit {
  */
 export class UnitLayer {
   readonly view = new Container();
+  /** Stairs and escalators: one container per level like `view`, but drawn above every unit row. */
+  readonly frontView = new Container();
   private readonly rows = new CulledRows<Container>();
+  private readonly frontRows = new CulledRows<Container>();
   private readonly containers = new Map<number, Container>();
+  private readonly frontContainers = new Map<number, Container>();
   private readonly drawn = new Map<string, DrawnUnit>();
   private readonly rects = new Map<string, WorldRect>();
   private camera: Camera | null = null;
@@ -107,10 +111,12 @@ export class UnitLayer {
   }
 
   showOnly(range: LevelRange): void {
-    this.rows.showOnly({
+    const shown = {
       lowest: range.lowest - MAX_FOOTPRINT_FLOORS + 1,
       highest: range.highest,
-    });
+    };
+    this.rows.showOnly(shown);
+    this.frontRows.showOnly(shown);
   }
 
   get count(): number {
@@ -218,7 +224,7 @@ export class UnitLayer {
       return;
     }
     this.showConstruction(existing, drawing);
-    const container = this.containerFor(drawing.bottomIndex);
+    const container = this.containerFor(drawing.bottomIndex, drawing.front === true);
     if (existing.container !== container) {
       container.addChild(existing.sprite);
       existing.container = container;
@@ -228,7 +234,6 @@ export class UnitLayer {
     }
     this.place(existing.sprite, drawing);
     this.showChecker(existing, drawing);
-    this.bringToFront(existing, drawing);
     const key = this.textureKey(drawing, textureId);
     if (existing.textureId !== key) {
       this.applyTextures(existing, drawing);
@@ -238,7 +243,7 @@ export class UnitLayer {
 
   private create(drawing: UnitDrawing, textureId: string): DrawnUnit {
     const sprite = new Sprite(this.sprites.variant(drawing.subject, drawing.variant));
-    const container = this.containerFor(drawing.bottomIndex);
+    const container = this.containerFor(drawing.bottomIndex, drawing.front === true);
     container.addChild(sprite);
     this.place(sprite, drawing);
     const entry: DrawnUnit = {
@@ -251,7 +256,6 @@ export class UnitLayer {
     };
     this.showChecker(entry, drawing);
     this.showConstruction(entry, drawing);
-    this.bringToFront(entry, drawing);
     this.applyTextures(entry, drawing);
     return entry;
   }
@@ -312,18 +316,6 @@ export class UnitLayer {
     entry.construction = null;
   }
 
-  /** Stairs and escalators are drawn over the units beside them; their checker stays right above them. */
-  private bringToFront(entry: DrawnUnit, drawing: UnitDrawing): void {
-    if (drawing.front !== true) {
-      return;
-    }
-    const { container, sprite, checker } = entry;
-    container.setChildIndex(sprite, container.children.length - 1);
-    if (checker !== null) {
-      container.setChildIndex(checker, container.children.length - 1);
-    }
-  }
-
   /** The checker sits right above its sprite, so it is culled with it. */
   private showChecker(entry: DrawnUnit, drawing: UnitDrawing): void {
     if (drawing.overlay === null) {
@@ -355,16 +347,17 @@ export class UnitLayer {
     sprite.height = drawing.height;
   }
 
-  private containerFor(index: number): Container {
-    const existing = this.containers.get(index);
+  private containerFor(index: number, front: boolean): Container {
+    const containers = front ? this.frontContainers : this.containers;
+    const existing = containers.get(index);
     if (existing !== undefined) {
       return existing;
     }
     const container = new Container();
     container.y = levelTop(index);
-    this.containers.set(index, container);
-    this.rows.set(index, container);
-    this.view.addChild(container);
+    containers.set(index, container);
+    (front ? this.frontRows : this.rows).set(index, container);
+    (front ? this.frontView : this.view).addChild(container);
     return container;
   }
 }
