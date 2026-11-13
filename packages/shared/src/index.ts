@@ -1,6 +1,7 @@
 export const GAME_TITLE = 'Tower Magnate';
 export * from './engine';
 export * from './errors';
+export * from './flight';
 export * from './levels';
 export * from './names';
 export * from './people';

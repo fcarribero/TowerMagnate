@@ -231,6 +231,20 @@ describe('stairs and escalators', () => {
     expect(facing(arrived)).toBe(1);
   });
 
+  it('walks to the top end of a flight to go down and gets off at its foot', () => {
+    const state = buildTestTower({ floors: 3, flights: [{ type: 'stairs', from: 1, to: 2 }] });
+    const id = addWalker(state, 2, 10);
+    expect(sendTo(state, id, { level: 1, column: 5 })).toBe(true);
+
+    const atTop = runSteps(state, STAIRS_TOP - 10 + 1);
+    expect(view(atTop, id)).toMatchObject({ level: 2, column: STAIRS_TOP, phase: 'onStairs' });
+    const stillOn = runSteps(state, STAIRS_TOP - 10 + STAIR_FLIGHT_STEPS - 1);
+    expect(view(stillOn, id)).toMatchObject({ level: 2, column: STAIRS_TOP, phase: 'onStairs' });
+    const off = runSteps(state, STAIRS_TOP - 10 + STAIR_FLIGHT_STEPS + 2);
+    expect(view(off, id)).toMatchObject({ level: 1 });
+    expect(view(off, id).column).toBeLessThanOrEqual(FLIGHT_FOOT);
+  });
+
   it('rides an escalator flight in six steps', () => {
     const state = buildTestTower({
       floors: 2,

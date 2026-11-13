@@ -21,7 +21,10 @@ import {
 } from '@tower-magnate/engine';
 import type { PersonView as EnginePerson } from '@tower-magnate/engine';
 import {
+  ESCALATOR_FLIGHT_STEPS,
+  isLevel,
   levelToIndex,
+  STAIR_FLIGHT_STEPS,
   LEDGER_CATEGORIES,
   STRESS_ALTO_FROM,
   STRESS_MUY_ALTO_FROM,
@@ -33,6 +36,7 @@ import {
   type FollowedView,
   type HotelRoomState,
   type LedgerCategory,
+  type Level,
   type LevelRow,
   type MoneyReason,
   type Notice,
@@ -405,6 +409,31 @@ function personView(
     carRef: ride?.carRef ?? null,
     stress: stressLevel(person.stress),
     ...(isCarryingBag(state.people, slot) ? { carrying: true } : {}),
+    ...flightOf(state, slot, phase),
+  };
+}
+
+/** True when the flight from `from` ends on a higher level; a leg with no level counts as up. */
+function climbs(from: Level, to: Level): boolean {
+  return !isLevel(from) || !isLevel(to) || levelToIndex(to) > levelToIndex(from);
+}
+
+/** How far along its flight a person on stairs or an escalator is, for the client to draw. */
+export function flightOf(
+  state: TowerState,
+  slot: number,
+  phase: TrekPhase,
+): { flight?: PersonView['flight'] } {
+  if (phase !== 'onStairs' && phase !== 'onEscalator') return {};
+  const steps = phase === 'onStairs' ? STAIR_FLIGHT_STEPS : ESCALATOR_FLIGHT_STEPS;
+  const pool = state.people;
+  const remaining = (pool.legStep[slot] as number) - state.step;
+  return {
+    flight: {
+      done: Math.min(Math.max(steps - remaining, 0), steps),
+      steps,
+      up: climbs(pool.level[slot] as Level, pool.legLevel[slot] as Level),
+    },
   };
 }
 

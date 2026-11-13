@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { CAR_DIRECTIONS } from '../engine';
+import { MAX_FLIGHT_CODE, packFlight, unpackFlight, type FlightProgress } from '../flight';
 import { PERSON_KINDS } from '../people';
 import { MAX_CARS_PER_SHAFT } from './commands';
 
@@ -21,7 +22,7 @@ const index = (length: number) =>
     .min(0)
     .max(length - 1);
 
-/** [id, kind, x, level, facing, mode, stress, shaft, car, carrying]; shaft is 0 when not in a car, carrying is 1 with a garbage bag. */
+/** [id, kind, x, level, facing, mode, stress, shaft, car, carrying, flight]; shaft is 0 when not in a car, carrying is 1 with a garbage bag, flight is the packed stair or escalator progress and is left off when there is none. */
 export const PackedPersonSchema = z.tuple([
   z.int().positive(),
   index(PERSON_KINDS.length),
@@ -33,6 +34,7 @@ export const PackedPersonSchema = z.tuple([
   z.int().nonnegative(),
   index(MAX_CARS_PER_SHAFT),
   index(2),
+  z.int().min(0).max(MAX_FLIGHT_CODE).optional(),
 ]);
 
 /** [shaft, car, position, direction, doors, load]. */
@@ -58,6 +60,7 @@ interface PersonFields {
   carRef: { shaftId: string; index: number } | null;
   stress: (typeof STRESS_LEVELS)[number];
   carrying?: boolean;
+  flight?: FlightProgress;
 }
 
 interface CarFields {
@@ -93,7 +96,8 @@ export function packPerson(person: PersonFields): PackedPerson {
     person.carRef ? entityNumber(person.carRef.shaftId) : 0,
     person.carRef?.index ?? 0,
     person.carrying ? 1 : 0,
-  ];
+    ...(person.flight ? [packFlight(person.flight)] : []),
+  ] as PackedPerson;
 }
 
 export function unpackPerson([
@@ -107,6 +111,7 @@ export function unpackPerson([
   shaft,
   car,
   carrying,
+  flight,
 ]: PackedPerson) {
   return {
     id: `p${id}`,
@@ -118,7 +123,13 @@ export function unpackPerson([
     carRef: shaft === 0 ? null : { shaftId: `s${shaft}`, index: car },
     stress: at(STRESS_LEVELS, stress),
     ...(carrying === 1 ? { carrying: true } : {}),
+    ...flightField(flight),
   };
+}
+
+function flightField(code: number | undefined): { flight?: FlightProgress } {
+  const flight = unpackFlight(code);
+  return flight === undefined ? {} : { flight };
 }
 
 export function packCar(car: CarFields): PackedCar {

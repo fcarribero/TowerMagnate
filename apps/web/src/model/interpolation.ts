@@ -21,6 +21,22 @@ export interface DrawnPerson {
   readonly x: number;
   /** Dense level index as a float. Only a rider is ever between two levels. */
   readonly position: number;
+  /** Set while the person climbs a flight, or is walking off its top or bottom end. */
+  readonly flight?: DrawnFlight;
+}
+
+/**
+ * A person on a stair or escalator flight at the drawn moment. The flight is found from `level`
+ * and `x`, where the person stood on it. `progress` runs from 0 at the entry to 1 at the exit. Once
+ * `progress` is 1 the person has got off and `walked` is how far they have walked from the exit
+ * to where the latest state has them, from 0 to 1.
+ */
+export interface DrawnFlight {
+  readonly level: PersonView['level'];
+  readonly x: number;
+  readonly up: boolean;
+  readonly progress: number;
+  readonly walked: number;
 }
 
 export interface DrawnFrame {
@@ -79,12 +95,58 @@ function drawRider(
   return { person, x: shaft.x, position: car.position };
 }
 
+/** The flight a person is on at the drawn moment, from the buffered states. Null off a flight. */
+export function flightBetween(
+  before: PersonView | undefined,
+  person: PersonView,
+  gap: number,
+  progress: number,
+): DrawnFlight | null {
+  const past = before?.flight;
+  if (before !== undefined && past !== undefined && before.level !== person.level) {
+    // The flight ended during this delta: finish it, then walk to where the person is now.
+    return landing(before, past, person, Math.max(gap, 1), progress);
+  }
+  const now = person.flight;
+  if (now === undefined) return null;
+  const sameFlight = past !== undefined && before !== undefined && before.level === person.level;
+  const from = sameFlight ? past.done : Math.max(now.done - gap, 0);
+  const done = from + (now.done - from) * progress;
+  return { level: person.level, x: person.x, up: now.up, progress: done / now.steps, walked: 0 };
+}
+
+function landing(
+  before: PersonView,
+  past: NonNullable<PersonView['flight']>,
+  person: PersonView,
+  gap: number,
+  progress: number,
+): DrawnFlight {
+  const left = Math.max(past.steps - past.done, 0);
+  const time = progress * gap;
+  const base = { level: before.level, x: before.x, up: past.up };
+  if (left >= gap) {
+    // Less flight left than the delta covers: stretch it to end with the delta.
+    const done = past.done + (left * time) / gap;
+    return { ...base, progress: Math.min(done / past.steps, 1), walked: 0 };
+  }
+  if (time < left) {
+    return { ...base, progress: (past.done + time) / past.steps, walked: 0 };
+  }
+  return { ...base, progress: 1, walked: Math.min((time - left) / (gap - left), 1) };
+}
+
 function drawWalker(
   person: PersonView,
   before: PersonView | undefined,
   progress: number,
+  gap: number,
 ): DrawnPerson {
   const position = levelToIndex(person.level);
+  const flight = flightBetween(before, person, gap, progress);
+  if (flight !== null && person.mode !== 'ride') {
+    return { person, x: person.x, position, flight };
+  }
   if (before === undefined || !walkedOnSameLevel(before, person)) {
     return { person, x: person.x, position };
   }
@@ -97,6 +159,7 @@ function drawPeople(
   cars: Map<string, DrawnCar>,
 ): DrawnPerson[] {
   const { previous, latest } = frames;
+  const gap = previous === null ? 0 : latest.step - previous.step;
   const drawn: DrawnPerson[] = [];
   for (const person of latest.people.values()) {
     if (person.mode === 'inside') {
@@ -108,8 +171,8 @@ function drawPeople(
     const placed =
       person.mode === 'ride'
         ? drawRider(person, latest, cars)
-        : (stillInCar !== undefined ? drawRider(stillInCar, latest, cars) : null) ??
-          drawWalker(person, before, progress);
+        : ((stillInCar !== undefined ? drawRider(stillInCar, latest, cars) : null) ??
+          drawWalker(person, before, progress, gap));
     if (placed !== null) {
       drawn.push(placed);
     }

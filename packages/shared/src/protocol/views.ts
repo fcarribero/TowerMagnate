@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { TOWER_LAYOUT } from '../balance';
 import { CAR_DIRECTIONS } from '../engine';
+import { MAX_FLIGHT_STEPS } from '../flight';
 import { MAX_NAME_LENGTH } from '../names';
 import { WEDDING_GUESTS } from '../people-schedules';
 import { ElevatorScheduleSchema, MAX_CARS_PER_SHAFT } from './commands';
@@ -105,6 +106,12 @@ export const CarViewSchema = z.object({
 
 export const StressLevelSchema = z.enum(STRESS_LEVELS);
 
+const FlightProgressSchema = z.object({
+  done: z.int().min(0).max(MAX_FLIGHT_STEPS),
+  steps: z.int().min(1).max(MAX_FLIGHT_STEPS),
+  up: z.boolean(),
+});
+
 export const PersonViewSchema = z.object({
   id: PersonEntityIdSchema,
   kind: PersonKindSchema,
@@ -116,6 +123,8 @@ export const PersonViewSchema = z.object({
   stress: StressLevelSchema,
   /** True while the person carries a black garbage bag; left out otherwise. */
   carrying: z.boolean().optional(),
+  /** Progress along the stair or escalator flight the person is on; left out otherwise. */
+  flight: FlightProgressSchema.optional(),
 });
 
 export const FollowedViewSchema = z.object({

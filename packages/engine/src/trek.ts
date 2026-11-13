@@ -359,12 +359,20 @@ function setLeg(
 
 /**
  * A flight climbs from the left foot of the unit to the right end on the level above. People walk
- * to the foot before they climb and stand at the top when they get off. Routing still prices a
- * flight at its point at x + 4 (routing section 3).
+ * to the foot before they climb and stand at the top when they get off; going down they walk to
+ * the right end, where the flight starts, and get off at the foot. Routing still prices a flight
+ * at its point at x + 4 (routing section 3).
  */
-function flightFoot(context: StepContext, kind: string, via: string): number | undefined {
+function flightFoot(
+  context: StepContext,
+  kind: string,
+  via: string,
+  descending = false,
+): number | undefined {
   if (kind !== 'stairs' && kind !== 'escalator') return undefined;
-  return context.state.transports[via]?.x;
+  const transport = context.state.transports[via];
+  if (transport === undefined) return undefined;
+  return descending ? flightTop(transport) : transport.x;
 }
 
 function flightTop(transport: { type: UnitType; x: number }): number {
@@ -423,7 +431,13 @@ function legStartOf(context: StepContext, leg: FirstLeg): LegStart {
     phase,
     via: entityNumber(first.via),
     level: graph.node(first.to).level,
-    column: flightFoot(context, leg.kind, first.via) ?? graph.node(first.from).x,
+    column:
+      flightFoot(
+        context,
+        leg.kind,
+        first.via,
+        floorIndex(graph.node(first.to).level) < floorIndex(graph.node(first.from).level),
+      ) ?? graph.node(first.from).x,
   };
   legStarts.set(leg, start);
   return start;
