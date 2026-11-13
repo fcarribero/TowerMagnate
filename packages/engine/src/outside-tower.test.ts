@@ -37,6 +37,10 @@ describe('isOutsideTower', () => {
     expect(isOutsideTower(towerWith('officeWorker', officeTrip('atOffice')).people, 0)).toBe(false);
   });
 
+  it('is true for an office worker with no plan: weekend, gone home or just moved in', () => {
+    expect(isOutsideTower(towerWith('officeWorker', 0).people, 0)).toBe(true);
+  });
+
   it('is false for anyone on a trek, whatever the routine says', () => {
     const state = towerWith('officeWorker', officeTrip('waitingToArrive'));
     state.people.trek[0] = TREK_PHASES.indexOf('walkingToDestination');

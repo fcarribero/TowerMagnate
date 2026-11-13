@@ -12,6 +12,7 @@ import {
 import { DAYS_PER_WEEK } from './calendar';
 import { STEPS_PER_DAY } from './clock';
 import { creditMoney } from './money';
+import { removePeopleOfUnit } from './people';
 import type { SimulationSystem, StepContext } from './step';
 import { writableUnit } from './step-copy';
 import { unitNumber } from './units';
@@ -58,6 +59,8 @@ function endLease(context: StepContext, unit: LeasedUnit, newsKey: NewsId): void
   const step = context.state.step;
   unit.lease = null;
   unit.evaluation = null;
+  // The tenant's people leave with them, so the empty unit has no workers walking in and out.
+  removePeopleOfUnit(context.state, unit.id);
   context.events.push({ type: 'leaseEnded', step, unitId: unit.id });
   context.events.push(...emitNews(context.state, newsKey, { unitId: unit.id }));
 }

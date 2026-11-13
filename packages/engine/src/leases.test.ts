@@ -8,6 +8,7 @@ import type {
 import { describe, expect, it } from 'vitest';
 import { dateOfStep } from './calendar';
 import { createLeaseSystem, moveInTenant, recordShopVisit, STEPS_PER_WEEK } from './leases';
+import { addPeopleForUnit, countPeopleOfUnit } from './people';
 import { createEngine, type SimulationSystem } from './step';
 import { buildTower, plainTowerPlan } from './testing';
 
@@ -154,6 +155,16 @@ describe('office and shop leases', () => {
     ]);
     const later = engine.step(after.state, [], 2 * STEPS_PER_WEEK);
     expect(later.state.money).toBe(after.state.money);
+  });
+
+  it('takes the people of a tenant out of the tower when the lease ends', () => {
+    const { tower, unitId, engine } = leaseRun({ moveInAt: 10, evaluate: () => 'poor' });
+    const moved = engine.step(tower, [], 11);
+    addPeopleForUnit(moved.state, unitId);
+    expect(countPeopleOfUnit(moved.state.people, unitId)).toBeGreaterThan(0);
+    const after = engine.step(moved.state, [], TERM);
+    expect(after.state.units[unitId]?.lease).toBeNull();
+    expect(countPeopleOfUnit(after.state.people, unitId)).toBe(0);
   });
 
   it('charges a shop at bajo $10,000 a week and reports its own news on leaving', () => {

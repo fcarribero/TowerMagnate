@@ -8,9 +8,13 @@ import { NO_TRIP } from './people';
 const OFFICE_WORKER_KIND = PERSON_KINDS.indexOf('officeWorker');
 const RESIDENT_KIND = PERSON_KINDS.indexOf('resident');
 
+/**
+ * A worker is out of the tower before arriving, after giving up, and whenever they have no
+ * plan: on weekends, after leaving for the day and from move-in until the next daily plan.
+ */
 function officeWorkerIsOutside(pool: PersonPool, slot: number): boolean {
   const phase = routineAt(pool, slot)?.phase;
-  return phase === 'waitingToArrive' || phase === 'givingUpArrival';
+  return phase === undefined || phase === 'waitingToArrive' || phase === 'givingUpArrival';
 }
 
 function residentIsOutside(pool: PersonPool, slot: number): boolean {
