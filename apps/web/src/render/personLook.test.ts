@@ -108,8 +108,8 @@ describe('personLook', () => {
 
   it('keeps the uniform colors of each uniform type and varies the rest', () => {
     const guards = IDS.map((id) => computeLook(id, 'guard'));
-    expect(new Set(guards.map((look) => look.shirt))).toEqual(new Set([0x2f4f9a]));
-    expect(new Set(guards.map((look) => look.pants))).toEqual(new Set([0x141218]));
+    expect(new Set(guards.map((look) => look.shirt))).toEqual(new Set([0x4f86d8]));
+    expect(new Set(guards.map((look) => look.pants))).toEqual(new Set([0x2f3a6a]));
     expect(new Set(guards.map((look) => look.skin)).size).toBe(SKIN_TONES.length);
     expect(new Set(guards.map((look) => look.scaleY)).size).toBeGreaterThan(2);
     expect(guards.every((look) => look.subjects.fixed.startsWith('people/fixed-security-'))).toBe(
