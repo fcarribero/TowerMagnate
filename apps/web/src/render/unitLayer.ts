@@ -1,12 +1,6 @@
 import type { OverlayData } from '@tower-magnate/shared';
 import { Container, Graphics, Sprite, TilingSprite } from 'pixi.js';
-import {
-  BUILD_EDGE_COLOR,
-  BUILD_EDGE_HEIGHT,
-  BUILD_MS,
-  buildProgress,
-  revealedHeight,
-} from './constructionReveal';
+import { buildStageAt, siteRects } from './constructionStages';
 import { CulledRows } from './culledRows';
 import type { LevelRange, WorldRect } from './camera';
 import { levelTop } from './levels';
@@ -36,11 +30,13 @@ export interface UnitsInput {
 /** The tallest footprint is 4 floors, so a unit can show while its bottom level is just off screen. */
 const MAX_FOOTPRINT_FLOORS = 4;
 
-/** A unit rising from the floor: the sprite is cut by a mask that grows, with a bright edge on top. */
+/** A unit being built: a bare site first, then more of the unit behind scaffolding, then the whole unit. */
 interface Construction {
   startedAt: number;
   mask: Graphics;
-  edge: Graphics;
+  site: Graphics;
+  /** Index of the stage drawn last, so a stage is drawn once. */
+  stage: number;
   x: number;
   y: number;
   width: number;
@@ -106,7 +102,7 @@ export class UnitLayer {
     }
   }
 
-  /** Units still rising from the floor. */
+  /** Units still being built. */
   get buildingCount(): number {
     let count = 0;
     for (const entry of this.drawn.values()) {
@@ -179,13 +175,14 @@ export class UnitLayer {
 
   private beginConstruction(entry: DrawnUnit, drawing: UnitDrawing): void {
     const mask = new Graphics();
-    const edge = new Graphics();
-    entry.container.addChild(mask, edge);
+    const site = new Graphics();
+    entry.container.addChild(mask, site);
     entry.sprite.mask = mask;
     entry.construction = {
       startedAt: this.now(),
       mask,
-      edge,
+      site,
+      stage: -1,
       x: drawing.x,
       y: drawing.y,
       width: drawing.width,
@@ -195,15 +192,24 @@ export class UnitLayer {
   }
 
   private growConstruction(entry: DrawnUnit, build: Construction, now: number): void {
-    const elapsed = now - build.startedAt;
-    if (elapsed >= BUILD_MS) {
+    const stage = buildStageAt(now - build.startedAt);
+    if (stage === null) {
       this.endConstruction(entry);
       return;
     }
-    const shown = revealedHeight(build.height, buildProgress(elapsed));
-    const top = build.y + build.height - shown;
-    build.mask.clear().rect(build.x, top, build.width, shown).fill(0xffffff);
-    build.edge.clear().rect(build.x, top, build.width, BUILD_EDGE_HEIGHT).fill(BUILD_EDGE_COLOR);
+    if (stage.index === build.stage) {
+      return;
+    }
+    build.stage = stage.index;
+    const shown = Math.round(build.height * stage.built);
+    build.mask
+      .clear()
+      .rect(build.x, build.y + build.height - shown, build.width, shown)
+      .fill(0xffffff);
+    build.site.clear();
+    for (const rect of siteRects(stage, build)) {
+      build.site.rect(rect.x, rect.y, rect.w, rect.h).fill(rect.color);
+    }
   }
 
   private endConstruction(entry: DrawnUnit): void {
@@ -213,7 +219,7 @@ export class UnitLayer {
     }
     entry.sprite.mask = null;
     build.mask.destroy();
-    build.edge.destroy();
+    build.site.destroy();
     entry.construction = null;
   }
 

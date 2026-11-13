@@ -164,7 +164,7 @@ describe('UnitLayer construction', () => {
     expect(layer.buildingCount).toBe(1);
   });
 
-  it('shows the new unit only up to a height that grows, then lets it go whole', () => {
+  it('starts as a building site, shows more of the unit in each stage, then lets it go whole', () => {
     const { layer, at } = layerWithClock();
     layer.update(input([]));
     layer.update(input([office]));
@@ -172,7 +172,7 @@ describe('UnitLayer construction', () => {
     expect(sprite.mask).toBeTruthy();
     at(300);
     expect(layer.buildingCount).toBe(1);
-    at(700);
+    at(2400);
     expect(layer.buildingCount).toBe(0);
     expect(sprite.mask).toBeFalsy();
   });
