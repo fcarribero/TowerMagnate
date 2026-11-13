@@ -3,6 +3,7 @@ import {
   UNIT_CATALOG,
   type Command,
   type ShaftType,
+  type UnitType,
 } from '@tower-magnate/shared';
 import type { CommandApi, CommandOutcome } from '../../api/commandApi';
 import type { Cell } from '../../render/cellAtPoint';
@@ -11,12 +12,16 @@ import type { RunInput } from '../../render/ghostLayer';
 import {
   checkFloor,
   checkLobby,
+  checkPlacement,
   checkShaft,
   type PlacementWorld,
 } from '../../render/placementCheck';
 import type { ToolId } from '../toolbar/toolbarModel';
 import {
+  adjacentSlots,
   buildMode,
+  repeatsOnDrag,
+  slotIndex,
   commandForResize,
   commandForClick,
   commandForDrag,
@@ -56,6 +61,8 @@ export interface BuildInputOptions {
   onCancelTool?: () => void;
   /** Floors and cost that follow the pointer while a shaft is dragged; null when there is no drag. */
   onDragLabel?: (label: DragLabel | null) => void;
+  /** Waits between chunks of a long held drag; replaceable in tests. */
+  pause?: (ms: number) => Promise<void>;
   keyTarget?: Pick<Window, 'addEventListener' | 'removeEventListener'>;
 }
 
@@ -65,6 +72,26 @@ export interface DragLabel {
   valid: boolean;
   at: ScreenPoint;
 }
+
+/** A unit tool held down: the slots built so far, counted from the pressed one, and those still to send. */
+interface ClickRun {
+  pressX: number;
+  level: Cell['level'];
+  width: number;
+  built: { min: number; max: number };
+  held: boolean;
+  stopped: boolean;
+  queue: number[];
+  pumping: boolean;
+  batch: string;
+  sent: number;
+  at: ScreenPoint;
+}
+
+/** Under the server limit of 30 messages per second, as in the demolish run. */
+const RUN_CHUNK_SIZE = 20;
+const RUN_CHUNK_INTERVAL_MS = 1000;
+const waitMs = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
 
 interface Drag {
   press: Cell;
@@ -82,6 +109,9 @@ export function bindBuildInput(options: BuildInputOptions): () => void {
   const keyTarget = options.keyTarget ?? window;
   const mode = buildMode(tool);
   const shaftType = shaftTypeOfTool(tool);
+  const pause = options.pause ?? waitMs;
+  let run: ClickRun | null = null;
+  let batches = 0;
   let drag: Drag | null = null;
   let grabbed: GrabbedShaft | null = null;
   let pointer: ScreenPoint = { x: 0, y: 0 };
@@ -154,10 +184,111 @@ export function bindBuildInput(options: BuildInputOptions): () => void {
     showDrag();
   };
 
+  const stopRun = (): void => {
+    if (run !== null) {
+      run.stopped = true;
+      run.queue = [];
+      run.held = false;
+      run = null;
+    }
+  };
+
+  /** Sends the queued slots one after another, stopping at the first one that is red or refused. */
+  const pump = async (r: ClickRun): Promise<void> => {
+    if (r.pumping) {
+      return;
+    }
+    r.pumping = true;
+    while (!r.stopped) {
+      const x = r.queue.shift();
+      if (x === undefined) {
+        break;
+      }
+      const world = worldAt?.() ?? null;
+      if (world !== null && checkPlacement(tool as UnitType, x, r.level, world).problem !== null) {
+        r.stopped = true;
+        break;
+      }
+      if (r.sent > 0 && r.sent % RUN_CHUNK_SIZE === 0) {
+        await pause(RUN_CHUNK_INTERVAL_MS);
+        if (r.stopped) {
+          break;
+        }
+      }
+      const command = commandForClick(tool, { x, level: r.level });
+      if (command === null) {
+        break;
+      }
+      r.sent += 1;
+      const outcome = await api.send(command, { batch: r.batch });
+      onOutcome(outcome, command, r.at);
+      if (!outcome.ok) {
+        r.stopped = true;
+      }
+    }
+    r.pumping = false;
+    if (!r.held && run === r) {
+      run = null;
+    }
+  };
+
+  const extendRun = (cell: Cell | null): void => {
+    const r = run;
+    if (r === null || !r.held || r.stopped || cell === null || cell.level !== r.level) {
+      return;
+    }
+    const xs = adjacentSlots(r.pressX, cell.x, r.width, r.built);
+    if (xs.length === 0) {
+      return;
+    }
+    const target = slotIndex(r.pressX, cell.x, r.width);
+    r.built.min = Math.min(r.built.min, target);
+    r.built.max = Math.max(r.built.max, target);
+    r.queue.push(...xs);
+    void pump(r);
+  };
+
+  const pressUnit = (cell: Cell, at: ScreenPoint): void => {
+    const command = commandForClick(tool, cell);
+    if (command === null) {
+      return;
+    }
+    stopRun();
+    batches += 1;
+    const r: ClickRun = {
+      pressX: cell.x,
+      level: cell.level,
+      width: UNIT_CATALOG[tool as UnitType].width,
+      built: { min: 0, max: 0 },
+      held: true,
+      stopped: false,
+      queue: [],
+      pumping: true,
+      batch: `build-run-${batches}`,
+      sent: 1,
+      at,
+    };
+    run = r;
+    void api.send(command, { batch: r.batch }).then((outcome) => {
+      onOutcome(outcome, command, at);
+      if (!outcome.ok) {
+        r.stopped = true;
+        r.queue = [];
+      }
+      r.pumping = false;
+      if (r.queue.length > 0 && !r.stopped) {
+        void pump(r);
+      } else if (!r.held && run === r) {
+        run = null;
+      }
+    });
+  };
+
   const onInput = (input: CellInput): void => {
     const at = { x: input.clientX, y: input.clientY };
     if (input.kind === 'cancel') {
       cancelDrag();
+      stopRun();
       options.onCancelTool?.();
     } else if (input.kind === 'down' && input.cell !== null) {
       pointer = at;
@@ -171,7 +302,19 @@ export function bindBuildInput(options: BuildInputOptions): () => void {
           showDrag();
         }
       } else if (mode === 'click') {
-        send(commandForClick(tool, input.cell), at);
+        if (repeatsOnDrag(tool)) {
+          pressUnit(input.cell, at);
+        } else {
+          send(commandForClick(tool, input.cell), at);
+        }
+      }
+    } else if (input.kind === 'up' && run !== null && drag === null) {
+      extendRun(input.cell);
+      if (run !== null) {
+        run.held = false;
+        if (!run.pumping) {
+          run = null;
+        }
       }
     } else if (input.kind === 'up' && drag !== null) {
       const { press, currentX, currentLevel } = drag;
@@ -195,6 +338,7 @@ export function bindBuildInput(options: BuildInputOptions): () => void {
   };
 
   const onHover = (cell: Cell | null): void => {
+    extendRun(cell);
     if (drag !== null && cell !== null) {
       drag = { ...drag, currentX: cell.x, currentLevel: cell.level };
       showDrag();
@@ -202,9 +346,10 @@ export function bindBuildInput(options: BuildInputOptions): () => void {
   };
 
   const onKeyDown = (event: Event): void => {
-    if ((event as KeyboardEvent).key === 'Escape' && drag !== null) {
+    if ((event as KeyboardEvent).key === 'Escape' && (drag !== null || run !== null)) {
       event.preventDefault();
       cancelDrag();
+      stopRun();
     }
   };
 
@@ -226,5 +371,6 @@ export function bindBuildInput(options: BuildInputOptions): () => void {
     keyTarget.removeEventListener('keydown', onKeyDown, true);
     keyTarget.removeEventListener('pointermove', onPointerMove, true);
     cancelDrag();
+    stopRun();
   };
 }

@@ -3,8 +3,9 @@ import { describe, expect, it } from 'vitest';
 import type { Cell } from '../../render/cellAtPoint';
 import type { CellInput } from '../../render/stage';
 import type { ToolId } from '../toolbar/toolbarModel';
+import type { PlacementWorld } from '../../render/placementCheck';
 import { bindBuildInput } from './bindBuildInput';
-import type { GrabbedShaft } from './buildPlan';
+import { adjacentSlots, type GrabbedShaft } from './buildPlan';
 
 function setup(
   tool: ToolId,
@@ -13,12 +14,15 @@ function setup(
     shaftAt?: (cell: Cell) => GrabbedShaft | null;
     lobbyHeightAt?: (level: number) => number | null;
     onCancelTool?: () => void;
+    worldAt?: () => PlacementWorld | null;
+    refuse?: (command: Command) => boolean;
   } = {},
 ) {
   let onInput: (input: CellInput) => void = () => {};
   let onHover: (cell: Cell | null) => void = () => {};
   const runs: unknown[] = [];
   const sent: Command[] = [];
+  const batches: (string | undefined)[] = [];
   const outcomes: unknown[] = [];
   const labels: unknown[] = [];
   const keys = new EventTarget();
@@ -35,14 +39,23 @@ function setup(
       showRun: (run) => void runs.push(run),
     },
     api: {
-      send: (command) => {
+      send: (command, options) => {
         sent.push(command);
-        return Promise.resolve({ ok: true, cost: 10, refund: 0 });
+        batches.push(options?.batch);
+        return Promise.resolve(
+          extra.refuse?.(command)
+            ? { ok: false as const, error: 'INSUFFICIENT_FUNDS' }
+            : { ok: true as const, cost: 10, refund: 0 },
+        );
       },
     },
     tool,
     lobbyHeight,
-    ...extra,
+    pause: () => Promise.resolve(),
+    shaftAt: extra.shaftAt,
+    lobbyHeightAt: extra.lobbyHeightAt,
+    onCancelTool: extra.onCancelTool,
+    worldAt: extra.worldAt,
     onDragLabel: (label) => void labels.push(label),
     onOutcome: (outcome) => void outcomes.push(outcome),
     keyTarget: keys as unknown as Window,
@@ -59,6 +72,7 @@ function setup(
     move: (clientX: number, clientY: number) =>
       keys.dispatchEvent(new MouseEvent('pointermove', { clientX, clientY })),
     labels,
+    batches,
     sent,
     runs,
     outcomes,
@@ -239,5 +253,123 @@ describe('bindBuildInput', () => {
     t.input('down', { x: 2, level: 1 });
     t.input('up', { x: 4, level: 1 });
     expect(t.sent).toEqual([{ type: 'buildLobby', level: 1, x0: 2, x1: 4, height: 3 }]);
+  });
+
+  describe('holding a unit tool', () => {
+    const flush = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 0));
+    const office = (x: number) => ({ type: 'buildUnit', unitType: 'office', x, level: 4 });
+
+    it('builds adjacent units to the right in order, in one batch', async () => {
+      const t = setup('office');
+      t.input('down', { x: 10, level: 4 });
+      t.hover({ x: 30, level: 4 });
+      await flush();
+      t.input('up', { x: 30, level: 4 });
+      await flush();
+      expect(t.sent).toEqual([office(10), office(19), office(28)]);
+      expect(new Set(t.batches).size).toBe(1);
+      expect(t.batches[0]).toBeDefined();
+    });
+
+    it('builds to the left and does not rebuild when dragged back', async () => {
+      const t = setup('office');
+      t.input('down', { x: 30, level: 4 });
+      t.hover({ x: 25, level: 4 });
+      await flush();
+      t.hover({ x: 35, level: 4 });
+      t.hover({ x: 30, level: 4 });
+      await flush();
+      t.input('up', { x: 30, level: 4 });
+      expect(t.sent).toEqual([office(30), office(21)]);
+    });
+
+    it('builds every slot between when the pointer jumps', async () => {
+      const t = setup('office');
+      t.input('down', { x: 0, level: 4 });
+      t.input('up', { x: 30, level: 4 });
+      await flush();
+      expect(t.sent.map((c) => (c as { x: number }).x)).toEqual([0, 9, 18, 27]);
+    });
+
+    it('builds one unit for a click', async () => {
+      const t = setup('office');
+      t.input('down', { x: 10, level: 4 });
+      t.hover({ x: 12, level: 4 });
+      t.input('up', { x: 12, level: 4 });
+      await flush();
+      expect(t.sent).toEqual([office(10)]);
+    });
+
+    it('ignores other levels', async () => {
+      const t = setup('office');
+      t.input('down', { x: 10, level: 4 });
+      t.hover({ x: 40, level: 5 });
+      await flush();
+      expect(t.sent).toEqual([office(10)]);
+    });
+
+    it('stops after a refusal until release', async () => {
+      const t = setup('office', 1, { refuse: (c) => (c as { x: number }).x === 19 });
+      t.input('down', { x: 10, level: 4 });
+      t.hover({ x: 50, level: 4 });
+      await flush();
+      t.hover({ x: 60, level: 4 });
+      await flush();
+      expect(t.sent).toEqual([office(10), office(19)]);
+    });
+
+    it('stops at the first slot the client check shows red', async () => {
+      const world = {
+        structure: new Map(),
+        units: [],
+        transports: [],
+        money: 1_000_000_000,
+      } as unknown as PlacementWorld;
+      const t = setup('office', 1, { worldAt: () => world });
+      // No floor anywhere: the press goes out as a click, the next slot is red.
+      t.input('down', { x: 10, level: 4 });
+      t.hover({ x: 40, level: 4 });
+      await flush();
+      expect(t.sent).toEqual([office(10)]);
+    });
+
+    it('keeps built units on cancel and builds no more', async () => {
+      const t = setup('office');
+      t.input('down', { x: 10, level: 4 });
+      t.hover({ x: 20, level: 4 });
+      await flush();
+      t.pressEscape();
+      t.hover({ x: 50, level: 4 });
+      await flush();
+      expect(t.sent).toEqual([office(10), office(19)]);
+    });
+
+    it('drops the tool and stops on a right click', async () => {
+      let cancelled = 0;
+      const t = setup('office', 1, { onCancelTool: () => (cancelled += 1) });
+      t.input('down', { x: 10, level: 4 });
+      t.input('cancel', null);
+      t.hover({ x: 50, level: 4 });
+      await flush();
+      expect(t.sent).toEqual([office(10)]);
+      expect(cancelled).toBe(1);
+    });
+
+    it('does not repeat stairs', async () => {
+      const t = setup('stairs');
+      t.input('down', { x: 10, level: 4 });
+      t.hover({ x: 40, level: 4 });
+      await flush();
+      expect(t.sent).toHaveLength(1);
+    });
+  });
+});
+
+describe('adjacentSlots', () => {
+  it('gives the next columns to the right and to the left of the built ones', () => {
+    expect(adjacentSlots(10, 30, 9, { min: 0, max: 0 })).toEqual([19, 28]);
+    expect(adjacentSlots(10, 5, 9, { min: 0, max: 0 })).toEqual([1]);
+    expect(adjacentSlots(10, 5, 9, { min: -1, max: 2 })).toEqual([]);
+    expect(adjacentSlots(10, 18, 9, { min: 0, max: 0 })).toEqual([]);
   });
 });

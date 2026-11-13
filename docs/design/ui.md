@@ -314,7 +314,7 @@ Common behaviour for every building tool:
 |---|---|---|
 | Piso | Press on a cell, drag left or right on the same level, release. The ghost covers the run; the cost counts only new cells. | `buildFloor` with the level and the two end columns |
 | Lobby | Same drag as Piso. The info box has a height choice "Alto: 1 · 2 · 3", default 1. If the hovered level already has lobby, the choice is locked to that height and shows "Alto fijado por el lobby existente". On level 1 with no lobby yet the info box adds the warning "La altura del lobby principal no se puede cambiar después." | `buildLobby` |
-| Unit tools | Click. | `buildUnit` |
+| Unit tools | Click builds one unit. Holding the button and dragging along the same level keeps building units of the same type exactly adjacent to the last one, left or right, on the unit-width grid from the first one; slots skipped by a fast drag are built in order. It stops at the first slot the ghost shows red or the server refuses, until release. Esc or right click stops it (built units stay). All commands of one drag share a batch, so they play one sound. | `buildUnit` |
 | Escalera, Escalera mecánica | Click on the lower level. The ghost covers the footprint and the landing on the level above. | `buildTransport` |
 | Elevator tools | Press on the bottom level, drag up or down, release on the top level. The label shows `{n} pisos` and the cost. Standard and service turn red past 30 levels. The express ghost only snaps its ends to its allowed stops. | `buildShaft` |
 | Cabina | Click on an existing shaft, at the level that will be the new car's home. The ghost is a car at that level. Price label is that shaft's car price. | `addCar` |

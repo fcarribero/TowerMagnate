@@ -56,6 +56,38 @@ export function commandForClick(tool: ToolId, cell: Cell): Command | null {
   return { type: 'buildUnit', unitType: tool as PlaceableUnit, x: cell.x, level: cell.level };
 }
 
+/** True for the click tools that place a unit (not stairs or escalators), which a held drag repeats. */
+export function repeatsOnDrag(tool: ToolId): boolean {
+  return buildMode(tool) === 'click' && !TRANSPORT_TOOLS.includes(tool);
+}
+
+/** The slot of the unit-width grid that starts at `pressX` and holds column `x`; negative to the left. */
+export function slotIndex(pressX: number, x: number, width: number): number {
+  return Math.floor((x - pressX) / width);
+}
+
+/**
+ * The columns where the next units go when the pointer reaches `currentX` while a drag that began at
+ * `pressX` has built the slots `built.min..built.max` (0 is the pressed one). Slots are exactly adjacent, in
+ * the order they are reached; nothing comes back for slots already built.
+ */
+export function adjacentSlots(
+  pressX: number,
+  currentX: number,
+  width: number,
+  built: { min: number; max: number },
+): number[] {
+  const target = slotIndex(pressX, currentX, width);
+  const xs: number[] = [];
+  for (let k = built.max + 1; k <= target; k += 1) {
+    xs.push(pressX + k * width);
+  }
+  for (let k = built.min - 1; k >= target; k -= 1) {
+    xs.push(pressX + k * width);
+  }
+  return xs;
+}
+
 /** One run on the level where the press happened, from the press column to the release column. */
 export function commandForDrag(
   tool: ToolId,
