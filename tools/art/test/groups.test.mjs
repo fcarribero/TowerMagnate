@@ -57,11 +57,11 @@ describe('structure group', () => {
     expect(sprites['structure/floor/day'].get(0, 10)).toBe(colorIndex('silver'));
   });
 
-  it('turns lobby glass dark and the lamps on at night', () => {
+  it('leaves lobby glass transparent and turns the lamps on at night', () => {
     const day = sprites['structure/lobby-2/day'];
     const night = sprites['structure/lobby-2/night'];
-    expect(day.get(3, 20)).toBe(colorIndex('glass'));
-    expect(night.get(3, 20)).toBe(colorIndex('night'));
+    expect(day.get(3, 20)).toBe(0);
+    expect(night.get(3, 20)).toBe(0);
     expect(night.get(3, 4)).toBe(colorIndex('lamp-glow'));
   });
 
@@ -100,6 +100,8 @@ describe('structure group', () => {
 
   it('fills the whole tile on every opaque structure sprite', () => {
     for (const [id, tile] of Object.entries(sprites)) {
+      // Lobby windows are transparent.
+      if (id.includes('lobby')) continue;
       expect(tile.pixels.includes(0), id).toBe(false);
     }
   });

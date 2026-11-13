@@ -83,7 +83,7 @@ function drawDesk(room, left, occupied) {
 
 function drawOffice(occupied) {
   const room = roomShell(WIDTH_TILES, look);
-  WINDOWS.forEach((window) => drawWindow(room, window));
+  WINDOWS.forEach((window) => drawWindow(room, window, { clear: true }));
   // A vacant office is a bare room; the furniture arrives with the tenant.
   if (occupied) {
     DESKS.forEach((left) => drawDesk(room, left, occupied));
@@ -94,5 +94,5 @@ function drawOffice(occupied) {
 }
 
 export function officeSprites() {
-  return unitSprites('office', { windows: WINDOWS, drawDay: drawOffice });
+  return unitSprites('office', { windows: WINDOWS, drawDay: drawOffice, clearWindows: true });
 }

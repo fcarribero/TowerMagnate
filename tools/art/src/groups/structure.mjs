@@ -47,7 +47,7 @@ function lightPendantLamp(tile) {
 
 function drawLobbyWindow(tile, top, bottom) {
   tile.fillRect(1, top, 6, bottom - top + 1, 'gray');
-  tile.fillRect(2, top + 1, 4, bottom - top - 1, 'glass');
+  tile.fillRect(2, top + 1, 4, bottom - top - 1, 0);
   for (let y = top + 10; y <= bottom - 8; y += 10) {
     tile.hline(2, y, 4, 'gray');
   }
@@ -102,7 +102,7 @@ function skyLobby({ column }) {
   tile.fillRect(0, 0, tileWidth, slabTop, 'silver');
   tile.hline(0, 0, tileWidth, 'slate');
   tile.hline(0, 1, tileWidth, 'gray');
-  tile.fillRect(0, 4, tileWidth, 15, 'glass');
+  tile.fillRect(0, 4, tileWidth, 15, 0);
   tile.hline(0, 3, tileWidth, 'gray');
   tile.hline(0, 19, tileWidth, 'gray');
   tile.vline(0, 4, 15, 'gray');

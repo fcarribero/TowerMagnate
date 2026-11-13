@@ -32,8 +32,10 @@ export function roomShell(widthTiles, { wall, wallLight, wallDark, floor }, floo
 
 // A window in the back wall: a silver frame around day glass with a centre mullion
 // and one highlight pixel in the upper-left pane.
-export function drawWindow(room, { left, top, width, height }) {
-  room.fillRect(left, top, width, height, 'glass');
+// With `clear`, the glass is transparent so the sky behind the unit shows through;
+// only the frame, mullion and highlight pixels are drawn.
+export function drawWindow(room, { left, top, width, height }, { clear = false } = {}) {
+  room.fillRect(left, top, width, height, clear ? 0 : 'glass');
   room.strokeRect(left - 1, top - 1, width + 2, height + 2, 'silver');
   room.vline(left + Math.floor(width / 2), top, height, 'silver');
   room.set(left + 1, top + 1, 'sky-light');
@@ -43,14 +45,15 @@ export function drawWindow(room, { left, top, width, height }) {
 
 // Night keeps the layout: materials step down their ramp, and window glass shows
 // lamp light with a glowing centre when someone is in, or dark glass when empty.
-export function nightVersion(daySprite, windows, occupied) {
+// With `clear`, an empty unit's glass stays transparent instead of turning dark.
+export function nightVersion(daySprite, windows, occupied, clear = false) {
   const night = toNight(daySprite);
   for (const { left, top, width, height } of windows) {
     if (occupied) {
       night.fillRect(left, top, width, height, 'lamp');
       night.fillRect(left + 2, top + 2, width - 4, height - 4, 'lamp-glow');
     } else {
-      night.fillRect(left, top, width, height, 'night-deep');
+      night.fillRect(left, top, width, height, clear ? 0 : 'night-deep');
     }
     night.vline(left + Math.floor(width / 2), top, height, 'gray');
   }
@@ -61,13 +64,13 @@ export const UNIT_STATES = ['empty', 'occupied'];
 export const TIMES = ['day', 'night'];
 
 // Returns the four sprites of a rentable unit: empty and occupied, day and night.
-export function unitSprites(subject, { windows, drawDay }) {
+export function unitSprites(subject, { windows, drawDay, clearWindows = false }) {
   const sprites = [];
   for (const state of UNIT_STATES) {
     const occupied = state === 'occupied';
     const day = drawDay(occupied);
     for (const time of TIMES) {
-      const canvas = time === 'day' ? day : nightVersion(day, windows, occupied);
+      const canvas = time === 'day' ? day : nightVersion(day, windows, occupied, clearWindows);
       sprites.push({ id: `units/${subject}/${state}_${time}`, canvas });
     }
   }

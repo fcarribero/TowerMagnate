@@ -32,6 +32,8 @@ const windowCentre = {
   suite: [19, 7],
   housekeeping: [52, 7],
 };
+// Office and condo glass is transparent so the sky shows through.
+const clearWindows = ['office', 'condo'];
 const countColor = (canvas, color) =>
   canvas.pixels.filter((index) => index === colorIndex(color)).length;
 
@@ -67,8 +69,11 @@ describe('units group', () => {
 
   it('lights the windows at night only when the unit is occupied', () => {
     for (const [subject, [x, y]] of Object.entries(windowCentre)) {
-      expect(byId[`units/${subject}/empty_day`].get(x, y)).toBe(colorIndex('glass'));
-      expect(byId[`units/${subject}/empty_night`].get(x, y)).toBe(colorIndex('night-deep'));
+      const clear = clearWindows.includes(subject);
+      expect(byId[`units/${subject}/empty_day`].get(x, y)).toBe(clear ? 0 : colorIndex('glass'));
+      expect(byId[`units/${subject}/empty_night`].get(x, y)).toBe(
+        clear ? 0 : colorIndex('night-deep'),
+      );
       expect(byId[`units/${subject}/occupied_night`].get(x, y)).toBe(colorIndex('lamp-glow'));
     }
   });
