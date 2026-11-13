@@ -17,6 +17,7 @@ export {
   cellsWithoutStructure,
   clearStructure,
   createGrid,
+  isBackSpanFree,
   isSpanFree,
   levelError,
   occupantAt,

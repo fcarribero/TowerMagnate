@@ -109,6 +109,11 @@ export function isSpanFree(grid: GridState, level: Level, x0: number, x1: number
   return overlappingOccupants(grid, level, x0, x1).length === 0;
 }
 
+/** Whether the back layer (units, lobbies, ruins) is empty on x0..x1; stairs and shafts pass over it. */
+export function isBackSpanFree(grid: GridState, level: Level, x0: number, x1: number): boolean {
+  return overlappingOccupants(grid, level, x0, x1).every((span) => isOverlay(span.occupant));
+}
+
 export function addOccupant(
   grid: GridState,
   level: Level,
@@ -118,7 +123,7 @@ export function addOccupant(
 ): void {
   assertSpan(level, x0, x1);
   const clashes = overlappingOccupants(grid, level, x0, x1).some(
-    (span) => !isOverlay(occupant) || isOverlay(span.occupant),
+    (span) => isOverlay(occupant) === isOverlay(span.occupant),
   );
   if (clashes) {
     throw new Error(`Cells ${x0}..${x1} on level ${level} are already occupied`);

@@ -102,10 +102,14 @@ function drawPeople(
     if (person.mode === 'inside') {
       continue;
     }
+    const before = previous?.people.get(person.id);
+    // Someone who got off during this delta stays in the car until it has glided to the stop.
+    const stillInCar = person.mode !== 'ride' && before?.mode === 'ride' ? before : undefined;
     const placed =
       person.mode === 'ride'
         ? drawRider(person, latest, cars)
-        : drawWalker(person, previous?.people.get(person.id), progress);
+        : (stillInCar !== undefined ? drawRider(stillInCar, latest, cars) : null) ??
+          drawWalker(person, before, progress);
     if (placed !== null) {
       drawn.push(placed);
     }

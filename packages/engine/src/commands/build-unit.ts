@@ -14,7 +14,7 @@ import {
   type PlacementZone,
   type UnitDefinition,
 } from '@tower-magnate/shared';
-import { addOccupant, isSpanFree, levelError, setStructure, structureAt } from '../grid';
+import { addOccupant, isBackSpanFree, levelError, setStructure, structureAt } from '../grid';
 import type { CommandHandler } from '../step';
 import { basementRuleError } from './basement-rules';
 import { escalatorLevels, isEscalatorUnit } from './escalator-floors';
@@ -107,7 +107,7 @@ function isFootprintFree(grid: GridState, footprint: Footprint): boolean {
   const { x0, x1 } = footprint;
   return footprint.levels.every(
     (level) =>
-      isSpanFree(grid, level, x0, x1) &&
+      isBackSpanFree(grid, level, x0, x1) &&
       columnsBetween(x0, x1).every((x) => structureAt(grid, level, x) !== 'lobby'),
   );
 }

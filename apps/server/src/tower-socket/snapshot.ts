@@ -220,11 +220,12 @@ function occupiedUnits(people: EnginePerson[]): Set<string> {
   return homes;
 }
 
-/** Units with at least one person standing in one of their cells, riders and people outside excluded. */
+/** Units with at least one person standing still in one of their cells; riders, people outside and passers-by excluded. */
 function unitsWithPeopleInside(state: TowerState, people: EnginePerson[]): Set<string> {
   const inside = new Set<string>();
   people.forEach((person, slot) => {
-    if (isOutsideTower(state.people, slot) || trekPhaseAt(state.people, slot) === 'riding') return;
+    if (isOutsideTower(state.people, slot) || trekPhaseAt(state.people, slot) !== 'idle') return;
+    if (!standsStill(state, slot, { level: person.level, column: person.column })) return;
     const occupant = occupantAt(state.grid, person.level, person.column);
     if (occupant?.kind === 'unit') inside.add(occupant.id);
   });
@@ -286,8 +287,8 @@ function ridePlaces(state: TowerState): Map<string, RidePlace> {
 const RESTING_PHASES: readonly string[] = ['atOffice', 'atLunch', 'atMedical'];
 
 /**
- * True when an idle person stands still at a place of their own: they have no pending trip, sit in
- * a resting office phase, or stand inside a unit. Only then do they show as inside, not walking.
+ * True when an idle person stands still at a place of their own: they have no pending trip or sit in
+ * a resting office phase. Someone with a trip who walks across a unit's cells is passing by.
  */
 export function standsStill(
   state: TowerState,
@@ -295,7 +296,6 @@ export function standsStill(
   place: { level: number; column: number },
 ): boolean {
   if (state.people.trip[slot] === NO_TRIP) return true;
-  if (occupantAt(state.grid, place.level, place.column)?.kind === 'unit') return true;
   const phase = routineAt(state.people, slot)?.phase;
   return phase !== undefined && RESTING_PHASES.includes(phase);
 }

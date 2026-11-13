@@ -7,7 +7,7 @@ import {
   type Level,
   type LobbyHeight,
 } from '@tower-magnate/shared';
-import { isSpanFree, setStructure, spanError, structureAt } from '../grid';
+import { isBackSpanFree, setStructure, spanError, structureAt } from '../grid';
 import type { CommandHandler } from '../step';
 import {
   columnRuns,
@@ -110,7 +110,7 @@ export const buildLobby: CommandHandler<'buildLobby'> = (context, command) => {
   const rows = lobbyRows(level, height);
   const columns = columnsBetween(x0, x1).filter((x) => structureAt(grid, level, x) !== 'lobby');
   const runs = columnRuns(columns);
-  const occupied = runs.some((run) => rows.some((row) => !isSpanFree(grid, row, run.x0, run.x1)));
+  const occupied = runs.some((run) => rows.some((row) => !isBackSpanFree(grid, row, run.x0, run.x1)));
   if (occupied) {
     return { ok: false, error: 'CELL_OCCUPIED' };
   }

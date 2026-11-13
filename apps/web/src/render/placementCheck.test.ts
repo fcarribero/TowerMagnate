@@ -58,11 +58,9 @@ describe('checkPlacement', () => {
     );
   });
 
-  it('rejects overlap with stairs', () => {
+  it('lets a unit go behind stairs', () => {
     const stairs = { type: 'stairs', x: 10, level: 3 } as const;
-    expect(checkPlacement('office', 12, 3, world({ transports: [stairs] })).problem).toBe(
-      'CELL_OCCUPIED',
-    );
+    expect(checkPlacement('office', 12, 3, world({ transports: [stairs] })).problem).toBeNull();
   });
 
   it('rejects building over lobby cells', () => {

@@ -164,7 +164,7 @@ class BuiltCells {
         if (this.transportAt(level, x)) {
           return true;
         }
-      } else if (this.structureAt(level, x) === 'l' || this.thingAt(level, x)) {
+      } else if (this.structureAt(level, x) === 'l' || this.unitOnlyAt(level, x)) {
         return true;
       }
     }
@@ -195,6 +195,15 @@ class BuiltCells {
       this.byLevel
         .get(level)
         ?.some((thing) => isTransportTool(thing.type) && covers(thing, x, level)) ?? false
+    );
+  }
+
+  /** A unit in the back layer; stairs and escalators pass over it. */
+  private unitOnlyAt(level: Level, x: number): boolean {
+    return (
+      this.byLevel
+        .get(level)
+        ?.some((thing) => !isTransportTool(thing.type) && covers(thing, x, level)) ?? false
     );
   }
 

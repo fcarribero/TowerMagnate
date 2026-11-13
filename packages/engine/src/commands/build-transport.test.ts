@@ -257,7 +257,12 @@ describe('buildUnit on escalator levels', () => {
     expect(run(tower, unit('office', 40, 2)).result.ok).toBe(true);
   });
 
-  it('rejects a unit on a transport footprint as CELL_OCCUPIED before the escalator rule', () => {
-    expect(rejection(escalatorTower(), unit('office', 10, 2))).toBe('CELL_OCCUPIED');
+  it('lets a unit go behind stairs, which pass over the back layer', () => {
+    const tower = run(towerWith(), transport('stairs', 10, 2)).state;
+    expect(run(tower, unit('office', 10, 2)).result.ok).toBe(true);
+  });
+
+  it('rejects a unit behind an escalator only by the escalator rule', () => {
+    expect(rejection(escalatorTower(), unit('office', 10, 2))).toBe('ESCALATOR_FLOOR_TYPE');
   });
 });

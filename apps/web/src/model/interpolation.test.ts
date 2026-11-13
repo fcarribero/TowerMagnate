@@ -117,10 +117,10 @@ describe('drawnFrame people', () => {
     expect(drawn.people[0]).toMatchObject({ x: shaft.x, position: 12 });
   });
 
-  it('snaps a person who just stepped out of a car', () => {
+  it('keeps a person who just stepped out of a car in the car until the car has arrived', () => {
     const rider = personAt({ x: 5, mode: 'ride', carRef: { shaftId: 's4', index: 0 } });
-    const drawn = drawnFrame(stepped(101, [car, car], [rider, personAt({ x: 102 })]), 0.5);
-    expect(drawn.people[0]?.x).toBe(102);
+    const frame = stepped(101, [car, car], [rider, personAt({ x: 102 })]);
+    expect(drawnFrame(frame, 0.5).people[0]?.x).toBe(shaft.x);
   });
 
   it('leaves out people inside units and riders of unknown cars', () => {
