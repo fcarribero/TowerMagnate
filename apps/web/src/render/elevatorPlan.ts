@@ -51,8 +51,8 @@ export function shaftWidthPixels(type: ShaftType): number {
 
 /**
  * The static parts of a shaft: a body on every level from bottom to top (brick where no
- * structure is built behind it, flat gray elsewhere), a hall
- * door frame on each stop, the machine room above the top level and the pit below the bottom one.
+ * structure is built behind it, flat gray elsewhere, see-through on a stop with structure
+ * behind it), a hall door frame on each stop, the machine room above the top level and the pit below the bottom one.
  */
 export function planShaft(shaft: ShaftView, structure: ReadonlyMap<Level, string>): ShaftPiece[] {
   const x = shaft.x * TILE_WIDTH;
@@ -63,8 +63,10 @@ export function planShaft(shaft: ShaftView, structure: ReadonlyMap<Level, string
   const pieces: ShaftPiece[] = [];
   for (let index = bottom; index <= top; index += 1) {
     const backed = isBackedLevel(shaft, indexToLevel(index), structure);
-    pieces.push({ sprite: `${prefix}/${backed ? 'body' : 'brick'}`, index, x, y: 0 });
-    if (stops.has(index)) {
+    const isStop = stops.has(index);
+    const body = backed ? (isStop ? 'body-open' : 'body') : 'brick';
+    pieces.push({ sprite: `${prefix}/${body}`, index, x, y: 0 });
+    if (isStop) {
       pieces.push({ sprite: `${prefix}/landing`, index, x, y: 0 });
     }
   }

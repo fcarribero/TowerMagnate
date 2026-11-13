@@ -9,6 +9,7 @@ import { SpriteRegistry } from './spriteRegistry';
 
 const SPRITES = [
   'transport/standard-shaft/body',
+  'transport/standard-shaft/body-open',
   'transport/standard-shaft/brick',
   'transport/standard-shaft/top',
   'transport/standard-shaft/bottom',

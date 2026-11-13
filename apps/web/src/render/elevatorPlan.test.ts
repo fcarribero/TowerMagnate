@@ -28,7 +28,7 @@ describe('planShaft', () => {
   const pieces = planShaft(shaft, structure);
 
   it('draws one body per level and never a level 0', () => {
-    const bodies = pieces.filter((piece) => piece.sprite.endsWith('/body'));
+    const bodies = pieces.filter((piece) => /\/body(-open)?$/.test(piece.sprite));
     expect(bodies.map((piece) => piece.index)).toEqual([
       levelToIndex(-1),
       levelToIndex(1),
@@ -41,12 +41,20 @@ describe('planShaft', () => {
     partial.set(2, '.'.repeat(200));
     partial.set(1, `${'f'.repeat(101)}${'.'.repeat(99)}`);
     const backdrops = planShaft(shaft, partial)
-      .filter((piece) => piece.sprite.endsWith('/body') || piece.sprite.endsWith('/brick'))
+      .filter((piece) => /\/(body(-open)?|brick)$/.test(piece.sprite))
       .map((piece) => [piece.index, piece.sprite.split('/')[2]]);
     expect(backdrops).toEqual([
-      [levelToIndex(-1), 'body'],
+      [levelToIndex(-1), 'body-open'],
       [levelToIndex(1), 'brick'],
       [levelToIndex(2), 'brick'],
+    ]);
+  });
+
+  it('sees through the body of a stop with structure behind it, and only there', () => {
+    const open = pieces.filter((piece) => piece.sprite.endsWith('/body-open'));
+    expect(open.map((piece) => piece.index)).toEqual([levelToIndex(-1), levelToIndex(1)]);
+    expect(pieces.filter((piece) => piece.sprite.endsWith('/body')).map((p) => p.index)).toEqual([
+      levelToIndex(2),
     ]);
   });
 

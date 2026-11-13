@@ -96,13 +96,15 @@ function drawBrickWall(tile) {
   }
 }
 
-// One level of a shaft, drawn under the hall doors and the car. `brick` is for a level with
-// no structure behind the shaft; otherwise the back is a flat neutral gray.
+// One level of a shaft, drawn under the hall frame and the car. `brick` is for a level with
+// no structure behind the shaft; otherwise the back is a flat neutral gray. `open` is for a
+// stop with structure behind the shaft: nothing is painted behind the rails, so the level
+// behind shows through.
 function shaftBody(type, backdrop) {
   const tile = new PixelCanvas(shaftWidth(type), floorHeight);
   if (backdrop === 'brick') {
     drawBrickWall(tile);
-  } else {
+  } else if (backdrop !== 'open') {
     tile.fillRect(0, 0, tile.width, tile.height, 'slate');
   }
   drawShaftWalls(tile);
@@ -323,7 +325,8 @@ function drawHallDoors(frame, jambRight) {
 }
 
 // The hall door frame around the car on every level where the elevator stops.
-// It is drawn over the shaft body and under the car, with closed metal doors in it.
+// It is drawn over the shaft body and under the car. The opening has no doors, so the
+// level behind the shaft shows through.
 function landingFrame(type) {
   const { light, base, dark } = STYLES[type].frame;
   const frame = new PixelCanvas(shaftWidth(type), floorHeight);
@@ -338,7 +341,6 @@ function landingFrame(type) {
   const middle = frame.width / 2;
   frame.set(middle - 1, 0, 'lamp');
   frame.set(middle, 0, 'lamp');
-  drawHallDoors(frame, jambRight);
   drawCables(frame, 0, BEAM_ROW);
   return frame;
 }
@@ -390,6 +392,7 @@ function byTime(dayCanvas, time) {
 function elevatorSprites() {
   return TYPES.flatMap((type) => [
     { id: `transport/${type}-shaft/body`, canvas: shaftBody(type, 'plain') },
+    { id: `transport/${type}-shaft/body-open`, canvas: shaftBody(type, 'open') },
     { id: `transport/${type}-shaft/brick`, canvas: shaftBody(type, 'brick') },
     { id: `transport/${type}-shaft/top`, canvas: shaftTop(type) },
     { id: `transport/${type}-shaft/bottom`, canvas: shaftBottom(type) },
