@@ -79,6 +79,7 @@ export function debugUnits(
         price: 'normal',
         occupied,
         variant: occupied ? 'occupied' : 'empty',
+        inside: occupied,
       });
       x += UNIT_CATALOG[type].width;
     }

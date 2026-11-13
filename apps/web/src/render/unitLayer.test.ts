@@ -46,7 +46,7 @@ describe('UnitLayer', () => {
     expect(spriteOf(layer)).toMatchObject({ texture: textures['units/office/empty_day'] });
 
     layer.update({
-      units: [{ ...office, occupied: true, variant: 'occupied' }],
+      units: [{ ...office, occupied: true, variant: 'occupied', inside: true }],
       transports: [],
       time: 'day',
       openVenues: ALL_VENUES_OPEN,

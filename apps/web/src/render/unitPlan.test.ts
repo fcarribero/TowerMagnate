@@ -24,11 +24,25 @@ describe('planUnit', () => {
   it('picks the empty or occupied sprite and the time of day', () => {
     const empty = planUnit({ ...base, type: 'office' }, 'day');
     const occupied = planUnit(
-      { ...base, type: 'office', occupied: true, variant: 'occupied' },
+      { ...base, type: 'office', occupied: true, variant: 'occupied', inside: true },
       'night',
     );
     expect(empty?.variant).toEqual({ state: 'empty', time: 'day' });
     expect(occupied?.variant).toEqual({ state: 'occupied', time: 'night' });
+  });
+
+  it('draws a taken office or condo as closed until someone is inside', () => {
+    const taken = { ...base, occupied: true, variant: 'occupied' as const };
+    for (const type of ['office', 'condo'] as const) {
+      expect(planUnit({ ...taken, type }, 'night')?.variant).toEqual({
+        state: 'closed',
+        time: 'night',
+      });
+      expect(planUnit({ ...taken, type, inside: true }, 'day')?.variant).toEqual({
+        state: 'occupied',
+        time: 'day',
+      });
+    }
   });
 
   it('draws dirty and infested hotel rooms and a disconnected parking space', () => {

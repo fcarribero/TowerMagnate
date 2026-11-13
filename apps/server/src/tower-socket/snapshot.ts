@@ -10,6 +10,7 @@ import {
   STEPS_PER_DAY,
   DAYS_PER_WEEK,
   isOutsideTower,
+  occupantAt,
   trekPhaseAt,
   type TrekPhase,
   siteProgress,
@@ -73,9 +74,10 @@ export function buildSnapshot(
 ): Snapshot {
   const people = listPeople(state.people);
   const homes = occupiedUnits(people);
+  const inside = unitsWithPeopleInside(state, people);
   const units = [
     ...Object.values(state.units).map((unit) =>
-      unitView(unit, homes.has(unit.id), disconnected.has(unit.id)),
+      unitView(unit, homes.has(unit.id), disconnected.has(unit.id), inside.has(unit.id)),
     ),
     ...Object.values(state.sites).map((site) => siteView(site, disconnected.has(site.id))),
   ];
@@ -151,7 +153,12 @@ function siteView(site: TowerState['sites'][string], disconnected: boolean): Uni
   };
 }
 
-function unitView(unit: TowerUnit, occupied: boolean, disconnected: boolean): UnitView {
+function unitView(
+  unit: TowerUnit,
+  occupied: boolean,
+  disconnected: boolean,
+  inside: boolean,
+): UnitView {
   return {
     id: unit.id,
     type: unit.type,
@@ -161,6 +168,7 @@ function unitView(unit: TowerUnit, occupied: boolean, disconnected: boolean): Un
     price: unit.priceLevel,
     occupied,
     variant: unitVariant(unit, occupied, disconnected),
+    ...(inside ? { inside } : {}),
   };
 }
 
@@ -208,6 +216,17 @@ function occupiedUnits(people: EnginePerson[]): Set<string> {
     }
   }
   return homes;
+}
+
+/** Units with at least one person standing in one of their cells, riders and people outside excluded. */
+function unitsWithPeopleInside(state: TowerState, people: EnginePerson[]): Set<string> {
+  const inside = new Set<string>();
+  people.forEach((person, slot) => {
+    if (isOutsideTower(state.people, slot) || trekPhaseAt(state.people, slot) === 'riding') return;
+    const occupant = occupantAt(state.grid, person.level, person.column);
+    if (occupant?.kind === 'unit') inside.add(occupant.id);
+  });
+  return inside;
 }
 
 function structureRows(state: TowerState): Snapshot['grid']['levels'] {

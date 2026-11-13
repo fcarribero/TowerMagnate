@@ -73,7 +73,7 @@ describe('service facility sprites', () => {
     for (const [subject, [x, y]] of Object.entries(windowCentres)) {
       expect(byId[`units/${subject}/empty_day`].get(x, y)).toBe(0);
       expect(byId[`units/${subject}/empty_night`].get(x, y)).toBe(0);
-      expect(byId[`units/${subject}/occupied_night`].get(x, y)).toBe(colorIndex('lamp-glow'));
+      expect(byId[`units/${subject}/occupied_night`].get(x, y)).toBe(0);
     }
   });
 

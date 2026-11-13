@@ -43,19 +43,14 @@ export function drawWindow(room, { left, top, width, height }) {
   room.set(left + 1, top + 2, 'sky-light');
 }
 
-// Night keeps the layout: materials step down their ramp, and window glass shows
-// lamp light with a glowing centre when someone is in, or dark glass when empty.
-// An empty unit is also switched off: its glass stays transparent and its lamps go out.
+// Night keeps the layout. A unit with someone inside is lit: its room keeps the day
+// colors and lamps. Any other unit is dark: materials step down their ramp and the
+// lamps go out. Window glass is transparent in both, so the sky shows through.
 export function nightVersion(daySprite, windows, occupied) {
-  const night = occupied ? toNight(daySprite) : lightsOff(toNight(daySprite));
+  const night = occupied ? daySprite.clone() : lightsOff(toNight(daySprite));
   for (const { left, top, width, height } of windows) {
-    if (occupied) {
-      night.fillRect(left, top, width, height, 'lamp');
-      night.fillRect(left + 2, top + 2, width - 4, height - 4, 'lamp-glow');
-    } else {
-      night.fillRect(left, top, width, height, 0);
-    }
-    night.vline(left + Math.floor(width / 2), top, height, 'gray');
+    night.fillRect(left, top, width, height, 0);
+    night.vline(left + Math.floor(width / 2), top, height, occupied ? 'silver' : 'gray');
   }
   return night;
 }
@@ -71,6 +66,23 @@ export function unitSprites(subject, { windows, drawDay }) {
     const day = drawDay(occupied);
     for (const time of TIMES) {
       const canvas = time === 'day' ? day : nightVersion(day, windows, occupied);
+      sprites.push({ id: `units/${subject}/${state}_${time}`, canvas });
+    }
+  }
+  return sprites;
+}
+
+export const RENTAL_STATES = ['empty', 'closed', 'occupied'];
+
+// Returns the six sprites of a unit that people rent or buy, day and night each:
+// `empty` is the bare room nobody has taken, `closed` is furnished but dark with
+// nobody inside, `occupied` is lit with someone inside. `drawDay(state)` draws one.
+export function rentalSprites(subject, { windows, drawDay }) {
+  const sprites = [];
+  for (const state of RENTAL_STATES) {
+    const day = drawDay(state);
+    for (const time of TIMES) {
+      const canvas = time === 'day' ? day : nightVersion(day, windows, state === 'occupied');
       sprites.push({ id: `units/${subject}/${state}_${time}`, canvas });
     }
   }

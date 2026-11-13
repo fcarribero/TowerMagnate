@@ -1,4 +1,4 @@
-import { FLOOR_ROW, drawWindow, roomShell, unitSprites } from './shell.mjs';
+import { FLOOR_ROW, drawWindow, rentalSprites, roomShell } from './shell.mjs';
 
 const WIDTH_TILES = 9;
 const WINDOWS = [
@@ -81,11 +81,13 @@ function drawDesk(room, left, occupied) {
   room.drawMap(chairLeft, FLOOR_ROW - chair.length + 1, chair, legend);
 }
 
-function drawOffice(occupied) {
+function drawOffice(state) {
   const room = roomShell(WIDTH_TILES, look);
   WINDOWS.forEach((window) => drawWindow(room, window));
-  // A vacant office is a bare room; the furniture arrives with the tenant.
-  if (occupied) {
+  // A vacant office is a bare room; the furniture arrives with the tenant. A closed
+  // office has it with the chairs tucked in; an occupied one has the chairs pulled out.
+  if (state !== 'empty') {
+    const occupied = state === 'occupied';
     DESKS.forEach((left) => drawDesk(room, left, occupied));
     room.drawMap(55, FLOOR_ROW - cabinet.length + 1, cabinet, legend);
     room.drawMap(27, FLOOR_ROW - plant.length + 1, plant, legend);
@@ -94,5 +96,5 @@ function drawOffice(occupied) {
 }
 
 export function officeSprites() {
-  return unitSprites('office', { windows: WINDOWS, drawDay: drawOffice });
+  return rentalSprites('office', { windows: WINDOWS, drawDay: drawOffice });
 }

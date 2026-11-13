@@ -20,8 +20,11 @@ const catalogWidthTiles = {
   housekeeping: 15,
 };
 const hotelRooms = ['single-room', 'double-room', 'suite'];
-const states = (subject) =>
-  hotelRooms.includes(subject) ? ['empty', 'occupied', 'dirty', 'infested'] : ['empty', 'occupied'];
+const rentals = ['office', 'condo'];
+const states = (subject) => {
+  if (hotelRooms.includes(subject)) return ['empty', 'occupied', 'dirty', 'infested'];
+  return rentals.includes(subject) ? ['empty', 'closed', 'occupied'] : ['empty', 'occupied'];
+};
 const variantsOf = (subject) =>
   states(subject).flatMap((state) => [`${state}_day`, `${state}_night`]);
 const windowCentre = {
@@ -69,7 +72,7 @@ describe('units group', () => {
     for (const [subject, [x, y]] of Object.entries(windowCentre)) {
       expect(byId[`units/${subject}/empty_day`].get(x, y)).toBe(0);
       expect(byId[`units/${subject}/empty_night`].get(x, y)).toBe(0);
-      expect(byId[`units/${subject}/occupied_night`].get(x, y)).toBe(colorIndex('lamp-glow'));
+      expect(byId[`units/${subject}/occupied_night`].get(x, y)).toBe(0);
     }
   });
 
@@ -177,7 +180,7 @@ describe('entertainment units', () => {
     expect(countColor(party, 'lamp')).toBeGreaterThan(countColor(empty, 'lamp'));
     const [x, y] = [16, 12];
     expect(byId['units/party-hall/empty_night'].get(x, y)).toBe(0);
-    expect(byId['units/party-hall/party_night'].get(x, y)).toBe(colorIndex('lamp-glow'));
+    expect(byId['units/party-hall/party_night'].get(x, y)).toBe(0);
   });
 
   it('has no middle slab inside the tall room', () => {
@@ -185,6 +188,34 @@ describe('entertainment units', () => {
       const day = byId[`units/${subject}/empty_day`];
       const middleSlabRow = metrics.floorHeight - 1;
       expect(day.get(day.width - 3, middleSlabRow)).not.toBe(colorIndex('concrete-dark'));
+    }
+  });
+});
+
+describe('rental units', () => {
+  it('shows the bare room when empty and furniture when closed or occupied', () => {
+    for (const subject of rentals) {
+      const count = (state) => byId[`units/${subject}/${state}_day`].pixels.filter(Boolean).length;
+      const shape = (state) => [...byId[`units/${subject}/${state}_day`].pixels].join();
+      expect(shape('closed')).not.toBe(shape('empty'));
+      expect(shape('occupied')).not.toBe(shape('closed'));
+      expect(count('empty')).toBeGreaterThan(0);
+    }
+  });
+
+  it('lights the room at night only when occupied and keeps the glass clear', () => {
+    for (const subject of rentals) {
+      const [x, y] = windowCentre[subject];
+      for (const state of ['empty', 'closed', 'occupied']) {
+        expect(byId[`units/${subject}/${state}_night`].get(x, y), `${subject} ${state}`).toBe(0);
+      }
+      const lit = byId[`units/${subject}/occupied_night`];
+      const dark = byId[`units/${subject}/closed_night`];
+      const day = byId[`units/${subject}/occupied_day`];
+      expect(lit.get(3, 20)).toBe(day.get(3, 20));
+      expect(dark.get(3, 20)).not.toBe(day.get(3, 20));
+      expect(countColor(dark, 'lamp')).toBe(0);
+      expect(countColor(dark, 'lamp-glow')).toBe(0);
     }
   });
 });

@@ -47,7 +47,7 @@ export interface TransportSource {
 
 export type UnitSource = Pick<
   UnitView,
-  'id' | 'type' | 'x' | 'level' | 'occupied' | 'variant' | 'price' | 'construction'
+  'id' | 'type' | 'x' | 'level' | 'occupied' | 'variant' | 'price' | 'construction' | 'inside'
 >;
 
 /** Units that are drawn here. Floors and lobbies are structure, elevators are shafts. */
@@ -89,8 +89,16 @@ function unitState(unit: UnitSource, openVenues: OpenVenues): string {
   if (variant === 'disconnected' && type === 'parking-space') {
     return variant;
   }
-  return spriteState(type, unit.occupied || variant === 'occupied');
+  const taken = unit.occupied || variant === 'occupied';
+  if (RENTAL_UNITS.includes(type)) {
+    // Not taken: the bare room. Taken with nobody in: furnished and dark. Someone in: lit.
+    return !taken ? 'empty' : unit.inside === true ? 'occupied' : 'closed';
+  }
+  return spriteState(type, taken);
 }
+
+/** Units with three looks: bare when untaken, `closed` when taken and empty, `occupied` with people inside. */
+const RENTAL_UNITS: readonly UnitType[] = ['office', 'condo'];
 
 /** Shops and food venues are drawn open or busy instead of empty or occupied. */
 const SHOP_STATES = { empty: 'open', occupied: 'busy' } as const;

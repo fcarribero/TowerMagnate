@@ -1,4 +1,4 @@
-import { FLOOR_ROW, drawWindow, roomShell, unitSprites } from './shell.mjs';
+import { FLOOR_ROW, drawWindow, rentalSprites, roomShell } from './shell.mjs';
 
 const WIDTH_TILES = 16;
 const WINDOWS = [
@@ -161,12 +161,14 @@ function drawBedroom(room, occupied) {
   }
 }
 
-function drawCondo(occupied) {
+function drawCondo(state) {
+  const occupied = state === 'occupied';
   const room = roomShell(WIDTH_TILES, look);
   WINDOWS.forEach((window) => drawWindow(room, window));
   drawPartition(room);
-  // A vacant condo is a bare room; the furniture arrives with the owner.
-  if (occupied) {
+  // A vacant condo is a bare room; the furniture arrives with the owner. A closed
+  // one has it with the lamps and the TV off; an occupied one is in use.
+  if (state !== 'empty') {
     drawLivingRoom(room, occupied);
     drawBedroom(room, occupied);
   }
@@ -174,5 +176,5 @@ function drawCondo(occupied) {
 }
 
 export function condoSprites() {
-  return unitSprites('condo', { windows: WINDOWS, drawDay: drawCondo });
+  return rentalSprites('condo', { windows: WINDOWS, drawDay: drawCondo });
 }
