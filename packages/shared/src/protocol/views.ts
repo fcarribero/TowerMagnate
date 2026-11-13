@@ -63,7 +63,7 @@ export const UnitViewSchema = z.object({
   name: DisplayNameSchema.nullable(),
   price: PriceLevelSchema,
   occupied: z.boolean(),
-  variant: z.enum(['empty', 'occupied', 'dirty', 'infested', 'disconnected']),
+  variant: z.enum(['empty', 'occupied', 'sleeping', 'dirty', 'infested', 'disconnected']),
   /** True while at least one person stands inside the unit; left out when nobody is. */
   inside: z.boolean().optional(),
   /** True while a shop has a tenant; left out when it has none. Shops without it are drawn bare. */

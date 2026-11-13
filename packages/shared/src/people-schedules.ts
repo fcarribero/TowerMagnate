@@ -62,6 +62,37 @@ export const RESIDENT_RETURN: readonly WindowPart[] = [
   { from: minutes(20), to: minutes(21), weight: 10 },
 ];
 
+/**
+ * Sleep of residents (sleep cycle design). Bed time is a minute counted from the start of the day
+ * the night began on, so 24:30 is half past midnight. The longer windows are the nights of Friday
+ * and Saturday.
+ */
+export const RESIDENT_BED: readonly WindowPart[] = [
+  { from: minutes(22), to: minutes(24, 30), weight: 100 },
+];
+
+export const RESIDENT_WEEKEND_BED: readonly WindowPart[] = [
+  { from: minutes(22), to: minutes(26, 30), weight: 100 },
+];
+
+/** Wake time as a minute of the day; the weekend window is the mornings of Saturday and Sunday. */
+export const RESIDENT_WAKE: readonly WindowPart[] = [
+  { from: minutes(5, 30), to: minutes(7, 30), weight: 100 },
+];
+
+export const RESIDENT_WEEKEND_WAKE: readonly WindowPart[] = [
+  { from: minutes(5, 30), to: minutes(9, 30), weight: 100 },
+];
+
+/** After waking, nothing starts for a uniform number of minutes in this range. */
+export const WAKE_DELAY_MINUTES = { min: 20, max: 40 } as const;
+
+/** A resident works on Saturday with this chance, using the weekday leave and return windows. */
+export const RESIDENT_SATURDAY_WORKDAY_CHANCE = 0.3;
+
+/** Before this minute of the day a bed time still belongs to the night that began the day before. */
+export const NIGHT_PIVOT_MINUTE = minutes(4);
+
 export const RESIDENT_WEEKDAY_SHOPPING_CHANCE = 0.6;
 
 export const RESIDENT_WEEKDAY_SHOPPING: readonly WindowPart[] = [
@@ -225,16 +256,19 @@ export const HOTEL_LATE_ROLL_BEFORE_MINUTE = minutes(21);
 
 /** Arrival of a party booked by the 12:00 roll. */
 export const HOTEL_NOON_ARRIVAL: readonly WindowPart[] = [
-  { from: minutes(12), to: minutes(17), weight: 25 },
+  { from: minutes(13), to: minutes(17), weight: 25 },
   { from: minutes(17), to: minutes(21), weight: 55 },
-  { from: minutes(21), to: minutes(22, 30), weight: 20 },
+  { from: minutes(21), to: minutes(22), weight: 20 },
 ];
+
+/** No party arrives before this minute, whatever time it was booked. */
+export const HOTEL_FIRST_ARRIVAL_MINUTE = minutes(13);
 
 /** A party booked after 12:00 arrives at least this long after the roll. */
 export const HOTEL_LATE_ARRIVAL_DELAY_MINUTES = 30;
 
 /** No party arrives at or after this minute. */
-export const HOTEL_LAST_ARRIVAL_MINUTE = minutes(22, 30);
+export const HOTEL_LAST_ARRIVAL_MINUTE = minutes(22);
 
 /** A party with nobody in the room at this minute gives up. */
 export const HOTEL_GIVE_UP_MINUTE = minutes(23);
@@ -244,14 +278,18 @@ export const HOTEL_CHECK_IN_OUTING_CHANCE = 0.4;
 export const HOTEL_CHECK_IN_OUTING_DELAY_MINUTES = 30;
 export const HOTEL_OUTING_END_MINUTE = minutes(21, 30);
 
-export const HOTEL_DAY_OUT_CHANCE = 0.5;
+/**
+ * Between 10:00 and 13:00 every room is empty so that the maids can work, so every guest whose
+ * stay goes on is out of the room for the day.
+ */
+export const HOTEL_DAY_OUT_CHANCE = 1;
 
 export const HOTEL_DAY_OUT_LEAVE: readonly WindowPart[] = [
-  { from: minutes(9), to: minutes(11), weight: 100 },
+  { from: minutes(7, 30), to: minutes(10), weight: 100 },
 ];
 
 export const HOTEL_DAY_OUT_RETURN: readonly WindowPart[] = [
-  { from: minutes(16), to: minutes(20), weight: 100 },
+  { from: minutes(13), to: minutes(20), weight: 100 },
 ];
 
 export const HOTEL_EVENING_OUTING_CHANCE = 0.4;
@@ -261,11 +299,22 @@ export const HOTEL_EVENING_OUTING: readonly WindowPart[] = [
 ];
 
 export const HOTEL_CHECK_OUT_LEAVE: readonly WindowPart[] = [
-  { from: minutes(6), to: minutes(7), weight: 15 },
-  { from: minutes(7), to: minutes(8), weight: 25 },
+  { from: minutes(7), to: minutes(8), weight: 15 },
   { from: minutes(8), to: minutes(9), weight: 35 },
-  { from: minutes(9), to: minutes(10), weight: 25 },
+  { from: minutes(9), to: minutes(10), weight: 50 },
 ];
+
+/** Hotel guests go to bed and wake in these windows every day of the week. */
+export const HOTEL_BED: readonly WindowPart[] = [
+  { from: minutes(22), to: minutes(24), weight: 100 },
+];
+
+export const HOTEL_WAKE: readonly WindowPart[] = [
+  { from: minutes(7), to: minutes(9), weight: 100 },
+];
+
+/** A guest never goes to bed sooner than this after arriving. */
+export const HOTEL_BED_AFTER_ARRIVAL_MINUTES = 30;
 
 /** The VIP (people spec 9). */
 export const VIP_ARRIVAL: readonly WindowPart[] = [

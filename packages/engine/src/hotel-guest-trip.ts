@@ -17,8 +17,13 @@ export type GuestPhase =
   | 'atVenue'
   | 'fromVenue'
   | 'leaving'
-  | 'leaveRetry';
+  | 'leaveRetry'
+  | 'sleeping';
 
+/**
+ * Phases stored as their index plus one. `sleeping` is stored as 0, the one code the packing
+ * leaves free, so saves made before sleep existed still read the same.
+ */
 const PHASES: readonly GuestPhase[] = [
   'arriving',
   'arrivalRetry',
@@ -52,21 +57,26 @@ export interface GuestRoutine {
 const SLOT_RANGE = 1441;
 const VENUE_RANGE = 100_000;
 const PHASE_RANGE = 12;
+const SLEEPING_CODE = 0;
+/** A sleeping routine keeps this venue so that its packed number is never 0, which means no trip. */
+const SLEEPING_MARK = 1;
 
 /** Packs the routine into a positive integer; a routine always has a phase, so it is never 0. */
 export function encodeGuestRoutine(routine: GuestRoutine): number {
   const [leave, back, outing] = routine.slots;
   let packed = (leave * SLOT_RANGE + back) * SLOT_RANGE + outing;
-  packed = packed * VENUE_RANGE + routine.venue;
-  return packed * PHASE_RANGE + PHASES.indexOf(routine.phase) + 1;
+  const sleeping = routine.phase === 'sleeping';
+  packed = packed * VENUE_RANGE + (sleeping ? SLEEPING_MARK : routine.venue);
+  return packed * PHASE_RANGE + (sleeping ? SLEEPING_CODE : PHASES.indexOf(routine.phase) + 1);
 }
 
 export function decodeGuestRoutine(trip: number): GuestRoutine | null {
   if (trip === NO_TRIP) return null;
-  const phase = PHASES[(trip % PHASE_RANGE) - 1];
+  const code = trip % PHASE_RANGE;
+  const phase = code === SLEEPING_CODE ? 'sleeping' : PHASES[code - 1];
   if (!phase) return null;
   let rest = Math.floor(trip / PHASE_RANGE);
-  const venue = rest % VENUE_RANGE;
+  const venue = phase === 'sleeping' ? 0 : rest % VENUE_RANGE;
   rest = Math.floor(rest / VENUE_RANGE);
   const outing = rest % SLOT_RANGE;
   rest = Math.floor(rest / SLOT_RANGE);

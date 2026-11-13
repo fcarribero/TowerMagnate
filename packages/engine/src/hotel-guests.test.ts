@@ -399,17 +399,17 @@ describe('guest outings', () => {
     expect(visits).toBeGreaterThan(0);
   });
 
-  it('leaves for the day from 09:00 to 11:00 and comes back from 16:00 to 20:00', () => {
+  it('leaves for the day from 07:30 to 10:00 and comes back from 13:00 to 20:00', () => {
     const leaves = startsOf('toExit');
     const returns = startsOf('toRoom');
     expect(leaves.length).toBeGreaterThan(3);
     expect(returns.length).toBe(leaves.length);
     for (const minute of leaves) {
-      expect(minute).toBeGreaterThanOrEqual(9 * 60);
-      expect(minute).toBeLessThan(11 * 60);
+      expect(minute).toBeGreaterThanOrEqual(7 * 60 + 30);
+      expect(minute).toBeLessThan(10 * 60);
     }
     for (const minute of returns) {
-      expect(minute).toBeGreaterThanOrEqual(16 * 60);
+      expect(minute).toBeGreaterThanOrEqual(13 * 60);
       expect(minute).toBeLessThan(20 * 60);
     }
   });
@@ -577,5 +577,47 @@ describe('suite parking at check-in', () => {
     expect(hotelOf(state, suite).state).toBe('occupied');
     expect(state.parking.spaces[holder]).toBe(0);
     expect(state.lastParkingFailureStep).toBe(hotelOf(state, suite).checkInStep);
+  });
+});
+
+describe('guest sleep', () => {
+  const { state: tower } = hotelTower({ rooms: 10, seed: 5, venues: true });
+  const sleepers: number[] = [];
+  const insideMidday: number[] = [];
+  const watch: SimulationSystem = ({ state }) => {
+    const pool = state.people;
+    for (let slot = 0; slot < pool.id.length; slot++) {
+      const phase = guestRoutineAt(pool, slot)?.phase;
+      if (phase === undefined) continue;
+      const minute = minuteOf(state.step);
+      if (phase === 'sleeping' && state.step % STEPS_PER_MINUTE === 0) sleepers.push(minute);
+      const stayIn = phase === 'room' || phase === 'sleeping';
+      if (stayIn && minute >= 10 * 60 + 30 && minute < 13 * 60) insideMidday.push(state.step);
+    }
+  };
+  const engine = createEngine({
+    commandHandlers: {},
+    systems: [...towerSystems, watch],
+  });
+  const { watch: log } = runHotelWeek(tower, 1);
+  engine.runDays(tower, 8);
+
+  it('puts guests to sleep at night and not in the afternoon', () => {
+    expect(sleepers.length).toBeGreaterThan(100);
+    for (const minute of sleepers) {
+      expect(minute < 9 * 60 || minute >= 22 * 60).toBe(true);
+    }
+    expect(log.checkIns.length).toBeGreaterThan(0);
+  });
+
+  it('keeps every room empty from 10:30 to 13:00', () => {
+    expect(insideMidday).toHaveLength(0);
+  });
+
+  it('packs a sleeping routine with no intentions into a number that is not zero', () => {
+    const routine: GuestRoutine = { phase: 'sleeping', venue: 0, slots: [0, 0, 0] };
+    const packed = encodeGuestRoutine(routine);
+    expect(packed).not.toBe(0);
+    expect(decodeGuestRoutine(packed)).toEqual(routine);
   });
 });

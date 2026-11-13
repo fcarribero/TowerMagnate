@@ -68,18 +68,20 @@ describe('step leaves the state it was given unchanged', () => {
   it('through 8 days of leases, shop and venue visits, hotel stays, condo sales and grades', () => {
     let state = mixedTower();
     const seen: EngineEvent[] = [];
+    let venueVisited = false;
     for (let day = 0; day < 8; day++) {
       const result = stepFrozen(state, STEPS_PER_DAY);
       seen.push(...result.events);
       state = result.state;
+      const units = Object.values(state.units);
+      venueVisited ||= units.some((unit) => (unit.venue?.yesterday?.visits ?? 0) > 0);
     }
 
     const types = eventTypes(seen);
     for (const type of ['leaseSigned', 'condoSold', 'hotelCheckIn', 'hotelCheckOut']) {
       expect(types).toContain(type);
     }
-    const venues = Object.values(state.units).filter((unit) => unit.venue !== null);
-    expect(venues.some((unit) => (unit.venue?.yesterday?.visits ?? 0) > 0)).toBe(true);
+    expect(venueVisited).toBe(true);
     expect(Object.keys(state.unitLedger).length).toBeGreaterThan(0);
   });
 

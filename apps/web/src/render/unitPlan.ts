@@ -118,6 +118,7 @@ function unitState(unit: UnitSource, openVenues: OpenVenues): string {
   if (variant === 'disconnected' && type === 'parking-space') {
     return variant;
   }
+  if (variant === 'sleeping' && SLEEPING_UNITS.includes(type)) return 'sleeping';
   const taken = unit.occupied || variant === 'occupied';
   if (RENTAL_UNITS.includes(type)) {
     // Not taken: the bare room. Taken with nobody in: furnished and dark. Someone in: lit.
@@ -125,6 +126,9 @@ function unitState(unit: UnitSource, openVenues: OpenVenues): string {
   }
   return spriteState(type, taken);
 }
+
+/** Units where people sleep: they have a fourth look, closed with someone in bed. */
+const SLEEPING_UNITS: readonly UnitType[] = ['condo', 'single-room', 'double-room', 'suite'];
 
 /** Units with three looks: bare when untaken, `closed` when taken and empty, `occupied` with people inside. Shops have their own states. */
 const RENTAL_UNITS: readonly UnitType[] = [

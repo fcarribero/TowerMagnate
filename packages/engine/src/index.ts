@@ -138,7 +138,7 @@ export {
   straightLineRoutes,
 } from './office-routine';
 export type { OfficeRoutine, Place, RoutePlanner, RoutinePhase } from './office-routine';
-export { isOutsideTower } from './outside-tower';
+export { isAsleep, isOutsideTower } from './outside-tower';
 export { createProspectDemand } from './prospects';
 export type { ProspectDemand } from './prospects';
 export { chance, createRng, nextFloat, nextInt, nextUint32 } from './rng';

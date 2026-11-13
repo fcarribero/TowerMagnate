@@ -22,7 +22,10 @@ const catalogWidthTiles = {
 const hotelRooms = ['single-room', 'double-room', 'suite'];
 const rentals = ['office', 'condo'];
 const states = (subject) => {
-  if (hotelRooms.includes(subject)) return ['empty', 'closed', 'occupied', 'dirty', 'infested'];
+  if (hotelRooms.includes(subject)) {
+    return ['empty', 'closed', 'occupied', 'sleeping', 'dirty', 'infested'];
+  }
+  if (subject === 'condo') return ['empty', 'closed', 'occupied', 'sleeping'];
   return rentals.includes(subject) ? ['empty', 'closed', 'occupied'] : ['closed', 'occupied'];
 };
 const variantsOf = (subject) =>
@@ -228,6 +231,22 @@ describe('rental units', () => {
       expect(dark.get(3, 20)).not.toBe(day.get(3, 20));
       expect(countColor(dark, 'lamp')).toBe(0);
       expect(countColor(dark, 'lamp-glow')).toBe(0);
+    }
+  });
+});
+
+describe('sleeping units', () => {
+  const sleepers = ['condo', ...hotelRooms];
+
+  it('draws a bed with someone in it, dark and curtained like a closed unit', () => {
+    for (const subject of sleepers) {
+      const shape = (state, time = 'day') =>
+        [...byId[`units/${subject}/${state}_${time}`].pixels].join();
+      expect(shape('sleeping')).not.toBe(shape('closed'));
+      expect(shape('sleeping')).not.toBe(shape('occupied'));
+      const night = byId[`units/${subject}/sleeping_night`];
+      expect(countColor(night, 'lamp')).toBe(0);
+      expect(countColor(night, 'lamp-glow')).toBe(0);
     }
   });
 });

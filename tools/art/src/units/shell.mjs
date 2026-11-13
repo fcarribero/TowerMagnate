@@ -80,6 +80,9 @@ export function drawOpenCurtains(room, { left, top, width, height }) {
 
 export const RENTAL_STATES = ['empty', 'closed', 'occupied'];
 
+// Condos and hotel rooms add `sleeping`: dark and curtained like `closed`, with someone in bed.
+export const SLEEPING_STATES = [...RENTAL_STATES, 'sleeping'];
+
 // Returns the day and night sprites of a unit with several looks: `empty` is the bare
 // room nobody has taken; `closed` is furnished, dark and curtained with nobody inside; `occupied` is
 // lit with open curtains and someone inside. Any other state in `states` is drawn as
@@ -88,7 +91,7 @@ export function rentalSprites(subject, { windows, drawDay, states = RENTAL_STATE
   const sprites = [];
   for (const state of states) {
     const lit = drawDay(state);
-    const closed = state === 'closed';
+    const closed = state === 'closed' || state === 'sleeping';
     const occupied = state === 'occupied';
     if (closed) {
       windows.forEach((window) => drawCurtains(lit, window));

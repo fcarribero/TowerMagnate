@@ -9,6 +9,7 @@ import {
   populationOf,
   STEPS_PER_DAY,
   DAYS_PER_WEEK,
+  isAsleep,
   isOutsideTower,
   occupantAt,
   routineAt,
@@ -76,9 +77,16 @@ export function buildSnapshot(
   const people = listPeople(state.people);
   const homes = occupiedUnits(people);
   const inside = unitsWithPeopleInside(state, people);
+  const sleeping = unitsWithSleepers(state, people);
   const units = [
     ...Object.values(state.units).map((unit) =>
-      unitView(unit, homes.has(unit.id), disconnected.has(unit.id), inside.has(unit.id)),
+      unitView(
+        unit,
+        homes.has(unit.id),
+        disconnected.has(unit.id),
+        inside.has(unit.id),
+        sleeping.has(unit.id),
+      ),
     ),
     ...Object.values(state.sites).map((site) => siteView(site, disconnected.has(site.id))),
   ];
@@ -133,10 +141,12 @@ function unitVariant(
   unit: TowerUnit,
   occupied: boolean,
   disconnected: boolean,
+  sleeping: boolean,
 ): UnitView['variant'] {
   const roomState = unit.hotel?.state;
   if (roomState === 'dirty' || roomState === 'infested') return roomState;
   if (disconnected) return 'disconnected';
+  if (sleeping) return 'sleeping';
   return occupied ? 'occupied' : 'empty';
 }
 
@@ -159,6 +169,7 @@ function unitView(
   occupied: boolean,
   disconnected: boolean,
   inside: boolean,
+  sleeping: boolean,
 ): UnitView {
   return {
     id: unit.id,
@@ -168,7 +179,7 @@ function unitView(
     name: unit.name,
     price: unit.priceLevel,
     occupied,
-    variant: unitVariant(unit, occupied, disconnected),
+    variant: unitVariant(unit, occupied, disconnected, sleeping),
     ...(inside ? { inside } : {}),
     ...(unit.lease !== null ? { leased: true } : {}),
   };
@@ -218,6 +229,15 @@ function occupiedUnits(people: EnginePerson[]): Set<string> {
     }
   }
   return homes;
+}
+
+/** Units whose home has at least one person asleep in bed, even when another person there is awake. */
+function unitsWithSleepers(state: TowerState, people: EnginePerson[]): Set<string> {
+  const sleeping = new Set<string>();
+  people.forEach((person, slot) => {
+    if (person.homeUnit !== null && isAsleep(state.people, slot)) sleeping.add(person.homeUnit);
+  });
+  return sleeping;
 }
 
 /** Units with at least one person standing idle in one of their cells; riders, people outside and walkers passing through excluded. */
@@ -329,7 +349,7 @@ export function peopleViews(
   const rides = ridePlaces(state);
   const views: PersonView[] = [];
   people.forEach((person, slot) => {
-    if (isOutsideTower(state.people, slot)) return;
+    if (isOutsideTower(state.people, slot) || isAsleep(state.people, slot)) return;
     const phase = trekPhaseAt(state.people, slot);
     const ride = phase === 'riding' ? rides.get(person.id) : undefined;
     const place = {

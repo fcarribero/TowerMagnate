@@ -31,6 +31,14 @@ describe('planUnit', () => {
     expect(occupied?.variant).toEqual({ state: 'occupied', time: 'night' });
   });
 
+  it('draws a condo or hotel room with someone asleep as sleeping, day or night', () => {
+    for (const type of ['condo', 'single-room', 'double-room', 'suite'] as const) {
+      const unit = { ...base, type, occupied: true, variant: 'sleeping' as const, inside: true };
+      expect(planUnit(unit, 'night')?.variant).toEqual({ state: 'sleeping', time: 'night' });
+      expect(planUnit(unit, 'day')?.variant).toEqual({ state: 'sleeping', time: 'day' });
+    }
+  });
+
   it('draws a taken office or condo as closed until someone is inside', () => {
     const taken = { ...base, occupied: true, variant: 'occupied' as const };
     for (const type of ['office', 'condo'] as const) {

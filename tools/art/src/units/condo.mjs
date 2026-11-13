@@ -1,4 +1,4 @@
-import { FLOOR_ROW, drawWindow, rentalSprites, roomShell } from './shell.mjs';
+import { FLOOR_ROW, SLEEPING_STATES, drawWindow, rentalSprites, roomShell } from './shell.mjs';
 
 const WIDTH_TILES = 16;
 const WINDOWS = [
@@ -144,7 +144,7 @@ function drawPartition(room) {
   room.vline(PARTITION_LEFT + 2, 1, FLOOR_ROW - 3, 'concrete-dark');
 }
 
-function drawBedroom(room, occupied) {
+function drawBedroom(room, occupied, sleeping) {
   const standLeft = 90;
   room.drawMap(standLeft, FLOOR_ROW - nightstand.length + 1, nightstand, legend);
   room.drawMap(standLeft + 1, FLOOR_ROW - nightstand.length - 3, ['.c..', 'ccc.'], legend);
@@ -153,7 +153,7 @@ function drawBedroom(room, occupied) {
   const bedLeft = 100;
   const bedTop = FLOOR_ROW - bed.length + 1;
   room.drawMap(bedLeft, bedTop, bed, legend);
-  if (occupied) {
+  if (occupied || sleeping) {
     room.drawMap(bedLeft + 1, bedTop + 3, ['rrrrrrrrrrrrrrr', 'rrrrrrrrrrrrrrrr'], legend);
     room.drawMap(bedLeft + 18, bedTop + 2, ['wwww'], legend);
   } else {
@@ -170,11 +170,15 @@ function drawCondo(state) {
   // one has it with the lamps and the TV off; an occupied one is in use.
   if (state !== 'empty') {
     drawLivingRoom(room, occupied);
-    drawBedroom(room, occupied);
+    drawBedroom(room, occupied, state === 'sleeping');
   }
   return room;
 }
 
 export function condoSprites() {
-  return rentalSprites('condo', { windows: WINDOWS, drawDay: drawCondo });
+  return rentalSprites('condo', {
+    windows: WINDOWS,
+    drawDay: drawCondo,
+    states: SLEEPING_STATES,
+  });
 }

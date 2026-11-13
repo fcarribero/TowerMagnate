@@ -156,10 +156,6 @@ function run(state: TowerState, steps: number, routes: RoutePlanner = straightLi
   return { state: result.state, sightings: watch.sightings, visits: watch.visits };
 }
 
-function isWeekend(weekday: number): boolean {
-  return weekday >= 5;
-}
-
 function expectShare(observed: number, total: number, expected: number): void {
   expect(Math.abs(observed / total - expected)).toBeLessThanOrEqual(0.03);
   expect(Math.abs(observed - total * expected)).toBeLessThanOrEqual(total * expected * 0.05);
@@ -206,6 +202,7 @@ describe('four weeks of residents', () => {
   const visits: Visit[] = [];
   let weekdayResidentDays = 0;
   let weekendResidentDays = 0;
+  let saturdayOuts = 0;
   let stayerDays = 0;
   let stayerShops = 0;
   let stayerDinners = 0;
@@ -223,16 +220,19 @@ describe('four weeks of residents', () => {
     const result = run(tower.state, (SPAN_DAYS + 1) * STEPS_PER_DAY - 1);
     visits.push(...result.visits);
     weekdayResidentDays += 300 * 20;
-    weekendResidentDays += 300 * 8;
+    weekendResidentDays += 300 * (4 + 4 * 0.7);
     for (const { routine, minuteOfDay, weekday } of result.sightings) {
       const first = routine.slots.findIndex((slot) => slot - 1 === minuteOfDay);
       const home = routine.phase === 'home';
       if (home && routine.plan === 'works' && first === 0) {
-        leaves.push(minuteOfDay);
-        outs.push({ personId: 0, weekday, minuteOfDay, routine });
+        if (weekday === 5) saturdayOuts += 1;
+        else {
+          leaves.push(minuteOfDay);
+          outs.push({ personId: 0, weekday, minuteOfDay, routine });
+        }
       }
       if (routine.phase === 'outside') {
-        returns.push(minuteOfDay);
+        if (weekday < 5) returns.push(minuteOfDay);
         if (routine.slots[2] !== 0 && routine.slots[2] - 1 < minuteOfDay) skippedDinners += 1;
       }
       if (routine.phase === 'toVenue' && tower.state.units[`u${routine.venue}`]) {
@@ -270,8 +270,19 @@ describe('four weeks of residents', () => {
     expectShare(outs.length, weekdayResidentDays, 0.7);
   });
 
-  it('draws leave times from the weighted window', () => {
-    expectWindowShares(leaves, RESIDENT_LEAVE);
+  it('draws leave times in the window, pushed later when the resident wakes up late', () => {
+    const first = RESIDENT_LEAVE[0]?.from ?? 0;
+    const last = RESIDENT_LEAVE[RESIDENT_LEAVE.length - 1]?.to ?? 0;
+    expect(leaves.length).toBeGreaterThan(0);
+    for (const minute of leaves) {
+      expect(minute).toBeGreaterThanOrEqual(first);
+      expect(minute).toBeLessThan(last);
+    }
+  });
+
+  it('sends 30% of the residents to work on Saturday and nobody on Sunday', () => {
+    expectShare(saturdayOuts, SEEDS.length * 300 * 4, 0.3);
+    expect(outs.filter((out) => out.weekday === 6)).toHaveLength(0);
   });
 
   it('brings every resident who left back inside the return window', () => {
@@ -296,10 +307,6 @@ describe('four weeks of residents', () => {
     expectShare(weekendDinners, weekendResidentDays, 0.25);
     expectWindowShares(morning, RESIDENT_WEEKEND_MORNING);
     expectWindowShares(afternoon, RESIDENT_WEEKEND_AFTERNOON);
-  });
-
-  it('never sends a resident to work on a weekend', () => {
-    expect(outs.filter((out) => isWeekend(out.weekday))).toHaveLength(0);
   });
 
   it('splits outings 60% retail and 40% fast food', () => {
@@ -398,7 +405,8 @@ describe('skip rules', () => {
     );
     const { visits, state } = weekendResident([MORNING_TRIP, 0, 0], straightLineRoutes, tower);
     expect(visits).toHaveLength(0);
-    expect(state.people.dueStep.every((due) => due === NOTHING_DUE)).toBe(true);
+    const bedTime = SATURDAY_START + 22 * 60 * STEPS_PER_MINUTE;
+    expect(state.people.dueStep.every((due) => due >= bedTime && due !== NOTHING_DUE)).toBe(true);
   });
 });
 
@@ -429,5 +437,118 @@ describe('shop visits for the early-leave check', () => {
       .reduce((sum, unit) => sum + (unit.lease?.weekVisits ?? 0), 0);
     expect(shopVisits).toBeGreaterThan(0);
     expect(counted).toBe(shopVisits);
+  });
+});
+
+describe('sleep', () => {
+  interface Change {
+    personId: number;
+    step: number;
+    from: string;
+    to: string;
+  }
+
+  function watchPhases(): { changes: Change[]; system: SimulationSystem } {
+    const changes: Change[] = [];
+    const last = new Map<number, string>();
+    return {
+      changes,
+      system: ({ state }) => {
+        const pool = state.people;
+        for (let slot = 0; slot < pool.id.length; slot++) {
+          const phase = decodeResidentRoutine(pool.trip[slot] ?? NO_TRIP)?.phase ?? 'none';
+          const id = pool.id[slot] ?? 0;
+          const before = last.get(id) ?? 'none';
+          if (before !== phase)
+            changes.push({ personId: id, step: state.step, from: before, to: phase });
+          last.set(id, phase);
+        }
+      },
+    };
+  }
+
+  function runWeeks(seed: number, days: number) {
+    const tower = condoTower(seed, 20);
+    populate(tower);
+    const watch = watchPhases();
+    const routine = createResidentRoutine(straightLineRoutes);
+    const engine = createEngine({
+      commandHandlers: {},
+      systems: [createScheduler([routine.planHook]), routine.system, watch.system],
+    });
+    engine.step(tower.state, [], days * STEPS_PER_DAY);
+    return watch.changes;
+  }
+
+  const minuteOf = (step: number) => Math.floor((step % STEPS_PER_DAY) / STEPS_PER_MINUTE);
+
+  it('packs a sleeping routine with no intentions into a number that is not zero', () => {
+    const routine: ResidentRoutine = {
+      plan: 'works',
+      phase: 'sleeping',
+      venue: 0,
+      slots: [0, 0, 0],
+    };
+    const packed = encodeResidentRoutine(routine);
+    expect(packed).not.toBe(NO_TRIP);
+    expect(decodeResidentRoutine(packed)).toEqual(routine);
+  });
+
+  it('puts residents to bed at night and wakes them in the morning', () => {
+    const changes = runWeeks(41, 14);
+    const beds = changes.filter((change) => change.to === 'sleeping');
+    const wakes = changes.filter((change) => change.from === 'sleeping');
+    expect(beds.length).toBeGreaterThan(500);
+    expect(wakes.length).toBeGreaterThan(500);
+    for (const bed of beds) {
+      const minute = minuteOf(bed.step);
+      expect(minute >= 22 * 60 || minute < 2 * 60 + 30).toBe(true);
+    }
+    for (const wake of wakes) {
+      const minute = minuteOf(wake.step);
+      expect(minute).toBeGreaterThanOrEqual(5 * 60 + 30);
+      expect(minute).toBeLessThan(9 * 60 + 30);
+    }
+  });
+
+  it('starts nothing for at least 20 minutes after waking', () => {
+    const changes = runWeeks(42, 14);
+    for (const wake of changes.filter((change) => change.from === 'sleeping')) {
+      const next = changes.find(
+        (change) =>
+          change.personId === wake.personId &&
+          change.step > wake.step &&
+          change.from === 'home' &&
+          change.to !== 'sleeping',
+      );
+      if (next) expect(next.step - wake.step).toBeGreaterThanOrEqual(20 * STEPS_PER_MINUTE);
+    }
+  });
+
+  it('keeps a sleeper asleep through the 00:00 plan', () => {
+    const tower = condoTower(43, 1);
+    addPeopleForUnit(tower.state, tower.condoIds[0] ?? '');
+    const pool = tower.state.people;
+    const wakeStep = STEPS_PER_DAY + 6 * 60 * STEPS_PER_MINUTE;
+    for (let slot = 0; slot < pool.id.length; slot++) {
+      pool.trip[slot] = encodeResidentRoutine({
+        plan: 'works',
+        phase: 'sleeping',
+        venue: 0,
+        slots: [0, 0, 0],
+      });
+      pool.dueStep[slot] = wakeStep;
+    }
+    tower.state.step = STEPS_PER_DAY - 10;
+    const routine = createResidentRoutine(straightLineRoutes);
+    const engine = createEngine({
+      commandHandlers: {},
+      systems: [createScheduler([routine.planHook]), routine.system],
+    });
+    const after = engine.step(tower.state, [], 20).state;
+    for (let slot = 0; slot < after.people.id.length; slot++) {
+      expect(decodeResidentRoutine(after.people.trip[slot] ?? NO_TRIP)?.phase).toBe('sleeping');
+      expect(after.people.dueStep[slot]).toBe(wakeStep);
+    }
   });
 });

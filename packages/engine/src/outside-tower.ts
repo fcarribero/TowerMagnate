@@ -21,6 +21,15 @@ function residentIsOutside(pool: PersonPool, slot: number): boolean {
   return decodeResidentRoutine(pool.trip[slot] ?? NO_TRIP)?.phase === 'outside';
 }
 
+/** True for a resident or hotel guest who is in bed. */
+export function isAsleep(pool: PersonPool, slot: number): boolean {
+  const kind = pool.kind[slot];
+  if (kind === RESIDENT_KIND) {
+    return decodeResidentRoutine(pool.trip[slot] ?? NO_TRIP)?.phase === 'sleeping';
+  }
+  return guestRoutineAt(pool, slot)?.phase === 'sleeping';
+}
+
 /**
  * True for someone who has a plan for today but is not in the tower yet, or has gone out.
  * The pool still holds the place they last stood, usually a lobby end, so they must not be drawn.

@@ -2,12 +2,15 @@ import {
   HOTEL_BOOKING_ROLL_MINUTE,
   HOTEL_CHECK_IN_OUTING_CHANCE,
   HOTEL_CHECK_IN_OUTING_DELAY_MINUTES,
+  HOTEL_BED,
+  HOTEL_BED_AFTER_ARRIVAL_MINUTES,
   HOTEL_CHECK_OUT_LEAVE,
   HOTEL_DAY_OUT_CHANCE,
   HOTEL_DAY_OUT_LEAVE,
   HOTEL_DAY_OUT_RETURN,
   HOTEL_EVENING_OUTING,
   HOTEL_EVENING_OUTING_CHANCE,
+  HOTEL_FIRST_ARRIVAL_MINUTE,
   HOTEL_GIVE_UP_MINUTE,
   HOTEL_LAST_ARRIVAL_MINUTE,
   HOTEL_LATE_ARRIVAL_DELAY_MINUTES,
@@ -16,11 +19,13 @@ import {
   HOTEL_OUTING_END_MINUTE,
   HOTEL_OUTING_VENUES,
   HOTEL_PARTY_SIZE,
+  HOTEL_WAKE,
   ROUTE_RETRY_STEPS,
   VENUE_VISIT_MINUTES,
   VIP_LEAVE,
   VIP_NIGHTS,
   type HotelRoom,
+  type PersonPool,
   type TowerState,
   type Unit,
   type UnitId,
@@ -64,6 +69,7 @@ import { chance, nextInt } from './rng';
 import type { ScheduledHook } from './scheduler';
 import type { SimulationSystem, StepContext } from './step';
 import { writableUnit } from './step-copy';
+import { drawBedStep, drawWakeDelay, drawWakeStep, type SleepWindows } from './sleep';
 import { drawMinuteFromWindow } from './time-windows';
 import { cancelTrek, isOnTrek, plannedTripSteps, startTrek } from './trek';
 import { stressOfTripEndedNow } from './trip-ledger';
@@ -74,6 +80,9 @@ import { countVenueVisit } from './venues';
 
 type RoomType = keyof typeof HOTEL_PARTY_SIZE;
 type RoomUnit = Unit & { type: RoomType; hotel: HotelRoom };
+
+const BED_WINDOWS: SleepWindows = { usual: HOTEL_BED, long: HOTEL_BED };
+const WAKE_WINDOWS: SleepWindows = { usual: HOTEL_WAKE, long: HOTEL_WAKE };
 
 const routes: RoutePlanner = (_state, from, to, context) => plannedTripSteps(context, from, to);
 
@@ -137,7 +146,10 @@ function drawArrivalStep(state: TowerState, atNoon: boolean): number | null {
   const dayStart = dayStartOf(state.step);
   if (atNoon)
     return dayStart + drawMinuteFromWindow(state.rng, HOTEL_NOON_ARRIVAL) * STEPS_PER_MINUTE;
-  const first = minuteAtOrAfter(state.step) + HOTEL_LATE_ARRIVAL_DELAY_MINUTES;
+  const first = Math.max(
+    minuteAtOrAfter(state.step) + HOTEL_LATE_ARRIVAL_DELAY_MINUTES,
+    HOTEL_FIRST_ARRIVAL_MINUTE,
+  );
   if (first >= HOTEL_LAST_ARRIVAL_MINUTE) return null;
   return dayStart + nextInt(state.rng, first, HOTEL_LAST_ARRIVAL_MINUTE - 1) * STEPS_PER_MINUTE;
 }
@@ -287,13 +299,15 @@ function withSlot(slots: GuestSlots, index: number, value: number): GuestSlots {
 
 /**
  * The guest is in the room with nothing running. Intentions whose time passed while they were
- * away are skipped (people spec 8.2); then they wait for the next one.
+ * away are skipped (people spec 8.2); then they wait for the next one. With none left, or when
+ * `bedFirst` is set, they wait for a bed time drawn now, no sooner than `bedAfter` steps from now.
  */
 function settleInRoom(
   state: TowerState,
   slot: number,
   room: RoomUnit,
   routine: GuestRoutine,
+  options: { bedFirst?: boolean; bedAfter?: number } = {},
 ): void {
   standAt(state, slot, unitPlace(room));
   const dayStart = dayStartOf(state.step);
@@ -303,7 +317,8 @@ function settleInRoom(
     slots = withSlot(slots, next.index, NO_SLOT);
     next = nextIntention(slots);
   }
-  const dueStep = next ? stepOfSlot(dayStart, next.slotValue) : NOTHING_DUE;
+  const bedTime = () => drawBedStep(state, state.step + (options.bedAfter ?? 0), BED_WINDOWS);
+  const dueStep = next && !options.bedFirst ? stepOfSlot(dayStart, next.slotValue) : bedTime();
   save(state, slot, { phase: 'room', venue: 0, slots }, dueStep);
 }
 
@@ -364,7 +379,9 @@ function arriveAtRoom(context: StepContext, slot: number, arrivedAt: RoomUnit): 
     removePerson(state, personId);
     return;
   }
-  settleInRoom(state, slot, room, guestRoutineAt(state.people, slot) as GuestRoutine);
+  settleInRoom(state, slot, room, guestRoutineAt(state.people, slot) as GuestRoutine, {
+    bedAfter: HOTEL_BED_AFTER_ARRIVAL_MINUTES * STEPS_PER_MINUTE,
+  });
 }
 
 interface Guest {
@@ -504,6 +521,33 @@ function startOuting(guest: Guest): void {
   }
 }
 
+/** A guest in the room is due for their next intention, or else for bed. */
+function intentionIsDue(guest: Guest): boolean {
+  const next = nextIntention(guest.routine.slots);
+  return (
+    next !== null && stepOfSlot(dayStartOf(guest.state.step), next.slotValue) === guest.state.step
+  );
+}
+
+function goToSleep(guest: Guest): void {
+  const { state, slot } = guest;
+  const wake = drawWakeStep(state, state.step, WAKE_WINDOWS);
+  save(state, slot, { ...guest.routine, phase: 'sleeping', venue: 0 }, wake);
+}
+
+/** Nothing of the day's plan starts before the guest has been up for a while. */
+function wakeUp(guest: Guest): void {
+  const { state } = guest;
+  const dayStart = dayStartOf(state.step);
+  const ready = state.step + drawWakeDelay(state);
+  const readyMinute = Math.floor((ready - dayStart) / STEPS_PER_MINUTE) + 1;
+  const [leave, back, outing] = guest.routine.slots.map((slotValue) =>
+    slotValue !== NO_SLOT && stepOfSlot(dayStart, slotValue) < ready ? readyMinute : slotValue,
+  );
+  guest.routine.slots = [leave, back, outing] as unknown as GuestSlots;
+  settle(guest);
+}
+
 function startIntention(guest: Guest): void {
   const next = nextIntention(guest.routine.slots);
   if (!next) {
@@ -565,7 +609,11 @@ function advance(guest: Guest): void {
       }
       break;
     case 'room':
-      startIntention(guest);
+      if (intentionIsDue(guest)) startIntention(guest);
+      else goToSleep(guest);
+      break;
+    case 'sleeping':
+      wakeUp(guest);
       break;
     case 'toExit':
       finishExit(guest);
@@ -641,7 +689,22 @@ function drawDayPlan(state: TowerState, checkOutDay: boolean, vip: boolean): Gue
   return [leave, back, outing];
 }
 
-/** People spec 1.3 and 8.2: at 00:00 each guest whose stay continues today draws a plan. */
+/**
+ * A guest in the room who is awake and waiting for bed time rather than for an intention: the due
+ * step is not the time of their next intention.
+ */
+function bedTimeOf(pool: PersonPool, slot: number, dayStart: number): number | null {
+  const routine = guestRoutineAt(pool, slot);
+  const due = pool.dueStep[slot] as number;
+  if (routine?.phase !== 'room' || due === NOTHING_DUE) return null;
+  const next = nextIntention(routine.slots);
+  return next && stepOfSlot(dayStart, next.slotValue) === due ? null : due;
+}
+
+/**
+ * People spec 1.3 and 8.2: at 00:00 each guest whose stay continues today draws a plan. A sleeper
+ * keeps sleeping and a guest waiting for bed time keeps that time; the plan starts after waking.
+ */
 function drawPlans(context: StepContext): void {
   const { state } = context;
   const pool = state.people;
@@ -650,10 +713,18 @@ function drawPlans(context: StepContext): void {
     const room = roomOf(state, pool.homeUnit[slot] as number);
     const stayEnd = room?.hotel.stayEndStep ?? null;
     if (!room || stayEnd === null) continue;
-    if (isOnTrek(pool, slot)) cancelTrek(context, slot);
+    const sleeping = guestRoutineAt(pool, slot)?.phase === 'sleeping';
+    const keptWake = sleeping ? (pool.dueStep[slot] as number) : null;
+    const keptBed = sleeping ? null : bedTimeOf(pool, slot, state.step - STEPS_PER_DAY);
+    if (!sleeping && keptBed === null && isOnTrek(pool, slot)) cancelTrek(context, slot);
     const checkOutDay = dayStartOf(stayEnd) === dayStartOf(state.step);
     const slots = drawDayPlan(state, checkOutDay, isVip(pool, slot));
-    settleInRoom(state, slot, room, { phase: 'room', venue: 0, slots });
+    if (keptWake !== null) {
+      save(state, slot, { phase: 'sleeping', venue: 0, slots }, keptWake);
+      continue;
+    }
+    settleInRoom(state, slot, room, { phase: 'room', venue: 0, slots }, { bedFirst: true });
+    if (keptBed !== null) pool.dueStep[slot] = keptBed;
   }
 }
 
@@ -673,7 +744,7 @@ function sendGuestsToRooms(context: StepContext): void {
       leaving.push(pool.id[slot] as number);
       continue;
     }
-    if (routine.phase === 'room') continue;
+    if (routine.phase === 'room' || routine.phase === 'sleeping') continue;
     if (isOnTrek(pool, slot)) cancelTrek(context, slot);
     settleInRoom(state, slot, room, { ...routine, venue: 0 });
   }
