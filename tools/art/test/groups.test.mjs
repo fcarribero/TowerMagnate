@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { drawGroups } from '../src/build.mjs';
 import { colorIndex } from '../src/palette.mjs';
+import { rooftopGroup } from '../src/groups/rooftop.mjs';
 import { skyGroup } from '../src/groups/sky.mjs';
 import { structureGroup } from '../src/groups/structure.mjs';
 import { transportGroup } from '../src/groups/transport.mjs';
@@ -411,5 +412,34 @@ describe('ui group', () => {
     for (const unit of units) {
       expect(sprites[`ui/unit-${unit}`], unit).toBeDefined();
     }
+  });
+});
+
+describe('rooftop group', () => {
+  const sprites = spritesById(rooftopGroup);
+
+  it('draws every prop for day and night, a whole number of tiles wide and under a floor tall', () => {
+    const ids = Object.keys(sprites);
+    expect(ids.length).toBeGreaterThanOrEqual(12);
+    for (const id of ids) {
+      expect(id).toMatch(/^rooftop\/[a-z-]+\/(day|night)$/);
+      expect(sprites[id].width % metrics.tileWidth).toBe(0);
+      expect(sprites[id].height).toBeLessThan(metrics.floorHeight);
+      if (id.endsWith('/day')) {
+        expect(ids).toContain(id.replace('/day', '/night'));
+      }
+    }
+  });
+
+  it('rests every prop on its bottom row and lights the antenna at night', () => {
+    for (const [id, canvas] of Object.entries(sprites)) {
+      let filled = 0;
+      for (let x = 0; x < canvas.width; x++) {
+        filled += canvas.get(x, canvas.height - 1) === 0 ? 0 : 1;
+      }
+      expect(filled, id).toBeGreaterThan(0);
+    }
+    expect(sprites['rooftop/antenna/night'].get(4, 0)).toBe(colorIndex('lamp'));
+    expect(sprites['rooftop/antenna/day'].get(4, 0)).not.toBe(colorIndex('lamp'));
   });
 });

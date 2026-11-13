@@ -2,7 +2,7 @@ import { useEffect, useState } from 'preact/hooks';
 import type { GameConnection } from '../../net/gameConnection';
 import type { PriceLevel, UnitView } from '@tower-magnate/shared';
 import { Button, ConfirmDialog, Tooltip, Window, dialogRequest, useWindowManager } from '../kit';
-import { unitWindowId } from '../inspectTarget';
+import { unitPanelId, unitWindowId } from '../inspectTarget';
 import { t } from '../strings';
 import {
   NAME_MAX_LENGTH,
@@ -29,6 +29,8 @@ export interface UnitWindowProps {
   connection: Pick<GameConnection, 'store' | 'inspect' | 'commands'>;
 }
 
+  /** The Lupa's panel: fixed to the unit, no close button, no dragging. Esc still closes it. */
+  anchored?: boolean;
 interface TowerFacts {
   loaded: boolean;
   view: UnitView | undefined;
@@ -71,14 +73,14 @@ function useUnitInspect(connection: UnitWindowProps['connection'], unitId: strin
 }
 
 /** Unit window, ui.md 6.2. Gone from the tower when the snapshot no longer lists the unit. */
-export function UnitWindow({ unitId, connection }: UnitWindowProps) {
+export function UnitWindow({ unitId, connection, anchored = false }: UnitWindowProps) {
   const manager = useWindowManager();
   const { commands } = connection;
   const { loaded, view, money } = useTowerFacts(connection, unitId);
   const data = useUnitInspect(connection, unitId);
   const found = data?.status === 'ok' ? data : undefined;
   const gone = data?.status === 'gone' || (loaded && view === undefined);
-  const windowId = unitWindowId(unitId);
+  const windowId = anchored ? unitPanelId(unitId) : unitWindowId(unitId);
   const filmDialogId = `changeFilm:${unitId}`;
   const [, redraw] = useState(0);
 
@@ -101,6 +103,10 @@ export function UnitWindow({ unitId, connection }: UnitWindowProps) {
   const close = (): void => {
     connection.inspect.forget(unitId);
     manager.close(windowId);
+    if (anchored) {
+      connection.inspect.clearAnchor();
+      return;
+    }
   };
 
   const filmChange = filmChangeState(money, gone);
@@ -125,6 +131,8 @@ export function UnitWindow({ unitId, connection }: UnitWindowProps) {
         onClose={close}
         width={200}
       >
+        showCloseButton={!anchored}
+        draggable={!anchored}
         {gone && <p class="tm-unit__gone">{t('ui.goneFromTower')}</p>}
         <div class="tm-field">
           <label class="tm-field__label" for={`${windowId}-name`}>

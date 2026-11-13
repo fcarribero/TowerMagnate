@@ -195,6 +195,10 @@ Structure sprites are in `tools/art/src/groups/structure.mjs`. Each one has a `d
 | `subway-tunnel`, `subway-tunnel-lamp` | 8 x 32 | one column of the S10 tunnel; place the lamp column every 4 tiles |
 | `subway-tunnel-edge-left`, `subway-tunnel-edge-right` | 8 x 32 | the first and last column of the tunnel, closed by a concrete bulkhead on the outer side |
 
+### Rooftop props
+
+The `rooftop` atlas has 8 props with `day` and `night` sprites: `vent` (8 x 6), `antenna` (8 x 18), `stack` (8 x 11), `air-conditioner` (16 x 9), `dish` (16 x 11), `water-tank` (16 x 16), `air-conditioner-bank` (24 x 9) and `penthouse` (24 x 13). Widths are whole tiles and the bottom row rests on the parapet. The client draws them on every roof span that has nothing built above it, chosen from the level and column (`rooftopPlan.ts`), so they are the same on every frame and reload. They are decoration only: no cost, no grid space, not clickable, and they disappear when something is built above. The night versions use `toNight`, and the antenna tip lights up in lamp colors.
+
 Unbuilt soil uses one subject per basement level:
 
 | Level | Subject |

@@ -85,6 +85,26 @@ describe('planStructureRow', () => {
     expect(roofs).toEqual([{ subject: 'roof', x: 120, y: -4, width: 40 }]);
   });
 
+  it('puts rooftop props only on free roof columns, standing on the parapet', () => {
+    const rows = { 3: row(span(10, 49, 'f')), 4: row(span(10, 24, 'f')) };
+    const props = (rowsIn: Record<number, string>): StructurePiece[] =>
+      planStructureRow(3, source(rowsIn)).filter((piece) => piece.subject.startsWith('rooftop/'));
+    const free = props(rows);
+    expect(free.length).toBeGreaterThan(0);
+    for (const piece of free) {
+      expect(piece.x).toBeGreaterThanOrEqual(25 * 8);
+      expect(piece.y).toBe(-4);
+      expect(piece.anchorBottom).toBe(true);
+    }
+    const covered = props({ ...rows, 4: row(span(10, 49, 'f')) });
+    expect(covered).toEqual([]);
+  });
+
+  it('gives ruins no rooftop props', () => {
+    const pieces = planStructureRow(3, source({ 3: row(span(10, 49, 'r')) }));
+    expect(pieces.some((piece) => piece.subject.startsWith('rooftop/'))).toBe(false);
+  });
+
   it('draws the main lobby as one tall sprite from level 1 with a column every 4 tiles', () => {
     const lobby = row(span(8, 15, 'l'));
     const rows = { 1: lobby, 2: lobby, 3: lobby };

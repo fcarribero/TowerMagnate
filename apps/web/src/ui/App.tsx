@@ -245,11 +245,16 @@ export function App({ developer = false, onLogout, onRestartTower, onSessionLost
     if (stage === null || tool !== 'inspect') {
       return;
     }
-    return bindUnitClicks(stage, connection.store, {
+    const unbind = bindUnitClicks(stage, connection.store, {
       person: (personId) => connection.inspect.requestPersonWindow(personId),
-      unit: (unitId) => connection.inspect.requestUnitWindow(unitId),
+      unit: (unitId) => connection.inspect.anchorUnit(unitId),
       shaft: (shaftId) => connection.inspect.requestShaftWindow(shaftId),
+      clearUnit: () => connection.inspect.clearAnchor(),
     });
+    return () => {
+      unbind();
+      connection.inspect.clearAnchor();
+    };
   }, [stage, connection, tool]);
 
   useEffect(() => {
@@ -441,7 +446,7 @@ export function App({ developer = false, onLogout, onRestartTower, onSessionLost
               onClose={() => setFollowedOpen(false)}
             />
           )}
-          <UnitWindows connection={connection} />
+          <UnitWindows connection={connection} stage={stage} />
           <PersonWindows connection={connection} onCenter={centerView} />
           <InfoDialogs subscribe={connection.onMessage} />
           <DecisionDialogs

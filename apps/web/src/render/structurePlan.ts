@@ -1,6 +1,7 @@
 import { TOWER_LAYOUT, type Level } from '@tower-magnate/shared';
 import { LOWEST_LEVEL, WORLD_WIDTH } from './levels';
 import { FLOOR_HEIGHT, TILE_WIDTH, TOWER_WIDTH_TILES } from './metrics';
+import { planRooftopProps } from './rooftopPlan';
 
 export type TimeOfDay = 'day' | 'night';
 
@@ -16,7 +17,12 @@ export interface StructurePiece {
   x: number;
   y: number;
   width?: number;
+  /** The sprite stands on `y` instead of hanging from it. */
+  anchorBottom?: boolean;
 }
+
+/** Subjects with this prefix are sprites of the rooftop atlas, not the structure atlas. */
+export const ROOFTOP_SUBJECT_PREFIX = 'rooftop/';
 
 export type LobbyHeight = 1 | 2 | 3;
 
@@ -213,6 +219,26 @@ function roofs(level: Level, row: string, source: StructureSource): StructurePie
     pieces.push(tiledRun('roof', run, y));
     pieces.push({ subject: 'roof-left', x: run.from * TILE_WIDTH - EDGE_WIDTH, y });
     pieces.push({ subject: 'roof-right', x: (run.to + 1) * TILE_WIDTH, y });
+  }
+  pieces.push(...rooftopProps(level, row, above, y));
+  return pieces;
+}
+
+/** Props stand on the parapet of every free roof span; ruins get none. */
+function rooftopProps(level: Level, row: string, above: string, roofY: number): StructurePiece[] {
+  const free = [...row].map(
+    (cell, column) => isBuilt(cell) && cell !== 'r' && !isBuilt(above[column] ?? '.'),
+  );
+  const pieces: StructurePiece[] = [];
+  for (const run of runsWhere(free)) {
+    for (const prop of planRooftopProps(level, run)) {
+      pieces.push({
+        subject: `${ROOFTOP_SUBJECT_PREFIX}${prop.kind}`,
+        x: prop.column * TILE_WIDTH,
+        y: roofY,
+        anchorBottom: true,
+      });
+    }
   }
   return pieces;
 }
