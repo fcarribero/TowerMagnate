@@ -73,10 +73,31 @@ function drawBeam(tile, type) {
   tile.hline(WALL_WIDTH, BEAM_ROW + 1, tile.width - 2 * WALL_WIDTH, 'ink');
 }
 
-// One level of an empty shaft. The car is drawn on top of it.
+const BRICK_HEIGHT = 4;
+const BRICK_LENGTH = 8;
+
+// Brick wall behind the shaft on a level where the elevator does not stop. Rows
+// of bricks offset by half a brick, with a mortar line under each row.
+function drawBrickWall(tile) {
+  tile.fillRect(0, 0, tile.width, tile.height, 'concrete-dark');
+  for (let row = 0; row * BRICK_HEIGHT < tile.height; row++) {
+    const top = row * BRICK_HEIGHT;
+    const shift = row % 2 === 0 ? 0 : BRICK_LENGTH / 2;
+    for (let left = -shift; left < tile.width; left += BRICK_LENGTH) {
+      const brick = Math.floor((left + shift) / BRICK_LENGTH);
+      const color = (brick + row * 3) % 5 === 0 ? 'wood' : 'skin-dark';
+      const from = Math.max(left, 0);
+      const to = Math.min(left + BRICK_LENGTH - 1, tile.width);
+      tile.fillRect(from, top, to - from, BRICK_HEIGHT - 1, color);
+      tile.hline(from, top, to - from, 'wood');
+    }
+  }
+}
+
+// One level of a shaft with no stop. The car is drawn on top of it.
 function shaftBody(type) {
   const tile = new PixelCanvas(shaftWidth(type), floorHeight);
-  tile.fillRect(0, 0, tile.width, tile.height, 'charcoal');
+  drawBrickWall(tile);
   drawShaftWalls(tile);
   drawGuideRails(tile, 0, tile.height);
   drawCables(tile, 0, tile.height);
@@ -226,8 +247,28 @@ function car(type, doors) {
 const JAMB_LEFT = WALL_WIDTH;
 const HEADER_HEIGHT = 2;
 
+// Closed metal hall doors between the jambs, with a seam in the middle. They show
+// whenever the car is on another level.
+function drawHallDoors(frame, jambRight) {
+  const left = JAMB_LEFT + 2;
+  const top = HEADER_HEIGHT;
+  const width = jambRight - left;
+  const height = BEAM_ROW - HEADER_HEIGHT;
+  const leaf = width / 2;
+  frame.fillRect(left, top, width, height, 'silver');
+  for (const start of [left, left + leaf]) {
+    frame.vline(start, top, height, 'white');
+    frame.vline(start + leaf - 1, top, height, 'gray');
+    frame.hline(start + 1, top + 3, leaf - 2, 'gray');
+    frame.hline(start + 1, top + height - 5, leaf - 2, 'gray');
+  }
+  frame.vline(left + leaf - 1, top, height, 'ink');
+  frame.vline(left + leaf, top, height, 'ink');
+  frame.hline(left, top + height - 1, width, 'slate');
+}
+
 // The hall door frame around the car on every level where the elevator stops.
-// It is drawn over the shaft body and under the car; the rest stays clear.
+// It is drawn over the shaft body and under the car, with closed metal doors in it.
 function landingFrame(type) {
   const { light, base, dark } = STYLES[type].frame;
   const frame = new PixelCanvas(shaftWidth(type), floorHeight);
@@ -242,6 +283,7 @@ function landingFrame(type) {
   const middle = frame.width / 2;
   frame.set(middle - 1, 0, 'lamp');
   frame.set(middle, 0, 'lamp');
+  drawHallDoors(frame, jambRight);
   return frame;
 }
 

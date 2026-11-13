@@ -274,14 +274,23 @@ describe('transport walkways and landings', () => {
     expect(night.pixels.includes(colorIndex('night'))).toBe(true);
   });
 
-  it('frames each landing as wide as its shaft and leaves the car opening clear', () => {
+  it('frames each landing as wide as its shaft and fills the opening with metal doors', () => {
     for (const type of types) {
       const landing = sprites[`transport/${type}-shaft/landing`];
       const shaft = sprites[`transport/${type}-shaft/body`];
       expect(landing.width, type).toBe(shaft.width);
       expect(landing.height, type).toBe(metrics.floorHeight);
-      expect(landing.get(landing.width / 2, 14), type).toBe(0);
+      expect(landing.get(landing.width / 4, 14), type).toBe(colorIndex('silver'));
+      expect(landing.get(landing.width / 2, 14), type).toBe(colorIndex('ink'));
       expect(landing.get(2, 14), type).not.toBe(0);
+    }
+  });
+
+  it('backs a shaft level with no stop with a brick wall', () => {
+    for (const type of types) {
+      const shaft = sprites[`transport/${type}-shaft/body`];
+      expect(shaft.pixels.includes(colorIndex('skin-dark')), type).toBe(true);
+      expect(shaft.pixels.includes(colorIndex('concrete-dark')), type).toBe(true);
     }
   });
 
