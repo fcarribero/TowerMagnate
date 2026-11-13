@@ -49,8 +49,8 @@ interface RunningTower {
   layoutVersion: number;
   /** Developer setting: how many times faster than real time the tower runs. */
   speed: number;
-  /** Developer setting: money is kept at the cap. */
-  infiniteMoney: boolean;
+  /** Developer setting: while on, holds the money the tower really has; the state shows the cap. */
+  realMoney: number | null;
 }
 
 export class UnknownTowerError extends Error {
@@ -173,7 +173,7 @@ export class TowerRunner {
       tower.layoutVersion = this.nextLayoutVersion();
       tower.startedAt = this.now();
       tower.startStep = tower.state.step;
-      await this.store.save(towerId, tower.state);
+      await this.store.save(towerId, this.savedState(tower));
     });
   }
 
@@ -192,22 +192,35 @@ export class TowerRunner {
     });
   }
 
-  /** Developer setting: keeps the tower's money at the cap while on. */
+  /**
+   * Developer setting: while on, the tower shows the cap as its money and spending does not take
+   * any away. The money it really has is kept aside, saved, and shown again when turned off.
+   */
   setInfiniteMoney(towerId: TowerId, enabled: boolean): Promise<void> {
     return this.inOrder(towerId, async () => {
       const tower = this.running.get(towerId);
       if (!tower) {
         throw new UnknownTowerError(towerId);
       }
-      tower.infiniteMoney = enabled;
+      if (enabled && tower.realMoney === null) {
+        tower.realMoney = tower.state.money;
+      } else if (!enabled && tower.realMoney !== null) {
+        tower.state = { ...tower.state, money: tower.realMoney };
+        tower.realMoney = null;
+      }
       this.topUpMoney(tower);
     });
   }
 
   private topUpMoney(tower: RunningTower): void {
-    if (tower.infiniteMoney && tower.state.money < MONEY_CAP) {
+    if (tower.realMoney !== null && tower.state.money !== MONEY_CAP) {
       tower.state = { ...tower.state, money: MONEY_CAP };
     }
+  }
+
+  /** The state to save: with infinite money on, it carries the money the tower really has. */
+  private savedState(tower: RunningTower): TowerState {
+    return tower.realMoney === null ? tower.state : { ...tower.state, money: tower.realMoney };
   }
 
   /** The events since the last call, oldest first. */
@@ -262,7 +275,7 @@ export class TowerRunner {
       events: [],
       layoutVersion: this.nextLayoutVersion(),
       speed: 1,
-      infiniteMoney: false,
+      realMoney: null,
     });
   }
 
@@ -274,7 +287,7 @@ export class TowerRunner {
     this.applyPending(tower);
     this.catchUp(tower);
     this.running.delete(towerId);
-    await this.store.save(towerId, tower.state);
+    await this.store.save(towerId, this.savedState(tower));
   }
 
   private async saveRunning(towerId: TowerId): Promise<void> {
@@ -283,7 +296,7 @@ export class TowerRunner {
       return;
     }
     this.catchUp(tower);
-    await this.store.save(towerId, tower.state);
+    await this.store.save(towerId, this.savedState(tower));
   }
 
   /** Runs the queued commands against the tower and answers each sender. Returns true when one was accepted. */

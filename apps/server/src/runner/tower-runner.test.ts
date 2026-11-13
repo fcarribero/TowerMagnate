@@ -303,6 +303,17 @@ describe('tower runner', () => {
     runner.tick();
     expect(runner.stateOf('1')?.money).toBe(MONEY_CAP);
   });
+
+  it('saves and restores the real money around infinite money', async () => {
+    await runner.resume('1');
+    const real = runner.stateOf('1')?.money;
+    await runner.setInfiniteMoney('1', true);
+    await runner.save('1');
+    expect(store.towers.get('1')?.money).toBe(real);
+
+    await runner.setInfiniteMoney('1', false);
+    expect(runner.stateOf('1')?.money).toBe(real);
+  });
 });
 
 describe('tower runner timer', () => {
