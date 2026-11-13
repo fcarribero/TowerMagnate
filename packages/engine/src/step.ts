@@ -31,6 +31,7 @@ import { ledgerWeekRollHook } from './money';
 import { createOfficeRoutine } from './office-routine';
 import { createResidentRoutine } from './resident-routine';
 import { createVenueStaff } from './venue-staff';
+import { createCouriers } from './couriers';
 import { createProspectDemand } from './prospects';
 import { createScheduler } from './scheduler';
 import { cancelTrek, createTrekSystem, isOnTrek, plannedTripSteps } from './trek';
@@ -254,6 +255,8 @@ const venueStaff = createVenueStaff();
 
 const prospects = createProspectDemand();
 
+const couriers = createCouriers();
+
 const customers = createCustomers();
 
 const hotelGuests = createHotelGuests();
@@ -281,6 +284,7 @@ export const namedTowerSystems: readonly { name: string; system: SimulationSyste
       hotelGuests.planHook,
       hotelGuests.nightHook,
       ...prospects.rollHooks,
+      ...couriers.hooks,
       vipBookingHook,
       hotelGuests.bookingHook,
       hotelGuests.giveUpHook,
@@ -298,6 +302,7 @@ export const namedTowerSystems: readonly { name: string; system: SimulationSyste
   { name: 'daily grades', system: createDailyGradeSystem() },
   { name: 'trek', system: createTrekSystem() },
   { name: 'prospects', system: prospects.system },
+  { name: 'couriers', system: couriers.system },
   { name: 'office routine', system: officeRoutine.system },
   { name: 'venue staff', system: venueStaff.system },
   { name: 'resident routine', system: residentRoutine.system },

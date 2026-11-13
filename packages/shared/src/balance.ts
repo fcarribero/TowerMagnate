@@ -723,3 +723,17 @@ export const DEFAULT_ELEVATOR_MODE = 'normal';
 export const ELEVATOR_BAND_STARTS = [0, 2_520, 3_600, 4_320, 5_040, 6_120] as const;
 /** Age in steps at which any free car answers a hall call (5 game minutes). */
 export const CALL_PATIENCE_STEPS = 30;
+
+/** Office hours that bound the couriers (people spec 23): offices are open on weekdays, in minutes since midnight. */
+export const COURIER_OFFICE_OPEN_MINUTE = 9 * 60;
+export const COURIER_OFFICE_CLOSE_MINUTE = 17 * 60;
+/** No courier is sent in the first or the last this many minutes of the office hours. */
+export const COURIER_MARGIN_MINUTES = 120;
+/** Length in minutes of the block an office rolls once in for a courier. */
+export const COURIER_BLOCK_MINUTES = 30;
+/** Chance per block that an occupied office with no courier on the way gets one. */
+export const COURIER_CHANCE_PER_BLOCK = 0.4;
+/** Steps a courier stays at the office door before walking out (30 game seconds). */
+export const COURIER_DWELL_STEPS = 3;
+/** A courier that has not left this many blocks after being sent gives up and is removed. */
+export const COURIER_GIVE_UP_BLOCKS = 3;

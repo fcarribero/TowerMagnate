@@ -201,6 +201,15 @@ describe('packed people and cars', () => {
   });
 
   it('survive JSON inside a delta', () => {
+  it('carry the courier kind, stored right after staff', () => {
+    const courier = { ...walker, id: 'p9', kind: 'courier' } as const;
+    expect(unpackPerson(packPerson(courier))).toEqual(courier);
+    expect(PERSON_KINDS.indexOf('courier')).toBe(PERSON_KINDS.indexOf('staff') + 1);
+    expect(PersonKindSchema.parse('courier')).toBe('courier');
+    const delta = serverMessage('delta', { step: 2, cars: [], people: [packPerson(courier)] });
+    expect(ServerMessageSchema.parse(throughJson(delta))).toEqual(delta);
+  });
+
     const delta = serverMessage('delta', {
       step: 2,
       cars: [packCar(car)],

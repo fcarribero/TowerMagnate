@@ -20,6 +20,8 @@ import { stressBand, type StressBand } from './person-stress';
 import { chance, nextInt, nextUint32 } from './rng';
 import type { SimulationSystem, StepContext } from './step';
 
+const COURIER_KIND = PERSON_KINDS.indexOf('courier');
+
 export const NOTHING_DUE = -1;
 export const NO_TRIP = 0;
 export const NO_HOME_UNIT = 0;
@@ -38,6 +40,8 @@ export interface NewPerson {
   homeUnit: number;
   level: Level;
   column: number;
+  /** Name seed to use instead of drawing one from the RNG; couriers derive it from a hash. */
+  nameSeed?: number;
 }
 
 /** A read-only view of one person, for tests, inspection and the client. */
@@ -183,7 +187,7 @@ export function addPerson(state: TowerState, person: NewPerson): number {
   pool.queueRechecks.push(0);
   pool.leftShafts.push(0);
   pool.facing.push(0);
-  const nameSeed = nextUint32(state.rng);
+  const nameSeed = person.nameSeed ?? nextUint32(state.rng);
   pool.nameSeed.push(nameSeed);
   pool.energy.push(startingEnergy(person.kind, nameSeed));
   pool.nextId += 1;
@@ -365,12 +369,14 @@ export function listPeople(pool: PersonPool): PersonView[] {
   return people;
 }
 
-/** How many people belong to the unit. One pass over a number array, no allocation. */
+/** How many people belong to the unit, not counting couriers who only drop a package off. One pass over number arrays, no allocation. */
 export function countPeopleOfUnit(pool: PersonPool, unitId: UnitId): number {
   const homeUnit = parseUnitNumber(unitId);
   if (homeUnit === null) return 0;
   let count = 0;
-  for (const home of pool.homeUnit) if (home === homeUnit) count++;
+  for (let slot = 0; slot < pool.homeUnit.length; slot++) {
+    if (pool.homeUnit[slot] === homeUnit && pool.kind[slot] !== COURIER_KIND) count++;
+  }
   return count;
 }
 
