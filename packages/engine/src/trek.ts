@@ -667,11 +667,12 @@ export function plannedTripSteps(
   context: StepContext,
   from: TrekPlace,
   to: TrekPlace,
+  userClass: UserClass = 'other',
 ): number | null {
   const plan = plannerFor(graphOf(context)).plan(context.state, {
     from: { level: from.level, x: from.column },
     to: { level: to.level, x: to.column },
-    userClass: 'other',
+    userClass,
   });
   if (!plan) return null;
   const stairs = plan.firstLeg?.steps.length ?? 0;

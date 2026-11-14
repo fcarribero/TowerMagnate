@@ -74,7 +74,7 @@ and one of these happens:
 - her claim was released (section 4.4);
 - the clock is at a multiple of 30 minutes (10:30, 11:00, ..., 15:30) and she is idle, in her unit or on her way back to it.
 
-A maid who asks and gets no room starts a trip back to her unit, or stays there if she is already in it. A maid who has started 8 cleanings goes back to her unit and does not ask again that day.
+A maid who asks and gets no room starts a trip back to her unit, or stays there if she is already in it. 
 
 Maids ask in the people phase of the step, in increasing person id (people.md 1.2, step 3). A room claimed by a maid with a lower id is no longer a candidate for the next maid in the same step.
 
@@ -84,18 +84,13 @@ Design call on the 30-minute retry: rooms only become Sucia at 10:00 (economy E-
 
 A candidate is a room that is Sucia, has no claim, and has a valid maid route (routing 7) from the maid's current cell to the room's door at this step.
 
-The maid takes the first candidate in this order:
-
-1. smaller level distance: floors between her level and the room's level (routing 1);
-2. at equal level distance, the room above her before the room below her;
-3. smaller column distance between her current column and the room's door column;
-4. lower unit id.
+The maid takes the candidate nearest to her housekeeping unit. Near means the fewest steps along the maid route (stairs and service shafts only, with stairs costing 20 times a lift) from the door of her housekeeping unit to the room's door, found by the route planner. Ties go to the lower unit id. A room with no route is not a candidate.
 
 The maid claims that room at once and starts a trip to its door along the route found.
 
-Implementation note for the engine, not a rule: sort the Sucia unclaimed rooms by keys 1 to 4 and run the maid route search on each in that order until one succeeds. The first room with a route is the answer.
+Implementation note for the engine, not a rule: the steps from each housekeeping door are looked up once per room and step. Rooms are sorted by them and the trip is tried in that order until one succeeds.
 
-Design call on the order: the research notes say the original maid searched upward first, then downward. Taking the nearest level first, and up before down only on a tie, keeps that habit without sending a maid 20 floors up while a room waits one floor below.
+Design call on the order: the distance is measured from the unit, not from where the maid stands, so the rooms next to the housekeeping unit are cleaned first and the far ones last. The straight-line distance in floors and columns is not used because a room one floor up can be farther by stairs than a room 50 columns away.
 
 ### 4.3 The trip to the room
 

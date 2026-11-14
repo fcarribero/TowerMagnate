@@ -160,7 +160,7 @@ describe('maid shift', () => {
 });
 
 /** m2 and m3 get off the stairs at their right end, closer to their rooms than the old x + 4 stop (5 steps for r2, 3 for r4). */
-const R2_CLEANED = at(0, 10, 37, 50) + 1 - 5;
+const R2_CLEANED = at(0, 10, 37, 50) + 1 - 4;
 
 describe('hotel spec 9.1, morning shift on two floors', () => {
   function morning() {
@@ -176,14 +176,14 @@ describe('hotel spec 9.1, morning shift on two floors', () => {
     return { state, rooms, units };
   }
 
-  it('sends m1 to r5, m2 to r2 and m3 to r4, and leaves m4 to m6 idle', () => {
+  it('sends m1 to r5, m2 to r4 and m3 to r2, nearest to the housekeeping unit first, and leaves m4 to m6 idle', () => {
     const { state, rooms } = morning();
     const run = runUntil(state, at(0, 10, 1));
     const tasks = maidTasks(run.state);
     expect(tasks.map((task) => task.room)).toEqual([
       roomNumber(rooms.r5 as UnitId),
-      roomNumber(rooms.r2 as UnitId),
       roomNumber(rooms.r4 as UnitId),
+      roomNumber(rooms.r2 as UnitId),
       0,
       0,
       0,
@@ -196,7 +196,7 @@ describe('hotel spec 9.1, morning shift on two floors', () => {
     const run = runUntil(state, at(0, 11));
     expect(cleanedAt(run.events, rooms.r5 as UnitId)).toBe(at(0, 10, 35, 50));
     expect(cleanedAt(run.events, rooms.r2 as UnitId)).toBe(R2_CLEANED);
-    expect(cleanedAt(run.events, rooms.r4 as UnitId)).toBe(at(0, 10, 36, 10) + 2 - 3);
+    expect(cleanedAt(run.events, rooms.r4 as UnitId)).toBe(at(0, 10, 36, 10) + 2 - 4);
     for (const name of ['r2', 'r4', 'r5']) {
       expect(run.state.units[rooms[name] as UnitId]?.hotel).toMatchObject({
         dirtyChecks: 0,
@@ -318,6 +318,25 @@ describe('room choice', () => {
     const later = runUntil(claimed, at(0, 7));
     expect(later.state.units[rooms.r5 as UnitId]?.hotel?.state).toBe('dirty');
     expect(maidCount(later.state)).toBe(0);
+  });
+});
+
+describe('hotel spec 4.2, nearest room by route from the housekeeping unit', () => {
+  it('sends the first maid to the room with the shortest walk, not the one on her own floor', () => {
+    const rooms: RoomPlan[] = [
+      { name: 'sameFloorFar', type: 'single-room', level: 10, x: 220 },
+      { name: 'upstairsNear', type: 'single-room', level: 11, x: 124 },
+    ];
+    const { state, rooms: ids } = hotelTower({
+      rooms,
+      flights: [{ type: 'stairs', x: 120, level: 10 }],
+      housekeeping: [{ level: 10, x: 100 }],
+    });
+    for (const id of Object.values(ids)) setRoom(state, id, 'dirty');
+    const run = runUntil(state, at(0, 6, 31));
+    const tasks = maidTasks(run.state);
+    expect(tasks[0]?.room).toBe(roomNumber(ids.upstairsNear as UnitId));
+    expect(tasks[1]?.room).toBe(roomNumber(ids.sameFloorFar as UnitId));
   });
 });
 
