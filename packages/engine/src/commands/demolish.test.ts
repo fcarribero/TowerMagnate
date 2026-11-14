@@ -183,11 +183,55 @@ describe('demolish', () => {
     expect(structureAt(state.grid, 15, 101)).toBe('lobby');
   });
 
-  it('rejects floor under a unit with CELL_OCCUPIED', () => {
-    const { state } = build(towerReadyToBuild(), 'office', 10, 5);
+  it('demolishes only the units of a floor run that covers them and leaves the floor', () => {
+    const { state, id } = build(towerReadyToBuild(), 'office', 10, 5);
     const floor: Command = {
       type: 'demolish',
-      target: { kind: 'floor', level: 5, x0: 10, x1: 10 },
+      target: { kind: 'floor', level: 5, x0: 4, x1: 12 },
+    };
+    const { state: after } = run(state, floor);
+    expect(after.units[id]).toBeUndefined();
+    expect(occupantAt(after.grid, 5, 10)).toBeNull();
+    for (const x of [4, 8, 10, 12]) expect(structureAt(after.grid, 5, x)).toBe('floor');
+  });
+
+  it('demolishes the walls of a span that has no unit', () => {
+    const tower = withNewFloor(towerWithEmptyBasement(), 40, 50);
+    expect(structureAt(tower.grid, NEW_FLOOR_LEVEL, 45)).toBe('floor');
+    const { state: after } = run(tower, demolishFloor(44, 46));
+    expect(structureAt(after.grid, NEW_FLOOR_LEVEL, 45)).toBeNull();
+    expect(structureAt(after.grid, NEW_FLOOR_LEVEL, 43)).toBe('floor');
+  });
+
+  it('charges one week of rent per rented unit of a floor run and nothing for the others', () => {
+    const first = build(towerReadyToBuild(), 'office', 10, 5);
+    const second = build(first.state, 'office', 30, 5);
+    const leased = structuredClone(second.state);
+    (leased.units[first.id] as TowerState['units'][string]).lease = {
+      anchorStep: 0,
+      nextDueStep: 100,
+      weekVisits: 0,
+      rent: 12_000,
+    };
+    leased.money = 100_000;
+    const floor: Command = {
+      type: 'demolish',
+      target: { kind: 'floor', level: 5, x0: 0, x1: 60 },
+    };
+    const { state: after } = run(leased, floor);
+    expect(Object.keys(after.units)).not.toContain(first.id);
+    expect(Object.keys(after.units)).not.toContain(second.id);
+    expect(after.ledger.currentWeek.rent.expense).toBe(-12_000);
+    expect(structureAt(after.grid, 5, 10)).toBe('floor');
+    expect(structureAt(after.grid, 5, 50)).toBe('floor');
+  });
+
+  it('still rejects a floor run that also covers a stairway with CELL_OCCUPIED', () => {
+    const { state: withUnit } = build(towerReadyToBuild(), 'office', 52, 5);
+    const { state } = withStairs(withUnit);
+    const floor: Command = {
+      type: 'demolish',
+      target: { kind: 'floor', level: 5, x0: 52, x1: 62 },
     };
     expect(rejection(state, floor)).toBe('CELL_OCCUPIED');
   });

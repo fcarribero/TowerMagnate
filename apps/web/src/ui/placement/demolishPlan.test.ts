@@ -3,8 +3,10 @@ import { describe, expect, it } from 'vitest';
 import { levelToIndex } from '../../render/levels';
 import {
   combineOutcomes,
+  floorRunConfirmation,
   indemnityOf,
   pickDemolition,
+  unitsInSpan,
   unlistCommands,
   type DemolishWorld,
 } from './demolishPlan';
@@ -188,5 +190,47 @@ describe('rented units', () => {
 
   it('sums one week of rent over the rented units', () => {
     expect(indemnityOf([{ rent: 5000 }, {}, { rent: 7000 }])).toBe(12_000);
+  });
+});
+
+describe('floor run over units', () => {
+  const rented = unit({ id: 'a', x: 10, rent: 12_000, listed: true, occupied: true });
+  const rentedUnlisted = unit({ id: 'b', x: 30, rent: 5000, listed: false, occupied: true });
+  const empty = unit({ id: 'c', x: 40 });
+
+  it('finds the units whose footprint touches the span on that level only', () => {
+    const units = [rented, rentedUnlisted, empty, unit({ id: 'd', x: 10, level: 3 })];
+    expect(unitsInSpan(units, 2, 5, 11).map((u) => u.id)).toEqual(['a']);
+    expect(unitsInSpan(units, 2, 30, 0).map((u) => u.id)).toEqual(['a', 'b']);
+    expect(unitsInSpan(units, 2, 0, 3)).toEqual([]);
+  });
+
+  it('asks nothing when the span has only walls', () => {
+    expect(floorRunConfirmation(world({ units: [rented] }), 2, 0, 3)).toBeNull();
+  });
+
+  it('asks nothing for unrented units', () => {
+    expect(floorRunConfirmation(world({ units: [empty] }), 2, 38, 45)).toBeNull();
+  });
+
+  it('sums the rent of the rented units and unlists only those still listed', () => {
+    const confirmation = floorRunConfirmation(
+      world({ units: [rented, rentedUnlisted, empty] }),
+      2,
+      0,
+      50,
+    );
+    expect(confirmation).toMatchObject({ kind: 'rented', indemnity: 17_000, units: 3 });
+    expect(unlistCommands(confirmation!)).toEqual([
+      { type: 'setListed', unitId: 'a', listed: false },
+    ]);
+  });
+
+  it('asks about sold condos', () => {
+    const condo = unit({ id: 'k', type: 'condo', x: 20, occupied: true });
+    expect(floorRunConfirmation(world({ units: [condo] }), 2, 20, 21)).toMatchObject({
+      kind: 'soldCondo',
+      units: 1,
+    });
   });
 });

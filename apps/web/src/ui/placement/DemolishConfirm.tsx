@@ -9,6 +9,7 @@ const DIALOG_IDS = {
   expensive: 'demolishExpensive',
   rented: 'demolishRented',
 } as const;
+// A floor run over units: only the units go, the walls stay.
 
 export interface DemolishConfirmProps {
   /** Null while nothing waits for an answer. */
@@ -24,11 +25,17 @@ export function DemolishConfirm({ confirmation, onConfirm, onCancel, onKeepContr
     return null;
   }
   const { kind, unitType, price } = confirmation;
-  const id = DIALOG_IDS[kind];
+  const id =
+    confirmation.units === undefined
+      ? DIALOG_IDS[kind]
+      : kind === 'rented'
+        ? 'demolishRentedUnits'
+        : 'demolishUnits';
   const params = {
     indemnity: formatMoney(confirmation.indemnity ?? 0),
     typeName: t(`unit.${unitType}` as StringKey).toLowerCase(),
     price: formatMoney(price),
+    count: String(confirmation.units ?? 1),
   };
   return (
     <Opened id={id}>

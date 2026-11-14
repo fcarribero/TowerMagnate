@@ -196,4 +196,58 @@ describe('bindDemolishInput', () => {
     t.keeps[0]?.();
     expect(t.sent).toEqual([{ type: 'setListed', unitId: 'u5', listed: false }]);
   });
+
+  describe('floor run over units', () => {
+    const office = {
+      ...cinema,
+      id: 'u5',
+      type: 'office',
+      x: 5,
+      rent: 9000,
+      listed: true,
+      occupied: true,
+    } as const;
+    const second = { ...office, id: 'u6', x: 20, rent: 4000 } as const;
+
+    it('sends the floor demolition without asking when the units are not rented', () => {
+      const t = setup([{ ...cinema, type: 'office', x: 5 }]);
+      t.input('down', { x: 1, level: 2 });
+      t.input('up', { x: 9, level: 2 });
+      expect(t.asked).toEqual([]);
+      expect(t.sent).toEqual([
+        { type: 'demolish', target: { kind: 'floor', level: 2, x0: 1, x1: 9 } },
+      ]);
+    });
+
+    it('asks with the summed indemnity and demolishes only after a yes', () => {
+      const t = setup([office, second]);
+      t.input('down', { x: 1, level: 2 });
+      t.input('up', { x: 25, level: 2 });
+      expect(t.asked[0]).toMatchObject({ kind: 'rented', indemnity: 13_000 });
+      expect(t.sent).toEqual([]);
+      t.answers[0]?.();
+      expect(t.sent).toEqual([
+        { type: 'demolish', target: { kind: 'floor', level: 2, x0: 1, x1: 25 } },
+      ]);
+    });
+
+    it('unlists every rented unit on "No renovar" and sends no demolition', () => {
+      const t = setup([office, second]);
+      t.input('down', { x: 1, level: 2 });
+      t.input('up', { x: 25, level: 2 });
+      t.keeps[0]?.();
+      expect(t.sent).toEqual([
+        { type: 'setListed', unitId: 'u5', listed: false },
+        { type: 'setListed', unitId: 'u6', listed: false },
+      ]);
+    });
+
+    it('does not ask for a span with only walls', () => {
+      const t = setup([office]);
+      t.input('down', { x: 30, level: 2 });
+      t.input('up', { x: 35, level: 2 });
+      expect(t.asked).toEqual([]);
+      expect(t.sent).toHaveLength(1);
+    });
+  });
 });

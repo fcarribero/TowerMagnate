@@ -6,6 +6,7 @@ import type { CellInput } from '../../render/stage';
 import type { ScreenPoint } from './bindBuildInput';
 import {
   combineOutcomes,
+  floorRunConfirmation,
   pickDemolition,
   runCommands,
   unlistCommands,
@@ -104,6 +105,21 @@ export function bindDemolishInput(options: DemolishInputOptions): () => void {
     frame();
   };
 
+  const askFor = (confirmation: Confirmation, command: Command, at: ScreenPoint): void => {
+    const unlist = unlistCommands(confirmation);
+    confirm(
+      confirmation,
+      () => send(command, at),
+      unlist.length === 0
+        ? undefined
+        : () => {
+            for (const unlistCommand of unlist) {
+              send(unlistCommand, at);
+            }
+          },
+    );
+  };
+
   const press = (cell: Cell, at: ScreenPoint): void => {
     const pick = pickAt(cell);
     if (pick === null) {
@@ -113,19 +129,7 @@ export function bindDemolishInput(options: DemolishInputOptions): () => void {
       drag = { kind: pick.run, press: cell, currentX: cell.x };
       frame();
     } else if (pick.confirmation !== null) {
-      const { confirmation } = pick;
-      const unlist = unlistCommands(confirmation);
-      confirm(
-        confirmation,
-        () => send(pick.command, at),
-        unlist.length === 0
-          ? undefined
-          : () => {
-              for (const command of unlist) {
-                send(command, at);
-              }
-            },
-      );
+      askFor(pick.confirmation, pick.command, at);
     } else {
       send(pick.command, at);
     }
@@ -140,6 +144,15 @@ export function bindDemolishInput(options: DemolishInputOptions): () => void {
     const row = world()?.structure.get(start.level) ?? '';
     const [first, ...rest] = runCommands(kind, start.level, row, start.x, cell?.x ?? currentX);
     if (first === undefined) {
+      return;
+    }
+    const current = world();
+    const confirmation =
+      kind === 'floor' && current !== null
+        ? floorRunConfirmation(current, start.level, start.x, cell?.x ?? currentX)
+        : null;
+    if (confirmation !== null) {
+      askFor(confirmation, first, at);
       return;
     }
     if (rest.length === 0) {

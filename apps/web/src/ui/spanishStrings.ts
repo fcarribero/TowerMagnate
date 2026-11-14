@@ -528,6 +528,12 @@ export const SPANISH_STRINGS = {
   'dialog.demolishRented.title': 'Demoler {typeName} alquilado',
   'dialog.demolishRented.body':
     'Hay un contrato vigente. Si lo demolés, pagás {indemnity} de indemnización, una semana de renta. Si no renovás el contrato, el inquilino se va cuando termine.',
+  'dialog.demolishUnits.title': 'Demoler unidades',
+  'dialog.demolishUnits.body':
+    'Se demuelen {count} unidades de la selección y los muros quedan en su lugar. Si hay departamentos vendidos, se devuelve su precio a los dueños. Las unidades costaron {price} en total.',
+  'dialog.demolishRentedUnits.title': 'Demoler unidades alquiladas',
+  'dialog.demolishRentedUnits.body':
+    'Se demuelen {count} unidades de la selección y los muros quedan en su lugar. Hay contratos vigentes: pagás {indemnity} de indemnización, una semana de renta por contrato. Si no renovás los contratos, los inquilinos se van cuando terminen.',
   'dialog.changeFilm.title': 'Cambiar película',
   'dialog.changeFilm.body': 'La película nueva cuesta $300.000.',
   'dialog.newTower.title': 'Torre nueva',

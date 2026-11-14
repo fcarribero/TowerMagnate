@@ -188,10 +188,47 @@ function restsOnFloor(grid: GridState, level: Level, x: number): boolean {
   return dependent !== null && hasStructure(grid, dependent, x);
 }
 
+/**
+ * Walls and units are never demolished together: a floor run that covers units removes only those
+ * units (and their sites) and leaves the floor as it is. Anything else standing in the span (a shaft,
+ * a transport, ruins) still refuses the run. Null when the span holds no unit.
+ */
+function planUnitsInSpan(state: TowerState, level: Level, columns: readonly number[]): Plan | null {
+  const ids: string[] = [];
+  let blocked = false;
+  for (const x of columns) {
+    const occupant = occupantAt(state.grid, level, x);
+    if (occupant === null) continue;
+    if (occupant.kind === 'unit') {
+      if (!ids.includes(occupant.id)) ids.push(occupant.id);
+    } else {
+      blocked = true;
+    }
+  }
+  if (ids.length === 0) return null;
+  if (blocked) return reject('CELL_OCCUPIED');
+  const plans: Plan[] = [];
+  for (const id of ids) {
+    const plan = Object.hasOwn(state.sites, id) ? planSite(state, id) : planUnit(state, id);
+    if (!plan.ok) return plan;
+    plans.push(plan);
+  }
+  return {
+    ok: true,
+    apply() {
+      let refund = 0;
+      for (const plan of plans) if (plan.ok) refund += plan.apply();
+      return refund;
+    },
+  };
+}
+
 function planFloor(state: TowerState, level: Level, x0: number, x1: number): Plan {
   const grid = state.grid;
   const all = columnsBetween(x0, x1);
   if (all.some((x) => isMainLobbyRow(grid, level, x))) return reject('MAIN_LOBBY_PROTECTED');
+  const unitPlan = planUnitsInSpan(state, level, all);
+  if (unitPlan !== null) return unitPlan;
   const floorColumns = all.filter((x) => structureAt(grid, level, x) === 'floor');
   if (floorColumns.length === 0) return NOTHING;
   if (floorColumns.some((x) => occupantAt(grid, level, x) !== null)) return reject('CELL_OCCUPIED');

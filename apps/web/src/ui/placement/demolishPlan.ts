@@ -43,6 +43,8 @@ export interface Confirmation {
   indemnity?: number;
   /** Rented units only: the rented units that are still listed, which "No renovar" unlists. */
   unlistIds?: string[];
+  /** A floor run over units: how many units it removes. The walls under them stay. */
+  units?: number;
 }
 
 /** What sits under the pointer and what removing it would send. */
@@ -94,6 +96,68 @@ export function unlistCommands(confirmation: Confirmation): Command[] {
     unitId,
     listed: false,
   }));
+}
+
+function intersectsSpan(unit: UnitView, level: Level, x0: number, x1: number): boolean {
+  const footprint = footprintOfThing(unit);
+  const bottom = levelToIndex(footprint.level);
+  const index = levelToIndex(level);
+  return (
+    index >= bottom &&
+    index < bottom + footprint.floors &&
+    footprint.x <= x1 &&
+    footprint.x + footprint.width > x0
+  );
+}
+
+/** The units a floor run over one level would demolish: the engine removes them and leaves the walls. */
+export function unitsInSpan(
+  units: Iterable<UnitView>,
+  level: Level,
+  columnA: number,
+  columnB: number,
+): UnitView[] {
+  const x0 = Math.min(columnA, columnB);
+  const x1 = Math.max(columnA, columnB);
+  return [...units].filter((unit) => intersectsSpan(unit, level, x0, x1));
+}
+
+/**
+ * What a floor run asks before it goes. With no unit in the span it is a wall demolition and asks
+ * nothing. With units it removes only them: rented ones ask about the indemnity, a sold condo or a
+ * large total ask for a yes, anything else goes through.
+ */
+export function floorRunConfirmation(
+  world: DemolishWorld,
+  level: Level,
+  columnA: number,
+  columnB: number,
+): Confirmation | null {
+  const inSpan = unitsInSpan(world.units, level, columnA, columnB);
+  const first = inSpan[0];
+  if (first === undefined) {
+    return null;
+  }
+  const rented = inSpan.filter((unit) => unit.rent !== undefined);
+  const total = inSpan.reduce((sum, unit) => sum + buildPrice(unit.type), 0);
+  if (rented.length > 0) {
+    return {
+      kind: 'rented',
+      unitType: (rented[0] as UnitView).type,
+      price: total,
+      indemnity: indemnityOf(rented),
+      unlistIds: rented.filter((unit) => unit.listed !== false).map((unit) => unit.id),
+      units: inSpan.length,
+    };
+  }
+  const sold = inSpan.filter((unit) => unit.type === 'condo' && unit.occupied);
+  if (sold.length > 0) {
+    const refund = sold.reduce((sum, unit) => sum + buildPrice(unit.type), 0);
+    return { kind: 'soldCondo', unitType: 'condo', price: refund, units: inSpan.length };
+  }
+  return total >= CONFIRM_PRICE
+    ? { kind: 'expensive', unitType: first.type, price: total, units: inSpan.length }
+    : null;
 }
 
 function targetPick(

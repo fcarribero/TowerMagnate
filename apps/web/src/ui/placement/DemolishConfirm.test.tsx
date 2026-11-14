@@ -102,3 +102,23 @@ describe('rented dialog', () => {
     expect(onConfirm).not.toHaveBeenCalled();
   });
 });
+
+describe('rented dialog over a floor run', () => {
+  it('says the units go and the walls stay', () => {
+    renderConfirm(
+      {
+        kind: 'rented',
+        unitType: 'office',
+        price: 20_000,
+        indemnity: 17_000,
+        unlistIds: ['a'],
+        units: 3,
+      },
+      vi.fn(),
+    );
+    expect(screen.getByText(/3 unidades/)).toBeTruthy();
+    expect(screen.getByText(/los muros quedan en su lugar/)).toBeTruthy();
+    expect(screen.getByText(/pagás \$17\.000 de indemnización/)).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Demoler de todas formas' })).toBeTruthy();
+  });
+});
