@@ -11,6 +11,7 @@ import {
   SECURITY_SHIFTS,
   SECURITY_SPOTS,
   UNIT_CATALOG,
+  type Level,
   type PersonPool,
   type TowerState,
   type Unit,
@@ -246,6 +247,12 @@ function returnToBase(officer: Officer): void {
   }
 }
 
+/** True when the person stands on a cell covered by a unit (a patrol stop is always open floor). */
+function isInsideUnit(state: TowerState, pool: PersonPool, slot: number): boolean {
+  const here = occupantAt(state.grid, pool.level[slot] as Level, pool.column[slot] as number);
+  return here !== null && here.kind === 'unit';
+}
+
 function patrolWeight(unit: Unit, own: Unit): number {
   if (unit === own || unit.type === 'lobby' || unit.type === 'security') return 0;
   return SECURITY_PATROL_WEIGHTS[unit.type] ?? 1;
@@ -335,13 +342,18 @@ function advanceOfficer(officer: Officer): void {
       if (officer.shift !== currentShiftOf(state.step)) {
         returnToBase(officer);
       } else if (!isOnTrek(pool, slot)) {
+        // The walk ended inside a unit (it was cut short): patrols only stop on open floor, so head back to the base.
+        if (isInsideUnit(state, pool, slot)) {
+          returnToBase(officer);
+          return;
+        }
         const stop = SECURITY_PATROL_STOP_MINUTES;
         const minutes = stop.min + (mix(pool.id[slot] as number, state.step, 99) % (stop.max - stop.min + 1));
         setPhase(pool, slot, 'lingering', state.step + minutes * STEPS_PER_MINUTE);
       }
       return;
     case 'lingering':
-      if (officer.shift !== currentShiftOf(state.step)) returnToBase(officer);
+      if (officer.shift !== currentShiftOf(state.step) || isInsideUnit(state, pool, slot)) returnToBase(officer);
       else if (state.step >= (pool.dueStep[slot] as number)) startPatrol(officer);
       return;
     case 'returning':
