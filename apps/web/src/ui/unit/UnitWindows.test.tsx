@@ -361,6 +361,11 @@ describe('unit windows', () => {
     expect(screen.getByText('Horario 08:00 a 20:00')).toBeTruthy();
     expect(screen.getByText('Se aplica desde mañana.')).toBeTruthy();
     expect(screen.getByText('Personal')).toBeTruthy();
+    const table = document.querySelector('.tm-unit__table') as HTMLElement;
+    expect(within(table).getByText('Atendidos').closest('tr')?.textContent).toBe('Atendidos0');
+    expect(within(table).getByText('Adentro')).toBeTruthy();
+    expect(table.querySelector('tfoot')?.textContent).toContain('Resultado');
+    expect(document.querySelector('.tm-unit__tile')).toBeNull();
     expect(screen.getByText('Clientes')).toBeTruthy();
     const close = screen.getByRole('slider', { name: 'Hora de cierre' });
     fireEvent.input(close, { target: { value: '22' } });

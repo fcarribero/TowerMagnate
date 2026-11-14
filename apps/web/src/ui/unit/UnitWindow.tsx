@@ -177,7 +177,10 @@ export function UnitWindow({ unitId, connection, anchored = false }: UnitWindowP
             }}
           />
         </div>
-        {groups !== null && groups.tiles.length > 0 && (
+        {groups !== null && groups.tiles.length > 0 && found?.details?.group === 'venue' && (
+          <VenueTable rows={groups.tiles} />
+        )}
+        {groups !== null && groups.tiles.length > 0 && found?.details?.group !== 'venue' && (
           <div class="tm-unit__tiles">
             {groups.tiles.map((row) => (
               <StatTile key={row.id} row={row} />
@@ -278,6 +281,35 @@ function StatTile({ row }: { row: UnitRow }) {
       <span class="tm-unit__tile-label">{row.label}</span>
       <span class="tm-unit__tile-value">{row.value}</span>
     </div>
+  );
+}
+
+/** The day of a fast food or restaurant laid out like the finance window: rows with amounts on the right, the result last. */
+function VenueTable({ rows }: { rows: readonly UnitRow[] }) {
+  const result = rows.find((row) => row.id === 'result');
+  return (
+    <table class="tm-unit__table">
+      <tbody>
+        {rows
+          .filter((row) => row.id !== 'result')
+          .map((row) => (
+            <tr key={row.id}>
+              <th scope="row">{row.label}</th>
+              <td>{row.value}</td>
+            </tr>
+          ))}
+      </tbody>
+      {result !== undefined && (
+        <tfoot>
+          <tr class="tm-unit__table-result">
+            <th scope="row" class={`is-${result.tone}`}>
+              {result.label}
+            </th>
+            <td class={`is-${result.tone}`}>{result.value}</td>
+          </tr>
+        </tfoot>
+      )}
+    </table>
   );
 }
 
