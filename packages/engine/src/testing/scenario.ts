@@ -7,6 +7,7 @@ import type {
 } from '@tower-magnate/shared';
 import { STEPS_PER_DAY } from '../clock';
 import { createTower } from '../state';
+import { stepAcceptingStars } from './accept-stars';
 import { step as towerStep, type Engine } from '../step';
 
 export interface ScriptedCommand {
@@ -50,7 +51,7 @@ export function runScenario(scenario: Scenario): ScenarioRun {
     const queued: QueuedCommand[] = script
       .filter((entry) => entry.day === day)
       .map((entry) => ({ id: `s${++commandCount}`, command: entry.command }));
-    const outcome = step(state, queued, STEPS_PER_DAY);
+    const outcome = stepAcceptingStars(step, state, queued, STEPS_PER_DAY);
     state = outcome.state;
     results.push(...outcome.results);
     events.push(...outcome.events);

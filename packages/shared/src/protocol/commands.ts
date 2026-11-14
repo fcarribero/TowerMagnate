@@ -125,6 +125,7 @@ const operateCommands = [
   z.object({ type: z.literal('renamePerson'), personId: PersonEntityIdSchema, name: NameSchema }),
   z.object({ type: z.literal('followPerson'), personId: PersonEntityIdSchema }),
   z.object({ type: z.literal('unfollowPerson'), personId: PersonEntityIdSchema }),
+  z.object({ type: z.literal('acceptStars') }),
 ] as const;
 
 export const CommandSchema = z.discriminatedUnion('type', [

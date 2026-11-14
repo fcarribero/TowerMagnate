@@ -53,18 +53,20 @@ For balance planning, a 15,000 tower in the economy spec's mix (about 1,200 offi
 
 ### 4.1 When it runs
 
-The star check runs at 17:00 on every weekday (Monday to Friday), in the step-event phase of that step (people.md 1.2), after the economy events 1 to 6 of that step (economy 10) and before player commands. It makes no RNG draws.
+The promotion is checked at every game minute, on any day of the week: the first minute in which the population meets the threshold and every requirement of section 5 is met, the rating goes up. The check makes no RNG draws. A tower at 5 stars or at Torre skips it.
 
-The check never runs on Saturday or Sunday. The Torre rank has its own weekend path (section 7). A tower at 5 stars or at Torre skips the weekday check.
+The weekday check at 17:00 (Monday to Friday, in the step-event phase of that step, after the economy events 1 to 6 and before player commands) keeps its second job: it shows the alert notices for the requirements that are missing (4.2). The window of section 6 for the medical and parking failures runs from the latest weekday 17:00 before the check up to now.
+
+When the rating goes up the clock holds (`starsPending`): no step runs until the player accepts the "¡N estrellas!" dialog with the button "Aceptar y continuar" (`acceptStars` command). A saved tower that waits for the player shows the dialog again when it loads.
 
 ### 4.2 What it does
 
 At the check, with rating `r` from 1 to 4:
 
 1. If every requirement for `r` to `r + 1` in section 5 is met, the rating becomes `r + 1` at once.
-2. Otherwise the rating stays. If population meets the step's threshold, the engine shows one alert notice for each other requirement that is missing, in the order of the table in section 5 (texts in section 9).
+2. Otherwise the rating stays. At the 17:00 weekday check, if population meets the step's threshold, the engine shows one alert notice for each other requirement that is missing, in the order of the table in section 5 (texts in section 9).
 
-A check raises the rating by at most one step. A tower that meets two steps at once rises one step today and one at the next weekday check.
+A check raises the rating by at most one step. A tower that meets two steps at once rises one step now and the next one after the player accepts the dialog.
 
 Design call on one step per check: the player sees each "¡N estrellas!" dialog and its unlock list, and a fast-growing tower cannot skip the security requirement by being too big. A delay of one weekday is small next to the weeks between ratings.
 

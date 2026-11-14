@@ -54,6 +54,7 @@ const COMMAND_TRIGGERS: Record<CommandType, SfxTrigger | null> = {
   renamePerson: null,
   followPerson: null,
   unfollowPerson: null,
+  acceptStars: null,
 };
 
 const ALARM_TRIGGERS: Record<DecisionKind, SfxTrigger> = {

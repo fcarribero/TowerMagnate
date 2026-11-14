@@ -238,6 +238,8 @@ export const SnapshotSchema = z.object({
   step: StepSchema,
   money: MoneySchema,
   stars: StarRatingSchema,
+  /** True while the rating just went up and the clock holds for the player to accept; left out otherwise. */
+  starsPending: z.literal(true).optional(),
   population: z.int().nonnegative(),
   starRequirements: z.array(StarRequirementViewSchema),
   grid: z.object({

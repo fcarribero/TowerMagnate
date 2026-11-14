@@ -102,13 +102,36 @@ describe('weekday star check', () => {
     expect(secured.state.stars).toBe(3);
   });
 
-  it('does not check on Saturday or Sunday', () => {
+  it('raises the rating on Saturday and Sunday too, as soon as everything is met', () => {
     const tower = towerWith({ stars: 1, leasedOffices: 50 });
     for (const day of [SATURDAY, SATURDAY + 1]) {
-      const { state, events } = runCheckAt(tower, day);
-      expect(state.stars).toBe(1);
-      expect(events).toEqual([]);
+      expect(runCheckAt(tower, day).state.stars).toBe(2);
     }
+  });
+
+  it('raises the rating at once, not at 17:00, and holds the clock until the player accepts', () => {
+    const tower = { ...towerWith({ stars: 2, leasedOffices: 170, others: ['security'] }), step: 0 };
+    const tenAm = TUESDAY * STEPS_PER_DAY + 10 * STEPS_PER_HOUR;
+    const rose = step({ ...tower, step: tenAm - 1 }, [], 1);
+    expect(rose.state.stars).toBe(3);
+    expect(rose.state.starsPending).toBe(true);
+    expect(rose.state.step).toBe(tenAm);
+    const held = step(rose.state, [], 500);
+    expect(held.state.step).toBe(tenAm);
+    expect(held.state.stars).toBe(3);
+    const accepted = step(held.state, [{ id: 'a1', command: { type: 'acceptStars' } }], 12);
+    expect(accepted.results[0]?.ok).toBe(true);
+    expect(accepted.state.starsPending).toBe(false);
+    expect(accepted.state.step).toBe(tenAm + 12);
+  });
+
+  it('stops the steps of a long run at the step the rating rises', () => {
+    const tower = towerWith({ stars: 2, leasedOffices: 170, others: ['security'] });
+    const start = TUESDAY * STEPS_PER_DAY + 9 * STEPS_PER_HOUR;
+    const run = step({ ...tower, step: start }, [], 2 * STEPS_PER_HOUR);
+    expect(run.state.stars).toBe(3);
+    // The population is checked every game minute, six steps, and the clock stops there.
+    expect(run.state.step).toBe(start + 6);
   });
 
   it('checks on Monday and Friday', () => {
@@ -121,7 +144,9 @@ describe('weekday star check', () => {
     const tower = towerWith({ stars: 1, leasedOffices: 170, others: ['security'] });
     const first = runCheckAt(tower, TUESDAY);
     expect(first.state.stars).toBe(2);
-    expect(runCheckAt(first.state, TUESDAY + 1).state.stars).toBe(3);
+    expect(runCheckAt(first.state, TUESDAY + 1).state.stars).toBe(2);
+    const accepted = { ...first.state, starsPending: false };
+    expect(runCheckAt(accepted, TUESDAY + 1).state.stars).toBe(3);
   });
 
   it('runs only at 17:00', () => {

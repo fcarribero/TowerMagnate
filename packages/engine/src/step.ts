@@ -51,7 +51,7 @@ import {
   type GraphInputs,
   type ShaftStops,
 } from './routing';
-import { starCheckHook } from './stars';
+import { starCheckHook, starPromotionSystem } from './stars';
 import { weeklyUpkeepHook } from './upkeep';
 import { weddingAttemptHook, weddingSystem } from './wedding';
 import { filmNewsHook } from './films';
@@ -229,6 +229,8 @@ export function createEngine(rules: EngineRules): Engine {
       known && !changesGraph ? known : new TransportGraph(context.state, shaftStops(context.state));
     context.graph = currentGraph;
     for (let count = 0; count < steps; count++) {
+      // A new rating holds the clock until the player accepts it.
+      if (context.state.starsPending === true) break;
       advanceOneStep(context);
     }
     graphsByState.set(context.state, {
@@ -323,6 +325,7 @@ export const namedTowerSystems: readonly { name: string; system: SimulationSyste
   { name: 'elevators', system: createElevatorSystem() },
   { name: 'children', system: createChildSystem() },
   { name: 'scheduler (star check)', system: createScheduler([starCheckHook]) },
+  { name: 'star promotion', system: starPromotionSystem },
   { name: 'events', system: eventsPhase },
 ];
 

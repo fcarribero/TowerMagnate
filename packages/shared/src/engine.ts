@@ -376,6 +376,11 @@ export interface TowerState {
   newsSent: Record<string, number>;
   /** Basement levels that have already given treasure. */
   treasureLevels: Level[];
+  /**
+   * True from the moment the rating goes up until the player accepts the message: the clock
+   * holds while it is set. Left out in saves made before it existed.
+   */
+  starsPending?: boolean;
   /** Set when a VIP visit that started at 3 stars ends approved. */
   vipApproved: boolean;
   /** The VIP visit from its 00:00 roll until the VIP's stay ends; null when there is none. */

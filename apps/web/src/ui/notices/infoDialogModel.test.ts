@@ -33,6 +33,7 @@ describe('messagesForEvents', () => {
     expect(message).toEqual({
       title: '¡4 estrellas!',
       body: 'La torre llegó a 4 estrellas. Ahora podés construir: Estación de subte.',
+      stars: 4,
     });
   });
 

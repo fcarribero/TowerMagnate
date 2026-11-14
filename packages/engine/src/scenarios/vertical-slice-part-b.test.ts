@@ -1,6 +1,6 @@
 import type { EngineEvent, TowerState, UnitId } from '@tower-magnate/shared';
 import { beforeAll, describe, expect, it } from 'vitest';
-import { isWeekendDay, STEPS_PER_HOUR, weekdayOfDay } from '../calendar';
+import { STEPS_PER_HOUR } from '../calendar';
 import { STEPS_PER_DAY } from '../clock';
 import { moveInTenant } from '../leases';
 import { populationOf } from '../population';
@@ -26,11 +26,6 @@ const RUN_TIMEOUT_MS = 120_000;
 
 function dayOf(stepNumber: number): number {
   return Math.floor(stepNumber / STEPS_PER_DAY);
-}
-
-function isWeekdayFivePm(stepNumber: number): boolean {
-  const weekday = !isWeekendDay(weekdayOfDay(dayOf(stepNumber)));
-  return weekday && stepNumber % STEPS_PER_DAY === MONDAY_FIVE_PM;
 }
 
 function ofType<T extends EngineEvent['type']>(events: readonly EngineEvent[], type: T) {
@@ -79,12 +74,11 @@ describe('scenario: vertical slice part B, stars, forced bomb and 14 days', () =
     expect(run.days).toHaveLength(14);
   });
 
-  it('reaches 2 stars at 17:00 of a weekday, no later than the Friday check', () => {
+  it('reaches 2 stars as soon as the population allows, no later than the Friday check', () => {
     const changes = ofType(run.events, 'starsChanged');
     expect(changes).toHaveLength(1);
     const [change] = changes;
     expect(change?.stars).toBe(2);
-    expect(isWeekdayFivePm(change?.step ?? -1)).toBe(true);
     expect(change?.step).toBeLessThanOrEqual(FRIDAY_CHECK);
     const news = run.events.filter((event) => event.type === 'news' && event.step === change?.step);
     expect(news).toEqual([

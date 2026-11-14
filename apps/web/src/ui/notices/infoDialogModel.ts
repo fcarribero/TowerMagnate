@@ -9,6 +9,8 @@ import { t, type StringKey } from '../strings';
 export interface InfoMessage {
   title: string;
   body: string;
+  /** A new rating: the server holds its clock until the player accepts. */
+  stars?: StarRating;
 }
 
 /** Ratings that open the "new stars" dialog; 6 comes from the wedding and has its own. */
@@ -25,11 +27,17 @@ function starsUpMessage(stars: StarRating): InfoMessage {
   return {
     title: t('dialog.starsUp.title', { n: stars }),
     body: t('dialog.starsUp.body', { n: stars, units: unitsUnlockedAt(stars).join(', ') }),
+    stars,
   };
 }
 
 function towerRankMessage(): InfoMessage {
   return { title: t('dialog.towerRank.title'), body: t('dialog.towerRank.body') };
+}
+
+/** The rating message of a tower that was saved while it waited for the player to accept it. */
+export function pendingStarsMessage(stars: StarRating): InfoMessage | null {
+  return STAR_DIALOG_RATINGS.has(stars) ? starsUpMessage(stars) : null;
 }
 
 export function welcomeMessage(): InfoMessage {

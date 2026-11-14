@@ -106,6 +106,7 @@ export function buildSnapshot(
     step: state.step,
     money: state.money,
     stars: state.stars,
+    ...(state.starsPending === true ? { starsPending: true as const } : {}),
     population: populationOf(state).total,
     starRequirements: nextStarRequirements(state),
     grid: {

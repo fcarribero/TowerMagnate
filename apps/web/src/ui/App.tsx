@@ -486,7 +486,10 @@ export function App({ developer = false, onLogout, onRestartTower, onSessionLost
           )}
           <UnitWindows connection={connection} stage={stage} />
           <PersonWindows connection={connection} onCenter={centerView} stage={stage} />
-          <InfoDialogs subscribe={connection.onMessage} />
+          <InfoDialogs
+            subscribe={connection.onMessage}
+            onAcceptStars={() => void connection.commands.acceptStars()}
+          />
           <DecisionDialogs
             store={connection.store}
             onAnswer={notices.answerEvent}

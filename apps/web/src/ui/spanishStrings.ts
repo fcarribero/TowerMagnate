@@ -119,6 +119,7 @@ export const SPANISH_STRINGS = {
   'ui.viewportTooSmall': 'Agrandá la ventana del navegador para jugar.',
   'ui.close': 'Cerrar',
   'ui.accept': 'Aceptar',
+  'ui.acceptContinue': 'Aceptar y continuar',
   'ui.cancel': 'Cancelar',
   'ui.apply': 'Aplicar',
   'ui.discard': 'Descartar',

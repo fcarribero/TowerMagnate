@@ -10,7 +10,7 @@ useFakeLayoutSizes({ clientWidth: 800, clientHeight: 600, offsetWidth: 260, offs
 
 afterEach(cleanup);
 
-function renderDialogs() {
+function renderDialogs(onAcceptStars?: () => void) {
   const listeners = new Set<(message: ServerMessage) => void>();
   const subscribe = (listener: (message: ServerMessage) => void) => {
     listeners.add(listener);
@@ -18,7 +18,7 @@ function renderDialogs() {
   };
   render(
     <WindowLayer>
-      <InfoDialogs subscribe={subscribe} />
+      <InfoDialogs subscribe={subscribe} onAcceptStars={onAcceptStars} />
     </WindowLayer>,
   );
   const send = (message: ServerMessage): void => {
@@ -57,10 +57,32 @@ describe('InfoDialogs', () => {
     expect(screen.getByText('¡5 estrellas!')).toBeTruthy();
     expect(screen.queryByText('¡Rango Torre!')).toBeNull();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Aceptar' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Aceptar y continuar' }));
 
     expect(screen.queryByText('¡5 estrellas!')).toBeNull();
     expect(screen.getByText('¡Rango Torre!')).toBeTruthy();
+  });
+
+  it('holds the new stars message until the player accepts, and tells the server', () => {
+    const accepted: string[] = [];
+    const { sendEvents } = renderDialogs(() => accepted.push('accepted'));
+    sendEvents([{ type: 'starsChanged', step: 200, stars: 3 }]);
+
+    const frame = screen.getByText('¡3 estrellas!').closest('section') as HTMLElement;
+    expect(frame.querySelector('.tm-window__close')).toBeNull();
+    expect(document.querySelector('.tm-modal-backdrop')).not.toBeNull();
+    expect(accepted).toEqual([]);
+    fireEvent.click(screen.getByRole('button', { name: 'Aceptar y continuar' }));
+    expect(accepted).toEqual(['accepted']);
+    expect(screen.queryByText('¡3 estrellas!')).toBeNull();
+  });
+
+  it('opens the stars message again after a reload while the rating waits to be accepted', () => {
+    const { send } = renderDialogs();
+    send(serverMessage('snapshot', { ...snapshot, stars: 3, starsPending: true }));
+    expect(screen.getByText('¡3 estrellas!')).toBeTruthy();
+    send(serverMessage('snapshot', { ...snapshot, stars: 3, starsPending: true }));
+    expect(screen.getAllByText('¡3 estrellas!')).toHaveLength(1);
   });
 
   it('closes with the close button', () => {
@@ -83,7 +105,6 @@ describe('InfoDialogs', () => {
   });
 
   it.each([
-    ['stars', '¡3 estrellas!'],
     ['wedding', '¡Rango Torre!'],
     ['welcome', 'Bienvenida'],
   ])('shows the %s dialog with an ink title, one Aceptar and a close square', (kind, title) => {

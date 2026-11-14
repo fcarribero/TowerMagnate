@@ -17,6 +17,7 @@ import {
   type BombRoll,
 } from '../events';
 import { hashState } from '../hash';
+import { stepAcceptingStars } from './accept-stars';
 import { peopleCount } from '../people';
 import { populationOf } from '../population';
 import { createEngine, towerSystems, type Engine, type SimulationSystem } from '../step';
@@ -280,7 +281,7 @@ export function runVerticalSlice(
   let rentCredited = 0;
   for (let day = 0; day < days; day++) {
     const before = { ...tally };
-    const result = engine.step(state, [], STEPS_PER_DAY);
+    const result = stepAcceptingStars(engine.step, state, [], STEPS_PER_DAY);
     state = result.state;
     events.push(...result.events.filter(isStoryEvent));
     const rentSoFar = rentIncomeOfWeek(state);
@@ -381,7 +382,12 @@ export function timeVerticalSlice(): SliceTiming {
     commandHandlers: towerCommandHandlers,
     systems: [startClock, ...verticalSliceSystems(), stopClock],
   });
-  const state = engine.runDays(verticalSliceTower(), VERTICAL_SLICE_DAYS).state;
+  const state = stepAcceptingStars(
+    engine.step,
+    verticalSliceTower(),
+    [],
+    VERTICAL_SLICE_DAYS * STEPS_PER_DAY,
+  ).state;
   const sorted = Array.from(times).sort((a, b) => a - b);
   const total = sorted.reduce((sum, value) => sum + value, 0);
   return {

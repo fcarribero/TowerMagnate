@@ -11,11 +11,11 @@ import {
   type UnitType,
   type NewsId,
 } from '@tower-magnate/shared';
-import { STEPS_PER_HOUR, WEEKDAYS, weekdayOfDay } from './calendar';
+import { STEPS_PER_HOUR, STEPS_PER_MINUTE, WEEKDAYS, weekdayOfDay } from './calendar';
 import { STEPS_PER_DAY } from './clock';
 import { populationOf } from './population';
 import type { ScheduledHook } from './scheduler';
-import type { StepContext } from './step';
+import type { SimulationSystem, StepContext } from './step';
 import { emitNews } from './news';
 
 const STAR_CHECK_HOUR = 17;
@@ -129,12 +129,19 @@ function statusOf(state: TowerState, population: number, window: CheckWindow): R
 }
 
 /**
+ * The window a check made right now looks at: from the latest weekday 17:00 before this step up
+ * to now, so a failure counts until the 17:00 check that follows it has gone by.
+ */
+function runningWindow(state: TowerState): CheckWindow {
+  return { start: nextCheckWindowStart(state.step - 1), end: state.step + 1 };
+}
+
+/**
  * The next step's requirements besides population, as the next check would see them if it ran
  * now. Empty at Torre.
  */
 export function nextStarRequirements(state: TowerState): RequirementStatus[] {
-  const window = { start: nextCheckWindowStart(state.step), end: state.step + 1 };
-  return statusOf(state, populationOf(state).total, window);
+  return statusOf(state, populationOf(state).total, runningWindow(state));
 }
 
 function unitsUnlockedAt(stars: StarRating): UnitType[] {
@@ -147,7 +154,7 @@ function unitsUnlockedAt(stars: StarRating): UnitType[] {
 /** The weekday star check of stars.md 4: one step up when everything is met, else alerts. */
 export function runStarCheck(context: StepContext): void {
   const { state } = context;
-  if (state.stars === 5 || state.stars === 6) {
+  if (state.stars === 5 || state.stars === 6 || state.starsPending === true) {
     return;
   }
   const population = populationOf(state).total;
@@ -173,6 +180,7 @@ export function runStarCheck(context: StepContext): void {
 function promote(context: StepContext): void {
   const { state } = context;
   state.stars = (state.stars + 1) as StarRating;
+  state.starsPending = true;
   context.events.push({
     type: 'starsChanged',
     step: state.step,
@@ -181,6 +189,21 @@ function promote(context: StepContext): void {
   });
   context.events.push(...emitNews(state, 'news.starsUp', { params: { n: state.stars } }));
 }
+
+/**
+ * Every game minute: as soon as the population and every requirement are met, the rating goes up
+ * at once, without waiting for the weekday 17:00 check, and the clock holds until the player accepts.
+ */
+export const starPromotionSystem: SimulationSystem = (context) => {
+  const { state } = context;
+  if (state.step % STEPS_PER_MINUTE !== 0 || state.starsPending === true) return;
+  if (state.stars === 5 || state.stars === 6) return;
+  const population = populationOf(state).total;
+  if (population < STAR_POPULATION_THRESHOLDS[state.stars]) return;
+  if (statusOf(state, population, runningWindow(state)).every((status) => status.met)) {
+    promote(context);
+  }
+};
 
 export const starCheckHook: ScheduledHook = {
   name: 'star-check',

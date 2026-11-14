@@ -121,6 +121,11 @@ export class CommandClient {
     return this.send({ type: 'unfollowPerson', personId });
   }
 
+  /** The player accepted the new rating message; the server's clock runs again. */
+  acceptStars(): Promise<CommandResult> {
+    return this.send({ type: 'acceptStars' });
+  }
+
   inspect(target: InspectTarget | null): void {
     this.sender.send(clientMessage('inspect', { target }));
   }

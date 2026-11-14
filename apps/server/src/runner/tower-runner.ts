@@ -327,6 +327,12 @@ export class TowerRunner {
     const targetStep =
       tower.startStep + stepsForElapsed((this.now() - tower.startedAt) * tower.speed);
     const due = targetStep - tower.state.step;
+    if (tower.state.starsPending === true) {
+      // The clock holds until the player accepts the new rating: no time is made up afterwards.
+      tower.startedAt = this.now();
+      tower.startStep = tower.state.step;
+      return;
+    }
     if (due > 0) {
       const advanced = this.advance(tower.state, due);
       tower.state = advanced.state;
@@ -334,6 +340,10 @@ export class TowerRunner {
       tower.events.push(...advanced.events);
       if (advanced.events.some(isLayoutEvent)) {
         tower.layoutVersion = this.nextLayoutVersion();
+      }
+      if (tower.state.starsPending === true) {
+        tower.startedAt = this.now();
+        tower.startStep = tower.state.step;
       }
     }
   }

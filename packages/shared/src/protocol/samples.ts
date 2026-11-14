@@ -45,6 +45,7 @@ export const sampleCommands: Command[] = [
   { type: 'renamePerson', personId: 'p3401', name: 'Marta' },
   { type: 'followPerson', personId: 'p3401' },
   { type: 'unfollowPerson', personId: 'p3401' },
+  { type: 'acceptStars' },
 ];
 
 const unit: UnitView = {
