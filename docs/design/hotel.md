@@ -49,8 +49,8 @@ Design call on a single "Sucia" state for rooms being cleaned: the GDD overlay h
 A housekeeping unit (Limpieza, 15 x 1, $50,000, 2 stars) has 6 maids. People.md section 10 sets their day:
 
 - At 09:30 the 6 maids appear inside their unit, at its door (routing 3).
-- From 10:00 a maid with no task asks for a room (section 4).
-- At 17:00 every maid leaves the simulation wherever she is.
+- The maids come in from the street at 06:00 in civilian clothes, change in the housekeeping unit, and from then a maid with no task asks for a room (section 4).
+- At 17:00 every maid changes back in the unit and walks out to the street.
 
 Maids walk on floors and ride stairs and service elevators only (routing R-06, R-07). Service elevators carry nobody else. Maids keep the per-trip walking limits of routing 5.2: at most 3 stair floors and 3 elevator rides per trip. Their stress is not recorded and they do not count in population.
 
@@ -64,7 +64,7 @@ Design call on the shared pool: the research notes report that each original hou
 
 A maid asks for a room when all of these hold:
 
-- the clock is in `[10:00, 16:00)`;
+- the clock is in `[06:00, 16:30)`;
 - she has no claimed room;
 - she has started fewer than 8 cleanings today (section 6);
 
@@ -102,14 +102,14 @@ Design call on the order: the research notes say the original maid searched upwa
 
 The trip to a claimed room follows routing like any other trip. If a leg breaks on the way (routing 8.4) the maid re-plans from where she stands. If there is then no route to the room, her claim is released and she asks again at once from where she stands (section 4.1).
 
-The trip back to her unit is a required trip (people.md 4). If it has no route she waits in "Sin ruta" and retries per routing R-23; the 17:00 removal ends the wait.
+The trip back to her unit is a required trip (people.md 4). If it has no route she waits in "Sin ruta" and retries per routing R-23; the end of the shift at 17:00 ends the wait.
 
 ### 4.4 Releasing a claim
 
 A claim is released, and the room stays Sucia with its `dirtyChecks` unchanged, when:
 
 - the maid's route to the room breaks and no new route exists (4.3);
-- the maid reaches the room at 16:00 or later (section 5);
+- the maid reaches the room at 16:30 or later (section 5);
 - the maid is removed because her housekeeping unit is demolished or destroyed;
 - the clock reaches 17:00 (every claim left is released).
 
@@ -117,7 +117,7 @@ A claim ends without a release when the room is demolished or destroyed; the mai
 
 ## 5. Cleaning
 
-A cleaning starts at the step the maid reaches the room's door, if that step is before 16:00. It lasts 180 steps (30 game minutes) for every room type. At the end of the 180th step the room becomes Limpia, its `dirtyChecks` returns to 0 and the claim ends. The maid then asks for her next room from the room's door.
+A cleaning starts at the step the maid reaches the room's door, if that step is before 16:30. It lasts 180 steps (30 game minutes) for every room type. At the end of the 180th step the room becomes Limpia, its `dirtyChecks` returns to 0 and the claim ends. The maid then asks for her next room from the room's door.
 
 | Room | Width | Cleaning time |
 |---|---|---|
@@ -125,9 +125,9 @@ A cleaning starts at the step the maid reaches the room's door, if that step is 
 | Double | 6 | 30 min (180 steps) |
 | Suite | 10 | 30 min (180 steps) |
 
-A maid who reaches the room at 16:00 or later does not start. Her claim is released and she goes back to her unit.
+A maid who reaches the room at 16:30 or later does not start. Her claim is released and she goes back to her unit.
 
-While cleaning, the maid stands at the room's door in state "Limpiando". A cleaning that started before 16:00 always finishes, at the latest at 16:29:50, before the 17:00 removal.
+While cleaning, the maid stands at the room's door in state "Limpiando". A cleaning that started before 16:30 always finishes, at the latest at 16:59:50, before the 17:00 end of the shift.
 
 If the room is demolished or destroyed during the cleaning, the cleaning stops and the maid asks again at once (4.4). If her housekeeping unit is demolished during the cleaning, she is removed and the room stays Sucia (construction 8.5).
 
@@ -234,9 +234,9 @@ E is never infested: the office stands between D and E. If D had a party staying
 
 Variant: on Thursday at 09:00 the player demolishes B. At Friday 00:00 A's right neighbour is C, across the empty floor where B stood, so C becomes Con plaga. Demolishing A on Thursday instead stops the spread, since no room is left Con plaga.
 
-### 9.4 The 16:00 cut and the cap
+### 9.4 The 16:30 cut and the cap
 
-Maid m2 of 9.1 finishes a cleaning on level 11 at 15:52:00 and asks. The only Sucia room is on level 13, 66 columns away and up 2 stair flights: 66 + 24 = 90 steps. She claims it and arrives at 16:07:00, after 16:00, so she does not start. The claim is released, the room stays Sucia and keeps its `dirtyChecks`, and m2 walks back to H1.
+Maid m2 of 9.1 finishes a cleaning on level 11 at 16:22:00 and asks. The only Sucia room is on level 13, 66 columns away and up 2 stair flights: 66 + 24 = 90 steps. She claims it and arrives at 16:37:00, after 16:30, so she does not start. The claim is released, the room stays Sucia and keeps its `dirtyChecks`, and m2 walks back to H1.
 
 Maid m5 on a busy day starts her 8th cleaning at 14:02:00 and finishes at 14:32:00. She does not ask again and goes back to H1, even if Sucia rooms are left. They wait for another maid with fewer than 8 starts, or for the next day.
 

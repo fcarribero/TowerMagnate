@@ -260,7 +260,7 @@ The VIP's stress for TM-15's approval is the average stress of all the VIP's tri
 
 ## 10. Maids
 
-Six maids per housekeeping unit. Maids work every day of the week. They do not commute: at 09:30 they appear inside their housekeeping unit, and at 17:00 they leave the simulation wherever they are.
+Six maids per housekeeping unit. Maids work every day of the week. At 06:00 they walk in from the street in civilian clothes, change into the uniform inside their housekeeping unit, and at 17:00 they change back and walk out to the street.
 
 - From 10:00, a maid with no task asks TM-16 for a dirty room and goes there.
 - Cleaning one room takes 30 game minutes (180 steps) from the maid's arrival. The room becomes "Limpia" at the end of that time.
@@ -573,7 +573,7 @@ P-28. The VIP arrives at the street entrance at 17:00 to 19:00 50%, 19:00 to 21:
 
 ### Maids
 
-P-29. Maids appear in their housekeeping unit at 09:30 and leave the simulation at 17:00. They start cleanings only from 10:00 and before 16:00. A cleaning takes 180 steps from the maid's arrival at the room, after which the room is "Limpia".
+P-29. Maids walk in from the street at 06:00, change in their housekeeping unit and leave the same way at 17:00. They start cleanings before 16:30. A cleaning takes 180 steps from the maid's arrival at the room, after which the room is "Limpia".
 
 P-30. Maids only use floors, stairs and service elevators. Service elevators carry no one else, guards included.
 

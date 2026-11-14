@@ -145,7 +145,7 @@ describe('maid shift', () => {
       maids: 6,
       dirtyRooms: 0,
     });
-    const afternoon = runUntil(appeared, at(0, 13, 30)).state;
+    const afternoon = runUntil(appeared, at(0, 17, 30)).state;
     expect(maidCount(afternoon)).toBe(0);
   });
 
@@ -321,12 +321,12 @@ describe('room choice', () => {
   });
 });
 
-describe('hotel spec 9.4, the 12:30 cut and the cap', () => {
-  it('does not start a room reached at 12:30 or later and leaves its dirty checks alone', () => {
+describe('hotel spec 9.4, the 16:30 cut and the cap', () => {
+  it('does not start a room reached at 16:30 or later and leaves its dirty checks alone', () => {
     const rooms: RoomPlan[] = [{ name: 'far', type: 'single-room', level: 11, x: 280 }];
     const { state, rooms: ids } = hotelTower({ rooms });
     const far = roomNumber(ids.far as UnitId);
-    let run = runUntil(state, at(0, 12, 9, 50));
+    let run = runUntil(state, at(0, 16, 9, 50));
     const room = run.state.units[ids.far as UnitId]?.hotel;
     if (!room) throw new Error('room missing');
     room.state = 'dirty';
@@ -335,15 +335,15 @@ describe('hotel spec 9.4, the 12:30 cut and the cap', () => {
     room.arrivalStep = null;
     let claimedAt: number | null = null;
     let releasedAt: number | null = null;
-    while (run.state.step < at(0, 13, 30)) {
+    while (run.state.step < at(0, 17, 30)) {
       run = step(run.state, [], 1);
       const holder = maidTasks(run.state).find((task) => task.room === far);
       expect(holder?.phase).not.toBe('cleaning');
       if (holder && claimedAt === null) claimedAt = run.state.step;
       if (!holder && claimedAt !== null && releasedAt === null) releasedAt = run.state.step;
     }
-    expect(claimedAt).toBe(at(0, 12, 10));
-    expect(releasedAt).toBeGreaterThanOrEqual(at(0, 12, 30));
+    expect(claimedAt).toBe(at(0, 16, 10));
+    expect(releasedAt).toBeGreaterThanOrEqual(at(0, 16, 30));
     expect(run.state.units[ids.far as UnitId]?.hotel).toMatchObject({
       state: 'dirty',
       dirtyChecks: 2,

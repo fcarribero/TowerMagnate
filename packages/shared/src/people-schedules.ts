@@ -417,13 +417,13 @@ export const HOTEL_OUTING_VENUES: readonly { type: VisitedVenueType; weight: num
 export const MAID_APPEAR_MINUTE = minutes(6);
 
 /** The shift ends at this minute: the maids change back in the room and walk out to the street. */
-export const MAID_LEAVE_MINUTE = minutes(13);
+export const MAID_LEAVE_MINUTE = minutes(17);
 
 /** A maid may ask for a room from this minute of the day. */
 export const CLEANING_START_FROM_MINUTE = minutes(6);
 
 /** A cleaning starts only before this minute, so it ends by the end of the shift. */
-export const CLEANING_START_BEFORE_MINUTE = minutes(12, 30);
+export const CLEANING_START_BEFORE_MINUTE = minutes(16, 30);
 
 /** Changing between civilian clothes and the uniform takes this many steps, inside the unit. */
 export const CHANGE_CLOTHES_STEPS = 2;
