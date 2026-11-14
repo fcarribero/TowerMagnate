@@ -100,9 +100,8 @@ export class DeltaBroadcaster {
     const news = events.filter(
       (event) => baseline.shownEventsUpTo === null || event.step > baseline.shownEventsUpTo,
     );
-    if (snapshot.step === baseline.snapshot.step && news.length === 0) {
-      return;
-    }
+    // The clock may be stopped: a command still changes the tower without a new step, and the
+    // diff below decides whether there is anything to send.
     this.sendUpdate(socket, baseline, snapshot, news.length > 0);
     if (news.length > 0) {
       sendMessage(socket, serverMessage('events', { events: news }));

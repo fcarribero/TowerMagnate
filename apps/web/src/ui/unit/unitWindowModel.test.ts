@@ -211,7 +211,7 @@ describe('unit window model', () => {
     ]);
   });
 
-  it('keeps the appraisal for a rented shop and shows no contract chip', () => {
+  it('shows no appraisal for a rented shop and no contract chip', () => {
     const rows = unitRows({ ...office, type: 'retail-shop' });
     expect(rows.map((row) => row.label)).toEqual([
       'Estado',
@@ -219,7 +219,6 @@ describe('unit window model', () => {
       'Evaluación',
       'Próximo pago',
       'Renta semanal',
-      'Tasación',
     ]);
   });
 
@@ -405,7 +404,7 @@ describe('unit window model', () => {
     const groups = groupUnitRows(unitRows({ ...office, type: 'retail-shop' }));
     expect(groups.tiles.map((row) => row.id)).toEqual(['status', 'people', 'evaluation']);
     expect(groups.chips.map((row) => row.id)).toEqual(['nextPayment']);
-    expect(groups.rows.map((row) => row.id)).toEqual(['weeklyRent', 'appraisal']);
+    expect(groups.rows.map((row) => row.id)).toEqual(['weeklyRent']);
     const cinema = groupUnitRows([{ id: 'film', label: 'Película', value: 'x', tone: 'plain' }]);
     expect(cinema.rows.map((row) => row.id)).toEqual(['film']);
   });

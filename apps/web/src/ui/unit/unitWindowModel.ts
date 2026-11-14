@@ -358,7 +358,7 @@ function leaseRows(lease: Details<'lease'>, office: boolean): UnitRow[] {
       tone: 'plain',
     });
   }
-  return office ? rows : [...rows, ...appraisalRow(lease.appraisal)];
+  return rows;
 }
 
 function condoRows(condo: Details<'condo'>): UnitRow[] {
@@ -412,7 +412,7 @@ function hotelRows(hotel: Details<'hotel'>): UnitRow[] {
       tone: 'plain',
     });
   }
-  return [...rows, ...appraisalRow(hotel.appraisal)];
+  return rows;
 }
 
 function cinemaRows(cinema: Details<'cinema'>): UnitRow[] {

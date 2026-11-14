@@ -251,6 +251,13 @@ describe('delta broadcaster', () => {
     expect(ServerMessageSchema.safeParse({ v: 1, t: 'delta', p: delta }).success).toBe(true);
   });
 
+  it('sends a change made while the clock is stopped', () => {
+    const before = towerState().money;
+    towerState().money = before - 700;
+    broadcaster.tick(registry);
+    expect(messages('delta').at(-1)?.p).toMatchObject({ money: before - 700 });
+  });
+
   it('sends nothing to a socket that has not received a snapshot yet', () => {
     const other = new FakeSocket();
     registry.add(other, { userId: 'u1', towerId: TOWER });
