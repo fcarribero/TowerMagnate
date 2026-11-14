@@ -5,6 +5,7 @@ import {
   evaluationView,
   filmChangeState,
   groupUnitRows,
+  isTopPeopleGroup,
   levelText,
   locationText,
   isSoldCondo,
@@ -177,11 +178,63 @@ describe('unit window model', () => {
       ['Estado', 'Ocupada'],
       ['Personas', '4'],
       ['Evaluación', 'Regular'],
-      ['Contrato', 'Semana 2 de 4'],
       ['Próximo pago', 'Viernes 09:00'],
       ['Renta semanal', '$10.500'],
-      ['Tasación', '$10.000'],
     ]);
+  });
+
+  it('keeps the contract chip and the appraisal for a rented shop', () => {
+    const rows = unitRows({ ...office, type: 'retail-shop' });
+    expect(rows.map((row) => row.label)).toEqual([
+      'Estado',
+      'Personas',
+      'Evaluación',
+      'Contrato',
+      'Próximo pago',
+      'Renta semanal',
+      'Tasación',
+    ]);
+    const forRent: Lease = { ...lease, state: 'forRent', leaseWeek: null, nextPaymentStep: null, weeklyRent: null };
+    expect(unitRows({ ...office, type: 'retail-shop', details: forRent }).map((row) => row.label)).not.toContain(
+      'Contrato',
+    );
+  });
+
+  it('puts the workers, residents and guests row above the name', () => {
+    const top = (unit: Pick<UnitInspect, 'type' | 'details'>) =>
+      peopleGroups(unit).filter(isTopPeopleGroup).map((group) => group.id);
+    expect(top(office)).toEqual(['workers']);
+    expect(top({ type: 'condo', details: condoDetails })).toEqual(['residents']);
+    expect(top({ type: 'suite', details: hotelDetails })).toEqual(['tenants']);
+    expect(top({ type: 'retail-shop', details: lease })).toEqual([]);
+  });
+
+  it('gives a priced construction site the price control and the listing switch', () => {
+    const site: UnitInspect = {
+      ...office,
+      details: {
+        group: 'construction',
+        price: 9_000,
+        appraisal: 10_000,
+        priceBand: 'normal',
+        priceMin: 4_000,
+        priceMax: 25_000,
+        priceStep: 1,
+        listed: true,
+      },
+    };
+    expect(priceControlOf(site)).toEqual({
+      price: 9_000,
+      appraisal: 10_000,
+      band: 'normal',
+      min: 4_000,
+      max: 25_000,
+      step: 1,
+    });
+    expect(listedOf(site)).toBe(true);
+    const lift: UnitInspect = { ...office, type: 'security', details: { group: 'construction' } };
+    expect(priceControlOf(lift)).toBeNull();
+    expect(listedOf(lift)).toBeNull();
   });
 
   it('describes an office for rent without a contract', () => {
@@ -199,8 +252,6 @@ describe('unit window model', () => {
       'En alquiler',
       '0',
       'Sin evaluar',
-      'Sin contrato',
-      '$10.000',
     ]);
   });
 
@@ -331,8 +382,8 @@ describe('unit window model', () => {
   it('groups state, occupancy and evaluation as tiles and contract and payment as chips', () => {
     const groups = groupUnitRows(unitRows(office));
     expect(groups.tiles.map((row) => row.id)).toEqual(['status', 'people', 'evaluation']);
-    expect(groups.chips.map((row) => row.id)).toEqual(['lease', 'nextPayment']);
-    expect(groups.rows.map((row) => row.id)).toEqual(['weeklyRent', 'appraisal']);
+    expect(groups.chips.map((row) => row.id)).toEqual(['nextPayment']);
+    expect(groups.rows.map((row) => row.id)).toEqual(['weeklyRent']);
     const cinema = groupUnitRows([{ id: 'film', label: 'Película', value: 'x', tone: 'plain' }]);
     expect(cinema.rows.map((row) => row.id)).toEqual(['film']);
   });

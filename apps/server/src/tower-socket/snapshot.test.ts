@@ -695,6 +695,17 @@ describe('room states and disconnected units', () => {
     expect(variantOf(state, 'u5')).toBe('disconnected');
   });
 
+  it('sends the chosen price and the appraisal of a priced site', () => {
+    const state = createTower(7);
+    state.sites.u5 = { id: 'u5', type: 'office', x: 0, level: 2, paid: 0, placedAtStep: 0, points: 0, price: 7_000 };
+    state.sites.u6 = { id: 'u6', type: 'office', x: 10, level: 2, paid: 0, placedAtStep: 0, points: 0 };
+    state.sites.u7 = { id: 'u7', type: 'security', x: 20, level: 2, paid: 0, placedAtStep: 0, points: 0 };
+    const units = buildSnapshot(state, null).units;
+    expect(units.find((unit) => unit.id === 'u5')).toMatchObject({ price: 7_000, appraisal: 10_000 });
+    expect(units.find((unit) => unit.id === 'u6')).toMatchObject({ price: 0, appraisal: 10_000 });
+    expect(units.find((unit) => unit.id === 'u7')).not.toHaveProperty('appraisal');
+  });
+
   it('draws every visited unit as disconnected when there is no lobby', () => {
     const state = createTower(7);
     setStructure(state.grid, 2, 0, 19, 'floor');

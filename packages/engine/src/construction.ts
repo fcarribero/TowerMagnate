@@ -22,7 +22,7 @@ import { chance, nextInt } from './rng';
 import type { ScheduledHook } from './scheduler';
 import type { SimulationSystem, StepContext } from './step';
 import { cancelTrek, isOnTrek, startTrek, trekPhaseAt, type TrekPlace } from './trek';
-import { startAtAppraisal } from './appraisal';
+import { computeAppraisal, startAtAppraisal } from './appraisal';
 import { newUnit, unitNumber } from './units';
 
 const BUILDER_KIND = PERSON_KINDS.indexOf('builder');
@@ -73,12 +73,18 @@ export function completeSite(state: TowerState, id: UnitId): void {
     ...newUnit(id, site.type, site.x, site.level),
     paid: site.paid,
     placedAtStep: state.step,
-    listed: site.listed ?? false,
+    listed: site.listed ?? newUnit(id, site.type, site.x, site.level).listed,
   };
   startAtAppraisal(state, built);
+  if (site.price !== undefined) built.price = site.price;
   state.units[id] = built;
   if (site.type === 'security') addPeopleForUnit(state, id);
   addCrew(state, id);
+}
+
+/** The appraisal a priced site would start at today, and the price it has unless the player chose one. */
+export function siteAppraisal(state: TowerState, site: ConstructionSite): number {
+  return computeAppraisal(state, { type: site.type, evaluation: null });
 }
 
 /** What a builder is doing; kept in the person's `trip` number. */

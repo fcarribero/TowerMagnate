@@ -22,6 +22,7 @@ import {
   filmChangeState,
   groupUnitRows,
   hourText,
+  isTopPeopleGroup,
   listedOf,
   locationText,
   peopleGroups,
@@ -40,7 +41,7 @@ import './unit.css';
 export interface UnitWindowProps {
   unitId: string;
   connection: Pick<GameConnection, 'store' | 'inspect' | 'commands'>;
-  /** The Lupa's panel: fixed to the unit, no close button, no dragging. Esc still closes it. */
+  /** The Lupa's panel: fixed to the unit, no dragging. The close button and Esc close it. */
   anchored?: boolean;
 }
 
@@ -132,6 +133,8 @@ export function UnitWindow({ unitId, connection, anchored = false }: UnitWindowP
   const priceControl = found === undefined ? null : priceControlOf(found);
   const listed = found === undefined ? null : listedOf(found);
   const people = found === undefined ? [] : peopleGroups(found);
+  const topPeople = people.filter(isTopPeopleGroup);
+  const lowerPeople = people.filter((group) => !isTopPeopleGroup(group));
 
   const groups = found === undefined ? null : groupUnitRows(unitRows(found));
 
@@ -142,11 +145,13 @@ export function UnitWindow({ unitId, connection, anchored = false }: UnitWindowP
         title={title}
         subtitle={found?.name == null ? undefined : unitSubtitle(found)}
         onClose={close}
-        showCloseButton={!anchored}
         draggable={!anchored}
         width={200}
       >
         {gone && <p class="tm-unit__gone">{t('ui.goneFromTower')}</p>}
+        {topPeople.map((group) => (
+          <PeopleRow key={group.id} group={group} connection={connection} bare />
+        ))}
         <div class="tm-field">
           <label class="tm-field__label" for={`${windowId}-name`}>
             {t('window.unit.name')}
@@ -178,7 +183,9 @@ export function UnitWindow({ unitId, connection, anchored = false }: UnitWindowP
         {found?.details?.group === 'venue' && <VenueChartView chart={venueChart(found.details)} />}
         {found !== undefined && (
           <dl class="tm-unit__rows">
-            <Row label={t('window.unit.location')} value={locationText(found)} />
+            {found.type !== 'office' && (
+              <Row label={t('window.unit.location')} value={locationText(found)} />
+            )}
             {groups?.rows.map((row) => (
               <Row key={row.id} label={row.label} value={row.value} />
             ))}
@@ -196,14 +203,13 @@ export function UnitWindow({ unitId, connection, anchored = false }: UnitWindowP
         {found !== undefined && listed !== null && !(found.details?.group === 'condo' && found.details.state === 'sold') && (
           <ListedToggle
             id={`${windowId}-listed`}
-            label={t(found.details?.group === 'condo' ? 'window.unit.listedSale' : 'window.unit.listedRent')}
-            note={found.details?.group === 'lease' ? t('window.unit.listedRentNote') : undefined}
+            label={t(found.type === 'condo' ? 'window.unit.listedSale' : 'window.unit.listedRent')}
             listed={listed}
             disabled={gone}
             onChange={(next) => void commands.setListed(unitId, next)}
           />
         )}
-        {people.map((group) => (
+        {lowerPeople.map((group) => (
           <PeopleRow key={group.id} group={group} connection={connection} />
         ))}
         {groups !== null && groups.chips.length > 0 && (
@@ -305,14 +311,13 @@ function VenueChartView({ chart }: { chart: VenueChart }) {
 interface ListedToggleProps {
   id: string;
   label: string;
-  note: string | undefined;
   listed: boolean;
   disabled: boolean;
   onChange: (listed: boolean) => void;
 }
 
 /** The on-the-market switch; it shows the tick at once and follows the server on the next inspect. */
-function ListedToggle({ id, label, note, listed, disabled, onChange }: ListedToggleProps) {
+function ListedToggle({ id, label, listed, disabled, onChange }: ListedToggleProps) {
   const [shown, setShown] = useState(listed);
   useEffect(() => setShown(listed), [listed]);
   return (
@@ -327,7 +332,6 @@ function ListedToggle({ id, label, note, listed, disabled, onChange }: ListedTog
           onChange(next);
         }}
       />
-      {note !== undefined && <p class="tm-unit__note">{note}</p>}
     </div>
   );
 }

@@ -69,6 +69,16 @@ export function priceControlOf(unit: Pick<UnitInspect, 'details'>): PriceControl
   if (details === null || !('priceMin' in details) || isSoldCondo(unit)) {
     return null;
   }
+  if (
+    details.price === undefined ||
+    details.appraisal === undefined ||
+    details.priceBand === undefined ||
+    details.priceMin === undefined ||
+    details.priceMax === undefined ||
+    details.priceStep === undefined
+  ) {
+    return null;
+  }
   return {
     price: details.price,
     appraisal: details.appraisal,
@@ -100,7 +110,10 @@ export function priceBandLabel(band: PriceBand): string {
 /** Whether the unit is on the market: for sale or for rent. Null for units with no such switch. */
 export function listedOf(unit: Pick<UnitInspect, 'details'>): boolean | null {
   const { details } = unit;
-  return details?.group === 'lease' || details?.group === 'condo' ? details.listed : null;
+  if (details?.group === 'lease' || details?.group === 'condo') {
+    return details.listed;
+  }
+  return details?.group === 'construction' ? (details.listed ?? null) : null;
 }
 
 export interface PeopleGroup {
@@ -170,6 +183,13 @@ export function peopleGroups(unit: Pick<UnitInspect, 'type' | 'details'>): Peopl
     default:
       return [];
   }
+}
+
+const TOP_PEOPLE_IDS: readonly PeopleGroup['id'][] = ['workers', 'residents', 'tenants'];
+
+/** The row of the unit's own people (office workers, condo residents, hotel guests) drawn above the name, with no heading. */
+export function isTopPeopleGroup(group: PeopleGroup): boolean {
+  return TOP_PEOPLE_IDS.includes(group.id);
 }
 
 /** Opening and closing hour after one of them moved: the close stays at least an hour after the open. */
@@ -265,7 +285,7 @@ function appraisalRow(appraisal: number): UnitRow[] {
     : [];
 }
 
-function leaseRows(lease: Details<'lease'>): UnitRow[] {
+function leaseRows(lease: Details<'lease'>, office: boolean): UnitRow[] {
   const leased = lease.state === 'occupied';
   const rows: UnitRow[] = [
     {
@@ -281,16 +301,16 @@ function leaseRows(lease: Details<'lease'>): UnitRow[] {
       tone: 'plain',
     },
     evaluationRow(lease.evaluation),
-    {
+  ];
+  // The contract chip is for a rented shop; an office or a unit with no contract shows none.
+  if (leased && lease.leaseWeek !== null && !office) {
+    rows.push({
       id: 'lease',
       label: t('window.unit.lease'),
-      value:
-        leased && lease.leaseWeek !== null
-          ? t('window.unit.leaseWeek', { k: lease.leaseWeek })
-          : t('window.unit.noLease'),
+      value: t('window.unit.leaseWeek', { k: lease.leaseWeek }),
       tone: 'plain',
-    },
-  ];
+    });
+  }
   if (lease.nextPaymentStep !== null) {
     rows.push({
       id: 'nextPayment',
@@ -307,7 +327,7 @@ function leaseRows(lease: Details<'lease'>): UnitRow[] {
       tone: 'plain',
     });
   }
-  return [...rows, ...appraisalRow(lease.appraisal)];
+  return office ? rows : [...rows, ...appraisalRow(lease.appraisal)];
 }
 
 function condoRows(condo: Details<'condo'>): UnitRow[] {
@@ -475,10 +495,10 @@ function inServiceRows(): UnitRow[] {
   ];
 }
 
-function detailRows(details: InspectedUnitDetails): UnitRow[] {
+function detailRows(details: InspectedUnitDetails, type: UnitType): UnitRow[] {
   switch (details.group) {
     case 'lease':
-      return leaseRows(details);
+      return leaseRows(details, type === 'office');
     case 'condo':
       return condoRows(details);
     case 'hotel':
@@ -497,7 +517,7 @@ function detailRows(details: InspectedUnitDetails): UnitRow[] {
 /** Rows below Nombre and Ubicacion. Types without details have none, or an in-service row. */
 export function unitRows(unit: UnitInspect): UnitRow[] {
   if (unit.details !== null) {
-    const rows = detailRows(unit.details);
+    const rows = detailRows(unit.details, unit.type);
     // A fast food has the hours slider, so the plain hours row would say it twice.
     return unit.type === 'fast-food' ? rows.filter((row) => row.id !== 'hours') : rows;
   }

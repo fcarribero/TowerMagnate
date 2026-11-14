@@ -2,6 +2,7 @@ import { priceBounds, type QueuedCommand, type TowerState, type UnitId } from '@
 import { describe, expect, it } from 'vitest';
 import { createLeaseSystem, moveInTenant, STEPS_PER_WEEK } from '../leases';
 import { createEngine, step } from '../step';
+import { completeSite } from '../construction';
 import { setPrice as setPriceHandler } from './set-price';
 import { buildTower, plainTowerPlan } from '../testing';
 
@@ -108,5 +109,54 @@ describe('setPrice', () => {
     const afterPayment = engine.step(beforePayment, [], 1).state;
     expect(afterPayment.money - beforePayment.money).toBe(10_000);
     expect(afterPayment.units[unitId]?.lease?.rent).toBe(10_000);
+  });
+
+  describe('on a construction site', () => {
+    function withSite(type: 'office' | 'condo' | 'single-room' | 'security'): {
+      tower: TowerState;
+      siteId: string;
+    } {
+      const { state } = buildTower(plainTowerPlan(3, 0, 40));
+      const siteId = 'u900';
+      state.sites[siteId] = { id: siteId, type, x: 0, level: 2, paid: 0, placedAtStep: 0, points: 0 };
+      return { tower: state, siteId };
+    }
+
+    it.each(['office', 'condo', 'single-room'] as const)('stores the price of a %s site', (type) => {
+      const { tower, siteId } = withSite(type);
+      const { min, max } = priceBounds({ type });
+      const { state, results } = step(tower, [setPrice(siteId, min + 1)], 0);
+      expect(results[0]).toMatchObject({ ok: true, cost: 0 });
+      expect(state.sites[siteId]?.price).toBe(min + 1);
+      expect(step(tower, [setPrice(siteId, max)], 0).results[0]).toMatchObject({ ok: true });
+      expect(step(tower, [setPrice(siteId, max + 1)], 0).results[0]).toMatchObject({
+        ok: false,
+        error: 'INVALID_COMMAND',
+      });
+      expect(step(tower, [setPrice(siteId, min - 1)], 0).results[0]).toMatchObject({
+        ok: false,
+        error: 'INVALID_COMMAND',
+      });
+    });
+
+    it('refuses a site of a type with no price', () => {
+      const { tower, siteId } = withSite('security');
+      expect(step(tower, [setPrice(siteId, 100)], 0).results[0]).toMatchObject({
+        ok: false,
+        error: 'NOT_PRICED',
+      });
+    });
+
+    it('gives the finished unit the chosen price, and the appraisal when none was chosen', () => {
+      const chosen = withSite('office');
+      chosen.tower.sites[chosen.siteId]!.price = 9_999;
+      completeSite(chosen.tower, chosen.siteId);
+      expect(chosen.tower.units[chosen.siteId]?.price).toBe(9_999);
+
+      const plain = withSite('office');
+      completeSite(plain.tower, plain.siteId);
+      const built = plain.tower.units[plain.siteId];
+      expect(built?.price).toBe(built?.appraisal);
+    });
   });
 });

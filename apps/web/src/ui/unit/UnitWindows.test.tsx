@@ -144,7 +144,7 @@ describe('unit windows', () => {
     expect(status?.className).toContain('is-good');
     const evaluation = within(dialog).getByText('Buena').parentElement;
     expect(evaluation?.className).toContain('is-good');
-    expect(within(dialog).getByText('Contrato · Semana 1 de 4')).toBeTruthy();
+    expect(within(dialog).queryByText(/^Contrato/)).toBeNull();
     expect(within(dialog).getByText(/^Próximo pago · /)).toBeTruthy();
   });
 
@@ -267,6 +267,48 @@ describe('unit windows', () => {
     expect(requested).toEqual(['p2']);
   });
 
+  it('shows the office workers above the name with no heading, and no appraisal, location or note', () => {
+    const { open, show } = setup([unitView('u1')]);
+    open('u1');
+    show(inspectOf('u1'));
+    const dialog = screen.getByRole('dialog');
+    const people = dialog.querySelector('.tm-unit__people') as HTMLElement;
+    const nameField = dialog.querySelector('.tm-field') as HTMLElement;
+    expect(people.compareDocumentPosition(nameField) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(within(people).queryByRole('heading')).toBeNull();
+    expect(within(people).getAllByRole('button', { name: 'Ver a esta persona' }).length).toBeGreaterThan(0);
+    expect(screen.queryByText('Tasación')).toBeNull();
+    expect(screen.queryByText('Ubicación')).toBeNull();
+    expect(screen.queryByText(/Sin tilde/)).toBeNull();
+    expect(screen.queryByText('Trabajadores')).toBeNull();
+  });
+
+  it('sets the price and listing of a unit still under construction', () => {
+    const { open, show, commandsSent } = setup([unitView('u1')]);
+    open('u1');
+    show(
+      inspectOf('u1', {
+        details: {
+          group: 'construction',
+          price: 10_000,
+          appraisal: 10_000,
+          priceBand: 'normal',
+          priceMin: 4_000,
+          priceMax: 25_000,
+          priceStep: 1,
+          listed: true,
+        },
+      }),
+    );
+    const bar = screen.getByRole('slider', { name: 'Ajustar el precio' });
+    fireEvent.change(bar, { target: { value: '8000' } });
+    fireEvent.click(screen.getByLabelText('En renta'));
+    expect(commandsSent()).toEqual([
+      { type: 'setPrice', unitId: 'u1', price: 8000 },
+      { type: 'setListed', unitId: 'u1', listed: false },
+    ]);
+  });
+
   it('lists the office for rent with a checkbox', () => {
     const { open, show, commandsSent } = setup([unitView('u1')]);
     open('u1');
@@ -362,11 +404,11 @@ describe('unit windows', () => {
       return { ...world, stage, anchor, panel };
     }
 
-    it('shows next to the unit with no close button and no drag', () => {
+    it('shows next to the unit with a close button and no drag', () => {
       const { anchor, panel, sent } = panelSetup();
       anchor('u1');
       const frame = panel('u1');
-      expect(within(frame).queryByRole('button', { name: /cerrar/i })).toBeNull();
+      expect(within(frame).getAllByRole('button', { name: /cerrar/i })).toHaveLength(1);
       expect(frame.style.left).toBe('148px');
       expect(frame.style.top).toBe('80px');
       const title = frame.querySelector('.tm-window__title') as HTMLElement;
@@ -374,6 +416,13 @@ describe('unit windows', () => {
       fireEvent.pointerMove(title, { clientX: 300, clientY: 300, pointerId: 1 });
       expect(frame.style.left).toBe('148px');
       expect(sent.at(-1)).toMatchObject({ t: 'inspectAdd', p: { target: { kind: 'unit', id: 'u1' } } });
+    });
+
+    it('closes from its close button', () => {
+      const { anchor, panel, inspect } = panelSetup();
+      anchor('u1');
+      fireEvent.click(within(panel('u1')).getByRole('button', { name: /cerrar/i }));
+      expect(inspect.anchoredUnit()).toBeNull();
     });
 
     it('follows the unit when the camera moves', () => {

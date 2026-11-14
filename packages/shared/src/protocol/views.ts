@@ -62,9 +62,9 @@ export const UnitViewSchema = z.object({
   x: ColumnSchema,
   level: LevelSchema,
   name: DisplayNameSchema.nullable(),
-  /** What the player charges: sale price, weekly rent or nightly rate; 0 for units with no price. */
+  /** What the player charges: sale price, weekly rent or nightly rate; 0 for units with no price and for sites with no chosen price. */
   price: z.int().nonnegative(),
-  /** Today's appraisal of a priced unit; left out for units with no price and for sites. */
+  /** Today's appraisal of a priced unit; left out for units with no price. A priced site shows the appraisal it would start at. */
   appraisal: z.int().positive().optional(),
   /** For a condo, office or shop: whether it is listed for sale or rent; left out for other units. */
   listed: z.boolean().optional(),
@@ -432,8 +432,18 @@ const InspectedUnitDetailsSchema = z.discriminatedUnion('group', [
     /** Average customers per hour of the last 7 days, over all the open hours; empty before day 1. */
     average: z.array(z.number().nonnegative()),
   }),
-  /** A unit the crew has not finished; the points it needs are never sent. */
-  z.object({ group: z.literal('construction') }),
+  /** A unit the crew has not finished; the points it needs are never sent. Priced types add the price fields and the listing switch. */
+  z.object({
+    group: z.literal('construction'),
+    price: pricingFields.price.optional(),
+    appraisal: pricingFields.appraisal.optional(),
+    priceBand: pricingFields.priceBand.optional(),
+    priceMin: pricingFields.priceMin.optional(),
+    priceMax: pricingFields.priceMax.optional(),
+    priceStep: pricingFields.priceStep.optional(),
+    /** For a condo, office or shop site: whether it will go on the market when finished. */
+    listed: z.boolean().optional(),
+  }),
   z.object({
     group: z.literal('housekeeping'),
     maidsWorking: z.int().nonnegative(),

@@ -6,14 +6,19 @@ import type { PeopleGroup } from './unitWindowModel';
 export interface PeopleRowProps {
   group: PeopleGroup;
   connection: Pick<GameConnection, 'store' | 'inspect'>;
+  /** No heading and no "nobody" text: just the row of people, and nothing when empty. */
+  bare?: boolean;
 }
 
 /** The people of one group standing in a row like a queue; each one opens that person's window. */
-export function PeopleRow({ group, connection }: PeopleRowProps) {
+export function PeopleRow({ group, connection, bare = false }: PeopleRowProps) {
   const known = connection.store.current?.latest.people;
+  if (bare && group.people.length === 0) {
+    return null;
+  }
   return (
     <section class="tm-unit__people" aria-label={group.label}>
-      <h3 class="tm-unit__people-title">{group.label}</h3>
+      {!bare && <h3 class="tm-unit__people-title">{group.label}</h3>}
       {group.people.length === 0 ? (
         <p class="tm-unit__people-none">{t('window.unit.peopleNobody')}</p>
       ) : (

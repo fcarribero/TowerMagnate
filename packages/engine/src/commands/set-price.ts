@@ -9,6 +9,20 @@ export const setPrice: CommandHandler<'setPrice'> = (context, command) => {
   if (typeof command.unitId !== 'string' || !Number.isInteger(command.price)) {
     return { ok: false, error: 'INVALID_COMMAND' };
   }
+  const site = Object.hasOwn(context.state.sites, command.unitId)
+    ? context.state.sites[command.unitId]
+    : undefined;
+  if (site) {
+    if (!isPricedType(site.type)) {
+      return { ok: false, error: 'NOT_PRICED' };
+    }
+    const bounds = priceBounds(site);
+    if (command.price < bounds.min || command.price > bounds.max) {
+      return { ok: false, error: 'INVALID_COMMAND' };
+    }
+    site.price = command.price;
+    return { ok: true, cost: 0, refund: 0, events: [] };
+  }
   const unit = Object.hasOwn(context.state.units, command.unitId)
     ? context.state.units[command.unitId]
     : undefined;

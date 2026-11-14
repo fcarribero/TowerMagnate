@@ -18,6 +18,7 @@ import {
   routineAt,
   trekPhaseAt,
   type TrekPhase,
+  siteAppraisal,
   siteProgress,
 } from '@tower-magnate/engine';
 import type { PersonView as EnginePerson } from '@tower-magnate/engine';
@@ -98,7 +99,7 @@ export function buildSnapshot(
         sleeping.has(unit.id),
       ),
     ),
-    ...Object.values(state.sites).map((site) => siteView(site, disconnected.has(site.id))),
+    ...Object.values(state.sites).map((site) => siteView(state, site, disconnected.has(site.id))),
   ];
   return {
     step: state.step,
@@ -187,14 +188,20 @@ function unitVariant(
   return occupied ? 'occupied' : 'empty';
 }
 
-function siteView(site: TowerState['sites'][string], disconnected: boolean): UnitView {
+function siteView(
+  state: TowerState,
+  site: TowerState['sites'][string],
+  disconnected: boolean,
+): UnitView {
+  const priced = isPricedType(site.type);
   return {
     id: site.id,
     type: site.type,
     x: site.x,
     level: site.level,
     name: null,
-    price: 0,
+    price: site.price ?? 0,
+    ...(priced ? { appraisal: siteAppraisal(state, site) } : {}),
     occupied: false,
     variant: disconnected ? 'disconnected' : 'empty',
     construction: Math.floor(siteProgress(site) * 100),

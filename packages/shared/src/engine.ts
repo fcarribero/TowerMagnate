@@ -130,6 +130,8 @@ export interface ConstructionSite {
   points: number;
   /** Set by `setListed` before the unit is finished; the finished unit starts with it. */
   listed?: boolean;
+  /** Set by `setPrice` before the unit is finished; the finished unit keeps it. Missing means the appraisal at build. */
+  price?: number;
 }
 
 export interface VenueDay {

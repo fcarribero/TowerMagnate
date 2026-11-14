@@ -75,7 +75,7 @@ describe('inspecting a unit', () => {
         priceMin: 4_000,
         priceMax: 25_000,
         priceStep: 1,
-        listed: false,
+        listed: true,
         weeklyRent: null,
         leaseWeek: null,
         nextPaymentStep: null,
@@ -321,8 +321,40 @@ describe('inspecting a unit', () => {
       level: 4,
       from: 10,
       to: 18,
-      details: { group: 'construction' },
+      details: {
+        group: 'construction',
+        price: 10_000,
+        appraisal: 10_000,
+        priceBand: 'normal',
+        priceMin: 4_000,
+        priceMax: 25_000,
+        priceStep: 1,
+        listed: true,
+      },
     });
+  });
+
+  it('shows the price a player chose on a site and no price for a lift', () => {
+    const state = createTower(3);
+    state.sites.u8 = {
+      id: 'u8',
+      type: 'office',
+      x: 10,
+      level: 4,
+      paid: 100,
+      placedAtStep: 0,
+      points: 5,
+      price: 7_000,
+      listed: false,
+    };
+    state.sites.u9 = { id: 'u9', type: 'security', x: 0, level: 4, paid: 0, placedAtStep: 0, points: 0 };
+    const office = inspectUnit(state, 'u8');
+    expect(throughTheWire(office)).toBe(true);
+    expect(office).toMatchObject({
+      details: { group: 'construction', price: 7_000, priceBand: 'low', listed: false },
+    });
+    expect(inspectUnit(state, 'u9')).toMatchObject({ details: { group: 'construction' } });
+    expect((inspectUnit(state, 'u9') as { details: object }).details).not.toHaveProperty('price');
   });
 
   it('answers gone for an unknown unit', () => {

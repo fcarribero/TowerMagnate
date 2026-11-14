@@ -62,7 +62,8 @@ export function newUnit(id: EntityId, type: UnitType, x: number, level: Level): 
     name: null,
     price: basePrice(type),
     appraisal: basePrice(type),
-    listed: false,
+    // Offices go up for rent and condos for sale; shops wait until the player lists them.
+    listed: type === 'office' || type === 'condo',
     enabled: true,
     activeToday: true,
     hours: type === 'fast-food' ? { ...DEFAULT_FAST_FOOD_HOURS } : null,

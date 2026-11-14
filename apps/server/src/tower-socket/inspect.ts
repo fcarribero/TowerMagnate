@@ -6,6 +6,8 @@ import {
   foodVenueSummary,
   housekeepingSummary,
   isOutsideTower,
+  newUnit,
+  siteAppraisal,
   occupantAt,
   parsePersonId,
   personAt,
@@ -15,6 +17,7 @@ import {
   trekPhaseAt,
 } from '@tower-magnate/engine';
 import {
+  isPricedType,
   LEASE_CONTRACT_WEEKS,
   priceBand,
   priceBounds,
@@ -65,7 +68,31 @@ function inspectSite(state: TowerState, siteId: string): InspectData {
     level: site.level,
     from: site.x,
     to: site.x + UNIT_CATALOG[site.type].width - 1,
-    details: { group: 'construction' },
+    details: siteDetails(state, site),
+  };
+}
+
+type SiteDetails = Extract<NonNullable<UnitDetails>, { group: 'construction' }>;
+
+/** A priced site shows the price the player chose (or the appraisal it starts at) and the limits. */
+function siteDetails(state: TowerState, site: TowerState['sites'][string]): SiteDetails {
+  if (!isPricedType(site.type)) {
+    return { group: 'construction' };
+  }
+  const appraisal = siteAppraisal(state, site);
+  const price = site.price ?? appraisal;
+  const { min, max } = priceBounds(site);
+  return {
+    group: 'construction',
+    price,
+    appraisal,
+    priceBand: priceBand(price, appraisal),
+    priceMin: min,
+    priceMax: max,
+    priceStep: 1,
+    ...(site.type === 'condo' || site.type === 'office' || site.type === 'retail-shop'
+      ? { listed: site.listed ?? newUnit(site.id, site.type, site.x, site.level).listed }
+      : {}),
   };
 }
 
