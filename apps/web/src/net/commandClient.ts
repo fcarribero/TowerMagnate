@@ -93,6 +93,10 @@ export class CommandClient {
     return this.send({ type: 'setListed', unitId, listed });
   }
 
+  setSitePriority(unitId: string, priority: boolean): Promise<CommandResult> {
+    return this.send({ type: 'setSitePriority', unitId, priority });
+  }
+
   setVenueEnabled(unitId: string, enabled: boolean): Promise<CommandResult> {
     return this.send({ type: 'setVenueEnabled', unitId, enabled });
   }

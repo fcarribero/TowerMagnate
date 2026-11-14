@@ -132,6 +132,8 @@ export interface ConstructionSite {
   listed?: boolean;
   /** Set by `setPrice` before the unit is finished; the finished unit keeps it. Missing means the appraisal at build. */
   price?: number;
+  /** Set by `setSitePriority`: builders take a priority site before the others. Not copied to the finished unit. */
+  priority?: boolean;
 }
 
 export interface VenueDay {

@@ -13,6 +13,7 @@ import { followPersonCommand, unfollowPersonCommand } from './follow-person';
 import { renamePerson } from './rename-person';
 import { renameUnit } from './rename-unit';
 import { setListed } from './set-listed';
+import { setSitePriority } from './set-site-priority';
 import { setPrice } from './set-price';
 import { setVenueEnabled, setVenueHours } from './set-venue-hours';
 
@@ -32,6 +33,7 @@ export const towerCommandHandlers: CommandHandlers = {
   renamePerson,
   setPrice,
   setListed,
+  setSitePriority,
   setVenueHours,
   setVenueEnabled,
   changeFilm,

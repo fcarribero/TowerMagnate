@@ -90,14 +90,14 @@ When a shop leaves early the news line shows "Un local se fue por falta de clien
 ### 5.2 Stay
 
 - Check-in is the step at which the first guest of the party reaches the room. Check-in can only happen from 12:00 to 23:00 of a day. Guests who have not reached the room by 23:00 give up and leave (TM-10); nobody pays.
-- At check-in the party picks a number of nights `n` and pays `n` times the room's price at the current level, in one payment. A double room or a suite is paid once per room, not per guest.
-- `n` is drawn from the engine's seeded RNG with these weights: 1 night 40%, 2 nights 30%, 3 nights 20%, 4 nights 10%. The average stay is 2 nights.
-- A party that checks in on day D checks out at 10:00 on day D + n. Guests may leave the room from 06:00 (TM-10); at 10:00 the stay ends even if a guest is still in the room, and the room becomes "Sucia".
+- Every stay is one night. The room's price at check-in is locked, and the party pays it once at check-out. A double room or a suite is paid once per room, not per guest.
+- The engine still draws one value from its seeded RNG at check-in, with the single weight 100% for 1 night, so the random stream does not change.
+- A party that checks in on day D checks out on day D + 1, at a time between 07:00 and 10:00 drawn at check-in. Guests may leave the room from 06:00 (TM-10); at 10:00 the stay ends even if a guest is still in the room, and the room becomes "Sucia".
 - Nothing is refunded if guests leave early, if the room is demolished, or if an event ends the stay.
 - A room can only take a new check-in when it is "Limpia". Housekeeping (TM-10) cleans it.
 - The VIP (TM-15) checks into a suite for 1 night and pays like any other party.
 
-Design call on the stay weights: the GDD gives 1 to 4 nights without weights. Short stays are more common so the room turns over and needs cleaning often, which keeps housekeeping relevant.
+Design call on the stay length: the GDD gave 1 to 4 nights. Every stay is now 1 night, so each room needs a cleaning after every stay, which keeps housekeeping relevant.
 
 ## 6. Condos
 
@@ -286,8 +286,8 @@ Each event reads the balance left by the previous one. The order matters only fo
 | Office rent $15,000 / $10,000 / $5,000 / $2,000 | 4.1 | Kept |
 | Shop rent $20,000 / $15,000 / $10,000 / $4,000 | 4.1 | Kept |
 | Shop leaves after a full week with very few customers | 4.3 | Defined: under 70 customers in 7 days |
-| Hotel check-in from 12:00, 1 to 4 nights, paid at check-in | 5.2 | Kept, check-in until 23:00, weights added |
-| Check-out 10:00 of the last day, no new guest until cleaned | 5.2 | Kept |
+| Hotel check-in from 12:00, 1 to 4 nights, paid at check-in | 5.2 | Changed: check-in until 23:00, always 1 night, paid at check-out |
+| Check-out 10:00 of the last day, no new guest until cleaned | 5.2 | Kept, the time is drawn between 07:00 and 10:00 |
 | Single $3,000 / $2,000 / $1,500 / $500 | 5.1 | Kept |
 | Double $4,500 / $3,000 / $2,000 / $800 | 5.1 | Kept |
 | Suite $9,000 / $6,000 / $4,000 / $1,500 | 5.1 | Kept |

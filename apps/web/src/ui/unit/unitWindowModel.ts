@@ -107,6 +107,12 @@ export function priceBandLabel(band: PriceBand): string {
   return t(`value.price.${band}` as StringKey);
 }
 
+/** Whether the builders take this site first; null for anything that is not a site. */
+export function priorityOf(unit: Pick<UnitInspect, 'details'>): boolean | null {
+  const { details } = unit;
+  return details?.group === 'construction' ? (details.priority ?? false) : null;
+}
+
 /** Whether the unit is on the market: for sale or for rent. Null for units with no such switch. */
 export function listedOf(unit: Pick<UnitInspect, 'details'>): boolean | null {
   const { details } = unit;

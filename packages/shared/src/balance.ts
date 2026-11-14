@@ -442,10 +442,10 @@ export const HOTEL_NIGHTLY_PRICE: Readonly<
   suite: { high: 9_000, normal: 6_000, low: 4_000, minimum: 1_500 },
 };
 
-export const HOTEL_STAY_NIGHTS = { min: 1, max: 4 } as const;
+export const HOTEL_STAY_NIGHTS = { min: 1, max: 1 } as const;
 
-/** Percent chance of a stay of 1, 2, 3 and 4 nights. */
-export const HOTEL_STAY_NIGHT_WEIGHTS = [40, 30, 20, 10] as const;
+/** Percent chance of a stay of 1 night: every stay is one night. */
+export const HOTEL_STAY_NIGHT_WEIGHTS = [100] as const;
 
 /** Percent chance that a free, clean room is booked at its daily roll, by its stored grade. */
 export const HOTEL_BOOKING_CHANCE = {

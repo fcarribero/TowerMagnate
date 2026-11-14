@@ -147,6 +147,52 @@ describe('construction sites', () => {
       expect(firstSite === undefined || firstSite.points >= secondSite.points).toBe(true);
     }
   });
+
+  it('builds a priority site before an older one', () => {
+    let state = buildOffice(startOfDay(tower(), 0, 7), 0);
+    state = buildOffice(advance(state, 12), 10);
+    const [first, second] = Object.keys(state.sites) as [string, string];
+    const marked = step(
+      state,
+      [{ id: 'p1', command: { type: 'setSitePriority', unitId: second, priority: true } as Command }],
+      0,
+    );
+    expect(marked.results[0]).toMatchObject({ ok: true });
+    state = advance(marked.state, 1.5 * STEPS_PER_HOUR);
+    const firstPoints = state.sites[first]?.points ?? Number.POSITIVE_INFINITY;
+    const secondPoints = state.sites[second]?.points ?? Number.POSITIVE_INFINITY;
+    expect(secondPoints).toBeGreaterThan(0);
+    expect(secondPoints).toBeGreaterThan(firstPoints === Number.POSITIVE_INFINITY ? 0 : firstPoints);
+  });
+
+  it('drops the priority flag when the site is finished', () => {
+    let state = buildOffice(startOfDay(tower(), 0, 7), 0);
+    const id = Object.keys(state.sites)[0] as string;
+    state = step(
+      state,
+      [{ id: 'p1', command: { type: 'setSitePriority', unitId: id, priority: true } as Command }],
+      0,
+    ).state;
+    expect(state.sites[id]?.priority).toBe(true);
+    state = advance(state, constructionPointsFor('office') * 6 + STEPS_PER_HOUR);
+    expect(state.sites[id]).toBeUndefined();
+    expect(state.units[id]).toBeDefined();
+    expect(state.units[id]).not.toHaveProperty('priority');
+  });
+
+  it('refuses a bad priority payload and an id that is not a site', () => {
+    const state = buildOffice(startOfDay(tower(), 0, 7), 0);
+    const run = (command: unknown) =>
+      step(state, [{ id: 'p1', command: command as Command }], 0).results[0];
+    expect(run({ type: 'setSitePriority', unitId: 'u999', priority: true })).toMatchObject({
+      ok: false,
+      error: 'UNKNOWN_ENTITY',
+    });
+    expect(run({ type: 'setSitePriority', unitId: 'u1', priority: 'yes' })).toMatchObject({
+      ok: false,
+      error: 'INVALID_COMMAND',
+    });
+  });
 });
 
 describe('demolishing a site', () => {

@@ -74,8 +74,9 @@ type SiteDetails = Extract<NonNullable<UnitDetails>, { group: 'construction' }>;
 
 /** A priced site shows the price the player chose (or the appraisal it starts at) and the limits. */
 function siteDetails(state: TowerState, site: TowerState['sites'][string]): SiteDetails {
+  const priority = site.priority === true;
   if (!isPricedType(site.type)) {
-    return { group: 'construction' };
+    return { group: 'construction', priority };
   }
   const appraisal = siteAppraisal(state, site);
   const price = site.price ?? appraisal;
@@ -88,6 +89,7 @@ function siteDetails(state: TowerState, site: TowerState['sites'][string]): Site
     priceMin: min,
     priceMax: max,
     priceStep: 1,
+    priority,
     ...(site.type === 'condo' || site.type === 'office' || site.type === 'retail-shop'
       ? { listed: site.listed ?? newUnit(site.id, site.type, site.x, site.level).listed }
       : {}),

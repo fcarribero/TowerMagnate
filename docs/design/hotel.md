@@ -34,7 +34,7 @@ Each room also keeps two values that the player does not see:
 | Limpia | Ocupada | the first guest of the booked party reaches the room between 12:00 and 23:00 | economy 5.2 |
 | Ocupada | Sucia | 10:00 on the check-out day | economy E-20 |
 | Sucia | Limpia | a maid finishes the cleaning (section 5) | this spec |
-| Sucia | Con plaga | the third daily check that finds it Sucia (section 7.1) | this spec |
+| Sucia | Con plaga | the fourth daily check that finds it Sucia (section 7.1) | this spec |
 | Limpia, Ocupada, Sucia | Con plaga | a neighbour was infested at the start of the daily check (section 7.2) | this spec |
 | any | (removed) | demolition, bomb or fire | construction 8, events |
 
@@ -139,9 +139,9 @@ A maid starts at most 8 cleanings a day (`MAID_DAILY_CLEANINGS`). A housekeeping
 
 The clock allows at most 12 starts per maid, at 10:00, 10:30, ..., 15:30, if every room were next to the last one. With a few minutes of walking or a stair flight between rooms, a maid fits 9 to 10 starts, so the cap of 8 is the limit in practice and travel only matters for rooms far from the unit.
 
-Room demand: a room needs one cleaning per stay. With the average stay of 2 nights (economy 5.2) and a booking chance of 80% (people.md 8.1), a cleaned room waits on average `0.2 / 0.8 = 0.25` days for its next check-in, so it needs one cleaning every 2.25 days, 0.44 a day. One housekeeping unit keeps up with about `48 / 0.44 ≈ 108` rooms in steady state.
+Room demand: a room needs one cleaning per stay. Every stay is 1 night (economy 5.2) and the booking chance is 80% (people.md 8.1), so a cleaned room waits on average `0.2 / 0.8 = 0.25` days for its next check-in. It needs one cleaning every 1.25 days, 0.8 a day. One housekeeping unit keeps up with about `48 / 0.8 = 60` rooms in steady state.
 
-Stays of 1 night are 40% of all stays, so check-outs bunch on some days. The balance target is one housekeeping unit per 80 rooms it can reach, which leaves a margin of about a third for those days. The Limpieza window shows "Habitaciones sucias en la torre" so the player sees a backlog grow.
+The balance target is one housekeeping unit per 80 rooms it can reach. That is above the 60 rooms of the steady-state estimate, so a unit with 80 rooms falls behind on busy days. The Limpieza window shows "Habitaciones sucias en la torre" so the player sees a backlog grow.
 
 Design call on the cap: without it, capacity depends on walking times the player cannot read, and a unit next to a dense floor of single rooms would clean 72 rooms a day. A round 8 per maid gives the player one number to plan with: 48 rooms per unit.
 
@@ -152,11 +152,11 @@ Design call on the cap: without it, capacity depends on walking times the player
 Every day at 00:00 the engine runs the infestation check. It is the first step event of the 00:00 step, before the daily plans (people.md 1.2). It has two phases.
 
 1. Spread (7.2), from the rooms that were Con plaga when the check started.
-2. Dirt: every room that is Sucia adds 1 to its `dirtyChecks`. A room whose `dirtyChecks` reaches 3 becomes Con plaga.
+2. Dirt: every room that is Sucia adds 1 to its `dirtyChecks`. A room whose `dirtyChecks` reaches 4 becomes Con plaga.
 
 A room that becomes Con plaga in either phase does not spread until the next day's check.
 
-A room that becomes Sucia at 10:00 on day D is first counted at 00:00 on D+1. If no maid cleans it on days D, D+1 and D+2, it becomes Con plaga at 00:00 on D+3. The player always has three maid shifts to clean a room.
+A room that becomes Sucia at 10:00 on day D is first counted at 00:00 on D+1. If no maid cleans it on days D, D+1, D+2 and D+3, so it stays dirty for more than 3 days in a row, it becomes Con plaga at 00:00 on D+4. The player always has four maid shifts to clean a room.
 
 ### 7.2 Spread
 
@@ -253,7 +253,7 @@ Maid m5 on a busy day starts her 8th cleaning at 14:02:00 and finishes at 14:32:
 | `MAID_DAILY_CLEANINGS` | 8 |
 | `MAID_RETRY_MINUTES` | 30 |
 | `INFESTATION_CHECK_TIME` | 00:00 |
-| `INFESTATION_DIRTY_CHECKS` | 3 |
+| `INFESTATION_DIRTY_CHECKS` | 4 |
 
 ## 11. GDD coverage
 
@@ -263,7 +263,7 @@ Maid m5 on a busy day starts her 8th cleaning at 14:02:00 and finishes at 14:32:
 | El ascensor de servicio solo lo usa el personal de limpieza | 3 | Kept, routing R-07 |
 | La habitación no se vuelve a alquilar hasta que pasa limpieza | 2.1, 5 | Kept |
 | Mucamas: limpian habitaciones liberadas de 10:00 a 16:00, escaleras y ascensor de servicio | 3, 4, 5 | Kept; cleanings start in `[10:00, 16:00)` |
-| Si una habitación liberada no se limpia en 3 días seguidos, se llena de cucarachas | 7.1 | Kept: third daily check |
+| Si una habitación liberada no se limpia en más de 3 días seguidos, se llena de cucarachas | 7.1 | Changed: fourth daily check |
 | La plaga se contagia cada día a las habitaciones vecinas del mismo piso | 7.2 | Kept, neighbour defined |
 | La única forma de eliminarla es demoler | 7.3 | Kept |
 | Vista Hotel: limpia, sucia, con plaga | 2, 8 | Kept, plus Ocupada (ui.md) |

@@ -9,7 +9,7 @@ import {
   drawStayNights,
   type CheckInResult,
 } from './hotel';
-import { createRng } from './rng';
+import { createRng, nextInt } from './rng';
 import { createEngine, type StepContext } from './step';
 import { unitNumber } from './units';
 import { buildTower, plainTowerPlan } from './testing';
@@ -45,38 +45,31 @@ function tryCheckIn(tower: TowerState, roomId: UnitId, step: number): Attempt {
   return { result, state: context.state, events: context.events };
 }
 
-function seedDrawing(nights: number): number {
-  for (let seed = 0; seed < 1_000; seed++) {
-    if (drawStayNights(createRng(seed)) === nights) return seed;
-  }
-  throw new Error(`No seed draws ${nights} nights first`);
-}
-
-function checkInForNights(nights: number, tower: TowerState, roomId: UnitId, step: number) {
+function checkInWithSeed(tower: TowerState, roomId: UnitId, step: number, seed = 1) {
   const seeded = structuredClone(tower);
-  seeded.rng = createRng(seedDrawing(nights));
+  seeded.rng = createRng(seed);
   return tryCheckIn(seeded, roomId, step);
 }
 
-/** The check-out step of a stay checked in at `checkInStep` for `nights` nights, from the drawn minute. */
-function checkOutStep(roomId: UnitId, checkInStep: number, nights: number): number {
-  const day = Math.floor(checkInStep / STEPS_PER_DAY) + nights;
+/** The check-out step of a stay checked in at `checkInStep`: the next day, at the drawn minute. */
+function checkOutStep(roomId: UnitId, checkInStep: number): number {
+  const day = Math.floor(checkInStep / STEPS_PER_DAY) + 1;
   return day * STEPS_PER_DAY + checkOutMinuteOf(unitNumber(roomId), checkInStep) * STEPS_PER_MINUTE;
 }
 
 describe('hotel check-in', () => {
-  it('charges nothing at check-in and the whole 3-night stay at the drawn check-out time on Saturday', () => {
+  it('charges nothing at check-in and the one night at the drawn check-out time the next morning', () => {
     const { tower, roomIds } = towerWithRooms(['suite']);
     const roomId = roomIds[0] as UnitId;
-    const { result, state, events } = checkInForNights(3, tower, roomId, at(WEDNESDAY, 15));
+    const { result, state, events } = checkInWithSeed(tower, roomId, at(WEDNESDAY, 15));
 
-    expect(result).toEqual({ checkedIn: true, nights: 3 });
+    expect(result).toEqual({ checkedIn: true, nights: 1 });
     expect(state.money).toBe(tower.money);
     expect(state.ledger.currentWeek.hotel.income).toBe(0);
     expect(state.units[roomId]?.used).toBe(true);
     expect(state.units[roomId]?.hotel).toEqual({
       state: 'occupied',
-      stayEndStep: checkOutStep(roomId, at(WEDNESDAY, 15), 3),
+      stayEndStep: checkOutStep(roomId, at(WEDNESDAY, 15)),
       checkInStep: at(WEDNESDAY, 15),
       paidRatio: 1,
       stayRate: 6_000,
@@ -84,11 +77,11 @@ describe('hotel check-in', () => {
       rollDue: false,
       dirtyChecks: 0,
     });
-    expect(weekdayOfDay(WEDNESDAY + 3)).toBe(WEEKDAYS.saturday);
+    expect(weekdayOfDay(WEDNESDAY + 1)).toBe(WEEKDAYS.thursday);
     expect(events.map((event) => event.type)).toEqual(['hotelCheckIn', 'roomStateChanged']);
 
     const engine = createEngine({ commandHandlers: {}, systems: [createHotelSystem()] });
-    const checkOut = checkOutStep(roomId, at(WEDNESDAY, 15), 3);
+    const checkOut = checkOutStep(roomId, at(WEDNESDAY, 15));
     const justBefore = engine.step(state, [], checkOut - 1 - state.step);
     expect(justBefore.state.units[roomId]?.hotel?.state).toBe('occupied');
 
@@ -105,15 +98,15 @@ describe('hotel check-in', () => {
       'roomStateChanged',
     ]);
     expect(atCheckOut.events.find((event) => event.type === 'hotelCheckOut')).toMatchObject({
-      nights: 3,
-      paid: 18_000,
+      nights: 1,
+      paid: 6_000,
     });
     expect(atCheckOut.events.find((event) => event.type === 'unitMoney')).toMatchObject({
       unitId: roomId,
       reason: 'hotel',
     });
-    expect(atCheckOut.state.money - state.money).toBe(18_000);
-    expect(atCheckOut.state.ledger.currentWeek.hotel.income).toBe(18_000);
+    expect(atCheckOut.state.money - state.money).toBe(6_000);
+    expect(atCheckOut.state.ledger.currentWeek.hotel.income).toBe(6_000);
   });
 
   it.each([
@@ -124,7 +117,7 @@ describe('hotel check-in', () => {
     const { tower, roomIds } = towerWithRooms([type]);
     const roomId = roomIds[0] as UnitId;
     tower.units[roomId]!.price = price;
-    const { result, state } = checkInForNights(1, tower, roomId, at(WEDNESDAY, 12));
+    const { result, state } = checkInWithSeed(tower, roomId, at(WEDNESDAY, 12));
     expect(result).toEqual({ checkedIn: true, nights: 1 });
     expect(state.units[roomId]?.hotel?.stayRate).toBe(price);
   });
@@ -209,12 +202,12 @@ describe('hotel check-out time', () => {
     const minutes = new Set<number>();
     for (const roomId of roomIds) {
       for (let day = 0; day < 40; day++) {
-        const attempt = checkInForNights(2, tower, roomId, at(day, 12 + (day % 10)));
+        const attempt = checkInWithSeed(tower, roomId, at(day, 12 + (day % 10)));
         const end = attempt.state.units[roomId]?.hotel?.stayEndStep as number;
         const minute = (end % STEPS_PER_DAY) / STEPS_PER_MINUTE;
         expect(minute).toBeGreaterThanOrEqual(7 * 60);
         expect(minute).toBeLessThanOrEqual(10 * 60);
-        expect(Math.floor(end / STEPS_PER_DAY)).toBe(day + 2);
+        expect(Math.floor(end / STEPS_PER_DAY)).toBe(day + 1);
         minutes.add(minute);
       }
     }
@@ -224,8 +217,8 @@ describe('hotel check-out time', () => {
   it('draws the same minute for the same room and check-in step and frees the room at it', () => {
     const { tower, roomIds } = towerWithRooms(['single-room']);
     const roomId = roomIds[0] as UnitId;
-    const first = checkInForNights(1, tower, roomId, at(WEDNESDAY, 14));
-    const second = checkInForNights(1, tower, roomId, at(WEDNESDAY, 14));
+    const first = checkInWithSeed(tower, roomId, at(WEDNESDAY, 14));
+    const second = checkInWithSeed(tower, roomId, at(WEDNESDAY, 14));
     expect(first.state.units[roomId]?.hotel?.stayEndStep).toBe(
       second.state.units[roomId]?.hotel?.stayEndStep,
     );
@@ -240,18 +233,14 @@ describe('hotel check-out time', () => {
 });
 
 describe('hotel stay length', () => {
-  it('follows 40/30/20/10 within 2 points over 10,000 seeded draws', () => {
+  it('is one night for every draw and consumes one rng draw', () => {
     const rng = createRng(2024);
-    const counts = [0, 0, 0, 0];
-    const draws = 10_000;
-    for (let draw = 0; draw < draws; draw++) {
-      const index = drawStayNights(rng) - 1;
-      counts[index] = (counts[index] as number) + 1;
+    const reference = createRng(2024);
+    for (let draw = 0; draw < 200; draw++) {
+      expect(drawStayNights(rng)).toBe(1);
+      nextInt(reference, 0, 99);
     }
-    [40, 30, 20, 10].forEach((expected, index) => {
-      const percent = ((counts[index] as number) / draws) * 100;
-      expect(Math.abs(percent - expected)).toBeLessThan(2);
-    });
+    expect(rng).toEqual(reference);
   });
 
   it('gives the same draws for the same seed', () => {
@@ -260,7 +249,7 @@ describe('hotel stay length', () => {
       return Array.from({ length: 200 }, () => drawStayNights(rng));
     };
     expect(draws(77)).toEqual(draws(77));
-    expect(draws(77)).not.toEqual(draws(78));
+    expect(new Set(draws(78))).toEqual(new Set([1]));
   });
 });
 

@@ -442,6 +442,8 @@ const InspectedUnitDetailsSchema = z.discriminatedUnion('group', [
     priceStep: pricingFields.priceStep.optional(),
     /** For a condo, office or shop site: whether it will go on the market when finished. */
     listed: z.boolean().optional(),
+    /** Whether the builders take this site before the others. */
+    priority: z.boolean().optional(),
   }),
   z.object({
     group: z.literal('housekeeping'),

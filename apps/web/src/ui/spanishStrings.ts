@@ -182,6 +182,7 @@ export const SPANISH_STRINGS = {
   'window.unit.appraisalMark': 'Tasación {price}',
   'window.unit.listedSale': 'En venta',
   'window.unit.listedRent': 'En renta',
+  'window.unit.sitePriority': 'Prioridad',
   'window.unit.peopleNobody': 'Nadie',
   'window.unit.peopleWorkers': 'Trabajadores',
   'window.unit.peopleStaff': 'Personal',

@@ -119,7 +119,7 @@ Un local comercial además se va antes de terminar el contrato si pasa una seman
 
 ### Hotel
 
-El huésped llega a partir de las 12:00, elige una estadía de 1 a 4 noches y paga todas las noches al hacer el check-in. El check-out es a las 10:00 del último día. La habitación no se vuelve a alquilar hasta que pasa limpieza.
+El huésped llega a partir de las 12:00, se queda una sola noche y paga esa noche al hacer el check-out. El check-out es a la mañana siguiente, entre las 7:00 y las 10:00. La habitación no se vuelve a alquilar hasta que pasa limpieza.
 
 | Habitación | Alto | Normal | Bajo | Mínimo |
 |---|---|---|---|---|

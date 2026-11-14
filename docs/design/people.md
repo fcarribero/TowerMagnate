@@ -226,13 +226,13 @@ A successful roll books the room and draws the party's arrival time:
 - Roll at 12:00: 12:00 to 17:00 25%, 17:00 to 21:00 55%, 21:00 to 22:30 20%.
 - Roll after 12:00: a uniform minute in `[roll time + 30 minutes, 22:30)`.
 
-At the arrival time the whole party appears together at an entrance and travels to the room. Check-in happens when the first guest of the party reaches the room (economy 5.2): the party draws its nights and pays then. If nobody of the party has reached the room by 23:00, the party gives up and leaves, nobody pays, and the room can be booked again from 12:00 the next day.
+At the arrival time the whole party appears together at an entrance and travels to the room. Check-in happens when the first guest of the party reaches the room (economy 5.2): the party books its one night; it pays at check-out. If nobody of the party has reached the room by 23:00, the party gives up and leaves, nobody pays, and the room can be booked again from 12:00 the next day.
 
 Design call: the GDD gives arrivals from 12:00 to 23:00, mostly after 17:00. The last arrival is drawn at 22:30 so that a reachable room has at least 30 minutes before the 23:00 deadline.
 
 ### 8.2 Days of the stay
 
-A party that checks in on day D with `n` nights leaves on day D + n. Each guest has a plan for each day of the stay:
+A party that checks in on day D leaves on day D + 1. Every stay is one night, so the plan has the check-in day and the check-out day only; the full-day rows below apply only to a stay saved with more nights. Each guest has a plan for each day of the stay:
 
 | Day | Intention | Chance | Window and weights | What happens |
 |---|---|---|---|---|

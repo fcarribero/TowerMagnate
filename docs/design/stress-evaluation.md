@@ -297,7 +297,7 @@ A condo on level 20, columns 200 to 215, sold at bajo. A single room on level 20
 
 ### 10.5 Hotel room
 
-A double room on level 16, columns 50 to 55. An office on level 16 at columns 70 to 78: gap `70 - 55 - 1 = 14`, at or below 20, so noise +60. A party of 2 checks in on Monday paying alto for 2 nights; the stay ends Wednesday at 10:00.
+A double room on level 16, columns 50 to 55. An office on level 16 at columns 70 to 78: gap `70 - 55 - 1 = 14`, at or below 20, so noise +60. A party of 2 checks in on Monday paying alto for 1 night; the stay ends Tuesday at 10:00.
 
 | Trip | Ended | T | Counted |
 |---|---|---|---|

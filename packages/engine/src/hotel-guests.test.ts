@@ -405,19 +405,9 @@ describe('guest outings', () => {
     expect(visits).toBeGreaterThan(0);
   });
 
-  it('leaves for the day from 07:30 to 10:00 and comes back from 13:00 to 20:00', () => {
-    const leaves = startsOf('toExit');
-    const returns = startsOf('toRoom');
-    expect(leaves.length).toBeGreaterThan(3);
-    expect(returns.length).toBe(leaves.length);
-    for (const minute of leaves) {
-      expect(minute).toBeGreaterThanOrEqual(7 * 60 + 30);
-      expect(minute).toBeLessThan(10 * 60);
-    }
-    for (const minute of returns) {
-      expect(minute).toBeGreaterThanOrEqual(13 * 60);
-      expect(minute).toBeLessThan(20 * 60);
-    }
+  it('has no morning day out, because every stay is one night and ends at check-out', () => {
+    expect(startsOf('toExit')).toHaveLength(0);
+    expect(startsOf('toRoom')).toHaveLength(0);
   });
 });
 

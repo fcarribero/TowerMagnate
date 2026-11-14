@@ -320,6 +320,7 @@ describe('inspecting a unit', () => {
         priceMin: 4_000,
         priceMax: 25_000,
         priceStep: 1,
+        priority: false,
         listed: true,
       },
     });
@@ -342,9 +343,10 @@ describe('inspecting a unit', () => {
     const office = inspectUnit(state, 'u8');
     expect(throughTheWire(office)).toBe(true);
     expect(office).toMatchObject({
-      details: { group: 'construction', price: 7_000, priceBand: 'low', listed: false },
+      details: { group: 'construction', price: 7_000, priceBand: 'low', listed: false, priority: false },
     });
-    expect(inspectUnit(state, 'u9')).toMatchObject({ details: { group: 'construction' } });
+    state.sites.u9!.priority = true;
+    expect(inspectUnit(state, 'u9')).toMatchObject({ details: { group: 'construction', priority: true } });
     expect((inspectUnit(state, 'u9') as { details: object }).details).not.toHaveProperty('price');
   });
 

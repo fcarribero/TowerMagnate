@@ -96,7 +96,7 @@ function rowTower() {
 }
 
 describe('hotel spec 7.1, the dirt phase', () => {
-  it('counts a dirty check each day and infests the room at the third', () => {
+  it('counts a dirty check each day and infests the room at the fourth', () => {
     const { state, ids } = towerOf(3, [{ name: 'a', type: 'single-room', x: 0 }]);
     const room = ids.a as UnitId;
     setState(state, room, 'dirty');
@@ -106,6 +106,8 @@ describe('hotel spec 7.1, the dirt phase', () => {
     expect(hotelOf(state, room)).toMatchObject({ state: 'dirty', dirtyChecks: 1 });
     expect(checks.next()).toEqual([]);
     expect(hotelOf(state, room)).toMatchObject({ state: 'dirty', dirtyChecks: 2 });
+    expect(checks.next()).toEqual([]);
+    expect(hotelOf(state, room)).toMatchObject({ state: 'dirty', dirtyChecks: 3 });
     expect(checks.next()).toEqual([3]);
     expect(hotelOf(state, room)).toMatchObject({ state: 'infested', dirtyChecks: 0 });
   });
@@ -123,16 +125,17 @@ describe('hotel spec 7.1, the dirt phase', () => {
 });
 
 describe('hotel spec 9.3, spread along a row', () => {
-  it('infests A to D from Thursday to Sunday and never E', () => {
+  it('infests A to D from Friday to Monday and never E', () => {
     const { ids, checks } = rowTower();
     const rooms = Object.fromEntries(Object.entries(ids).filter(([name]) => name !== 'office'));
     const after: string[][] = [];
     const news: number[][] = [];
-    for (let day = 0; day < 7; day++) {
+    for (let day = 0; day < 8; day++) {
       news.push(checks.next());
       after.push(checks.infested(rooms));
     }
     expect(after).toEqual([
+      [],
       [],
       [],
       ['A'],
@@ -141,12 +144,12 @@ describe('hotel spec 9.3, spread along a row', () => {
       ['A', 'B', 'C', 'D'],
       ['A', 'B', 'C', 'D'],
     ]);
-    expect(news).toEqual([[], [], [30], [30], [30], [30], []]);
+    expect(news).toEqual([[], [], [], [30], [30], [30], [30], []]);
   });
 
   it('does not spread from a room infested in the same check', () => {
     const { ids, checks } = rowTower();
-    for (let day = 0; day < 3; day++) checks.next();
+    for (let day = 0; day < 4; day++) checks.next();
     expect(checks.infested(ids)).toEqual(['A']);
     checks.next();
     expect(checks.infested(ids)).toEqual(['A', 'B']);
@@ -154,7 +157,7 @@ describe('hotel spec 9.3, spread along a row', () => {
 
   it('reaches C on Friday when B is demolished on Thursday', () => {
     const { state, ids, checks } = rowTower();
-    for (let day = 0; day < 3; day++) checks.next();
+    for (let day = 0; day < 4; day++) checks.next();
     demolish(state, ids.B as UnitId);
     checks.next();
     expect(checks.infested(ids)).toEqual(['A', 'C']);
@@ -162,7 +165,7 @@ describe('hotel spec 9.3, spread along a row', () => {
 
   it('stops when A is demolished on Thursday', () => {
     const { state, ids, checks } = rowTower();
-    for (let day = 0; day < 3; day++) checks.next();
+    for (let day = 0; day < 4; day++) checks.next();
     demolish(state, ids.A as UnitId);
     for (let day = 0; day < 4; day++) checks.next();
     expect(checks.infested(ids)).toEqual([]);
@@ -174,7 +177,7 @@ describe('hotel spec 9.3, spread along a row', () => {
       { name: 'b', type: 'single-room', x: 4 },
     ]);
     setState(state, ids.a as UnitId, 'dirty');
-    hotelOf(state, ids.a as UnitId).dirtyChecks = 2;
+    hotelOf(state, ids.a as UnitId).dirtyChecks = 3;
     const checks = new Checks(state);
     checks.next();
     expect(checks.infested(ids)).toEqual(['a']);
@@ -247,20 +250,20 @@ describe('hotel spec 7.3 and 7.4', () => {
     ]);
     setState(state, ids.high as UnitId, 'dirty');
     setState(state, ids.low as UnitId, 'dirty');
-    hotelOf(state, ids.high as UnitId).dirtyChecks = 2;
-    hotelOf(state, ids.low as UnitId).dirtyChecks = 2;
+    hotelOf(state, ids.high as UnitId).dirtyChecks = 3;
+    hotelOf(state, ids.low as UnitId).dirtyChecks = 3;
     expect(new Checks(state).next()).toEqual([3, 6]);
   });
 });
 
 describe('the check in the step loop', () => {
-  it('infests a room made dirty on day 1 at 10:00 at midnight of day 4', () => {
+  it('infests a room made dirty on day 1 at 10:00 at midnight of day 5', () => {
     const { state, ids } = towerOf(3, [{ name: 'a', type: 'single-room', x: 0 }]);
     const room = ids.a as UnitId;
     setState(state, room, 'dirty');
     state.step = stepOfDate({ year: 1, month: 1, day: 1, hour: 10, minute: 0 });
 
-    const run = runDays(state, 3);
+    const run = runDays(state, 4);
 
     expect(run.state.units[room]?.hotel?.state).toBe('infested');
     expect(

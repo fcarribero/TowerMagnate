@@ -13,6 +13,7 @@ import {
   clampHours,
   clampPrice,
   listedOf,
+  priorityOf,
   peopleGroups,
   priceBandLabel,
   priceControlOf,
@@ -136,6 +137,13 @@ describe('unit window model', () => {
     const forSale = { ...condo, details: { ...condoDetails, state: 'forSale' as const } };
     expect(priceControlOf(forSale)).not.toBeNull();
     expect(priceControlOf({ details: { group: 'cinema', filmWeek: 1, filmAgeDays: 0 } })).toBeNull();
+  });
+
+  it('reads the builders priority of a site only', () => {
+    expect(priorityOf({ details: { group: 'construction' } })).toBe(false);
+    expect(priorityOf({ details: { group: 'construction', priority: true } })).toBe(true);
+    expect(priorityOf(office)).toBeNull();
+    expect(priorityOf({ details: null })).toBeNull();
   });
 
   it('reads whether a condo, office or shop is listed', () => {

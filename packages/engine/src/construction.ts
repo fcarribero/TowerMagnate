@@ -47,10 +47,13 @@ export function isBuiltByCrew(type: UnitType): boolean {
   return UNIT_CATALOG[type].category !== 'structure';
 }
 
-/** The sites in the order the crew takes them: the first one placed first. */
+/** The sites in the order the crew takes them: priority sites first, then the first one placed first. */
 export function sitesInOrder(state: TowerState): ConstructionSite[] {
   return Object.values(state.sites).sort(
-    (a, b) => a.placedAtStep - b.placedAtStep || unitNumber(a.id) - unitNumber(b.id),
+    (a, b) =>
+      Number(b.priority === true) - Number(a.priority === true) ||
+      a.placedAtStep - b.placedAtStep ||
+      unitNumber(a.id) - unitNumber(b.id),
   );
 }
 

@@ -307,6 +307,23 @@ describe('unit windows', () => {
     ]);
   });
 
+  it('shows a priority checkbox only for a site and sends the command', () => {
+    const { open, show, commandsSent } = setup([unitView('u1')]);
+    open('u1');
+    show(inspectOf('u1', { details: { group: 'construction', priority: false } }));
+    const box = screen.getByLabelText('Prioridad') as HTMLInputElement;
+    expect(box.checked).toBe(false);
+    fireEvent.click(box);
+    expect(commandsSent()).toEqual([{ type: 'setSitePriority', unitId: 'u1', priority: true }]);
+  });
+
+  it('has no priority checkbox on a finished unit', () => {
+    const { open, show } = setup([unitView('u1')]);
+    open('u1');
+    show(inspectOf('u1'));
+    expect(screen.queryByLabelText('Prioridad')).toBeNull();
+  });
+
   it('lists the office for rent with a checkbox', () => {
     const { open, show, commandsSent } = setup([unitView('u1')]);
     open('u1');

@@ -94,8 +94,8 @@ function economyTower(): { tower: TowerState; units: EconomyUnits } {
   return { tower: state, units: named(unitIds) };
 }
 
-/** Seed 1 draws these stay lengths, in the order of the successful check-ins below. */
-const SEED_ONE_NIGHTS = [2, 2, 3, 4, 1, 1, 2, 2, 3, 1, 1, 1];
+/** Every stay is one night: 15 check-in attempts, 2 refused, 13 stays. */
+const SEED_ONE_NIGHTS = Array.from({ length: 13 }, () => 1);
 
 interface VenueVisits {
   fastFood: number;
@@ -198,34 +198,35 @@ function economyScript(units: EconomyUnits): EconomyScript {
  * 5,000 (bajo, set on day 8) on day 9, because each renewal is paid at the price of that moment;
  * shop 15,000 on days 6 and 13 (the lease starts at 07:00 of day 6), with 90 visits in between so it stays.
  * Condos: A 175,000 on day 1; B 230,000 (alto) on day 10.
- * Hotel, charged at check-out (a time between 07:00 and 10:00 drawn at check-in, so always the
- * same day) for every night, at the price set at check-in: day 0
- * single 2 x 2,000 and double 2 x 3,000 (out on day 2), suite 3 x 6,000 (out on day 3); day 1
- * single refused (occupied); day 2 single 4 x 2,000 (out on day 6); day 3 double refused at
- * 11:59, then 1 x 3,000 (out on day 4); day 4 suite 1 x 6,000 (out on day 5); day 5 double
- * 2 x 3,000 (out on day 7); day 6 single 2 x 3,000 (alto, out on day 8), suite refused at 23:01;
- * day 7 suite 3 x 6,000 (out on day 10); day 8 double 1 x 3,000 (out on day 9); day 9 single
- * 1 x 3,000 (out on day 10); day 11 suite 1 x 4,000 (bajo, out on day 12).
+ * Hotel, charged at check-out (a time between 07:00 and 10:00 drawn at check-in, on the day after
+ * check-in) for the one night, at the price set at check-in. Housekeeping cleans at 11:00, so a
+ * room checked out that morning is free for the afternoon check-in. Check-ins on day 0: single
+ * 2,000, double 3,000 and suite 6,000, all out on day 1; day 1 single 2,000 (out on day 2); day 2
+ * single 2,000 (out on day 3); day 3 double refused at 11:59 (before check-in hours), then 3,000
+ * at 13:00 (out on day 4); day 4 suite 6,000 (out on day 5); day 5 double 3,000 (out on day 6);
+ * day 6 single 3,000 (alto, out on day 7), suite refused at 23:01; day 7 suite 6,000 (out on day
+ * 8); day 8 double 3,000 (out on day 9); day 9 single 3,000 (out on day 10); day 11 suite 4,000
+ * (bajo, out on day 12).
  * Venues per day are fast food + restaurant + party hall + cinema brackets for the visit tables.
  */
 const EXPECTED_DAYS: ExpectedDay[] = [
   { balance: 2_042_000, changes: { rent: 10_000, venues: 32_000 } },
-  { balance: 2_223_000, changes: { condoSales: 175_000, venues: 6_000 } },
-  { balance: 2_271_000, changes: { rent: 15_000, hotel: 10_000, venues: 23_000 } },
-  { balance: 2_303_000, changes: { hotel: 18_000, venues: 14_000 } },
-  { balance: 2_315_000, changes: { hotel: 3_000, venues: 9_000 } },
-  { balance: 2_336_000, changes: { hotel: 6_000, venues: 15_000 } },
+  { balance: 2_234_000, changes: { condoSales: 175_000, hotel: 11_000, venues: 6_000 } },
+  { balance: 2_274_000, changes: { rent: 15_000, hotel: 2_000, venues: 23_000 } },
+  { balance: 2_290_000, changes: { hotel: 2_000, venues: 14_000 } },
+  { balance: 2_302_000, changes: { hotel: 3_000, venues: 9_000 } },
+  { balance: 2_323_000, changes: { hotel: 6_000, venues: 15_000 } },
   {
-    balance: 2_289_000,
-    changes: { rent: 15_000, hotel: 8_000, venues: 19_000, upkeep: -89_000 },
+    balance: 2_271_000,
+    changes: { rent: 15_000, hotel: 3_000, venues: 19_000, upkeep: -89_000 },
   },
-  { balance: 2_328_000, changes: { rent: 10_000, hotel: 6_000, venues: 23_000 } },
-  { balance: 2_337_000, changes: { hotel: 6_000, venues: 3_000 } },
-  { balance: 2_372_000, changes: { rent: 5_000, hotel: 3_000, venues: 27_000 } },
-  { balance: 2_639_000, changes: { condoSales: 230_000, hotel: 21_000, venues: 16_000 } },
-  { balance: 2_668_000, changes: { venues: 29_000 } },
-  { balance: 2_678_000, changes: { hotel: 4_000, venues: 6_000 } },
-  { balance: 2_644_000, changes: { rent: 15_000, venues: 40_000, upkeep: -89_000 } },
+  { balance: 2_307_000, changes: { rent: 10_000, hotel: 3_000, venues: 23_000 } },
+  { balance: 2_316_000, changes: { hotel: 6_000, venues: 3_000 } },
+  { balance: 2_351_000, changes: { rent: 5_000, hotel: 3_000, venues: 27_000 } },
+  { balance: 2_600_000, changes: { condoSales: 230_000, hotel: 3_000, venues: 16_000 } },
+  { balance: 2_629_000, changes: { venues: 29_000 } },
+  { balance: 2_639_000, changes: { hotel: 4_000, venues: 6_000 } },
+  { balance: 2_605_000, changes: { rent: 15_000, venues: 40_000, upkeep: -89_000 } },
 ];
 
 type PartialWeek = Partial<Record<LedgerCategory, { income?: number; expense?: number }>>;
@@ -243,14 +244,14 @@ function weekTotals(lines: PartialWeek): WeekTotals {
 
 const WEEK_ONE = weekTotals({
   rent: { income: 40_000 },
-  hotel: { income: 45_000 },
+  hotel: { income: 27_000 },
   condoSales: { income: 175_000 },
   venues: { income: 133_000, expense: -15_000 },
 });
 
 const WEEK_TWO = weekTotals({
   rent: { income: 30_000 },
-  hotel: { income: 40_000 },
+  hotel: { income: 19_000 },
   condoSales: { income: 230_000 },
   venues: { income: 165_000, expense: -21_000 },
   upkeep: { expense: -89_000 },
@@ -319,11 +320,11 @@ describe('scenario: economy week boundary at step 60,480', () => {
     const sunday = engine.step(firstSixDays, [], STEPS_PER_DAY - 1).state;
     expect(sunday.step).toBe(WEEK_STEPS - 1);
     expect(sunday.ledger.currentWeek).toEqual(WEEK_ONE);
-    expect(sunday.money).toBe(2_378_000);
+    expect(sunday.money).toBe(2_360_000);
 
     const monday = engine.step(sunday, [], 1).state;
     expect(monday.ledger.previousWeek).toEqual(WEEK_ONE);
     expect(monday.ledger.currentWeek).toEqual(UPKEEP_ONLY);
-    expect(monday.money).toBe(2_289_000);
+    expect(monday.money).toBe(2_271_000);
   });
 });

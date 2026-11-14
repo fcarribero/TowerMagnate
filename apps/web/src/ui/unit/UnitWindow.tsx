@@ -24,6 +24,7 @@ import {
   hourText,
   isTopPeopleGroup,
   listedOf,
+  priorityOf,
   locationText,
   peopleGroups,
   priceControlOf,
@@ -132,6 +133,7 @@ export function UnitWindow({ unitId, connection, anchored = false }: UnitWindowP
   const priceLabel = found === undefined ? null : priceLabelKey(found.type);
   const priceControl = found === undefined ? null : priceControlOf(found);
   const listed = found === undefined ? null : listedOf(found);
+  const priority = found === undefined ? null : priorityOf(found);
   const people = found === undefined ? [] : peopleGroups(found);
   const topPeople = people.filter(isTopPeopleGroup);
   const lowerPeople = people.filter((group) => !isTopPeopleGroup(group));
@@ -207,6 +209,15 @@ export function UnitWindow({ unitId, connection, anchored = false }: UnitWindowP
             listed={listed}
             disabled={gone}
             onChange={(next) => void commands.setListed(unitId, next)}
+          />
+        )}
+        {found !== undefined && priority !== null && (
+          <ListedToggle
+            id={`${windowId}-priority`}
+            label={t('window.unit.sitePriority')}
+            listed={priority}
+            disabled={gone}
+            onChange={(next) => void commands.setSitePriority(unitId, next)}
           />
         )}
         {lowerPeople.map((group) => (

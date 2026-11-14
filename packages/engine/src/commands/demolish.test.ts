@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { demolitionIndemnity } from './demolish';
 import { occupantAt, structureAt } from '../grid';
 import { addPeopleForUnit, listPeople } from '../people';
+import { step } from '../step';
 import { buildTower, plainTowerPlan } from '../testing';
 import { accept, fullSiteTower, rejection, run } from './shaft-test-helpers';
 
@@ -551,5 +552,47 @@ describe('demolish indemnity', () => {
     first.lease = { anchorStep: 0, nextDueStep: 100, weekVisits: 0, rent: 7_000 };
     other.units.u90 = { ...first, id: 'u90', lease: { ...(first.lease as object), rent: 5_000 } as never };
     expect(demolitionIndemnity(other, [id, 'u90', id, 'u999'])).toBe(12_000);
+  });
+});
+
+describe('demolishing a construction site', () => {
+  /** Like `run`, but the site stays a site: no crew finishes it. */
+  function runUnfinished(tower: TowerState, command: Command) {
+    const { state, results } = step(tower, [{ id: 'c1', command }], 0);
+    return { state, result: results[0] };
+  }
+
+  function placed() {
+    const tower = towerReadyToBuild();
+    const before = tower.money;
+    const { state } = runUnfinished(tower, {
+      type: 'buildUnit',
+      unitType: 'office',
+      x: 100,
+      level: 5,
+    });
+    const siteId = Object.keys(state.sites).at(-1) as string;
+    return { before, state, siteId };
+  }
+
+  it('pays the whole construction back when no work has started', () => {
+    const { before, state: built, siteId } = placed();
+    expect(built.money).toBeLessThan(before);
+    expect(built.sites[siteId]?.points).toBe(0);
+
+    const { state, result } = runUnfinished(built, demolishUnit(siteId));
+    expect(result).toMatchObject({ ok: true });
+    expect(state.sites[siteId]).toBeUndefined();
+    expect(state.money).toBe(before);
+  });
+
+  it('pays back only the unbuilt part once work has started', () => {
+    const { state: built, siteId } = placed();
+    const paid = built.sites[siteId]?.paid as number;
+    const started = structuredClone(built);
+    (started.sites[siteId] as { points: number }).points = 1;
+    const { state } = runUnfinished(started, demolishUnit(siteId));
+    expect(state.money - started.money).toBeLessThan(paid);
+    expect(state.money - started.money).toBeGreaterThan(0);
   });
 });
