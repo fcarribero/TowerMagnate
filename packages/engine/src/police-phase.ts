@@ -71,11 +71,12 @@ export function isPhaseUniform(phase: PolicePhase): boolean {
 }
 
 /**
- * True while the officer patrols or walks back from a patrol, the times police are kept off the
- * elevators. An officer an event sent somewhere is `summoned` and may ride them.
+ * True while the officer patrols, the time police are kept off the elevators. An officer walking
+ * back to the office or sent by an event (`summoned`) may ride them: each patrol starts where the
+ * last one ended, so an officer can end up farther from the office than stairs and escalators reach.
  */
 export function isPatrolling(pool: PersonPool, slot: number): boolean {
   if (pool.kind[slot] !== POLICE_KIND) return false;
   const phase = policePhaseAt(pool, slot);
-  return phase === 'patrolling' || phase === 'returning';
+  return phase === 'patrolling';
 }

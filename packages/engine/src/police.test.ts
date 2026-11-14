@@ -359,4 +359,16 @@ describe('police and other people', () => {
     pool.trip[slot] = encodePoliceRoutine({ phase: 'summoned', entranceOnRight: false });
     expect(startTrek(context, slot, top)).toBe(true);
   });
+
+  it('walking back to the office may use an elevator, so an officer far from it is not stuck', () => {
+    const { state, office } = policeTower();
+    seatShiftOnDuty(state);
+    const pool = state.people;
+    const slot = policeRosterOf(pool, Number(office.slice(1)))[0] as number;
+    const context: StepContext = { state, events: [] };
+    pool.level[slot] = 4;
+    pool.column[slot] = 104;
+    pool.trip[slot] = encodePoliceRoutine({ phase: 'returning', entranceOnRight: false });
+    expect(startTrek(context, slot, { level: 2, column: 101 })).toBe(true);
+  });
 });
