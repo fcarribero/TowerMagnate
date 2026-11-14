@@ -3,6 +3,9 @@ import { PersonPortrait } from '../person/PersonPortrait';
 import { t } from '../strings';
 import type { PeopleGroup } from './unitWindowModel';
 
+/** One sprite pixel per UI pixel: the people in a row are drawn at their real size. */
+const REAL_SIZE_SCALE = 1;
+
 export interface PeopleRowProps {
   group: PeopleGroup;
   connection: Pick<GameConnection, 'store' | 'inspect'>;
@@ -32,7 +35,11 @@ export function PeopleRow({ group, connection, bare = false }: PeopleRowProps) {
                 aria-label={t('window.unit.openPerson')}
                 onClick={() => connection.inspect.requestPersonWindow(id)}
               >
-                <PersonPortrait id={id} kind={known?.get(id)?.kind ?? group.kind} />
+                <PersonPortrait
+                  id={id}
+                  kind={known?.get(id)?.kind ?? group.kind}
+                  scale={REAL_SIZE_SCALE}
+                />
               </button>
             </li>
           ))}
