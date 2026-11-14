@@ -170,12 +170,15 @@ export class PeopleLayer {
       if (person.mode === 'ride') {
         continue;
       }
-      const pose = flight === undefined ? null : this.onFlight(person, flight, x);
-      if (pose === null) {
+      const on = flight === undefined ? null : this.onFlight(person, flight, x);
+      if (on === null) {
         this.drawPerson(person, x, position, floorSprite(person, x), person.facing);
         continue;
       }
-      this.drawPerson(person, pose.x, pose.position, floorSprite(person, pose.x), pose.facing);
+      // Escalator riders stand still: the belt carries them, their feet do not walk.
+      const rider = on.carried ? { ...person, mode: 'wait' as const } : person;
+      const { pose } = on;
+      this.drawPerson(person, pose.x, pose.position, floorSprite(rider, pose.x), pose.facing);
     }
     const time = this.now();
     for (const person of frame.inside ?? []) {
@@ -195,7 +198,11 @@ export class PeopleLayer {
    * entry to the exit, then walking on from the exit to the state's column. Null when no stairs
    * are under them.
    */
-  private onFlight(person: PersonView, flight: DrawnFlight, landedX: number): FlightPose | null {
+  private onFlight(
+    person: PersonView,
+    flight: DrawnFlight,
+    landedX: number,
+  ): { pose: FlightPose; carried: boolean } | null {
     const span = findFlightSpan(
       this.flightsByLevel,
       levelToIndex(flight.level),
@@ -205,10 +212,11 @@ export class PeopleLayer {
     if (span === undefined) {
       return null;
     }
-    return drawnOnFlight(span, flight, {
+    const pose = drawnOnFlight(span, flight, {
       x: landedX,
       positionIndex: levelToIndex(person.level),
     });
+    return { pose, carried: span.kind === 'escalator' && flight.walked <= 0 };
   }
 
   /** The unit on the person's level whose columns hold them, if there is one. */

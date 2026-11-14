@@ -2,6 +2,7 @@ import {
   addPerson,
   createTower,
   defaultSchedule,
+  encodePoliceRoutine,
   encodeStaffRoutine,
   newUnit,
   removePerson,
@@ -306,7 +307,66 @@ describe('inspecting a unit', () => {
     const data = inspectUnit(state, id);
 
     expect(throughTheWire(data)).toBe(true);
-    expect(data).toMatchObject({ status: 'ok', type: 'security', details: null });
+    expect(data).toMatchObject({ status: 'ok', type: 'security', details: { group: 'security' } });
+  });
+
+  it('answers a recycling center with the common fields only', () => {
+    const { state, id } = towerWith('recycling-center');
+    const data = inspectUnit(state, id);
+
+    expect(throughTheWire(data)).toBe(true);
+    expect(data).toMatchObject({ status: 'ok', type: 'recycling-center', details: null });
+  });
+
+  it('lists the maids of a housekeeping unit', () => {
+    const { state, id } = towerWith('housekeeping');
+    const first = addPerson(state, { kind: 'maid', homeUnit: 7, level: 4, column: 10 });
+    const second = addPerson(state, { kind: 'maid', homeUnit: 7, level: 4, column: 11 });
+    addPerson(state, { kind: 'maid', homeUnit: 8, level: 4, column: 12 });
+
+    const data = inspectUnit(state, id);
+
+    expect(throughTheWire(data)).toBe(true);
+    expect(data).toMatchObject({ details: { group: 'housekeeping', workers: [`p${first}`, `p${second}`] } });
+  });
+
+  it('lists only the officers on duty of a security office', () => {
+    const { state, id } = towerWith('security');
+    const on = addPerson(state, { kind: 'police', homeUnit: 7, level: 4, column: 10 });
+    const off = addPerson(state, { kind: 'police', homeUnit: 7, level: 4, column: 11 });
+    state.people.trip[state.people.id.indexOf(on)] = encodePoliceRoutine({
+      phase: 'working',
+      entranceOnRight: false,
+    });
+    state.people.trip[state.people.id.indexOf(off)] = encodePoliceRoutine({
+      phase: 'off',
+      entranceOnRight: false,
+    });
+
+    const data = inspectUnit(state, id);
+
+    expect(throughTheWire(data)).toBe(true);
+    expect(data).toMatchObject({ details: { group: 'security', officers: [`p${on}`] } });
+  });
+
+  it('lists the audience and crew of a cinema, and the guests of a party hall', () => {
+    const { state, id } = towerWith('cinema');
+    const viewer = addPerson(state, { kind: 'audience', homeUnit: 7, level: 4, column: 10 });
+    state.people.trip[state.people.id.indexOf(viewer)] = 2;
+    const crew = addPerson(state, { kind: 'staff', homeUnit: 7, level: 4, column: 11 });
+
+    const cinema = inspectUnit(state, id);
+    expect(throughTheWire(cinema)).toBe(true);
+    expect(cinema).toMatchObject({
+      details: { group: 'cinema', workers: [`p${crew}`], customers: [`p${viewer}`] },
+    });
+
+    state.units.u7 = newUnit('u7', 'party-hall', 10, 4);
+    const hall = inspectUnit(state, 'u7');
+    expect(throughTheWire(hall)).toBe(true);
+    expect(hall).toMatchObject({
+      details: { group: 'visit', workers: [`p${crew}`], customers: [`p${viewer}`] },
+    });
   });
 
   it('shows a construction site as a unit that is being built, with no points', () => {

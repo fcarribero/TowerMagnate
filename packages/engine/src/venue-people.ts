@@ -1,10 +1,13 @@
 import { PERSON_KINDS, type TowerState, type Unit } from '@tower-magnate/shared';
 import { isGuestAtVenue } from './hotel-guest-trip';
+import { isMaid } from './housekeeping';
 import { routineAt } from './office-routine';
 import { NO_TRIP, personEntityId } from './people';
+import { isPoliceOnDuty } from './police-phase';
 import { decodeResidentRoutine } from './resident-routine';
 import { staffRoutineAt } from './venue-staff';
 import { customerTripAt } from './venue-visitors';
+import { GUEST_INSIDE } from './wedding';
 
 const KIND = (name: (typeof PERSON_KINDS)[number]) => PERSON_KINDS.indexOf(name);
 const OFFICE_WORKER = KIND('officeWorker');
@@ -13,6 +16,7 @@ const CHILD = KIND('child');
 const HOTEL_GUEST = KIND('hotelGuest');
 const VIP = KIND('vip');
 const STAFF = KIND('staff');
+const WEDDING_GUEST = KIND('weddingGuest');
 
 export interface UnitPeople {
   /** Person ids of the people who live in a condo or stay in a hotel room. */
@@ -74,4 +78,52 @@ export function venuePeople(state: TowerState, unit: Pick<Unit, 'id' | 'type'>):
     }
   }
   return { workers, workersInside, customers };
+}
+
+/** Person ids of the maids of one housekeeping unit, in increasing order. */
+export function maidsOfUnit(state: TowerState, unit: Pick<Unit, 'id'>): string[] {
+  const pool = state.people;
+  const home = Number(unit.id.slice(1));
+  const maids: string[] = [];
+  for (let slot = 0; slot < pool.id.length; slot++) {
+    if (pool.homeUnit[slot] === home && isMaid(pool, slot)) {
+      maids.push(personEntityId(pool.id[slot] as number));
+    }
+  }
+  return maids;
+}
+
+/** Person ids of the officers of one security office who are on duty right now. */
+export function officersOnDuty(state: TowerState, unit: Pick<Unit, 'id'>): string[] {
+  const pool = state.people;
+  const home = Number(unit.id.slice(1));
+  const officers: string[] = [];
+  for (let slot = 0; slot < pool.id.length; slot++) {
+    if (pool.homeUnit[slot] === home && isPoliceOnDuty(pool, slot)) {
+      officers.push(personEntityId(pool.id[slot] as number));
+    }
+  }
+  return officers;
+}
+
+/**
+ * Who is inside a party hall, a cathedral or a medical center as a visitor right now: party
+ * guests, wedding guests who reached the cathedral, and office workers at a medical visit.
+ */
+export function visitorsOfUnit(state: TowerState, unit: Pick<Unit, 'id' | 'type'>): string[] {
+  const pool = state.people;
+  const home = Number(unit.id.slice(1));
+  const visitors: string[] = [];
+  for (let slot = 0; slot < pool.id.length; slot++) {
+    const id = personEntityId(pool.id[slot] as number);
+    if (pool.kind[slot] === WEDDING_GUEST) {
+      if (pool.homeUnit[slot] === home && pool.trip[slot] === GUEST_INSIDE) visitors.push(id);
+    } else if (pool.kind[slot] === OFFICE_WORKER) {
+      const routine = routineAt(pool, slot);
+      if (routine?.phase === 'atMedical' && routine.venue === home) visitors.push(id);
+    } else if (pool.homeUnit[slot] === home && customerTripAt(pool, slot)?.phase === 'atVenue') {
+      visitors.push(id);
+    }
+  }
+  return visitors;
 }

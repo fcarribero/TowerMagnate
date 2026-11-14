@@ -904,6 +904,14 @@ Short button labels, used only on toolbar buttons:
 | `window.unit.people` | Personas |
 | `window.unit.residents` | Residentes |
 | `window.unit.guests` | Huéspedes |
+| `window.unit.peopleNobody` | Nadie |
+| `window.unit.peopleWorkers` | Trabajadores |
+| `window.unit.peopleStaff` | Personal |
+| `window.unit.peopleCustomers` | Clientes |
+| `window.unit.peopleTenants` | Huéspedes |
+| `window.unit.peopleMaids` | Mucamas |
+| `window.unit.peopleOfficers` | Policías |
+| `window.unit.peopleAudience` | Público |
 | `window.unit.evaluation` | Evaluación |
 | `window.unit.pricePerWeek` | Precio por semana |
 | `window.unit.pricePerNight` | Precio por noche |

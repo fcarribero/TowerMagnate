@@ -1,4 +1,5 @@
 import type { DrawnFlight } from '../model/interpolation';
+import { FLOOR_HEIGHT, TILE_WIDTH } from './metrics';
 
 /** The footprint of a stair or escalator, with the dense index of the lower level it joins. */
 export interface FlightSpan {
@@ -26,8 +27,13 @@ export function findFlightSpan(
   return spans.get(lower)?.find((span) => x >= span.x - 1 && x < span.x + span.width + 1);
 }
 
-/** Columns of flat landing on each side of an escalator; the climb takes the columns between. */
-const ESCALATOR_LANDING = 2;
+/**
+ * Pixels of flat landing on each side of an escalator sprite; the climb takes the pixels between,
+ * one pixel up for each pixel along. Same numbers as tools/art/src/transport/walkways.mjs
+ * (escalatorDeckRow), so the feet follow the drawn deck.
+ */
+const ESCALATOR_LANDING_PX = 2 * TILE_WIDTH;
+const ESCALATOR_RISE_PX = FLOOR_HEIGHT;
 
 /**
  * Where a person is on a flight that rises from the bottom left to the top right. Stairs are a
@@ -38,12 +44,16 @@ const ESCALATOR_LANDING = 2;
 export function flightPose(span: FlightSpan, up: boolean, progress: number): FlightPose {
   const along = Math.min(Math.max(progress, 0), 1);
   const reach = span.width - 1;
-  // Fraction of the climb done when the person has walked `along` of the way up the flight.
+  // The engine walks a person from the first column to the last one (`reach` columns). A person's
+  // x is the column's left edge and their feet are at its centre, half a tile further. For an
+  // escalator the climb is read from that pixel, so the feet are on the deck row at every x: flat
+  // up to pixel 16 of the sprite, a 1:1 diagonal to pixel 48, flat again after. This is the same
+  // curve in both directions, so going down walks it backwards.
   const climbed = (fraction: number): number => {
     if (span.kind !== 'escalator') return fraction;
-    const run = span.width - 2 * ESCALATOR_LANDING;
-    const column = fraction * span.width;
-    return Math.min(Math.max((column - ESCALATOR_LANDING) / run, 0), 1);
+    const feetPx = TILE_WIDTH / 2 + fraction * reach * TILE_WIDTH;
+    const rise = Math.min(Math.max(feetPx - ESCALATOR_LANDING_PX, 0), ESCALATOR_RISE_PX);
+    return rise / FLOOR_HEIGHT;
   };
   if (up) {
     return {

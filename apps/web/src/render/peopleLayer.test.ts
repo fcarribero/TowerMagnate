@@ -7,6 +7,8 @@ import {
   person,
   towerCrowdFrame,
 } from '../testing/peopleLayerFixtures';
+import type { UnitType } from '@tower-magnate/shared';
+import type { DrawnFrame } from '../model/interpolation';
 import { floorSprite } from './elevatorPlan';
 import { personLook } from './personLook';
 
@@ -195,6 +197,62 @@ describe('PeopleLayer idle animation', () => {
       seen.add(pantsOf(layer.view.children[0]).texture);
     }
     expect(seen.size).toBe(1);
+  });
+});
+
+describe('PeopleLayer on a flight', () => {
+  const riding = (progress: number, walked = 0): DrawnFrame => ({
+    cars: new Map(),
+    people: [
+      {
+        person: person('p1', { mode: 'walk', level: 4, x: 10 }),
+        x: 10,
+        position: 12,
+        flight: { level: 4, x: 10, up: true, progress, walked },
+      },
+    ],
+  });
+  const texturesSeen = (kind: string, progresses: number[], walked = 0): Set<unknown> => {
+    const { layer } = layerWithArt();
+    layer.setTransports([{ type: kind as UnitType, x: 10, level: 4 }]);
+    const seen = new Set<unknown>();
+    for (const progress of progresses) {
+      layer.show(riding(progress, walked));
+      seen.add(pantsOf(layer.view.children[0]).texture);
+    }
+    return seen;
+  };
+  const along = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9];
+
+  it('keeps the feet still on an escalator, landings included', () => {
+    const { layer, textures } = layerWithArt();
+    layer.setTransports([{ type: 'escalator', x: 10, level: 4 }]);
+    for (const progress of [0, 0.1, 0.3, 0.5, 0.9, 1]) {
+      layer.show(riding(progress));
+      const walking = [
+        textures['people/pants-trousers/walk_01'],
+        textures['people/pants-skirt/walk_02'],
+      ];
+      expect(walking).not.toContain(pantsOf(layer.view.children[0]).texture);
+      const texture = pantsOf(layer.view.children[0]).texture;
+      expect(
+        [...Object.entries(textures)].some(([id, one]) => one === texture && id.includes('walk')),
+      ).toBe(false);
+    }
+  });
+
+  it('keeps animating the feet on stairs', () => {
+    expect(texturesSeen('stairs', along).size).toBe(2);
+  });
+
+  it('walks again after stepping off an escalator', () => {
+    const { layer, textures } = layerWithArt();
+    layer.setTransports([{ type: 'escalator', x: 10, level: 4 }]);
+    layer.show(riding(1, 0.5));
+    const texture = pantsOf(layer.view.children[0]).texture;
+    expect(
+      [...Object.entries(textures)].some(([id, one]) => one === texture && id.includes('walk')),
+    ).toBe(true);
   });
 });
 

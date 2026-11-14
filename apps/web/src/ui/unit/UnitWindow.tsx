@@ -22,7 +22,6 @@ import {
   filmChangeState,
   groupUnitRows,
   hourText,
-  isTopPeopleGroup,
   listedOf,
   priorityOf,
   locationText,
@@ -135,8 +134,6 @@ export function UnitWindow({ unitId, connection, anchored = false }: UnitWindowP
   const listed = found === undefined ? null : listedOf(found);
   const priority = found === undefined ? null : priorityOf(found);
   const people = found === undefined ? [] : peopleGroups(found);
-  const topPeople = people.filter(isTopPeopleGroup);
-  const lowerPeople = people.filter((group) => !isTopPeopleGroup(group));
 
   const groups = found === undefined ? null : groupUnitRows(unitRows(found));
 
@@ -151,8 +148,14 @@ export function UnitWindow({ unitId, connection, anchored = false }: UnitWindowP
         width={200}
       >
         {gone && <p class="tm-unit__gone">{t('ui.goneFromTower')}</p>}
-        {topPeople.map((group) => (
-          <PeopleRow key={group.id} group={group} connection={connection} bare />
+        {/* A unit with people shows them first; one group needs no heading, several do. */}
+        {people.map((group) => (
+          <PeopleRow
+            key={group.id}
+            group={group}
+            connection={connection}
+            bare={people.length === 1}
+          />
         ))}
         <div class="tm-field">
           <label class="tm-field__label" for={`${windowId}-name`}>
@@ -220,9 +223,6 @@ export function UnitWindow({ unitId, connection, anchored = false }: UnitWindowP
             onChange={(next) => void commands.setSitePriority(unitId, next)}
           />
         )}
-        {lowerPeople.map((group) => (
-          <PeopleRow key={group.id} group={group} connection={connection} />
-        ))}
         {groups !== null && groups.chips.length > 0 && (
           <div class="tm-unit__chips">
             {groups.chips.map((row) => (

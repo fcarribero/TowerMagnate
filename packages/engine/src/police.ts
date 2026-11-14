@@ -1,5 +1,6 @@
 import {
   CHANGE_CLOTHES_STEPS,
+  LAST_COLUMN,
   ROUTE_RETRY_STEPS,
   SECURITY_ARRIVAL_LEAD_MINUTES,
   SECURITY_OFFICE_SPOTS,
@@ -16,7 +17,8 @@ import {
 } from '@tower-magnate/shared';
 import { STEPS_PER_HOUR, STEPS_PER_MINUTE } from './calendar';
 import { STEPS_PER_DAY } from './clock';
-import { entrancePlace, unitPlace, type Place } from './office-routine';
+import { occupantAt, structureAt } from './grid';
+import { entrancePlace, type Place } from './office-routine';
 import { addPerson, NO_TRIP, NOTHING_DUE, unitPeople } from './people';
 import {
   decodePoliceRoutine,
@@ -37,6 +39,8 @@ const SHIFT_STEPS = SECURITY_SHIFT_HOURS * STEPS_PER_HOUR;
 const LEAD_STEPS = SECURITY_ARRIVAL_LEAD_MINUTES * STEPS_PER_MINUTE;
 const GRACE_STEPS = SECURITY_RELIEF_GRACE_MINUTES * STEPS_PER_MINUTE;
 const PATROL_TRIES = 8;
+/** How many columns either side of a unit a patrol looks for open floor to stop on. */
+const HALLWAY_REACH = 40;
 
 export type PoliceSpot = 'office' | 'patrol';
 
@@ -262,7 +266,25 @@ function pickPatrolUnit(state: TowerState, own: Unit, roll: number): Unit | null
 }
 
 /**
- * Picks the next patrol stop: a random unit, shops and food first. Patrols keep off the elevators
+ * Open floor next to a unit: the nearest column on the unit's level that has floor or lobby and
+ * nothing built on it. Patrols stop there and never walk into the unit.
+ */
+function hallwayPlace(state: TowerState, unit: Unit): Place | null {
+  const width = UNIT_CATALOG[unit.type].width;
+  for (let reach = 0; reach < HALLWAY_REACH; reach++) {
+    for (const column of [unit.x - 1 - reach, unit.x + width + reach]) {
+      if (column < 0 || column > LAST_COLUMN) continue;
+      const structure = structureAt(state.grid, unit.level, column);
+      if ((structure === 'floor' || structure === 'lobby') && occupantAt(state.grid, unit.level, column) === null) {
+        return { level: unit.level, column };
+      }
+    }
+  }
+  return null;
+}
+
+/**
+ * Picks the next patrol stop: a random unit, shops and food first, then the open floor beside it. Patrols keep off the elevators
  * (the trek plans them as stairs and escalators only), so a unit with no such route is skipped.
  * With nothing reachable the officer stays at the base and looks again later.
  */
@@ -275,7 +297,8 @@ function startPatrol(officer: Officer): void {
   for (let attempt = 0; attempt < PATROL_TRIES; attempt++) {
     const unit = pickPatrolUnit(state, office, mix(id, state.step, attempt));
     if (!unit) break;
-    if (startTrek(context, slot, unitPlace(unit))) return;
+    const stop = hallwayPlace(state, unit);
+    if (stop !== null && startTrek(context, slot, stop)) return;
   }
   setPhase(pool, slot, 'working', state.step + PATROL_TRIES * 10 * STEPS_PER_MINUTE);
 }

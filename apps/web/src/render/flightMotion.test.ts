@@ -25,12 +25,39 @@ describe('flightPose', () => {
   });
 });
 
+/** Same deck line as escalatorDeckRow in tools/art/src/transport/walkways.mjs, as pixels risen. */
+function deckRise(localX: number): number {
+  return Math.max(0, Math.min(32, localX - 16));
+}
+
+/** Pixels the feet are above the lower floor line, from the pose. */
+function feetRise(pose: { position: number }): number {
+  return (pose.position - escalator.lowerIndex) * 32;
+}
+
 describe('flightPose on an escalator', () => {
-  it('walks flat over the first 2 columns, climbs over the middle 4 and walks flat over the last 2', () => {
+  it('has the feet on the deck row at every pixel, going up', () => {
+    for (let step = 0; step <= 56; step += 1) {
+      const pose = flightPose(escalator, true, step / 56);
+      const localX = (pose.x - escalator.x) * 8 + 4;
+      expect(feetRise(pose)).toBeCloseTo(deckRise(localX), 9);
+    }
+  });
+
+  it('has the feet on the deck row at every pixel, going down', () => {
+    for (let step = 0; step <= 56; step += 1) {
+      const pose = flightPose(escalator, false, step / 56);
+      const localX = (pose.x - escalator.x) * 8 + 4;
+      expect(feetRise(pose)).toBeCloseTo(deckRise(localX), 9);
+    }
+  });
+
+  it('is flat on the landings and climbs one pixel per pixel between', () => {
+    // Feet pixel 16 is column 1.5 of the sprite and pixel 48 is column 5.5.
     expect(flightPose(escalator, true, 0).position).toBe(5);
-    expect(flightPose(escalator, true, 2 / 8).position).toBe(5);
-    expect(flightPose(escalator, true, 4 / 8).position).toBeCloseTo(5.5);
-    expect(flightPose(escalator, true, 6 / 8).position).toBe(6);
+    expect(feetRise(flightPose(escalator, true, 12 / 56))).toBeCloseTo(0);
+    expect(feetRise(flightPose(escalator, true, 28 / 56))).toBeCloseTo(16);
+    expect(feetRise(flightPose(escalator, true, 44 / 56))).toBeCloseTo(32);
     expect(flightPose(escalator, true, 1).position).toBe(6);
   });
 
@@ -38,7 +65,7 @@ describe('flightPose on an escalator', () => {
     expect(flightPose(escalator, true, 0.5).x).toBeCloseTo(23.5);
     expect(flightPose(escalator, false, 0)).toEqual({ x: 27, position: 6, facing: 'left' });
     expect(flightPose(escalator, false, 1)).toEqual({ x: 20, position: 5, facing: 'left' });
-    expect(flightPose(escalator, false, 0.5).position).toBeCloseTo(5.5);
+    expect(feetRise(flightPose(escalator, false, 0.5))).toBeCloseTo(16);
   });
 
   it('never decreases the position on the way up', () => {

@@ -3,6 +3,7 @@ import {
   SECURITY_OFFICE_SPOTS,
   SECURITY_SHIFTS,
   SECURITY_SPOTS,
+  UNIT_CATALOG,
   type TowerState,
   type UnitId,
 } from '@tower-magnate/shared';
@@ -15,7 +16,7 @@ import { currentShiftOf, policeRosterOf, seatShiftOnDuty } from './police';
 import { encodePoliceRoutine, isPhaseOnDuty, isPolice, policePhaseAt } from './police-phase';
 import { createEngine, step, type StepContext } from './step';
 import { buildTower, plainTowerPlan } from './testing';
-import { createTrekSystem, startTrek, trekPhaseAt } from './trek';
+import { createTrekSystem, isOnTrek, startTrek, trekPhaseAt } from './trek';
 
 function at(day: number, hour: number, minute = 0): number {
   return day * STEPS_PER_DAY + (hour * 60 + minute) * STEPS_PER_MINUTE;
@@ -212,6 +213,17 @@ function observeDay() {
         }
         lastColumn.set(id, column);
       } else lastColumn.delete(id);
+      if (phase === 'patrolling' && before !== 'patrolling' && isOnTrek(pool, slot)) {
+        // A patrol walks to open floor beside a unit, never into the unit.
+        const stopsInUnit = Object.values(current.units).some(
+          (unit) =>
+            unit.type !== 'security' &&
+            unit.level === pool.trekLevel[slot] &&
+            (pool.trekColumn[slot] as number) >= unit.x &&
+            (pool.trekColumn[slot] as number) < unit.x + UNIT_CATALOG[unit.type].width,
+        );
+        if (stopsInUnit) violations.push(`step ${current.step}: patrol sent into a unit`);
+      }
       if (phase === 'lingering' && before !== 'lingering') {
         const place = Object.values(current.units).find(
           (unit) =>

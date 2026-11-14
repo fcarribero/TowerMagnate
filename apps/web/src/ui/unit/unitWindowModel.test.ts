@@ -5,7 +5,6 @@ import {
   evaluationView,
   filmChangeState,
   groupUnitRows,
-  isTopPeopleGroup,
   levelText,
   locationText,
   isSoldCondo,
@@ -177,6 +176,29 @@ describe('unit window model', () => {
       ['customers', 2],
     ]);
     expect(ids({ type: 'cinema', details: null })).toEqual([]);
+    expect(ids({ type: 'recycling-center', details: null })).toEqual([]);
+    expect(
+      ids({ type: 'housekeeping', details: { group: 'housekeeping', maidsWorking: 1, maids: 6, dirtyRooms: 0, workers: ['p1', 'p2'] } }),
+    ).toEqual([['maids', 2]]);
+    expect(ids({ type: 'security', details: { group: 'security', officers: ['p3'] } })).toEqual([
+      ['officers', 1],
+    ]);
+    expect(
+      ids({ type: 'cinema', details: { group: 'cinema', filmWeek: 1, filmAgeDays: 0, workers: ['p4'], customers: ['p5', 'p6'] } }),
+    ).toEqual([
+      ['staff', 1],
+      ['audience', 2],
+    ]);
+    expect(
+      ids({ type: 'cathedral', details: { group: 'visit', workers: [], customers: ['p7'] } }),
+    ).toEqual([
+      ['staff', 0],
+      ['customers', 1],
+    ]);
+    expect(peopleGroups({ type: 'security', details: { group: 'security', officers: [] } })[0]).toMatchObject({
+      label: 'Policías',
+      kind: 'police',
+    });
   });
 
   it('describes a leased office', () => {
@@ -202,13 +224,13 @@ describe('unit window model', () => {
     ]);
   });
 
-  it('puts the workers, residents and guests row above the name', () => {
-    const top = (unit: Pick<UnitInspect, 'type' | 'details'>) =>
-      peopleGroups(unit).filter(isTopPeopleGroup).map((group) => group.id);
-    expect(top(office)).toEqual(['workers']);
-    expect(top({ type: 'condo', details: condoDetails })).toEqual(['residents']);
-    expect(top({ type: 'suite', details: hotelDetails })).toEqual(['tenants']);
-    expect(top({ type: 'retail-shop', details: lease })).toEqual([]);
+  it('lists the people groups of every unit with people, ready to show first', () => {
+    const groups = (unit: Pick<UnitInspect, 'type' | 'details'>) =>
+      peopleGroups(unit).map((group) => group.id);
+    expect(groups(office)).toEqual(['workers']);
+    expect(groups({ type: 'condo', details: condoDetails })).toEqual(['residents']);
+    expect(groups({ type: 'suite', details: hotelDetails })).toEqual(['tenants']);
+    expect(groups({ type: 'retail-shop', details: lease })).toEqual(['staff', 'customers']);
   });
 
   it('gives a priced construction site the price control and the listing switch', () => {

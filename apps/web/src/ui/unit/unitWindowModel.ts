@@ -123,7 +123,7 @@ export function listedOf(unit: Pick<UnitInspect, 'details'>): boolean | null {
 }
 
 export interface PeopleGroup {
-  id: 'residents' | 'workers' | 'staff' | 'customers' | 'tenants';
+  id: 'residents' | 'workers' | 'staff' | 'customers' | 'tenants' | 'maids' | 'officers' | 'audience';
   label: string;
   /** Person ids, in the order the server sent them. */
   people: readonly string[];
@@ -186,16 +186,50 @@ export function peopleGroups(unit: Pick<UnitInspect, 'type' | 'details'>): Peopl
           kind: 'customer',
         },
       ];
+    case 'housekeeping':
+      return [
+        {
+          id: 'maids',
+          label: t('window.unit.peopleMaids'),
+          people: details.workers ?? [],
+          kind: 'maid',
+        },
+      ];
+    case 'security':
+      return [
+        {
+          id: 'officers',
+          label: t('window.unit.peopleOfficers'),
+          people: details.officers,
+          kind: 'police',
+        },
+      ];
+    case 'cinema': {
+      const groups: PeopleGroup[] = [];
+      if (details.workers && details.workers.length > 0) {
+        groups.push({ id: 'staff', label: t('window.unit.peopleStaff'), people: details.workers, kind: 'staff' });
+      }
+      groups.push({
+        id: 'audience',
+        label: t('window.unit.peopleAudience'),
+        people: details.customers ?? [],
+        kind: 'audience',
+      });
+      return groups;
+    }
+    case 'visit':
+      return [
+        { id: 'staff', label: t('window.unit.peopleStaff'), people: details.workers, kind: 'staff' },
+        {
+          id: 'customers',
+          label: t('window.unit.peopleCustomers'),
+          people: details.customers,
+          kind: 'customer',
+        },
+      ];
     default:
       return [];
   }
-}
-
-const TOP_PEOPLE_IDS: readonly PeopleGroup['id'][] = ['workers', 'residents', 'tenants'];
-
-/** The row of the unit's own people (office workers, condo residents, hotel guests) drawn above the name, with no heading. */
-export function isTopPeopleGroup(group: PeopleGroup): boolean {
-  return TOP_PEOPLE_IDS.includes(group.id);
 }
 
 /** Opening and closing hour after one of them moved: the close stays at least an hour after the open. */
@@ -506,6 +540,10 @@ function detailRows(details: InspectedUnitDetails, type: UnitType): UnitRow[] {
       return housekeepingRows(details);
     case 'venue':
       return venueRows(details);
+    case 'security':
+      return inServiceRows();
+    case 'visit':
+      return [];
     case 'construction':
       return constructionRows();
   }

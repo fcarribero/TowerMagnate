@@ -402,6 +402,22 @@ const InspectedUnitDetailsSchema = z.discriminatedUnion('group', [
     group: z.literal('cinema'),
     filmWeek: z.int().positive().nullable(),
     filmAgeDays: z.int().nonnegative().nullable(),
+    /** The crew who belong to the cinema. */
+    workers: PersonIdsSchema.optional(),
+    /** The audience inside right now. */
+    customers: PersonIdsSchema.optional(),
+  }),
+  z.object({
+    group: z.literal('security'),
+    /** The officers of the office who are on duty right now. */
+    officers: PersonIdsSchema,
+  }),
+  z.object({
+    group: z.literal('visit'),
+    /** The crew who belong to the unit. */
+    workers: PersonIdsSchema,
+    /** Visitors inside right now. */
+    customers: PersonIdsSchema,
   }),
   z.object({
     group: z.literal('venue'),
@@ -449,6 +465,8 @@ const InspectedUnitDetailsSchema = z.discriminatedUnion('group', [
     group: z.literal('housekeeping'),
     maidsWorking: z.int().nonnegative(),
     maids: z.int().nonnegative(),
+    /** The maids who belong to the unit. */
+    workers: PersonIdsSchema.optional(),
     /** Sucia rooms in the whole tower. */
     dirtyRooms: z.int().nonnegative(),
   }),

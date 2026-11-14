@@ -1,5 +1,8 @@
 import {
   countPeopleOfUnit,
+  maidsOfUnit,
+  officersOnDuty,
+  visitorsOfUnit,
   peopleOfUnit,
   venuePeople,
   filmAgeDays as engineFilmAgeDays,
@@ -192,6 +195,16 @@ function unitDetails(state: TowerState, unit: Unit): UnitDetails {
       return venueDetails(state, unit);
     case 'housekeeping':
       return housekeepingDetails(state, unit);
+    case 'security':
+      return { group: 'security', officers: officersOnDuty(state, unit) };
+    case 'party-hall':
+    case 'cathedral':
+    case 'medical-center':
+      return {
+        group: 'visit',
+        workers: venuePeople(state, unit).workers,
+        customers: visitorsOfUnit(state, unit),
+      };
     default:
       return null;
   }
@@ -199,10 +212,13 @@ function unitDetails(state: TowerState, unit: Unit): UnitDetails {
 
 function cinemaDetails(state: TowerState, unit: Unit): UnitDetails {
   const filmAgeDays = engineFilmAgeDays(state, unit);
+  const people = venuePeople(state, unit);
   return {
     group: 'cinema',
     filmWeek: filmAgeDays === null ? null : Math.floor(filmAgeDays / 7) + 1,
     filmAgeDays,
+    workers: people.workers,
+    customers: people.customers,
   };
 }
 
@@ -292,6 +308,7 @@ function housekeepingDetails(state: TowerState, unit: Unit): UnitDetails {
     group: 'housekeeping',
     maidsWorking: summary.working,
     maids: summary.maids,
+    workers: maidsOfUnit(state, unit),
     dirtyRooms: summary.dirtyRooms,
   };
 }

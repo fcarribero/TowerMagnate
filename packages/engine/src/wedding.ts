@@ -35,7 +35,7 @@ const GUEST_KIND = PERSON_KINDS.indexOf('weddingGuest');
 /** Where a wedding guest is, kept in the person's `trip` number. */
 const GUEST_OUTSIDE = 1;
 export const GUEST_ON_THE_WAY = 2;
-const GUEST_INSIDE = 3;
+export const GUEST_INSIDE = 3;
 
 const WEDDING_POPULATION = STAR_POPULATION_THRESHOLDS[5];
 
