@@ -409,6 +409,24 @@ describe('tower runner commands', () => {
     await vi.waitFor(() => expect(store.saves).toHaveLength(1));
   });
 
+  it('holds the clock while a new rating waits and does not make up the time once accepted', async () => {
+    await runner.resume('1');
+    const state = runner.stateOf('1');
+    if (!state) throw new Error('not running');
+    state.starsPending = true;
+    const held = state.step;
+
+    clock += 5 * MINUTE;
+    runner.tick();
+    expect(runner.stateOf('1')?.step).toBe(held);
+
+    const accepted = runner.submit('1', { id: 'a1', command: { type: 'acceptStars' } });
+    runner.tick();
+    expect(await accepted).toMatchObject({ ok: true });
+    expect(runner.stateOf('1')?.starsPending).toBe(false);
+    expect(runner.stateOf('1')?.step ?? 0).toBeLessThan(held + 2);
+  });
+
   it('applies commands in arrival order', async () => {
     await runner.resume('1');
     const first = runner.submit('1', buildFloor);
