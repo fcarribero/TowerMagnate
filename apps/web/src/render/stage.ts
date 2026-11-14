@@ -77,6 +77,8 @@ export interface CellInput {
   cell: Cell | null;
   clientX: number;
   clientY: number;
+  /** The pointer in world pixels at zoom 1, for hit tests finer than a tile. */
+  world?: { x: number; y: number };
 }
 export type CellInputListener = (input: CellInput) => void;
 
@@ -102,6 +104,8 @@ export interface Stage {
   onHoverCell(listener: HoverCellListener): () => void;
   /** Called for presses, releases and right clicks, for tools that build by clicking or dragging. */
   onCellInput(listener: CellInputListener): () => void;
+  /** The drawn person whose body is under a world point, or null; riders in cars are not clickable. */
+  personIdAt(worldX: number, worldY: number): string | null;
   /** When false, dragging with the primary button no longer scrolls the view. */
   setPrimaryDragPans(pans: boolean): void;
   /** Draws a filled run of tiles, such as a floor being dragged out; null removes it. */
@@ -254,13 +258,19 @@ export async function mountStage(host: HTMLElement, options: StageOptions = {}):
   const emitCellInput = (kind: CellInput['kind'], event: MouseEvent): void => {
     const canvasRect = app.canvas.getBoundingClientRect();
     const scale = cssPerDevicePixel();
-    const cell = cellAtCanvasPoint(
-      camera,
-      (event.clientX - canvasRect.left) / scale,
-      (event.clientY - canvasRect.top) / scale,
-    );
+    const canvasX = (event.clientX - canvasRect.left) / scale;
+    const canvasY = (event.clientY - canvasRect.top) / scale;
+    const cell = cellAtCanvasPoint(camera, canvasX, canvasY);
+    const worldX = (camera.left + canvasX) / camera.zoom;
+    const worldY = (camera.top + canvasY) / camera.zoom;
     for (const listener of cellInputListeners) {
-      listener({ kind, cell, clientX: event.clientX, clientY: event.clientY });
+      listener({
+        kind,
+        cell,
+        clientX: event.clientX,
+        clientY: event.clientY,
+        world: { x: worldX, y: worldY },
+      });
     }
   };
   const onPointerDown = (event: PointerEvent): void => {
@@ -379,6 +389,9 @@ export async function mountStage(host: HTMLElement, options: StageOptions = {}):
     onCellInput(listener) {
       cellInputListeners.add(listener);
       return () => cellInputListeners.delete(listener);
+    },
+    personIdAt(worldX, worldY) {
+      return people.idAt(worldX, worldY);
     },
     setPrimaryDragPans(pans) {
       primaryDragPans = pans;

@@ -41,6 +41,9 @@ interface DrawnWalker {
   seenIn: number;
 }
 
+/** World pixels a click may miss the sprite frame by and still pick the person. */
+const HIT_PADDING = 1;
+
 /**
  * Draws the people who are not in a car: walking, waiting and on stairs.
  * Only people on screen hold a sprite. Sprites of people who leave the frame
@@ -130,6 +133,32 @@ export class PeopleLayer {
     const width = FRAME_WIDTH * Math.abs(root.scale.x);
     const height = FRAME_HEIGHT * root.scale.y;
     return { x: root.position.x - width / 2, y: root.position.y - height, width, height };
+  }
+
+  /**
+   * The drawn person whose body is under a world point, the one whose centre is nearest when
+   * several overlap. The body is the sprite frame grown by a pixel, so a click above the head or
+   * beside the feet picks nobody.
+   */
+  idAt(worldX: number, worldY: number): string | null {
+    let found: string | null = null;
+    let nearest = Number.POSITIVE_INFINITY;
+    for (const id of this.drawn.keys()) {
+      const rect = this.rectOf(id);
+      if (rect === undefined) continue;
+      const inside =
+        worldX >= rect.x - HIT_PADDING &&
+        worldX <= rect.x + rect.width + HIT_PADDING &&
+        worldY >= rect.y - HIT_PADDING &&
+        worldY <= rect.y + rect.height + HIT_PADDING;
+      if (!inside) continue;
+      const distance = Math.abs(worldX - (rect.x + rect.width / 2));
+      if (distance < nearest) {
+        found = id;
+        nearest = distance;
+      }
+    }
+    return found;
   }
 
   show(frame: DrawnFrame): void {

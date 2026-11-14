@@ -118,3 +118,35 @@ describe('bindUnitClicks', () => {
     expect(opened).toEqual([]);
   });
 });
+
+describe('bindUnitClicks priority', () => {
+  function bind(personIdAt?: (x: number, y: number) => string | null) {
+    const store = new ClientStore({ requestResync: () => undefined, now: () => 0 });
+    // A room that shares its cell with the shaft in front of it, and a walker on the same level.
+    const behind = { ...office, x: 30, level: 3 };
+    store.applySnapshot({ ...snapshot, units: [behind], shafts: [shaft], people: [walker] });
+    let input: (event: CellInput) => void = () => undefined;
+    const opened: string[] = [];
+    bindUnitClicks({ onCellInput: (l) => ((input = l), () => undefined), personIdAt }, store, {
+      person: (id) => opened.push(`person:${id}`),
+      unit: (id) => opened.push(id),
+      shaft: (id) => opened.push(`shaft:${id}`),
+    });
+    return (cell: Cell, world?: { x: number; y: number }) => {
+      opened.length = 0;
+      input({ kind: 'down', cell, clientX: 1, clientY: 1, world });
+      input({ kind: 'up', cell, clientX: 1, clientY: 1, world });
+      return opened.at(-1);
+    };
+  }
+
+  it('picks the elevator shaft in front of a room drawn behind it', () => {
+    expect(bind()({ x: 30, level: 3 })).toBe('shaft:s2');
+  });
+
+  it('picks a person only when the pointer is on the body, not above it', () => {
+    const click = bind((x, y) => (y > 90 ? 'p1' : null));
+    expect(click({ x: 14, level: 3 }, { x: 115, y: 100 })).toBe('person:p1');
+    expect(click({ x: 14, level: 3 }, { x: 115, y: 70 })).toBeUndefined();
+  });
+});

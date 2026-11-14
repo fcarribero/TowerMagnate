@@ -15,8 +15,11 @@ export interface ClickStage {
       cell: Cell | null;
       clientX: number;
       clientY: number;
+      world?: { x: number; y: number };
     }) => void,
   ): () => void;
+  /** The drawn person under a world point; when missing, the person on the clicked tile is used. */
+  personIdAt?(worldX: number, worldY: number): string | null;
 }
 
 /** A press that moves farther than this many CSS pixels is a drag, not a click. */
@@ -89,10 +92,20 @@ export function bindUnitClicks(
       open.clearUnit?.();
       return;
     }
-    const person = personAt(latest.people.values(), input.cell);
-    if (person !== null) {
+    // What is drawn in front wins: people, then elevator shafts, then the units behind them.
+    const personId =
+      input.world !== undefined && stage.personIdAt !== undefined
+        ? stage.personIdAt(input.world.x, input.world.y)
+        : (personAt(latest.people.values(), input.cell)?.id ?? null);
+    if (personId !== null) {
       open.clearUnit?.();
-      open.person(person.id);
+      open.person(personId);
+      return;
+    }
+    const shaft = shaftAt(latest.shafts.values(), input.cell);
+    if (shaft !== null) {
+      open.clearUnit?.();
+      open.shaft(shaft.id);
       return;
     }
     const unit = unitAt(latest.units.values(), input.cell.x, input.cell.level);
@@ -101,9 +114,5 @@ export function bindUnitClicks(
       return;
     }
     open.clearUnit?.();
-    const shaft = shaftAt(latest.shafts.values(), input.cell);
-    if (shaft !== null) {
-      open.shaft(shaft.id);
-    }
   });
 }
