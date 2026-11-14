@@ -283,9 +283,41 @@ function StatTile({ row }: { row: UnitRow }) {
 
 /** Customers per hour: today in red, the average of the last 7 days in blue. */
 function VenueChartView({ chart }: { chart: VenueChart }) {
+  const [hover, setHover] = useState<number | null>(null);
+  const overChart = (event: MouseEvent) => {
+    const box = (event.currentTarget as HTMLElement).getBoundingClientRect();
+    const across = (event.clientX - box.left) / box.width;
+    const x = across * (chart.width + 4) - 2;
+    const last = Math.max(1, chart.hours - 1);
+    setHover(Math.min(chart.hours - 1, Math.max(0, Math.round((x / chart.width) * last))));
+  };
+  const tipLeft =
+    hover === null
+      ? 0
+      : ((2 + (chart.hours === 1 ? 0 : (hover / (chart.hours - 1)) * chart.width)) /
+          (chart.width + 4)) *
+        100;
   return (
     <figure class="tm-unit__chart">
       <figcaption class="tm-unit__chart-title">{t('window.unit.chartTitle')}</figcaption>
+      <div
+        class="tm-unit__chart-plot"
+        onMouseMove={overChart}
+        onMouseLeave={() => setHover(null)}
+      >
+      {hover !== null && (
+        <div class="tm-unit__chart-tip" style={{ left: `${tipLeft}%` }} role="tooltip">
+          <strong>{hourText(chart.startHour + hover)}</strong>
+          <span>
+            {t('window.unit.chartTipToday', { n: chart.todayValues[hover] ?? 0 })}
+          </span>
+          {chart.averageValues.length > 0 && (
+            <span>
+              {t('window.unit.chartTipAverage', { n: chart.averageValues[hover] ?? 0 })}
+            </span>
+          )}
+        </div>
+      )}
       <svg
         class="tm-unit__chart-svg"
         viewBox={`-2 -2 ${chart.width + 4} ${chart.height + 4}`}
@@ -302,6 +334,7 @@ function VenueChartView({ chart }: { chart: VenueChart }) {
         {chart.average !== '' && <polyline class="tm-unit__chart-average" points={chart.average} />}
         {chart.today !== '' && <polyline class="tm-unit__chart-today" points={chart.today} />}
       </svg>
+      </div>
       <div class="tm-unit__chart-hours">
         <span>{chart.from}</span>
         <span>{t('ui.chartMax', { n: chart.max })}</span>

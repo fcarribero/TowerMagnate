@@ -474,6 +474,12 @@ export interface VenueChart {
   to: string;
   /** The largest value on the vertical axis. */
   max: number;
+  /** The hour of the first point, and how many points the chart has (one per open hour). */
+  startHour: number;
+  hours: number;
+  /** Customers per point, for the hover tip; today's list stops at the current hour. */
+  todayValues: readonly number[];
+  averageValues: readonly number[];
 }
 
 const CHART_WIDTH = 160;
@@ -501,6 +507,10 @@ export function venueChart(venue: Details<'venue'>): VenueChart {
     from: hourText(venue.opens),
     to: hourText(venue.closes),
     max,
+    startHour: venue.opens,
+    hours,
+    todayValues: venue.today,
+    averageValues: venue.average,
   };
 }
 

@@ -187,6 +187,25 @@
   text-transform: uppercase;
 }
 
+.tm-unit__chart-plot {
+  position: relative;
+}
+
+.tm-unit__chart-tip {
+  position: absolute;
+  bottom: 100%;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  padding: var(--space-1) var(--space-2);
+  font: var(--text-tile-label);
+  white-space: nowrap;
+  pointer-events: none;
+  background: var(--obra-paper);
+  border: var(--border-control);
+  transform: translateX(-50%);
+}
+
 .tm-unit__chart-svg {
   display: block;
   width: 100%;

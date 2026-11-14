@@ -233,7 +233,7 @@ function venueDetails(state: TowerState, unit: Unit): UnitDetails {
     workers: people.workers,
     workersInside: people.workersInside,
     customers: people.customers,
-    inside: people.customers.length + people.workersInside,
+    inside: people.customers.length,
     hours: unit.hours ?? { open: summary.opens, close: summary.closes },
     enabled: unit.enabled,
     activeToday: unit.activeToday,

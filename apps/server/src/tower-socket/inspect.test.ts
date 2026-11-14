@@ -206,7 +206,7 @@ describe('inspecting a unit', () => {
     });
   });
 
-  it('lists the crew of a fast food and counts the ones working inside as inside', () => {
+  it('lists the crew of a fast food and does not count them as inside', () => {
     const { state, id } = towerWith('fast-food');
     unitOf(state).hours = { open: 9, close: 18 };
     unitOf(state).enabled = false;
@@ -224,7 +224,7 @@ describe('inspecting a unit', () => {
         workers: ['p1', 'p2', 'p3'],
         workersInside: 2,
         customers: [],
-        inside: 2,
+        inside: 0,
         hours: { open: 9, close: 18 },
         enabled: false,
         activeToday: true,
@@ -270,7 +270,7 @@ describe('inspecting a unit', () => {
         inside: 0,
         opens: 8,
         closes: 20,
-        resultToday: 2_000,
+        resultToday: 2_500,
         today: [5, 12, 13],
       },
     });

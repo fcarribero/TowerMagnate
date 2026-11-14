@@ -425,7 +425,7 @@ const InspectedUnitDetailsSchema = z.discriminatedUnion('group', [
     group: z.literal('venue'),
     /** Customers served today. */
     served: z.int().nonnegative(),
-    /** People inside right now: `customers` plus the crew working inside. */
+    /** Customers inside right now; the crew is not counted. */
     inside: z.int().nonnegative(),
     /** Crew members who belong to the venue. */
     workers: PersonIdsSchema,

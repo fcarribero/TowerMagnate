@@ -131,6 +131,8 @@ A day's count for a venue is the number of visits that started inside it on that
 
 Both venues open every day of the week. A loss applies in full even if it makes the balance negative.
 
+The table gives the result at four points: 0, 25, 35 and 50 customers. Between them the result runs in a straight line, so every customer served adds to it: a fast food goes from -$3,000 at 0 customers by $200 per customer to +$2,000 at 25, then $100 per customer to +$3,000 at 35, then about $133 per customer to +$5,000 at 50. A restaurant goes by $400, $200 and about $267 per customer. The result is rounded to whole dollars, never grows past the 50 customer amount, and is shown in the unit window as it stands. The money is still credited once, at the payout time. A fast food breaks even at 15 customers and a restaurant at 15, so the loss notice appears below 15 customers.
+
 ### 7.2 Party hall
 
 The party hall runs from 13:00 to 17:00 every day and pays at 17:00.
@@ -420,7 +422,7 @@ E-26. A sold condo produces no other income. Error: none.
 
 ### Venues
 
-E-27. Fast food pays once a day at 20:00 and restaurants at 23:00, by the day's visit count: under 25, 25 to 34, 35 to 49, 50 or more, with amounts from table 7.1, under `venues`. Error: none.
+E-27. Fast food pays once a day at 20:00 and restaurants at 23:00, by the day's visit count, with the amount that runs in a straight line through the points of table 7.1, under `venues`. Error: none.
 
 E-28. Fast food and restaurant losses apply even if the balance goes negative. Error: none.
 

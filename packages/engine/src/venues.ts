@@ -161,6 +161,27 @@ export function rollVenueDay(venue: VenueDay): number | null {
   return averageStress;
 }
 
+/**
+ * What a day pays for this many customers. A fast food or restaurant earns on every customer: the
+ * result runs in a straight line between the bracket amounts, so each customer served adds to it
+ * and the loss at 0 customers turns into the first gain at the first bracket. The other venues pay
+ * the amount of the last bracket reached.
+ */
+export function venueResult(type: VenueType, customers: number): number {
+  const brackets = DAILY_INCOME_BRACKETS[type];
+  if (type !== 'fast-food' && type !== 'restaurant') return amountFor(brackets, customers);
+  let previous = brackets[0] as IncomeBracket;
+  for (const bracket of brackets) {
+    if (customers < bracket.minCustomers) {
+      const span = bracket.minCustomers - previous.minCustomers;
+      const share = (customers - previous.minCustomers) / span;
+      return Math.round(previous.amount + (bracket.amount - previous.amount) * share);
+    }
+    previous = bracket;
+  }
+  return previous.amount;
+}
+
 function amountFor(brackets: readonly IncomeBracket[], customers: number): number {
   let amount = 0;
   for (const bracket of brackets) {
@@ -203,7 +224,7 @@ function payOut(context: StepContext, unit: VenueUnit): void {
   const customers = customersOf(unit);
   let result: number | null = null;
   if (wasOpenToday(unit, state.step)) {
-    result = amountFor(DAILY_INCOME_BRACKETS[unit.type], customers);
+    result = venueResult(unit.type, customers);
     if (result > 0) {
       const paid = creditMoney(state, 'venues', result);
       pushUnitMoney(context, unit.id, paid, 'dailyPayout');
@@ -277,7 +298,7 @@ export function foodVenueSummary(state: TowerState, unit: Unit): FoodVenueSummar
     inside: customersInsideVenue(state, unitNumber(unit.id)),
     opens,
     closes: pays,
-    resultToday: amountFor(DAILY_INCOME_BRACKETS[unit.type], unit.venue.visits),
+    resultToday: venueResult(unit.type, unit.venue.visits),
     today: lastHour < opens ? [] : hours(unit.venue.hourly).slice(0, lastHour - opens + 1),
     average: past.length === 0 ? [] : average,
   };

@@ -64,12 +64,30 @@ const BOUNDARIES: Record<VenueType, number[]> = {
 
 const VENUE_TYPES = Object.keys(BOUNDARIES) as VenueType[];
 
+/** Hand-worked results of a fast food and a restaurant: a straight line between the bracket amounts. */
+const RUNNING_RESULTS: Partial<Record<VenueType, Record<number, number>>> = {
+  'fast-food': { 0: -3_000, 24: 1_800, 25: 2_000, 34: 2_900, 35: 3_000, 49: 4_867, 50: 5_000 },
+  restaurant: { 0: -6_000, 24: 3_600, 25: 4_000, 34: 5_800, 35: 6_000, 49: 9_733, 50: 10_000 },
+};
+
 function expectedAmount(type: VenueType, customers: number): number {
+  const running = RUNNING_RESULTS[type]?.[customers];
+  if (running !== undefined) return running;
   const reached = DAILY_INCOME_BRACKETS[type].filter(
     (bracket) => customers >= bracket.minCustomers,
   );
   return (reached.at(-1) as { amount: number }).amount;
 }
+
+describe('running result of a fast food', () => {
+  it('adds the income of each customer: $200 each from -$3,000 up to the first bracket', () => {
+    const { tower, id } = towerWith('fast-food');
+    for (const [customers, result] of [[0, -3_000], [1, -2_800], [10, -1_000], [15, 0]] as const) {
+      setCounts(tower, id, customers);
+      expect(foodVenueSummary(tower, tower.units[id] as Unit)?.resultToday).toBe(result);
+    }
+  });
+});
 
 describe('venue daily income', () => {
   for (const type of VENUE_TYPES) {
@@ -86,10 +104,10 @@ describe('venue daily income', () => {
   }
 
   it.each([
-    ['fast-food', 'news.fastFoodLoss', 24, true],
-    ['fast-food', 'news.fastFoodLoss', 25, false],
-    ['restaurant', 'news.restaurantLoss', 24, true],
-    ['restaurant', 'news.restaurantLoss', 25, false],
+    ['fast-food', 'news.fastFoodLoss', 14, true],
+    ['fast-food', 'news.fastFoodLoss', 15, false],
+    ['restaurant', 'news.restaurantLoss', 14, true],
+    ['restaurant', 'news.restaurantLoss', 15, false],
   ] as const)('%s with %i visits reports a loss notice: %s', (type, key, visits, reported) => {
     const { tower, id } = towerWith(type);
     setCounts(tower, id, visits);
@@ -326,11 +344,11 @@ describe('a scenario day with one venue of each type', () => {
 
     expect(payments).toEqual([
       { step: at(1, 17), amount: 10_000 },
-      { step: at(1, 20), amount: 3_000 },
+      { step: at(1, 20), amount: 3_667 },
       { step: at(1, 21), amount: 10_000 },
-      { step: at(1, 23), amount: -6_000 },
+      { step: at(1, 23), amount: -2_000 },
     ]);
-    expect(tower.ledger.currentWeek.venues.income).toBe(23_000);
+    expect(tower.ledger.currentWeek.venues.income).toBe(23_667);
   });
   it('reports each venue day result as unit money, negative for a loss', () => {
     const { state, unitIds } = buildTower({
@@ -358,7 +376,7 @@ describe('a scenario day with one venue of each type', () => {
     );
     expect(money).toHaveLength(4);
     expect(money.map((item) => item.amount).sort((a, b) => a - b)).toEqual([
-      -6_000, 3_000, 10_000, 10_000,
+      -2_000, 3_667, 10_000, 10_000,
     ]);
     expect(new Set(money.map((item) => item.unitId))).toEqual(new Set(unitIds));
   });
@@ -377,7 +395,7 @@ describe('food venue summary', () => {
       served: 3,
       opens: 8,
       closes: 20,
-      resultToday: -3_000,
+      resultToday: -2_400,
       today: [0, 2, 0, 1],
       average: [],
     });

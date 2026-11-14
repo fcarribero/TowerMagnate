@@ -209,6 +209,8 @@ export const SPANISH_STRINGS = {
   'ui.chartMax': 'máx. {n}',
   'window.unit.chartToday': 'Hoy',
   'window.unit.chartAverage': 'Promedio 7 días',
+  'window.unit.chartTipToday': 'Hoy: {n} clientes',
+  'window.unit.chartTipAverage': 'Promedio: {n} clientes',
   'window.unit.chartLabel': 'Clientes por hora, hoy y promedio de los últimos 7 días',
   'window.unit.customersYesterday': 'Clientes ayer',
   'window.unit.resultYesterday': 'Resultado de ayer',

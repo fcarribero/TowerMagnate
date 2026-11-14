@@ -211,23 +211,23 @@ function economyScript(units: EconomyUnits): EconomyScript {
  * Venues per day are fast food + restaurant + party hall + cinema brackets for the visit tables.
  */
 const EXPECTED_DAYS: ExpectedDay[] = [
-  { balance: 2_042_000, changes: { rent: 10_000, venues: 32_000 } },
-  { balance: 2_234_000, changes: { condoSales: 175_000, hotel: 11_000, venues: 6_000 } },
-  { balance: 2_274_000, changes: { rent: 15_000, hotel: 2_000, venues: 23_000 } },
-  { balance: 2_290_000, changes: { hotel: 2_000, venues: 14_000 } },
-  { balance: 2_302_000, changes: { hotel: 3_000, venues: 9_000 } },
-  { balance: 2_323_000, changes: { hotel: 6_000, venues: 15_000 } },
+  { balance: 2_046_000, changes: { rent: 10_000, venues: 36_000 } },
+  { balance: 2_242_000, changes: { condoSales: 175_000, hotel: 11_000, venues: 10_000 } },
+  { balance: 2_282_900, changes: { rent: 15_000, hotel: 2_000, venues: 23_900 } },
+  { balance: 2_298_900, changes: { hotel: 2_000, venues: 14_000 } },
+  { balance: 2_312_767, changes: { hotel: 3_000, venues: 10_867 } },
+  { balance: 2_333_767, changes: { hotel: 6_000, venues: 15_000 } },
   {
-    balance: 2_264_100,
-    changes: { rent: 15_000, hotel: 3_000, venues: 19_000, upkeep: -95_900 },
+    balance: 2_276_667,
+    changes: { rent: 15_000, hotel: 3_000, venues: 20_800, upkeep: -95_900 },
   },
-  { balance: 2_300_100, changes: { rent: 10_000, hotel: 3_000, venues: 23_000 } },
-  { balance: 2_309_100, changes: { hotel: 6_000, venues: 3_000 } },
-  { balance: 2_344_100, changes: { rent: 5_000, hotel: 3_000, venues: 27_000 } },
-  { balance: 2_593_100, changes: { condoSales: 230_000, hotel: 3_000, venues: 16_000 } },
-  { balance: 2_622_100, changes: { venues: 29_000 } },
-  { balance: 2_632_100, changes: { hotel: 4_000, venues: 6_000 } },
-  { balance: 2_591_200, changes: { rent: 15_000, venues: 40_000, upkeep: -95_900 } },
+  { balance: 2_316_400, changes: { rent: 10_000, hotel: 3_000, venues: 26_733 } },
+  { balance: 2_339_800, changes: { hotel: 6_000, venues: 17_400 } },
+  { balance: 2_375_300, changes: { rent: 5_000, hotel: 3_000, venues: 27_500 } },
+  { balance: 2_624_967, changes: { condoSales: 230_000, hotel: 3_000, venues: 16_667 } },
+  { balance: 2_653_967, changes: { venues: 29_000 } },
+  { balance: 2_670_767, changes: { hotel: 4_000, venues: 12_800 } },
+  { balance: 2_629_867, changes: { rent: 15_000, venues: 40_000, upkeep: -95_900 } },
 ];
 
 type PartialWeek = Partial<Record<LedgerCategory, { income?: number; expense?: number }>>;
@@ -247,14 +247,14 @@ const WEEK_ONE = weekTotals({
   rent: { income: 40_000 },
   hotel: { income: 27_000 },
   condoSales: { income: 175_000 },
-  venues: { income: 133_000, expense: -15_000 },
+  venues: { income: 138_567, expense: -8_000 },
 });
 
 const WEEK_TWO = weekTotals({
   rent: { income: 30_000 },
   hotel: { income: 19_000 },
   condoSales: { income: 230_000 },
-  venues: { income: 165_000, expense: -21_000 },
+  venues: { income: 175_300, expense: -5_200 },
   upkeep: { expense: -95_900 },
 });
 
@@ -321,11 +321,11 @@ describe('scenario: economy week boundary at step 60,480', () => {
     const sunday = engine.step(firstSixDays, [], STEPS_PER_DAY - 1).state;
     expect(sunday.step).toBe(WEEK_STEPS - 1);
     expect(sunday.ledger.currentWeek).toEqual(WEEK_ONE);
-    expect(sunday.money).toBe(2_360_000);
+    expect(sunday.money).toBe(2_372_567);
 
     const monday = engine.step(sunday, [], 1).state;
     expect(monday.ledger.previousWeek).toEqual(WEEK_ONE);
     expect(monday.ledger.currentWeek).toEqual(UPKEEP_ONLY);
-    expect(monday.money).toBe(2_264_100);
+    expect(monday.money).toBe(2_276_667);
   });
 });
