@@ -64,9 +64,8 @@ Design call on the shared pool: the research notes report that each original hou
 
 A maid asks for a room when all of these hold:
 
-- the clock is in `[06:00, 16:30)`;
+- the clock is in `[06:00, 17:00)`;
 - she has no claimed room;
-- she has started fewer than 8 cleanings today (section 6);
 
 and one of these happens:
 
@@ -109,7 +108,7 @@ The trip back to her unit is a required trip (people.md 4). If it has no route s
 A claim is released, and the room stays Sucia with its `dirtyChecks` unchanged, when:
 
 - the maid's route to the room breaks and no new route exists (4.3);
-- the maid reaches the room at 16:30 or later (section 5);
+- the maid reaches the room at 17:00 or later (section 5);
 - the maid is removed because her housekeeping unit is demolished or destroyed;
 - the clock reaches 17:00 (every claim left is released).
 
@@ -117,7 +116,7 @@ A claim ends without a release when the room is demolished or destroyed; the mai
 
 ## 5. Cleaning
 
-A cleaning starts at the step the maid reaches the room's door, if that step is before 16:30. It lasts 180 steps (30 game minutes) for every room type. At the end of the 180th step the room becomes Limpia, its `dirtyChecks` returns to 0 and the claim ends. The maid then asks for her next room from the room's door.
+A cleaning starts at the step the maid reaches the room's door, if that step is before 17:00. It lasts 180 steps (30 game minutes) for every room type. At the end of the 180th step the room becomes Limpia, its `dirtyChecks` returns to 0 and the claim ends. The maid then asks for her next room from the room's door.
 
 | Room | Width | Cleaning time |
 |---|---|---|
@@ -125,25 +124,25 @@ A cleaning starts at the step the maid reaches the room's door, if that step is 
 | Double | 6 | 30 min (180 steps) |
 | Suite | 10 | 30 min (180 steps) |
 
-A maid who reaches the room at 16:30 or later does not start. Her claim is released and she goes back to her unit.
+A maid who reaches the room at 17:00 or later does not start. Her claim is released and she goes back to her unit.
 
-While cleaning, the maid stands at the room's door in state "Limpiando". A cleaning that started before 16:30 always finishes, at the latest at 16:59:50, before the 17:00 end of the shift.
+While cleaning, the maid stands at the room's door in state "Limpiando". A cleaning that started before 17:00 always finishes, at the latest at 17:29:50, even when the 17:00 end of the shift comes first. She changes back and leaves after that.
 
 If the room is demolished or destroyed during the cleaning, the cleaning stops and the maid asks again at once (4.4). If her housekeeping unit is demolished during the cleaning, she is removed and the room stays Sucia (construction 8.5).
 
 Design call on one duration: people.md 10 fixes 30 minutes for every room, and the GDD gives no reason to split them. A suite already costs more to reach in practice because suites are wide and spread the rooms of a floor apart.
 
-## 6. Daily capacity
+## 6. Capacity
 
-A maid starts at most 8 cleanings a day (`MAID_DAILY_CLEANINGS`). A housekeeping unit therefore cleans at most 6 × 8 = 48 rooms a day.
+A maid has no daily limit on cleanings. She keeps asking for rooms until 17:00 (section 4.1) and finishes the cleaning she is in.
 
-The clock allows at most 12 starts per maid, at 10:00, 10:30, ..., 15:30, if every room were next to the last one. With a few minutes of walking or a stair flight between rooms, a maid fits 9 to 10 starts, so the cap of 8 is the limit in practice and travel only matters for rooms far from the unit.
+The clock allows at most 22 starts per maid, from 06:00 to 17:00 at 30 minutes each, if every room were next to the last one. With walking or a stair flight between rooms a maid fits about 18 starts, so one housekeeping unit of 6 maids cleans about 100 rooms a day.
 
-Room demand: a room needs one cleaning per stay. Every stay is 1 night (economy 5.2) and the booking chance is 80% (people.md 8.1), so a cleaned room waits on average `0.2 / 0.8 = 0.25` days for its next check-in. It needs one cleaning every 1.25 days, 0.8 a day. One housekeeping unit keeps up with about `48 / 0.8 = 60` rooms in steady state.
+Room demand: a room needs one cleaning per stay. Every stay is 1 night (economy 5.2) and the booking chance is 80% (people.md 8.1), so a cleaned room waits on average `0.2 / 0.8 = 0.25` days for its next check-in. It needs one cleaning every 1.25 days, 0.8 a day. One housekeeping unit keeps up with about `100 / 0.8 = 125` rooms in steady state.
 
-The balance target is one housekeeping unit per 80 rooms it can reach. That is above the 60 rooms of the steady-state estimate, so a unit with 80 rooms falls behind on busy days. The Limpieza window shows "Habitaciones sucias en la torre" so the player sees a backlog grow.
+The balance target is one housekeeping unit per 80 rooms it can reach. That is above the 125 rooms of the steady-state estimate, so a unit with 80 rooms keeps up except on days with many check-outs. The Limpieza window shows "Habitaciones sucias en la torre" so the player sees a backlog grow.
 
-Design call on the cap: without it, capacity depends on walking times the player cannot read, and a unit next to a dense floor of single rooms would clean 72 rooms a day. A round 8 per maid gives the player one number to plan with: 48 rooms per unit.
+Design call on the limit: there is none. Capacity depends on the shift (06:00 to 17:00) and on the walking time between rooms.
 
 ## 7. Infestation
 
@@ -234,11 +233,11 @@ E is never infested: the office stands between D and E. If D had a party staying
 
 Variant: on Thursday at 09:00 the player demolishes B. At Friday 00:00 A's right neighbour is C, across the empty floor where B stood, so C becomes Con plaga. Demolishing A on Thursday instead stops the spread, since no room is left Con plaga.
 
-### 9.4 The 16:30 cut and the cap
+### 9.4 The 17:00 cut
 
-Maid m2 of 9.1 finishes a cleaning on level 11 at 16:22:00 and asks. The only Sucia room is on level 13, 66 columns away and up 2 stair flights: 66 + 24 = 90 steps. She claims it and arrives at 16:37:00, after 16:30, so she does not start. The claim is released, the room stays Sucia and keeps its `dirtyChecks`, and m2 walks back to H1.
+Maid m2 of 9.1 finishes a cleaning on level 11 at 16:52:00 and asks. The only Sucia room is on level 13, 66 columns away and up 2 stair flights: 66 + 24 = 90 steps. She claims it and arrives at 17:07:00, after 17:00, so she does not start. The claim is released, the room stays Sucia and keeps its `dirtyChecks`, and m2 walks back to H1.
 
-Maid m5 on a busy day starts her 8th cleaning at 14:02:00 and finishes at 14:32:00. She does not ask again and goes back to H1, even if Sucia rooms are left. They wait for another maid with fewer than 8 starts, or for the next day.
+Maid m5 reaches a room at 16:58:00 and starts cleaning. At 17:00 the shift ends, but she finishes at 17:28:00 first, then asks no more, goes back to H1, changes and leaves.
 
 ## 10. Constants for `packages/shared`
 
@@ -248,9 +247,8 @@ Maid m5 on a busy day starts her 8th cleaning at 14:02:00 and finishes at 14:32:
 | `MAID_APPEAR_TIME` | 09:30 |
 | `MAID_LEAVE_TIME` | 17:00 |
 | `CLEANING_START_FROM` | 10:00 |
-| `CLEANING_START_BEFORE` | 16:00 |
+| `CLEANING_START_BEFORE` | 17:00 |
 | `CLEANING_MINUTES` | 30 for every room type (existing, people.md 20) |
-| `MAID_DAILY_CLEANINGS` | 8 |
 | `MAID_RETRY_MINUTES` | 30 |
 | `INFESTATION_CHECK_TIME` | 00:00 |
 | `INFESTATION_DIRTY_CHECKS` | 4 |
@@ -309,7 +307,7 @@ H-15. If the room is demolished or destroyed during the trip or the cleaning, th
 
 ### Capacity
 
-H-16. A maid starts at most 8 cleanings a day and a housekeeping unit at most 48. Error: none.
+H-16. A maid has no daily limit on cleanings; she asks for rooms until 17:00 and finishes the cleaning she is in. Error: none.
 
 ### Infestation
 

@@ -573,7 +573,7 @@ P-28. The VIP arrives at the street entrance at 17:00 to 19:00 50%, 19:00 to 21:
 
 ### Maids
 
-P-29. Maids walk in from the street at 06:00, change in their housekeeping unit and leave the same way at 17:00. They start cleanings before 16:30. A cleaning takes 180 steps from the maid's arrival at the room, after which the room is "Limpia".
+P-29. Maids walk in from the street at 06:00, change in their housekeeping unit and leave the same way at 17:00. They start cleanings before 17:00 and finish the one they are in. A cleaning takes 180 steps from the maid's arrival at the room, after which the room is "Limpia".
 
 P-30. Maids only use floors, stairs and service elevators. Service elevators carry no one else, guards included.
 

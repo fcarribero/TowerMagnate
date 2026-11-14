@@ -422,17 +422,14 @@ export const MAID_LEAVE_MINUTE = minutes(17);
 /** A maid may ask for a room from this minute of the day. */
 export const CLEANING_START_FROM_MINUTE = minutes(6);
 
-/** A cleaning starts only before this minute, so it ends by the end of the shift. */
-export const CLEANING_START_BEFORE_MINUTE = minutes(16, 30);
+/** A cleaning starts only before this minute. One that started before it is finished even past the end of the shift. */
+export const CLEANING_START_BEFORE_MINUTE = minutes(17);
 
 /** Changing between civilian clothes and the uniform takes this many steps, inside the unit. */
 export const CHANGE_CLOTHES_STEPS = 2;
 
 /** One cleaning, for single rooms, double rooms and suites alike. */
 export const CLEANING_MINUTES = 30;
-
-/** Cleanings one maid may start in a day. */
-export const MAID_DAILY_CLEANINGS = 8;
 
 /** An idle maid asks again at every multiple of this many minutes. */
 export const MAID_RETRY_MINUTES = 5;

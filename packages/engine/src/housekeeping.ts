@@ -4,7 +4,6 @@ import {
   CLEANING_START_BEFORE_MINUTE,
   CLEANING_START_FROM_MINUTE,
   MAID_APPEAR_MINUTE,
-  MAID_DAILY_CLEANINGS,
   MAID_LEAVE_MINUTE,
   MAID_RETRY_MINUTES,
   PERSON_KINDS,
@@ -37,7 +36,7 @@ const LEAVE_STEP = MAID_LEAVE_MINUTE * STEPS_PER_MINUTE;
 
 /**
  * What a maid is doing (hotel spec 4 and 5). `waiting` has no claim and may ask for a room;
- * `finished` has started every cleaning of the day and does not ask again. She walks in from the
+ * `finished` is only found in old saves, where it meant the daily limit; she asks again. She walks in from the
  * street in civilian clothes (`arriving`), changes in her room (`changingIn`), works in uniform,
  * changes back (`changingOut`) and walks out (`leaving`). Phases are stored by their index, so the
  * first four keep the numbers they always had.
@@ -63,7 +62,8 @@ const PHASES: readonly MaidPhase[] = [
   'leaving',
 ];
 const PHASE_RANGE = PHASES.length;
-const CLEANINGS_RANGE = MAID_DAILY_CLEANINGS + 1;
+/** Room for the cleanings counter in a stored task: a maid fits far fewer starts than this in a shift. */
+const CLEANINGS_RANGE = 48;
 
 /** True while the maid wears her uniform: from the end of changing in to the end of changing out. */
 export function maidWearsUniform(task: MaidTask | null): boolean {
@@ -243,10 +243,6 @@ function goBack(maid: Maid, task: MaidTask): void {
 /** Hotel spec 4.1 and 4.2: claims the first reachable room, or goes back to her unit. */
 function ask(maid: Maid, cleanings: number): void {
   const { state } = maid.context;
-  if (cleanings >= MAID_DAILY_CLEANINGS) {
-    goBack(maid, { phase: 'finished', room: 0, cleanings });
-    return;
-  }
   if (!isAskingWindow(state.step)) {
     goBack(maid, { phase: 'waiting', room: 0, cleanings });
     return;
@@ -268,7 +264,7 @@ function dropClaim(maid: Maid, task: MaidTask): void {
   maid.claimed.delete(task.room);
 }
 
-/** Hotel spec 5: starts the cleaning before 16:00, otherwise releases the claim and goes back. */
+/** Hotel spec 5: starts the cleaning before 17:00, otherwise releases the claim and goes back. */
 function reachRoom(maid: Maid, room: RoomUnit, cleanings: number): void {
   const { state } = maid.context;
   const roomNumber = unitNumber(room.id);
@@ -418,6 +414,8 @@ function advanceMaid(maid: Maid): void {
       return;
     case 'finished':
       if (isShiftOver(state.step)) endShift(maid, task);
+      // Saved with the old daily limit: she goes back to work until the end of the shift.
+      else if (isRetryStep(state.step)) ask(maid, task.cleanings);
       return;
   }
 }

@@ -321,42 +321,49 @@ describe('room choice', () => {
   });
 });
 
-describe('hotel spec 9.4, the 16:30 cut and the cap', () => {
-  it('does not start a room reached at 16:30 or later and leaves its dirty checks alone', () => {
-    const rooms: RoomPlan[] = [{ name: 'far', type: 'single-room', level: 11, x: 280 }];
+describe('hotel spec 9.4, the 17:00 cut and no daily limit', () => {
+  function dirtyAt(minuteStep: number, name: string) {
+    const rooms: RoomPlan[] = [{ name, type: 'single-room', level: 10, x: 122 }];
     const { state, rooms: ids } = hotelTower({ rooms });
-    const far = roomNumber(ids.far as UnitId);
-    let run = runUntil(state, at(0, 16, 9, 50));
-    const room = run.state.units[ids.far as UnitId]?.hotel;
+    const id = ids[name] as UnitId;
+    const run = runUntil(state, minuteStep);
+    const room = run.state.units[id]?.hotel;
     if (!room) throw new Error('room missing');
     room.state = 'dirty';
     room.dirtyChecks = 2;
     room.rollDue = false;
     room.arrivalStep = null;
-    let claimedAt: number | null = null;
-    let releasedAt: number | null = null;
-    while (run.state.step < at(0, 17, 30)) {
-      run = step(run.state, [], 1);
-      const holder = maidTasks(run.state).find((task) => task.room === far);
-      expect(holder?.phase).not.toBe('cleaning');
-      if (holder && claimedAt === null) claimedAt = run.state.step;
-      if (!holder && claimedAt !== null && releasedAt === null) releasedAt = run.state.step;
-    }
-    expect(claimedAt).toBe(at(0, 16, 10));
-    expect(releasedAt).toBeGreaterThanOrEqual(at(0, 16, 30));
-    expect(run.state.units[ids.far as UnitId]?.hotel).toMatchObject({
-      state: 'dirty',
-      dirtyChecks: 2,
-    });
+    return { run, id };
+  }
+
+  it('does not start a room after 17:00 and leaves its dirty checks alone', () => {
+    const { run: start, id } = dirtyAt(at(0, 17, 5), 'late');
+    const run = runUntil(start.state, at(0, 18, 0));
+    expect(run.state.units[id]?.hotel).toMatchObject({ state: 'dirty', dirtyChecks: 2 });
     expect(maidTasks(run.state).every((task) => task.cleanings === 0)).toBe(true);
-    expect(maidTasks(run.state).every((task) => task.phase === 'waiting')).toBe(true);
   });
 
-  it('cleans at most 48 rooms a unit a day, and no maid starts a ninth cleaning', () => {
+  it('finishes a cleaning that started before 17:00 even when the shift ends meanwhile', () => {
+    const { run: start, id } = dirtyAt(at(0, 16, 54), 'last');
+    let run = start;
+    let cleaningAt17: boolean | null = null;
+    while (run.state.step < at(0, 17, 40)) {
+      run = step(run.state, [], 1);
+      if (run.state.step === at(0, 17, 5)) {
+        cleaningAt17 = maidTasks(run.state).some(
+          (task) => task.phase === 'cleaning' && task.room === roomNumber(id),
+        );
+      }
+    }
+    expect(cleaningAt17).toBe(true);
+    expect(run.state.units[id]?.hotel?.state).toBe('clean');
+  });
+
+  it('has no daily limit: the maids keep cleaning until 17:00', () => {
     const rooms: RoomPlan[] = [];
-    for (let index = 0; index < 60; index++) {
-      const level = (10 + Math.floor(index / 30)) as Level;
-      rooms.push({ name: `r${index}`, type: 'single-room', level, x: 120 + (index % 30) * 4 });
+    for (let index = 0; index < 96; index++) {
+      const level = (10 + Math.floor(index / 48)) as Level;
+      rooms.push({ name: `r${index}`, type: 'single-room', level, x: 104 + (index % 48) * 4 });
     }
     const { state, rooms: ids } = hotelTower({
       rooms,
@@ -364,16 +371,11 @@ describe('hotel spec 9.4, the 16:30 cut and the cap', () => {
       housekeeping: [{ level: 10, x: 0 }],
     });
     for (const id of Object.values(ids)) setRoom(state, id, 'dirty');
-    const run = runUntil(state, at(0, 12, 30));
+    const run = runUntil(state, at(0, 17, 30));
     const cleaned = Object.values(ids).filter(
       (id) => run.state.units[id]?.hotel?.state === 'clean',
     );
-    expect(cleaned).toHaveLength(48);
-    expect(maidTasks(run.state).every((task) => task.cleanings === 8)).toBe(true);
-    expect(maidTasks(run.state).every((task) => task.phase === 'finished')).toBe(true);
-    const leftOver = Object.values(ids).filter((id) => !cleaned.includes(id));
-    const nextDay = runUntil(run.state, at(1, 12, 30));
-    for (const id of leftOver) expect(cleanedAt(nextDay.events, id)).not.toBeNull();
+    expect(cleaned.length).toBeGreaterThan(60);
   });
 });
 
