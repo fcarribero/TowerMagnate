@@ -111,6 +111,17 @@ describe('planUnit', () => {
     expect(office?.variant.state).toBe('empty');
   });
 
+  it('draws a fast food open or closed by the hours its player set, not the default ones', () => {
+    const evening = openVenuesAt(stepAtHour(22));
+    const late = { ...base, type: 'fast-food', hours: { open: 8, close: 24 } } as const;
+    expect(planUnit(late, 'night', null, evening, 22)?.variant.state).not.toBe('closed');
+    expect(planUnit(late, 'night', null, evening, 7)?.variant.state).toBe('closed');
+    const early = { ...base, type: 'fast-food', hours: { open: 8, close: 14 } } as const;
+    expect(planUnit(early, 'day', null, openVenuesAt(stepAtHour(15)), 15)?.variant.state).toBe(
+      'closed',
+    );
+  });
+
   it('carries the garbage pile of a built unit into the drawing', () => {
     expect(planUnit({ ...base, type: 'fast-food', garbage: 3 }, 'day')?.garbage).toBe(3);
     expect(planUnit({ ...base, type: 'fast-food' }, 'day')?.garbage).toBeUndefined();

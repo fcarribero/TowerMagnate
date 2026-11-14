@@ -72,6 +72,8 @@ export const UnitViewSchema = z.object({
   enabled: z.boolean().optional(),
   /** True while a fast food is switched off for the whole day; left out otherwise. */
   closedToday: z.literal(true).optional(),
+  /** Fast food only: the opening hours the player set; left out while it uses the default hours. */
+  hours: z.object({ open: z.int().min(0).max(23), close: z.int().min(1).max(24) }).optional(),
   /** Weekly rent locked in the lease of a rented office or shop; left out when not rented. */
   rent: z.int().positive().optional(),
   occupied: z.boolean(),

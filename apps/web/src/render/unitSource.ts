@@ -10,6 +10,12 @@ import type { UnitsInput } from './unitLayer';
 import { isPlacedUnit, type TransportSource } from './unitPlan';
 import { openVenuesAt } from './venueHours';
 
+const STEPS_PER_GAME_HOUR = 360;
+
+function hourOf(step: number): number {
+  return Math.floor(step / STEPS_PER_GAME_HOUR) % 24;
+}
+
 export function unitsOf(state: GameState, overlay: OverlayId = 'normal'): UnitsInput {
   return {
     overlay: { id: overlay, data: state.overlays },
@@ -17,6 +23,7 @@ export function unitsOf(state: GameState, overlay: OverlayId = 'normal'): UnitsI
     transports: state.transports.values(),
     time: timeOfDayAt(state.step),
     openVenues: openVenuesAt(state.step),
+    hour: hourOf(state.step),
   };
 }
 
@@ -36,6 +43,7 @@ export function bindUnits(
       transports: state.transports,
       time: timeOfDayAt(state.step),
       openVenues: openVenuesAt(state.step),
+      hour: hourOf(state.step),
     }),
     (selected) =>
       show({
@@ -43,6 +51,7 @@ export function bindUnits(
         transports: selected.transports.values(),
         time: selected.time,
         openVenues: selected.openVenues,
+        hour: selected.hour,
         overlay: { id: overlay, data: selected.overlays },
       }),
   );
@@ -113,6 +122,7 @@ export function debugUnits(
     ],
     time: timeOfDayAt(stepAtHour(hour)),
     openVenues: openVenuesAt(stepAtHour(hour)),
+    hour,
     overlay: { id: overlay, data: { evaluation: {}, price: {}, hotel: {} } },
   };
 }

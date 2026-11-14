@@ -24,6 +24,8 @@ export interface UnitsInput {
   time: TimeOfDay;
   /** Venue types inside their opening hours; the rest show their closed sprite. */
   openVenues: OpenVenues;
+  /** Hour of the day, 0 to 23, for fast foods that open at hours the player set. */
+  hour?: number;
   /** The active overlay; left out, units are drawn normally. */
   overlay?: { id: OverlayId; data: OverlayData };
 }
@@ -112,7 +114,7 @@ export class UnitLayer {
     const drawings: UnitDrawing[] = [];
     for (const unit of input.units) {
       const color = input.overlay && overlayColorOf(input.overlay.id, unit, input.overlay.data);
-      const drawing = planUnit(unit, input.time, color, input.openVenues);
+      const drawing = planUnit(unit, input.time, color, input.openVenues, input.hour);
       if (drawing !== null) {
         drawings.push(drawing);
       }

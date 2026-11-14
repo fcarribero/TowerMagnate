@@ -228,6 +228,7 @@ function unitView(
     ...(isListable(unit.type) ? { listed: unit.listed } : {}),
     ...(unit.type === 'fast-food' ? { enabled: unit.enabled } : {}),
     ...(unit.type === 'fast-food' && !unit.activeToday ? { closedToday: true as const } : {}),
+    ...(unit.type === 'fast-food' && unit.hours ? { hours: unit.hours } : {}),
     occupied,
     variant: unitVariant(unit, occupied, disconnected, sleeping),
     ...(inside ? { inside } : {}),

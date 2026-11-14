@@ -64,6 +64,7 @@ export type UnitSource = Pick<
   | 'listed'
   | 'staffed'
   | 'garbage'
+  | 'hours'
 >;
 
 /** Units that are drawn here. Floors and lobbies are structure, elevators are shafts. */
@@ -81,6 +82,7 @@ export function planUnit(
   time: TimeOfDay,
   overlay: OverlayColor | null = null,
   openVenues: OpenVenues = ALL_VENUES_OPEN,
+  hour?: number,
 ): UnitDrawing | null {
   if (!isPlacedUnit(unit.type)) {
     return null;
@@ -89,6 +91,7 @@ export function planUnit(
   const state = unitState(
     building ? { ...unit, variant: 'empty', leased: true } : unit,
     openVenues,
+    hour,
   );
   const drawing = footprint(unit.id, `units/${unit.type}`, unit, { state, time }, overlay);
   const open =
@@ -122,12 +125,20 @@ function isBuilding(unit: UnitSource): boolean {
   return unit.construction !== undefined;
 }
 
-function unitState(unit: UnitSource, openVenues: OpenVenues): string {
+/** Whether a venue is inside its opening hours; a fast food uses the hours its player set. */
+function isOpenNow(unit: UnitSource, openVenues: OpenVenues, hour: number | undefined): boolean {
+  if (unit.type === 'fast-food' && unit.hours !== undefined && hour !== undefined) {
+    return hour >= unit.hours.open && hour < unit.hours.close;
+  }
+  return openVenues.has(unit.type);
+}
+
+function unitState(unit: UnitSource, openVenues: OpenVenues, hour?: number): string {
   const { type, variant } = unit;
   if (type === 'retail-shop' && unit.leased !== true) {
     return 'empty';
   }
-  if (isVenue(type) && !openVenues.has(type)) {
+  if (isVenue(type) && !isOpenNow(unit, openVenues, hour)) {
     return 'closed';
   }
   if (unit.staffed === false && type in VENUE_STAFF) {
