@@ -44,7 +44,6 @@ function leaseDetails(fields: Partial<Extract<Details, { group: 'lease' }>> = {}
     priceStep: 1,
     listed: true,
     weeklyRent: 10_000,
-    leaseWeek: 1,
     nextPaymentStep: null,
     workers: ['p1', 'p2'],
     customers: [],
@@ -144,7 +143,6 @@ describe('unit windows', () => {
     expect(status?.className).toContain('is-good');
     const evaluation = within(dialog).getByText('Buena').parentElement;
     expect(evaluation?.className).toContain('is-good');
-    expect(within(dialog).queryByText(/^Contrato/)).toBeNull();
     expect(within(dialog).getByText(/^Próximo pago · /)).toBeTruthy();
   });
 

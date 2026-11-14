@@ -7,7 +7,7 @@ import { addPerson, NOTHING_DUE, slotOfPerson } from './people';
 import { TransportGraph } from './routing';
 import { createEngine } from './step';
 import { buildTower, plainTowerPlan, type PlannedShaft } from './testing';
-import { cancelTrek, createTrekSystem, startTrek, trekPhaseAt } from './trek';
+import { cancelTrek, createTrekSystem, startTrek, TREK_PHASES, trekPhaseAt } from './trek';
 
 const engine = createEngine({
   commandHandlers: {},
@@ -154,5 +154,27 @@ describe('morning rush', () => {
     const median = (values: number[]) => [...values].sort((a, b) => a - b)[1] as number;
     expect(median(runs.map((run) => run.average))).toBeLessThan(1);
     expect(median(runs.map((run) => run.p99))).toBeLessThan(5);
+  });
+});
+
+describe('a person with no route left', () => {
+  it('plans again when the only shaft was left and the trip budget is spent', () => {
+    const state = buildRideTower();
+    const id = sendRider(state, 1, { level: 5, column: 30 });
+    const slot = slotOfPerson(state.people, id);
+    const pool = state.people;
+    cancelTrek({ state, events: [], graph: new TransportGraph(state) }, slot);
+    // The stuck state of a saved game: no route is possible without the one shaft they left,
+    // and the stair and escalator budget (4 and 7 floors) is used up.
+    const context = { state, events: [], graph: new TransportGraph(state) };
+    startTrek(context, slot, { level: 5, column: 30 });
+    pool.trek[slot] = TREK_PHASES.indexOf('noRoute');
+    pool.leftShafts[slot] = Number(Object.keys(state.shafts)[0]?.slice(1));
+    pool.trekBudget[slot] = 39;
+    pool.legStep[slot] = state.step + 1;
+    const later = engine.step(state, [], 20).state;
+    expect(personView(later, id).phase).not.toBe('noRoute');
+    const done = runUntilArrived(later, id, 400);
+    expect(personView(done, id)).toMatchObject({ level: 5, phase: 'idle' });
   });
 });

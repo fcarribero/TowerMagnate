@@ -2,7 +2,7 @@ import type { CommandHandler } from '../step';
 
 /**
  * Lists a condo, office or shop (built or still a site) on the market or takes it off. Prospects only take a listed unit.
- * A rented unit that is unlisted keeps its tenant until the term ends, then the lease ends.
+ * A rented unit that is unlisted keeps its tenant until the week ends, then the lease ends.
  * A sold condo cannot change.
  */
 export const setListed: CommandHandler<'setListed'> = (context, command) => {

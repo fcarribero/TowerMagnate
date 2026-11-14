@@ -77,7 +77,6 @@ describe('inspecting a unit', () => {
         priceStep: 1,
         listed: true,
         weeklyRent: null,
-        leaseWeek: null,
         nextPaymentStep: null,
         workers: [],
         customers: [],
@@ -85,7 +84,7 @@ describe('inspecting a unit', () => {
     });
   });
 
-  it('shows a let office with its persons, lease week and next payment', () => {
+  it('shows a let office with its persons, and next payment', () => {
     const { state, id } = towerWith('office');
     unitOf(state).name = 'Oficinas';
     unitOf(state).lease = { anchorStep: 0, nextDueStep: 2 * STEPS_PER_WEEK, weekVisits: 0, rent: 10_000 };
@@ -100,19 +99,11 @@ describe('inspecting a unit', () => {
       details: {
         state: 'occupied',
         persons: 6,
-        leaseWeek: 2,
         nextPaymentStep: 2 * STEPS_PER_WEEK,
       },
     });
   });
 
-  it('caps the lease week at the length of the contract', () => {
-    const { state, id } = towerWith('retail-shop');
-    unitOf(state).lease = { anchorStep: 0, nextDueStep: 4 * STEPS_PER_WEEK, weekVisits: 0, rent: 10_000 };
-    state.step = 4 * STEPS_PER_WEEK;
-
-    expect(inspectUnit(state, id)).toMatchObject({ details: { group: 'lease', leaseWeek: 4 } });
-  });
 
   it('answers a shop like an office', () => {
     const { state, id } = towerWith('retail-shop');

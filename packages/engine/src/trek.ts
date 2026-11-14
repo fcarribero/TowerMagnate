@@ -172,20 +172,54 @@ function directionBetween(from: Level, to: Level): HallDirection {
   return floorIndex(to) > floorIndex(from) ? 'up' : 'down';
 }
 
-function planFrom(context: StepContext, slot: number): RoutePlan | null {
+function planWith(
+  context: StepContext,
+  slot: number,
+  budget: TripBudget,
+  leftShafts: readonly number[],
+): RoutePlan | null {
   const pool = context.state.people;
-  const userClass = userClassOf(pool, slot);
   return plannerFor(graphOf(context)).plan(
     context.state,
     {
       from: { level: pool.level[slot] as Level, x: pool.column[slot] as number },
       to: { level: pool.trekLevel[slot] as Level, x: pool.trekColumn[slot] as number },
-      userClass,
-      budget: unpackBudget(pool.trekBudget[slot] as number),
+      userClass: userClassOf(pool, slot),
+      budget,
       energy: energyLevelOf(pool, slot),
     },
-    leftShaftsOf(pool, slot),
+    leftShafts,
   );
+}
+
+/**
+ * Plans from the person's cell. Shafts left after a full queue and the trip budget are only
+ * preferences: when they leave no route, a person in the middle of a trip plans again without the
+ * left shafts, and then with a fresh budget, so nobody stays stranded by what they already did.
+ */
+function planFrom(context: StepContext, slot: number): RoutePlan | null {
+  const pool = context.state.people;
+  const budget = unpackBudget(pool.trekBudget[slot] as number);
+  const left = leftShaftsOf(pool, slot);
+  const plan = planWith(context, slot, budget, left);
+  if (plan) return plan;
+  if (left.length > 0) {
+    const relaxed = planWith(context, slot, budget, []);
+    if (relaxed) {
+      pool.leftShafts[slot] = 0;
+      return relaxed;
+    }
+  }
+  const spent = budget.stairFloors + budget.escalatorFloors + budget.rides > 0;
+  if (!spent) return null;
+  const fresh = planWith(context, slot, { stairFloors: 0, escalatorFloors: 0, rides: 0 }, []);
+  if (!fresh) return null;
+  pool.trekBudget[slot] = repackBudget(
+    { stairFloors: 0, escalatorFloors: 0, rides: 0 },
+    pool.trekBudget[slot] as number,
+  );
+  pool.leftShafts[slot] = 0;
+  return fresh;
 }
 
 /** The queue a ride starts from and where it goes. */

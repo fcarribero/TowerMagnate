@@ -302,15 +302,6 @@ function leaseRows(lease: Details<'lease'>, office: boolean): UnitRow[] {
     },
     evaluationRow(lease.evaluation),
   ];
-  // The contract chip is for a rented shop; an office or a unit with no contract shows none.
-  if (leased && lease.leaseWeek !== null && !office) {
-    rows.push({
-      id: 'lease',
-      label: t('window.unit.lease'),
-      value: t('window.unit.leaseWeek', { k: lease.leaseWeek }),
-      tone: 'plain',
-    });
-  }
   if (lease.nextPaymentStep !== null) {
     rows.push({
       id: 'nextPayment',

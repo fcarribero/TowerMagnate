@@ -142,7 +142,7 @@ describe('listing', () => {
     expect(result.state.sites.u50?.listed).toBe(true);
   });
 
-  it('ends the lease of an unlisted office at the term end, with no news', () => {
+  it('ends the lease of an unlisted office at the end of the week, with no news', () => {
     const { state, id } = towerWith('office');
     const engine = createEngine({
       commandHandlers: towerCommandHandlers,
@@ -155,7 +155,7 @@ describe('listing', () => {
     });
     const moved = engine.step(state, [], 11).state;
     const unlisted = engine.step(moved, [command(id, { type: 'setListed', listed: false })], 0).state;
-    const run = engine.step(unlisted, [], 4 * STEPS_PER_WEEK - 1);
+    const run = engine.step(unlisted, [], STEPS_PER_WEEK - 1);
     expect(run.state.units[id]?.lease).toBeNull();
     const types = run.events.map((event) => event.type);
     expect(types).toContain('leaseEnded');
@@ -163,7 +163,7 @@ describe('listing', () => {
     const relisted = engine.step(
       moved,
       [command(id, { type: 'setListed', listed: true })],
-      4 * STEPS_PER_WEEK - 1,
+      STEPS_PER_WEEK - 1,
     );
     expect(relisted.state.units[id]?.lease).not.toBeNull();
   });

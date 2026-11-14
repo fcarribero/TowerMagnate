@@ -239,7 +239,6 @@ export const sampleServerMessages: ServerMessage[] = [
         priceStep: 1,
         listed: true,
         weeklyRent: 10_000,
-        leaseWeek: 2,
         nextPaymentStep: 61000,
         workers: ['p3401', 'p3402'],
         customers: [],

@@ -1,5 +1,4 @@
 import {
-  LEASE_CONTRACT_WEEKS,
   STRESS_WINDOW_STEPS,
   type Level,
   type TowerState,
@@ -314,10 +313,10 @@ describe('filing trips', () => {
 describe('grades at lease end, condo evaluation and stay end', () => {
   const WEEK = 7 * STEPS_PER_DAY;
 
-  it('grades an office at its lease end with B = 0 when it has no trips', () => {
+  it('grades an office at its weekly end with B = 0 when it has no trips', () => {
     const { state, units } = towerWith({ type: 'office', level: 3, x: 40 });
     const office = units[0] as Unit;
-    const termEnd = LEASE_CONTRACT_WEEKS * WEEK;
+    const termEnd = WEEK;
     office.lease = { anchorStep: 0, nextDueStep: termEnd, weekVisits: 0, rent: 10_000 };
     state.step = termEnd - 1;
     const engine = createEngine({ commandHandlers: {}, systems: [createLeaseSystem()] });
@@ -333,8 +332,7 @@ describe('grades at lease end, condo evaluation and stay end', () => {
     expect(state.unitLedger[office.id]).toBeUndefined();
 
     office.evaluation = 'good';
-    const termEnd =
-      (office.lease as { anchorStep: number }).anchorStep + LEASE_CONTRACT_WEEKS * WEEK;
+    const termEnd = (office.lease as { anchorStep: number }).anchorStep + WEEK;
     fileUnitTrip(state, office, termEnd - 10, 2_000);
     (office.lease as { nextDueStep: number }).nextDueStep = termEnd;
     state.step = termEnd - 1;

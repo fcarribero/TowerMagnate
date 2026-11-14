@@ -364,11 +364,10 @@ const InspectedUnitDetailsSchema = z.discriminatedUnion('group', [
     capacity: z.int().positive(),
     evaluation: EvaluationSchema.nullable(),
     ...pricingFields,
-    /** On the market ("en renta"); false means the lease ends at its term end. */
+    /** On the market ("en renta"); false means the lease ends at the end of its week. */
     listed: z.boolean(),
-    /** Rent locked in the lease; null while for rent. */
+    /** Rent of the current week; null while for rent. */
     weeklyRent: z.int().positive().nullable(),
-    leaseWeek: z.int().positive().nullable(),
     nextPaymentStep: StepSchema.nullable(),
     /** Office workers or shop staff who belong to the unit. */
     workers: PersonIdsSchema,

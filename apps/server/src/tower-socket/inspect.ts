@@ -13,12 +13,10 @@ import {
   personAt,
   slotOfPerson,
   STEPS_PER_MINUTE,
-  STEPS_PER_WEEK,
   trekPhaseAt,
 } from '@tower-magnate/engine';
 import {
   isPricedType,
-  LEASE_CONTRACT_WEEKS,
   priceBand,
   priceBounds,
   UNIT_CATALOG,
@@ -242,7 +240,6 @@ function capacityOf(unit: Unit): number {
 
 function leaseDetails(state: TowerState, unit: Unit): UnitDetails {
   const { lease } = unit;
-  const weeksIn = lease ? Math.floor((state.step - lease.anchorStep) / STEPS_PER_WEEK) + 1 : null;
   return {
     group: 'lease',
     state: lease ? 'occupied' : 'forRent',
@@ -252,7 +249,6 @@ function leaseDetails(state: TowerState, unit: Unit): UnitDetails {
     ...pricing(unit),
     listed: unit.listed,
     weeklyRent: lease?.rent ?? null,
-    leaseWeek: weeksIn === null ? null : Math.min(weeksIn, LEASE_CONTRACT_WEEKS),
     nextPaymentStep: lease?.nextDueStep ?? null,
     workers: peopleOfUnit(state, unit).workers,
     customers: unit.type === 'retail-shop' ? venuePeople(state, unit).customers : [],

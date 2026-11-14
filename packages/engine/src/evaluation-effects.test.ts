@@ -1,6 +1,5 @@
 import {
   CONDO_EVALUATION_WEEKS,
-  LEASE_CONTRACT_WEEKS,
   SHOP_EARLY_LEAVE_MIN_VISITS,
   WEEKLY_RENT,
   type Level,
@@ -19,7 +18,7 @@ import { createEngine, step as towerStep, type StepResult } from './step';
 import { buildTower, plainTowerPlan } from './testing';
 import { fileUnitTrip, storedGrade } from './unit-evaluation';
 
-const TERM_END = LEASE_CONTRACT_WEEKS * STEPS_PER_WEEK;
+const WEEK_END = STEPS_PER_WEEK;
 const CONDO_CHECK = CONDO_EVALUATION_WEEKS * STEPS_PER_WEEK;
 const OFFICE_X = 40;
 const OFFICE_LAST_COLUMN = OFFICE_X + 8;
@@ -45,18 +44,18 @@ function fileTrips(state: TowerState, unit: Unit, decisionStep: number, stress: 
   }
 }
 
-/** A tenant whose 4-week term ends at the next step, with trips of `stress` in its window. */
+/** A tenant whose week ends at the next step, with trips of `stress` in its window. */
 function leaseEndingNext(type: 'office' | 'retail-shop', stress: number, ...others: Placement[]) {
   const { state, units } = towerWith({ type, x: OFFICE_X }, ...others);
   const unit = units[0] as Unit;
   unit.lease = {
     anchorStep: 0,
-    nextDueStep: TERM_END,
+    nextDueStep: WEEK_END,
     weekVisits: SHOP_EARLY_LEAVE_MIN_VISITS,
     rent: 10_000,
   };
-  fileTrips(state, unit, TERM_END, stress);
-  state.step = TERM_END - 1;
+  fileTrips(state, unit, WEEK_END, stress);
+  state.step = WEEK_END - 1;
   return { state, unit };
 }
 
@@ -73,7 +72,7 @@ function newsKeys(result: StepResult): string[] {
   return result.events.flatMap((event) => (event.type === 'news' ? [event.key] : []));
 }
 
-describe('office lease end by grade (E-12)', () => {
+describe('office weekly end by grade (E-12)', () => {
   it('lets the tenant go when a fast food 10 columns away makes the office poor', () => {
     const { state, unit } = leaseEndingNext('office', 130, {
       type: 'fast-food',
@@ -87,7 +86,7 @@ describe('office lease end by grade (E-12)', () => {
     expect(newsKeys(result)).toEqual(['news.officeLeft']);
   });
 
-  it('renews for another term with the fast food 11 columns away', () => {
+  it('renews for another week with the fast food 11 columns away', () => {
     const { state, unit } = leaseEndingNext('office', 130, {
       type: 'fast-food',
       x: OFFICE_LAST_COLUMN + 12,
@@ -96,8 +95,8 @@ describe('office lease end by grade (E-12)', () => {
     const office = result.state.units[unit.id] as Unit;
     expect(office.evaluation).toBe('fair');
     expect(office.lease).toEqual({
-      anchorStep: TERM_END,
-      nextDueStep: TERM_END + STEPS_PER_WEEK,
+      anchorStep: WEEK_END,
+      nextDueStep: WEEK_END + STEPS_PER_WEEK,
       weekVisits: 0,
       rent: 10_000,
     });
@@ -115,11 +114,11 @@ describe('office lease end by grade (E-12)', () => {
     expect(outcomes[1]?.evaluation).toBe('fair');
   });
 
-  it('renews an office moved to minimo before its lease end and charges the minimo week', () => {
+  it('renews an office moved to minimo before its weekly end and charges the minimo week', () => {
     const { state, unit } = leaseEndingNext('office', 300);
     unit.price = WEEKLY_RENT.office.minimum;
     const result = stepOnce(state);
-    expect(result.state.units[unit.id]?.lease?.anchorStep).toBe(TERM_END);
+    expect(result.state.units[unit.id]?.lease?.anchorStep).toBe(WEEK_END);
     expect(result.state.units[unit.id]?.evaluation).toBe('good');
     expect(result.state.money - state.money).toBe(WEEKLY_RENT.office.minimum);
   });
@@ -130,7 +129,7 @@ describe('office lease end by grade (E-12)', () => {
   });
 });
 
-describe('shop lease end by grade (E-12)', () => {
+describe('shop weekly end by grade (E-12)', () => {
   it('lets a poor shop go with its own notice and renews a fair one', () => {
     const poor = leaseEndingNext('retail-shop', 200);
     const poorResult = stepOnce(poor.state);
@@ -139,7 +138,7 @@ describe('shop lease end by grade (E-12)', () => {
 
     const fair = leaseEndingNext('retail-shop', 100);
     const fairResult = stepOnce(fair.state);
-    expect(fairResult.state.units[fair.unit.id]?.lease?.anchorStep).toBe(TERM_END);
+    expect(fairResult.state.units[fair.unit.id]?.lease?.anchorStep).toBe(WEEK_END);
     expect(fairResult.state.money - fair.state.money).toBe(WEEKLY_RENT['retail-shop'].normal);
   });
 });

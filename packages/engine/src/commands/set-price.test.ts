@@ -91,7 +91,7 @@ describe('setPrice', () => {
     expect(events).toEqual([]);
   });
 
-  it('keeps the rent locked in the lease until the term renews', () => {
+  it('charges the new price at the next weekly renewal', () => {
     const { tower, unitId } = towerWith('office');
     const engine = createEngine({
       commandHandlers: { setPrice: setPriceHandler },
@@ -107,8 +107,9 @@ describe('setPrice', () => {
     const due = raised.units[unitId]?.lease?.nextDueStep ?? 0;
     const beforePayment = engine.step(raised, [], due - raised.step - 1).state;
     const afterPayment = engine.step(beforePayment, [], 1).state;
-    expect(afterPayment.money - beforePayment.money).toBe(10_000);
-    expect(afterPayment.units[unitId]?.lease?.rent).toBe(10_000);
+    expect(beforePayment.units[unitId]?.lease?.rent).toBe(10_000);
+    expect(afterPayment.money - beforePayment.money).toBe(15_000);
+    expect(afterPayment.units[unitId]?.lease?.rent).toBe(15_000);
   });
 
   describe('on a construction site', () => {

@@ -909,8 +909,6 @@ Short button labels, used only on toolbar buttons:
 | `window.unit.pricePerNight` | Precio por noche |
 | `window.unit.salePrice` | Precio de venta |
 | `window.unit.alreadySold` | Ya está vendido. |
-| `window.unit.lease` | Contrato |
-| `window.unit.leaseWeek` | Semana {k} de 4 |
 | `window.unit.noLease` | Sin contrato |
 | `window.unit.nextPayment` | Próximo pago |
 | `window.unit.nextEvaluation` | Próxima evaluación |

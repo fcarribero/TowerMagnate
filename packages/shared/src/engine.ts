@@ -82,7 +82,7 @@ export interface Unit {
   appraisal: number;
   /**
    * For a condo, office or shop: on the market ("en venta" / "en renta"). Prospects only take a
-   * listed unit, and an unlisted rented unit's lease ends at its term end. False when built.
+   * listed unit, and an unlisted rented unit's lease ends at the end of its week. False when built.
    */
   listed: boolean;
   /**
@@ -314,11 +314,11 @@ export interface Lease {
    * on whole weeks after it, so rent is always charged at 07:00 on the start weekday.
    */
   anchorStep: number;
-  /** The next payment or, at the end of the term, the evaluation. */
+  /** The end of the week: the evaluation and, on a renewal, the next payment. */
   nextDueStep: number;
   /** Customer visits that started since the last payment or move-in; only shops count them. */
   weekVisits: number;
-  /** Weekly rent locked in when the term started or renewed. */
+  /** Rent of the current week, set when the lease started or renewed. */
   rent: number;
 }
 

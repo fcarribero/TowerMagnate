@@ -8,6 +8,7 @@ import { structureGroup } from '../src/groups/structure.mjs';
 import { transportGroup } from '../src/groups/transport.mjs';
 import { uiGroup } from '../src/groups/ui.mjs';
 import { metrics } from '../src/metrics.mjs';
+import { escalatorDeckRow, ESCALATOR_FLOOR_ROW } from '../src/transport/walkways.mjs';
 
 function spritesById(group) {
   const [{ sprites }] = drawGroups([group]);
@@ -265,6 +266,29 @@ describe('transport walkways and landings', () => {
     // The last step is on row 3, one rise under the floor above.
     expect(stairs.get(margin + 24, top + 3)).not.toBe(0);
     expect(stairs.get(margin + 24, top + 2)).toBe(0);
+  });
+
+  it('rises the escalator exactly one floor over its central 4 tiles, flat on both landings', () => {
+    const left = escalatorDeckRow(0);
+    const right = escalatorDeckRow(8 * metrics.tileWidth - 1);
+    expect(left).toBe(ESCALATOR_FLOOR_ROW);
+    expect(left - right).toBe(metrics.floorHeight);
+    for (let x = 0; x <= 2 * metrics.tileWidth; x++) expect(escalatorDeckRow(x)).toBe(left);
+    for (let x = 6 * metrics.tileWidth; x < 8 * metrics.tileWidth; x++) {
+      expect(escalatorDeckRow(x)).toBe(right);
+    }
+    // One pixel up for each pixel along, like the stairs.
+    for (let x = 2 * metrics.tileWidth; x < 6 * metrics.tileWidth; x++) {
+      expect(escalatorDeckRow(x) - escalatorDeckRow(x + 1)).toBe(1);
+    }
+    // The drawn deck follows it: slate truss under the deck row on both landings.
+    const sprite = sprites['transport/escalator/day_01'];
+    expect(sprite.get(8, left + 0)).not.toBe(0);
+    expect(sprite.get(8, left - 8)).not.toBe(0);
+    expect(sprite.get(8, right)).toBe(0);
+    expect(sprite.get(56, right)).not.toBe(0);
+    expect(sprite.get(56, right - 3)).not.toBe(0);
+    expect(sprite.get(56, right + 8)).toBe(0);
   });
 
   it('animates the escalator steps over four distinct frames that loop', () => {

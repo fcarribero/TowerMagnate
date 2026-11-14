@@ -1,5 +1,4 @@
 import {
-  LEASE_CONTRACT_WEEKS,
   LEASE_RENT_HOUR,
   LEASE_WINDOW_HOURS,
   SHOP_EARLY_LEAVE_MIN_VISITS,
@@ -27,7 +26,7 @@ export const STEPS_PER_WEEK = STEPS_PER_DAY * DAYS_PER_WEEK;
 type LeasedUnitType = keyof typeof WEEKLY_RENT;
 type LeasedUnit = Unit & { type: LeasedUnitType };
 
-/** Decides at the end of a term whether the tenant stays. Null means no evaluation yet: renew. */
+/** Decides at the end of each week whether the tenant stays. Null means no evaluation yet: renew. */
 export type TenantEvaluator = (state: TowerState, unit: Unit) => TenantEvaluation | null;
 
 const NEWS_ON_LEAVING: Readonly<Record<LeasedUnitType, NewsId>> = {
@@ -56,11 +55,7 @@ function rentAnchorStep(step: number): number {
   return Math.min(step, dayStart + LEASE_RENT_HOUR * STEPS_PER_HOUR);
 }
 
-function termEndStep(lease: Lease): number {
-  return lease.anchorStep + LEASE_CONTRACT_WEEKS * STEPS_PER_WEEK;
-}
-
-/** E-10 and the renewal half of E-12: a new term anchored now, week 1 paid at once. */
+/** E-10 and the renewal half of E-12: a new one-week term anchored now, its rent paid at once. */
 function startTerm(context: StepContext, unit: LeasedUnit, event: 'leaseSigned' | 'leaseRenewed') {
   const step = context.state.step;
   const anchorStep = rentAnchorStep(step);
@@ -121,18 +116,11 @@ function settleDueLease(context: StepContext, unit: LeasedUnit, evaluate: Tenant
     endLease(context, unit, NEWS_ON_LEAVING_EARLY);
     return;
   }
-  if (lease.nextDueStep < termEndStep(lease)) {
-    const rent = creditMoney(context.state, 'rent', lease.rent);
-    pushUnitMoney(context, unit.id, rent, 'rent');
-    lease.nextDueStep += STEPS_PER_WEEK;
-    lease.weekVisits = 0;
-    return;
-  }
   storeGrade(context.state, unit);
   if (evaluate(context.state, unit) === 'poor') {
     endLease(context, unit, NEWS_ON_LEAVING[unit.type]);
   } else if (!unit.listed) {
-    // The player took the unit off the market: the contract runs out and the tenant leaves.
+    // The player took the unit off the market: the week runs out and the tenant leaves.
     endLease(context, unit, null);
   } else {
     startTerm(context, unit, 'leaseRenewed');
@@ -149,7 +137,7 @@ function leasesDueAt(state: TowerState, step: number): LeasedUnit[] {
   return due.sort((a, b) => unitNumber(a.id) - unitNumber(b.id));
 }
 
-/** Collects weekly rent and runs the end-of-term evaluation, in order of unit id. */
+/** Runs the weekly renewal or leave decision and collects the rent, in order of unit id. */
 export function createLeaseSystem(evaluate: TenantEvaluator = () => null): SimulationSystem {
   return (context) => {
     for (const unit of leasesDueAt(context.state, context.state.step)) {

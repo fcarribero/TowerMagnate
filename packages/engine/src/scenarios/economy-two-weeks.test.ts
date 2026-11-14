@@ -193,8 +193,10 @@ function economyScript(units: EconomyUnits): EconomyScript {
  * Hand-computed from docs/design/economy.md. Each row ends at 00:00 of the next day, so the
  * Monday upkeep of 89,000 lands on the Sunday rows.
  *
- * Rent: office A 10,000 on days 0 and 7; office B 15,000 (alto) on day 2 and again on day 9,
- * because the rent is locked in the lease and the bajo price of day 8 waits for the renewal; shop 15,000 on days 6 and 13 at 23:59, with 90 visits in between so it stays.
+ * Rent: leases last one week and the tenant is evaluated at every weekly renewal, which these
+ * tenants always pass. Office A 10,000 on days 0 and 7; office B 15,000 (alto) on day 2 and
+ * 5,000 (bajo, set on day 8) on day 9, because each renewal is paid at the price of that moment;
+ * shop 15,000 on days 6 and 13 (the lease starts at 07:00 of day 6), with 90 visits in between so it stays.
  * Condos: A 175,000 on day 1; B 230,000 (alto) on day 10.
  * Hotel, charged at check-out (a time between 07:00 and 10:00 drawn at check-in, so always the
  * same day) for every night, at the price set at check-in: day 0
@@ -219,11 +221,11 @@ const EXPECTED_DAYS: ExpectedDay[] = [
   },
   { balance: 2_328_000, changes: { rent: 10_000, hotel: 6_000, venues: 23_000 } },
   { balance: 2_337_000, changes: { hotel: 6_000, venues: 3_000 } },
-  { balance: 2_382_000, changes: { rent: 15_000, hotel: 3_000, venues: 27_000 } },
-  { balance: 2_649_000, changes: { condoSales: 230_000, hotel: 21_000, venues: 16_000 } },
-  { balance: 2_678_000, changes: { venues: 29_000 } },
-  { balance: 2_688_000, changes: { hotel: 4_000, venues: 6_000 } },
-  { balance: 2_654_000, changes: { rent: 15_000, venues: 40_000, upkeep: -89_000 } },
+  { balance: 2_372_000, changes: { rent: 5_000, hotel: 3_000, venues: 27_000 } },
+  { balance: 2_639_000, changes: { condoSales: 230_000, hotel: 21_000, venues: 16_000 } },
+  { balance: 2_668_000, changes: { venues: 29_000 } },
+  { balance: 2_678_000, changes: { hotel: 4_000, venues: 6_000 } },
+  { balance: 2_644_000, changes: { rent: 15_000, venues: 40_000, upkeep: -89_000 } },
 ];
 
 type PartialWeek = Partial<Record<LedgerCategory, { income?: number; expense?: number }>>;
@@ -247,7 +249,7 @@ const WEEK_ONE = weekTotals({
 });
 
 const WEEK_TWO = weekTotals({
-  rent: { income: 40_000 },
+  rent: { income: 30_000 },
   hotel: { income: 40_000 },
   condoSales: { income: 230_000 },
   venues: { income: 165_000, expense: -21_000 },

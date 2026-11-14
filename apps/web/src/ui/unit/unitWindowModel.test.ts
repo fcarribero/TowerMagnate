@@ -41,7 +41,6 @@ const lease: Lease = {
   priceStep: 1,
   listed: true,
   weeklyRent: 10_500,
-  leaseWeek: 2,
   nextPaymentStep: stepOfDate({ year: 1, month: 1, day: 5, hour: 9 }),
   workers: ['p1', 'p2', 'p3', 'p4'],
   customers: [],
@@ -183,21 +182,16 @@ describe('unit window model', () => {
     ]);
   });
 
-  it('keeps the contract chip and the appraisal for a rented shop', () => {
+  it('keeps the appraisal for a rented shop and shows no contract chip', () => {
     const rows = unitRows({ ...office, type: 'retail-shop' });
     expect(rows.map((row) => row.label)).toEqual([
       'Estado',
       'Personas',
       'Evaluación',
-      'Contrato',
       'Próximo pago',
       'Renta semanal',
       'Tasación',
     ]);
-    const forRent: Lease = { ...lease, state: 'forRent', leaseWeek: null, nextPaymentStep: null, weeklyRent: null };
-    expect(unitRows({ ...office, type: 'retail-shop', details: forRent }).map((row) => row.label)).not.toContain(
-      'Contrato',
-    );
   });
 
   it('puts the workers, residents and guests row above the name', () => {
@@ -243,7 +237,6 @@ describe('unit window model', () => {
       state: 'forRent',
       persons: 0,
       evaluation: null,
-      leaseWeek: null,
       nextPaymentStep: null,
       weeklyRent: null,
       workers: [],
@@ -379,7 +372,7 @@ describe('unit window model', () => {
     expect(unitSubtitle(office)).toBe('Oficina · Piso 12');
   });
 
-  it('groups state, occupancy and evaluation as tiles and contract and payment as chips', () => {
+  it('groups state, occupancy and evaluation as tiles and payment as a chip', () => {
     const groups = groupUnitRows(unitRows(office));
     expect(groups.tiles.map((row) => row.id)).toEqual(['status', 'people', 'evaluation']);
     expect(groups.chips.map((row) => row.id)).toEqual(['nextPayment']);

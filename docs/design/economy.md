@@ -35,7 +35,7 @@ Offices, shops, hotel rooms and condos have four price levels: alto, normal, baj
 
 | Unit | Change allowed | When the new level takes effect |
 |---|---|---|
-| Office, shop | Always | At the next weekly payment. The current lease keeps running. |
+| Office, shop | Always | At the next weekly renewal. The current week keeps its rent. |
 | Hotel room | Always | At the next check-in. Guests already staying paid at check-in and are not affected. |
 | Condo | Only while unsold | At the sale. After the sale the command is rejected with `PRICE_LOCKED`. |
 
@@ -56,9 +56,8 @@ Changing the price level is free and works at any balance.
 
 A tenant moves in when TM-39 says so. The step of the move-in is the lease anchor `A`. From then on everything happens at exact multiples of one week after the anchor:
 
-- At `A`, the tenant signs a 4-week lease and pays week 1 at the current price level.
-- At `A + 1 week`, `A + 2 weeks` and `A + 3 weeks`, the tenant pays weeks 2, 3 and 4 at the price level in force at that step.
-- At `A + 4 weeks` the lease ends and the tenant evaluates the unit (TM-13). Good or fair: the tenant renews. The renewal is a new 4-week lease whose anchor is this step, and week 1 of it is paid at once. Poor: the tenant leaves, pays nothing more, and the unit goes back to "En alquiler".
+- At `A`, the tenant signs a one-week lease and pays the week at the current price level.
+- At `A + 1 week` and at every later multiple of a week, the lease ends and the tenant evaluates the unit (TM-13). Good or fair, and the unit still on the market: the tenant renews. The renewal is a new one-week lease whose anchor is this step, and its rent is paid at once at the price level in force at that step. Poor, or the unit taken off the market by the player: the tenant leaves, pays nothing more, and the unit goes back to "En alquiler".
 
 Design call: payments happen at the same time of day as the move-in, not at 00:00. The GDD says "the same weekday as the move-in"; keeping the exact time as well makes every week exactly 60,480 steps long, including the first one, and spreads payments across the day instead of piling them at midnight. A tenant who moved in on Tuesday at 09:12 pays every Tuesday at 09:12.
 
@@ -71,7 +70,7 @@ When a tenant leaves (poor evaluation, early leave in 4.3, or demolition), the u
 The GDD says a shop leaves before the end of its lease if it goes a full week with very few customers. Design call, defining "very few":
 
 - A shop's weekly customer count is the number of customer visits that started inside the shop during the 7 days before the check, that is between the step one week earlier and the check step.
-- The check runs at every weekly payment step of the lease after the first one, and at the evaluation step (`A + 1 week` to `A + 4 weeks`). So every check covers a full week in which the shop had this tenant.
+- The check runs at every weekly step of the lease after the first one, which is also its evaluation step. So every check covers a full week in which the shop had this tenant.
 - If the weekly customer count is below 70, the tenant leaves at that step instead of paying or evaluating. The unit goes back to "En alquiler".
 
 Seventy is an average of 10 customers a day. TM-10 plans a shop that is reachable and not stressed to see about 25 customers a weekday and 30 on weekend days, about 185 a week, so the rule only catches shops that are badly connected or on empty floors. Lower price levels bring more customers (TM-10), which gives the player a way to save a weak shop before it leaves.
@@ -282,8 +281,8 @@ Each event reads the balance left by the previous one. The order matters only fo
 | No construction with a negative balance | 2 | Kept |
 | Cap $99,999,999 | 2 | Kept |
 | All rent paid in advance | 4.2, 5.2 | Kept |
-| 4-week leases, first week paid at move-in, weekly on the move-in weekday | 4.2 | Kept, same time of day too |
-| Renew on good or fair, leave on poor | 4.2 | Kept |
+| 4-week leases, first week paid at move-in, weekly on the move-in weekday | 4.2 | Changed: one-week leases, rent paid at move-in and at every weekly renewal, same weekday and time of day |
+| Renew on good or fair, leave on poor | 4.2 | Kept, checked every week |
 | Office rent $15,000 / $10,000 / $5,000 / $2,000 | 4.1 | Kept |
 | Shop rent $20,000 / $15,000 / $10,000 / $4,000 | 4.1 | Kept |
 | Shop leaves after a full week with very few customers | 4.3 | Defined: under 70 customers in 7 days |
@@ -378,9 +377,9 @@ E-09. A new office or shop price level is used from the next weekly payment; a n
 
 E-10. When a tenant moves into an office or shop at step `A`, the rent for the current price level (table 4.1) is credited at step `A` under `rent`. Error: none.
 
-E-11. The tenant pays the rent for the price level in force at steps `A + 60,480`, `A + 120,960` and `A + 181,440`, and at no other step of that lease. Error: none.
+E-11. A lease lasts one week. The rent is paid once, at step `A`, for the price level in force at that step. Error: none.
 
-E-12. At step `A + 241,920` the tenant evaluates the unit. On good or fair, a new lease starts with anchor `A + 241,920` and its first week is paid at that step. On poor, the tenant leaves, nothing is paid, and the unit is "En alquiler". Error: none.
+E-12. At step `A + 60,480` the tenant evaluates the unit. On good or fair, with the unit still on the market, a new lease starts with anchor `A + 60,480` and its rent is paid at that step for the price level in force then. On poor, or with the unit off the market, the tenant leaves, nothing is paid, and the unit is "En alquiler". Error: none.
 
 E-13. A unit with no tenant produces no rent. Error: none.
 

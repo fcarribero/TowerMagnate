@@ -86,7 +86,12 @@ export class PeopleLayer {
     for (const transport of transports) {
       const lowerIndex = levelToIndex(transport.level);
       const spans = byLevel.get(lowerIndex) ?? [];
-      spans.push({ x: transport.x, width: UNIT_CATALOG[transport.type].width, lowerIndex });
+      spans.push({
+        x: transport.x,
+        width: UNIT_CATALOG[transport.type].width,
+        lowerIndex,
+        kind: transport.type === 'escalator' ? 'escalator' : 'stairs',
+      });
       byLevel.set(lowerIndex, spans);
     }
     this.flightsByLevel = byLevel;

@@ -106,7 +106,7 @@ Todos los alquileres se pagan por adelantado.
 
 ### Contratos semanales
 
-Esto aplica a oficinas y locales comerciales. Cuando un inquilino ocupa la unidad firma un contrato de 4 semanas y paga la primera semana en el momento. Después paga cada semana el mismo día de la semana en que entró: si entró un martes, paga cada martes. Al terminar las 4 semanas evalúa la unidad. Si la evaluación es buena o regular renueva por otras 4 semanas, y si es mala se va y la unidad vuelve a estar en alquiler.
+Esto aplica a oficinas y locales comerciales. Cuando un inquilino ocupa la unidad alquila por semana y paga la primera semana en el momento. Cada semana, el mismo día de la semana en que entró (si entró un martes, cada martes), evalúa la unidad. Si la evaluación es buena o regular renueva y paga la semana siguiente al precio de ese momento, y si es mala se va y la unidad vuelve a estar en alquiler.
 
 Precios por semana en los cuatro niveles: alto, normal (por defecto), bajo y mínimo.
 

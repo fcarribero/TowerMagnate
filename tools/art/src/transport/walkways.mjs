@@ -1,27 +1,33 @@
 import { PixelCanvas } from '../canvas.mjs';
 import { metrics } from '../metrics.mjs';
 
-// Escalators are 8 tiles wide and rise from the floor of their lower
-// level, on the left, to the floor of the level above, on the right. The canvas
-// covers both levels, so the sprite is drawn at its real size, never stretched.
+// Escalators are 8 tiles wide and rise one floor. The canvas covers both levels, so the
+// sprite is drawn at its real size, never stretched. The flight is a 1:1 diagonal like the
+// stairs, over the central 4 tiles. Two tiles of flat deck on each side are the landings:
+// the left one at the floor of the lower level, the right one at the floor of the level above.
 export const WALKWAY_WIDTH = 8 * metrics.tileWidth;
 export const WALKWAY_HEIGHT = 2 * metrics.floorHeight;
 export const ESCALATOR_FRAMES = 4;
 
-const FLOOR_ROW = WALKWAY_HEIGHT - metrics.slabHeight - 1;
-const FIRST_STEP_X = 4;
+export const ESCALATOR_FLOOR_ROW = WALKWAY_HEIGHT - metrics.slabHeight - 1;
+const FLOOR_ROW = ESCALATOR_FLOOR_ROW;
+export const ESCALATOR_LANDING = 2 * metrics.tileWidth;
+export const ESCALATOR_RISE = metrics.floorHeight;
+const FIRST_STEP_X = ESCALATOR_LANDING;
 const STEP_RUN = 8;
-const LAST_RISING_X = FIRST_STEP_X + 7 * STEP_RUN - 1;
+const LAST_RISING_X = ESCALATOR_LANDING + ESCALATOR_RISE - 1;
 
 function newWalkwayCanvas() {
   return new PixelCanvas(WALKWAY_WIDTH, WALKWAY_HEIGHT);
 }
 
-// The sloped line under the flight: half a pixel up for every pixel to the right.
-function slopeRow(x) {
-  const row = FLOOR_ROW - Math.floor((x - FIRST_STEP_X) / 2);
-  return Math.max(0, Math.min(FLOOR_ROW, row));
+// The deck line: flat on the left landing, one pixel up for every pixel to the right over the
+// flight, flat again on the right landing one floor higher.
+export function escalatorDeckRow(x) {
+  const climbed = Math.max(0, Math.min(ESCALATOR_RISE, x - FIRST_STEP_X));
+  return FLOOR_ROW - climbed;
 }
+const slopeRow = escalatorDeckRow;
 
 function stepTreadRow(step) {
   return FLOOR_ROW + 1 - STEP_RISE * (step + 1);
@@ -108,7 +114,7 @@ function drawTruss(escalator) {
 function drawMovingSteps(escalator, frame) {
   const shift = frame * (STEP_EVERY / ESCALATOR_FRAMES);
   for (let x = FIRST_STEP_X; x <= LAST_RISING_X; x++) {
-    if ((x - FIRST_STEP_X - shift) % STEP_EVERY === 0) {
+    if ((x - FIRST_STEP_X - shift + STEP_EVERY) % STEP_EVERY === 0) {
       const deck = slopeRow(x);
       escalator.set(x, deck - 1, 'gray');
       escalator.set(x, deck, 'ink');
@@ -116,22 +122,28 @@ function drawMovingSteps(escalator, frame) {
   }
 }
 
+// Glass panels with a wooden handrail on top, like the stairs, along the landings and the flight.
 function drawBalustrade(escalator) {
-  for (let x = 2; x < escalator.width; x++) {
+  for (let x = 2; x < escalator.width - 2; x++) {
     const deck = slopeRow(x);
     const glassTop = deck - GLASS_HEIGHT - 1;
     escalator.vline(x, glassTop, GLASS_HEIGHT, 'glass');
-    escalator.set(x, glassTop - 2, 'charcoal');
-    escalator.set(x, glassTop - 1, 'ink');
+    escalator.set(x, glassTop - 2, 'wood-light');
+    escalator.set(x, glassTop - 1, 'wood');
   }
   for (let x = FIRST_STEP_X + 6; x <= LAST_RISING_X; x += 16) {
     const glassTop = slopeRow(x) - GLASS_HEIGHT - 1;
     escalator.set(x, glassTop + 1, 'white');
     escalator.set(x + 1, glassTop, 'white');
   }
-  const newelTop = slopeRow(2) - GLASS_HEIGHT - 3;
-  escalator.vline(1, newelTop + 1, FLOOR_ROW - newelTop - 1, 'ink');
-  escalator.set(1, newelTop + 1, 'charcoal');
+  const leftTop = slopeRow(2) - GLASS_HEIGHT - 3;
+  escalator.vline(1, leftTop + 1, FLOOR_ROW - leftTop - 1, 'ink');
+  escalator.set(1, leftTop + 1, 'charcoal');
+  const rightX = escalator.width - 2;
+  const rightDeck = slopeRow(rightX);
+  const rightTop = rightDeck - GLASS_HEIGHT - 3;
+  escalator.vline(rightX, rightTop + 1, GLASS_HEIGHT + 3, 'ink');
+  escalator.set(rightX, rightTop + 1, 'charcoal');
   escalator.hline(0, FLOOR_ROW, 6, 'gray');
 }
 
