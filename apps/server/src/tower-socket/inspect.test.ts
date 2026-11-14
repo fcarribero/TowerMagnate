@@ -159,6 +159,23 @@ describe('inspecting a unit', () => {
     });
   });
 
+  it('lists the guests of a hotel room as tenants', () => {
+    const { state, id } = towerWith('double-room');
+    const guest = addPerson(state, { kind: 'hotelGuest', homeUnit: 7, level: 4, column: 10 });
+    unitOf(state).hotel = {
+      state: 'occupied',
+      stayEndStep: 5000,
+      checkInStep: null,
+      paidRatio: null,
+      arrivalStep: null,
+      rollDue: false,
+      dirtyChecks: 0,
+    };
+    const data = inspectUnit(state, id);
+    expect(throughTheWire(data)).toBe(true);
+    expect(data).toMatchObject({ details: { group: 'hotel', tenants: [`p${guest}`] } });
+  });
+
   it('hides the checkout of a room that is not occupied', () => {
     const { state, id } = towerWith('suite');
     unitOf(state).hotel = {
