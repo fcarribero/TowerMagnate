@@ -264,9 +264,9 @@ Hotel sprites are in `tools/art/src/units/hotel.mjs` and `tools/art/src/units/ho
 
 | Subject | Size | States |
 |---|---|---|
-| `single-room` | 32 x 32 | empty, occupied, dirty, infested |
-| `double-room` | 48 x 32 | empty, occupied, dirty, infested |
-| `suite` | 80 x 32 | empty, occupied, dirty, infested |
+| `single-room` | 32 x 32 | empty, vacant, closed, occupied, sleeping, dirty, infested |
+| `double-room` | 48 x 32 | empty, vacant, closed, occupied, sleeping, dirty, infested |
+| `suite` | 80 x 32 | empty, vacant, closed, occupied, sleeping, dirty, infested |
 | `housekeeping` | 120 x 32 | empty, occupied |
 
 Every state has a `day` and a `night` sprite. Hotel rooms have cloud walls with a concrete-light wainscot, a red carpet, a lamp-colored room number above the door and a bed with the headboard on the right. An empty room has a made bed and a closed door. An occupied room adds a suitcase, a red tag on the door handle and lit lamps, and its windows are lit at night. A dirty room has an unmade bed, a towel on the floor and grime pixels. An infested room is the dirty room with 8 roaches on the walls, the bed and the floor, so it reads at 1x even at night. Housekeeping is a service room with linen shelves, washers, a sink and laundry carts; in the occupied state 3 maids stand in the room and the door is open.

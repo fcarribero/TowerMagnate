@@ -143,8 +143,8 @@ function unitState(unit: UnitSource, openVenues: OpenVenues): string {
   const taken = unit.occupied || variant === 'occupied';
   if (RENTAL_UNITS.includes(type)) {
     // Not taken: the bare room. Taken with nobody in: furnished and dark. Someone in: lit.
-    // A built hotel room is always furnished, taken or not.
-    if (!taken) return HOTEL_ROOMS.includes(type) && !isBuilding(unit) ? 'closed' : 'empty';
+    // A built hotel room is always furnished, taken or not; free it has no luggage.
+    if (!taken) return HOTEL_ROOMS.includes(type) && !isBuilding(unit) ? 'vacant' : 'empty';
     return unit.inside === true ? 'occupied' : 'closed';
   }
   return spriteState(type, taken);

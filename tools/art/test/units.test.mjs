@@ -23,7 +23,7 @@ const hotelRooms = ['single-room', 'double-room', 'suite'];
 const rentals = ['office', 'condo'];
 const states = (subject) => {
   if (hotelRooms.includes(subject)) {
-    return ['empty', 'closed', 'occupied', 'sleeping', 'dirty', 'infested'];
+    return ['empty', 'vacant', 'closed', 'occupied', 'sleeping', 'dirty', 'infested'];
   }
   if (subject === 'condo') return ['empty', 'closed', 'occupied', 'sleeping'];
   return rentals.includes(subject) ? ['empty', 'closed', 'occupied'] : ['closed', 'occupied'];

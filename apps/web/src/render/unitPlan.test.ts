@@ -216,11 +216,11 @@ describe('availability tape', () => {
     }
   });
 
-  it('draws a built hotel room furnished whether or not it is taken', () => {
+  it('draws a built hotel room furnished, with the luggage out only when it is taken', () => {
     for (const type of ['suite', 'single-room', 'double-room'] as const) {
       const free = planUnit({ ...base, type }, 'day');
       const taken = planUnit({ ...base, type, occupied: true, variant: 'occupied' }, 'day');
-      expect(free?.variant).toEqual({ state: 'closed', time: 'day' });
+      expect(free?.variant).toEqual({ state: 'vacant', time: 'day' });
       expect(taken?.variant).toEqual({ state: 'closed', time: 'day' });
     }
   });
