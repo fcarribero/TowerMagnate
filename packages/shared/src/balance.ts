@@ -707,6 +707,11 @@ export const ROUTE_STAIR_FLOOR_COST = 100;
 export const ROUTE_STAIR_ENERGY_STEP = 20;
 /** The cheapest a stair floor gets, for the most energetic people. */
 export const ROUTE_STAIR_FLOOR_MIN_COST = 10;
+/**
+ * Maids pay this many times the stair floor cost, so they take the service elevator whenever
+ * one serves the floors they need and climb stairs only when it does not.
+ */
+export const ROUTE_MAID_STAIR_FACTOR = 20;
 /** Added to the cost of a ride for every person already waiting in the queue it starts from. */
 export const ROUTE_QUEUE_PERSON_COST = 40;
 

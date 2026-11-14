@@ -210,8 +210,17 @@ describe('tower C: stairs before a transfer, cathedral and a maid (routing 12.3)
   it('C3: keeps maids on the service elevator and the stairs', () => {
     const built = towerC();
     expect(plan(built, [50, 207], [58, 230], 'maid')).toMatchObject({ cost: 674 });
-    expect(plan(built, [50, 207], [45, 200], 'maid')).toMatchObject({ cost: 938 });
+    expect(plan(built, [50, 207], [45, 200], 'maid')).toMatchObject({ cost: 2838 });
     expect(plan(built, [50, 207], [40, 200], 'maid')).toBeNull();
+  });
+
+  it('C4: charges maids far more than anybody else for a stair floor', () => {
+    const built = towerC();
+    const maid = plan(built, [50, 207], [45, 200], 'maid');
+    const other = plan(built, [50, 207], [45, 200], 'other');
+    expect(maid).not.toBeNull();
+    expect(other).not.toBeNull();
+    expect((maid?.cost ?? 0) > (other?.cost ?? 0)).toBe(true);
   });
 });
 
