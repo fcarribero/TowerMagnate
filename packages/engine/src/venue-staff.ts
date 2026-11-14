@@ -14,7 +14,7 @@ import {
   type UnitId,
   type VenueDay,
 } from '@tower-magnate/shared';
-import { STEPS_PER_MINUTE } from './calendar';
+import { STEPS_PER_HOUR, STEPS_PER_MINUTE } from './calendar';
 import { STEPS_PER_DAY } from './clock';
 import { entrancePlace, unitPlace, type Place } from './office-routine';
 import {
@@ -33,6 +33,7 @@ import { writableUnit } from './step-copy';
 import { streetColumn, streetPlace } from './street';
 import { cancelTrek, isOnTrek, startTrek } from './trek';
 import { unitNumber } from './units';
+import { customersInsideVenue } from './venue-visitors';
 
 /**
  * What a crew member is doing: outside until the arrival step, walking in, working inside the
@@ -225,6 +226,24 @@ export function addCrew(
 }
 
 /**
+ * Units whose crew is still closing at the 00:00 plan: a venue that closes at 24:00 has its crew
+ * carrying out the garbage or waiting for the last customer when the new day starts.
+ */
+function unitsStillClosing(state: TowerState, step: number): Set<number> {
+  const pool = state.people;
+  const closing = new Set<number>();
+  for (let slot = 0; slot < pool.id.length; slot++) {
+    if (!isStaff(pool, slot)) continue;
+    const phase = staffRoutineAt(pool, slot)?.phase;
+    const atClosing = phase === 'working' && (pool.dueStep[slot] as number) <= step;
+    if (phase === 'toPile' || phase === 'carrying' || phase === 'leaving' || atClosing) {
+      closing.add(pool.homeUnit[slot] as number);
+    }
+  }
+  return closing;
+}
+
+/**
  * At 00:00 venues missing crew get them (this covers old saves), then every crew member gets
  * today's arrival, in increasing person id. Anyone still on a trip stops where they are.
  */
@@ -235,8 +254,16 @@ function planDay(context: StepContext, occurrence: HookOccurrence): void {
     .filter(needsCrew)
     .sort((a, b) => unitNumber(a.id) - unitNumber(b.id));
   for (const unit of units) addCrew(state, unit.id, { planToday: false });
+  const closing = unitsStillClosing(state, occurrence.step);
+  for (const unit of Object.values(state.units)) {
+    if (unit.venue && unit.venue.garbage > 0 && !closing.has(unitNumber(unit.id))) {
+      // A pile left by a crew that never got to carry it out: it goes with the new day.
+      (writableUnit(state, unit).venue as VenueDay).garbage = 0;
+    }
+  }
   for (let slot = 0; slot < pool.id.length; slot++) {
     if (!isStaff(pool, slot)) continue;
+    if (closing.has(pool.homeUnit[slot] as number)) continue;
     if (isOnTrek(pool, slot)) cancelTrek(context, slot);
     stayOutside(pool, slot);
     const unit = staffUnitOf(state, slot);
@@ -335,9 +362,32 @@ function walkToExit(worker: Worker, phase: StaffPhase): boolean {
   return false;
 }
 
-/** Closing: the first worker to get here makes the pile; then everyone goes to it, or leaves if it is empty. */
+/**
+ * The shift is over and the worker is out of the tower. One that finishes after midnight missed
+ * the 00:00 plan, so today's arrival is planned here.
+ */
+function finishShift(worker: Worker): void {
+  const { state, slot, unit } = worker;
+  const pool = state.people;
+  stayOutside(pool, slot);
+  const dayStart = dayStartOf(state.step);
+  if (state.step - dayStart >= 3 * STEPS_PER_HOUR) return;
+  const arrival = dayStart + (venueHoursOf(unit).open - drawEarlyMinutes(state)) * STEPS_PER_MINUTE;
+  if (arrival <= state.step) return;
+  pool.trip[slot] = encodeStaffRoutine({ phase: 'outside', entranceOnRight: false });
+  pool.dueStep[slot] = arrival;
+}
+
+/**
+ * Closing: waits until the last customer has left, then the first worker to get here makes the
+ * pile; then everyone goes to it, or leaves if it is empty.
+ */
 function startClosing(worker: Worker): void {
   const { state, unit } = worker;
+  if (customersInsideVenue(state, unitNumber(unit.id)) > 0) {
+    save(worker, state.step + STEPS_PER_MINUTE);
+    return;
+  }
   const today = Math.floor(state.step / STEPS_PER_DAY);
   let current: Unit = unit;
   if (unit.venue && unit.venue.garbageDay !== today) {
@@ -364,14 +414,14 @@ function arriveAtPile(worker: Worker): void {
     save(worker, state.step + ROUTE_RETRY_STEPS);
     return;
   }
-  if (!walkToExit(worker, 'leaving')) stayOutside(state.people, worker.slot);
+  if (!walkToExit(worker, 'leaving')) finishShift(worker);
 }
 
 /** At the street with a bag: it is gone; go back for another one if the pile still has any. */
 function arriveWithBag(worker: Worker): void {
-  const { state, unit } = worker;
+  const { unit } = worker;
   if (garbageOf(unit) > 0 && walk(worker, 'toPile', pilePlace(unit))) return;
-  stayOutside(state.people, worker.slot);
+  finishShift(worker);
 }
 
 function advance(worker: Worker): void {
@@ -392,7 +442,7 @@ function advance(worker: Worker): void {
       arriveWithBag(worker);
       break;
     case 'leaving':
-      stayOutside(worker.state.people, worker.slot);
+      finishShift(worker);
       break;
   }
 }

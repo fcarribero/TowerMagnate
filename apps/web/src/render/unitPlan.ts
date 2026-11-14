@@ -65,6 +65,7 @@ export type UnitSource = Pick<
   | 'staffed'
   | 'garbage'
   | 'hours'
+  | 'serving'
 >;
 
 /** Units that are drawn here. Floors and lobbies are structure, elevators are shafts. */
@@ -127,6 +128,7 @@ function isBuilding(unit: UnitSource): boolean {
 
 /** Whether a venue is inside its opening hours; a fast food uses the hours its player set. */
 function isOpenNow(unit: UnitSource, openVenues: OpenVenues, hour: number | undefined): boolean {
+  if (unit.serving === true) return true;
   if (unit.type === 'fast-food' && unit.hours !== undefined && hour !== undefined) {
     return hour >= unit.hours.open && hour < unit.hours.close;
   }

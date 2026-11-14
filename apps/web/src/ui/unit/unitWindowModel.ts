@@ -342,7 +342,7 @@ function leaseRows(lease: Details<'lease'>, office: boolean): UnitRow[] {
     },
     evaluationRow(lease.evaluation),
   ];
-  if (lease.nextPaymentStep !== null) {
+  if (!office && lease.nextPaymentStep !== null) {
     rows.push({
       id: 'nextPayment',
       label: t('window.unit.nextPayment'),

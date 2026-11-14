@@ -14,6 +14,7 @@ import {
   outfitOf,
   isOutsideTower,
   isVenueStaffed,
+  customersInsideVenue,
   occupantAt,
   routineAt,
   trekPhaseAt,
@@ -237,6 +238,9 @@ function unitView(
       ? { staffed: false as const }
       : {}),
     ...(unit.venue && unit.venue.garbage > 0 ? { garbage: unit.venue.garbage } : {}),
+    ...(unit.venue && customersInsideVenue(state, Number(unit.id.slice(1))) > 0
+      ? { serving: true as const }
+      : {}),
   };
 }
 

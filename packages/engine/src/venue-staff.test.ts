@@ -4,6 +4,8 @@ import { STEPS_PER_HOUR, STEPS_PER_MINUTE } from './calendar';
 import { STEPS_PER_DAY } from './clock';
 import { isOutsideTower } from './outside-tower';
 import { step } from './step';
+import { addPerson, removePerson } from './people';
+import { encodeCustomerTrip } from './venue-visitors';
 import { buildTower, plainTowerPlan } from './testing';
 import {
   addCrew,
@@ -126,7 +128,7 @@ describe('closing time', () => {
     const { state, id } = venueTower('restaurant');
     let pile = 0;
     let carrying = 0;
-    const end = runDay(state, 24, (now) => {
+    const end = runDay(state, 25, (now) => {
       pile = Math.max(pile, garbageOf(now, id));
       const bags = staffSlots(now).filter((slot) => isCarryingBag(now.people, slot)).length;
       carrying = Math.max(carrying, bags);
@@ -135,6 +137,29 @@ describe('closing time', () => {
     expect(carrying).toBeGreaterThan(0);
     expect(garbageOf(end, id)).toBe(0);
     for (const slot of staffSlots(end)) expect(isOutsideTower(end.people, slot)).toBe(true);
+  });
+
+  it('keeps the crew working while a customer is still inside, then closes', () => {
+    const { state, id } = venueTower('restaurant');
+    const venue = Number(id.slice(1));
+    let tower = runDay(state, 22, () => undefined);
+    const customer = addPerson(tower, { kind: 'customer', homeUnit: venue, level: 1, column: 45 });
+    tower.people.trip[tower.people.id.indexOf(customer)] = encodeCustomerTrip({
+      phase: 'atVenue',
+      entrance: { kind: 'street', onRight: false },
+    });
+    tower.people.dueStep[tower.people.id.indexOf(customer)] = -1;
+    const pastClosing = DAY * STEPS_PER_DAY + 23 * STEPS_PER_HOUR + 10 * STEPS_PER_MINUTE;
+    let pile = 0;
+    while (tower.step < pastClosing) {
+      tower = step(tower, [], STEPS_PER_MINUTE).state;
+      pile = Math.max(pile, garbageOf(tower, id));
+    }
+    expect(pile).toBe(0);
+    expect(phases(tower).every((phase) => phase === 'working')).toBe(true);
+    removePerson(tower, customer);
+    const after = step(tower, [], 2 * STEPS_PER_HOUR).state;
+    for (const slot of staffSlots(after)) expect(isOutsideTower(after.people, slot)).toBe(true);
   });
 
   it('has a cinema crew go back for more bags while the pile has some', () => {

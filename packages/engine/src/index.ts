@@ -253,3 +253,4 @@ export type { NewsEvent } from './news';
 export { isEvaluatedUnit, storedGrade } from './unit-evaluation';
 export { disconnectedUnits } from './unit-connections';
 export { isLayoutCommand, isLayoutEvent } from './layout-changes';
+export { customersInsideVenue } from './venue-visitors';

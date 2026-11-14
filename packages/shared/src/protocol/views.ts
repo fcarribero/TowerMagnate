@@ -86,6 +86,8 @@ export const UnitViewSchema = z.object({
   construction: z.int().min(0).max(100).optional(),
   /** False while a venue's crew is not all inside, so it stays closed; left out otherwise. */
   staffed: z.literal(false).optional(),
+  /** True while a customer is inside a venue, even after its closing hour: it keeps its shutters up. Left out otherwise. */
+  serving: z.literal(true).optional(),
   /** Black garbage bags piled in the venue after closing; left out when there are none. */
   garbage: z.int().min(1).optional(),
 });

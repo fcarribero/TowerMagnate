@@ -120,6 +120,9 @@ export function closingMinute(
   return Math.min(closing, 24 * 60);
 }
 
+/** No new customer comes in during the last minutes before closing; the ones inside stay until their visit ends. */
+export const CUSTOMER_LAST_ENTRY_MINUTES = 15;
+
 /** Staff reach their venue between this many minutes before it opens. */
 export const STAFF_EARLY_ARRIVAL = { from: 30, to: 60 } as const;
 

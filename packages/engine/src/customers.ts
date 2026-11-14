@@ -1,5 +1,6 @@
 import {
   CUSTOMER_ARRIVAL,
+  CUSTOMER_LAST_ENTRY_MINUTES,
   CUSTOMER_STAY_MINUTES,
   OUTSIDE_CUSTOMER_BASE,
   RETAIL_PRICE_CUSTOMER_FACTOR,
@@ -271,12 +272,8 @@ function isOpen(state: TowerState, unit: CustomerVenue, minute: number): boolean
   if (!unit.activeToday || !isVenueStaffed(state, unit)) return false;
   const hours = venueHoursOf(unit);
   const hasTenant = unit.type !== 'retail-shop' || unit.lease !== null;
-  return hasTenant && minute >= hours.open && minute < closingMinuteOf(state, unit);
-}
-
-function closingStep(state: TowerState, unit: CustomerVenue): number {
-  const dayStart = state.step - (state.step % STEPS_PER_DAY);
-  return dayStart + closingMinuteOf(state, unit) * STEPS_PER_MINUTE;
+  const lastEntry = closingMinuteOf(state, unit) - CUSTOMER_LAST_ENTRY_MINUTES;
+  return hasTenant && minute >= hours.open && minute < lastEntry;
 }
 
 function customerVenueOf(state: TowerState, slot: number): CustomerVenue | null {
@@ -363,7 +360,7 @@ function arriveAtVenue(context: StepContext, slot: number, entrance: CustomerEnt
   changeCustomersInside(state, unitNumber(unit.id), 1);
   setPhase(state, slot, 'atVenue', entrance);
   const stayEnds = state.step + CUSTOMER_STAY_MINUTES[unit.type] * STEPS_PER_MINUTE;
-  state.people.dueStep[slot] = Math.min(stayEnds, closingStep(state, unit));
+  state.people.dueStep[slot] = stayEnds;
 }
 
 function advanceCustomer(context: StepContext, slot: number): void {

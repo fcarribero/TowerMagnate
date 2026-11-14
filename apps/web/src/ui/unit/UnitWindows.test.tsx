@@ -130,7 +130,7 @@ describe('unit windows', () => {
     expect(dialog.querySelector('.tm-window__subtitle')).toBeNull();
   });
 
-  it('shows the subtitle, stat tiles and contract chip in the window', () => {
+  it('shows the subtitle and stat tiles in the window, and no next payment for an office', () => {
     const { open, show } = setup([unitView('u1')]);
     open('u1');
     show(inspectOf('u1', { name: 'Mi estudio', details: leaseDetails({ nextPaymentStep: 0 }) }));
@@ -143,7 +143,7 @@ describe('unit windows', () => {
     expect(status?.className).toContain('is-good');
     const evaluation = within(dialog).getByText('Buena').parentElement;
     expect(evaluation?.className).toContain('is-good');
-    expect(within(dialog).getByText(/^Próximo pago · /)).toBeTruthy();
+    expect(within(dialog).queryByText(/^Próximo pago · /)).toBeNull();
   });
 
   it('inspects every open unit window and stops only the closed one', () => {
