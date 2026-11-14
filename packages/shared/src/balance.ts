@@ -577,6 +577,18 @@ export function bombRansom(stars: StarRating): number {
   return 1_000_000;
 }
 
+/**
+ * Commercial units pay upkeep for every hour a day they are open, on top of their flat line:
+ * dollars per week for each daily open hour. A venue that is shut all day pays nothing.
+ */
+export const OPEN_HOUR_WEEKLY_UPKEEP: Readonly<
+  Partial<Record<'retail-shop' | 'fast-food' | 'restaurant', number>>
+> = {
+  'retail-shop': 150,
+  'fast-food': 250,
+  restaurant: 400,
+};
+
 function flatUpkeep(basis: UpkeepRule['basis'], amount: number): UpkeepRule {
   return { basis, amountByStars: [{ minStars: 1, amount }] };
 }

@@ -1,4 +1,5 @@
 import {
+  OPEN_HOUR_WEEKLY_UPKEEP,
   SHAFT_UNIT_TYPES,
   TOWER_LAYOUT,
   UNIT_TYPES,
@@ -6,6 +7,7 @@ import {
   type StarRating,
   type TowerState,
   type UnitType,
+  venueHoursOf,
 } from '@tower-magnate/shared';
 import { WEEKDAYS } from './calendar';
 import { chargeMoney } from './money';
@@ -58,11 +60,29 @@ function amountAtStars(type: UnitType, stars: StarRating): number {
   return amount;
 }
 
+/**
+ * Upkeep of a commercial type that depends on its opening hours: the hours a day each unit is
+ * open (the fast food uses the hours the player set) times the type's rate. A unit that is not
+ * active today is shut all day and adds nothing.
+ */
+function openHoursUpkeep(state: TowerState, type: UnitType): number {
+  const rate = OPEN_HOUR_WEEKLY_UPKEEP[type as keyof typeof OPEN_HOUR_WEEKLY_UPKEEP];
+  if (rate === undefined) return 0;
+  let hours = 0;
+  for (const unit of Object.values(state.units)) {
+    if (unit.type !== type || !unit.activeToday) continue;
+    const open = venueHoursOf(unit);
+    hours += (open.close - open.open) / 60;
+  }
+  return Math.round(hours * rate);
+}
+
 /** Charges one upkeep entry per item type with a non-zero total. */
 export function chargeWeeklyUpkeep(state: TowerState): void {
   const counts = countUpkeepItems(state);
   for (const type of UNIT_TYPES) {
-    const total = (counts[type] ?? 0) * amountAtStars(type, state.stars);
+    const total =
+      (counts[type] ?? 0) * amountAtStars(type, state.stars) + openHoursUpkeep(state, type);
     if (total > 0) {
       chargeMoney(state, 'upkeep', total);
     }

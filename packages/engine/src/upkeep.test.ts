@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { STEPS_PER_WEEK } from './leases';
 import { createRng } from './rng';
 import { runDays, step } from './step';
+import { chargeWeeklyUpkeep } from './upkeep';
 import { buildTower } from './testing';
 
 const FIRST_MONDAY = STEPS_PER_WEEK;
@@ -122,5 +123,44 @@ describe('weekly upkeep', () => {
     const result = runDays(buildTower({}).state, 15);
     expect(result.state.ledger.previousWeek.upkeep.expense).toBe(0);
     expect(result.events).toEqual([]);
+  });
+});
+
+describe('commercial upkeep by opening hours', () => {
+  function shops() {
+    const { state } = buildTower({
+      lobby: { x0: 0, x1: 59 },
+      floors: [{ from: 2, to: 3, x0: 0, x1: 59 }],
+      units: [
+        { type: 'fast-food', level: 2, x: 0 },
+        { type: 'retail-shop', level: 2, x: 20 },
+        { type: 'restaurant', level: 3, x: 0 },
+      ],
+    });
+    state.money = 1_000_000;
+    return state;
+  }
+  const unitOf = (state: TowerState, type: string) =>
+    Object.values(state.units).find((unit) => unit.type === type)!;
+  const charged = (state: TowerState) => {
+    const before = state.money;
+    chargeWeeklyUpkeep(state);
+    return before - state.money;
+  };
+
+  it('charges each daily open hour: 12 for a fast food, 10 for a shop, 6 for a restaurant', () => {
+    expect(charged(shops())).toBe(12 * 250 + 10 * 150 + 6 * 400);
+  });
+
+  it('charges less for a fast food the player opens fewer hours', () => {
+    const state = shops();
+    unitOf(state, 'fast-food').hours = { open: 10, close: 14 };
+    expect(charged(state)).toBe(4 * 250 + 10 * 150 + 6 * 400);
+  });
+
+  it('charges nothing for a fast food that is shut all day', () => {
+    const state = shops();
+    unitOf(state, 'fast-food').activeToday = false;
+    expect(charged(state)).toBe(10 * 150 + 6 * 400);
   });
 });

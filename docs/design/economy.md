@@ -214,7 +214,10 @@ Design call: two lines are added, hotel rooms and party halls. TM-136 first doub
 | Hotel suite | not listed | $10,000 |
 | Party hall | not listed | $20,000 |
 | Cathedral | not listed | $200,000 |
-| Office, shop, condo, fast food, restaurant, cinema | not listed | $0 |
+| Office, condo, cinema | not listed | $0 |
+| Shop, fast food, restaurant | not listed | by opening hours, below |
+
+Shops, fast foods and restaurants pay for the hours they are open. The charge is a weekly rate for each hour a day the unit is open: $150 for a shop (10 hours, 10:00 to 20:00, so $1,500), $250 for a fast food ($3,000 at the default 08:00 to 20:00, $1,000 if the player opens it 4 hours) and $400 for a restaurant (6 hours, 17:00 to 23:00, so $2,400). The hours are the ones in force at the Monday charge. A fast food switched off (not active today) is shut all day and pays $0. The fewer hours a unit is open, the less it costs.
 
 Design call on lobby columns: the construction spec charges lobby per cell (columns × height), so a 3-high lobby costs three times as much to build. Upkeep counts columns only, so the stress benefit of a tall lobby is paid once at build time and not again every week. Main lobby and sky lobby columns both count. The star level used is the tower's level at the moment of the charge.
 
@@ -453,7 +456,9 @@ E-41. On the first day a film is 56 days old, and every 7 days after while it is
 
 E-42. Upkeep is charged at every step that is a positive multiple of 60,480 (Monday 00:00). Step 0 charges nothing. Error: none.
 
-E-43. Weekly upkeep: $10,000 per standard or service car, $30,000 per express car, $5,000 per escalator, $10,000 per housekeeping, $20,000 per security, $10,000 per parking ramp, $50,000 per recycling center, $250,000 per subway station, $2,000 per single room, $3,000 per double room, $10,000 per suite, $20,000 per party hall, $200,000 per cathedral. Everything else is $0. Error: none.
+E-43. Weekly upkeep: $10,000 per standard or service car, $30,000 per express car, $5,000 per escalator, $10,000 per housekeeping, $20,000 per security, $10,000 per parking ramp, $50,000 per recycling center, $250,000 per subway station, $2,000 per single room, $3,000 per double room, $10,000 per suite, $20,000 per party hall, $200,000 per cathedral. Shops, fast foods and restaurants add $150, $250 and $400 for each hour a day they are open (E-43a). Everything else is $0. Error: none.
+
+E-43a. Opening-hours upkeep: for each shop, fast food and restaurant that is active today, the hours between its opening and closing time (the player's hours for a fast food, the listed hours for the others) times $150, $250 or $400, summed per type and rounded to whole dollars, is added to that type's upkeep entry. A unit that is not active today adds $0. Error: none.
 
 E-44. Lobby upkeep is charged per lobby column (main and sky): $0 below 3 stars, $300 at 3 stars, $1,000 at 4 stars or more, using the star level at the step of the charge. Lobby height does not change it. Error: none.
 
