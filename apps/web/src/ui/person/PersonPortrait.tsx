@@ -10,10 +10,17 @@ export interface PersonPortraitProps {
   id: string;
   kind: PersonKind;
   scale?: number;
+  /** Draw at the size the people have in the tower right now, following its zoom. Ignores `scale`. */
+  inGameSize?: boolean;
 }
 
 /** One standing person drawn the way the tower draws them. */
-export function PersonPortrait({ id, kind, scale = PORTRAIT_SCALE }: PersonPortraitProps) {
+export function PersonPortrait({
+  id,
+  kind,
+  scale = PORTRAIT_SCALE,
+  inGameSize = false,
+}: PersonPortraitProps) {
   const canvas = useRef<HTMLCanvasElement>(null);
   const size = portraitSize(personLook(id, kind, false, 'uniform'));
   useEffect(() => {
@@ -28,8 +35,12 @@ export function PersonPortrait({ id, kind, scale = PORTRAIT_SCALE }: PersonPortr
       width={size.width}
       height={size.height}
       style={{
-        width: `calc(${size.width * scale} * var(--tm-px))`,
-        height: `calc(${size.height * scale} * var(--tm-px))`,
+        width: inGameSize
+          ? `calc(${size.width}px * var(--tm-world-zoom, 2))`
+          : `calc(${size.width * scale} * var(--tm-px))`,
+        height: inGameSize
+          ? `calc(${size.height}px * var(--tm-world-zoom, 2))`
+          : `calc(${size.height * scale} * var(--tm-px))`,
       }}
     />
   );
