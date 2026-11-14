@@ -184,6 +184,12 @@ export function App({ developer = false, onLogout, onRestartTower, onSessionLost
     [stage],
   );
 
+  /** A notice points at a unit: bring it into view, frame it and open its panel beside it. */
+  const seeUnit = (unitId: string): void => {
+    stage?.centerOnUnit(unitId);
+    connection.inspect.anchorUnit(unitId);
+  };
+
   const restartTower = (): void => {
     setRestartStep(null);
     void onRestartTower().then((restarted) => {
@@ -433,7 +439,7 @@ export function App({ developer = false, onLogout, onRestartTower, onSessionLost
         <NewsLine
           subscribe={notices.subscribeLine}
           onOpenAvisos={() => setAvisosOpen(true)}
-          onSeeUnit={(unitId) => stage?.centerOnUnit(unitId)}
+          onSeeUnit={seeUnit}
         />
         <WindowLayer class="ui-windows" uiScale={uiScale}>
           {mapOpen && stage && (
@@ -461,10 +467,7 @@ export function App({ developer = false, onLogout, onRestartTower, onSessionLost
           {avisosOpen && (
             <AvisosWindow
               notices={notices.avisos}
-              onSeeUnit={(unitId) => {
-                stage?.centerOnUnit(unitId);
-                connection.inspect.requestUnitWindow(unitId);
-              }}
+              onSeeUnit={seeUnit}
               onClose={() => setAvisosOpen(false)}
             />
           )}
