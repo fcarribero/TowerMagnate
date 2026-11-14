@@ -24,7 +24,6 @@ import {
   hourText,
   listedOf,
   priorityOf,
-  locationText,
   peopleGroups,
   priceControlOf,
   priceLabelKey,
@@ -188,9 +187,6 @@ export function UnitWindow({ unitId, connection, anchored = false }: UnitWindowP
         {found?.details?.group === 'venue' && <VenueChartView chart={venueChart(found.details)} />}
         {found !== undefined && (
           <dl class="tm-unit__rows">
-            {found.type !== 'office' && (
-              <Row label={t('window.unit.location')} value={locationText(found)} />
-            )}
             {groups?.rows.map((row) => (
               <Row key={row.id} label={row.label} value={row.value} />
             ))}

@@ -222,11 +222,6 @@ export async function mountStage(host: HTMLElement, options: StageOptions = {}):
   const showCamera = (): void => {
     world.scale.set(camera.zoom);
     ghost.setZoom(camera.zoom);
-    // CSS pixels one sprite pixel covers on screen, so the panels can draw people at the size the tower does.
-    document.documentElement.style.setProperty(
-      '--tm-world-zoom',
-      String(camera.zoom * cssPerDevicePixel()),
-    );
     world.position.set(-camera.left, -camera.top);
     const onScreen = visibleLevels(camera);
     structure.rows.showOnly(onScreen);

@@ -6,11 +6,14 @@ import { personLook } from '../../render/personLook';
 /** Each sprite pixel is drawn this many screen pixels wide, unless the caller asks for another size. */
 export const PORTRAIT_SCALE = 3;
 
+/** Screen pixels per sprite pixel in the people lists of the unit panels: always the same, whatever the zoom. */
+export const IN_GAME_SIZE_PX = 2;
+
 export interface PersonPortraitProps {
   id: string;
   kind: PersonKind;
   scale?: number;
-  /** Draw at the size the people have in the tower right now, following its zoom. Ignores `scale`. */
+  /** Draw at the fixed size of the people lists: IN_GAME_SIZE_PX screen pixels per sprite pixel. Ignores `scale`. */
   inGameSize?: boolean;
 }
 
@@ -36,10 +39,10 @@ export function PersonPortrait({
       height={size.height}
       style={{
         width: inGameSize
-          ? `calc(${size.width}px * var(--tm-world-zoom, 2))`
+          ? `${size.width * IN_GAME_SIZE_PX}px`
           : `calc(${size.width * scale} * var(--tm-px))`,
         height: inGameSize
-          ? `calc(${size.height}px * var(--tm-world-zoom, 2))`
+          ? `${size.height * IN_GAME_SIZE_PX}px`
           : `calc(${size.height * scale} * var(--tm-px))`,
       }}
     />

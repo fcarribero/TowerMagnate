@@ -166,7 +166,6 @@ export const SPANISH_STRINGS = {
   'window.notices.empty': 'Todavía no hay avisos.',
   'window.stars.title': 'Estrellas',
   'window.unit.name': 'Nombre',
-  'window.unit.location': 'Ubicación',
   'window.unit.status': 'Estado',
   'window.unit.people': 'Personas',
   'window.unit.residents': 'Residentes',
