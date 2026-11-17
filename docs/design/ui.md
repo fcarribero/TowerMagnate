@@ -211,7 +211,7 @@ The bar holds, from left to right:
 | Population | "Población" over `{n}` | The word in `font.text` 700 at 6.5, uppercase, letter-spaced; the number in `font.display` 12. |
 | Stars | 5 stars, or 5 stars plus the word "TORRE" at the top rank; click opens Estrellas | Stars of 12 px. A filled star is `obra.ink`; an empty star is an `obra.ink` outline filled with `obra.rule`. "TORRE" is on an `obra.ink` tag with `obra.yellow` text. |
 | Spacer | | Takes the free width, so the next blocks sit at the right edge. |
-| Overlay selector | 4 buttons: Normal, Evaluación, Precios, Hotel | One block, the buttons divided by `border.control`. Each shows its name in `font.text` 700 at 7, uppercase. The current button is `obra.ink` with `obra.yellow` text. The keys `1` to `4` still pick an overlay (section 11). |
+| Overlay selector | 6 buttons: Normal, Evaluación, Precios, Hotel, Ruido, Suciedad | One block, the buttons divided by `border.control`. Each shows its name in `font.text` 700 at 7, uppercase. The current button is `obra.ink` with `obra.yellow` text. The keys `1` to `6` pick an overlay (section 11). |
 | Window buttons | Mapa, Finanzas, Seguidos, Avisos | Four blocks 32 wide with a line icon of 14 (map, bars, eye, bell). The button of an open window is `obra.yellow`. Avisos also carries the unread badge below. |
 
 Examples of the date block: "00:00 / Lunes 1 de enero, año 1", "14:35 / Miércoles 11 de noviembre, año 3".
@@ -567,7 +567,9 @@ Items:
 
 ## 7. Overlays
 
-The overlay selector in the status bar has 4 buttons; exactly one is on. Keys 1 to 4 pick them in order.
+The overlay selector in the status bar has 6 buttons; exactly one is on. Keys 1 to 6 pick them in order.
+
+Ruido and Suciedad are heat maps (stress-evaluation.md 2.6). The units keep their normal look and a translucent layer covers each cell of each level that has noise or dirt, from green (little) through yellow to red (a lot). The legend shows Mucho, Medio and Poco. While one is on, the client asks the server for the map and gets a new one every game minute; the server scales noise to 20 and dirt to 5 for full red.
 
 | Order | Overlay id | Button | Applies to |
 |---|---|---|---|

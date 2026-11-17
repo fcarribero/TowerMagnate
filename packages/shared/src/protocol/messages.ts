@@ -9,7 +9,14 @@ import {
   StepSchema,
   UnitEntityIdSchema,
 } from './primitives';
-import { ClientEventSchema, DeltaSchema, InspectDataSchema, SnapshotSchema } from './views';
+import {
+  ClientEventSchema,
+  DeltaSchema,
+  HeatDataSchema,
+  HeatKindSchema,
+  InspectDataSchema,
+  SnapshotSchema,
+} from './views';
 
 export const PROTOCOL_VERSION = 1;
 
@@ -47,6 +54,7 @@ export const ClientMessageSchema = z.discriminatedUnion('t', [
   envelope('inspect', z.object({ target: InspectTargetSchema.nullable() })),
   envelope('inspectAdd', z.object({ target: InspectTargetSchema })),
   envelope('inspectRemove', z.object({ target: InspectTargetSchema })),
+  envelope('heat', z.object({ kind: HeatKindSchema.nullable() })),
   envelope('ping', z.object({ clientTime: ClientTimeSchema })),
 ]);
 
@@ -56,6 +64,7 @@ export const ServerMessageSchema = z.discriminatedUnion('t', [
   envelope('commandResult', CommandResultSchema),
   envelope('events', z.object({ events: z.array(ClientEventSchema) })),
   envelope('inspect', InspectDataSchema),
+  envelope('heat', HeatDataSchema),
   envelope('error', z.object({ code: ServerErrorCodeSchema, message: z.string() })),
   envelope('pong', z.object({ clientTime: ClientTimeSchema, serverStep: StepSchema })),
 ]);

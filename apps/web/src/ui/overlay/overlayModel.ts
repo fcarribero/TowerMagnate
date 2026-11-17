@@ -1,7 +1,14 @@
 import { OVERLAY_HEX, type OverlayColor, type OverlayId } from '../../render/overlayColors';
 import type { StringKey } from '../strings';
 
-export const OVERLAY_IDS: readonly OverlayId[] = ['normal', 'evaluation', 'price', 'hotel'];
+export const OVERLAY_IDS: readonly OverlayId[] = [
+  'normal',
+  'evaluation',
+  'price',
+  'hotel',
+  'noise',
+  'dirt',
+];
 
 export interface LegendEntry {
   label: StringKey;
@@ -12,6 +19,12 @@ export interface LegendEntry {
 function entry(label: StringKey, color: OverlayColor): LegendEntry {
   return { label, color, hex: OVERLAY_HEX[color] };
 }
+
+const HEAT_LEGEND: readonly LegendEntry[] = [
+  entry('overlay.heat.high', 'cloth-red'),
+  entry('overlay.heat.mid', 'lamp'),
+  entry('overlay.heat.low', 'leaf'),
+];
 
 const LEGENDS: Record<Exclude<OverlayId, 'normal'>, readonly LegendEntry[]> = {
   evaluation: [
@@ -32,6 +45,8 @@ const LEGENDS: Record<Exclude<OverlayId, 'normal'>, readonly LegendEntry[]> = {
     entry('value.room.dirty', 'dusk'),
     entry('value.room.infested', 'cloth-red'),
   ],
+  noise: HEAT_LEGEND,
+  dirt: HEAT_LEGEND,
 };
 
 /** The legend lines of an overlay; Normal has none. */
@@ -39,7 +54,7 @@ export function legendOf(overlay: OverlayId): readonly LegendEntry[] {
   return overlay === 'normal' ? [] : LEGENDS[overlay];
 }
 
-/** Keys 1 to 4 pick the overlays in order. */
+/** Keys 1 to 6 pick the overlays in order. */
 export function overlayForKey(key: string): OverlayId | null {
   const index = Number(key) - 1;
   return Number.isInteger(index) ? (OVERLAY_IDS[index] ?? null) : null;

@@ -561,3 +561,21 @@ export type Delta = z.infer<typeof DeltaSchema>;
 export type ClientEvent = z.infer<typeof ClientEventSchema>;
 export type InspectData = z.infer<typeof InspectDataSchema>;
 export type InspectedUnitDetails = z.infer<typeof InspectedUnitDetailsSchema>;
+
+
+/** Which heat map a client asks to see. */
+export const HEAT_KINDS = ['noise', 'dirt'] as const;
+export const HeatKindSchema = z.enum(HEAT_KINDS);
+export type HeatKind = z.infer<typeof HeatKindSchema>;
+
+/**
+ * A heat map for drawing: one row per level that has any heat, each cell scaled to a byte
+ * (0 is none, 255 is `max` or more). Sent to a client that asked for it, once a game minute.
+ */
+export const HeatDataSchema = z.object({
+  kind: HeatKindSchema,
+  step: z.int().nonnegative(),
+  max: z.number().positive(),
+  levels: z.record(z.string(), z.array(z.int().min(0).max(255))),
+});
+export type HeatData = z.infer<typeof HeatDataSchema>;

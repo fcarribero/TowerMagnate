@@ -25,7 +25,7 @@ import {
   debugUnits,
   testUnitsFromQuery,
 } from '../render/unitSource';
-import type { OverlayId } from '../render/overlayColors';
+import { isHeatOverlay, type OverlayId } from '../render/overlayColors';
 import { OverlayLegend } from './overlay/OverlayLegend';
 import { OverlaySelector } from './overlay/OverlaySelector';
 import { overlayForKey } from './overlay/overlayModel';
@@ -202,6 +202,24 @@ export function App({ developer = false, onLogout, onRestartTower, onSessionLost
   useEffect(() => {
     document.title = pageTitle();
   }, []);
+
+  useEffect(() => {
+    if (stage === null) {
+      return;
+    }
+    // The noise and dirt overlays ask the server for a map once a game minute.
+    const kind = isHeatOverlay(overlay) ? overlay : null;
+    connection.commands.heat(kind);
+    if (kind === null) {
+      stage.showHeat(null);
+      return;
+    }
+    return connection.onMessage((message) => {
+      if (message.t === 'heat' && message.p.kind === kind) stage.showHeat(message.p);
+      // A new connection starts without the request, so ask again after each snapshot.
+      if (message.t === 'snapshot') connection.commands.heat(kind);
+    });
+  }, [stage, connection, overlay]);
 
   useEffect(() => {
     if (stage === null) {

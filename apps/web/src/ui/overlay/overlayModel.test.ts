@@ -3,17 +3,19 @@ import { hasString } from '../strings';
 import { legendOf, overlayForKey } from './overlayModel';
 
 describe('overlayForKey', () => {
-  it('maps keys 1 to 4 to the overlays in order', () => {
-    expect(['1', '2', '3', '4'].map(overlayForKey)).toEqual([
+  it('maps keys 1 to 6 to the overlays in order', () => {
+    expect(['1', '2', '3', '4', '5', '6'].map(overlayForKey)).toEqual([
       'normal',
       'evaluation',
       'price',
       'hotel',
+      'noise',
+      'dirt',
     ]);
   });
 
   it('ignores other keys', () => {
-    expect(['0', '5', 'a', ''].map(overlayForKey)).toEqual([null, null, null, null]);
+    expect(['0', '7', 'a', ''].map(overlayForKey)).toEqual([null, null, null, null]);
   });
 });
 
@@ -26,6 +28,14 @@ describe('legendOf', () => {
     for (const id of ['evaluation', 'price', 'hotel'] as const) {
       const entries = legendOf(id);
       expect(entries).toHaveLength(4);
+      expect(entries.every((entry) => hasString(entry.label))).toBe(true);
+    }
+  });
+
+  it('lists 3 labeled heat steps for noise and dirt', () => {
+    for (const id of ['noise', 'dirt'] as const) {
+      const entries = legendOf(id);
+      expect(entries).toHaveLength(3);
       expect(entries.every((entry) => hasString(entry.label))).toBe(true);
     }
   });

@@ -3,6 +3,7 @@ import {
   type ClientMessage,
   type Command,
   type CommandResult,
+  type HeatKind,
   type InspectTarget,
   type ServerMessage,
 } from '@tower-magnate/shared';
@@ -124,6 +125,11 @@ export class CommandClient {
   /** The player accepted the new rating message; the server's clock runs again. */
   acceptStars(): Promise<CommandResult> {
     return this.send({ type: 'acceptStars' });
+  }
+
+  /** Asks the server for a heat map once a game minute; null stops them. */
+  heat(kind: HeatKind | null): void {
+    this.sender.send(clientMessage('heat', { kind }));
   }
 
   inspect(target: InspectTarget | null): void {

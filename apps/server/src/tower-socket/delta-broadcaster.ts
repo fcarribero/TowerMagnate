@@ -1,6 +1,7 @@
 import {
   serverMessage,
   type ClientEvent,
+  type HeatKind,
   type Snapshot,
   type TowerState,
 } from '@tower-magnate/shared';
@@ -10,11 +11,14 @@ import type { TowerId } from '../snapshots';
 import { toClientEvents } from './client-events';
 import { diffSnapshots, needsFreshSnapshot } from './delta';
 import { DisconnectedUnitsCache } from './disconnected-units';
+import { buildHeatData } from './heat-view';
 import { buildSnapshot } from './snapshot';
 import type { Viewports } from './viewports';
 
 export const DELTA_INTERVAL_MS = 200;
 export const HEARTBEAT_INTERVAL_MS = 1000;
+/** A heat map changes once a game minute, which is 6 steps. */
+const HEAT_STEPS = 6;
 
 export interface DeltaBroadcasterOptions {
   runner: TowerRunner;
@@ -36,6 +40,7 @@ interface SentState {
  */
 export class DeltaBroadcaster {
   private readonly sent = new WeakMap<GatewaySocket, SentState>();
+  private readonly heat = new WeakMap<GatewaySocket, { kind: HeatKind; sentStep: number | null }>();
   private readonly now: () => number;
   private readonly disconnectedUnits: DisconnectedUnitsCache;
 
@@ -49,6 +54,20 @@ export class DeltaBroadcaster {
   snapshotFor(socket: GatewaySocket, towerId: TowerId, state: TowerState): Snapshot {
     const disconnected = this.disconnectedUnits.of(towerId, state);
     return buildSnapshot(state, this.options.viewports.get(socket), disconnected);
+  }
+
+  /** Starts (or stops, with null) sending a heat map to a socket; the next tick sends the first one. */
+  setHeat(socket: GatewaySocket, kind: HeatKind | null): void {
+    if (kind === null) this.heat.delete(socket);
+    else this.heat.set(socket, { kind, sentStep: null });
+  }
+
+  private sendHeat(socket: GatewaySocket, state: TowerState): void {
+    const wanted = this.heat.get(socket);
+    if (!wanted) return;
+    if (wanted.sentStep !== null && state.step - wanted.sentStep < HEAT_STEPS) return;
+    wanted.sentStep = state.step;
+    sendMessage(socket, serverMessage('heat', buildHeatData(state, wanted.kind)));
   }
 
   /** Records the snapshot a socket was just sent and sends it. */
@@ -80,6 +99,7 @@ export class DeltaBroadcaster {
         if (baseline) {
           const snapshot = this.snapshotFor(socket, towerId, state);
           this.update(socket, baseline, snapshot, events);
+          this.sendHeat(socket, state);
         }
       }
     }

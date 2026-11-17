@@ -8,7 +8,12 @@ import type {
 
 type OverlayUnit = Pick<UnitView, 'id' | 'type' | 'price' | 'occupied'>;
 
-export type OverlayId = 'normal' | 'evaluation' | 'price' | 'hotel';
+export type OverlayId = 'normal' | 'evaluation' | 'price' | 'hotel' | 'noise' | 'dirt';
+
+/** Noise and dirt are drawn as heat maps over the tower; units keep their normal look. */
+export function isHeatOverlay(overlay: OverlayId): overlay is 'noise' | 'dirt' {
+  return overlay === 'noise' || overlay === 'dirt';
+}
 
 export type OverlayColor =
   'sky-deep' | 'lamp' | 'cloth-red' | 'gray' | 'leaf' | 'dusk' | 'charcoal';
@@ -73,7 +78,7 @@ export function overlayColorOf(
   unit: OverlayUnit,
   data: OverlayData,
 ): OverlayColor | null {
-  if (overlay === 'normal') {
+  if (overlay === 'normal' || isHeatOverlay(overlay)) {
     return null;
   }
   return appliesTo(overlay, unit) ? valueColor(overlay, unit, data) : 'charcoal';
@@ -81,5 +86,5 @@ export function overlayColorOf(
 
 /** Stairs and escalators are never covered by an overlay, so they get the charcoal checker. */
 export function transportOverlayColor(overlay: OverlayId): OverlayColor | null {
-  return overlay === 'normal' ? null : 'charcoal';
+  return overlay === 'normal' || isHeatOverlay(overlay) ? null : 'charcoal';
 }

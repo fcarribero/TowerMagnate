@@ -1,5 +1,5 @@
 import { animationNow, isAnimationPaused } from './animationClock';
-import type { FireSpan, Level, ShaftView } from '@tower-magnate/shared';
+import type { FireSpan, HeatData, Level, ShaftView } from '@tower-magnate/shared';
 import { Application, Container, TextureSource } from 'pixi.js';
 import type { DrawnFrame } from '../model/interpolation';
 import 'pixi.js/unsafe-eval';
@@ -21,6 +21,7 @@ import { isSpaceHeld } from '../input/keyboard';
 import { attachCameraInput, type CameraChange } from './cameraInput';
 import { canvasSizeFromCssPixels, canvasSizeFromObservedBox, type CanvasSize } from './canvasSize';
 import { cellAtCanvasPoint, type Cell } from './cellAtPoint';
+import { HeatLayer } from './heatLayer';
 import { GhostLayer, type Footprint, type GhostInput, type RunInput } from './ghostLayer';
 import { levelAtCanvasY } from './levelRuler';
 import type { Zoom } from './metrics';
@@ -126,6 +127,8 @@ export interface Stage {
   showWeather(condition: WeatherCondition): void;
   /** Draws units and transports; later calls change only what differs. */
   showUnits(input: UnitsInput): void;
+  /** Draws a noise or dirt map over the tower; null removes it. */
+  showHeat(data: HeatData | null): void;
   /** Marks the followed people on the floor with a lamp above the head. */
   showFollowed(followed: ReadonlySet<string>): void;
   /** Draws elevator shafts; later calls change only the shafts that differ. */
@@ -173,6 +176,8 @@ export async function mountStage(host: HTMLElement, options: StageOptions = {}):
   world.addChild(units.frontView);
   const people = new PeopleLayer(sprites);
   world.addChild(people.view);
+  const heat = new HeatLayer();
+  world.addChild(heat.view);
   const events = new EventLayer(sprites);
   world.addChild(events.view);
   const ghost = new GhostLayer();
@@ -423,6 +428,9 @@ export async function mountStage(host: HTMLElement, options: StageOptions = {}):
     },
     showWeather(condition) {
       setSkyWeather(sky, condition);
+    },
+    showHeat(data) {
+      heat.show(data);
     },
     showUnits(input) {
       const placed = [...input.units];

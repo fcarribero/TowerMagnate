@@ -82,6 +82,9 @@ export function towerSocketHandlers({
     viewport: (message, { socket }) => {
       viewports.update(socket, message.p);
     },
+    heat: (message, { socket }) => {
+      broadcaster.setHeat(socket, message.p.kind);
+    },
     ping: (message, { socket, identity }) => {
       const serverStep = runner.stateOf(identity.towerId)?.step ?? 0;
       sendMessage(socket, serverMessage('pong', { clientTime: message.p.clientTime, serverStep }));

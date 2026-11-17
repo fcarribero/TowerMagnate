@@ -8,13 +8,15 @@ import { OverlaySelector } from './OverlaySelector';
 afterEach(cleanup);
 
 describe('OverlaySelector', () => {
-  it('has 4 buttons with exactly one on', () => {
+  it('has 6 buttons with exactly one on', () => {
     render(<OverlaySelector overlay="price" onSelect={() => undefined} />);
     expect(screen.getAllByRole('button').map((b) => b.getAttribute('aria-label'))).toEqual([
       'Normal',
       'Evaluación',
       'Precios',
       'Hotel',
+      'Ruido',
+      'Suciedad',
     ]);
     expect(document.querySelectorAll('[aria-pressed="true"]')).toHaveLength(1);
     expect(screen.getByRole('button', { name: 'Precios' }).getAttribute('aria-pressed')).toBe(
@@ -29,6 +31,8 @@ describe('OverlaySelector', () => {
       'Evaluación',
       'Precios',
       'Hotel',
+      'Ruido',
+      'Suciedad',
     ]);
   });
 

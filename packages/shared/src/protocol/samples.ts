@@ -97,6 +97,8 @@ export const sampleClientMessages: ClientMessage[] = [
   { v, t: 'inspect', p: { target: null } },
   { v, t: 'inspectAdd', p: { target: { kind: 'unit', id: 'u13' } } },
   { v, t: 'inspectRemove', p: { target: { kind: 'unit', id: 'u13' } } },
+  { v, t: 'heat', p: { kind: 'noise' } },
+  { v, t: 'heat', p: { kind: null } },
   { v, t: 'ping', p: { clientTime: 1234.5 } },
 ];
 
@@ -248,6 +250,11 @@ export const sampleServerMessages: ServerMessage[] = [
     },
   },
   { v, t: 'inspect', p: { kind: 'unit', id: 'u13', status: 'gone' } },
+  {
+    v,
+    t: 'heat',
+    p: { kind: 'dirt', step: 6000, max: 5, levels: { '2': [0, 12, 255], '-1': [3] } },
+  },
   { v, t: 'inspect', p: { kind: 'shaft', id: 's9', status: 'gone' } },
   { v, t: 'inspect', p: { kind: 'person', id: 'p77', status: 'gone' } },
   {

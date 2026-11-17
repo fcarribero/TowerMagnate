@@ -386,6 +386,11 @@ export const SPANISH_STRINGS = {
   'overlay.evaluation': 'Evaluación',
   'overlay.price': 'Precios',
   'overlay.hotel': 'Hotel',
+  'overlay.noise': 'Ruido',
+  'overlay.dirt': 'Suciedad',
+  'overlay.heat.high': 'Mucho',
+  'overlay.heat.mid': 'Medio',
+  'overlay.heat.low': 'Poco',
 
   // 13.8 Error messages
   'error.INVALID_COMMAND': 'Orden inválida.',
