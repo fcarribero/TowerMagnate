@@ -291,6 +291,16 @@ export interface ShaftSchedule {
   weekend: ShaftBand[];
 }
 
+/**
+ * Noise and dirt by level then column (rows hold LAST_COLUMN + 1 floats; a level with nothing
+ * stored has no row), and a pair (noise, dirt) per elevator car by shaft id.
+ */
+export interface HeatMaps {
+  noise: Record<string, number[]>;
+  dirt: Record<string, number[]>;
+  cars: Record<string, number[]>;
+}
+
 export interface Shaft {
   id: ShaftId;
   type: ShaftType;
@@ -360,6 +370,8 @@ export interface TowerState {
    * end step and trip stress, oldest first.
    */
   tripLedger: Record<string, number[]>;
+  /** Noise and dirt of the cells and the cars; missing in a tower that has not filled it yet. */
+  heat?: HeatMaps;
   /**
    * Trips filed for each evaluated unit since its ledger was last cleared, keyed by unit id:
    * pairs of end step and trip stress, oldest first.

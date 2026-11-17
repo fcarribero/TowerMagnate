@@ -103,7 +103,15 @@ describe('scenario: vertical slice part A, tenants, commute and rent over 7 days
     const justBefore = step(run.state, [], dueStep - 1 - run.state.step).state;
     const atDue = step(justBefore, [], 1).state;
     expect(atDue.step).toBe(dueStep);
-    expect(rentThisWeek(atDue) - rentThisWeek(justBefore)).toBe(OFFICE_RENT * dueTogether);
+    // A tenant whose office grades poor at the lease end leaves instead of paying.
+    const renewed = Object.values(justBefore.units).filter(
+      (unit) =>
+        unit.type === 'office' &&
+        unit.lease?.anchorStep === firstAnchor &&
+        atDue.units[unit.id]?.lease !== null,
+    ).length;
+    expect(renewed).toBeGreaterThan(dueTogether / 2);
+    expect(rentThisWeek(atDue) - rentThisWeek(justBefore)).toBe(OFFICE_RENT * renewed);
   });
 
   it('brings workers from the weekday after move-in, 07:30 to 09:30, home 17:00 to 19:00', () => {

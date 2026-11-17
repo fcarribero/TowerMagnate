@@ -14,7 +14,7 @@ import {
   type Shaft,
   type TowerState,
 } from '@tower-magnate/shared';
-import { ambientOf } from './ambient-stress';
+import { heatOf, STAY_MAX_MINUTES, stepsFelt, stressPerMinute, valueAt } from './heat';
 import { lobbyRows } from './commands/build-lobby';
 import { averageStress, type RecordedTrip } from './person-stress';
 import { floorIndex } from './routing/transport-graph';
@@ -221,11 +221,20 @@ export function addStay(state: TowerState, slot: number): void {
   if (!recordsStress(pool, slot)) return;
   const flat = state.tripLedger[field(pool.id, slot)];
   if (!flat || flat.length < 2) return;
-  const since = state.step - field(flat, flat.length - 2);
+  const minutes = Math.min(
+    STAY_MAX_MINUTES,
+    Math.floor((state.step - field(flat, flat.length - 2)) / 6),
+  );
+  const level = field(pool.level, slot);
+  const column = field(pool.column, slot);
+  const perMinute = stressPerMinute(
+    valueAt(heatOf(state).noise, level, column),
+    valueAt(heatOf(state).dirt, level, column),
+  );
   addAmbient(
     pool,
     slot,
-    ambientOf(state).stayDelta(field(pool.level, slot), field(pool.column, slot), since),
+    stepsFelt(perMinute, minutes, field(pool.id, slot), Math.floor(state.step / 6)),
   );
 }
 

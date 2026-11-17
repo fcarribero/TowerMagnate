@@ -1,3 +1,4 @@
+import { heatSystem } from './heat';
 import type {
   Command,
   CommandResult,
@@ -323,6 +324,7 @@ export const namedTowerSystems: readonly { name: string; system: SimulationSyste
   { name: 'customers', system: customers.system },
   { name: 'weddings', system: weddingSystem },
   { name: 'elevators', system: createElevatorSystem() },
+  { name: 'heat', system: heatSystem },
   { name: 'children', system: createChildSystem() },
   { name: 'scheduler (star check)', system: createScheduler([starCheckHook]) },
   { name: 'star promotion', system: starPromotionSystem },

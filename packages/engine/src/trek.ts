@@ -1,5 +1,8 @@
 import {
   AMBIENT_WALK_CELL_STRESS,
+  PERSON_DIRT_CELL,
+  PERSON_NOISE_CELL,
+  PERSON_NOISE_STAND_MINUTE,
   carCapacity,
   ELEVATOR_QUEUE_CAPACITY,
   ENERGY_STAIRS_DRAIN,
@@ -28,6 +31,14 @@ import {
   type UnitType,
 } from '@tower-magnate/shared';
 import { ambientOf, type Ambient } from './ambient-stress';
+import {
+  addPersonDirt,
+  addPersonNoise,
+  heatOf,
+  stepsFelt,
+  stressPerMinute,
+  valueAt,
+} from './heat';
 import { SECONDS_PER_STEP, STEPS_PER_DAY } from './clock';
 
 const STEPS_PER_MINUTE = 6;
@@ -1098,8 +1109,13 @@ function walk(context: StepContext, slot: number, pass: TrekPass): boolean {
   drainEnergy(pool, slot, ENERGY_WALK_DRAIN);
   pool.column[slot] = column + direction;
   const onStreet = pool.trek[slot] === APPROACHING || pool.trek[slot] === DEPARTING;
-  if (!onStreet && !pass.ambient.insideUnit(level, column + direction)) {
-    addAmbient(pool, slot, AMBIENT_WALK_CELL_STRESS);
+  if (!onStreet) {
+    const state = context.state;
+    addPersonNoise(state, level, column + direction, PERSON_NOISE_CELL);
+    addPersonDirt(state, level, column + direction, PERSON_DIRT_CELL);
+    if (!pass.ambient.insideUnit(level, column + direction)) {
+      addAmbient(pool, slot, AMBIENT_WALK_CELL_STRESS);
+    }
   }
   syncLane(pass, slot);
   return pool.column[slot] === target;
@@ -1276,25 +1292,26 @@ function waitsForLegStep(phase: number): boolean {
 }
 
 /**
- * Once a game minute each traveller feels their cell: noise and bags add stress, a quiet clean
- * cell gives a little back. Each person has their own step in the minute, so a sixth of them are
- * visited per step. People inside a car feel nothing.
+ * Once a game minute each traveller feels the noise and dirt of their cell, and one who stands
+ * still adds a little noise to it. Each person has their own step in the minute, so a sixth of
+ * them are visited per step. People inside a car are counted by the car, and the walk in from the
+ * street is not counted.
  */
-function feelEnvironment(context: StepContext, slot: number, phase: number, pass: TrekPass): void {
+function feelEnvironment(context: StepContext, slot: number, phase: number): void {
   if (phase === RIDING || phase === APPROACHING || phase === DEPARTING) return;
   const { state } = context;
   const pool = state.people;
-  const minuteStep = ((pool.id[slot] as number) + state.step) % STEPS_PER_MINUTE;
-  if (minuteStep !== 0) return;
-  addAmbient(
-    pool,
-    slot,
-    pass.ambient.minuteDelta(
-      pool.level[slot] as number,
-      pool.column[slot] as number,
-      Math.floor(state.step / STEPS_PER_MINUTE),
-    ),
+  const id = pool.id[slot] as number;
+  if ((id + state.step) % STEPS_PER_MINUTE !== 0) return;
+  const level = pool.level[slot] as number;
+  const column = pool.column[slot] as number;
+  const minute = Math.floor(state.step / STEPS_PER_MINUTE);
+  const perMinute = stressPerMinute(
+    valueAt(heatOf(state).noise, level, column),
+    valueAt(heatOf(state).dirt, level, column),
   );
+  addAmbient(pool, slot, stepsFelt(perMinute, 1, id, minute));
+  if (!isWalkingPhase(phase)) addPersonNoise(state, level, column, PERSON_NOISE_STAND_MINUTE);
 }
 
 function stepPerson(context: StepContext, slot: number, pass: TrekPass): void {
@@ -1331,12 +1348,20 @@ export function createTrekSystem(): SimulationSystem {
       const phase = pool.trek[slot] as number;
       if (phase === IDLE) {
         restEnergy(pool, slot);
+        if ((((pool.id[slot] as number) + now) % STEPS_PER_MINUTE) === 0) {
+          addPersonNoise(
+            context.state,
+            pool.level[slot] as number,
+            pool.column[slot] as number,
+            PERSON_NOISE_STAND_MINUTE,
+          );
+        }
         return;
       }
       drainWhileWaiting(pool, slot, phase);
       const legStep = pool.legStep[slot] as number;
       const sum = pool.tripSum[slot] as number;
-      feelEnvironment(context, slot, phase, pass);
+      feelEnvironment(context, slot, phase);
       if (legStep !== now && waitsForLegStep(phase)) {
         if (pool.tripSum[slot] !== sum) refreshTravellerStress(context, slot, checkpoints);
         return;

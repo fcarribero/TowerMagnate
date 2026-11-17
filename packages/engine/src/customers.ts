@@ -276,6 +276,11 @@ function isOpen(state: TowerState, unit: CustomerVenue, minute: number): boolean
   return hasTenant && minute >= hours.open && minute < lastEntry;
 }
 
+/** True while a venue that takes customers is open for new ones, by the player's hours. */
+export function isVenueOpenNow(state: TowerState, unit: Unit): boolean {
+  return getsCustomers(unit) && isOpen(state, unit, minuteOfDay(state));
+}
+
 function customerVenueOf(state: TowerState, slot: number): CustomerVenue | null {
   const unitId = `u${state.people.homeUnit[slot]}`;
   const unit = Object.hasOwn(state.units, unitId) ? state.units[unitId] : undefined;

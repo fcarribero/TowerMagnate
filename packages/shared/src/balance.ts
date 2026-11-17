@@ -665,23 +665,52 @@ export const NOISE_RULES: Readonly<Partial<Record<UnitType, NoiseRule>>> = {
   },
 };
 /**
- * Environment stress, in steps. Every game minute (6 steps) a person feels their cell: +1 within
- * AMBIENT_NOISE_RADIUS columns of a noise source on their level, +2 within AMBIENT_DIRT_RADIUS
- * columns of a garbage bag (on the floor or carried), both when both; in a quiet clean cell -1
- * every AMBIENT_CALM_EVERY_MINUTES minutes. Each column walked outside a unit adds
- * AMBIENT_WALK_CELL_STRESS. A person sitting still between trips is not visited each minute: the
- * minutes since their last trip ended (at most AMBIENT_STAY_MAX_STEPS) are counted at their cell
- * when the next trip starts.
+ * Heat maps (docs/design/stress-evaluation.md 2.6). The tower keeps a float per cell for noise and
+ * for dirt, and one pair per elevator car. Every game minute an open unit adds its noise to the
+ * cells it covers and to HEAT_NOISE_CELLS cells on each side, fading with distance; people add a
+ * little each cell they cross and each minute they stand still; bags add dirt around them. Every
+ * 5 game minutes each cell keeps only the share given by the decay constants.
  */
+export const HEAT_NOISE_CELLS = 15;
+export const HEAT_BAG_DIRT_CELLS = 5;
+/** Share of a cell's level that stays after each 5-minute decay. */
+export const HEAT_NOISE_DECAY = 0.5;
+export const HEAT_DIRT_DECAY = 0.85;
+export const HEAT_DECAY_EVERY_MINUTES = 5;
+/** Noise a unit adds per game minute to each cell it covers, while it is in use. */
+export const UNIT_NOISE: Readonly<Partial<Record<UnitType, number>>> = {
+  'fast-food': 2,
+  restaurant: 1.5,
+  'retail-shop': 1,
+  cinema: 3,
+  'party-hall': 4,
+  office: 0.1,
+  condo: 0.08,
+  'single-room': 0.05,
+  'double-room': 0.08,
+  suite: 0.1,
+};
+/** A person adds this much noise to each cell they walk into, and each minute they stand still. */
+export const PERSON_NOISE_CELL = 0.02;
+export const PERSON_NOISE_STAND_MINUTE = 0.05;
+/** A person leaves this much dirt in each cell they walk into. */
+export const PERSON_DIRT_CELL = 0.005;
+/** A garbage bag, on the floor or carried, adds this much dirt per game minute at its own cell. */
+export const BAG_DIRT_MINUTE = 1.5;
+/** Elevator cars: noise and dirt per rider that boards, and the extra dirt of a rider with a bag. */
+export const CAR_NOISE_RIDER = 0.3;
+export const CAR_DIRT_RIDER = 0.1;
+export const CAR_DIRT_BAG = 1;
+/** Stress steps a person feels per game minute for each point of noise and of dirt in their cell. */
+export const NOISE_STRESS_PER_LEVEL = 0.03;
+export const DIRT_STRESS_PER_LEVEL = 0.15;
+/** Below this stress per minute a cell is calm and gives back 1 step on one minute in CALM_ONE_IN. */
+export const CALM_BELOW = 0.1;
+export const CALM_ONE_IN = 5;
+/** Each column walked outside a unit adds this much stress, in steps. */
 export const AMBIENT_WALK_CELL_STRESS = 1;
-export const AMBIENT_NOISE_PER_MINUTE = 1;
-export const AMBIENT_NOISE_RADIUS = 4;
-export const AMBIENT_DIRT_PER_MINUTE = 2;
-export const AMBIENT_DIRT_RADIUS = 3;
-export const AMBIENT_CALM_RELIEF = 1;
-export const AMBIENT_CALM_EVERY_MINUTES = 5;
+/** A person sitting still between trips is counted for at most this many steps (2 hours). */
 export const AMBIENT_STAY_MAX_STEPS = 720;
-export const AMBIENT_NOISE_SOURCES: readonly UnitType[] = COMMERCE_AND_ENTERTAINMENT;
 export const EVAL_GOOD_BELOW = 90;
 export const EVAL_FAIR_BELOW = 180;
 export const EVAL_FAIR_BELOW_FROM_FOUR_STARS = 240;

@@ -50,8 +50,19 @@ function copyUnit<U extends Unit>(unit: U): U {
   return structuredClone(unit);
 }
 
+/** Heat rows are plain number arrays, copied by slicing, which is far faster than a deep copy. */
+function copyHeat(heat: NonNullable<TowerState['heat']>): NonNullable<TowerState['heat']> {
+  const rows = (map: Record<string, number[]>): Record<string, number[]> => {
+    const copy: Record<string, number[]> = {};
+    for (const key in map) copy[key] = (map[key] as number[]).slice();
+    return copy;
+  };
+  return { noise: rows(heat.noise), dirt: rows(heat.dirt), cars: rows(heat.cars) };
+}
+
 function copyOf(key: string, value: unknown): unknown {
   if (SHARED_KEYS.has(key)) return value;
+  if (key === 'heat' && value) return copyHeat(value as NonNullable<TowerState['heat']>);
   if (key === 'people') return clonePersonPool(value as TowerState['people']);
   return copyPlainData(value);
 }

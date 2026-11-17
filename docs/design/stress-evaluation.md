@@ -83,26 +83,34 @@ Every person records trip stress except maids and security guards (people.md 10 
 
 Design call: maids and guards are not counted in population and do not grade any unit, so their stress would never be used.
 
-### 2.6 Walking, noise and dirt
+### 2.6 Noise and dirt maps
 
-Two rules add to the trip, for people who record stress (2.5). Maids, guards, builders and couriers do not feel them.
+The tower keeps two maps of floats, one for noise and one for dirt, with a value for every cell of every level (`state.heat`; a level with nothing in it has no row). Each elevator car has its own pair of values. Stress from the surroundings is read from these maps.
 
-Walking: each column walked on a level adds 1 (`AMBIENT_WALK_CELL_STRESS`). Cells inside a unit do not count, so moving around inside the destination unit is free. The walk in from the map edge and the walk out to it (the street) does not count either.
+Noise sources:
 
-Environment: once every game minute, each person on a trip, except in a car, feels their cell.
+- Every game minute, each unit that is in use adds its noise (`UNIT_NOISE`) to every cell it covers, on every level it covers, and to the 15 cells on each side. The amount fades in a straight line from the unit's edge: the cell at distance d gets `noise * (1 - d / 16)`.
+- A unit is in use when a venue (fast food, restaurant, shop, cinema, party hall) is open to customers, an office has a tenant between 08:00 and 18:00, a condo is sold, or a hotel room has a guest.
+- A person adds 0.02 to each cell they walk into and 0.05 to the cell they stand in at each minute (in a queue, waiting for a retry, or at home). This is small, but dozens of people through one cell add up.
+- Every 5 game minutes, each noise cell keeps 50% of its value.
 
-| Cell | Stress that minute |
-|---|---|
-| Within 4 columns of a shop, fast food, restaurant, cinema or party hall on that level | +1 |
-| Within 3 columns of a garbage bag, on the floor (a venue's pile) or carried by crew | +2 |
-| Both | +3 |
-| Neither | -1, every 5th minute |
+Dirt sources:
 
-People sitting still between trips are not visited each minute. When their next trip starts, the minutes since their last trip ended (at most 120) are counted at the cell where they stand, with the same rates, and added to that trip. A worker's day at the desk shows in the trip home. Each person has their own step in the minute, so a sixth of the people are looked at per step and the cost per step is small. The map of noise, bags and unit spans is built once per step.
+- A person leaves 0.005 in each cell they walk into.
+- A garbage bag, on the floor (a venue's pile) or carried, adds 1.5 per game minute to its cell and fades over 5 cells on each side.
+- Every 5 game minutes, each dirt cell keeps 85% of its value. Nothing cleans dirt yet beyond this fade.
 
-The total for a trip never goes below 0. The 540 cap and the long-trip extra work as before. The stress shown while a person waits already includes their minutes of noise.
+Elevator cars: each rider that boards adds 0.3 noise and 0.1 dirt to the car's pair, and a rider carrying a bag adds 1 more dirt. Cars fade at the same 5-minute step as the cells. A rider gets the stress of the car for the minutes of the ride, when they get out.
 
-Design call: walking was 0 in the first version (2.1) because wide floors would punish the player. The cell cost is now 1, so 30 columns is 5 minutes and a 90-column walk is the pink line alone. Retune `AMBIENT_WALK_CELL_STRESS` if wide floors are too harsh.
+Stress from the maps: a cell gives `0.03 * noise + 0.15 * dirt` steps of stress per game minute. Once a minute each person on a trip, except in a car, feels their cell (each person has their own step in the minute, so a sixth of the people are visited per step). The amount is turned into whole steps with a fixed dither per person and minute, so small amounts still add up. A cell below 0.1 per minute is calm and gives back 1 step on about one minute in five.
+
+People sitting still between trips are not visited each minute. When their next trip starts, the minutes since their last trip ended (at most 120) are counted at the cell where they stand, with the current values of the maps, and added to that trip. A worker's day at the desk shows in the trip home.
+
+Walking: each column walked adds 1 (`AMBIENT_WALK_CELL_STRESS`). Cells inside a unit do not count, so moving around inside the destination unit is free. The walk in from the map edge and the walk out to it does not count either.
+
+Maids, guards, builders and couriers add to the maps like everyone else but record no stress. The total for a trip never goes below 0. The 540 cap and the long-trip extra work as before.
+
+Design call: all values are first guesses, kept in `balance.ts`. The maps live in the saved state as plain arrays and are copied by slicing each step. The old flat +60 noise of the unit score (5.4) stays for now and the maps add to the trip stress that feeds the base.
 
 ## 3. Person stress
 

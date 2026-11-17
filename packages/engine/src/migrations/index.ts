@@ -1021,6 +1021,7 @@ function assertCurrentShape(raw: Record<string, unknown>): TowerState {
     newsSent: readNewsSent(raw.newsSent),
     treasureLevels: readTreasureLevels(raw.treasureLevels),
     ...readStarState(raw),
+    ...readHeat(raw.heat),
     vipVisit: readVipVisit(raw.vipVisit),
     vipDryDays: readVipDryDays(raw.vipDryDays),
     medicalDay: readMedicalDay(raw.medicalDay),
@@ -1028,6 +1029,22 @@ function assertCurrentShape(raw: Record<string, unknown>): TowerState {
     wedding: readWedding(raw.wedding),
     lastWeddingDay: readLastWeddingDay(raw.lastWeddingDay),
   };
+}
+
+/** The heat maps are an optional part: a save without them starts with empty maps. */
+function readHeat(raw: unknown): { heat?: TowerState['heat'] } {
+  if (!isRecord(raw)) return {};
+  const rows = (value: unknown): Record<string, number[]> => {
+    if (!isRecord(value)) return {};
+    const out: Record<string, number[]> = {};
+    for (const [key, row] of Object.entries(value)) {
+      if (Array.isArray(row) && row.every((v) => typeof v === 'number' && Number.isFinite(v))) {
+        out[key] = row.slice() as number[];
+      }
+    }
+    return out;
+  };
+  return { heat: { noise: rows(raw.noise), dirt: rows(raw.dirt), cars: rows(raw.cars) } };
 }
 
 type StarState = Pick<

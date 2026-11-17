@@ -6,6 +6,7 @@ import {
   indexToLevel,
   levelToIndex,
   type ElevatorCar,
+  type EntityId,
   type HallCall,
   type HallDirection,
   type Level,
@@ -14,6 +15,10 @@ import {
 } from '@tower-magnate/shared';
 import { isWeekendDay, weekdayOfDay } from './calendar';
 import { SECONDS_PER_STEP, STEPS_PER_DAY } from './clock';
+import { addCarRider, carLevels, stepsFelt, stressPerMinute } from './heat';
+import { parsePersonId, slotOfPerson } from './people';
+import { addAmbient } from './trip-ledger';
+import { isCarryingBag } from './venue-staff';
 import { boardFromQueue, hallCallAge, queueLength } from './elevator-queues';
 import type { SimulationSystem, StepContext } from './step';
 import { alightRider, boardRider, realignQueue, ridersBroughtBy } from './trek';
@@ -247,9 +252,40 @@ function boardPeople(
   const roomNeeded = front ? 1 + ridersBroughtBy(context, front.person) : 1;
   if (carCapacity(shaft.type) - car.riders.length < roomNeeded) return false;
   const boarded = boardFromQueue(shaft, carIndex, car.level, direction, context.state.step, 1);
-  for (const person of boarded) boardRider(context, person);
+  for (const person of boarded) {
+    boardRider(context, person);
+    const slot = slotOfPerson(context.state.people, parsePersonId(person) ?? -1);
+    addCarRider(
+      context.state,
+      shaft.id,
+      carIndex,
+      slot >= 0 && isCarryingBag(context.state.people, slot),
+    );
+  }
   if (boarded.length > 0) realignQueue(context, shaft, car.level, direction);
   return boarded.length > 0;
+}
+
+/** The noise and dirt of the car count as stress for the minutes the rider spent in it. */
+function feelCar(
+  context: StepContext,
+  shaft: Shaft,
+  carIndex: number,
+  person: EntityId,
+  rideSteps: number,
+): void {
+  const { state } = context;
+  const slot = slotOfPerson(state.people, parsePersonId(person) ?? -1);
+  if (slot < 0) return;
+  const { noise, dirt } = carLevels(state, shaft.id, carIndex);
+  const minutes = rideSteps / 6;
+  const felt = stepsFelt(
+    stressPerMinute(noise, dirt),
+    minutes,
+    state.people.id[slot] as number,
+    state.step,
+  );
+  addAmbient(state.people, slot, felt);
 }
 
 /** At most one rider per step gets off at the car's level, the one who boarded first. */
@@ -273,6 +309,7 @@ function letOneRiderOut(context: StepContext, shaft: Shaft, carIndex: number): b
   });
   car.riders.splice(index, 1);
   car.trips.splice(index, 1);
+  feelCar(context, shaft, carIndex, person, context.state.step - trip.boardedStep);
   alightRider(context, person, car.level);
   return true;
 }
