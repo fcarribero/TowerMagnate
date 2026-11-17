@@ -92,15 +92,16 @@ Noise sources:
 - Every game minute, each unit that is in use adds its noise (`UNIT_NOISE`) to every cell it covers, on every level it covers, and to the 15 cells on each side. The amount fades in a straight line from the unit's edge: the cell at distance d gets `noise * (1 - d / 16)`.
 - A unit is in use when a venue (fast food, restaurant, shop, cinema, party hall) is open to customers, an office has a tenant between 08:00 and 18:00, a condo is sold, or a hotel room has a guest.
 - A person adds 0.02 to each cell they walk into and 0.05 to the cell they stand in at each minute (in a queue, waiting for a retry, or at home). This is small, but dozens of people through one cell add up.
-- Every 5 game minutes, each noise cell keeps 50% of its value.
+- Every game minute, each noise cell loses a little, so that 5 minutes leave 50% of its value (a factor of about 0.87 a minute). The map does not jump every 5 minutes.
+- A construction site adds 8 per minute to the cells of every level it covers and 5 to the level above and the level below, with the same fade to the sides.
 
 Dirt sources:
 
 - A person leaves 0.005 in each cell they walk into.
 - A garbage bag, on the floor (a venue's pile) or carried, adds 1.5 per game minute to its cell and fades over 5 cells on each side.
-- Every 5 game minutes, each dirt cell keeps 85% of its value. Nothing cleans dirt yet beyond this fade.
+- Dirt does not fade. It stays until something cleans it, and nothing does yet.
 
-Elevator cars: each rider that boards adds 0.3 noise and 0.1 dirt to the car's pair, and a rider carrying a bag adds 1 more dirt. Cars fade at the same 5-minute step as the cells. A rider gets the stress of the car for the minutes of the ride, when they get out.
+Elevator cars: each rider that boards adds 0.3 noise and 0.1 dirt to the car's pair, and a rider carrying a bag adds 1 more dirt. Car noise fades like the cells; car dirt stays. A rider gets the stress of the car for the minutes of the ride, when they get out.
 
 Stress from the maps: a cell gives `0.03 * noise + 0.15 * dirt` steps of stress per game minute. Once a minute each person on a trip, except in a car, feels their cell (each person has their own step in the minute, so a sixth of the people are visited per step). The amount is turned into whole steps with a fixed dither per person and minute, so small amounts still add up. A cell below 0.1 per minute is calm and gives back 1 step on about one minute in five.
 
@@ -110,7 +111,7 @@ Walking: each column walked adds 1 (`AMBIENT_WALK_CELL_STRESS`). Cells inside a 
 
 Maids, guards, builders and couriers add to the maps like everyone else but record no stress. The total for a trip never goes below 0. The 540 cap and the long-trip extra work as before.
 
-Design call: all values are first guesses, kept in `balance.ts`. The maps live in the saved state as plain arrays and are copied by slicing each step. The old flat +60 noise of the unit score (5.4) stays for now and the maps add to the trip stress that feeds the base.
+Design call: all values are first guesses, kept in `balance.ts`. Heat only exists on cells with floor or lobby; cells that lose their floor are cleared. The maps live in the saved state as plain arrays and are copied by slicing each step. The old flat +60 noise of the unit score (5.4) stays for now and the maps add to the trip stress that feeds the base.
 
 ## 3. Person stress
 

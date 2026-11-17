@@ -27,7 +27,15 @@ import {
 import { isUnitInUse } from './unit-use';
 import { isCarryingBag } from './venue-staff';
 
+// Constants read in hot paths are copied once: an imported binding is looked up on every use.
 const COLUMNS = LAST_COLUMN + 1;
+const LAST = LAST_COLUMN;
+const NOISE_CELLS = HEAT_NOISE_CELLS;
+const NOISE_DECAY = HEAT_NOISE_DECAY_MINUTE;
+const NOISE_STRESS = NOISE_STRESS_PER_LEVEL;
+const DIRT_STRESS = DIRT_STRESS_PER_LEVEL;
+const CALM = CALM_BELOW;
+const CALM_EVERY = CALM_ONE_IN;
 const STEPS_PER_MINUTE = 6;
 /** Values below this are cleared to 0, so rows that went quiet can be dropped. */
 const EMPTY = 0.001;
@@ -48,12 +56,17 @@ type Rows = Record<string, number[]>;
 type Built = Map<number, Uint8Array>;
 
 const builtMemo = new WeakMap<TowerState['grid'], { minute: number; built: Built }>();
+const BUILT_REFRESH_MINUTES = 10;
 
-/** The built cells of the tower, worked out once per grid and game minute. */
+/**
+ * The built cells of the tower. They are worked out again when the grid record is a new one and
+ * every few game minutes, which catches a floor placed in a record that was already copied.
+ */
 function builtOf(state: TowerState): Built {
   const minute = Math.floor(state.step / STEPS_PER_MINUTE);
   const kept = builtMemo.get(state.grid);
-  if (kept && kept.minute === minute) return kept.built;
+  if (kept && minute - kept.minute < BUILT_REFRESH_MINUTES && minute >= kept.minute)
+    return kept.built;
   const built: Built = new Map();
   for (const [level, row] of Object.entries(state.grid.levels)) {
     if (!row || row.structure.length === 0) continue;
@@ -85,7 +98,7 @@ export function addToCell(
   amount: number,
   built?: Built,
 ): void {
-  if (column < 0 || column > LAST_COLUMN) return;
+  if (column < 0 || column > LAST) return;
   if (built && !isBuilt(built, level, column)) return;
   const row = rowOf(rows, level);
   row[column] = (row[column] as number) + amount;
@@ -105,7 +118,7 @@ export function addWithFade(
   built?: Built,
 ): void {
   const add = (column: number, value: number): void => {
-    if (column < 0 || column > LAST_COLUMN) return;
+    if (column < 0 || column > LAST) return;
     if (built && !isBuilt(built, level, column)) return;
     const row = rowOf(rows, level);
     row[column] = (row[column] as number) + value;
@@ -155,7 +168,7 @@ function emitMinute(state: TowerState, built: Built): void {
     if (noise !== undefined && isUnitInUse(state, unit)) {
       const last = unit.x + UNIT_CATALOG[unit.type].width - 1;
       for (let level = unit.level; level < unit.level + floorsOf(unit); level++) {
-        addWithFade(heat.noise, level, unit.x, last, noise, HEAT_NOISE_CELLS, built);
+        addWithFade(heat.noise, level, unit.x, last, noise, NOISE_CELLS, built);
       }
     }
     if (unit.venue && unit.venue.garbage > 0) {
@@ -182,7 +195,7 @@ function emitMinute(state: TowerState, built: Built): void {
       if (level > 104) continue;
       const inside = index >= bottom && index < bottom + floors;
       const amount = inside ? CONSTRUCTION_NOISE : CONSTRUCTION_NOISE_ADJACENT;
-      addWithFade(heat.noise, level, site.x, last, amount, HEAT_NOISE_CELLS, built);
+      addWithFade(heat.noise, level, site.x, last, amount, NOISE_CELLS, built);
     }
   }
   const pool: PersonPool = state.people;
@@ -203,11 +216,11 @@ function emitMinute(state: TowerState, built: Built): void {
 
 function decayAll(state: TowerState, built: Built): void {
   const heat = heatOf(state);
-  decayRows(heat.noise, HEAT_NOISE_DECAY_MINUTE, built);
+  decayRows(heat.noise, NOISE_DECAY, built);
   decayRows(heat.dirt, 1, built);
   for (const pair of Object.values(heat.cars)) {
     for (let at = 0; at < pair.length; at += 2) {
-      pair[at] = (pair[at] as number) * HEAT_NOISE_DECAY_MINUTE;
+      pair[at] = (pair[at] as number) * NOISE_DECAY;
     }
   }
 }
@@ -219,6 +232,22 @@ export function heatSystem(context: { state: TowerState }): void {
   const built = builtOf(state);
   emitMinute(state, built);
   decayAll(state, built);
+}
+
+/** A person walked into a cell: a little noise and a little dirt, with one lookup of the cell. */
+export function addPersonTrail(
+  state: TowerState,
+  level: number,
+  column: number,
+  noise: number,
+  dirt: number,
+): void {
+  if (column < 0 || column > LAST || !isBuilt(builtOf(state), level, column)) return;
+  const heat = heatOf(state);
+  const noiseRow = rowOf(heat.noise, level);
+  noiseRow[column] = (noiseRow[column] as number) + noise;
+  const dirtRow = rowOf(heat.dirt, level);
+  dirtRow[column] = (dirtRow[column] as number) + dirt;
 }
 
 /** A person crossed a cell, or stood in it for a minute. */
@@ -245,7 +274,7 @@ export function carLevels(state: TowerState, shaftId: string, car: number) {
 
 /** Stress steps per game minute for a level of noise and of dirt. */
 export function stressPerMinute(noise: number, dirt: number): number {
-  return noise * NOISE_STRESS_PER_LEVEL + dirt * DIRT_STRESS_PER_LEVEL;
+  return noise * NOISE_STRESS + dirt * DIRT_STRESS;
 }
 
 /** A number in [0, 1) that is the same for the same person and minute, whatever order things run in. */
@@ -259,12 +288,12 @@ export function dither(id: number, minute: number): number {
 /**
  * The whole steps felt in `minutes` of a cell that gives `perMinute` stress a minute. The part
  * below one step is rounded up or down by the dither, so small amounts still add up over many
- * minutes. A calm cell gives back 1 step on about one minute in CALM_ONE_IN.
+ * minutes. A calm cell gives back 1 step on about one minute in CALM_EVERY.
  */
 export function stepsFelt(perMinute: number, minutes: number, id: number, minute: number): number {
   if (minutes <= 0) return 0;
-  if (perMinute < CALM_BELOW) {
-    return -Math.floor((minutes + dither(id, minute) * CALM_ONE_IN) / CALM_ONE_IN);
+  if (perMinute < CALM) {
+    return -Math.floor((minutes + dither(id, minute) * CALM_EVERY) / CALM_EVERY);
   }
   const exact = perMinute * minutes;
   const whole = Math.floor(exact);

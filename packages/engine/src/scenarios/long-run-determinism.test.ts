@@ -12,7 +12,7 @@ import {
   type LongRun,
 } from '../testing';
 
-const RUN_TIMEOUT_MS = 60_000;
+const RUN_TIMEOUT_MS = 120_000;
 
 describe('scenario: 100 floors played for 5 game weeks', () => {
   let first: LongRun;

@@ -32,8 +32,8 @@ import {
 } from '@tower-magnate/shared';
 import { ambientOf, type Ambient } from './ambient-stress';
 import {
-  addPersonDirt,
   addPersonNoise,
+  addPersonTrail,
   heatOf,
   stepsFelt,
   stressPerMinute,
@@ -42,6 +42,11 @@ import {
 import { SECONDS_PER_STEP, STEPS_PER_DAY } from './clock';
 
 const STEPS_PER_MINUTE = 6;
+// Copied once: an imported constant is looked up on every use, and walking is the hottest path.
+const WALK_CELL_STRESS = AMBIENT_WALK_CELL_STRESS;
+const NOISE_PER_CELL = PERSON_NOISE_CELL;
+const DIRT_PER_CELL = PERSON_DIRT_CELL;
+const NOISE_PER_STAND = PERSON_NOISE_STAND_MINUTE;
 import { drainEnergy, energyLevelOf, leaveHome, resetEnergy, restEnergy } from './energy';
 import { isQueueFull, joinQueue, nextQueueCheckStep, queueLength } from './elevator-queues';
 import {
@@ -292,11 +297,7 @@ function recheckStart(pool: PersonPool, slot: number): number {
 
 function destinationGroupOf(pass: TrekPass, pool: PersonPool, slot: number): number | null {
   const to = { level: pool.trekLevel[slot] as Level, x: pool.trekColumn[slot] as number };
-  return pass.planner.destinationGroup(
-    to,
-    userClassOf(pool, slot),
-    energyLevelOf(pool, slot),
-  );
+  return pass.planner.destinationGroup(to, userClassOf(pool, slot), energyLevelOf(pool, slot));
 }
 
 function rideOf(context: StepContext, plan: RoutePlan | null): Ride | null {
@@ -633,11 +634,7 @@ function entityOf(pool: PersonPool, slot: number): EntityId {
  * Plans again in the middle of a trip. With no route the person stays where they are and searches
  * again after ROUTE_RETRY_STEPS, and the failed search is reported for stress (routing R-23).
  */
-function replan(
-  context: StepContext,
-  slot: number,
-  plan?: RoutePlan | null,
-): void {
+function replan(context: StepContext, slot: number, plan?: RoutePlan | null): void {
   if (isChild(context.state.people, slot)) {
     // A child never plans: it is let go here and the child system copies the guardian again.
     releaseChild(context, slot);
@@ -992,10 +989,7 @@ export function alightRider(context: StepContext, person: EntityId, level: Level
   if (slot < 0 || pool.trek[slot] !== RIDING) return;
   const budget = unpackBudget(pool.trekBudget[slot] as number);
   const ride = { kind: 'standard', via: '', from: 0, to: 0, floors: 1 } as const;
-  pool.trekBudget[slot] = repackBudget(
-    spendBudget(budget, ride),
-    pool.trekBudget[slot] as number,
-  );
+  pool.trekBudget[slot] = repackBudget(spendBudget(budget, ride), pool.trekBudget[slot] as number);
   finishRide(
     context.state,
     slot,
@@ -1111,10 +1105,9 @@ function walk(context: StepContext, slot: number, pass: TrekPass): boolean {
   const onStreet = pool.trek[slot] === APPROACHING || pool.trek[slot] === DEPARTING;
   if (!onStreet) {
     const state = context.state;
-    addPersonNoise(state, level, column + direction, PERSON_NOISE_CELL);
-    addPersonDirt(state, level, column + direction, PERSON_DIRT_CELL);
+    addPersonTrail(state, level, column + direction, NOISE_PER_CELL, DIRT_PER_CELL);
     if (!pass.ambient.insideUnit(level, column + direction)) {
-      addAmbient(pool, slot, AMBIENT_WALK_CELL_STRESS);
+      addAmbient(pool, slot, WALK_CELL_STRESS);
     }
   }
   syncLane(pass, slot);
@@ -1311,7 +1304,7 @@ function feelEnvironment(context: StepContext, slot: number, phase: number): voi
     valueAt(heatOf(state).dirt, level, column),
   );
   addAmbient(pool, slot, stepsFelt(perMinute, 1, id, minute));
-  if (!isWalkingPhase(phase)) addPersonNoise(state, level, column, PERSON_NOISE_STAND_MINUTE);
+  if (!isWalkingPhase(phase)) addPersonNoise(state, level, column, NOISE_PER_STAND);
 }
 
 function stepPerson(context: StepContext, slot: number, pass: TrekPass): void {
@@ -1348,12 +1341,12 @@ export function createTrekSystem(): SimulationSystem {
       const phase = pool.trek[slot] as number;
       if (phase === IDLE) {
         restEnergy(pool, slot);
-        if ((((pool.id[slot] as number) + now) % STEPS_PER_MINUTE) === 0) {
+        if (((pool.id[slot] as number) + now) % STEPS_PER_MINUTE === 0) {
           addPersonNoise(
             context.state,
             pool.level[slot] as number,
             pool.column[slot] as number,
-            PERSON_NOISE_STAND_MINUTE,
+            NOISE_PER_STAND,
           );
         }
         return;
