@@ -98,6 +98,13 @@ The trip total never goes below 0, and the 540 cap and the long-trip extra work 
 
 Design call: the parts are small per column so that a corridor of shops costs a few minutes over a trip, and a bag on the way is worse than noise. The relief is what lets stress go down as well as up.
 
+Standing still counts too, without running anything each step:
+
+- Waiting at a shaft: per game minute, +1 within 4 columns of a noise source and +2 within 3 columns of a bag (both add up). It is added to the trip when the person boards, from the counted wait.
+- Between two trips: the time since the last trip ended, spent where the person stands when the next trip starts, up to 4,320 steps (12 hours). Per game hour: +4 noise, +6 bag, or -2 when quiet and clean. It is added to the trip that ends the stay, so a worker's day at the desk shows in the trip home.
+
+Design call: both are one lookup per boarding or per trip, so cost does not grow with the time people stand still. The stress so far shown while waiting does not include the wait's noise until the person boards.
+
 Dirt also counts for the unit: +30 (`EVAL_DIRT`) when a garbage bag lies or is carried on one of the unit's levels within 10 columns of it (5.4 noise stays +60, and both can apply).
 
 ## 3. Person stress

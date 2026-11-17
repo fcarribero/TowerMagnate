@@ -26,13 +26,14 @@ import {
   type TowerState,
   type UnitType,
 } from '@tower-magnate/shared';
-import { buildAmbient, type Ambient } from './ambient-stress';
+import { ambientOf, type Ambient } from './ambient-stress';
 import { SECONDS_PER_STEP, STEPS_PER_DAY } from './clock';
 import { drainEnergy, energyLevelOf, leaveHome, resetEnergy, restEnergy } from './energy';
 import { isQueueFull, joinQueue, nextQueueCheckStep, queueLength } from './elevator-queues';
 import {
   addFailedSearch,
   addAmbient,
+  addStay,
   addFlight,
   addFullQueueEvent,
   boardCar,
@@ -659,7 +660,10 @@ export function startTrek(
     streetFlagFor(streetColumn) * BUDGET_RANGE;
   const started = planNextLeg(context, slot);
   if (!started) clearTrek(pool, slot);
-  else if (isOnTrek(pool, slot)) refreshPersonStress(context.state, slot, true);
+  else {
+    addStay(context.state, slot);
+    if (isOnTrek(pool, slot)) refreshPersonStress(context.state, slot, true);
+  }
   return started;
 }
 
@@ -1320,7 +1324,7 @@ export function createTrekSystem(): SimulationSystem {
       laneOf: new Map(),
       done: new Uint8Array(pool.id.length),
       advance,
-      ambient: buildAmbient(context.state),
+      ambient: ambientOf(context.state),
     };
     trekPasses.set(context, pass);
     for (let slot = 0; slot < pool.id.length; slot++) syncLane(pass, slot);

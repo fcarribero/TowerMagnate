@@ -40,4 +40,19 @@ describe('ambient stress', () => {
   it('adds the dirt penalty to the unit score', () => {
     expect(unitScore(10, 1, false, 'office', true)).toBe(unitScore(10, 1, false, 'office') + EVAL_DIRT);
   });
+
+  it('counts waiting beside noise or a bag per game minute', () => {
+    const piled = { ...fastFood, venue: { garbage: 1 } };
+    const ambient = buildAmbient(stateWith({ u1: piled }));
+    const pile = 40 + Math.floor(16 * 0.75);
+    expect(ambient.waitDelta(2, pile, 12)).toBe(2 * (1 + 2));
+    expect(ambient.waitDelta(2, 200, 12)).toBe(0);
+  });
+
+  it('counts a stay per game hour, capped, and gives back when quiet and clean', () => {
+    const ambient = buildAmbient(stateWith({ u1: fastFood }));
+    expect(ambient.stayDelta(2, 41, 720)).toBe(8);
+    expect(ambient.stayDelta(2, 41, 1_000_000)).toBe(48);
+    expect(ambient.stayDelta(2, 200, 720)).toBe(-4);
+  });
 });

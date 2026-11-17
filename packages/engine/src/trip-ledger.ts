@@ -14,6 +14,7 @@ import {
   type Shaft,
   type TowerState,
 } from '@tower-magnate/shared';
+import { ambientOf } from './ambient-stress';
 import { lobbyRows } from './commands/build-lobby';
 import { averageStress, type RecordedTrip } from './person-stress';
 import { floorIndex } from './routing/transport-graph';
@@ -211,6 +212,23 @@ export function addAmbient(pool: PersonPool, slot: number, delta: number): void 
   pool.tripSum[slot] = field(pool.tripSum, slot) + delta;
 }
 
+/**
+ * The time since the person's last trip ended, spent where they stand now, counts into the trip
+ * they start. It is one lookup per trip, so people sitting still cost nothing.
+ */
+export function addStay(state: TowerState, slot: number): void {
+  const pool = state.people;
+  if (!recordsStress(pool, slot)) return;
+  const flat = state.tripLedger[field(pool.id, slot)];
+  if (!flat || flat.length < 2) return;
+  const since = state.step - field(flat, flat.length - 2);
+  addAmbient(
+    pool,
+    slot,
+    ambientOf(state).stayDelta(field(pool.level, slot), field(pool.column, slot), since),
+  );
+}
+
 export function addFullQueueEvent(pool: PersonPool, slot: number): void {
   pool.tripSum[slot] = field(pool.tripSum, slot) + STRESS_QUEUE_FULL;
 }
@@ -261,7 +279,10 @@ export function boardCar(state: TowerState, slot: number): void {
   const pool = state.people;
   const wait = state.step - field(pool.tripPartStep, slot);
   const counted = Math.max(0, wait - field(pool.tripPartCut, slot));
-  pool.tripSum[slot] = field(pool.tripSum, slot) + counted;
+  pool.tripSum[slot] =
+    field(pool.tripSum, slot) +
+    counted +
+    ambientOf(state).waitDelta(field(pool.level, slot), field(pool.column, slot), counted);
   pool.tripPartStep[slot] = state.step;
   pool.tripPartCut[slot] = 0;
 }
