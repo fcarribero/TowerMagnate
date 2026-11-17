@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { HEAT_NOISE_CELLS, LAST_COLUMN } from '@tower-magnate/shared';
+import { HEAT_NOISE_CELLS, LAST_COLUMN, PERSON_KINDS } from '@tower-magnate/shared';
+import { encodeBuilderTask } from './construction';
 import {
   addCarRider,
   addToCell,
@@ -124,12 +125,23 @@ describe('heat maps', () => {
           '6': { structure: [{ kind: 'floor', x0: 0, x1: 120 }], occupants: [] },
         },
       },
-      sites: { u9: { id: 'u9', type: 'office', level: 5, x: 40 } },
-      people: { id: [], level: [], column: [], trip: [], kind: [] },
+      sites: {
+        u9: { id: 'u9', type: 'office', level: 5, x: 40 },
+        u10: { id: 'u10', type: 'office', level: 2, x: 40 },
+      },
+      people: {
+        id: [1],
+        level: [5],
+        column: [42],
+        trip: [encodeBuilderTask({ phase: 'working', site: 9 })],
+        kind: [PERSON_KINDS.indexOf('builder')],
+      },
     } as unknown as TowerState;
     heatSystem({ state });
     const noise = state.heat?.noise ?? {};
     const fade = 0.5 ** (1 / 5);
+    // u10 has no builder working on it, so it makes no noise
+    expect(valueAt(noise, 2, 42)).toBe(0);
     expect(valueAt(noise, 5, 42)).toBeCloseTo(8 * fade);
     expect(valueAt(noise, 4, 42)).toBeCloseTo(5 * fade);
     expect(valueAt(noise, 6, 42)).toBeCloseTo(5 * fade);

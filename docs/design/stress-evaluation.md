@@ -93,7 +93,7 @@ Noise sources:
 - A unit is in use when a venue (fast food, restaurant, shop, cinema, party hall) is open to customers, an office has a tenant between 08:00 and 18:00, a condo is sold, or a hotel room has a guest.
 - A person adds 0.02 to each cell they walk into and 0.05 to the cell they stand in at each minute (in a queue, waiting for a retry, or at home). This is small, but dozens of people through one cell add up.
 - Every game minute, each noise cell loses a little, so that 5 minutes leave 50% of its value (a factor of about 0.87 a minute). The map does not jump every 5 minutes.
-- A construction site adds 8 per minute to the cells of every level it covers and 5 to the level above and the level below, with the same fade to the sides.
+- A construction site adds 8 per minute to the cells of every level it covers and 5 to the level above and the level below, with the same fade to the sides. It only does so in the minutes when a builder is working on it; a site nobody is building is quiet.
 
 Dirt sources:
 

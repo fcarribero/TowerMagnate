@@ -24,7 +24,9 @@ import {
   type TowerState,
   type Unit,
 } from '@tower-magnate/shared';
+import { decodeBuilderTask, isBuilder } from './construction';
 import { isUnitInUse } from './unit-use';
+import { unitNumber } from './units';
 import { isCarryingBag } from './venue-staff';
 
 // Constants read in hot paths are copied once: an imported binding is looked up on every use.
@@ -160,6 +162,19 @@ function pileColumn(unit: Unit): number {
   return unit.x + Math.floor(UNIT_CATALOG[unit.type].width * GARBAGE_PILE_POSITION);
 }
 
+/** The numbers of the sites that have a builder working on them this minute. */
+function sitesBeingBuilt(state: TowerState): Set<number> {
+  const working = new Set<number>();
+  if (Object.keys(state.sites).length === 0) return working;
+  const pool = state.people;
+  for (let slot = 0; slot < pool.id.length; slot++) {
+    if (!isBuilder(pool, slot)) continue;
+    const task = decodeBuilderTask(pool.trip[slot] as number);
+    if (task?.phase === 'working') working.add(task.site);
+  }
+  return working;
+}
+
 /** What the units in use and the bags put into the maps in one game minute. */
 function emitMinute(state: TowerState, built: Built): void {
   const heat = heatOf(state);
@@ -184,7 +199,9 @@ function emitMinute(state: TowerState, built: Built): void {
       );
     }
   }
+  const working = sitesBeingBuilt(state);
   for (const site of Object.values(state.sites)) {
+    if (!working.has(unitNumber(site.id))) continue;
     const { height, width } = UNIT_CATALOG[site.type];
     const floors = height.kind === 'fixed' ? height.floors : 1;
     const bottom = levelToIndex(site.level);
