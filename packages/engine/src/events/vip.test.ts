@@ -49,7 +49,7 @@ function vipTower(options: VipTowerOptions = {}) {
   const { state, unitIds } = buildTower({
     seed: 3,
     ...plainTowerPlan(2, 0, 200),
-    units: [...suites, { type: 'restaurant', x: 150, level: 2 }],
+    units: [...suites, { type: 'restaurant', x: 20 + (options.suites ?? 1) * 10 + 4, level: 2 }],
   });
   if (options.reachable !== false) addFlight(state, 'stairs', 4, 1);
   state.stars = options.stars ?? 3;

@@ -279,10 +279,7 @@ export function boardCar(state: TowerState, slot: number): void {
   const pool = state.people;
   const wait = state.step - field(pool.tripPartStep, slot);
   const counted = Math.max(0, wait - field(pool.tripPartCut, slot));
-  pool.tripSum[slot] =
-    field(pool.tripSum, slot) +
-    counted +
-    ambientOf(state).waitDelta(field(pool.level, slot), field(pool.column, slot), counted);
+  pool.tripSum[slot] = field(pool.tripSum, slot) + counted;
   pool.tripPartStep[slot] = state.step;
   pool.tripPartCut[slot] = 0;
 }

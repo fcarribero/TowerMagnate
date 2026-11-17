@@ -1,4 +1,5 @@
 import {
+  AMBIENT_WALK_CELL_STRESS,
   carCapacity,
   ELEVATOR_QUEUE_CAPACITY,
   ENERGY_STAIRS_DRAIN,
@@ -28,6 +29,8 @@ import {
 } from '@tower-magnate/shared';
 import { ambientOf, type Ambient } from './ambient-stress';
 import { SECONDS_PER_STEP, STEPS_PER_DAY } from './clock';
+
+const STEPS_PER_MINUTE = 6;
 import { drainEnergy, energyLevelOf, leaveHome, resetEnergy, restEnergy } from './energy';
 import { isQueueFull, joinQueue, nextQueueCheckStep, queueLength } from './elevator-queues';
 import {
@@ -1094,7 +1097,10 @@ function walk(context: StepContext, slot: number, pass: TrekPass): boolean {
   }
   drainEnergy(pool, slot, ENERGY_WALK_DRAIN);
   pool.column[slot] = column + direction;
-  addAmbient(pool, slot, pass.ambient.walkDelta(level, column + direction));
+  const onStreet = pool.trek[slot] === APPROACHING || pool.trek[slot] === DEPARTING;
+  if (!onStreet && !pass.ambient.insideUnit(level, column + direction)) {
+    addAmbient(pool, slot, AMBIENT_WALK_CELL_STRESS);
+  }
   syncLane(pass, slot);
   return pool.column[slot] === target;
 }
@@ -1269,6 +1275,28 @@ function waitsForLegStep(phase: number): boolean {
   return !isWalkingPhase(phase) && phase !== QUEUED && phase !== RIDING;
 }
 
+/**
+ * Once a game minute each traveller feels their cell: noise and bags add stress, a quiet clean
+ * cell gives a little back. Each person has their own step in the minute, so a sixth of them are
+ * visited per step. People inside a car feel nothing.
+ */
+function feelEnvironment(context: StepContext, slot: number, phase: number, pass: TrekPass): void {
+  if (phase === RIDING || phase === APPROACHING || phase === DEPARTING) return;
+  const { state } = context;
+  const pool = state.people;
+  const minuteStep = ((pool.id[slot] as number) + state.step) % STEPS_PER_MINUTE;
+  if (minuteStep !== 0) return;
+  addAmbient(
+    pool,
+    slot,
+    pass.ambient.minuteDelta(
+      pool.level[slot] as number,
+      pool.column[slot] as number,
+      Math.floor(state.step / STEPS_PER_MINUTE),
+    ),
+  );
+}
+
 function stepPerson(context: StepContext, slot: number, pass: TrekPass): void {
   const pool = context.state.people;
   const phase = pool.trek[slot] as number;
@@ -1307,8 +1335,12 @@ export function createTrekSystem(): SimulationSystem {
       }
       drainWhileWaiting(pool, slot, phase);
       const legStep = pool.legStep[slot] as number;
-      if (legStep !== now && waitsForLegStep(phase)) return;
       const sum = pool.tripSum[slot] as number;
+      feelEnvironment(context, slot, phase, pass);
+      if (legStep !== now && waitsForLegStep(phase)) {
+        if (pool.tripSum[slot] !== sum) refreshTravellerStress(context, slot, checkpoints);
+        return;
+      }
       stepPerson(context, slot, pass);
       syncLane(pass, slot);
       if (isOnTrek(pool, slot) && stressMayHaveMoved(pool, slot, phase, sum, legStep)) {

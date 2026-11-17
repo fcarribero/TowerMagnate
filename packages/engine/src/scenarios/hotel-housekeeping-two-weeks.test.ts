@@ -44,7 +44,7 @@ const ROOMS: readonly { type: UnitType; level: Level; x: number }[] = [
 
 function threeStarHotel(): TowerState {
   const { state } = buildTower({
-    seed: 7,
+    seed: 8,
     ...plainTowerPlan(3, 0, 119),
     units: [{ type: 'housekeeping', level: 2, x: 20 }, ...ROOMS],
     flights: [

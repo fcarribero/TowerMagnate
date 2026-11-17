@@ -1,6 +1,5 @@
 import {
   EVAL_FAIR_BELOW,
-  EVAL_DIRT,
   EVAL_FAIR_BELOW_FROM_FOUR_STARS,
   EVAL_GOOD_BELOW,
   EVAL_NOISE,
@@ -18,8 +17,6 @@ export interface UnitEvaluationInput {
   /** Price over appraisal (pricing.ts). */
   priceRatio: number;
   noisy: boolean;
-  /** A garbage bag lies or is carried near the unit. */
-  dirty?: boolean;
   stars: StarRating;
   /** The unit type whose old price levels place the ratio; an office when left out. */
   type?: UnitType;
@@ -36,12 +33,11 @@ export function unitScore(
   priceRatio: number,
   noisy: boolean,
   type: UnitType = 'office',
-  dirty = false,
 ): number {
   if (priceRatio <= levelRatio(type, 'minimum')) {
     return 0;
   }
-  const noise = (noisy ? EVAL_NOISE : 0) + (dirty ? EVAL_DIRT : 0);
+  const noise = noisy ? EVAL_NOISE : 0;
   const adjust = byPriceRatio(
     type,
     { ...EVAL_PRICE_ADJUST, minimum: EVAL_PRICE_ADJUST.low },
@@ -62,6 +58,6 @@ export function gradeOfScore(score: number, stars: StarRating): UnitGrade {
 }
 
 export function evaluateUnit(input: UnitEvaluationInput): UnitEvaluation {
-  const score = unitScore(input.base, input.priceRatio, input.noisy, input.type, input.dirty);
+  const score = unitScore(input.base, input.priceRatio, input.noisy, input.type);
   return { score, grade: gradeOfScore(score, input.stars) };
 }

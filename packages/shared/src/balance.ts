@@ -664,32 +664,23 @@ export const NOISE_RULES: Readonly<Partial<Record<UnitType, NoiseRule>>> = {
     sources: [...COMMERCE_AND_ENTERTAINMENT, 'office', 'single-room', 'double-room', 'suite'],
   },
 };
-/** Added to a unit's score while a garbage bag lies or is carried on its level within AMBIENT_DIRT_UNIT_RADIUS columns. */
-export const EVAL_DIRT = 30;
-export const AMBIENT_DIRT_UNIT_RADIUS = 10;
 /**
- * Stress a walker picks up, in steps, for each column walked: near a noise source (shops, food
- * venues, cinemas, party halls), near a garbage bag on the floor or carried, or in a quiet clean
- * spot, which gives a little back on every AMBIENT_CALM_EVERY-th column. Never below 0 for a trip.
+ * Environment stress, in steps. Every game minute (6 steps) a person feels their cell: +1 within
+ * AMBIENT_NOISE_RADIUS columns of a noise source on their level, +2 within AMBIENT_DIRT_RADIUS
+ * columns of a garbage bag (on the floor or carried), both when both; in a quiet clean cell -1
+ * every AMBIENT_CALM_EVERY_MINUTES minutes. Each column walked outside a unit adds
+ * AMBIENT_WALK_CELL_STRESS. A person sitting still between trips is not visited each minute: the
+ * minutes since their last trip ended (at most AMBIENT_STAY_MAX_STEPS) are counted at their cell
+ * when the next trip starts.
  */
-export const AMBIENT_NOISE_STRESS = 2;
+export const AMBIENT_WALK_CELL_STRESS = 1;
+export const AMBIENT_NOISE_PER_MINUTE = 1;
 export const AMBIENT_NOISE_RADIUS = 4;
-export const AMBIENT_DIRT_STRESS = 3;
+export const AMBIENT_DIRT_PER_MINUTE = 2;
 export const AMBIENT_DIRT_RADIUS = 3;
 export const AMBIENT_CALM_RELIEF = 1;
-export const AMBIENT_CALM_EVERY = 4;
-/**
- * Standing still. While waiting at a shaft the person feels, per game minute (6 steps), noise +1
- * or a bag +2 (both add up). Between two trips, the time spent where they were (at most
- * AMBIENT_STAY_MAX_STEPS) counts per game hour (360 steps): noise +4, a bag +6, calm -2. The
- * stay is added to the trip that ends it, so nothing runs while people sit still.
- */
-export const AMBIENT_WAIT_NOISE_PER_MINUTE = 1;
-export const AMBIENT_WAIT_DIRT_PER_MINUTE = 2;
-export const AMBIENT_STAY_NOISE_PER_HOUR = 4;
-export const AMBIENT_STAY_DIRT_PER_HOUR = 6;
-export const AMBIENT_STAY_CALM_PER_HOUR = 2;
-export const AMBIENT_STAY_MAX_STEPS = 4320;
+export const AMBIENT_CALM_EVERY_MINUTES = 5;
+export const AMBIENT_STAY_MAX_STEPS = 720;
 export const AMBIENT_NOISE_SOURCES: readonly UnitType[] = COMMERCE_AND_ENTERTAINMENT;
 export const EVAL_GOOD_BELOW = 90;
 export const EVAL_FAIR_BELOW = 180;

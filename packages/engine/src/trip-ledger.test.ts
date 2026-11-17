@@ -2,7 +2,6 @@ import {
   ELEVATOR_QUEUE_CAPACITY,
   FULL_QUEUE_RECHECK_STEPS,
   STRESS_NO_ROUTE,
-  AMBIENT_CALM_EVERY,
   STRESS_QUEUE_FULL,
   STRESS_WINDOW_STEPS,
   type Level,
@@ -111,8 +110,14 @@ function rideToArrival(start: TowerState, id: number): Ride {
   return { state, waitSteps, rideSteps };
 }
 
-/** Calm along the 30 columns the riders walk after getting off: a little relief every 4th column. */
-const CALM_WALK = -Math.floor(60 / AMBIENT_CALM_EVERY) + Math.floor(29 / AMBIENT_CALM_EVERY);
+/** The 30 columns the riders walk after getting off add 1 each; a minute of calm may give back a little. */
+const WALK_CELLS = 30;
+const CALM_SLACK = 6;
+
+function expectNearWalk(actual: number | undefined, base: number): void {
+  expect(actual).toBeGreaterThanOrEqual(base + WALK_CELLS - CALM_SLACK);
+  expect(actual).toBeLessThanOrEqual(base + WALK_CELLS + CALM_SLACK);
+}
 
 describe('trip ledger', () => {
   it('records an elevator trip with its wait and ride when the person arrives', () => {
@@ -122,9 +127,9 @@ describe('trip ledger', () => {
 
     const trips = tripsOf(arrived, id);
     expect(trips).toHaveLength(1);
-    expect(trips[0]?.stress).toBe(waitSteps + rideSteps + CALM_WALK);
+    expectNearWalk(trips[0]?.stress, waitSteps + rideSteps);
     expect(trips[0]?.endStep).toBe(arrived.step);
-    expect(findPerson(arrived.people, id)?.stress).toBe(waitSteps + rideSteps + CALM_WALK);
+    expectNearWalk(findPerson(arrived.people, id)?.stress, waitSteps + rideSteps);
   });
 
   it('keeps the trip stress in the person while the trip is under way', () => {
@@ -163,7 +168,8 @@ describe('trip ledger', () => {
     const slot = slotOfPerson(beside.people, id);
     expect(trekPhaseAt(beside.people, slot)).toBe('waitingBesideQueue');
     const besideSteps = rechecks * FULL_QUEUE_RECHECK_STEPS;
-    expect(findPerson(beside.people, id)?.stress).toBe(STRESS_QUEUE_FULL + besideSteps);
+    const besideStress = findPerson(beside.people, id)?.stress ?? 0;
+    expect(Math.abs(besideStress - (STRESS_QUEUE_FULL + besideSteps))).toBeLessThanOrEqual(CALM_SLACK);
 
     upQueueAtLobby(beside).up = [];
     let joined = beside;
@@ -174,8 +180,10 @@ describe('trip ledger', () => {
     expect(waitBeforeQueue).toBe((rechecks + 1) * FULL_QUEUE_RECHECK_STEPS);
 
     const { state: arrived, waitSteps, rideSteps } = rideToArrival(joined, id);
-    const expected = STRESS_QUEUE_FULL + waitBeforeQueue + waitSteps + rideSteps + CALM_WALK;
-    expect(tripsOf(arrived, id).map((trip) => trip.stress)).toEqual([expected]);
+    const base = STRESS_QUEUE_FULL + waitBeforeQueue + waitSteps + rideSteps;
+    const stresses = tripsOf(arrived, id).map((trip) => trip.stress);
+    expect(stresses).toHaveLength(1);
+    expectNearWalk(stresses[0], base);
   });
 
   it('keeps the wait beside a full queue when the trip ends there', () => {

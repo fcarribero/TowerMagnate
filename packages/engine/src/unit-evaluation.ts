@@ -10,7 +10,6 @@ import { storeDailyAppraisals } from './appraisal';
 import { STEPS_PER_DAY } from './clock';
 import { evaluateUnit } from './evaluation';
 import { priceRatio } from './pricing';
-import { bagsOf, isDirty, type Bag } from './ambient-stress';
 import { isNoisy, noisyUnitIds } from './noise';
 import type { SimulationSystem } from './step';
 import { writableUnit, writableUnitLedger } from './step-copy';
@@ -85,14 +84,12 @@ export function gradeUnit(
   state: TowerState,
   unit: Unit,
   noisy = isNoisy(state, unit),
-  bags?: readonly Bag[],
 ): TenantEvaluation {
   return evaluateUnit({
     base: unitBase(state, unit),
     priceRatio: ratioOf(unit),
     type: unit.type,
     noisy,
-    dirty: isDirty(unit, bags ?? bagsOf(state)),
     stars: state.stars,
   }).grade;
 }
@@ -102,9 +99,8 @@ export function storeGrade(
   state: TowerState,
   unit: Unit,
   noisy = isNoisy(state, unit),
-  bags?: readonly Bag[],
 ): TenantEvaluation {
-  const grade = gradeUnit(state, unit, noisy, bags);
+  const grade = gradeUnit(state, unit, noisy);
   writableUnit(state, unit).evaluation = grade;
   return grade;
 }
@@ -126,12 +122,7 @@ function hasOccupants(unit: Unit): boolean {
  * has no grade; one with no trips in its window keeps the grade it had, or gets one from a base
  * of 0 if it has none.
  */
-export function storeDailyGrade(
-  state: TowerState,
-  unit: Unit,
-  noisy = isNoisy(state, unit),
-  bags?: readonly Bag[],
-): void {
+export function storeDailyGrade(state: TowerState, unit: Unit, noisy = isNoisy(state, unit)): void {
   if (!isEvaluatedUnit(unit) || isHotelRoom(unit)) return;
   if (!hasOccupants(unit)) {
     if (unit.evaluation !== null) writableUnit(state, unit).evaluation = null;
@@ -140,7 +131,7 @@ export function storeDailyGrade(
   // With no trips in the window the unit keeps its grade, but an occupied unit that has none yet
   // gets one from a base of 0, so it never shows "Sin evaluar" while someone lives or works there.
   if (tripsInWindow(state, unit, state.step).count === 0 && unit.evaluation !== null) return;
-  storeGrade(state, unit, noisy, bags);
+  storeGrade(state, unit, noisy);
 }
 
 /**
@@ -193,8 +184,7 @@ export function createDailyGradeSystem(): SimulationSystem {
 /** The 00:00 grade of every unit, in unit order. */
 export function storeDailyGrades(state: TowerState): void {
   const noisy = noisyUnitIds(state);
-  const bags = bagsOf(state);
   const units = Object.values(state.units).sort((a, b) => unitNumber(a.id) - unitNumber(b.id));
-  for (const unit of units) storeDailyGrade(state, unit, noisy.has(unit.id), bags);
+  for (const unit of units) storeDailyGrade(state, unit, noisy.has(unit.id));
   storeDailyAppraisals(state);
 }

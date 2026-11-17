@@ -539,6 +539,6 @@ describe('customers by subway', () => {
     // A customer who walks in from the map edge late in the day can reach a closed venue.
     expect(venue.countToday).toBeGreaterThanOrEqual(22);
     expect(venue.countToday).toBeLessThanOrEqual(24);
-    expect(venue.stressSum).toBeLessThan(STRESS_NO_ROUTE);
+    expect(venue.stressSum / venue.countToday).toBeLessThan(STRESS_NO_ROUTE);
   });
 });

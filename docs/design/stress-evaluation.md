@@ -27,7 +27,7 @@ Each trip produces one stress value `T`, in steps, from the legs recorded by rou
 | Full queue | 12 per full-queue event |
 | No route | 360 per failed route search |
 | Long slow trip | 0, 30 or 60 (2.2) |
-| Horizontal walking | noise and dirt add, quiet gives back (2.6) |
+| Horizontal walking | 1 per column outside units (2.6) |
 
 Then `T = min(540, sum of the parts)`.
 
@@ -83,29 +83,26 @@ Every person records trip stress except maids and security guards (people.md 10 
 
 Design call: maids and guards are not counted in population and do not grade any unit, so their stress would never be used.
 
-### 2.6 Noise, dirt and calm on the way
+### 2.6 Walking, noise and dirt
 
-Every column a person walks on a level adds or removes a little stress, on top of the parts of 2.1. People who record stress (2.5) feel it; maids, guards, builders and couriers do not.
+Two rules add to the trip, for people who record stress (2.5). Maids, guards, builders and couriers do not feel them.
 
-| Where the person is walking | Stress per column |
+Walking: each column walked on a level adds 1 (`AMBIENT_WALK_CELL_STRESS`). Cells inside a unit do not count, so moving around inside the destination unit is free. The walk in from the map edge and the walk out to it (the street) does not count either.
+
+Environment: once every game minute, each person on a trip, except in a car, feels their cell.
+
+| Cell | Stress that minute |
 |---|---|
-| Within 4 columns of a shop, fast food, restaurant, cinema or party hall on that level | +2 |
-| Within 3 columns of a garbage bag, on the floor (a venue's pile) or carried by crew | +3 |
-| Both of the above | +5 |
-| Neither, on every 4th column | -1 |
+| Within 4 columns of a shop, fast food, restaurant, cinema or party hall on that level | +1 |
+| Within 3 columns of a garbage bag, on the floor (a venue's pile) or carried by crew | +2 |
+| Both | +3 |
+| Neither | -1, every 5th minute |
 
-The trip total never goes below 0, and the 540 cap and the long-trip extra work as before. Calm gives back at most one step for every 4 columns, so it softens a long quiet walk and never cancels a wait or a ride.
+People sitting still between trips are not visited each minute. When their next trip starts, the minutes since their last trip ended (at most 120) are counted at the cell where they stand, with the same rates, and added to that trip. A worker's day at the desk shows in the trip home. Each person has their own step in the minute, so a sixth of the people are looked at per step and the cost per step is small. The map of noise, bags and unit spans is built once per step.
 
-Design call: the parts are small per column so that a corridor of shops costs a few minutes over a trip, and a bag on the way is worse than noise. The relief is what lets stress go down as well as up.
+The total for a trip never goes below 0. The 540 cap and the long-trip extra work as before. The stress shown while a person waits already includes their minutes of noise.
 
-Standing still counts too, without running anything each step:
-
-- Waiting at a shaft: per game minute, +1 within 4 columns of a noise source and +2 within 3 columns of a bag (both add up). It is added to the trip when the person boards, from the counted wait.
-- Between two trips: the time since the last trip ended, spent where the person stands when the next trip starts, up to 4,320 steps (12 hours). Per game hour: +4 noise, +6 bag, or -2 when quiet and clean. It is added to the trip that ends the stay, so a worker's day at the desk shows in the trip home.
-
-Design call: both are one lookup per boarding or per trip, so cost does not grow with the time people stand still. The stress so far shown while waiting does not include the wait's noise until the person boards.
-
-Dirt also counts for the unit: +30 (`EVAL_DIRT`) when a garbage bag lies or is carried on one of the unit's levels within 10 columns of it (5.4 noise stays +60, and both can apply).
+Design call: walking was 0 in the first version (2.1) because wide floors would punish the player. The cell cost is now 1, so 30 columns is 5 minutes and a 90-column walk is the pink line alone. Retune `AMBIENT_WALK_CELL_STRESS` if wide floors are too harsh.
 
 ## 3. Person stress
 
@@ -204,7 +201,7 @@ Design call on the amount: the original's +60 ticks becomes +60 steps (10 minute
 
 For any price level other than mínimo:
 
-`score = B + price adjustment + noise + dirt`
+`score = B + price adjustment + noise`
 
 The score can be negative.
 
