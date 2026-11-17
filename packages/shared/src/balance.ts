@@ -664,6 +664,21 @@ export const NOISE_RULES: Readonly<Partial<Record<UnitType, NoiseRule>>> = {
     sources: [...COMMERCE_AND_ENTERTAINMENT, 'office', 'single-room', 'double-room', 'suite'],
   },
 };
+/** Added to a unit's score while a garbage bag lies or is carried on its level within AMBIENT_DIRT_UNIT_RADIUS columns. */
+export const EVAL_DIRT = 30;
+export const AMBIENT_DIRT_UNIT_RADIUS = 10;
+/**
+ * Stress a walker picks up, in steps, for each column walked: near a noise source (shops, food
+ * venues, cinemas, party halls), near a garbage bag on the floor or carried, or in a quiet clean
+ * spot, which gives a little back on every AMBIENT_CALM_EVERY-th column. Never below 0 for a trip.
+ */
+export const AMBIENT_NOISE_STRESS = 2;
+export const AMBIENT_NOISE_RADIUS = 4;
+export const AMBIENT_DIRT_STRESS = 3;
+export const AMBIENT_DIRT_RADIUS = 3;
+export const AMBIENT_CALM_RELIEF = 1;
+export const AMBIENT_CALM_EVERY = 4;
+export const AMBIENT_NOISE_SOURCES: readonly UnitType[] = COMMERCE_AND_ENTERTAINMENT;
 export const EVAL_GOOD_BELOW = 90;
 export const EVAL_FAIR_BELOW = 180;
 export const EVAL_FAIR_BELOW_FROM_FOUR_STARS = 240;

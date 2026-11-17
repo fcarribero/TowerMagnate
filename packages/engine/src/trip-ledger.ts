@@ -205,6 +205,12 @@ export function addFailedSearch(pool: PersonPool, slot: number): void {
   pool.tripSum[slot] = field(pool.tripSum, slot) + STRESS_NO_ROUTE;
 }
 
+/** Noise, dirt or calm felt while walking a column; only people who record stress feel it. */
+export function addAmbient(pool: PersonPool, slot: number, delta: number): void {
+  if (delta === 0 || !recordsStress(pool, slot)) return;
+  pool.tripSum[slot] = field(pool.tripSum, slot) + delta;
+}
+
 export function addFullQueueEvent(pool: PersonPool, slot: number): void {
   pool.tripSum[slot] = field(pool.tripSum, slot) + STRESS_QUEUE_FULL;
 }

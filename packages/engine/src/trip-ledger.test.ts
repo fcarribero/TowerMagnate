@@ -2,6 +2,7 @@ import {
   ELEVATOR_QUEUE_CAPACITY,
   FULL_QUEUE_RECHECK_STEPS,
   STRESS_NO_ROUTE,
+  AMBIENT_CALM_EVERY,
   STRESS_QUEUE_FULL,
   STRESS_WINDOW_STEPS,
   type Level,
@@ -110,6 +111,9 @@ function rideToArrival(start: TowerState, id: number): Ride {
   return { state, waitSteps, rideSteps };
 }
 
+/** Calm along the 30 columns the riders walk after getting off: a little relief every 4th column. */
+const CALM_WALK = -Math.floor(60 / AMBIENT_CALM_EVERY) + Math.floor(29 / AMBIENT_CALM_EVERY);
+
 describe('trip ledger', () => {
   it('records an elevator trip with its wait and ride when the person arrives', () => {
     const state = buildRideTower();
@@ -118,9 +122,9 @@ describe('trip ledger', () => {
 
     const trips = tripsOf(arrived, id);
     expect(trips).toHaveLength(1);
-    expect(trips[0]?.stress).toBe(waitSteps + rideSteps);
+    expect(trips[0]?.stress).toBe(waitSteps + rideSteps + CALM_WALK);
     expect(trips[0]?.endStep).toBe(arrived.step);
-    expect(findPerson(arrived.people, id)?.stress).toBe(waitSteps + rideSteps);
+    expect(findPerson(arrived.people, id)?.stress).toBe(waitSteps + rideSteps + CALM_WALK);
   });
 
   it('keeps the trip stress in the person while the trip is under way', () => {
@@ -170,7 +174,7 @@ describe('trip ledger', () => {
     expect(waitBeforeQueue).toBe((rechecks + 1) * FULL_QUEUE_RECHECK_STEPS);
 
     const { state: arrived, waitSteps, rideSteps } = rideToArrival(joined, id);
-    const expected = STRESS_QUEUE_FULL + waitBeforeQueue + waitSteps + rideSteps;
+    const expected = STRESS_QUEUE_FULL + waitBeforeQueue + waitSteps + rideSteps + CALM_WALK;
     expect(tripsOf(arrived, id).map((trip) => trip.stress)).toEqual([expected]);
   });
 

@@ -26,11 +26,13 @@ import {
   type TowerState,
   type UnitType,
 } from '@tower-magnate/shared';
+import { buildAmbient, type Ambient } from './ambient-stress';
 import { SECONDS_PER_STEP, STEPS_PER_DAY } from './clock';
 import { drainEnergy, energyLevelOf, leaveHome, resetEnergy, restEnergy } from './energy';
 import { isQueueFull, joinQueue, nextQueueCheckStep, queueLength } from './elevator-queues';
 import {
   addFailedSearch,
+  addAmbient,
   addFlight,
   addFullQueueEvent,
   boardCar,
@@ -255,6 +257,8 @@ interface TrekPass {
   /** Slots already moved in this pass, so that a walker is never moved twice in one step. */
   done: Uint8Array;
   advance: (slot: number) => void;
+  /** Noise, bags and calm along the floors, as they stand at this step. */
+  ambient: Ambient;
 }
 
 const trekPasses = new WeakMap<StepContext, TrekPass>();
@@ -1086,6 +1090,7 @@ function walk(context: StepContext, slot: number, pass: TrekPass): boolean {
   }
   drainEnergy(pool, slot, ENERGY_WALK_DRAIN);
   pool.column[slot] = column + direction;
+  addAmbient(pool, slot, pass.ambient.walkDelta(level, column + direction));
   syncLane(pass, slot);
   return pool.column[slot] === target;
 }
@@ -1315,6 +1320,7 @@ export function createTrekSystem(): SimulationSystem {
       laneOf: new Map(),
       done: new Uint8Array(pool.id.length),
       advance,
+      ambient: buildAmbient(context.state),
     };
     trekPasses.set(context, pass);
     for (let slot = 0; slot < pool.id.length; slot++) syncLane(pass, slot);

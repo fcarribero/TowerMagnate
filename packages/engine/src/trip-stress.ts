@@ -82,12 +82,12 @@ export function tripStressSoFar(parts: TripStressParts): number {
 
 /** Stress so far from running totals, for a trip in progress. */
 export function cappedStress(sum: number): number {
-  return Math.min(STRESS_TRIP_CAP, sum);
+  return Math.max(0, Math.min(STRESS_TRIP_CAP, sum));
 }
 
-/** Trip stress T from the running totals of a finished trip. */
+/** Trip stress T from the running totals of a finished trip; calm can take it down to 0, no lower. */
 export function finishedTripStress(sum: number, slowFloorCount: number): number {
-  return Math.min(STRESS_TRIP_CAP, sum + longTripExtra(slowFloorCount));
+  return Math.max(0, Math.min(STRESS_TRIP_CAP, sum + longTripExtra(slowFloorCount)));
 }
 
 /** Trip stress T in steps (SE-01 to SE-05). */
