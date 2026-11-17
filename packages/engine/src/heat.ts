@@ -6,14 +6,16 @@ import {
   CAR_DIRT_BAG,
   CAR_DIRT_RIDER,
   CAR_NOISE_RIDER,
+  CONSTRUCTION_NOISE,
+  CONSTRUCTION_NOISE_ADJACENT,
   DIRT_STRESS_PER_LEVEL,
   GARBAGE_PILE_POSITION,
   HEAT_BAG_DIRT_CELLS,
-  HEAT_DECAY_EVERY_MINUTES,
-  HEAT_DIRT_DECAY,
   HEAT_NOISE_CELLS,
-  HEAT_NOISE_DECAY,
+  HEAT_NOISE_DECAY_MINUTE,
+  indexToLevel,
   LAST_COLUMN,
+  levelToIndex,
   NOISE_STRESS_PER_LEVEL,
   UNIT_CATALOG,
   UNIT_NOISE,
@@ -42,6 +44,31 @@ export function heatOf(state: TowerState): HeatMaps {
 
 type Rows = Record<string, number[]>;
 
+/** A flag per cell, by level, for the cells that have floor or lobby; heat only lives on these. */
+type Built = Map<number, Uint8Array>;
+
+const builtMemo = new WeakMap<TowerState['grid'], { minute: number; built: Built }>();
+
+/** The built cells of the tower, worked out once per grid and game minute. */
+function builtOf(state: TowerState): Built {
+  const minute = Math.floor(state.step / STEPS_PER_MINUTE);
+  const kept = builtMemo.get(state.grid);
+  if (kept && kept.minute === minute) return kept.built;
+  const built: Built = new Map();
+  for (const [level, row] of Object.entries(state.grid.levels)) {
+    if (!row || row.structure.length === 0) continue;
+    const flags = new Uint8Array(COLUMNS);
+    for (const span of row.structure) flags.fill(1, Math.max(0, span.x0), span.x1 + 1);
+    built.set(Number(level), flags);
+  }
+  builtMemo.set(state.grid, { minute, built });
+  return built;
+}
+
+function isBuilt(built: Built, level: number, column: number): boolean {
+  return built.get(level)?.[column] === 1;
+}
+
 function rowOf(rows: Rows, level: number): number[] {
   let row = rows[level];
   if (!row) {
@@ -51,8 +78,15 @@ function rowOf(rows: Rows, level: number): number[] {
   return row;
 }
 
-export function addToCell(rows: Rows, level: number, column: number, amount: number): void {
+export function addToCell(
+  rows: Rows,
+  level: number,
+  column: number,
+  amount: number,
+  built?: Built,
+): void {
   if (column < 0 || column > LAST_COLUMN) return;
+  if (built && !isBuilt(built, level, column)) return;
   const row = rowOf(rows, level);
   row[column] = (row[column] as number) + amount;
 }
@@ -68,10 +102,13 @@ export function addWithFade(
   to: number,
   amount: number,
   fade: number,
+  built?: Built,
 ): void {
-  const row = rowOf(rows, level);
   const add = (column: number, value: number): void => {
-    if (column >= 0 && column <= LAST_COLUMN) row[column] = (row[column] as number) + value;
+    if (column < 0 || column > LAST_COLUMN) return;
+    if (built && !isBuilt(built, level, column)) return;
+    const row = rowOf(rows, level);
+    row[column] = (row[column] as number) + value;
   };
   for (let column = from; column <= to; column++) add(column, amount);
   for (let d = 1; d <= fade; d++) {
@@ -85,14 +122,17 @@ export function valueAt(rows: Rows, level: number, column: number): number {
   return rows[level]?.[column] ?? 0;
 }
 
-function decayRows(rows: Rows, factor: number): void {
+/** Fades noise by `factor` (1 leaves dirt as it is) and clears cells that are no longer built. */
+function decayRows(rows: Rows, factor: number, built: Built): void {
   for (const key of Object.keys(rows)) {
     const row = rows[key] as number[];
+    const level = Number(key);
     let alive = false;
     for (let column = 0; column < row.length; column++) {
-      const value = (row[column] as number) * factor;
-      row[column] = value < EMPTY ? 0 : value;
-      if (row[column]) alive = true;
+      let value = (row[column] as number) * factor;
+      if (value < EMPTY || !isBuilt(built, level, column)) value = 0;
+      row[column] = value;
+      if (value) alive = true;
     }
     if (!alive) delete rows[key];
   }
@@ -108,19 +148,41 @@ function pileColumn(unit: Unit): number {
 }
 
 /** What the units in use and the bags put into the maps in one game minute. */
-function emitMinute(state: TowerState): void {
+function emitMinute(state: TowerState, built: Built): void {
   const heat = heatOf(state);
   for (const unit of Object.values(state.units)) {
     const noise = UNIT_NOISE[unit.type];
     if (noise !== undefined && isUnitInUse(state, unit)) {
       const last = unit.x + UNIT_CATALOG[unit.type].width - 1;
       for (let level = unit.level; level < unit.level + floorsOf(unit); level++) {
-        addWithFade(heat.noise, level, unit.x, last, noise, HEAT_NOISE_CELLS);
+        addWithFade(heat.noise, level, unit.x, last, noise, HEAT_NOISE_CELLS, built);
       }
     }
     if (unit.venue && unit.venue.garbage > 0) {
       const column = pileColumn(unit);
-      addWithFade(heat.dirt, unit.level, column, column, BAG_DIRT_MINUTE, HEAT_BAG_DIRT_CELLS);
+      addWithFade(
+        heat.dirt,
+        unit.level,
+        column,
+        column,
+        BAG_DIRT_MINUTE,
+        HEAT_BAG_DIRT_CELLS,
+        built,
+      );
+    }
+  }
+  for (const site of Object.values(state.sites)) {
+    const { height, width } = UNIT_CATALOG[site.type];
+    const floors = height.kind === 'fixed' ? height.floors : 1;
+    const bottom = levelToIndex(site.level);
+    const last = site.x + width - 1;
+    for (let index = bottom - 1; index <= bottom + floors; index++) {
+      if (index < 0) continue;
+      const level = indexToLevel(index);
+      if (level > 104) continue;
+      const inside = index >= bottom && index < bottom + floors;
+      const amount = inside ? CONSTRUCTION_NOISE : CONSTRUCTION_NOISE_ADJACENT;
+      addWithFade(heat.noise, level, site.x, last, amount, HEAT_NOISE_CELLS, built);
     }
   }
   const pool: PersonPool = state.people;
@@ -134,37 +196,38 @@ function emitMinute(state: TowerState): void {
       column,
       BAG_DIRT_MINUTE,
       HEAT_BAG_DIRT_CELLS,
+      built,
     );
   }
 }
 
-function decayAll(state: TowerState): void {
+function decayAll(state: TowerState, built: Built): void {
   const heat = heatOf(state);
-  decayRows(heat.noise, HEAT_NOISE_DECAY);
-  decayRows(heat.dirt, HEAT_DIRT_DECAY);
+  decayRows(heat.noise, HEAT_NOISE_DECAY_MINUTE, built);
+  decayRows(heat.dirt, 1, built);
   for (const pair of Object.values(heat.cars)) {
     for (let at = 0; at < pair.length; at += 2) {
-      pair[at] = (pair[at] as number) * HEAT_NOISE_DECAY;
-      pair[at + 1] = (pair[at + 1] as number) * HEAT_DIRT_DECAY;
+      pair[at] = (pair[at] as number) * HEAT_NOISE_DECAY_MINUTE;
     }
   }
 }
 
-/** Once a game minute units and bags speak; every 5 minutes the maps fade. */
+/** Once a game minute units and bags speak, and then the maps fade a little. */
 export function heatSystem(context: { state: TowerState }): void {
   const { state } = context;
   if (state.step % STEPS_PER_MINUTE !== 0) return;
-  emitMinute(state);
-  if ((state.step / STEPS_PER_MINUTE) % HEAT_DECAY_EVERY_MINUTES === 0) decayAll(state);
+  const built = builtOf(state);
+  emitMinute(state, built);
+  decayAll(state, built);
 }
 
 /** A person crossed a cell, or stood in it for a minute. */
 export function addPersonNoise(state: TowerState, level: number, column: number, amount: number) {
-  addToCell(heatOf(state).noise, level, column, amount);
+  addToCell(heatOf(state).noise, level, column, amount, builtOf(state));
 }
 
 export function addPersonDirt(state: TowerState, level: number, column: number, amount: number) {
-  addToCell(heatOf(state).dirt, level, column, amount);
+  addToCell(heatOf(state).dirt, level, column, amount, builtOf(state));
 }
 
 /** A rider boarded the car; a rider with a bag dirties it more. */

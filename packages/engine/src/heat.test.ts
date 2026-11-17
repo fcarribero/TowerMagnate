@@ -58,7 +58,7 @@ describe('heat maps', () => {
     expect(dither(5, 100)).not.toBe(dither(6, 100));
   });
 
-  it('has a unit in use speak every minute, with a fade, and fades the maps every 5 minutes', () => {
+  it('has a unit in use speak every minute, with a fade, and fades the maps every minute', () => {
     const office = {
       id: 'u1',
       type: 'office',
@@ -72,17 +72,33 @@ describe('heat maps', () => {
     const state = {
       step: 9 * 360 + 6,
       units: { u1: office },
+      grid: {
+        levels: {
+          '2': { structure: [{ kind: 'floor', x0: 0, x1: 120 }], occupants: [] },
+          '3': { structure: [{ kind: 'floor', x0: 0, x1: 120 }], occupants: [] },
+          '4': { structure: [{ kind: 'floor', x0: 0, x1: 120 }], occupants: [] },
+          '5': { structure: [{ kind: 'floor', x0: 0, x1: 120 }], occupants: [] },
+          '6': { structure: [{ kind: 'floor', x0: 0, x1: 120 }], occupants: [] },
+        },
+      },
+      sites: {},
       people: { id: [], level: [], column: [], trip: [], kind: [] },
     } as unknown as TowerState;
     heatSystem({ state });
     const row = state.heat?.noise['2'] as number[];
-    expect(row[40]).toBeCloseTo(0.1);
+    expect(row[40]).toBeCloseTo(0.5 * 0.87055);
     expect(row[60]).toBeGreaterThan(0);
+    // no floor past column 120, so nothing is stored there
+    expect(row[121]).toBe(0);
     expect(row[200]).toBe(0);
-    // four minutes later the map fades: minute 545 is a multiple of 5
-    state.step += 4 * 6;
-    heatSystem({ state });
-    expect((state.heat?.noise['2'] as number[])[40]).toBeCloseTo(0.2 * 0.5);
+    // it fades a little each minute: after 5 minutes of nothing new, half is left
+    const before = row[40] as number;
+    state.units = {};
+    for (let minute = 0; minute < 5; minute++) {
+      state.step += 6;
+      heatSystem({ state });
+    }
+    expect((state.heat?.noise['2'] as number[])[40]).toBeCloseTo(before * 0.5, 3);
   });
 
   it('keeps noise and dirt per elevator car, and more dirt for a bag', () => {
@@ -93,5 +109,53 @@ describe('heat maps', () => {
     expect(car.noise).toBeCloseTo(0.6);
     expect(car.dirt).toBeCloseTo(0.2 + 1);
     expect(carLevels(state, 's1', 0)).toEqual({ noise: 0, dirt: 0 });
+  });
+
+  it('has a construction site speak on its own levels and on the levels above and below', () => {
+    const state = {
+      step: 6,
+      units: {},
+      grid: {
+        levels: {
+          '2': { structure: [{ kind: 'floor', x0: 0, x1: 120 }], occupants: [] },
+          '3': { structure: [{ kind: 'floor', x0: 0, x1: 120 }], occupants: [] },
+          '4': { structure: [{ kind: 'floor', x0: 0, x1: 120 }], occupants: [] },
+          '5': { structure: [{ kind: 'floor', x0: 0, x1: 120 }], occupants: [] },
+          '6': { structure: [{ kind: 'floor', x0: 0, x1: 120 }], occupants: [] },
+        },
+      },
+      sites: { u9: { id: 'u9', type: 'office', level: 5, x: 40 } },
+      people: { id: [], level: [], column: [], trip: [], kind: [] },
+    } as unknown as TowerState;
+    heatSystem({ state });
+    const noise = state.heat?.noise ?? {};
+    const fade = 0.5 ** (1 / 5);
+    expect(valueAt(noise, 5, 42)).toBeCloseTo(8 * fade);
+    expect(valueAt(noise, 4, 42)).toBeCloseTo(5 * fade);
+    expect(valueAt(noise, 6, 42)).toBeCloseTo(5 * fade);
+    expect(valueAt(noise, 7, 42)).toBe(0);
+    expect(valueAt(noise, 3, 42)).toBe(0);
+  });
+
+  it('keeps dirt as it is and holds no heat where there is no floor', () => {
+    const state = {
+      step: 6,
+      units: { u1: { id: 'u1', type: 'fast-food', level: 2, x: 40, venue: { garbage: 1 } } },
+      grid: { levels: { '2': { structure: [{ kind: 'floor', x0: 30, x1: 60 }], occupants: [] } } },
+      sites: {},
+      people: { id: [], level: [], column: [], trip: [], kind: [] },
+    } as unknown as TowerState;
+    heatSystem({ state });
+    const dirt = state.heat?.dirt['2'] as number[];
+    const first = dirt[52] as number;
+    expect(first).toBeGreaterThan(0);
+    expect(dirt[10]).toBe(0);
+    expect(dirt[70]).toBe(0);
+    state.units = {};
+    for (let minute = 0; minute < 10; minute++) {
+      state.step += 6;
+      heatSystem({ state });
+    }
+    expect((state.heat?.dirt['2'] as number[])[52]).toBe(first);
   });
 });

@@ -669,14 +669,16 @@ export const NOISE_RULES: Readonly<Partial<Record<UnitType, NoiseRule>>> = {
  * for dirt, and one pair per elevator car. Every game minute an open unit adds its noise to the
  * cells it covers and to HEAT_NOISE_CELLS cells on each side, fading with distance; people add a
  * little each cell they cross and each minute they stand still; bags add dirt around them. Every
- * 5 game minutes each cell keeps only the share given by the decay constants.
+ * game minute each noise cell loses a little, so that 5 minutes leave the share given by the decay
+ * constant. Dirt stays until something cleans it. Only cells with floor or lobby hold heat.
  */
 export const HEAT_NOISE_CELLS = 15;
 export const HEAT_BAG_DIRT_CELLS = 5;
-/** Share of a cell's level that stays after each 5-minute decay. */
+/** Share of a cell's noise that stays after 5 game minutes. It is taken off a little every minute. Dirt does not fade. */
 export const HEAT_NOISE_DECAY = 0.5;
-export const HEAT_DIRT_DECAY = 0.85;
 export const HEAT_DECAY_EVERY_MINUTES = 5;
+/** The same decay spread over each minute: five minutes of it multiply to the shares above. */
+export const HEAT_NOISE_DECAY_MINUTE = HEAT_NOISE_DECAY ** (1 / HEAT_DECAY_EVERY_MINUTES);
 /** Noise a unit adds per game minute to each cell it covers, while it is in use. */
 export const UNIT_NOISE: Readonly<Partial<Record<UnitType, number>>> = {
   'fast-food': 2,
@@ -684,12 +686,19 @@ export const UNIT_NOISE: Readonly<Partial<Record<UnitType, number>>> = {
   'retail-shop': 1,
   cinema: 3,
   'party-hall': 4,
-  office: 0.1,
+  office: 0.5,
   condo: 0.08,
   'single-room': 0.05,
   'double-room': 0.08,
   suite: 0.1,
 };
+/**
+ * A construction site is loud: it adds CONSTRUCTION_NOISE per game minute to the cells of every
+ * level it covers and CONSTRUCTION_NOISE_ADJACENT to the level above and the level below, with
+ * the same 15-cell fade to the sides.
+ */
+export const CONSTRUCTION_NOISE = 8;
+export const CONSTRUCTION_NOISE_ADJACENT = 5;
 /** A person adds this much noise to each cell they walk into, and each minute they stand still. */
 export const PERSON_NOISE_CELL = 0.02;
 export const PERSON_NOISE_STAND_MINUTE = 0.05;
