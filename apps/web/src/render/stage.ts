@@ -17,7 +17,6 @@ import {
   zoomCamera,
   type Camera,
 } from './camera';
-import { isSpaceHeld } from '../input/keyboard';
 import { attachCameraInput, type CameraChange } from './cameraInput';
 import { canvasSizeFromCssPixels, canvasSizeFromObservedBox, type CanvasSize } from './canvasSize';
 import { cellAtCanvasPoint, type Cell } from './cellAtPoint';
@@ -107,8 +106,6 @@ export interface Stage {
   onCellInput(listener: CellInputListener): () => void;
   /** The drawn person whose body is under a world point, or null; riders in cars are not clickable. */
   personIdAt(worldX: number, worldY: number): string | null;
-  /** When false, dragging with the primary button no longer scrolls the view. */
-  setPrimaryDragPans(pans: boolean): void;
   /** Draws a filled run of tiles, such as a floor being dragged out; null removes it. */
   showRun(run: RunInput | null): void;
   /** Draws the placement ghost, snapped to tiles; null removes it. */
@@ -192,7 +189,6 @@ export async function mountStage(host: HTMLElement, options: StageOptions = {}):
   const hoverCellListeners = new Set<HoverCellListener>();
   let hoveredCell: Cell | null = null;
   const cellInputListeners = new Set<CellInputListener>();
-  let primaryDragPans = true;
   let pointerCanvasX: number | null = null;
   let pointerCanvasY: number | null = null;
 
@@ -258,7 +254,6 @@ export async function mountStage(host: HTMLElement, options: StageOptions = {}):
       camera = change(camera);
       showCamera();
     },
-    () => primaryDragPans,
   );
   const emitCellInput = (kind: CellInput['kind'], event: MouseEvent): void => {
     const canvasRect = app.canvas.getBoundingClientRect();
@@ -279,7 +274,7 @@ export async function mountStage(host: HTMLElement, options: StageOptions = {}):
     }
   };
   const onPointerDown = (event: PointerEvent): void => {
-    if (event.button === 0 && !isSpaceHeld()) {
+    if (event.button === 0) {
       emitCellInput('down', event);
     }
   };
@@ -397,9 +392,6 @@ export async function mountStage(host: HTMLElement, options: StageOptions = {}):
     },
     personIdAt(worldX, worldY) {
       return people.idAt(worldX, worldY);
-    },
-    setPrimaryDragPans(pans) {
-      primaryDragPans = pans;
     },
     showRun(input) {
       ghost.showRun(input);

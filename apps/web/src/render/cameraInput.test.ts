@@ -103,7 +103,7 @@ describe('scrollKeyDirection', () => {
   });
 });
 
-describe('attachCameraInput scroll keys and Space pan', () => {
+describe('attachCameraInput scroll keys and middle-button pan', () => {
   let detach: () => void = () => {};
 
   afterEach(() => {
@@ -116,12 +116,7 @@ describe('attachCameraInput scroll keys and Space pan', () => {
     canvas.setPointerCapture = () => {};
     document.body.append(canvas);
     const update = vi.fn();
-    detach = attachCameraInput(
-      canvas,
-      () => ({}) as Camera,
-      update,
-      () => false,
-    );
+    detach = attachCameraInput(canvas, () => ({}) as Camera, update);
     return { canvas, update };
   }
 
@@ -147,21 +142,22 @@ describe('attachCameraInput scroll keys and Space pan', () => {
     expect(update).not.toHaveBeenCalled();
   });
 
-  it('pans with the primary button only while Space is held', () => {
+  it('pans with the middle button only, never the left one, even with Space held', () => {
     const { canvas, update } = setup();
-    const drag = (): void => {
+    const drag = (button: number): void => {
       canvas.dispatchEvent(
-        new MouseEvent('pointerdown', { button: 0, clientX: 5, clientY: 5, bubbles: true }),
+        new MouseEvent('pointerdown', { button, clientX: 5, clientY: 5, bubbles: true }),
       );
       canvas.dispatchEvent(
         new MouseEvent('pointermove', { clientX: 15, clientY: 5, bubbles: true }),
       );
+      canvas.dispatchEvent(new MouseEvent('pointerup', { bubbles: true }));
     };
-    drag();
-    expect(update).not.toHaveBeenCalled();
-    canvas.dispatchEvent(new MouseEvent('pointerup', { bubbles: true }));
+    drag(0);
     press(window, { key: ' ', code: 'Space' });
-    drag();
+    drag(0);
+    expect(update).not.toHaveBeenCalled();
+    drag(1);
     expect(update).toHaveBeenCalledTimes(1);
   });
 });

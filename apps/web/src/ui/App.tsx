@@ -39,7 +39,7 @@ import { bindBuildInput, type DragLabel } from './placement/bindBuildInput';
 import { bindDemolishInput } from './placement/bindDemolishInput';
 import { DemolishConfirm } from './placement/DemolishConfirm';
 import type { Confirmation } from './placement/demolishPlan';
-import { buildMode, grabShaft } from './placement/buildPlan';
+import { grabShaft } from './placement/buildPlan';
 import { IncomeFloaters } from './income/IncomeFloaters';
 import { useIncomeFloaters } from './income/useIncomeFloaters';
 import { useBuildFeedback } from './placement/useBuildFeedback';
@@ -303,7 +303,6 @@ export function App({ developer = false, onLogout, onRestartTower, onSessionLost
     if (stage === null) {
       return;
     }
-    stage.setPrimaryDragPans(buildMode(tool) === 'none');
     if (tool === 'bulldozer') {
       const unbindDemolish = bindDemolishInput({
         stage,
@@ -337,7 +336,6 @@ export function App({ developer = false, onLogout, onRestartTower, onSessionLost
       return () => {
         unbindDemolish();
         setPendingDemolition(null);
-        stage.setPrimaryDragPans(true);
       };
     }
     const unbind = bindBuildInput({
@@ -360,7 +358,6 @@ export function App({ developer = false, onLogout, onRestartTower, onSessionLost
     });
     return () => {
       unbind();
-      stage.setPrimaryDragPans(true);
     };
   }, [stage, connection, commandApi, tool, lobbyHeight, report]);
 

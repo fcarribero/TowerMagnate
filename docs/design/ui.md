@@ -182,7 +182,7 @@ The cross-section of the whole site: 375 columns and levels from S10 up to four 
 
 - Mouse wheel scrolls vertically, one level per notch. Shift + wheel scrolls horizontally, 8 columns per notch.
 - Arrow keys and W A S D scroll: one level or 8 columns per press, repeated while held.
-- Middle-button drag, or Space + left-button drag, pans freely.
+- Middle-button drag pans freely. The left button never pans: it belongs to the tools.
 - Clicking or dragging on the tower map centers the view on that point.
 - Scroll stops 8 columns past either side of the site, at the bottom of S10, and four levels above level 104.
 - On load the view is centered on the main lobby, or on column 187 of level 1 if there is no lobby yet.
@@ -713,7 +713,6 @@ Validation runs on submit. Messages appear under the field they belong to, in `t
 | F | Open or close Finanzas |
 | Arrows, W A S D | Scroll |
 | + / - | Zoom |
-| Space + drag | Pan |
 
 Shortcuts do nothing while a text or number field has focus.
 

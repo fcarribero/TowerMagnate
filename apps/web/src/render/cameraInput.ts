@@ -1,4 +1,4 @@
-import { isShortcutBlocked, isSpaceHeld, trackSpaceKey } from '../input/keyboard';
+import { isShortcutBlocked } from '../input/keyboard';
 import { nextZoom, panCamera, zoomCamera, type Camera } from './camera';
 import { FLOOR_HEIGHT, TILE_WIDTH } from './metrics';
 
@@ -16,7 +16,7 @@ const WHEEL_ZOOM_THRESHOLD = 100;
 const KEY_SCROLL_COLUMNS = 8;
 
 /**
- * Drag (or Space + drag) to scroll, wheel, arrows and W A S D to scroll,
+ * Middle-button drag to scroll, wheel, arrows and W A S D to scroll,
  * Ctrl + wheel or +/- to zoom. Returns a
  * function that removes the listeners.
  */
@@ -24,8 +24,6 @@ export function attachCameraInput(
   canvas: HTMLCanvasElement,
   getCamera: () => Camera,
   update: (change: CameraChange) => void,
-  /** Whether a primary-button drag scrolls; the middle button always does. */
-  primaryButtonPans: () => boolean = () => true,
 ): () => void {
   let drag: Drag | null = null;
   let pendingZoomDelta = 0;
@@ -33,9 +31,8 @@ export function attachCameraInput(
   const toDevicePixels = (cssPixels: number): number => cssPixels * window.devicePixelRatio;
 
   const onPointerDown = (event: PointerEvent): void => {
-    const pans =
-      event.button === 1 || (event.button === 0 && (primaryButtonPans() || isSpaceHeld()));
-    if (!pans) {
+    // Only the middle button pans; the left button belongs to the tools.
+    if (event.button !== 1) {
       return;
     }
     canvas.setPointerCapture(event.pointerId);
@@ -116,10 +113,8 @@ export function attachCameraInput(
   canvas.addEventListener('pointercancel', onPointerEnd);
   canvas.addEventListener('wheel', onWheel, { passive: false });
   window.addEventListener('keydown', onKeyDown);
-  const stopSpaceTracking = trackSpaceKey();
 
   return () => {
-    stopSpaceTracking();
     canvas.removeEventListener('pointerdown', onPointerDown);
     canvas.removeEventListener('pointermove', onPointerMove);
     canvas.removeEventListener('pointerup', onPointerEnd);
