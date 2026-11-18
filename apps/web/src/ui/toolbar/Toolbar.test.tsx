@@ -98,7 +98,7 @@ describe('Toolbar', () => {
     // Services opens at 1 star with the obrador alone.
     openCategory('Servicios');
     expect(toolButton('Obrador')).toBeTruthy();
-    expect(screen.queryByRole('button', { name: 'Policía' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Seguridad' })).toBeNull();
     openCategory('Transporte');
     expect(screen.queryByRole('button', { name: 'Ascensor expreso' })).toBeNull();
     expect(screen.queryByRole('button', { name: 'Ascensor de servicio' })).toBeNull();

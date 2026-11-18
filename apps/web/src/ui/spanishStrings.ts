@@ -18,7 +18,7 @@ export const SPANISH_STRINGS = {
   'unit.double-room': 'Habitación doble',
   'unit.suite': 'Suite',
   'unit.housekeeping': 'Limpieza',
-  'unit.security': 'Policía',
+  'unit.security': 'Seguridad',
   'unit.restaurant': 'Restaurante',
   'unit.retail-shop': 'Local comercial',
   'unit.cinema': 'Cine',
@@ -57,7 +57,7 @@ export const SPANISH_STRINGS = {
   'tool.short.double-room': 'Hab. doble',
   'tool.short.restaurant': 'Restó',
   'tool.short.retail-shop': 'Local',
-  'tool.short.security': 'Policía',
+  'tool.short.security': 'Segur.',
   'tool.short.parking-ramp': 'Rampa',
 
   // 13.3 Toolbar and placement texts
@@ -199,7 +199,7 @@ export const SPANISH_STRINGS = {
   'window.unit.peopleTenants': 'Huéspedes',
   'window.unit.peopleMaids': 'Mucamas',
   'window.unit.peopleCleaners': 'Limpiadores',
-  'window.unit.peopleOfficers': 'Policías',
+  'window.unit.peopleOfficers': 'Seguridad',
   'window.unit.peopleDoctors': 'Médicos',
   'window.unit.reason.dear.rent': 'Alquiler caro',
   'window.unit.reason.dear.sale': 'Precio alto',
@@ -439,7 +439,7 @@ export const SPANISH_STRINGS = {
   'value.person.courier': 'Mensajero',
   'value.person.child': 'Niño',
   'value.construction.inProgress': 'En construcción',
-  'value.person.police': 'Policía',
+  'value.person.police': 'Seguridad',
   'value.person.vip': 'VIP',
   'value.person.weddingGuest': 'Invitado a la boda',
   'value.person.prospect': 'Interesado',
@@ -461,7 +461,7 @@ export const SPANISH_STRINGS = {
   'error.NEGATIVE_BALANCE': 'No se puede construir con saldo negativo.',
   'error.INSUFFICIENT_FUNDS': 'No alcanza el dinero.',
   'error.STAR_LOCKED': 'Hacen falta más estrellas.',
-  'error.BOMB_EVENT_ACTIVE': 'No se puede construir la policía durante una amenaza de bomba.',
+  'error.BOMB_EVENT_ACTIVE': 'No se puede construir seguridad durante una amenaza de bomba.',
   'error.LIMIT_REACHED': 'La torre ya tiene el máximo de esta unidad.',
   'error.CAR_LIMIT': 'El hueco ya tiene 8 cabinas.',
   'error.LAST_CAR': 'El hueco necesita al menos una cabina.',
@@ -531,7 +531,7 @@ export const SPANISH_STRINGS = {
     'La torre no subió de estrellas: alguien no pudo ir al centro médico desde la última revisión.',
   'news.bombThreat': 'Amenaza de bomba en la torre.',
   'news.bombPaid': 'Se pagó el rescate. La amenaza terminó.',
-  'news.bombFound': 'La policía encontró la bomba y la desactivó.',
+  'news.bombFound': 'Seguridad encontró la bomba y la desactivó.',
   'news.bombExploded': 'Explotó la bomba en el piso {level}.',
   'news.fire': 'Incendio en el piso {level}.',
   'news.fireHelicopter': 'El helicóptero apagó el incendio.',
@@ -545,7 +545,7 @@ export const SPANISH_STRINGS = {
   'news.santa': '¡Feliz Navidad! Papá Noel pasó por la torre.',
   'news.decisionDefault': 'Se terminó el plazo. Se aplicó: {option}.',
   'news.balanceNegative': 'La caja quedó en rojo. No se puede construir hasta recuperar.',
-  'news.bombSearch': 'La policía empezó a buscar la bomba.',
+  'news.bombSearch': 'Seguridad empezó a buscar la bomba.',
   'news.cinemaLowAudience': 'El cine no cobró nada: menos de 40 espectadores por función.',
   'news.garbageNoCleaning': 'Hay basura en los locales y no hay cuarto de limpieza para sacarla.',
   'news.fastFoodLoss': 'Una comida rápida tuvo pérdidas: vinieron menos de 25 clientes.',
@@ -558,7 +558,7 @@ export const SPANISH_STRINGS = {
   'news.restaurantLoss': 'Un restaurante tuvo pérdidas: vinieron menos de 25 clientes.',
   'news.starBlockedRecycling':
     'La torre no subió de estrellas: hace falta un centro de reciclaje cada 2.500 personas.',
-  'news.starBlockedSecurity': 'La torre no subió de estrellas: falta una policía.',
+  'news.starBlockedSecurity': 'La torre no subió de estrellas: falta una oficina de seguridad.',
   'news.starBlockedSubway': 'La torre no subió de estrellas: falta la estación de subte.',
   'news.starBlockedSuites': 'La torre no subió de estrellas: hacen falta 2 suites.',
   'news.starBlockedVip': 'La torre no subió de estrellas: falta la aprobación del VIP.',
@@ -567,7 +567,7 @@ export const SPANISH_STRINGS = {
 
   // 13.10 Star requirements (Estrellas window)
   'stars.req.2': 'Población de 300.',
-  'stars.req.3': 'Población de 1.000 y al menos una policía.',
+  'stars.req.3': 'Población de 1.000 y al menos una oficina de seguridad.',
   'stars.req.4':
     'Población de 5.000, visita del VIP aprobada, 2 suites, un centro de reciclaje cada 2.500 personas, y nadie sin centro médico ni cochera desde la última revisión.',
   'stars.req.5':
@@ -578,14 +578,14 @@ export const SPANISH_STRINGS = {
   // 13.11 Dialog texts
   'dialog.bomb.title': 'Amenaza de bomba',
   'dialog.bomb.body':
-    'Alguien llamó para avisar que dejó una bomba en la torre. Pide {ransom} para decir dónde está. Si no pagás, la policía la va a buscar. Si no la encuentra antes de las 13:00, explota.',
+    'Alguien llamó para avisar que dejó una bomba en la torre. Pide {ransom} para decir dónde está. Si no pagás, seguridad la va a buscar. Si no la encuentra antes de las 13:00, explota.',
   'dialog.bomb.bodyUnpriced':
-    'Alguien llamó para avisar que dejó una bomba en la torre. Pide dinero para decir dónde está. Si no pagás, la policía la va a buscar. Si no la encuentra antes de las 13:00, explota.',
+    'Alguien llamó para avisar que dejó una bomba en la torre. Pide dinero para decir dónde está. Si no pagás, seguridad la va a buscar. Si no la encuentra antes de las 13:00, explota.',
   'dialog.fire.title': 'Incendio',
   'dialog.fire.body':
-    'Hay un incendio en el piso {level}. Un helicóptero lo puede apagar por $500.000. Si no lo llamás, la policía va a tratar de contenerlo.',
+    'Hay un incendio en el piso {level}. Un helicóptero lo puede apagar por $500.000. Si no lo llamás, seguridad va a tratar de contenerlo.',
   'dialog.fire.bodyUnlocated':
-    'Hay un incendio en la torre. Un helicóptero lo puede apagar por $500.000. Si no lo llamás, la policía va a tratar de contenerlo.',
+    'Hay un incendio en la torre. Un helicóptero lo puede apagar por $500.000. Si no lo llamás, seguridad va a tratar de contenerlo.',
   'dialog.starsUp.title': '¡{n} estrellas!',
   'dialog.starsUp.body': 'La torre llegó a {n} estrellas. Ahora podés construir: {units}.',
   'dialog.towerRank.title': '¡Rango Torre!',

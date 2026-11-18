@@ -225,7 +225,7 @@ describe('unit window model', () => {
     expect(
       peopleGroups({ type: 'security', details: { group: 'security', officers: [] } })[0],
     ).toMatchObject({
-      label: 'Policías',
+      label: 'Seguridad',
       kind: 'police',
     });
     expect(

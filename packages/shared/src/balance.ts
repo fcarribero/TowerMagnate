@@ -288,7 +288,7 @@ export const UNIT_CATALOG: Readonly<Record<UnitType, UnitDefinition>> = {
   },
   security: {
     type: 'security',
-    name: 'Policía',
+    name: 'Seguridad',
     category: 'services',
     width: 16,
     height: fixedHeight(1),

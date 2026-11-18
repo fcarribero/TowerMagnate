@@ -288,7 +288,7 @@ Categories follow the GDD order. Inside each category, tools are sorted by unloc
 | | | 3 | `retail-shop` | Local comercial | 12 x 1 | $100.000 | 3 |
 | | | 4 | `cinema` | Cine | 31 x 2 | $500.000 | 3 |
 | | | 5 | `party-hall` | Salón de fiestas | 24 x 2 | $100.000 | 3 |
-| `services` | Servicios | 1 | `security` | Policía | 16 x 1 | $100.000 | 2 |
+| `services` | Servicios | 1 | `security` | Seguridad | 16 x 1 | $100.000 | 2 |
 | | | 2 | `medical-center` | Centro médico | 26 x 1 | $500.000 | 3 |
 | | | 3 | `parking-ramp` | Rampa de estacionamiento | 16 x 1 | $50.000 | 3 |
 | | | 4 | `parking-space` | Cochera | 4 x 1 | $3.000 | 3 |
@@ -417,7 +417,7 @@ Then the rows for the unit type. A value in braces comes from the `inspect` data
 | Cine | Película: `Semana {w} (día {age})`. Público por función hoy: `14:00: {n} · 19:00: {n}`. Resultado de ayer: signed money. Button "Cambiar película ($300.000)" (new data for audience and result) |
 | Salón de fiestas | Invitados hoy: `{n} de 50`. Resultado de ayer: signed money. (new data) |
 | Limpieza | Mucamas trabajando: `{n} de 6`. Habitaciones sucias en la torre: `{n}`. (new data) |
-| Policía | Estado: En servicio. |
+| Seguridad | Estado: En servicio. |
 | Centro médico | Pacientes hoy: `{n}` (new data). |
 | Centro de reciclaje | Cubre: `{covered} de {population} personas` for the whole tower (2.500 per center) (new data). |
 | Rampa de estacionamiento | Cocheras conectadas en este piso: `{n}` (new data). |
@@ -659,8 +659,8 @@ Opened by `decisionOpened`. The game keeps running.
 
 | Decision | Title | Body | Buttons (left to right, default last) |
 |---|---|---|---|
-| `bomb` | Amenaza de bomba | Alguien llamó para avisar que dejó una bomba en la torre. Pide {ransom} para decir dónde está. Si no pagás, la policía la va a buscar. Si no la encuentra antes de las 13:00, explota. | "Pagar {ransom}" (`pay`), "No pagar" (`refuse`) |
-| `fire` | Incendio | Hay un incendio en el piso {level}. Un helicóptero lo puede apagar por $500.000. Si no lo llamás, la policía va a tratar de contenerlo. | "Llamar al helicóptero ($500.000)" (`helicopter`), "No llamar" (`burn`) |
+| `bomb` | Amenaza de bomba | Alguien llamó para avisar que dejó una bomba en la torre. Pide {ransom} para decir dónde está. Si no pagás, seguridad la va a buscar. Si no la encuentra antes de las 13:00, explota. | "Pagar {ransom}" (`pay`), "No pagar" (`refuse`) |
+| `fire` | Incendio | Hay un incendio en el piso {level}. Un helicóptero lo puede apagar por $500.000. Si no lo llamás, seguridad va a tratar de contenerlo. | "Llamar al helicóptero ($500.000)" (`helicopter`), "No llamar" (`burn`) |
 
 TM-15 may add decisions; each needs a row here.
 
@@ -815,7 +815,7 @@ These are the words to use in every Spanish text. Do not swap them for synonyms.
 | `unit.double-room` | Habitación doble |
 | `unit.suite` | Suite |
 | `unit.housekeeping` | Limpieza |
-| `unit.security` | Policía |
+| `unit.security` | Seguridad |
 | `unit.restaurant` | Restaurante |
 | `unit.retail-shop` | Local comercial |
 | `unit.cinema` | Cine |
@@ -873,7 +873,7 @@ Short button labels, used only on toolbar buttons:
 | `tool.short.double-room` | Hab. doble |
 | `tool.short.restaurant` | Restó |
 | `tool.short.retail-shop` | Local |
-| `tool.short.security` | Policía |
+| `tool.short.security` | Segur. |
 | `tool.short.parking-ramp` | Rampa |
 
 ### 13.4 Status bar, calendar and menus
@@ -935,7 +935,7 @@ Short button labels, used only on toolbar buttons:
 | `window.unit.peopleCustomers` | Clientes |
 | `window.unit.peopleTenants` | Huéspedes |
 | `window.unit.peopleMaids` | Mucamas |
-| `window.unit.peopleOfficers` | Policías |
+| `window.unit.peopleOfficers` | Seguridad |
 | `window.unit.peopleAudience` | Público |
 | `window.unit.evaluation` | Evaluación |
 | `window.unit.appraisalCondo` | Tasación |
@@ -1099,7 +1099,7 @@ Every `ErrorCode` of TM-5 section 6, plus `NOT_PRICED` from TM-9. These texts ar
 | `NEGATIVE_BALANCE` | No se puede construir con saldo negativo. |
 | `INSUFFICIENT_FUNDS` | No alcanza el dinero. |
 | `STAR_LOCKED` | Hacen falta más estrellas. |
-| `BOMB_EVENT_ACTIVE` | No se puede construir la policía durante una amenaza de bomba. |
+| `BOMB_EVENT_ACTIVE` | No se puede construir seguridad durante una amenaza de bomba. |
 | `LIMIT_REACHED` | La torre ya tiene el máximo de esta unidad. |
 | `CAR_LIMIT` | El hueco ya tiene 8 cabinas. |
 | `LAST_CAR` | El hueco necesita al menos una cabina. |
@@ -1161,7 +1161,7 @@ Line format `{weekday abbr} {HH:MM}  {text}`. "Alert" marks the red kind of 8.1.
 | `news.upkeepNegative` | El mantenimiento dejó la caja en rojo. No se puede construir hasta recuperar. | yes |
 | `news.starsUp` | La torre llegó a {n} estrellas. | |
 | `news.towerRank` | ¡Hubo boda en la catedral! La torre alcanzó el rango Torre. | |
-| `news.starBlockedSecurity` | La torre no subió de estrellas: falta una policía. | yes |
+| `news.starBlockedSecurity` | La torre no subió de estrellas: falta una oficina de seguridad. | yes |
 | `news.starBlockedVip` | La torre no subió de estrellas: falta la aprobación del VIP. | yes |
 | `news.starBlockedSuites` | La torre no subió de estrellas: hacen falta 2 suites. | yes |
 | `news.starBlockedRecycling` | La torre no subió de estrellas: hace falta un centro de reciclaje cada 2.500 personas. | yes |
@@ -1171,7 +1171,7 @@ Line format `{weekday abbr} {HH:MM}  {text}`. "Alert" marks the red kind of 8.1.
 | `news.weddingFailed` | No llegaron todos los invitados a la boda antes de las 12:30. | |
 | `news.bombThreat` | Amenaza de bomba en la torre. | yes |
 | `news.bombPaid` | Se pagó el rescate. La amenaza terminó. | |
-| `news.bombFound` | La policía encontró la bomba y la desactivó. | |
+| `news.bombFound` | Seguridad encontró la bomba y la desactivó. | |
 | `news.bombExploded` | Explotó la bomba en el piso {level}. | yes |
 | `news.fire` | Incendio en el piso {level}. | yes |
 | `news.fireHelicopter` | El helicóptero apagó el incendio. | |
@@ -1184,7 +1184,7 @@ Line format `{weekday abbr} {HH:MM}  {text}`. "Alert" marks the red kind of 8.1.
 | `news.santa` | ¡Feliz Navidad! Papá Noel pasó por la torre. | |
 | `news.decisionDefault` | Se terminó el plazo. Se aplicó: {option}. | |
 | `news.balanceNegative` | La caja quedó en rojo. No se puede construir hasta recuperar. | yes |
-| `news.bombSearch` | La policía empezó a buscar la bomba. |  |
+| `news.bombSearch` | Seguridad empezó a buscar la bomba. |  |
 | `news.cinemaLowAudience` | El cine no cobró nada: menos de 40 espectadores por función. |  |
 | `news.fastFoodLoss` | Una comida rápida tuvo pérdidas: vinieron menos de 25 clientes. |  |
 | `news.medicalDemanded` | Los oficinistas necesitan un centro médico. |  |
@@ -1195,7 +1195,7 @@ Line format `{weekday abbr} {HH:MM}  {text}`. "Alert" marks the red kind of 8.1.
 | `news.partyHallEmpty` | El salón de fiestas no cobró nada: vinieron menos de 25 invitados. |  |
 | `news.restaurantLoss` | Un restaurante tuvo pérdidas: vinieron menos de 25 clientes. |  |
 | `news.starBlockedRecycling` | La torre no subió de estrellas: hace falta un centro de reciclaje cada 2.500 personas. | yes |
-| `news.starBlockedSecurity` | La torre no subió de estrellas: falta una policía. | yes |
+| `news.starBlockedSecurity` | La torre no subió de estrellas: falta una oficina de seguridad. | yes |
 | `news.starBlockedSubway` | La torre no subió de estrellas: falta la estación de subte. | yes |
 | `news.starBlockedSuites` | La torre no subió de estrellas: hacen falta 2 suites. | yes |
 | `news.starBlockedVip` | La torre no subió de estrellas: falta la aprobación del VIP. | yes |
@@ -1207,7 +1207,7 @@ Line format `{weekday abbr} {HH:MM}  {text}`. "Alert" marks the red kind of 8.1.
 | Key | Text |
 |---|---|
 | `stars.req.2` | Población de 300. |
-| `stars.req.3` | Población de 1.000 y al menos una policía. |
+| `stars.req.3` | Población de 1.000 y al menos una oficina de seguridad. |
 | `stars.req.4` | Población de 5.000, visita del VIP aprobada, 2 suites, un centro de reciclaje cada 2.500 personas, y nadie sin centro médico ni cochera desde la última revisión. |
 | `stars.req.5` | Población de 10.000, estación de subte, un centro de reciclaje cada 2.500 personas, y nadie sin centro médico ni cochera desde la última revisión. |
 | `stars.req.tower` | Población de 15.000, catedral construida y una boda completa un sábado o domingo antes de las 12:30. |

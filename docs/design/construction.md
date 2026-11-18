@@ -339,7 +339,7 @@ Demolition is checked in this order: `NOTHING_TO_DEMOLISH`, `MAIN_LOBBY_PROTECTE
 | `NEGATIVE_BALANCE` | No se puede construir con saldo negativo. |
 | `INSUFFICIENT_FUNDS` | No alcanza el dinero. |
 | `STAR_LOCKED` | Hacen falta más estrellas. |
-| `BOMB_EVENT_ACTIVE` | No se puede construir la policía durante una amenaza de bomba. |
+| `BOMB_EVENT_ACTIVE` | No se puede construir seguridad durante una amenaza de bomba. |
 | `LIMIT_REACHED` | La torre ya tiene el máximo de esta unidad. |
 | `CAR_LIMIT` | El hueco ya tiene 8 cabinas. |
 | `LAST_CAR` | El hueco necesita al menos una cabina. |

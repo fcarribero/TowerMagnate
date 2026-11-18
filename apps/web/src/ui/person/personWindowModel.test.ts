@@ -31,7 +31,7 @@ describe('person window text', () => {
   it('titles the window with the name, or the kind when unnamed', () => {
     expect(personTitle('officeWorker', 'Ana')).toBe('Ana');
     expect(personTitle('officeWorker', null)).toBe('Oficinista');
-    expect(kindName('police')).toBe('Policía');
+    expect(kindName('police')).toBe('Seguridad');
     expect(kindName('courier')).toBe('Mensajero');
     expect(kindName('child')).toBe('Niño');
     expect(personTitle('courier', null)).toBe('Mensajero');
