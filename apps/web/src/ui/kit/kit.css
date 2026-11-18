@@ -498,8 +498,13 @@
   overflow-wrap: break-word;
 }
 
-.tm-tooltip__line.is-alert {
+.tm-tooltip__line.is-alert,
+.tm-tooltip__line.is-bad {
   color: var(--obra-red);
+}
+
+.tm-tooltip__line.is-good {
+  color: var(--obra-green);
 }
 
 /* Checkbox */

@@ -107,6 +107,7 @@ describe('inspecting a unit', () => {
           noisy: false,
           mainCause: null,
           neighborPull: false,
+          parking: null,
         },
       },
     });

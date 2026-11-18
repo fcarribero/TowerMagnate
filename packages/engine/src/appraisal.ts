@@ -4,6 +4,7 @@ import {
   APPRAISAL_AMENITY_TYPES,
   APPRAISAL_RANGE_PERCENT,
   APPRAISAL_STAR_PERCENT,
+  FAIR_PRICE_NO_PARKING_PERCENT,
   basePrice,
   type TowerState,
   type Unit,
@@ -12,6 +13,7 @@ import {
 } from '@tower-magnate/shared';
 import type { LevelIndex } from './neighbors';
 import { noisyUnitIds } from './noise';
+import { parkingByUnit, type UnitParking } from './unit-parking';
 import { unitNumber } from './units';
 import { occupantPercent, occupantScore, towerScore } from './unit-value';
 import { writableUnit } from './step-copy';
@@ -27,6 +29,8 @@ export interface AppraisalFactors {
   ownValues?: Map<UnitId, number>;
   /** Evaluated units by level, so neighbor lookups do not scan every unit. */
   levels?: LevelIndex;
+  /** The parking each unit asks for, by unit number; worked out when left out. */
+  parking?: ReadonlyMap<number, UnitParking>;
 }
 
 export function appraisalFactors(state: TowerState): AppraisalFactors {
@@ -34,11 +38,18 @@ export function appraisalFactors(state: TowerState): AppraisalFactors {
   for (const unit of Object.values(state.units)) {
     if (APPRAISAL_AMENITY_TYPES.includes(unit.type)) amenities += 1;
   }
-  return { amenities, towerScore: towerScore(state) };
+  return { amenities, towerScore: towerScore(state), parking: parkingByUnit(state) };
 }
 
 /** A unit of the tower, or only the type of one still to be built. */
 export type AppraisedUnit = Unit | { type: UnitType };
+
+/** -10 for a unit of the tower whose people ask for parking and miss it, otherwise 0. */
+function parkingPercent(state: TowerState, unit: AppraisedUnit, factors: AppraisalFactors): number {
+  if (!('id' in unit) || !Object.hasOwn(state.units, unit.id)) return 0;
+  const parking = (factors.parking ?? parkingByUnit(state)).get(unitNumber(unit.id));
+  return parking === 'missing' ? FAIR_PRICE_NO_PARKING_PERCENT : 0;
+}
 
 function scoreOf(state: TowerState, unit: AppraisedUnit, factors: AppraisalFactors): number {
   if (!('id' in unit) || !Object.hasOwn(state.units, unit.id)) return factors.towerScore;
@@ -48,8 +59,8 @@ function scoreOf(state: TowerState, unit: AppraisedUnit, factors: AppraisalFacto
 
 /**
  * The fair price of a priced unit: its base price moved by the tower's stars, the amenities in
- * the tower and the stress score of the unit's occupants (the tower's for a unit still to be
- * built), kept inside the appraisal range. Whole money; 0 for a unit with no price.
+ * the tower, the stress score of the unit's occupants (the tower's for a unit still to be
+ * built) and parking its people ask for and miss, kept inside the appraisal range. Whole money; 0 for a unit with no price.
  */
 export function computeAppraisal(
   state: TowerState,
@@ -63,7 +74,12 @@ export function computeAppraisal(
     factors.amenities * APPRAISAL_AMENITY_PERCENT_EACH,
     APPRAISAL_AMENITY_PERCENT_CAP,
   );
-  const percent = 100 + stars + amenities + occupantPercent(scoreOf(state, unit, factors));
+  const percent =
+    100 +
+    stars +
+    amenities +
+    occupantPercent(scoreOf(state, unit, factors)) +
+    parkingPercent(state, unit, factors);
   const clamped = Math.min(
     APPRAISAL_RANGE_PERCENT.max,
     Math.max(APPRAISAL_RANGE_PERCENT.min, percent),

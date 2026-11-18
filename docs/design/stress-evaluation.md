@@ -270,14 +270,14 @@ Design call: a calm, well-served office can ask for a higher rent, and fixing th
 
 ### 5.6 Reasons in the office window
 
-The office window lists what counts for its grade under "A favor" and what counts against it under "En contra", in a tooltip on its evaluation tile, from the parts the grade would use now:
+The office window lists what counts for its grade in a tooltip on its evaluation tile, from the parts the grade would use now. Each reason in favor is a green line starting with "+", each reason against a red line starting with "-", with no headings:
 
 - Rent: a price at or under the fair price is "Alquiler dentro del precio justo" in favor. A price over it is "Alquiler por encima del precio justo" against.
 - Workers: an occupant score `U` under 3 is "Trabajadores tranquilos" in favor, because they raise the fair price. From 3, "Trabajadores estresados por {cause}" is against, where the cause is the one with the largest total (3.3) among the office's workers, calm left out. With no cause to name it reads "Trabajadores estresados".
 - Noise: a noise source close by (5.4) is "Ruido cerca" against, otherwise "Sin ruido cerca" in favor.
 - Neighbor: when the neighbor pull applies, "Vecino mal valorado" is against.
 
-The unit window also shows the fair price, labeled "Precio justo", and the occupant score, labeled "Estrés de ocupantes", as "3,4 / 10" (ui.md 6.2).
+The unit window also shows the fair price, labeled "Precio justo" (ui.md 6.2). It does not show the occupant score as a number.
 
 The parts are worked out when the window asks for them. They are not the stored grade, which changes only at the moments in section 7.
 

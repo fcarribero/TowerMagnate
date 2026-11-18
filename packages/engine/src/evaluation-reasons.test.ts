@@ -35,6 +35,7 @@ describe('evaluation parts of an office', () => {
       noisy: false,
       mainCause: null,
       pulledBy: null,
+      parking: null,
     });
   });
 

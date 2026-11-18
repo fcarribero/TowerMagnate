@@ -16,6 +16,7 @@ import {
   priorityOf,
   peopleGroups,
   priceBandLabel,
+  reasonLines,
   priceControlOf,
   unitRows,
   unitSubtitle,
@@ -234,7 +235,6 @@ describe('unit window model', () => {
     expect(rows.map((row) => [row.label, row.value])).toEqual([
       ['Estado', 'Ocupada'],
       ['Evaluación', 'Regular'],
-      ['Estrés de ocupantes', '3,0 / 10'],
       ['Renta semanal', '$10.500'],
     ]);
   });
@@ -244,7 +244,6 @@ describe('unit window model', () => {
     expect(rows.map((row) => row.label)).toEqual([
       'Estado',
       'Evaluación',
-      'Estrés de ocupantes',
       'Próximo pago',
       'Renta semanal',
     ]);
@@ -300,7 +299,6 @@ describe('unit window model', () => {
     expect(unitRows({ ...office, details: forRent }).map((row) => row.value)).toEqual([
       'En alquiler',
       'Sin evaluar',
-      '3,0 / 10',
     ]);
   });
 
@@ -308,18 +306,10 @@ describe('unit window model', () => {
     const condo: UnitInspect = { ...office, type: 'condo', details: condoDetails };
     expect(isSoldCondo(condo)).toBe(true);
     // People are listed in the row at the top, never counted in a tile.
-    expect(unitRows(condo).map((row) => row.id)).toEqual([
-      'evaluation',
-      'occupantStress',
-      'appraisal',
-    ]);
+    expect(unitRows(condo).map((row) => row.id)).toEqual(['evaluation', 'appraisal']);
     const forSale: UnitInspect = { ...condo, details: { ...condoDetails, state: 'forSale' } };
     expect(isSoldCondo(forSale)).toBe(false);
-    expect(unitRows(forSale).map((row) => row.id)).toEqual([
-      'evaluation',
-      'occupantStress',
-      'appraisal',
-    ]);
+    expect(unitRows(forSale).map((row) => row.id)).toEqual(['evaluation', 'appraisal']);
     expect(unitRows(forSale).map((row) => row.label)).not.toContain('Próxima evaluación');
   });
 
@@ -341,7 +331,7 @@ describe('unit window model', () => {
       checkoutStep: stepOfDate({ year: 1, month: 1, day: 3, hour: 10 }),
     };
     const room: UnitInspect = { ...office, type: 'suite', details: occupied };
-    expect(unitRows(room).map((row) => row.id)).toEqual(['status', 'evaluation', 'occupantStress']);
+    expect(unitRows(room).map((row) => row.id)).toEqual(['status', 'evaluation']);
   });
 
   it('shows the film week and day of a cinema', () => {
@@ -440,7 +430,7 @@ describe('unit window model', () => {
     const groups = groupUnitRows(unitRows({ ...office, type: 'retail-shop' }));
     expect(groups.tiles.map((row) => row.id)).toEqual(['status', 'evaluation']);
     expect(groups.chips.map((row) => row.id)).toEqual(['nextPayment']);
-    expect(groups.rows.map((row) => row.id)).toEqual(['occupantStress', 'weeklyRent']);
+    expect(groups.rows.map((row) => row.id)).toEqual(['weeklyRent']);
     const cinema = groupUnitRows([{ id: 'film', label: 'Película', value: 'x', tone: 'plain' }]);
     expect(cinema.rows.map((row) => row.id)).toEqual(['film']);
   });
@@ -490,6 +480,7 @@ describe('evaluation reasons of an office', () => {
     noisy: false,
     mainCause: null,
     neighborPull: false,
+    parking: null,
   } as const;
   const officeWith = (patch: Partial<NonNullable<Lease['evaluationParts']>> | null) =>
     ({
@@ -503,14 +494,14 @@ describe('evaluation reasons of an office', () => {
     expect(evaluationReasons(officeWith(null))).toBeNull();
   });
 
-  it('lists a fair rent, calm workers and a quiet floor in favor', () => {
+  it('lists a fair rent and calm workers in favor, and never noise, which the workers feel', () => {
     expect(evaluationReasons(officeWith({}))).toEqual({
-      good: ['Alquiler dentro del precio justo', 'Trabajadores tranquilos', 'Sin ruido cerca'],
+      good: ['Alquiler dentro del precio justo', 'Trabajadores tranquilos'],
       bad: [],
     });
   });
 
-  it('lists a rent over the fair price, stressed workers, noise and a bad neighbor against', () => {
+  it('lists a rent over the fair price, stressed workers and a bad neighbor against', () => {
     expect(
       evaluationReasons(
         officeWith({
@@ -526,20 +517,31 @@ describe('evaluation reasons of an office', () => {
       bad: [
         'Alquiler por encima del precio justo',
         'Trabajadores estresados por esperas del ascensor',
-        'Ruido cerca',
         'Vecino mal valorado',
       ],
     });
   });
+
+  it('lists parking in favor when the workers who ask for it have it, and against when they miss it', () => {
+    expect(evaluationReasons(officeWith({ parking: 'has' }))?.good).toContain('Con cochera');
+    expect(evaluationReasons(officeWith({ parking: 'missing' }))?.bad).toContain('Sin cochera');
+    const none = evaluationReasons(officeWith({ parking: null }));
+    expect([...(none?.good ?? []), ...(none?.bad ?? [])].join()).not.toMatch(/cochera/);
+  });
+
+  it('turns the reasons into tooltip lines with no headings, + in green and - in red', () => {
+    expect(reasonLines({ good: ['Con cochera'], bad: ['Ruido cerca', 'Sin x'] })).toEqual([
+      { text: '+ Con cochera', tone: 'good' },
+      { text: '- Ruido cerca', tone: 'bad' },
+      { text: '- Sin x', tone: 'bad' },
+    ]);
+  });
 });
 
-describe('occupant stress row', () => {
-  it('shows the occupants score out of 10 with one decimal, for offices, condos and rooms', () => {
-    const row = (details: Details) =>
-      unitRows({ ...office, details }).find((r) => r.id === 'occupantStress');
-    expect(row({ ...lease, occupantScore: 3.44 })?.value).toBe('3,4 / 10');
-    expect(row({ ...lease, occupantScore: 3.44 })?.label).toBe('Estrés de ocupantes');
-    expect(row({ ...condoDetails, occupantScore: 0 })?.value).toBe('0,0 / 10');
-    expect(row({ ...hotelDetails, occupantScore: 9.96 })?.value).toBe('10,0 / 10');
+describe('occupant stress', () => {
+  it('has no row in the unit window', () => {
+    for (const details of [lease, condoDetails, hotelDetails] as Details[]) {
+      expect(unitRows({ ...office, details }).map((row) => row.id)).not.toContain('occupantStress');
+    }
   });
 });

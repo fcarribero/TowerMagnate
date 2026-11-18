@@ -350,6 +350,7 @@ function officeEvaluationParts(state: TowerState, unit: Unit) {
     noisy: parts.noisy,
     mainCause: parts.mainCause,
     neighborPull: parts.pulledBy !== null,
+    parking: parts.parking,
   };
 }
 

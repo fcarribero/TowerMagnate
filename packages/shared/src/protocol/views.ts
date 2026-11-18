@@ -395,6 +395,8 @@ const InspectedUnitDetailsSchema = z.discriminatedUnion('group', [
         mainCause: z.enum(STRESS_CAUSES).nullable(),
         /** A worse neighbor pulls the grade down. */
         neighborPull: z.boolean(),
+        /** Whether the workers who ask for parking have it; null when none asks. */
+        parking: z.enum(['has', 'missing']).nullable(),
       })
       .optional(),
   }),

@@ -309,14 +309,14 @@ describe('unit windows', () => {
     expect(screen.queryByText('Trabajadores')).toBeNull();
   });
 
-  it('stands the office workers in rows of 3, side by side', () => {
+  it('stands the office workers in one row of 6, side by side', () => {
     const { open, show } = setup([unitView('u1')]);
     open('u1');
-    const workers = ['p1', 'p2', 'p3', 'p4', 'p5', 'p6', 'p7'];
-    show(inspectOf('u1', { details: leaseDetails({ workers, persons: 7 }) }));
+    const workers = ['p1', 'p2', 'p3', 'p4', 'p5', 'p6'];
+    show(inspectOf('u1', { details: leaseDetails({ workers, persons: 6 }) }));
     const people = screen.getByRole('dialog').querySelector('.tm-unit__people') as HTMLElement;
     const rows = [...people.querySelectorAll('.tm-unit__queue-row')];
-    expect(rows.map((row) => row.querySelectorAll('li').length)).toEqual([3, 3, 1]);
+    expect(rows.map((row) => row.querySelectorAll('li').length)).toEqual([6]);
     for (const row of rows) {
       expect(row.classList.contains('is-grid')).toBe(true);
       for (const li of row.querySelectorAll('li'))
@@ -335,6 +335,7 @@ describe('unit windows', () => {
         noisy: true,
         mainCause: null,
         neighborPull: false,
+        parking: 'missing' as const,
       };
       show(inspectOf('u1', { details: leaseDetails({ evaluationParts }) }));
       expect(screen.getByRole('dialog').querySelector('.tm-unit__reasons')).toBeNull();
@@ -345,11 +346,14 @@ describe('unit windows', () => {
       });
       const lines = [...screen.getByRole('tooltip').querySelectorAll('.tm-tooltip__line')];
       expect(lines.map((line) => line.textContent)).toEqual([
-        'A favor',
         '+ Alquiler dentro del precio justo',
         '+ Trabajadores tranquilos',
-        'En contra',
-        '- Ruido cerca',
+        '- Sin cochera',
+      ]);
+      expect(lines.map((line) => line.className)).toEqual([
+        'tm-tooltip__line is-good',
+        'tm-tooltip__line is-good',
+        'tm-tooltip__line is-bad',
       ]);
     } finally {
       vi.useRealTimers();

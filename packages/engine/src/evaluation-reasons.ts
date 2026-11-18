@@ -8,6 +8,7 @@ import {
 import { appraisalFactors, computeAppraisal } from './appraisal';
 import { isNoisy } from './noise';
 import { stressCausesOf } from './trip-ledger';
+import type { UnitParking } from './unit-parking';
 import { unitNumber } from './units';
 import { occupantScore, paidPrice, unitValue } from './unit-value';
 
@@ -24,6 +25,8 @@ export interface EvaluationParts {
   mainCause: Exclude<StressCause, 'calm'> | null;
   /** The worse neighbor that pulls the grade down, or null. */
   pulledBy: UnitId | null;
+  /** Whether the people who ask for parking have it; null when nobody asks. */
+  parking: UnitParking | null;
 }
 
 /** The cause with the largest running total among the people who belong to the unit. */
@@ -60,5 +63,6 @@ export function evaluationParts(state: TowerState, unit: Unit): EvaluationParts 
     noisy,
     mainCause: mainCauseOf(state, unit),
     pulledBy: unitValue(state, unit, noisy, factors).pulledBy,
+    parking: factors.parking?.get(unitNumber(unit.id)) ?? null,
   };
 }

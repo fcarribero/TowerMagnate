@@ -1,6 +1,9 @@
-import { stressScore, type TowerState, type UnitId } from '@tower-magnate/shared';
+import { stressScore, type StarRating, type TowerState, type UnitId } from '@tower-magnate/shared';
 import { describe, expect, it } from 'vitest';
 import { computeAppraisal, storeDailyAppraisals } from './appraisal';
+import { addPerson } from './people';
+import { parkingByUnit } from './unit-parking';
+import { unitNumber } from './units';
 import { buildTower, plainTowerPlan } from './testing';
 import { fileUnitTrip } from './unit-evaluation';
 import { occupantPercent, occupantScore, towerScore } from './unit-value';
@@ -103,5 +106,40 @@ describe('fair price', () => {
     const first = state.units[office]!.appraisal;
     storeDailyAppraisals(state);
     expect(state.units[office]!.appraisal).toBe(first);
+  });
+});
+
+describe('parking a unit asks for', () => {
+  function withHolder(space: number, stars: StarRating) {
+    const { state, office } = officeTower();
+    state.stars = stars;
+    fileTrips(state, office, 0);
+    const id = addPerson(state, {
+      kind: 'officeWorker',
+      homeUnit: unitNumber(office),
+      level: 2,
+      column: 60,
+    });
+    state.parking.spaces[id] = space;
+    return { state, unit: state.units[office]! };
+  }
+
+  it('is missing when a holder of the unit has no space from 3 stars, and takes 10% off the fair price', () => {
+    const { state, unit } = withHolder(0, 3);
+    expect(parkingByUnit(state).get(unitNumber(unit.id))).toBe('missing');
+    expect(computeAppraisal(state, unit)).toBe(13_000 + 800 - 1_000);
+  });
+
+  it('is had when every holder of the unit has a space, with no change to the fair price', () => {
+    const { state, unit } = withHolder(7, 3);
+    expect(parkingByUnit(state).get(unitNumber(unit.id))).toBe('has');
+    expect(computeAppraisal(state, unit)).toBe(13_800);
+  });
+
+  it('is asked by no unit under 3 stars or with no holder', () => {
+    expect(parkingByUnit(withHolder(0, 2).state).size).toBe(0);
+    const { state, office } = officeTower();
+    state.stars = 3;
+    expect(parkingByUnit(state).has(unitNumber(office))).toBe(false);
   });
 });

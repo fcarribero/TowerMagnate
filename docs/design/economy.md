@@ -47,7 +47,7 @@ Changing the price is free and works at any balance.
 
 Every priced unit has a fair price, the rent, nightly rate or sale price its occupants think the unit is worth. It is stored in `unit.appraisal` and the price control marks it as "Precio justo". It is
 
-`base price × (100 + stars + amenities + occupant percent) / 100`
+`base price × (100 + stars + amenities + occupant percent + parking) / 100`
 
 clamped to 60% to 160% of the base price and rounded to whole money.
 
@@ -57,6 +57,7 @@ clamped to 60% to 160% of the base price and rounded to whole money.
 | Stars | 4 for each star of the tower above the first |
 | Amenities | 1 for each retail shop, fast food, restaurant, cinema, party hall and medical center in the tower, up to 12. A shop counts itself. |
 | Occupant percent | from the stress score of the unit's occupants: +30 at a score of 0, 0 at 3 and -50 at 10, in straight lines between those points |
+| Parking | -10 from 3 stars when one of the unit's people who asks for parking (people.md 17) has no space, otherwise 0 |
 
 The occupant score is worked out in stress-evaluation 5.3: the score of the unit's own trips, with a point added for a noise source close by, or the tower's score when the unit has no trips yet. There is no term for the unit's grade and none for the stress of the whole tower, so the fair price does not depend on the grade that depends on it.
 

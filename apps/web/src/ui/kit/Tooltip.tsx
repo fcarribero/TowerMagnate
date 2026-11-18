@@ -4,9 +4,15 @@ import { useEffect, useId, useRef, useState } from 'preact/hooks';
 export const TOOLTIP_DELAY_MS = 500;
 const GAP_UI_PIXELS = 4;
 
+/** A tooltip line in green (good) or red (bad). */
+export interface TooltipLine {
+  text: string;
+  tone: 'good' | 'bad';
+}
+
 export interface TooltipProps {
-  /** One string per line. */
-  text: string | readonly string[];
+  /** One string or toned line per line. */
+  text: string | readonly (string | TooltipLine)[];
   /** A single element; its root gets `aria-describedby` pointing at the tooltip. */
   children: VNode;
   delayMs?: number;
@@ -38,7 +44,10 @@ export function Tooltip({
   const timerRef = useRef<number | undefined>(undefined);
   const [visible, setVisible] = useState(false);
   const [placement, setPlacement] = useState<Placement | null>(null);
-  const lines = typeof text === 'string' ? [text] : text;
+  const lines: readonly TooltipLine[] | readonly (string | TooltipLine)[] =
+    typeof text === 'string' ? [text] : text;
+  const lineText = (line: string | TooltipLine): string =>
+    typeof line === 'string' ? line : line.text;
 
   const cancelTimer = (): void => {
     window.clearTimeout(timerRef.current);
@@ -122,14 +131,16 @@ export function Tooltip({
       >
         {lines.map((line, index) => (
           <span
-            key={line}
+            key={lineText(line)}
             class={
-              alertLastLine && index === lines.length - 1
-                ? 'tm-tooltip__line is-alert'
-                : 'tm-tooltip__line'
+              typeof line !== 'string'
+                ? `tm-tooltip__line is-${line.tone}`
+                : alertLastLine && index === lines.length - 1
+                  ? 'tm-tooltip__line is-alert'
+                  : 'tm-tooltip__line'
             }
           >
-            {line}
+            {lineText(line)}
           </span>
         ))}
       </span>

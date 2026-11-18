@@ -998,6 +998,9 @@ export const APPRAISAL_AMENITY_PERCENT_CAP = 12;
  */
 export const FAIR_PRICE_STRESS_PERCENT = { best: 30, neutralAt: 3, worst: -50 } as const;
 
+/** Percent off a unit's fair price when one of its people who asks for parking has no space. */
+export const FAIR_PRICE_NO_PARKING_PERCENT = -10;
+
 /** Score added to a unit's occupants when a noise source is close by (stress-evaluation 5.4). */
 export const EVAL_NOISE_SCORE = 1;
 

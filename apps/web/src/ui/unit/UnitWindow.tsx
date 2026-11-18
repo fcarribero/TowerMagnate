@@ -9,6 +9,7 @@ import {
   PromptDialog,
   RangeSlider,
   Tooltip,
+  type TooltipLine,
   Window,
   dialogRequest,
   useWindowManager,
@@ -303,7 +304,7 @@ function Row({ label, value }: RowProps) {
 }
 
 /** A tile with reasons shows them as a tooltip: the evaluation tile lists what counts for and against it. */
-function StatTile({ row, reasons }: { row: UnitRow; reasons: readonly string[] }) {
+function StatTile({ row, reasons }: { row: UnitRow; reasons: readonly TooltipLine[] }) {
   const tile = (
     <div class={`tm-unit__tile is-${row.tone}`} tabIndex={reasons.length > 0 ? 0 : undefined}>
       <span class="tm-unit__tile-label">{row.label}</span>
