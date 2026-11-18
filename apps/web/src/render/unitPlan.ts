@@ -188,9 +188,10 @@ const SHOP_STATES = { empty: 'open', occupied: 'busy' } as const;
 const SERVICE_STATES = { empty: 'closed', occupied: 'occupied' } as const;
 
 /** Units with no art of their own yet, drawn with another unit's sprites of the same width. */
-// TODO: the obrador uses the housekeeping art until it gets its own.
+// TODO: the obrador and the cleaning room use the housekeeping art until they get their own.
 const SPRITE_SUBJECT: Partial<Record<UnitType, string>> = {
   obrador: 'housekeeping',
+  'cleaning-room': 'housekeeping',
 };
 
 const SPRITE_STATES: Partial<Record<UnitType, { empty: string; occupied: string }>> = {
@@ -202,6 +203,7 @@ const SPRITE_STATES: Partial<Record<UnitType, { empty: string; occupied: string 
   'parking-space': SERVICE_STATES,
   housekeeping: SERVICE_STATES,
   obrador: SERVICE_STATES,
+  'cleaning-room': SERVICE_STATES,
   'fast-food': SHOP_STATES,
   restaurant: SHOP_STATES,
   'retail-shop': SHOP_STATES,

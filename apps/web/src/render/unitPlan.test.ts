@@ -17,8 +17,8 @@ const base = {
 } as const;
 
 describe('planUnit', () => {
-  it('draws 19 unit types', () => {
-    expect(UNIT_TYPES.filter(isPlacedUnit)).toHaveLength(19);
+  it('draws 20 unit types', () => {
+    expect(UNIT_TYPES.filter(isPlacedUnit)).toHaveLength(20);
   });
 
   it('picks the empty or occupied sprite and the time of day', () => {

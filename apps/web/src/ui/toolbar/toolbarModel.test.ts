@@ -63,6 +63,7 @@ const DESIGN_TABLE: Readonly<Record<ToolbarCategory, readonly Row[]>> = {
   services: [
     ['obrador', '15 x 1 casilleros', '$80.000', 1],
     ['security', '16 x 1 casilleros', '$100.000', 2],
+    ['cleaning-room', '15 x 1 casilleros', '$60.000', 2],
     ['medical-center', '26 x 1 casilleros', '$500.000', 3],
     ['parking-ramp', '16 x 1 casilleros', '$50.000', 3],
     ['parking-space', '4 x 1 casilleros', '$3.000', 3],

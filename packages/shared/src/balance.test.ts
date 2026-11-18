@@ -255,8 +255,8 @@ function floorsOf(type: UnitType): GddUnitRow['floors'] {
 }
 
 describe('unit catalog', () => {
-  it('has the 25 GDD units and the obrador, keyed by their own type', () => {
-    expect(UNIT_TYPES).toHaveLength(26);
+  it('has the 25 GDD units, the obrador and the cleaning room, keyed by their own type', () => {
+    expect(UNIT_TYPES).toHaveLength(27);
     expect(Object.keys(UNIT_CATALOG).sort()).toEqual([...UNIT_TYPES].sort());
     for (const type of UNIT_TYPES) {
       expect(UNIT_CATALOG[type].type).toBe(type);
@@ -537,6 +537,7 @@ describe('weekly upkeep', () => {
       'subway-station': flat('per-unit', 250_000),
       cathedral: flat('per-unit', 200_000),
       obrador: flat('per-unit', 10_000),
+      'cleaning-room': flat('per-unit', 10_000),
     });
   });
 

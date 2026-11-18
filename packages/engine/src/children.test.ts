@@ -85,7 +85,7 @@ describe('condo household roll', () => {
   });
 
   it('stores the child kind after every older kind', () => {
-    expect(PERSON_KINDS[PERSON_KINDS.length - 1]).toBe('child');
+    expect(PERSON_KINDS.indexOf('child')).toBeGreaterThan(PERSON_KINDS.indexOf('builder'));
     expect(PERSON_KINDS.indexOf('child')).toBe(PERSON_KINDS.indexOf('courier') + 1);
   });
 });

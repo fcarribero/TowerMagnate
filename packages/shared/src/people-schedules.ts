@@ -461,3 +461,36 @@ export const BUILDER_TOOLS_BONUS = 0.2;
 
 /** Each level of an obrador's quiet equipment takes this share off the noise of its crew's site. */
 export const BUILDER_QUIET_SHARE = 0.2;
+
+/** Cleaners a cleaning room sends out each day before any staff upgrade (service-units 2.2). */
+export const CLEANER_CREW_SIZE = 3;
+
+/** Each level of a cleaning room's staff upgrade adds this many cleaners. */
+export const CLEANER_STAFF_BONUS = 2;
+
+/** Minute of the day the cleaners' shift starts, every day of the week. */
+export const CLEANER_SHIFT_START_MINUTE = 7 * 60;
+
+/** Minute of the day the cleaners' shift ends; they walk back to change and leave. */
+export const CLEANER_SHIFT_END_MINUTE = 19 * 60;
+
+/** No crew comes in for the day this many minutes or less before the shift ends. */
+export const CLEANER_LAST_START_MINUTES = 60;
+
+/** Minutes a cleaner stands in the cleaning room to change, on the way in and on the way out. */
+export const CLEANER_CHANGE_MINUTES = 5;
+
+/** Dirt a cleaner takes off each cell it cleans in a game minute, before upgrades. */
+export const CLEANER_DIRT_MINUTE = 1;
+
+/** Each level of collection speed adds this share to the dirt a cleaner takes off a minute. */
+export const CLEANER_SPEED_SHARE = 0.25;
+
+/** A cell with less dirt than this is not worth walking to, and a cleaner stops cleaning there. */
+export const CLEANER_MIN_DIRT = 0.5;
+
+/** A cleaner stays at most this many minutes on one spot before choosing again. */
+export const CLEANER_SPOT_MINUTES = 30;
+
+/** Minutes a cleaner with nothing to clean waits in the room before looking again. */
+export const CLEANER_IDLE_MINUTES = 10;

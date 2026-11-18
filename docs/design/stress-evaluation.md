@@ -99,7 +99,7 @@ Dirt sources:
 
 - A person leaves 0.005 in each cell they walk into.
 - A garbage bag, on the floor (a venue's pile) or carried, adds 1.5 per game minute to its cell and fades over 5 cells on each side.
-- Dirt does not fade. It stays until something cleans it, and nothing does yet.
+- Dirt does not fade. It stays until a cleaner of a cleaning room takes it off (service-units 2.2).
 
 Elevator cars: each rider that boards adds 0.3 noise and 0.1 dirt to the car's pair, and a rider carrying a bag adds 1 more dirt. Car noise fades like the cells; car dirt stays. A rider gets the stress of the car for the minutes of the ride, when they get out.
 

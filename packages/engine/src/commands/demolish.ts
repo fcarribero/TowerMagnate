@@ -118,8 +118,10 @@ function planUnit(state: TowerState, unitId: string): Plan {
       if (unit.sale) chargeMoney(state, 'condoBuybacks', unit.sale.price);
       const indemnity = demolitionIndemnity(state, [unit.id]);
       if (indemnity > 0) chargeMoney(state, 'rent', indemnity);
-      // An obrador's crew is not sent away at once: with the obrador gone they walk out (construction.ts).
-      if (unit.type !== 'obrador') removePeopleOfUnit(state, unit.id);
+      // The crew of an obrador or a cleaning room is not sent away at once: with the unit gone they
+      // walk out (construction.ts, cleaning.ts).
+      if (unit.type !== 'obrador' && unit.type !== 'cleaning-room')
+        removePeopleOfUnit(state, unit.id);
       for (const level of unitLevels(unit)) {
         removeOccupant(state.grid, level, { kind: 'unit', id: unit.id });
         setStructure(state.grid, level, unit.x, x1, 'floor');

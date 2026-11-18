@@ -10,6 +10,7 @@ describe('unitsUnlockedAt', () => {
       'Suite',
       'Limpieza',
       'Seguridad',
+      'Cuarto de limpieza',
     ]);
     expect(unitsUnlockedAt(3)).toEqual([
       'Restaurante',

@@ -48,6 +48,8 @@ export const SPRITE_NAME_OF_KIND: Record<PersonKind, string> = {
   courier: 'customer',
   // Children use the same models and clothes as everyone, drawn smaller (see CHILD_* below).
   child: 'customer',
+  // TODO: cleaners wear the maids' uniform until the person art gets one of their own.
+  cleaner: 'maid',
 };
 
 export const SKIN_TONES: readonly number[] = [
@@ -181,12 +183,15 @@ function clothesOf(name: string, model: PersonModel, hash: number): Clothes {
   }
 }
 
-/** Police, maids and builders are drawn as ordinary civilians until the engine says they wear the uniform. */
+/** Police, maids, builders and cleaners are drawn as ordinary civilians until the engine says they wear the uniform. */
 export type Outfit = 'uniform' | undefined;
 
 function spriteNameOf(kind: PersonKind, carrying: boolean, outfit: Outfit): string {
   if (carrying) return 'staffbag';
-  if ((kind === 'police' || kind === 'maid' || kind === 'builder') && outfit !== 'uniform') {
+  if (
+    (kind === 'police' || kind === 'maid' || kind === 'builder' || kind === 'cleaner') &&
+    outfit !== 'uniform'
+  ) {
     return 'customer';
   }
   return SPRITE_NAME_OF_KIND[kind];

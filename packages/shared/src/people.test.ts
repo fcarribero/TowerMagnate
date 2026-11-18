@@ -6,7 +6,9 @@ import { PersonKindSchema } from './protocol/primitives';
 
 describe('child kind', () => {
   it('is stored after every older kind, so stored codes stay valid', () => {
-    expect(PERSON_KINDS.indexOf('child')).toBe(PERSON_KINDS.length - 1);
+    // The cleaner came after the child; every kind is only ever added at the end.
+    expect(PERSON_KINDS.indexOf('child')).toBe(PERSON_KINDS.length - 2);
+    expect(PERSON_KINDS.indexOf('cleaner')).toBe(PERSON_KINDS.length - 1);
     expect(PERSON_KINDS.indexOf('child')).toBeGreaterThan(PERSON_KINDS.indexOf('courier'));
     expect(PERSON_KINDS.indexOf('officeWorker')).toBe(0);
     expect(PERSON_KINDS.indexOf('resident')).toBe(1);

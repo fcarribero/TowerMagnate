@@ -33,6 +33,7 @@ import { ledgerWeekRollHook } from './money';
 import { createOfficeRoutine } from './office-routine';
 import { createResidentRoutine } from './resident-routine';
 import { createVenueStaff, venueSwitchHook } from './venue-staff';
+import { createCleaningSystem } from './cleaning';
 import { createCouriers } from './couriers';
 import { createProspectDemand } from './prospects';
 import { createScheduler } from './scheduler';
@@ -321,6 +322,7 @@ export const namedTowerSystems: readonly { name: string; system: SimulationSyste
   { name: 'housekeeping', system: createMaidSystem() },
   { name: 'police', system: createPoliceSystem() },
   { name: 'construction', system: createConstructionSystem() },
+  { name: 'cleaning', system: createCleaningSystem() },
   { name: 'customers', system: customers.system },
   { name: 'weddings', system: weddingSystem },
   { name: 'elevators', system: createElevatorSystem() },

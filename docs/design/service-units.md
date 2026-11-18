@@ -39,10 +39,15 @@ Upgrades:
 
 ### 2.2 Cleaning room
 
-- Makes a crew of cleaners (3 at level 0, guess) who start the day in the room.
-- Cleaners go to the dirtiest built cells and bag piles they can reach and remove dirt from them. Dirt only goes down this way; it does not fade by itself (stress-evaluation 2.6).
-- They also take bags from venue piles and carry them out.
-- Upkeep per day (guess): 10,000.
+- Unit `cleaning-room`, "Cuarto de limpieza": 15 x 1, $60,000, unlocks at 2 stars, upkeep 10,000 a week (guess). Until it has art of its own it is drawn with the housekeeping sprites.
+- Each room sends a crew of 3 cleaners (person kind `cleaner`), 2 more for each level of staff. The shift is 07:00 to 19:00 every day. At 07:00, or later in the shift up to 18:00 while the room has nobody in the tower, the crew walks in from the street in everyday clothes, goes to the room and changes there for 5 minutes (2.5).
+- A cleaner first takes the nearest venue garbage pile that no other cleaner is heading to, nearest level first. At the pile it picks up 1 bag, 1 more for each level of tools, and carries them out to the street by a lobby end; then it chooses again from the street.
+- With no pile to take, it walks to the dirtiest built cell with 0.5 dirt or more that is not within 3 columns of a spot another cleaner holds. It tries the 5 dirtiest such spots before giving up. At the spot it takes 1 dirt a minute off its cell, 25% more for each level of collection speed, and the same off 1 more cell to each side for each level of materials. It stays until the cell has less than 0.05 dirt, or 30 minutes at most, then chooses again.
+- With nothing to do it waits 10 minutes at the room door and looks again. A cleaner whose route fails waits the same way.
+- At 19:00 cleaners walk back to the room, change for 5 minutes and leave in everyday clothes. One carrying bags drops them at the street first.
+- Dirt only goes down this way; it does not fade by itself (stress-evaluation 2.6).
+- Demolishing the room does not remove its crew at once: the cleaners walk out of the tower.
+- A cleaner carrying bags is drawn with a bag and dirties cells and cars like the venue staff do. Cleaners do not record trip stress.
 
 Upgrades:
 
@@ -51,7 +56,7 @@ Upgrades:
 | Collection speed | 3 | +25% dirt removed a minute |
 | Staff | 3 | +2 cleaners working at the same time |
 | Materials | 3 | A cleaner removes dirt in 1 more cell around the one it stands on |
-| Tools | 3 | Cleaners walk faster and carry more bags |
+| Tools | 3 | +1 bag carried per trip (walking speed is the same for everyone) |
 
 ### 2.3 Security office
 
@@ -84,7 +89,7 @@ The exact effects depend on what the security system will do; this is not built 
 - The crew from outside always exists, whatever the tower has built. It comes in work clothes and walks straight to its site. It is one more crew on top of the ones the obradores make.
 - The builders of an obrador come in from the street in everyday clothes and walk to their obrador (`arriving`). There they stand `BUILDER_CHANGE_MINUTES` (5) to change (`changingIn`), and then pick a site. At 17:00, or when no free site is left, they walk back to the obrador (`returning`), change for 5 minutes (`changingOut`) and leave for home in everyday clothes. These phases are stored as negative trip codes so the codes of old saves keep their meaning.
 - The client draws a builder in everyday clothes until the engine marks it in uniform, as it does for police and maids.
-- The same is planned for the cleaners of a cleaning room and the guards of a security office: they arrive in everyday clothes, change in their unit and leave through it at the end of the shift.
+- The cleaners of a cleaning room do the same in their room (2.2). The same is planned for the guards of a security office: they arrive in everyday clothes, change in their unit and leave through it at the end of the shift.
 
 ## 2.6 Elevators for staff
 
@@ -123,7 +128,7 @@ No change. The player can build as many shafts and cars as wanted at any star le
 - Price of level N (guess): 25% of the unit price times N.
 - The unit panel lists the upgrades with their levels, price and effect. A locked upgrade shows what is needed.
 - Demolishing the unit loses its upgrades and its crew goes home.
-- Built so far: the catalog (`UPGRADE_CATALOG`), the command and the panel rows, for the security office and the obrador. The obrador's levels act on its crew (2.1); the security office's are stored but have no effect yet. A lobby is not a unit in the game state (it is a span of the grid), so its upgrades are in the catalog but cannot be bought until a lobby has an id of its own; for now its price base is a fixed 200,000 (guess).
+- Built so far: the catalog (`UPGRADE_CATALOG`), the command and the panel rows, for the security office, the obrador and the cleaning room. The obrador's and the cleaning room's levels act on their crews (2.1, 2.2); the security office's are stored but have no effect yet. A lobby is not a unit in the game state (it is a span of the grid), so its upgrades are in the catalog but cannot be bought until a lobby has an id of its own; for now its price base is a fixed 200,000 (guess).
 
 ## 6. Build order
 

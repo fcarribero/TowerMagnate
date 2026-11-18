@@ -28,13 +28,15 @@ const MAID_KIND = PERSON_KINDS.indexOf('maid');
 const POLICE_KIND = PERSON_KINDS.indexOf('police');
 const BUILDER_KIND = PERSON_KINDS.indexOf('builder');
 const COURIER_KIND = PERSON_KINDS.indexOf('courier');
+const CLEANER_KIND = PERSON_KINDS.indexOf('cleaner');
 
 function recordsStress(pool: PersonPool, slot: number): boolean {
   return (
     pool.kind[slot] !== MAID_KIND &&
     pool.kind[slot] !== POLICE_KIND &&
     pool.kind[slot] !== BUILDER_KIND &&
-    pool.kind[slot] !== COURIER_KIND
+    pool.kind[slot] !== COURIER_KIND &&
+    pool.kind[slot] !== CLEANER_KIND
   );
 }
 

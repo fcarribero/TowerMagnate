@@ -25,6 +25,7 @@ export const UNIT_TYPES = [
   'subway-station',
   'cathedral',
   'obrador',
+  'cleaning-room',
 ] as const;
 
 export type UnitType = (typeof UNIT_TYPES)[number];
@@ -65,7 +66,8 @@ export type CapacityRole =
   | 'party-guests'
   | 'passengers-per-car'
   | 'wedding-guests'
-  | 'builders';
+  | 'builders'
+  | 'cleaners';
 
 export interface UnitCapacity {
   readonly role: CapacityRole;

@@ -15,6 +15,7 @@ import {
   type VenueDay,
 } from '@tower-magnate/shared';
 import { STEPS_PER_HOUR, STEPS_PER_MINUTE } from './calendar';
+import { isCleanerCarrying } from './cleaning';
 import { STEPS_PER_DAY } from './clock';
 import { entrancePlace, unitPlace, type Place } from './office-routine';
 import {
@@ -82,9 +83,9 @@ export function staffRoutineAt(pool: PersonPool, slot: number): StaffRoutine | n
   return isStaff(pool, slot) ? decodeStaffRoutine(pool.trip[slot] ?? NO_TRIP) : null;
 }
 
-/** True for a crew member carrying a black garbage bag. */
+/** True for a crew member or a cleaner carrying a black garbage bag. */
 export function isCarryingBag(pool: PersonPool, slot: number): boolean {
-  return staffRoutineAt(pool, slot)?.phase === 'carrying';
+  return staffRoutineAt(pool, slot)?.phase === 'carrying' || isCleanerCarrying(pool, slot);
 }
 
 /** True for crew with no plan, or who are still waiting to arrive. */
@@ -185,8 +186,7 @@ function planRestOfDay(state: TowerState, slot: number): void {
   stayOutside(pool, slot);
   if (!unit) return;
   const earlyStep =
-    dayStartOf(state.step) +
-    (venueHoursOf(unit).open - drawEarlyMinutes(state)) * STEPS_PER_MINUTE;
+    dayStartOf(state.step) + (venueHoursOf(unit).open - drawEarlyMinutes(state)) * STEPS_PER_MINUTE;
   const arrival = Math.max(earlyStep, state.step + 1);
   if (arrival >= closeStepOf(unit, state.step)) return;
   pool.trip[slot] = encodeStaffRoutine({ phase: 'outside', entranceOnRight: false });
@@ -292,13 +292,7 @@ function save(worker: Worker, dueStep: number): void {
 }
 
 /** Puts the person at `from`, then walks them to `to` in `phase`; false, with nothing changed, when there is no route. */
-function walk(
-  worker: Worker,
-  phase: StaffPhase,
-  to: Place,
-  from?: Place,
-  outTo?: number,
-): boolean {
+function walk(worker: Worker, phase: StaffPhase, to: Place, from?: Place, outTo?: number): boolean {
   const { state, slot, routine } = worker;
   const pool = state.people;
   const previous = routine.phase;

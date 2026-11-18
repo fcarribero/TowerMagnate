@@ -72,6 +72,7 @@ export {
 export type { CheckInResult } from './hotel';
 export { housekeepingSummary, maidTaskAt } from './housekeeping';
 export { completeSite, constructionPointsFor, siteAppraisal, siteProgress } from './construction';
+export { cleanerCrewSize, cleanerRate, decodeCleanerTask, isCleaner } from './cleaning';
 export type { HousekeepingSummary, MaidPhase, MaidTask } from './housekeeping';
 export {
   createLeaseSystem,
@@ -159,7 +160,12 @@ export {
   spotKindOf,
 } from './police';
 export type { PoliceSpot } from './police';
-export { decodePoliceRoutine, encodePoliceRoutine, policePhaseAt, POLICE_PHASES } from './police-phase';
+export {
+  decodePoliceRoutine,
+  encodePoliceRoutine,
+  policePhaseAt,
+  POLICE_PHASES,
+} from './police-phase';
 export type { PolicePhase } from './police-phase';
 export { encodeResidentRoutine } from './resident-routine';
 export { createCouriers } from './couriers';

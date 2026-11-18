@@ -23,6 +23,7 @@ const KIND_KEYS: Readonly<Record<PersonKind, StringKey>> = {
   staff: 'value.person.staff',
   courier: 'value.person.courier',
   child: 'value.person.child',
+  cleaner: 'value.person.cleaner',
 };
 
 const STRESS_KEYS: Readonly<Record<StressLevel, StringKey>> = {
