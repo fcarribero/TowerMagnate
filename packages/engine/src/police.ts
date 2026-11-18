@@ -301,9 +301,10 @@ function hallwayPlace(state: TowerState, unit: Unit): Place | null {
 }
 
 /**
- * Picks the next patrol stop: a unit drawn by how much crime it draws (shops, food and cinemas most, never condos), then the open floor beside it. Patrols keep off the elevators
- * (the trek plans them as stairs and escalators only), so a unit with no such route is skipped.
- * With nothing reachable the officer stays at the base and looks again later.
+ * Picks the next patrol stop: a unit drawn by how much crime it draws (shops, food and cinemas
+ * most, never condos), then the open floor beside it. The officer walks, takes stairs, escalators
+ * and elevators. A unit with no route from where the officer stands is skipped. With nothing
+ * reachable the officer stays at the base and looks again later.
  */
 function startPatrol(officer: Officer): void {
   const { context, slot, office } = officer;

@@ -194,15 +194,6 @@ function observeDay() {
         levels.add(pool.level[slot] as number);
       }
       const trek = trekPhaseAt(pool, slot);
-      if (
-        phase === 'patrolling' &&
-        (trek === 'walkingToShaft' ||
-          trek === 'queued' ||
-          trek === 'waitingBesideQueue' ||
-          trek === 'riding')
-      ) {
-        violations.push(`step ${current.step}: patrol ${trek}`);
-      }
       if (phase === 'patrolling' && trek === 'walkingToDestination') {
         const previous = lastColumn.get(id);
         const column = pool.column[slot] as number;
@@ -293,9 +284,8 @@ describe('police shifts over a day', () => {
     expect(inside).toBeGreaterThanOrEqual(SECURITY_OFFICE_SPOTS);
   });
 
-  it('patrols without elevators and only on levels the stairs reach', () => {
-    expect([...day.levels].sort()).toEqual([2, 3]);
-    expect(day.levels.has(4)).toBe(false);
+  it('rides the elevator to patrol levels the stairs do not reach', () => {
+    expect([...day.levels].sort()).toEqual([2, 3, 4]);
   });
 
   it('visits shops and food more often than offices', () => {
@@ -351,7 +341,7 @@ describe('police and other people', () => {
     );
   });
 
-  it('on patrol have no route that needs an elevator, while an officer sent by an event has', () => {
+  it('on patrol may take an elevator to a level the stairs do not reach', () => {
     const { state, office } = policeTower();
     seatShiftOnDuty(state);
     const pool = state.people;
@@ -359,8 +349,6 @@ describe('police and other people', () => {
     const context: StepContext = { state, events: [] };
     const top = { level: 4, column: 104 } as const;
     pool.trip[slot] = encodePoliceRoutine({ phase: 'patrolling', entranceOnRight: false });
-    expect(startTrek(context, slot, top)).toBe(false);
-    pool.trip[slot] = encodePoliceRoutine({ phase: 'summoned', entranceOnRight: false });
     expect(startTrek(context, slot, top)).toBe(true);
   });
 

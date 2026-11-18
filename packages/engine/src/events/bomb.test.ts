@@ -12,6 +12,7 @@ import { STEPS_PER_DAY } from '../clock';
 import { occupantAt, structureAt } from '../grid';
 import { addPeopleForUnit, countPeopleOfUnit, parseUnitNumber, peopleCount } from '../people';
 import { seatShiftOnDuty } from '../police';
+import { policePhaseAt } from '../police-phase';
 import { createRng } from '../rng';
 import { step, type StepContext } from '../step';
 import { isOnTrek } from '../trek';
@@ -255,6 +256,9 @@ describe('bomb search outcome', () => {
     const guardHome = parseUnitNumber(securityId);
     for (let slot = 0; slot < peopleCount(pool); slot++) {
       if (pool.homeUnit[slot] !== guardHome) continue;
+      // Still held by the event: on the way back or already in the office. The others are back on
+      // their shift routine, so a patrol may be on any floor.
+      if (policePhaseAt(pool, slot) !== 'summoned') continue;
       expect(pool.level[slot] === 3 || isOnTrek(pool, slot)).toBe(true);
     }
   });

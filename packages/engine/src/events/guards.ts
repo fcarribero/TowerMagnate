@@ -1,11 +1,7 @@
 import { UNIT_CATALOG, type GridState, type Level, type PersonPool } from '@tower-magnate/shared';
 import { NO_TRIP, NOTHING_DUE } from '../people';
 import { policeBasePlace } from '../police';
-import {
-  decodePoliceRoutine,
-  encodePoliceRoutine,
-  isPoliceOnDuty,
-} from '../police-phase';
+import { decodePoliceRoutine, encodePoliceRoutine, isPoliceOnDuty } from '../police-phase';
 import type { StepContext } from '../step';
 import { cancelTrek, isOnTrek, startTrek, type TrekPlace } from '../trek';
 
@@ -36,7 +32,6 @@ export function guardSlots(pool: PersonPool): number[] {
 /** Sends the guard to `to`, dropping whatever trip it was on. False when there is no route. */
 export function sendGuard(context: StepContext, slot: number, to: TrekPlace): boolean {
   cancelTrek(context, slot);
-  // An officer sent by an event may ride the elevators, unlike one on patrol.
   summon(context.state.people, slot);
   return startTrek(context, slot, to);
 }

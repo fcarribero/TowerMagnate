@@ -66,7 +66,7 @@ import {
 } from './trip-ledger';
 import { CHILD_KIND, householdIndexOf, isChild } from './children';
 import { NOTHING_DUE, parsePersonId, personEntityId, removePerson, slotOfPerson } from './people';
-import { isPatrolling, POLICE_KIND } from './police-phase';
+import { POLICE_KIND } from './police-phase';
 import { floorIndex, type UserClass } from './routing/transport-graph';
 import { mainLobbyEnds, nearestStreetColumn, STREET_LEVEL } from './street';
 import {
@@ -117,10 +117,10 @@ const DEPARTING = TREK_PHASES.indexOf('departing');
 
 const MAID_KIND = PERSON_KINDS.indexOf('maid');
 
-/** Maids keep to stairs and service shafts; police on patrol keep to stairs and escalators. */
+/** Maids keep to stairs and service shafts; everyone else, police included, takes the rest. */
 function userClassOf(pool: PersonPool, slot: number): UserClass {
   if (pool.kind[slot] === MAID_KIND) return 'maid';
-  return isPatrolling(pool, slot) ? 'police' : 'other';
+  return 'other';
 }
 
 export interface TrekPlace {

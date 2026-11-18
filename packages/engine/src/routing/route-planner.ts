@@ -65,12 +65,11 @@ interface Who {
   profile: number;
 }
 
-const CLASSES = 3;
+const CLASSES = 2;
 const PROFILES = CLASSES * MAX_ENERGY_LEVEL;
 
 function classIndex(userClass: UserClass): number {
-  if (userClass === 'maid') return 1;
-  return userClass === 'police' ? 2 : 0;
+  return userClass === 'maid' ? 1 : 0;
 }
 
 function whoOf(userClass: UserClass, energy: number | undefined): Who {
