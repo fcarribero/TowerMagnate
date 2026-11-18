@@ -1,5 +1,6 @@
 import {
   AMBIENT_WALK_CELL_STRESS,
+  AMBIENT_WALK_COLUMNS_PER_STRESS,
   PERSON_DIRT_CELL,
   PERSON_NOISE_CELL,
   PERSON_NOISE_STAND_MINUTE,
@@ -1119,11 +1120,19 @@ function walk(context: StepContext, slot: number, pass: TrekPass): boolean {
     const state = context.state;
     addPersonTrail(state, level, column + direction, NOISE_PER_CELL, DIRT_PER_CELL);
     if (!pass.ambient.insideUnit(level, column + direction)) {
-      addAmbient(pool, slot, WALK_CELL_STRESS, 'walk');
+      addAmbient(pool, slot, walkCellStress(column + direction), 'walk');
     }
   }
   syncLane(pass, slot);
   return pool.column[slot] === target;
+}
+
+/**
+ * The stress of stepping into a column outside a unit: AMBIENT_WALK_CELL_STRESS on every
+ * AMBIENT_WALK_COLUMNS_PER_STRESS-th column, so any walk of that many columns adds it once.
+ */
+export function walkCellStress(column: number): number {
+  return column % AMBIENT_WALK_COLUMNS_PER_STRESS === 0 ? WALK_CELL_STRESS : 0;
 }
 
 /** True while the person is walking along a level, whatever for. */

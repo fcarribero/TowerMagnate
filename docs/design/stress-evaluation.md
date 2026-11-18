@@ -27,7 +27,7 @@ Each trip produces one stress value `T`, in steps, from the legs recorded by rou
 | Full queue | 12 per full-queue event |
 | No route | 360 per failed route search |
 | Long slow trip | 0, 30 or 60 (2.2) |
-| Horizontal walking | 1 per column outside units (2.6) |
+| Horizontal walking | 1 per 3 columns outside units (2.6) |
 
 Then `T = min(540, sum of the parts)`.
 
@@ -112,7 +112,7 @@ Stress from the maps: a cell gives `0.03 * noise + 0.15 * dirt` steps of stress 
 
 People sitting still between trips are not visited each minute. When their next trip starts, the minutes since their last trip ended (at most 120) are counted at the cell where they stand, with the current values of the maps, and added to that trip. A worker's day at the desk shows in the trip home.
 
-Walking: each column walked adds 1 (`AMBIENT_WALK_CELL_STRESS`). Cells inside a unit do not count, so moving around inside the destination unit is free. The walk in from the map edge and the walk out to it does not count either.
+Walking: every third column walked adds 1 (`AMBIENT_WALK_CELL_STRESS` on each column that is a multiple of `AMBIENT_WALK_COLUMNS_PER_STRESS`, 3), so any walk of 3 columns adds 1. It was 1 per column; in a wide tower walking was then the main cause for almost every hotel room. Cells inside a unit do not count, so moving around inside the destination unit is free. The walk in from the map edge and the walk out to it does not count either.
 
 Maids, guards, builders and couriers add to the maps like everyone else but record no stress. The total for a trip never goes below 0. The 540 cap and the long-trip extra work as before.
 
@@ -274,14 +274,13 @@ Design call: a calm, well-served office can ask for a higher rent, and fixing th
 
 ### 5.6 Reasons in the unit window
 
-The window of every evaluated unit (office, shop, condo and hotel room) lists what counts for its grade in a tooltip on its evaluation tile, from the parts the grade would use now. Each reason in favor is a green line starting with "+", each reason against a red line starting with "-", with no headings. The reasons below are worded for an office. The words follow the unit: the price is "Alquiler" for an office or shop, "Precio" for a condo and "Tarifa" for a hotel room, and the occupants are "Trabajadores", "Clientes", "Residentes" or "Huéspedes". A shop names no cause, because the people who belong to it are its staff and its grade comes from its customers.
+The window of every evaluated unit (office, shop, condo and hotel room) lists what counts for its grade in a tooltip on its evaluation tile, from the parts the grade would use now. Each reason in favor is a green line starting with "+", each reason against a red line starting with "-", with no headings. Each reason says what is good or bad about the place, and none names the occupants.
 
-- Rent: a price at or under the fair price is "Alquiler dentro del precio justo" in favor. A price over it is "Alquiler por encima del precio justo" against.
-- Workers: an occupant score `U` under 3 is "Trabajadores tranquilos" in favor, because they raise the fair price. From 3, "Trabajadores estresados por {cause}" is against, where the cause is the one with the largest total (3.3) among the office's workers, calm left out. With no cause to name it reads "Trabajadores estresados".
-- Neighbor: when the neighbor pull applies, "Vecino mal valorado" is against.
-- Parking: from 3 stars, when the office has a worker who asks for parking (people.md 17), "Con cochera" is in favor if every such worker has a space and "Sin cochera" is against if one has none. A missing space also takes 10% off the fair price (economy 3.1).
+- Price: a price over the fair price is against: "Alquiler caro" for an office or shop, "Precio alto" for a condo and "Tarifa cara" for a hotel room. A price at or under the fair price is not listed.
+- Stress: an occupant score `U` under 3 is "Ambiente tranquilo" in favor, because the occupants raise the fair price. From 3, the cause with the largest total (3.3) among the unit's own people, calm left out, is against: "Demasiada espera de ascensor" (wait), "Viajes en ascensor muy largos" (ride), "Demasiadas escaleras" (stairs), "Colas de ascensor llenas" (queue), "Difícil de llegar" (no route), "Demasiado ruido" or "Demasiada suciedad" (surroundings, noise when the unit is noisy), and for walking "Oficina demasiado lejos", "Local demasiado lejos", "Departamento demasiado lejos" or "Habitación demasiado lejos". With no cause to name, as in a shop whose grade comes from its customers, it reads "Ambiente estresante".
+- Parking: from 3 stars, when the unit has a person who asks for parking (people.md 17), "Con cochera" is in favor if every such person has a space and "Sin cochera" is against if one has none. A missing space also takes 10% off the fair price (economy 3.1).
 
-Noise is not listed on its own. It counts in the occupant score (5.4) and in the workers' "Ruido y suciedad" cause, so a separate line could say "quiet" next to workers stressed by noise.
+The neighbor pull still counts in the grade, but it is not listed. Noise is not listed on its own: it counts in the occupant score (5.4) and shows as "Demasiado ruido" when it is the main cause.
 
 The unit window also shows the fair price, labeled "Precio justo" (ui.md 6.2). It does not show the occupant score as a number.
 

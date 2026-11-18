@@ -229,10 +229,11 @@ describe('unit window model', () => {
       kind: 'police',
     });
     expect(
-      peopleGroups({ type: 'cleaning-room', details: { group: 'cleaning', workers: ['p1', 'p2'] } }),
-    ).toEqual([
-      { id: 'cleaners', label: 'Limpiadores', people: ['p1', 'p2'], kind: 'cleaner' },
-    ]);
+      peopleGroups({
+        type: 'cleaning-room',
+        details: { group: 'cleaning', workers: ['p1', 'p2'] },
+      }),
+    ).toEqual([{ id: 'cleaners', label: 'Limpiadores', people: ['p1', 'p2'], kind: 'cleaner' }]);
   });
 
   it('describes a leased office', () => {
@@ -500,14 +501,14 @@ describe('evaluation reasons of an office', () => {
     expect(evaluationReasons(officeWith(null))).toBeNull();
   });
 
-  it('lists a fair rent and calm workers in favor, and never noise, which the workers feel', () => {
+  it('lists a calm place in favor, and never a fair price or noise, which the workers feel', () => {
     expect(evaluationReasons(officeWith({}))).toEqual({
-      good: ['Alquiler dentro del precio justo', 'Trabajadores tranquilos'],
+      good: ['Ambiente tranquilo'],
       bad: [],
     });
   });
 
-  it('lists a rent over the fair price, stressed workers and a bad neighbor against', () => {
+  it('lists a dear rent and the main cause of stress against, and never a bad neighbor', () => {
     expect(
       evaluationReasons(
         officeWith({
@@ -520,11 +521,7 @@ describe('evaluation reasons of an office', () => {
       ),
     ).toEqual({
       good: [],
-      bad: [
-        'Alquiler por encima del precio justo',
-        'Trabajadores estresados por esperas del ascensor',
-        'Vecino mal valorado',
-      ],
+      bad: ['Alquiler caro', 'Demasiada espera de ascensor'],
     });
   });
 
@@ -533,6 +530,19 @@ describe('evaluation reasons of an office', () => {
     expect(evaluationReasons(officeWith({ parking: 'missing' }))?.bad).toContain('Sin cochera');
     const none = evaluationReasons(officeWith({ parking: null }));
     expect([...(none?.good ?? []), ...(none?.bad ?? [])].join()).not.toMatch(/cochera/);
+  });
+
+  it('names each cause of stress as what is wrong with the place', () => {
+    const causeOf = (patch: Partial<NonNullable<Lease['evaluationParts']>>) =>
+      evaluationReasons(officeWith({ occupantScore: 3, ...patch }))?.bad;
+    expect(causeOf({ mainCause: 'surroundings', noisy: true })).toEqual(['Demasiado ruido']);
+    expect(causeOf({ mainCause: 'surroundings', noisy: false })).toEqual(['Demasiada suciedad']);
+    expect(causeOf({ mainCause: 'walk' })).toEqual(['Oficina demasiado lejos']);
+    expect(causeOf({ mainCause: 'stairs' })).toEqual(['Demasiadas escaleras']);
+    expect(causeOf({ mainCause: 'ride' })).toEqual(['Viajes en ascensor muy largos']);
+    expect(causeOf({ mainCause: 'queue' })).toEqual(['Colas de ascensor llenas']);
+    expect(causeOf({ mainCause: 'noRoute' })).toEqual(['Difícil de llegar']);
+    expect(causeOf({ mainCause: null })).toEqual(['Ambiente estresante']);
   });
 
   it('turns the reasons into tooltip lines with no headings, + in green and - in red', () => {
@@ -568,8 +578,8 @@ describe('evaluation reasons of other units', () => {
       details: { ...condoDetails, price: 9_000, evaluationParts: parts },
     };
     expect(evaluationReasons(condo as Pick<UnitInspect, 'type' | 'details'>)).toEqual({
-      good: ['Precio dentro del precio justo'],
-      bad: ['Residentes estresados por las escaleras', 'Sin cochera'],
+      good: [],
+      bad: ['Demasiadas escaleras', 'Sin cochera'],
     });
   });
 
@@ -583,12 +593,32 @@ describe('evaluation reasons of other units', () => {
       },
     };
     expect(evaluationReasons(room as Pick<UnitInspect, 'type' | 'details'>)).toEqual({
-      good: ['Huéspedes tranquilos', 'Con cochera'],
-      bad: ['Tarifa por encima del precio justo'],
+      good: ['Ambiente tranquilo', 'Con cochera'],
+      bad: ['Tarifa cara'],
     });
   });
 
-  it('names the customers of a shop', () => {
+  it('says a hotel room is too far when walking stresses its guests most', () => {
+    const room = {
+      type: 'single-room',
+      details: { ...hotelDetails, price: 1, evaluationParts: { ...parts, mainCause: 'walk' } },
+    };
+    expect(evaluationReasons(room as Pick<UnitInspect, 'type' | 'details'>)?.bad).toContain(
+      'Habitación demasiado lejos',
+    );
+  });
+
+  it('says a condo price over the fair price is high', () => {
+    const condo = {
+      type: 'condo',
+      details: { ...condoDetails, price: 10_001, evaluationParts: parts },
+    };
+    expect(evaluationReasons(condo as Pick<UnitInspect, 'type' | 'details'>)?.bad).toContain(
+      'Precio alto',
+    );
+  });
+
+  it('lists a stressed shop with no cause named', () => {
     const shop = {
       type: 'retail-shop',
       details: {
@@ -598,8 +628,8 @@ describe('evaluation reasons of other units', () => {
       },
     };
     expect(evaluationReasons(shop as Pick<UnitInspect, 'type' | 'details'>)).toEqual({
-      good: ['Alquiler dentro del precio justo'],
-      bad: ['Clientes estresados'],
+      good: [],
+      bad: ['Ambiente estresante'],
     });
   });
 });

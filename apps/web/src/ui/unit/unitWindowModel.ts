@@ -687,14 +687,14 @@ type WorkerCause = NonNullable<EvaluationPartsView['mainCause']>;
 /** Workers under this score raise the fair price: the neutral point of the fair price. */
 const CALM_WORKERS_SCORE = 3;
 
-const CAUSE_KEYS: Readonly<Record<Exclude<WorkerCause, 'calm'>, StringKey>> = {
+const CAUSE_KEYS: Readonly<
+  Record<Exclude<WorkerCause, 'calm' | 'walk' | 'surroundings'>, StringKey>
+> = {
   wait: 'window.unit.reason.cause.wait',
   ride: 'window.unit.reason.cause.ride',
   stairs: 'window.unit.reason.cause.stairs',
   queue: 'window.unit.reason.cause.queue',
   noRoute: 'window.unit.reason.cause.noRoute',
-  walk: 'window.unit.reason.cause.walk',
-  surroundings: 'window.unit.reason.cause.surroundings',
 };
 
 export interface EvaluationReasons {
@@ -710,32 +710,40 @@ export function reasonLines(reasons: EvaluationReasons): TooltipLine[] {
   ];
 }
 
-/** Who the occupants of each evaluated unit are, and what their price is called. */
-const OCCUPANT_WORDS: Readonly<
-  Partial<Record<UnitInspect['type'], { who: StringKey; price: StringKey }>>
+/** What each evaluated unit says when its price is over the fair price, and when it is too far. */
+const UNIT_WORDS: Readonly<
+  Partial<Record<UnitInspect['type'], { dear: StringKey; far: StringKey }>>
 > = {
-  office: { who: 'window.unit.reason.who.workers', price: 'window.unit.reason.price.rent' },
-  'retail-shop': {
-    who: 'window.unit.reason.who.customers',
-    price: 'window.unit.reason.price.rent',
-  },
-  condo: { who: 'window.unit.reason.who.residents', price: 'window.unit.reason.price.sale' },
-  'single-room': { who: 'window.unit.reason.who.guests', price: 'window.unit.reason.price.rate' },
-  'double-room': { who: 'window.unit.reason.who.guests', price: 'window.unit.reason.price.rate' },
-  suite: { who: 'window.unit.reason.who.guests', price: 'window.unit.reason.price.rate' },
+  office: { dear: 'window.unit.reason.dear.rent', far: 'window.unit.reason.far.office' },
+  'retail-shop': { dear: 'window.unit.reason.dear.rent', far: 'window.unit.reason.far.shop' },
+  condo: { dear: 'window.unit.reason.dear.sale', far: 'window.unit.reason.far.condo' },
+  'single-room': { dear: 'window.unit.reason.dear.rate', far: 'window.unit.reason.far.room' },
+  'double-room': { dear: 'window.unit.reason.dear.rate', far: 'window.unit.reason.far.room' },
+  suite: { dear: 'window.unit.reason.dear.rate', far: 'window.unit.reason.far.room' },
 };
 
+/** The main cause of the occupants' stress, said as what is wrong with the place. */
+function causeText(parts: EvaluationPartsView, far: StringKey): string {
+  const cause = parts.mainCause;
+  if (cause === null || cause === 'calm') return t('window.unit.reason.stressful');
+  if (cause === 'walk') return t(far);
+  if (cause === 'surroundings') {
+    return t(parts.noisy ? 'window.unit.reason.cause.noise' : 'window.unit.reason.cause.dirt');
+  }
+  return t(CAUSE_KEYS[cause]);
+}
+
 /**
- * Why a unit has its grade: its price against the fair price, the stress score of its occupants
- * and their main cause, a worse neighbor and the parking its people ask for (stress-evaluation
- * 5.6). Noise is not listed: the occupants feel it, and it shows in their main cause. Null when the
- * inspect has no parts.
+ * Why a unit has its grade, as what is good or bad about the place: a price over the fair price,
+ * calm or the main cause of the occupants' stress, and the parking its people ask for
+ * (stress-evaluation 5.6). A fair price and a worse neighbor are not listed. Null when the inspect
+ * has no parts.
  */
 export function evaluationReasons(
   unit: Pick<UnitInspect, 'type' | 'details'>,
 ): EvaluationReasons | null {
   const details = unit.details;
-  const words = OCCUPANT_WORDS[unit.type];
+  const words = UNIT_WORDS[unit.type];
   if (
     words === undefined ||
     (details?.group !== 'lease' && details?.group !== 'condo' && details?.group !== 'hotel') ||
@@ -744,20 +752,11 @@ export function evaluationReasons(
     return null;
   }
   const parts = details.evaluationParts;
-  const what = t(words.price);
-  const who = t(words.who);
   const good: string[] = [];
   const bad: string[] = [];
-  if (details.price <= parts.fairPrice) good.push(t('window.unit.reason.fairPrice', { what }));
-  else bad.push(t('window.unit.reason.highPrice', { what }));
-  if (parts.occupantScore < CALM_WORKERS_SCORE) {
-    good.push(t('window.unit.reason.calm', { who }));
-  } else if (parts.mainCause === null || parts.mainCause === 'calm') {
-    bad.push(t('window.unit.reason.stressed', { who }));
-  } else {
-    bad.push(t('window.unit.reason.stressedBy', { who, cause: t(CAUSE_KEYS[parts.mainCause]) }));
-  }
-  if (parts.neighborPull) bad.push(t('window.unit.reason.badNeighbor'));
+  if (details.price > parts.fairPrice) bad.push(t(words.dear));
+  if (parts.occupantScore < CALM_WORKERS_SCORE) good.push(t('window.unit.reason.calm'));
+  else bad.push(causeText(parts, words.far));
   if (parts.parking === 'has') good.push(t('window.unit.reason.parking'));
   else if (parts.parking === 'missing') bad.push(t('window.unit.reason.noParking'));
   return { good, bad };

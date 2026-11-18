@@ -827,8 +827,10 @@ export const DIRT_STRESS_PER_LEVEL = 0.15;
 /** Below this stress per minute a cell is calm and gives back 1 step on one minute in CALM_ONE_IN. */
 export const CALM_BELOW = 0.1;
 export const CALM_ONE_IN = 5;
-/** Each column walked outside a unit adds this much stress, in steps. */
+/** Walking outside a unit adds this much stress, in steps, once every AMBIENT_WALK_COLUMNS_PER_STRESS columns. */
 export const AMBIENT_WALK_CELL_STRESS = 1;
+/** Columns walked for each AMBIENT_WALK_CELL_STRESS: 3, so a walk across a wide floor is mild. */
+export const AMBIENT_WALK_COLUMNS_PER_STRESS = 3;
 /** A person sitting still between trips is counted for at most this many steps (2 hours). */
 export const AMBIENT_STAY_MAX_STEPS = 720;
 

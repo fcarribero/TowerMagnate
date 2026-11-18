@@ -363,12 +363,10 @@ describe('unit windows', () => {
       });
       const lines = [...screen.getByRole('tooltip').querySelectorAll('.tm-tooltip__line')];
       expect(lines.map((line) => line.textContent)).toEqual([
-        '+ Alquiler dentro del precio justo',
-        '+ Trabajadores tranquilos',
+        '+ Ambiente tranquilo',
         '- Sin cochera',
       ]);
       expect(lines.map((line) => line.className)).toEqual([
-        'tm-tooltip__line is-good',
         'tm-tooltip__line is-good',
         'tm-tooltip__line is-bad',
       ]);

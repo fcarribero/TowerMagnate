@@ -1,4 +1,5 @@
 import {
+  AMBIENT_WALK_COLUMNS_PER_STRESS,
   ELEVATOR_QUEUE_CAPACITY,
   FULL_QUEUE_RECHECK_STEPS,
   STRESS_NO_ROUTE,
@@ -112,8 +113,8 @@ function rideToArrival(start: TowerState, id: number): Ride {
   return { state, waitSteps, rideSteps };
 }
 
-/** The 30 columns the riders walk after getting off add 1 each; a minute of calm may give back a little. */
-const WALK_CELLS = 30;
+/** The 30 columns the riders walk after getting off add 1 per 3; a minute of calm may give back a little. */
+const WALK_CELLS = 30 / AMBIENT_WALK_COLUMNS_PER_STRESS;
 const CALM_SLACK = 6;
 
 function expectNearWalk(actual: number | undefined, base: number): void {
