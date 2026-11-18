@@ -88,16 +88,17 @@ The exact effects depend on what the security system will do; this is not built 
 
 This replaces the rules in routing.md that let only maids use service elevators and keep guards off them.
 
-- Every worker inside the tower (builders, cleaners, maids, guards) prefers a service elevator. The route cost of a service ride is lower than the cost of any other way for them (guess: the ride cost of a service shaft is halved for staff).
-- If the tower has no service elevator that links their two floors, they use what the other people use: stairs, escalators and standard and express elevators.
-- Other people never use a service elevator.
+- Service elevators are for workers only: builders, cleaners, maids and guards. Other people never use them.
+- For a worker the cost of a service ride is much lower than the cost of a standard or express ride (guess: a quarter of it per floor, and a quarter of the 500 boarding cost).
+- A worker is not barred from the standard elevators. The route is the cheapest one, so a worker takes a standard or express car when it beats the service car by a wide margin, for example when the service car has a long wait or does not stop on a floor the route needs.
+- If the service elevators are too few or too slow, workers end up in the cars of everyone else. The player fixes that by building more service elevators.
 
 ## 2.7 Stress from seeing workers
 
 - A person who rides a standard or express car with a worker in it, or who walks past one, feels a little stress. Workers inside a service car do not count, because nobody else is there.
 - So a tower with no service elevators makes workers share cars with tenants, and the stress shows up in the score of the units those tenants come from.
 - The value is added to the minute stress of the cell or car: it goes in the car's noise and dirt pair, with a worker counting more than a plain rider (guess: a worker adds 0.5 noise and 0.1 dirt in a car, a bag-carrying cleaner adds 1 dirt more).
-- A worker walking in the open adds the same small noise and dirt per cell as anyone else; no extra.
+- The stress is only for cars. A worker who crosses a person on foot, in a hall or on stairs, adds nothing beyond the small noise and dirt per cell that anyone adds.
 
 ## 3. Quiet and comfort units
 
