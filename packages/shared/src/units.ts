@@ -97,7 +97,6 @@ export interface PlacementFlags {
 export type LimitGroupId =
   | 'elevator-shafts'
   | 'stairs-and-escalators'
-  | 'security'
   | 'medical'
   | 'entertainment'
   | 'commercial'

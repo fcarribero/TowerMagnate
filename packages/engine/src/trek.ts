@@ -29,6 +29,7 @@ import {
   type Shaft,
   type TowerState,
   type UnitType,
+  SECURITY_WATCHED_STRESS,
 } from '@tower-magnate/shared';
 import { ambientOf, type Ambient } from './ambient-stress';
 import {
@@ -47,6 +48,7 @@ const WALK_CELL_STRESS = AMBIENT_WALK_CELL_STRESS;
 const NOISE_PER_CELL = PERSON_NOISE_CELL;
 const DIRT_PER_CELL = PERSON_DIRT_CELL;
 const NOISE_PER_STAND = PERSON_NOISE_STAND_MINUTE;
+const WATCHED_STRESS = SECURITY_WATCHED_STRESS;
 import { drainEnergy, energyLevelOf, leaveHome, resetEnergy, restEnergy } from './energy';
 import { isQueueFull, joinQueue, nextQueueCheckStep, queueLength } from './elevator-queues';
 import {
@@ -67,6 +69,7 @@ import {
 import { CHILD_KIND, householdIndexOf, isChild } from './children';
 import { NOTHING_DUE, parsePersonId, personEntityId, removePerson, slotOfPerson } from './people';
 import { POLICE_KIND } from './police-phase';
+import { watchedCells } from './police';
 import { floorIndex, type UserClass } from './routing/transport-graph';
 import { mainLobbyEnds, nearestStreetColumn, STREET_LEVEL } from './street';
 import {
@@ -1299,10 +1302,12 @@ function feelEnvironment(context: StepContext, slot: number, phase: number): voi
   const level = pool.level[slot] as number;
   const column = pool.column[slot] as number;
   const minute = Math.floor(state.step / STEPS_PER_MINUTE);
-  const perMinute = stressPerMinute(
+  let perMinute = stressPerMinute(
     valueAt(heatOf(state).noise, level, column),
     valueAt(heatOf(state).dirt, level, column),
   );
+  // An officer with cameras watching the cell makes people there feel less of it.
+  if (watchedCells(state)?.get(level)?.[column] === 1) perMinute *= WATCHED_STRESS;
   addAmbient(pool, slot, stepsFelt(perMinute, 1, id, minute));
   if (!isWalkingPhase(phase)) addPersonNoise(state, level, column, NOISE_PER_STAND);
 }

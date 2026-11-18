@@ -60,18 +60,19 @@ Upgrades:
 
 ### 2.3 Security office
 
-- The unit loses any area of coverage. All offices send guards to the whole tower, so each extra office adds officers on patrol.
-- The limit of one office (`limitGroup: 'security'`) is removed so the player can build more. The 2 to 3 star requirement of at least one office stays.
-- Upgrades apply to the guards of that office.
+- There is no area of coverage. Every office has its own 21 officers (3 shifts of 7) and its patrol officers walk the whole tower, picking stops by the crime weight of the units (`SECURITY_PATROL_WEIGHTS`), so each extra office adds officers on patrol. The picks are drawn per officer and step, so officers of different offices spread over the tower.
+- Security has no tower limit any more (it was 10, construction C-52). The 2 to 3 star requirement of at least one office stays.
+- Officers already come in plain clothes, change for 5 minutes in their office, work their shift and change back before they leave (people 14), as in 2.5.
+- Upgrades apply to the officers of that office, except the fire system and access control, where the best office in the tower counts.
 
 | Upgrade | Levels | Effect per level |
 |---|---|---|
-| Cameras | 3 | Less theft and vandalism where the guards patrol |
-| Guards | 3 | +1 guard on each shift |
-| Fire system | 3 | A fire in the tower is put out sooner |
-| Access control | 2 | Suites and condos count the tower as safer |
+| Cameras | 3 | Each patrolling officer of the office watches `SECURITY_CAMERA_COLUMNS` (5) columns either side of where they stand, on their level. People in a watched cell feel its noise and dirt stress times `SECURITY_WATCHED_STRESS` (0.5). |
+| Guards | 3 | `SECURITY_GUARDS_PER_LEVEL` (1) more officer on every shift. The officers are added when the level is bought and they patrol. |
+| Fire system | 3 | Every burning front gets `SECURITY_FIRE_SYSTEM_PROGRESS` (1) containment a minute, on top of the guards fighting it. The best level among the offices counts. |
+| Access control | 2 | Condos and suites take `SECURITY_ACCESS_CONTROL_SCORE` (30) off their base stress in the grade, not below 0. The best level among the offices counts. |
 
-The exact effects depend on what the security system will do; this is not built yet in the stress score. The first step is a stress lower for tenants near a patrolled route (guess).
+The tower has no theft or vandalism events, so cameras act on stress instead. An office without cameras changes nothing in the stress people feel.
 
 ### 2.4 Lobby
 
@@ -128,7 +129,7 @@ No change. The player can build as many shafts and cars as wanted at any star le
 - Price of level N (guess): 25% of the unit price times N.
 - The unit panel lists the upgrades with their levels, price and effect. A locked upgrade shows what is needed.
 - Demolishing the unit loses its upgrades and its crew goes home.
-- Built so far: the catalog (`UPGRADE_CATALOG`), the command and the panel rows, for the security office, the obrador and the cleaning room. The obrador's and the cleaning room's levels act on their crews (2.1, 2.2); the security office's are stored but have no effect yet. A lobby is not a unit in the game state (it is a span of the grid), so its upgrades are in the catalog but cannot be bought until a lobby has an id of its own; for now its price base is a fixed 200,000 (guess).
+- Built so far: the catalog (`UPGRADE_CATALOG`), the command and the panel rows, for the security office, the obrador and the cleaning room. All their levels act: the obrador's and the cleaning room's on their crews (2.1, 2.2), the security office's as in 2.3. A lobby is not a unit in the game state (it is a span of the grid), so its upgrades are in the catalog but cannot be bought until a lobby has an id of its own; for now its price base is a fixed 200,000 (guess).
 
 ## 6. Build order
 

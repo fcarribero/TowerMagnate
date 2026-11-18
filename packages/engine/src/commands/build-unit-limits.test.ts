@@ -91,7 +91,6 @@ describe('buildUnit star unlock', () => {
 
 describe('buildUnit limit groups', () => {
   const LIMITED: readonly [LimitGroupId, UnitType, number, number][] = [
-    ['security', 'security', 10, 2],
     ['medical', 'medical-center', 10, 2],
     ['entertainment', 'cinema', 16, 2],
     ['entertainment', 'party-hall', 16, 2],
@@ -125,27 +124,20 @@ describe('buildUnit limit groups', () => {
     expect(run(tower, unit('medical-center', 0, 2)).result.ok).toBe(true);
   });
 
-  it('rejects the 11th security office and accepts one after a demolition', () => {
+  it('takes an 11th security office: security has no limit (service-units 2.3)', () => {
     let tower = wideTower(6);
-    for (let index = 0; index < 10; index++) {
+    for (let index = 0; index < 11; index++) {
       const outcome = run(tower, unit('security', index * 16, 2));
       expect(outcome.result.ok).toBe(true);
       tower = outcome.state;
     }
-    expect(rejection(tower, unit('security', 160, 2))).toBe('LIMIT_REACHED');
-
-    const freed = tower.units.u1;
-    if (!freed) throw new Error('Expected the first security office');
-    delete tower.units.u1;
-    removeOccupant(tower.grid, 2, { kind: 'unit', id: 'u1' });
-    expect(run(tower, unit('security', 160, 2)).result.ok).toBe(true);
   });
 
   it('answers LIMIT_REACHED before placement rules and after STAR_LOCKED', () => {
-    const full = withStanding(wideTower(6), 'security', 10);
-    expect(rejection(full, unit('security', 400, 2))).toBe('LIMIT_REACHED');
-    const locked = withStanding(wideTower(1), 'security', 10);
-    expect(rejection(locked, unit('security', 0, 2))).toBe('STAR_LOCKED');
+    const full = withStanding(wideTower(6), 'medical-center', 10);
+    expect(rejection(full, unit('medical-center', 400, 2))).toBe('LIMIT_REACHED');
+    const locked = withStanding(wideTower(1), 'medical-center', 10);
+    expect(rejection(locked, unit('medical-center', 0, 2))).toBe('STAR_LOCKED');
   });
 
   it('puts no limit on unlimited units', () => {

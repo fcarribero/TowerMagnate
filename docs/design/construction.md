@@ -494,7 +494,7 @@ C-51. The cathedral's bottom row is on level 101 (it covers 101 to 104) and the 
 
 ### Limits
 
-C-52. Per tower: 10 security, 10 medical centers, 16 cinemas plus party halls, 512 fast food plus restaurants plus retail shops, 512 parking spaces, 1 subway station, 1 cathedral. Error: `LIMIT_REACHED`.
+C-52. Per tower: 10 medical centers, 16 cinemas plus party halls, 512 fast food plus restaurants plus retail shops, 512 parking spaces, 1 subway station, 1 cathedral. Error: `LIMIT_REACHED`.
 
 C-53. A demolished unit frees its limit slot at once. Error: none.
 

@@ -3,6 +3,8 @@ import {
   LAST_COLUMN,
   ROUTE_RETRY_STEPS,
   SECURITY_ARRIVAL_LEAD_MINUTES,
+  SECURITY_CAMERA_COLUMNS,
+  SECURITY_GUARDS_PER_LEVEL,
   SECURITY_OFFICE_SPOTS,
   SECURITY_PATROL_STOP_MINUTES,
   SECURITY_PATROL_WEIGHTS,
@@ -95,13 +97,25 @@ function buildRoster(pool: PersonPool): Roster {
     list.push(slot);
     roster.police += 1;
   }
+  const base = SECURITY_SHIFTS * SECURITY_SPOTS;
   for (const list of roster.offices.values()) {
     list.forEach((slot, index) => {
-      const shift = Math.floor(index / SECURITY_SPOTS) % SECURITY_SHIFTS;
-      const spot = index % SECURITY_SPOTS;
+      let shift: number;
+      let spot: number;
+      let next: number;
+      if (index < base) {
+        shift = Math.floor(index / SECURITY_SPOTS) % SECURITY_SHIFTS;
+        spot = index % SECURITY_SPOTS;
+        next = ((shift + 1) % SECURITY_SHIFTS) * SECURITY_SPOTS + spot;
+      } else {
+        // Officers added by the guards upgrade come after the first 21, one per shift in turn.
+        const extra = index - base;
+        shift = extra % SECURITY_SHIFTS;
+        spot = SECURITY_SPOTS + Math.floor(extra / SECURITY_SHIFTS);
+        next = base + (spot - SECURITY_SPOTS) * SECURITY_SHIFTS + ((shift + 1) % SECURITY_SHIFTS);
+      }
       roster.shift[slot] = shift;
       roster.spot[slot] = spot;
-      const next = ((shift + 1) % SECURITY_SHIFTS) * SECURITY_SPOTS + spot;
       roster.relief[slot] = next < list.length ? (list[next] as number) : -1;
     });
   }
@@ -439,13 +453,17 @@ export function seatShiftOnDuty(state: TowerState, limit = SECURITY_SPOTS): void
   }
 }
 
-/** Adds the officers an office lacks, off duty, so every office has its three shifts. */
-function topUpOffice(state: TowerState, office: Unit): void {
+/**
+ * Adds the officers an office lacks, off duty, so every office has its three shifts, and the
+ * officers its guards upgrade pays for (SECURITY_GUARDS_PER_LEVEL per shift and level).
+ */
+export function topUpOffice(state: TowerState, office: Unit): void {
   const people = unitPeople(office.type);
   if (!people || people.kind !== 'police') return;
   const homeUnit = unitNumber(office.id);
   const have = policeRosterOf(state.people, homeUnit).length;
-  for (let index = have; index < people.count; index++) {
+  const extra = (office.upgrades?.guards ?? 0) * SECURITY_GUARDS_PER_LEVEL * SECURITY_SHIFTS;
+  for (let index = have; index < people.count + extra; index++) {
     const slot = state.people.id.length;
     addPerson(state, { kind: 'police', homeUnit, level: office.level, column: office.x });
     state.people.trip[slot] = encodePoliceRoutine({ phase: 'off', entranceOnRight: false });
@@ -463,3 +481,43 @@ export const policeRosterHook: ScheduledHook = {
     }
   },
 };
+
+/** Cells watched by officers on patrol, by level: one flag per column. */
+export type Watched = Map<number, Uint8Array>;
+
+const watchedMemo = new WeakMap<TowerState, { step: number; watched: Watched | null }>();
+
+/**
+ * The cells that patrolling officers of offices with cameras watch at this step, or null when
+ * there are none. Worked out once per state and step from where the officers stand.
+ */
+export function watchedCells(state: TowerState): Watched | null {
+  const kept = watchedMemo.get(state);
+  if (kept && kept.step === state.step) return kept.watched;
+  let watched: Watched | null = null;
+  const pool = state.people;
+  const roster = rosterOf(pool);
+  if (roster.police > 0) {
+    for (const [officeNumber, list] of roster.offices) {
+      const office = state.units[`u${officeNumber}`];
+      const cameras = office?.type === 'security' ? (office.upgrades?.cameras ?? 0) : 0;
+      if (cameras <= 0) continue;
+      const reach = cameras * SECURITY_CAMERA_COLUMNS;
+      for (const slot of list) {
+        const phase = policePhaseAt(pool, slot);
+        if (phase !== 'patrolling' && phase !== 'lingering') continue;
+        const level = pool.level[slot] as number;
+        const column = pool.column[slot] as number;
+        watched ??= new Map();
+        let row = watched.get(level);
+        if (!row) {
+          row = new Uint8Array(LAST_COLUMN + 1);
+          watched.set(level, row);
+        }
+        row.fill(1, Math.max(0, column - reach), Math.min(LAST_COLUMN, column + reach) + 1);
+      }
+    }
+  }
+  watchedMemo.set(state, { step: state.step, watched });
+  return watched;
+}

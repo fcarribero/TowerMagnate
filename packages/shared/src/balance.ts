@@ -74,6 +74,19 @@ export const SECURITY_SHIFT_HOURS = 8;
 export const SECURITY_SPOTS = 7;
 /** Spots 0 to 2 stay inside the office; the others patrol the floors. */
 export const SECURITY_OFFICE_SPOTS = 3;
+/** Each level of an office's guards upgrade adds this many officers to every shift; they patrol. */
+export const SECURITY_GUARDS_PER_LEVEL = 1;
+/**
+ * Cameras: a patrolling officer of an office with cameras watches this many columns either side of
+ * the cell they stand on, per camera level, on their level. People there feel the noise and dirt
+ * stress of the cell times SECURITY_WATCHED_STRESS.
+ */
+export const SECURITY_CAMERA_COLUMNS = 5;
+export const SECURITY_WATCHED_STRESS = 0.5;
+/** Each fire system level in the tower (the best office counts) adds this much containment to every fire front a minute. */
+export const SECURITY_FIRE_SYSTEM_PROGRESS = 1;
+/** Each access control level in the tower (the best office counts) takes this much off the base stress of condos and suites. */
+export const SECURITY_ACCESS_CONTROL_SCORE = 30;
 /** Police walk at half the speed of everyone else: one column every this many steps. */
 export const POLICE_STEPS_PER_COLUMN = 2;
 /** A relief starts walking in this long before the shift it takes over begins. */
@@ -280,7 +293,7 @@ export const UNIT_CATALOG: Readonly<Record<UnitType, UnitDefinition>> = {
     capacity: { role: 'guards', people: SECURITY_SHIFTS * SECURITY_SPOTS },
     unlockStars: 2,
     placement: { zone: 'any' },
-    limitGroup: 'security',
+    limitGroup: null,
   },
   'service-elevator': {
     type: 'service-elevator',
@@ -466,7 +479,6 @@ export const UNIT_CATALOG: Readonly<Record<UnitType, UnitDefinition>> = {
 export const TOWER_LIMITS: Readonly<Record<LimitGroupId, number>> = {
   'elevator-shafts': 24,
   'stairs-and-escalators': 64,
-  security: 10,
   medical: 10,
   entertainment: 16,
   commercial: 512,
@@ -968,9 +980,9 @@ export interface UpgradeDefinition {
 
 /**
  * The upgrades a unit of each type can buy, level by level. A type that is missing has none.
- * The obrador's upgrades act on its crew (construction.ts, heat.ts) and the cleaning room's on its
- * cleaners (cleaning.ts); the others are only stored for now
- * (service-units 2 and 5).
+ * The obrador's upgrades act on its crew (construction.ts, heat.ts), the cleaning room's on its
+ * cleaners (cleaning.ts) and the security office's on its officers, fires and grades (police.ts,
+ * fire-guards.ts, unit-evaluation.ts); the lobby's are only stored for now (service-units 2 and 5).
  */
 export const UPGRADE_CATALOG: Partial<Record<UnitType, readonly UpgradeDefinition[]>> = {
   security: [

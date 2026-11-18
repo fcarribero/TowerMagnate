@@ -1,6 +1,7 @@
 import {
   FIRE_FRONT_CONTAINMENT,
   FIRE_SPREAD_STEPS,
+  SECURITY_FIRE_SYSTEM_PROGRESS,
   isColumn,
   type BurningLevel,
   type Fire,
@@ -14,6 +15,7 @@ import type { StepContext } from '../step';
 import { cancelTrek, isOnTrek } from '../trek';
 import { burnCell, nearestWalkableColumn, noDamage, type FireDamage } from './fire-cells';
 import { forget, guardSlots, sendGuard } from './guards';
+import { bestSecurityUpgrade } from '../security-upgrades';
 
 const SIDES: readonly FireSide[] = ['left', 'right'];
 
@@ -142,7 +144,7 @@ function isMinuteTick(step: number, burning: BurningLevel): boolean {
 /**
  * Events phase item 7, containment and spread: on every minute after a level ignited, each front
  * that is not out takes the progress of the guards that arrived at an earlier step, and is out at
- * FIRE_FRONT_CONTAINMENT; otherwise it moves one column away from the ignition column and burns
+ * FIRE_FRONT_CONTAINMENT, plus what the tower's fire system adds (service-units 2.3); otherwise it moves one column away from the ignition column and burns
  * the cell it reaches into `damage`. Returns true when a level went out.
  */
 export function tickFireFronts(
@@ -152,6 +154,8 @@ export function tickFireFronts(
 ): boolean {
   const { step } = context.state;
   let levelWentOut = false;
+  // A fire system works on every front by itself, on top of the guards.
+  let system: number | null = null;
   for (const level of burningLevels(fire)) {
     const burning = fire.levels[level] as BurningLevel;
     if (!isMinuteTick(step, burning)) continue;
@@ -162,7 +166,8 @@ export function tickFireFronts(
       const fighting = guardsOnFront(fire, level, side).filter(
         (guard) => guard.arrivedStep !== null && guard.arrivedStep < step,
       );
-      front.progress += fighting.length;
+      system ??= bestSecurityUpgrade(context.state, 'fireSystem') * SECURITY_FIRE_SYSTEM_PROGRESS;
+      front.progress += fighting.length + system;
       if (front.progress >= FIRE_FRONT_CONTAINMENT) front.out = true;
       else spreadFront(context, level, burning, side, damage);
       if (front.out) wentOut.push(side);

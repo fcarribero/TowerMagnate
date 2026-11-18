@@ -1,5 +1,6 @@
 import { upgradePrice, upgradesOf } from '@tower-magnate/shared';
 import type { CommandHandler } from '../step';
+import { topUpOffice } from '../police';
 import { payForConstruction } from './structure';
 
 /**
@@ -30,5 +31,7 @@ export const buyUpgrade: CommandHandler<'buyUpgrade'> = (context, command) => {
     return { ok: false, error: paymentError };
   }
   unit.upgrades = { ...unit.upgrades, [definition.id]: level + 1 };
+  // More guards come in on their shift from now on, not only from the next 00:00 roster check.
+  if (unit.type === 'security' && definition.id === 'guards') topUpOffice(context.state, unit);
   return { ok: true, cost: price, refund: 0, events: [] };
 };

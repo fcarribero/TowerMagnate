@@ -346,7 +346,6 @@ describe('tower limits', () => {
     expect(TOWER_LIMITS).toEqual({
       'elevator-shafts': 24,
       'stairs-and-escalators': 64,
-      security: 10,
       medical: 10,
       entertainment: 16,
       commercial: 512,
@@ -366,7 +365,6 @@ describe('tower limits', () => {
       'standard-elevator',
     ]);
     expect(membersOf('stairs-and-escalators')).toEqual(['escalator', 'stairs']);
-    expect(membersOf('security')).toEqual(['security']);
     expect(membersOf('medical')).toEqual(['medical-center']);
     expect(membersOf('entertainment')).toEqual(['cinema', 'party-hall']);
     expect(membersOf('commercial')).toEqual(['fast-food', 'restaurant', 'retail-shop']);

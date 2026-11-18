@@ -1,4 +1,5 @@
 import {
+  SECURITY_ACCESS_CONTROL_SCORE,
   STRESS_WINDOW_STEPS,
   type TenantEvaluation,
   type TowerState,
@@ -9,6 +10,7 @@ import {
 import { storeDailyAppraisals } from './appraisal';
 import { STEPS_PER_DAY } from './clock';
 import { evaluateUnit } from './evaluation';
+import { bestSecurityUpgrade } from './security-upgrades';
 import { priceRatio } from './pricing';
 import { isNoisy, noisyUnitIds } from './noise';
 import type { SimulationSystem } from './step';
@@ -79,6 +81,13 @@ function ratioOf(unit: Unit): number {
   return priceRatio(unit);
 }
 
+/** Access control in the tower takes stress off condos and suites (service-units 2.3). */
+export function guardedBase(state: TowerState, unit: Unit, base: number): number {
+  if (unit.type !== 'condo' && unit.type !== 'suite') return base;
+  const level = bestSecurityUpgrade(state, 'accessControl');
+  return level === 0 ? base : Math.max(0, base - level * SECURITY_ACCESS_CONTROL_SCORE);
+}
+
 /** The grade of the unit at `state.step` from its ledger, price, noise and the tower rating. */
 export function gradeUnit(
   state: TowerState,
@@ -86,7 +95,7 @@ export function gradeUnit(
   noisy = isNoisy(state, unit),
 ): TenantEvaluation {
   return evaluateUnit({
-    base: unitBase(state, unit),
+    base: guardedBase(state, unit, unitBase(state, unit)),
     priceRatio: ratioOf(unit),
     type: unit.type,
     noisy,

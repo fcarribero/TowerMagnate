@@ -361,7 +361,9 @@ A party hall placed after 12:00 gets no guests that day.
 
 ## 14. Security guards
 
-Six guards per security office. Guards are on duty in their office all day, every day. They do not commute and do not move outside events. They are not counted in population and their stress is not recorded. When a bomb or fire event starts, TM-15 sends them out and brings them back. Guards use the same transport as office workers. They do not use service elevators, which are only for housekeeping staff (construction spec 5.5).
+Each security office has 21 officers: 3 shifts of 8 hours (00:00, 08:00, 16:00) with 7 officers each. An officer walks in from a map edge in plain clothes up to 2 hours before the shift, changes for 5 minutes in the office, and works: 3 officers stay in the office and the others patrol the whole tower, stopping beside units drawn by their crime weight. At the end of the shift an officer waits in the office for the relief of the same spot (2 hours at most), changes back and walks out. They are not counted in population and their stress is not recorded. When a bomb or fire event starts, TM-15 sends them out and brings them back. Guards use the same transport as office workers. They do not use service elevators, which are only for housekeeping staff (construction spec 5.5).
+
+A tower may have any number of security offices. The guards upgrade adds 1 patrolling officer per shift and level, and cameras, fire system and access control change stress, fires and grades (service-units 2.3).
 
 ## 15. Wedding guests
 
