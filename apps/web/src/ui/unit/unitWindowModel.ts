@@ -687,14 +687,14 @@ type WorkerCause = NonNullable<EvaluationPartsView['mainCause']>;
 /** Workers under this score raise the fair price: the neutral point of the fair price. */
 const CALM_WORKERS_SCORE = 3;
 
-const CAUSE_KEYS: Readonly<
-  Record<Exclude<WorkerCause, 'calm' | 'walk' | 'surroundings'>, StringKey>
-> = {
+const CAUSE_KEYS: Readonly<Record<Exclude<WorkerCause, 'calm' | 'walk'>, StringKey>> = {
   wait: 'window.unit.reason.cause.wait',
   ride: 'window.unit.reason.cause.ride',
   stairs: 'window.unit.reason.cause.stairs',
   queue: 'window.unit.reason.cause.queue',
   noRoute: 'window.unit.reason.cause.noRoute',
+  noise: 'window.unit.reason.cause.noise',
+  dirt: 'window.unit.reason.cause.dirt',
 };
 
 export interface EvaluationReasons {
@@ -751,9 +751,6 @@ function causeText(parts: EvaluationPartsView, far: StringKey): string {
   const cause = parts.mainCause;
   if (cause === null || cause === 'calm') return t('window.unit.reason.stressful');
   if (cause === 'walk') return t(far);
-  if (cause === 'surroundings') {
-    return t(parts.noisy ? 'window.unit.reason.cause.noise' : 'window.unit.reason.cause.dirt');
-  }
   return t(CAUSE_KEYS[cause]);
 }
 

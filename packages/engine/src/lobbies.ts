@@ -167,17 +167,35 @@ export function lobbyComfortAt(
  * The stress a minute in this cell gives: its noise and dirt, less what the music, the lighting and
  * the plants of an upgraded lobby take off, and less again near a garden, a lounge or a library.
  */
-export function cellStressPerMinute(
+export function cellStressPerMinute(state: TowerState, level: number, column: number): number {
+  const parts = cellStressParts(state, level, column);
+  return parts.noise + parts.dirt;
+}
+
+/** What the person feels of a cell: its noise, its dirt, or both. */
+export interface Felt {
+  noise: boolean;
+  dirt: boolean;
+}
+
+const FEEL_ALL: Felt = { noise: true, dirt: true };
+
+/** The stress a minute in this cell gives, split into its noise part and its dirt part. */
+export function cellStressParts(
   state: TowerState,
   level: number,
   column: number,
-  withNoise = true,
-): number {
+  felt: Felt = FEEL_ALL,
+): { noise: number; dirt: number } {
   const heat = heatOf(state);
-  const noise = withNoise ? valueAt(heat.noise, level, column) : 0;
-  const dirt = valueAt(heat.dirt, level, column);
-  const calm = calmAt(state, level, column);
+  let noise = felt.noise ? valueAt(heat.noise, level, column) : 0;
+  let dirt = felt.dirt ? valueAt(heat.dirt, level, column) : 0;
+  let scale = calmAt(state, level, column);
   const comfort = lobbyComfortAt(state, level, column);
-  if (!comfort) return stressPerMinute(noise, dirt) * calm;
-  return stressPerMinute(noise * comfort.noise, dirt * comfort.dirt) * comfort.stress * calm;
+  if (comfort) {
+    noise *= comfort.noise;
+    dirt *= comfort.dirt;
+    scale *= comfort.stress;
+  }
+  return { noise: stressPerMinute(noise, 0) * scale, dirt: stressPerMinute(0, dirt) * scale };
 }

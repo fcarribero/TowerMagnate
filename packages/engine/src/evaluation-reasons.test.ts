@@ -62,7 +62,7 @@ describe('evaluation parts of an office', () => {
     const [first, second] = workerSlots(state, unit);
     if (first === undefined || second === undefined) throw new Error('office has no workers');
     addFlight(state.people, first, 'stairs');
-    addAmbient(state.people, second, 10, 'walk');
+    addAmbient(state.people, second, 10);
     addAmbient(state.people, second, -500);
     expect(evaluationParts(state, unit).mainCause).toBe('stairs');
   });

@@ -172,7 +172,8 @@ Every stress part that goes into a trip is also added to one of eight running to
 | `queue` | Full queue events |
 | `noRoute` | Failed searches and the 03:00 reset |
 | `walk` | The stress of each column walked |
-| `surroundings` | Noise and dirt felt in cells, at the start of a trip and in cars |
+| `noise` | The noise part of what is felt in cells, at the start of a trip and in cars |
+| `dirt` | The dirt part of the same. A hotel guest inside their own room does not feel its dirt |
 | `calm` | Stress taken off by calm cells and cars, kept as a positive amount |
 
 At 00:00 each total keeps `STRESS_CAUSE_DAILY_KEEP` (0.82) of itself, so a cause halves in about 3.5 days, in step with the 7-day window of `P`. The totals only rank causes. They are not `P` and the trip cap (2.1) does not apply to them.
@@ -278,7 +279,7 @@ Design call: a calm, well-served office can ask for a higher rent, and fixing th
 The window of every evaluated unit (office, shop, condo and hotel room) lists what counts for its grade in a tooltip on its evaluation tile, from the parts the grade would use now. Each reason in favor is a green line starting with "+", each reason against a red line starting with "-", with no headings. Each reason says what is good or bad about the place, and none names the occupants.
 
 - Price: a price over the fair price is against: "Alquiler caro" for an office or shop, "Precio alto" for a condo and "Tarifa cara" for a hotel room. A price under the fair price is in favor: "Alquiler barato", "Precio bajo" or "Tarifa barata". A price equal to the fair price is not listed.
-- Stress: an occupant score `U` under 3 is "Ambiente tranquilo" in favor, because the occupants raise the fair price. From 3, the cause with the largest total (3.3) among the unit's own people, calm left out, is against: "Demasiada espera de ascensor" (wait), "Viajes en ascensor muy largos" (ride), "Demasiadas escaleras" (stairs), "Colas de ascensor llenas" (queue), "Difícil de llegar" (no route), "Demasiado ruido" or "Demasiada suciedad" (surroundings, noise when the unit is noisy), and for walking "Oficina demasiado lejos", "Local demasiado lejos", "Departamento demasiado lejos" or "Habitación demasiado lejos". With no cause to name, as in a shop whose grade comes from its customers, it reads "Ambiente estresante".
+- Stress: an occupant score `U` under 3 is "Ambiente tranquilo" in favor, because the occupants raise the fair price. From 3, the cause with the largest total (3.3) among the unit's own people, calm left out, is against: "Demasiada espera de ascensor" (wait), "Viajes en ascensor muy largos" (ride), "Demasiadas escaleras" (stairs), "Colas de ascensor llenas" (queue), "Difícil de llegar" (no route), "Demasiado ruido" (noise), "Demasiada suciedad" (dirt), and for walking "Oficina demasiado lejos", "Local demasiado lejos", "Departamento demasiado lejos" or "Habitación demasiado lejos". With no cause to name, as in a shop whose grade comes from its customers, it reads "Ambiente estresante".
 - Parking: from 3 stars, when the unit has a person who asks for parking (people.md 17), "Con cochera" is in favor if every such person has a space and "Sin cochera" is against if one has none. A missing space also takes 10% off the fair price (economy 3.1).
 
 The neighbor pull still counts in the grade, but it is not listed. Noise is not listed on its own: it counts in the occupant score (5.4) and shows as "Demasiado ruido" when it is the main cause.

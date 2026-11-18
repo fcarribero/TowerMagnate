@@ -55,6 +55,8 @@ import {
   boardCar,
   finishRide,
   lobbyHeightAt,
+  addSurroundings,
+  feltAt,
   mindsNoiseAndWalks,
   recordTrip,
   refreshPersonStress,
@@ -65,7 +67,7 @@ import {
 import { CHILD_KIND, householdIndexOf, isChild } from './children';
 import { NOTHING_DUE, parsePersonId, personEntityId, removePerson, slotOfPerson } from './people';
 import { POLICE_KIND } from './police-phase';
-import { cellStressPerMinute } from './lobbies';
+import { cellStressParts } from './lobbies';
 import { watchedCells } from './police';
 import { floorIndex, type UserClass } from './routing/transport-graph';
 import { mainLobbyEnds, nearestStreetColumn, STREET_LEVEL } from './street';
@@ -1121,7 +1123,7 @@ function walk(context: StepContext, slot: number, pass: TrekPass): boolean {
     const state = context.state;
     addPersonTrail(state, level, column + direction, NOISE_PER_CELL, DIRT_PER_CELL);
     if (!pass.ambient.insideUnit(level, column + direction) && mindsNoiseAndWalks(pool, slot)) {
-      addAmbient(pool, slot, walkCellStress(column + direction), 'walk');
+      addAmbient(pool, slot, walkCellStress(column + direction));
     }
   }
   syncLane(pass, slot);
@@ -1322,10 +1324,11 @@ function feelEnvironment(context: StepContext, slot: number, phase: number): voi
   const level = pool.level[slot] as number;
   const column = pool.column[slot] as number;
   const minute = Math.floor(state.step / STEPS_PER_MINUTE);
-  let perMinute = cellStressPerMinute(state, level, column, mindsNoiseAndWalks(pool, slot));
+  const parts = cellStressParts(state, level, column, feltAt(state, slot, level, column));
+  let perMinute = parts.noise + parts.dirt;
   // An officer with cameras watching the cell makes people there feel less of it.
   if (watchedCells(state)?.get(level)?.[column] === 1) perMinute *= WATCHED_STRESS;
-  addAmbient(pool, slot, stepsFelt(perMinute, 1, id, minute));
+  addSurroundings(pool, slot, stepsFelt(perMinute, 1, id, minute), parts);
   if (!isWalkingPhase(phase) && makesStandNoise(pool, slot)) {
     addPersonNoise(state, level, column, NOISE_PER_STAND);
   }

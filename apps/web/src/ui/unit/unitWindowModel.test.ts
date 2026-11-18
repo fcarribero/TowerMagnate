@@ -546,8 +546,8 @@ describe('evaluation reasons of an office', () => {
   it('names each cause of stress as what is wrong with the place', () => {
     const causeOf = (patch: Partial<NonNullable<Lease['evaluationParts']>>) =>
       evaluationReasons(officeWith({ occupantScore: 3, ...patch }))?.bad;
-    expect(causeOf({ mainCause: 'surroundings', noisy: true })).toEqual(['Demasiado ruido']);
-    expect(causeOf({ mainCause: 'surroundings', noisy: false })).toEqual(['Demasiada suciedad']);
+    expect(causeOf({ mainCause: 'noise' })).toEqual(['Demasiado ruido']);
+    expect(causeOf({ mainCause: 'dirt', noisy: true })).toEqual(['Demasiada suciedad']);
     expect(causeOf({ mainCause: 'walk' })).toEqual(['Oficina demasiado lejos']);
     expect(causeOf({ mainCause: 'stairs' })).toEqual(['Demasiadas escaleras']);
     expect(causeOf({ mainCause: 'ride' })).toEqual(['Viajes en ascensor muy largos']);

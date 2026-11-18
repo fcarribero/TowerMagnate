@@ -30,7 +30,8 @@ export const STRESS_CAUSES = [
   'queue',
   'noRoute',
   'walk',
-  'surroundings',
+  'noise',
+  'dirt',
   'calm',
 ] as const;
 
@@ -44,7 +45,8 @@ export const STRESS_CAUSE_FIELDS = {
   queue: 'causeQueue',
   noRoute: 'causeNoRoute',
   walk: 'causeWalk',
-  surroundings: 'causeSurroundings',
+  noise: 'causeNoise',
+  dirt: 'causeDirt',
   calm: 'causeCalm',
 } as const satisfies Record<StressCause, string>;
 

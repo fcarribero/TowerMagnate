@@ -4,26 +4,50 @@ import { addPerson, slotOfPerson } from './people';
 import { buildTower, plainTowerPlan } from './testing';
 import { addStay, stressCausesOf } from './trip-ledger';
 
-/** A tower with heavy noise on every cell of level 2 and no dirt, an hour after a trip ended. */
-function noisyTower(): TowerState {
-  const { state } = buildTower(plainTowerPlan(3, 0, 120));
-  state.heat = { noise: { '2': new Array<number>(LAST_COLUMN + 1).fill(20) }, dirt: {}, cars: {} };
-  state.step = 360;
-  return state;
+function row(value: number): number[] {
+  return new Array<number>(LAST_COLUMN + 1).fill(value);
 }
 
-function stayOf(state: TowerState, kind: 'officeWorker' | 'resident'): number {
-  const id = addPerson(state, { kind, homeUnit: 0, level: 2, column: 50 });
+/** A tower with level 2 covered in the given noise and dirt, an hour after a trip ended. */
+function tower(noise: number, dirt: number, units: Parameters<typeof buildTower>[0]['units'] = []) {
+  const { state, unitIds } = buildTower({ ...plainTowerPlan(3, 0, 120), units });
+  state.heat = { noise: { '2': row(noise) }, dirt: { '2': row(dirt) }, cars: {} };
+  state.step = 360;
+  return { state, unitIds };
+}
+
+function stayOf(
+  state: TowerState,
+  kind: 'officeWorker' | 'resident' | 'hotelGuest',
+  homeUnit = 0,
+  column = 50,
+) {
+  const id = addPerson(state, { kind, homeUnit, level: 2, column });
   state.tripLedger[id] = [0, 0];
   const slot = slotOfPerson(state.people, id);
   addStay(state, slot);
-  return stressCausesOf(state.people, slot).surroundings;
+  return stressCausesOf(state.people, slot);
 }
 
-describe('office workers and noise', () => {
+describe('noise and dirt felt where a person stays', () => {
+  it('keeps noise and dirt as two causes', () => {
+    expect(stayOf(tower(20, 0).state, 'resident')).toMatchObject({ dirt: 0 });
+    expect(stayOf(tower(20, 0).state, 'resident').noise).toBeGreaterThan(0);
+    expect(stayOf(tower(0, 3).state, 'resident')).toMatchObject({ noise: 0 });
+    expect(stayOf(tower(0, 3).state, 'resident').dirt).toBeGreaterThan(0);
+    const both = stayOf(tower(20, 3).state, 'resident');
+    expect(both.noise).toBeGreaterThan(0);
+    expect(both.dirt).toBeGreaterThan(0);
+  });
+
   it('lets a resident feel the noise of the cell, but not an office worker', () => {
-    const state = noisyTower();
-    expect(stayOf(state, 'resident')).toBeGreaterThan(0);
-    expect(stayOf(state, 'officeWorker')).toBe(0);
+    expect(stayOf(tower(20, 0).state, 'officeWorker').noise).toBe(0);
+  });
+
+  it('spares a hotel guest the dirt of their own room, but not of the hall', () => {
+    const { state, unitIds } = tower(0, 3, [{ type: 'single-room', level: 2, x: 40 }]);
+    const room = Number((unitIds[0] as string).slice(1));
+    expect(stayOf(state, 'hotelGuest', room, 41).dirt).toBe(0);
+    expect(stayOf(state, 'hotelGuest', room, 100).dirt).toBeGreaterThan(0);
   });
 });

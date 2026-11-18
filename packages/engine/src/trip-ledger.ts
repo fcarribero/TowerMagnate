@@ -21,7 +21,8 @@ import {
 } from '@tower-magnate/shared';
 import { STAY_MAX_MINUTES, stepsFelt } from './heat';
 import { lobbyRows } from './commands/build-lobby';
-import { cellStressPerMinute } from './lobbies';
+import { occupantAt } from './grid';
+import { cellStressParts, type Felt } from './lobbies';
 import { averageStress, type RecordedTrip } from './person-stress';
 import { floorIndex } from './routing/transport-graph';
 import type { ScheduledHook } from './scheduler';
@@ -41,6 +42,21 @@ const OFFICE_WORKER_KIND = PERSON_KINDS.indexOf('officeWorker');
 /** Office workers mind neither noise nor long walks; they still feel dirt and everything else. */
 export function mindsNoiseAndWalks(pool: PersonPool, slot: number): boolean {
   return pool.kind[slot] !== OFFICE_WORKER_KIND;
+}
+
+/**
+ * What the person feels of the cell they are on. Office workers do not feel noise, and a person
+ * inside their own hotel room does not feel its dirt: the maids clean it.
+ */
+export function feltAt(state: TowerState, slot: number, level: number, column: number): Felt {
+  const pool = state.people;
+  const occupant = occupantAt(state.grid, level as Level, column);
+  const ownRoom =
+    occupant?.kind === 'unit' &&
+    occupant.id === `u${field(pool.homeUnit, slot)}` &&
+    state.units[occupant.id]?.hotel !== undefined &&
+    state.units[occupant.id]?.hotel !== null;
+  return { noise: mindsNoiseAndWalks(pool, slot), dirt: !ownRoom };
 }
 
 function recordsStress(pool: PersonPool, slot: number): boolean {
@@ -262,19 +278,36 @@ export function addFailedSearch(pool: PersonPool, slot: number): void {
 }
 
 /**
- * Noise, dirt or calm felt where the person is, or the stress of walking a column (`walk`); only
- * people who record stress feel it. Calm takes stress off and is kept as its own cause.
+ * The stress of walking a column (`walk`); only people who record stress feel it. A negative
+ * amount is calm, which takes stress off and is kept as its own cause.
  */
-export function addAmbient(
+export function addAmbient(pool: PersonPool, slot: number, delta: number): void {
+  if (delta === 0 || !recordsStress(pool, slot)) return;
+  pool.tripSum[slot] = field(pool.tripSum, slot) + delta;
+  if (delta > 0) addCause(pool, slot, 'walk', delta);
+  else addCause(pool, slot, 'calm', -delta);
+}
+
+/**
+ * Noise and dirt felt where the person is, as whole steps from `stepsFelt` over their sum. The
+ * steps go to the `noise` and `dirt` causes in proportion to the two parts; calm takes stress off.
+ */
+export function addSurroundings(
   pool: PersonPool,
   slot: number,
   delta: number,
-  cause: 'surroundings' | 'walk' = 'surroundings',
+  parts: { noise: number; dirt: number },
 ): void {
   if (delta === 0 || !recordsStress(pool, slot)) return;
   pool.tripSum[slot] = field(pool.tripSum, slot) + delta;
-  if (delta > 0) addCause(pool, slot, cause, delta);
-  else addCause(pool, slot, 'calm', -delta);
+  if (delta < 0) {
+    addCause(pool, slot, 'calm', -delta);
+    return;
+  }
+  const total = parts.noise + parts.dirt;
+  const noiseShare = total > 0 ? parts.noise / total : 0;
+  addCause(pool, slot, 'noise', delta * noiseShare);
+  addCause(pool, slot, 'dirt', delta * (1 - noiseShare));
 }
 
 /**
@@ -292,11 +325,12 @@ export function addStay(state: TowerState, slot: number): void {
   );
   const level = field(pool.level, slot);
   const column = field(pool.column, slot);
-  const perMinute = cellStressPerMinute(state, level, column, mindsNoiseAndWalks(pool, slot));
-  addAmbient(
+  const parts = cellStressParts(state, level, column, feltAt(state, slot, level, column));
+  addSurroundings(
     pool,
     slot,
-    stepsFelt(perMinute, minutes, field(pool.id, slot), Math.floor(state.step / 6)),
+    stepsFelt(parts.noise + parts.dirt, minutes, field(pool.id, slot), Math.floor(state.step / 6)),
+    parts,
   );
 }
 

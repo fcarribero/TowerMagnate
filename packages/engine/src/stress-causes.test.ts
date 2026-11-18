@@ -10,6 +10,7 @@ import { deserializeState, serializeState } from './serialization';
 import { buildTower, plainTowerPlan } from './testing';
 import {
   addAmbient,
+  addSurroundings,
   addFailedSearch,
   addFlight,
   addFullQueueEvent,
@@ -41,15 +42,16 @@ describe('stress causes', () => {
     addFlight(pool, slot, 'stairs');
     addFullQueueEvent(pool, slot);
     addFailedSearch(pool, slot);
-    addAmbient(pool, slot, 3, 'walk');
-    addAmbient(pool, slot, 2);
+    addAmbient(pool, slot, 3);
+    addSurroundings(pool, slot, 4, { noise: 0.75, dirt: 0.25 });
     addAmbient(pool, slot, -4);
     expect(stressCausesOf(pool, slot)).toMatchObject({
       stairs: STRESS_STAIR_FLOOR,
       queue: STRESS_QUEUE_FULL,
       noRoute: STRESS_NO_ROUTE,
       walk: 3,
-      surroundings: 2,
+      noise: 3,
+      dirt: 1,
       calm: 4,
       wait: 0,
       ride: 0,
@@ -65,7 +67,7 @@ describe('stress causes', () => {
   it('fades every cause each day, down to zero', () => {
     const { state, slot } = world();
     addFailedSearch(state.people, slot);
-    addAmbient(state.people, slot, 1, 'walk');
+    addAmbient(state.people, slot, 1);
     fade(state);
     expect(stressCausesOf(state.people, slot).noRoute).toBeCloseTo(STRESS_NO_ROUTE * 0.82, 1);
     expect(stressCausesOf(state.people, slot).walk).toBeCloseTo(0.82, 2);

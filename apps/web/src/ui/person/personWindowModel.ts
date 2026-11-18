@@ -104,7 +104,8 @@ const BURDENS: readonly BurdenCause[] = [
   'queue',
   'noRoute',
   'walk',
-  'surroundings',
+  'noise',
+  'dirt',
 ];
 
 const UNHAPPY_KEYS: Readonly<Record<BurdenCause, StringKey>> = {
@@ -114,7 +115,8 @@ const UNHAPPY_KEYS: Readonly<Record<BurdenCause, StringKey>> = {
   queue: 'window.person.unhappy.queue',
   noRoute: 'window.person.unhappy.noRoute',
   walk: 'window.person.unhappy.walk',
-  surroundings: 'window.person.unhappy.surroundings',
+  noise: 'window.person.unhappy.noise',
+  dirt: 'window.person.unhappy.dirt',
 };
 
 const HAPPY_KEYS: Readonly<Record<BurdenCause, StringKey>> = {
@@ -124,7 +126,8 @@ const HAPPY_KEYS: Readonly<Record<BurdenCause, StringKey>> = {
   queue: 'window.person.happy.queue',
   noRoute: 'window.person.happy.noRoute',
   walk: 'window.person.happy.walk',
-  surroundings: 'window.person.happy.surroundings',
+  noise: 'window.person.happy.noise',
+  dirt: 'window.person.happy.dirt',
 };
 
 /** A cause weighs on the person when it is at least this share of their stress and a full minute. */

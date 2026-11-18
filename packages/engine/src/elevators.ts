@@ -17,7 +17,7 @@ import { isWeekendDay, weekdayOfDay } from './calendar';
 import { SECONDS_PER_STEP, STEPS_PER_DAY } from './clock';
 import { addCarRider, carLevels, stepsFelt, stressPerMinute } from './heat';
 import { parsePersonId, slotOfPerson } from './people';
-import { addAmbient, mindsNoiseAndWalks } from './trip-ledger';
+import { addSurroundings, mindsNoiseAndWalks } from './trip-ledger';
 import { isCarryingBag } from './venue-staff';
 import { boardFromQueue, hallCallAge, queueLength } from './elevator-queues';
 import type { SimulationSystem, StepContext } from './step';
@@ -281,13 +281,17 @@ function feelCar(
   if (slot < 0) return;
   const { noise, dirt } = carLevels(state, shaft.id, carIndex);
   const minutes = rideSteps / 6;
+  const parts = {
+    noise: mindsNoiseAndWalks(state.people, slot) ? stressPerMinute(noise, 0) : 0,
+    dirt: stressPerMinute(0, dirt),
+  };
   const felt = stepsFelt(
-    stressPerMinute(mindsNoiseAndWalks(state.people, slot) ? noise : 0, dirt),
+    parts.noise + parts.dirt,
     minutes,
     state.people.id[slot] as number,
     state.step,
   );
-  addAmbient(state.people, slot, felt);
+  addSurroundings(state.people, slot, felt, parts);
 }
 
 /** At most one rider per step gets off at the car's level, the one who boarded first. */

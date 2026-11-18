@@ -37,7 +37,6 @@ describe('person window text', () => {
     expect(personTitle('courier', null)).toBe('Mensajero');
   });
 
-
   it('uses the tower palette for stress colors', () => {
     expect(stressColor('stressed')).toBe('#f07aa8');
     expect(stressColor('veryStressed')).toBe('#d81e2a');
@@ -137,7 +136,8 @@ describe('stress bar and reasons', () => {
     queue: 0,
     noRoute: 0,
     walk: 0,
-    surroundings: 0,
+    noise: 0,
+    dirt: 0,
     calm: 0,
   };
 
@@ -149,6 +149,11 @@ describe('stress bar and reasons', () => {
 
   it('moves the color smoothly from ink to red with the score', () => {
     expect(stressBar(5).color).toBe('#761821');
+  });
+
+  it('names noise and dirt apart', () => {
+    expect(stressReasons({ ...none, noise: 10, dirt: 5 }).unhappy).toEqual(['Ruido', 'Suciedad']);
+    expect(stressReasons({ ...none, noise: 10, dirt: 0 }).unhappy).toEqual(['Ruido']);
   });
 
   it('lists nothing before the person has felt any stress', () => {
