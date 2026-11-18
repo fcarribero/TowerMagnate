@@ -236,7 +236,9 @@ function observeDay() {
       if (phase === 'changingOut' && before !== 'changingOut') {
         // Whoever goes home leaves only after the replacement is in the office and changed.
         const index2 = roster.indexOf(slot);
-        const reliefIndex = ((Math.floor(index2 / SECURITY_SPOTS) + 1) % SECURITY_SHIFTS) * SECURITY_SPOTS + (index2 % SECURITY_SPOTS);
+        const reliefIndex =
+          ((Math.floor(index2 / SECURITY_SPOTS) + 1) % SECURITY_SHIFTS) * SECURITY_SPOTS +
+          (index2 % SECURITY_SPOTS);
         const relief = roster[reliefIndex] as number;
         if (!isPhaseOnDuty(policePhaseAt(pool, relief))) {
           violations.push(`step ${current.step}: ${id} left before its relief`);
@@ -344,7 +346,9 @@ describe('police and other people', () => {
       moved.push((current.people.column[policeSlot] as number) - before);
     }
     expect(moved.filter((delta) => delta === 1)).toHaveLength(5);
-    expect(moved.every((delta, index) => delta === (index % 2 === 0 ? moved[0] : moved[1]))).toBe(true);
+    expect(moved.every((delta, index) => delta === (index % 2 === 0 ? moved[0] : moved[1]))).toBe(
+      true,
+    );
   });
 
   it('on patrol have no route that needs an elevator, while an officer sent by an event has', () => {
@@ -370,5 +374,31 @@ describe('police and other people', () => {
     pool.column[slot] = 104;
     pool.trip[slot] = encodePoliceRoutine({ phase: 'returning', entranceOnRight: false });
     expect(startTrek(context, slot, { level: 2, column: 101 })).toBe(true);
+  });
+});
+
+describe('police patrol targets', () => {
+  it('never patrols condos: with only condos to visit the patrol spots stay in the office', () => {
+    const { state, unitIds } = buildTower({
+      ...plainTowerPlan(3, 0, 199),
+      units: [
+        { type: 'security', level: 2, x: 100 },
+        { type: 'condo', level: 3, x: 40 },
+        { type: 'condo', level: 2, x: 150 },
+      ],
+      flights: [
+        { type: 'stairs', x: 10, level: 1 },
+        { type: 'stairs', x: 20, level: 2 },
+      ],
+    });
+    addPeopleForUnit(state, unitIds[0] as UnitId);
+    let current = advanceTo(state, at(0, 10));
+    for (let minute = 0; minute < 120; minute += 5) {
+      current = advanceTo(current, current.step + 5 * STEPS_PER_MINUTE);
+      for (const slot of policeSlots(current)) {
+        const phase = policePhaseAt(current.people, slot);
+        expect(phase === 'patrolling' || phase === 'lingering').toBe(false);
+      }
+    }
   });
 });

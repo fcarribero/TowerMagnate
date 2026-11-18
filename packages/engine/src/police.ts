@@ -173,13 +173,19 @@ function officeOf(state: TowerState, slot: number): Unit | null {
 
 /** True when this officer's shift is over and the next one is the shift on now. */
 function isOutgoing(officer: Officer): boolean {
-  return officer.shift === (currentShiftOf(officer.context.state.step) + SECURITY_SHIFTS - 1) % SECURITY_SHIFTS;
+  return (
+    officer.shift ===
+    (currentShiftOf(officer.context.state.step) + SECURITY_SHIFTS - 1) % SECURITY_SHIFTS
+  );
 }
 
 /** Steps since the officer's shift ended, 0 for an officer whose shift is not over. */
 function stepsSinceShiftEnd(officer: Officer): number {
   const end = (officer.shift + 1) * SHIFT_STEPS;
-  return (((officer.context.state.step % STEPS_PER_DAY) - end) % STEPS_PER_DAY + STEPS_PER_DAY) % STEPS_PER_DAY;
+  return (
+    ((((officer.context.state.step % STEPS_PER_DAY) - end) % STEPS_PER_DAY) + STEPS_PER_DAY) %
+    STEPS_PER_DAY
+  );
 }
 
 /** The officer comes in once the shift is within its arrival lead time or on. */
@@ -254,14 +260,15 @@ function isInsideUnit(state: TowerState, pool: PersonPool, slot: number): boolea
 }
 
 function patrolWeight(unit: Unit, own: Unit): number {
-  if (unit === own || unit.type === 'lobby' || unit.type === 'security') return 0;
-  return SECURITY_PATROL_WEIGHTS[unit.type] ?? 1;
+  if (unit === own) return 0;
+  return SECURITY_PATROL_WEIGHTS[unit.type];
 }
 
 /** The unit picked from `roll` by weight, or null when no unit can be visited. */
 function pickPatrolUnit(state: TowerState, own: Unit, roll: number): Unit | null {
   let total = 0;
-  for (const id in state.units) total += patrolWeight(state.units[id as keyof typeof state.units] as Unit, own);
+  for (const id in state.units)
+    total += patrolWeight(state.units[id as keyof typeof state.units] as Unit, own);
   if (total === 0) return null;
   let left = roll % total;
   for (const id in state.units) {
@@ -282,7 +289,10 @@ function hallwayPlace(state: TowerState, unit: Unit): Place | null {
     for (const column of [unit.x - 1 - reach, unit.x + width + reach]) {
       if (column < 0 || column > LAST_COLUMN) continue;
       const structure = structureAt(state.grid, unit.level, column);
-      if ((structure === 'floor' || structure === 'lobby') && occupantAt(state.grid, unit.level, column) === null) {
+      if (
+        (structure === 'floor' || structure === 'lobby') &&
+        occupantAt(state.grid, unit.level, column) === null
+      ) {
         return { level: unit.level, column };
       }
     }
@@ -291,7 +301,7 @@ function hallwayPlace(state: TowerState, unit: Unit): Place | null {
 }
 
 /**
- * Picks the next patrol stop: a random unit, shops and food first, then the open floor beside it. Patrols keep off the elevators
+ * Picks the next patrol stop: a unit drawn by how much crime it draws (shops, food and cinemas most, never condos), then the open floor beside it. Patrols keep off the elevators
  * (the trek plans them as stairs and escalators only), so a unit with no such route is skipped.
  * With nothing reachable the officer stays at the base and looks again later.
  */
@@ -334,7 +344,10 @@ function advanceOfficer(officer: Officer): void {
     case 'working':
       if ((pool.dueStep[slot] as number) > state.step) return;
       if (isOutgoing(officer)) maybeGoHome(officer);
-      else if (officer.shift === currentShiftOf(state.step) && spotKindOf(officer.spot) === 'patrol') {
+      else if (
+        officer.shift === currentShiftOf(state.step) &&
+        spotKindOf(officer.spot) === 'patrol'
+      ) {
         startPatrol(officer);
       }
       return;
@@ -348,12 +361,14 @@ function advanceOfficer(officer: Officer): void {
           return;
         }
         const stop = SECURITY_PATROL_STOP_MINUTES;
-        const minutes = stop.min + (mix(pool.id[slot] as number, state.step, 99) % (stop.max - stop.min + 1));
+        const minutes =
+          stop.min + (mix(pool.id[slot] as number, state.step, 99) % (stop.max - stop.min + 1));
         setPhase(pool, slot, 'lingering', state.step + minutes * STEPS_PER_MINUTE);
       }
       return;
     case 'lingering':
-      if (officer.shift !== currentShiftOf(state.step) || isInsideUnit(state, pool, slot)) returnToBase(officer);
+      if (officer.shift !== currentShiftOf(state.step) || isInsideUnit(state, pool, slot))
+        returnToBase(officer);
       else if (state.step >= (pool.dueStep[slot] as number)) startPatrol(officer);
       return;
     case 'returning':

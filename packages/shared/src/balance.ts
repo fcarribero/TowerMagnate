@@ -81,8 +81,33 @@ export const SECURITY_ARRIVAL_LEAD_MINUTES = 120;
 export const SECURITY_RELIEF_GRACE_MINUTES = 120;
 /** A patrolling officer stays this many minutes at each stop, drawn from the range. */
 export const SECURITY_PATROL_STOP_MINUTES = { min: 3, max: 10 } as const;
-/** Patrol stops are drawn with these weights by unit type; every other unit has weight 1. */
-export const SECURITY_PATROL_WEIGHTS: Readonly<Record<string, number>> = {
+/**
+ * How much crime each unit type draws, used as the weight of a patrol stop. Busy public places
+ * draw the most; condos and the structure, transport and service units draw none, so patrols
+ * never stop at them.
+ */
+export const SECURITY_PATROL_WEIGHTS: Readonly<Record<UnitType, number>> = {
+  floor: 0,
+  lobby: 0,
+  stairs: 0,
+  escalator: 0,
+  'standard-elevator': 0,
+  'service-elevator': 0,
+  'express-elevator': 0,
+  condo: 0,
+  housekeeping: 0,
+  security: 0,
+  'recycling-center': 0,
+  office: 1,
+  'single-room': 1,
+  'double-room': 1,
+  suite: 1,
+  'medical-center': 2,
+  cathedral: 2,
+  'parking-ramp': 2,
+  'parking-space': 2,
+  'party-hall': 4,
+  'subway-station': 4,
   'fast-food': 6,
   restaurant: 6,
   'retail-shop': 6,
