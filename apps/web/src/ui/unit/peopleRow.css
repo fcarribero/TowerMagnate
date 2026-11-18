@@ -1,0 +1,27 @@
+/* One row of the queue. queueLayout sets the left margins, negative when people overlap. */
+.tm-unit__queue-row {
+  display: flex;
+  flex: 0 0 100%;
+  align-items: flex-end;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Before the box is measured the row wraps on its own, with the normal gap. */
+.tm-unit__queue-row.is-unmeasured {
+  flex-wrap: wrap;
+  gap: var(--space-1);
+}
+
+.tm-unit__queue-row > li {
+  position: relative;
+  flex: none;
+}
+
+/* The person under the pointer or with focus comes in front of the ones overlapping it. */
+.tm-unit__queue-row > li:hover,
+.tm-unit__queue-row > li:focus-within {
+  z-index: 1;
+}
