@@ -6,6 +6,7 @@ import {
 } from '@tower-magnate/shared';
 import type { ClientStore } from '../model/clientStore';
 import type { Cell } from './cellAtPoint';
+import { levelToIndex } from './levels';
 import { unitAt } from './placementCheck';
 
 export interface ClickStage {
@@ -33,11 +34,18 @@ export interface InspectWindowOpeners {
   clearUnit?: () => void;
 }
 
+/**
+ * The shaft drawn on the cell: its levels plus the machine room drawn on the level above the top
+ * and the pit drawn on the level below the bottom.
+ */
 function shaftAt(shafts: Iterable<ShaftView>, cell: Cell): ShaftView | null {
+  const index = levelToIndex(cell.level);
   for (const shaft of shafts) {
     const width = UNIT_CATALOG[SHAFT_UNIT_TYPES[shaft.type]].width;
     const insideColumns = cell.x >= shaft.x && cell.x < shaft.x + width;
-    if (insideColumns && cell.level >= shaft.bottom && cell.level <= shaft.top) {
+    const insideLevels =
+      index >= levelToIndex(shaft.bottom) - 1 && index <= levelToIndex(shaft.top) + 1;
+    if (insideColumns && insideLevels) {
       return shaft;
     }
   }

@@ -86,10 +86,17 @@ describe('bindUnitClicks', () => {
     expect(opened).toEqual(['shaft:s2']);
   });
 
-  it('ignores a click beside or above the shaft', () => {
+  it('opens the shaft from its machine room above the top and its pit below the bottom', () => {
+    const { click, opened } = setup();
+    click({ x: 31, level: 6 });
+    click({ x: 31, level: -1 });
+    expect(opened).toEqual(['shaft:s2', 'shaft:s2']);
+  });
+
+  it('ignores a click beside the shaft or past its machine room', () => {
     const { click, opened } = setup();
     click({ x: 34, level: 4 });
-    click({ x: 31, level: 6 });
+    click({ x: 31, level: 7 });
     expect(opened).toEqual([]);
   });
 
