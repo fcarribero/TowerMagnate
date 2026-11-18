@@ -198,28 +198,46 @@ describe('person windows', () => {
     expect(within(happy).getByText('Casi no usa escaleras')).toBeTruthy();
   });
 
-  it('shows the person name as title and renames on Enter and blur', () => {
+  it('renames from the pencil in the title: Aceptar and Enter send the name, an empty name clears it', () => {
     const { open, show, commandsSent } = setup();
     open('p1');
     show(found('p1'));
-    const field = screen.getByLabelText('Nombre');
-    fireEvent.input(field, { target: { value: 'Ana' } });
-    fireEvent.keyDown(field, { key: 'Enter' });
-    fireEvent.input(field, { target: { value: 'Ana Paz' } });
-    fireEvent.blur(field);
+    expect(screen.queryByRole('textbox', { name: 'Nombre' })).toBeNull();
+    const rename = (value: string, how: 'click' | 'enter'): void => {
+      const pencil = screen.getByRole('button', { name: 'Cambiar nombre' });
+      expect(pencil.closest('.tm-window__title')).toBeTruthy();
+      fireEvent.click(pencil);
+      const prompt = screen.getByRole('alertdialog', { name: 'Cambiar nombre' });
+      const field = within(prompt).getByLabelText('Nombre');
+      fireEvent.input(field, { target: { value } });
+      if (how === 'enter') fireEvent.keyDown(field, { key: 'Enter' });
+      else fireEvent.click(within(prompt).getByRole('button', { name: 'Aceptar' }));
+      expect(screen.queryByRole('alertdialog', { name: 'Cambiar nombre' })).toBeNull();
+    };
+    rename('Ana', 'enter');
+    show(found('p1', { name: 'Ana' }));
+    expect(screen.getByRole('dialog', { name: 'Ana' })).toBeTruthy();
+    rename('Ana Paz', 'click');
     show(found('p1', { name: 'Ana Paz' }));
-    expect(screen.getByRole('dialog', { name: 'Ana Paz' })).toBeTruthy();
+    rename('', 'click');
     expect(commandsSent()).toEqual([
       { type: 'renamePerson', personId: 'p1', name: 'Ana' },
       { type: 'renamePerson', personId: 'p1', name: 'Ana Paz' },
+      { type: 'renamePerson', personId: 'p1', name: '' },
     ]);
   });
 
-  it('limits the name field to 24 characters', () => {
-    const { open, show } = setup();
+  it('opens the rename window with the current name, limited to 24 characters, and sends nothing on no change', () => {
+    const { open, show, commandsSent } = setup();
     open('p1');
-    show(found('p1'));
-    expect((screen.getByLabelText('Nombre') as HTMLInputElement).maxLength).toBe(24);
+    show(found('p1', { name: 'Ana' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Cambiar nombre' }));
+    const prompt = screen.getByRole('alertdialog', { name: 'Cambiar nombre' });
+    const field = within(prompt).getByLabelText('Nombre') as HTMLInputElement;
+    expect(field.value).toBe('Ana');
+    expect(field.maxLength).toBe(24);
+    fireEvent.click(within(prompt).getByRole('button', { name: 'Aceptar' }));
+    expect(commandsSent()).toEqual([]);
   });
 
   it('disables Seguir for an unnamed person', async () => {
@@ -292,7 +310,7 @@ describe('person windows', () => {
     expect(centered[0]?.x).toBe(12.5 * 8);
   });
 
-  it('shows the gone text and disables the controls for a removed person', () => {
+  it('shows the gone text and disables the controls and hides the pencil for a removed person', () => {
     const { open, show } = setup();
     open('p1');
     show(found('p1', { name: 'Ana' }));
@@ -304,7 +322,7 @@ describe('person windows', () => {
         true,
       );
     }
-    expect((screen.getByLabelText('Nombre') as HTMLInputElement).disabled).toBe(true);
+    expect(within(dialog).queryByRole('button', { name: 'Cambiar nombre' })).toBeNull();
   });
 
   it('closes the oldest of five person windows and stops inspecting it', () => {

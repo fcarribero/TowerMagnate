@@ -403,7 +403,7 @@ Level labels used everywhere: levels 1 to 100 are "Piso {n}", basements are "S{n
 
 Title: the unit's custom name, or `{type name} · {level label}` when it has none, for example "Oficina · Piso 12".
 
-First row for every unit: "Nombre" text field (max 24 characters, placeholder is the type name). Enter or leaving the field sends `renameUnit`; an empty field removes the custom name. Second row: "Ubicación: Piso 12, casilleros 40 a 48".
+A pencil right after the title text opens the "Cambiar nombre" window with a "Nombre" field (max 24 characters, placeholder is the type name). Aceptar or Enter sends `renameUnit`; an empty field removes the custom name. First row for every unit: "Ubicación: Piso 12, casilleros 40 a 48".
 
 Then the rows for the unit type. A value in braces comes from the `inspect` data; rows marked (new data) need a field that TM-5 8.9 does not list yet, and BE adds it with the unit's system.
 
@@ -459,11 +459,10 @@ The Lupa on lobby, floor, stairs and escalators opens no window; the hover toolt
 
 ### 6.3 Person window
 
-Title: the person's name, or the kind ("Oficinista") when unnamed.
+Title: the person's name, or the kind ("Oficinista") when unnamed. A pencil right after the title text opens the "Cambiar nombre" window, the same one the unit window uses: a "Nombre" field, max 24 characters, placeholder is the kind. Aceptar or Enter sends `renamePerson`; an empty field removes the name. The pencil is hidden once the person has left the tower.
 
 | Row | Content |
 |---|---|
-| Nombre | Text field, max 24 characters, `renamePerson` on Enter or blur |
 | Estrés | A bar from 0 to 10 filled to the person's stress score, with the score in numbers on the right, for example "4,2 / 10". The fill color moves in a straight line from `#141218` (ink) at a score of 0 to `#d81e2a` (red) at 10. There are no ticks and no level words |
 | Disconforme por | Up to 3 causes of the person's stress, heaviest first (stress-evaluation 3.3) |
 | Contento con | Up to 3 things that do not bother the person or calm them (stress-evaluation 3.3) |

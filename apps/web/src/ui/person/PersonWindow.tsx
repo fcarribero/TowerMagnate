@@ -3,7 +3,8 @@ import type { UnitView } from '@tower-magnate/shared';
 import type { PersonInspect } from '../../model/inspectStore';
 import type { GameConnection } from '../../net/gameConnection';
 import { personWorldPoint } from '../../render/personPoint';
-import { Button, TextField, Tooltip, Window, useWindowManager } from '../kit';
+import { Button, PromptDialog, Tooltip, Window, dialogRequest, useWindowManager } from '../kit';
+import { ObraIcon } from '../icons/ObraIcon';
 import { personPanelId, personWindowId } from '../inspectTarget';
 import { PersonPortrait } from './PersonPortrait';
 import { t } from '../strings';
@@ -119,14 +120,11 @@ export function PersonWindow({
   const windowId = anchored ? personPanelId(personId) : personWindowId(personId);
 
   const storedName = known?.name ?? null;
-  const [draft, setDraft] = useState<string | null>(null);
-  const shownName = draft ?? storedName ?? '';
-  const commitName = (): void => {
-    if (draft === null) {
-      return;
-    }
-    const name = draft.trim();
-    setDraft(null);
+  const renameDialogId = `renamePerson:${personId}`;
+  /** An empty name clears the custom one, so the title goes back to the kind. */
+  const confirmRename = (value: string): void => {
+    manager.close(renameDialogId);
+    const name = value.trim();
     if (name !== (storedName ?? '')) {
       void commands.renamePerson(personId, name);
     }
@@ -167,47 +165,67 @@ export function PersonWindow({
   );
 
   return (
-    <Window id={windowId} title={title} onClose={close} draggable={!anchored} width={200}>
-      {gone && <p class="tm-person__gone">{t('ui.goneFromTower')}</p>}
-      <div class="tm-person__header">
-        {known !== undefined && <PersonPortrait id={personId} kind={known.personKind} />}
-        {follow.reason === undefined ? (
-          starButton
-        ) : (
-          <Tooltip text={follow.reason}>{starButton}</Tooltip>
-        )}
-      </div>
-      <TextField
-        id={`${windowId}-name`}
-        label={t('window.unit.name')}
-        value={shownName}
-        maxLength={NAME_MAX_LENGTH}
-        placeholder={known === undefined ? undefined : kindName(known.personKind)}
-        disabled={gone || known === undefined}
-        onChange={setDraft}
-        onBlur={commitName}
-        onEnter={commitName}
-      />
-      {found !== undefined && stress !== null && (
-        <>
-          <StressMeter bar={stress} score={found.stressScore} />
-          {reasons !== null && <ReasonLists reasons={reasons} />}
-          {home !== null && (
-            <dl class="tm-person__rows">
-              <Row label={home.label} value={home.value} />
-            </dl>
+    <>
+      <Window
+        id={windowId}
+        title={title}
+        onClose={close}
+        draggable={!anchored}
+        width={200}
+        titleAction={
+          known === undefined || gone ? undefined : (
+            <button
+              type="button"
+              class="tm-window__title-action"
+              aria-label={t('window.unit.rename')}
+              title={t('window.unit.rename')}
+              onClick={() => manager.open(dialogRequest(renameDialogId))}
+            >
+              <ObraIcon name="pencil" />
+            </button>
+          )
+        }
+      >
+        {gone && <p class="tm-person__gone">{t('ui.goneFromTower')}</p>}
+        <div class="tm-person__header">
+          {known !== undefined && <PersonPortrait id={personId} kind={known.personKind} />}
+          {follow.reason === undefined ? (
+            starButton
+          ) : (
+            <Tooltip text={follow.reason}>{starButton}</Tooltip>
           )}
-        </>
-      )}
-      <div class="tm-person__buttons">
-        <Button
-          disabled={gone || place === undefined}
-          onClick={() => place !== undefined && onCenter(personWorldPoint(place))}
-        >
-          {t('ui.center')}
-        </Button>
-      </div>
-    </Window>
+        </div>
+        {found !== undefined && stress !== null && (
+          <>
+            <StressMeter bar={stress} score={found.stressScore} />
+            {reasons !== null && <ReasonLists reasons={reasons} />}
+            {home !== null && (
+              <dl class="tm-person__rows">
+                <Row label={home.label} value={home.value} />
+              </dl>
+            )}
+          </>
+        )}
+        <div class="tm-person__buttons">
+          <Button
+            disabled={gone || place === undefined}
+            onClick={() => place !== undefined && onCenter(personWorldPoint(place))}
+          >
+            {t('ui.center')}
+          </Button>
+        </div>
+      </Window>
+      <PromptDialog
+        id={renameDialogId}
+        title={t('dialog.rename.title')}
+        label={t('window.unit.name')}
+        initialValue={storedName ?? ''}
+        placeholder={known === undefined ? undefined : kindName(known.personKind)}
+        maxLength={NAME_MAX_LENGTH}
+        onConfirm={confirmRename}
+        onCancel={() => manager.close(renameDialogId)}
+      />
+    </>
   );
 }
 
