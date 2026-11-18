@@ -139,9 +139,14 @@ export interface PeopleGroup {
   people: readonly string[];
   /** Used to draw each person when the tower view does not know them. */
   kind: PersonKind;
+  /** People per row, side by side with no overlap. Without it the row is a queue that packs to fit. */
+  columns?: number;
 }
 
 /** The people blocks of a unit window: who lives, works, stays or is inside as a customer. */
+/** Office workers stand in rows of 3, so a full office of 6 is two rows. */
+export const OFFICE_PEOPLE_COLUMNS = 3;
+
 export function peopleGroups(unit: Pick<UnitInspect, 'type' | 'details'>): PeopleGroup[] {
   const { details } = unit;
   if (details === null) {
@@ -174,6 +179,7 @@ export function peopleGroups(unit: Pick<UnitInspect, 'type' | 'details'>): Peopl
           label: t(office ? 'window.unit.peopleWorkers' : 'window.unit.peopleStaff'),
           people: details.workers,
           kind: office ? 'officeWorker' : 'staff',
+          ...(office ? { columns: OFFICE_PEOPLE_COLUMNS } : {}),
         },
       ];
       if (!office) {
@@ -718,9 +724,7 @@ export function evaluationReasons(unit: Pick<UnitInspect, 'details'>): Evaluatio
   } else if (parts.mainCause === null || parts.mainCause === 'calm') {
     bad.push(t('window.unit.reason.stressedWorkers'));
   } else {
-    bad.push(
-      t('window.unit.reason.stressedWorkersBy', { cause: t(CAUSE_KEYS[parts.mainCause]) }),
-    );
+    bad.push(t('window.unit.reason.stressedWorkersBy', { cause: t(CAUSE_KEYS[parts.mainCause]) }));
   }
   if (parts.noisy) bad.push(t('window.unit.reason.noise'));
   else good.push(t('window.unit.reason.quiet'));

@@ -15,6 +15,11 @@
   gap: var(--space-1);
 }
 
+/* A group with a fixed number per row: people side by side with the normal gap, never overlapping. */
+.tm-unit__queue-row.is-grid {
+  gap: var(--space-1);
+}
+
 .tm-unit__queue-row > li {
   position: relative;
   flex: none;

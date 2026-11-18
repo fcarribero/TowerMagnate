@@ -59,7 +59,8 @@ function portraitWidth(id: string, kind: PersonKind): number {
 /**
  * The people of one group standing in a row like a queue; each one opens that person's window.
  * A crowd that does not fit the width stands closer, overlapping, and only takes another row once
- * the people would be too covered to tell apart.
+ * the people would be too covered to tell apart. A group with `columns` stands in rows of that
+ * many people side by side instead.
  */
 export function PeopleRow({ group, connection, bare = false }: PeopleRowProps) {
   const known = connection.store.current?.latest.people;
@@ -69,8 +70,9 @@ export function PeopleRow({ group, connection, bare = false }: PeopleRowProps) {
     return null;
   }
   const kinds = group.people.map((id) => known?.get(id)?.kind ?? group.kind);
+  const columns = group.columns;
   const layout =
-    room === null || room.width <= 0
+    columns !== undefined || room === null || room.width <= 0
       ? null
       : queueLayout(
           group.people.map((id, index) => portraitWidth(id, kinds[index] as PersonKind)),
@@ -79,7 +81,9 @@ export function PeopleRow({ group, connection, bare = false }: PeopleRowProps) {
         );
   const rows: number[][] = [];
   group.people.forEach((_, index) => {
-    if (rows.length === 0 || layout?.breakBefore[index] === true) rows.push([]);
+    const breaks =
+      columns === undefined ? layout?.breakBefore[index] === true : index % columns === 0;
+    if (rows.length === 0 || breaks) rows.push([]);
     rows[rows.length - 1]?.push(index);
   });
   return (
@@ -92,7 +96,13 @@ export function PeopleRow({ group, connection, bare = false }: PeopleRowProps) {
           {rows.map((row) => (
             <ul
               key={row[0]}
-              class={layout === null ? 'tm-unit__queue-row is-unmeasured' : 'tm-unit__queue-row'}
+              class={
+                columns !== undefined
+                  ? 'tm-unit__queue-row is-grid'
+                  : layout === null
+                    ? 'tm-unit__queue-row is-unmeasured'
+                    : 'tm-unit__queue-row'
+              }
             >
               {row.map((index) => {
                 const id = group.people[index] as string;

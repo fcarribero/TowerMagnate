@@ -300,11 +300,28 @@ describe('unit windows', () => {
     const people = dialog.querySelector('.tm-unit__people') as HTMLElement;
     expect(dialog.querySelector('.tm-window__body')?.firstElementChild).toBe(people);
     expect(within(people).queryByRole('heading')).toBeNull();
-    expect(within(people).getAllByRole('button', { name: 'Ver a esta persona' }).length).toBeGreaterThan(0);
+    expect(
+      within(people).getAllByRole('button', { name: 'Ver a esta persona' }).length,
+    ).toBeGreaterThan(0);
     expect(screen.queryByText('Tasación')).toBeNull();
     expect(screen.queryByText('Ubicación')).toBeNull();
     expect(screen.queryByText(/Sin tilde/)).toBeNull();
     expect(screen.queryByText('Trabajadores')).toBeNull();
+  });
+
+  it('stands the office workers in rows of 3, side by side', () => {
+    const { open, show } = setup([unitView('u1')]);
+    open('u1');
+    const workers = ['p1', 'p2', 'p3', 'p4', 'p5', 'p6', 'p7'];
+    show(inspectOf('u1', { details: leaseDetails({ workers, persons: 7 }) }));
+    const people = screen.getByRole('dialog').querySelector('.tm-unit__people') as HTMLElement;
+    const rows = [...people.querySelectorAll('.tm-unit__queue-row')];
+    expect(rows.map((row) => row.querySelectorAll('li').length)).toEqual([3, 3, 1]);
+    for (const row of rows) {
+      expect(row.classList.contains('is-grid')).toBe(true);
+      for (const li of row.querySelectorAll('li'))
+        expect((li as HTMLElement).style.marginLeft).toBe('');
+    }
   });
 
   it('sets the price and listing of a unit still under construction', () => {
@@ -462,7 +479,11 @@ describe('unit windows', () => {
 
     function panelSetup() {
       const stage = fakeStage({ u1: at(100, 80), u2: at(300, 200) });
-      const world = setup([unitView('u1'), unitView('u2')], 2_000_000, stage as unknown as PanelStage);
+      const world = setup(
+        [unitView('u1'), unitView('u2')],
+        2_000_000,
+        stage as unknown as PanelStage,
+      );
       const anchor = (id: string): void => {
         act(() => world.inspect.anchorUnit(id));
         world.show(inspectOf(id, { name: `Unidad ${id}` }));
@@ -482,7 +503,10 @@ describe('unit windows', () => {
       fireEvent.pointerDown(title, { button: 0, clientX: 10, clientY: 10, pointerId: 1 });
       fireEvent.pointerMove(title, { clientX: 300, clientY: 300, pointerId: 1 });
       expect(frame.style.left).toBe('148px');
-      expect(sent.at(-1)).toMatchObject({ t: 'inspectAdd', p: { target: { kind: 'unit', id: 'u1' } } });
+      expect(sent.at(-1)).toMatchObject({
+        t: 'inspectAdd',
+        p: { target: { kind: 'unit', id: 'u1' } },
+      });
     });
 
     it('closes from its close button', () => {
