@@ -105,6 +105,18 @@ export function personAt(people: Iterable<PersonView>, cell: Cell): PersonView |
   return nearest;
 }
 
+/** True when the person stands on a cell of a unit, so the unit is clicked instead. */
+function isInUnit(
+  latest: NonNullable<ClientStore['current']>['latest'],
+  personId: string,
+): boolean {
+  const person = latest.people.get(personId);
+  return (
+    person !== undefined &&
+    unitAt(latest.units.values(), Math.floor(person.x), person.level as Level) !== null
+  );
+}
+
 /** With the inspect tool, a click on a person, a unit, an elevator shaft or a lobby asks for its window. */
 export function bindUnitClicks(
   stage: ClickStage,
@@ -132,10 +144,12 @@ export function bindUnitClicks(
       return;
     }
     // What is drawn in front wins: people, then elevator shafts, then the units behind them.
-    const personId =
+    // Someone inside a unit is not picked here: they open from the unit window's people list.
+    const picked =
       input.world !== undefined && stage.personIdAt !== undefined
         ? stage.personIdAt(input.world.x, input.world.y)
         : (personAt(latest.people.values(), input.cell)?.id ?? null);
+    const personId = picked !== null && isInUnit(latest, picked) ? null : picked;
     if (personId !== null) {
       open.clearUnit?.();
       open.person(personId);

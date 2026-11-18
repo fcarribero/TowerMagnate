@@ -38,9 +38,17 @@ const walker = {
 
 const rider = { ...walker, id: 'p2', x: 30, level: 4, mode: 'ride' as const };
 
+/** A walker in the hall, outside any unit. */
+const hallWalker = { ...walker, id: 'p3', x: 24.4 };
+
 function setup() {
   const store = new ClientStore({ requestResync: () => undefined, now: () => 0 });
-  store.applySnapshot({ ...snapshot, units: [office], shafts: [shaft], people: [walker, rider] });
+  store.applySnapshot({
+    ...snapshot,
+    units: [office],
+    shafts: [shaft],
+    people: [walker, rider, hallWalker],
+  });
   let input: (event: CellInput) => void = () => undefined;
   const opened: string[] = [];
   const cleared = { count: 0 };
@@ -66,12 +74,17 @@ describe('bindUnitClicks', () => {
     expect(opened).toEqual(['u1']);
   });
 
-  it('opens the window of the person before the unit behind them', () => {
+  it('opens the window of a person in the hall', () => {
+    const { click, opened } = setup();
+    click({ x: 24, level: 3 });
+    click({ x: 25, level: 3 });
+    expect(opened).toEqual(['person:p3', 'person:p3']);
+  });
+
+  it('opens the unit, not the person, for someone inside a unit', () => {
     const { click, opened } = setup();
     click({ x: 14, level: 3 });
-    click({ x: 15, level: 3 });
-    click({ x: 16, level: 3 });
-    expect(opened).toEqual(['person:p1', 'person:p1', 'u1']);
+    expect(opened).toEqual(['u1']);
   });
 
   it('does not pick a rider', () => {
@@ -114,7 +127,7 @@ describe('bindUnitClicks', () => {
     expect(cleared.count).toBe(0);
     click({ x: 0, level: 3 });
     click({ x: 33, level: 4 });
-    click({ x: 14, level: 3 });
+    click({ x: 24, level: 3 });
     press(null);
     expect(cleared.count).toBe(4);
   });
@@ -155,6 +168,26 @@ describe('bindUnitClicks priority', () => {
     const click = bind((x, y) => (y > 90 ? 'p1' : null));
     expect(click({ x: 14, level: 3 }, { x: 115, y: 100 })).toBe('person:p1');
     expect(click({ x: 14, level: 3 }, { x: 115, y: 70 })).toBeUndefined();
+  });
+
+  it('skips a person the sprites find inside a unit, and opens the unit', () => {
+    const store = new ClientStore({ requestResync: () => undefined, now: () => 0 });
+    store.applySnapshot({ ...snapshot, units: [office], shafts: [], people: [walker] });
+    let input: (event: CellInput) => void = () => undefined;
+    const opened: string[] = [];
+    bindUnitClicks(
+      { onCellInput: (l) => ((input = l), () => undefined), personIdAt: () => 'p1' },
+      store,
+      {
+        person: (id) => opened.push(`person:${id}`),
+        unit: (id) => opened.push(id),
+        shaft: (id) => opened.push(`shaft:${id}`),
+      },
+    );
+    const cell = { x: 14, level: 3 };
+    input({ kind: 'down', cell, clientX: 1, clientY: 1, world: { x: 145, y: 100 } });
+    input({ kind: 'up', cell, clientX: 1, clientY: 1, world: { x: 145, y: 100 } });
+    expect(opened).toEqual(['u1']);
   });
 });
 
