@@ -3,19 +3,16 @@ import type { UnitView } from '@tower-magnate/shared';
 import type { PersonInspect } from '../../model/inspectStore';
 import type { GameConnection } from '../../net/gameConnection';
 import { personWorldPoint } from '../../render/personPoint';
-import { unitAt } from '../../render/placementCheck';
 import { Button, TextField, Tooltip, Window, useWindowManager } from '../kit';
 import { personPanelId, personWindowId } from '../inspectTarget';
 import { PersonPortrait } from './PersonPortrait';
 import { t } from '../strings';
 import { NAME_MAX_LENGTH } from '../unit/unitWindowModel';
 import {
-  destinationText,
   followStar,
   homeRow,
   kindName,
   personTitle,
-  stateText,
   stressColor,
   stressText,
 } from './personWindowModel';
@@ -28,7 +25,7 @@ export interface PersonWindowProps {
   connection: Pick<GameConnection, 'store' | 'inspect' | 'commands'>;
   /** Moves the view to a world point, keeping the zoom. */
   onCenter: (point: { x: number; y: number }) => void;
-  /** The fixed panel next to the selected person: no close button, no dragging. A click elsewhere closes it. */
+  /** The fixed panel next to the selected person: no dragging. The close button or a click elsewhere closes it. */
   anchored?: boolean;
 }
 
@@ -143,10 +140,6 @@ export function PersonWindow({
   };
 
   const unitOf = (unitId: string): UnitView | undefined => facts.units.get(unitId);
-  const unitHere =
-    place === undefined
-      ? undefined
-      : (unitAt(facts.units.values(), Math.round(place.x), place.level) ?? undefined);
   const follow = followStar(storedName !== null, facts.isFollowed, facts.followedCount, gone);
   const toggleFollow = (): void => {
     void (facts.isFollowed ? commands.unfollowPerson(personId) : commands.followPerson(personId));
@@ -171,18 +164,15 @@ export function PersonWindow({
   );
 
   return (
-    <Window
-      id={windowId}
-      title={title}
-      onClose={close}
-      showCloseButton={!anchored}
-      draggable={!anchored}
-      width={200}
-    >
+    <Window id={windowId} title={title} onClose={close} draggable={!anchored} width={200}>
       {gone && <p class="tm-person__gone">{t('ui.goneFromTower')}</p>}
       <div class="tm-person__header">
         {known !== undefined && <PersonPortrait id={personId} kind={known.personKind} />}
-        {follow.reason === undefined ? starButton : <Tooltip text={follow.reason}>{starButton}</Tooltip>}
+        {follow.reason === undefined ? (
+          starButton
+        ) : (
+          <Tooltip text={follow.reason}>{starButton}</Tooltip>
+        )}
       </div>
       <TextField
         id={`${windowId}-name`}
@@ -197,15 +187,6 @@ export function PersonWindow({
       />
       {found !== undefined && stress !== null && (
         <dl class="tm-person__rows">
-          <Row label={t('window.person.type')} value={kindName(found.personKind)} />
-          <Row
-            label={t('window.person.status')}
-            value={stateText(found.state, unitHere, found.personKind)}
-          />
-          <Row
-            label={t('window.person.destination')}
-            value={destinationText(found.destination, unitOf)}
-          />
           <Row
             label={t('window.person.stress')}
             value={stress.text}

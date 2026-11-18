@@ -8,6 +8,7 @@ import type {
   UnitView,
 } from '@tower-magnate/shared';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import type { CameraListener } from '../../render/stage';
 import { ClientStore } from '../../model/clientStore';
 import { InspectStore, type PersonInspect } from '../../model/inspectStore';
 import { CommandClient } from '../../net/commandClient';
@@ -80,8 +81,10 @@ function found(id: string, patch: Partial<Found> = {}): Found {
 
 type Point = { x: number; y: number };
 
-function fakePersonStage(rects: Record<string, { x: number; y: number; width: number; height: number }>) {
-  const listeners = new Set<(camera: unknown) => void>();
+function fakePersonStage(
+  rects: Record<string, { x: number; y: number; width: number; height: number }>,
+) {
+  const listeners = new Set<CameraListener>();
   const selected: (string | null)[] = [];
   return {
     rects,
@@ -91,11 +94,13 @@ function fakePersonStage(rects: Record<string, { x: number; y: number; width: nu
       selected.push(id);
     },
     cssPerDevicePixel: () => 1,
-    onCameraChange: (listener: (camera: unknown) => void) => {
+    onCameraChange: (listener: CameraListener) => {
       listeners.add(listener);
-      return () => listeners.delete(listener);
+      return () => {
+        listeners.delete(listener);
+      };
     },
-    pan: () => listeners.forEach((listener) => listener({})),
+    pan: () => listeners.forEach((listener) => listener({} as Parameters<CameraListener>[0])),
   };
 }
 
@@ -143,13 +148,8 @@ describe('person windows', () => {
     show(found('p1'));
     const dialog = screen.getByRole('dialog', { name: 'Oficinista' });
     const rows = [...dialog.querySelectorAll('.tm-person__row')].map((row) => row.textContent);
-    expect(rows).toEqual([
-      'TipoOficinista',
-      'EstadoCaminando',
-      'DestinoOficina · Piso 3',
-      'Estrés42 min (alto)',
-      'Trabaja enOficina · Piso 3',
-    ]);
+    // Type, state and destination are not shown in the panel.
+    expect(rows).toEqual(['Estrés42 min (alto)', 'Trabaja enOficina · Piso 3']);
     expect(sent.at(-1)).toMatchObject({
       t: 'inspectAdd',
       p: { target: { kind: 'person', id: 'p1' } },
@@ -287,13 +287,6 @@ describe('person windows', () => {
     expect(screen.getAllByRole('dialog')).toHaveLength(4);
     expect(sent.filter((message) => message.t === 'inspectRemove')).toHaveLength(1);
   });
-
-  it('reads the unit a person is inside from where the view shows them', () => {
-    const { open, show } = setup([personView('p1', { mode: 'inside', x: 11 })]);
-    open('p1');
-    show(found('p1', { state: 'inside', destination: null }));
-    expect(screen.getByText('En Oficina')).toBeTruthy();
-  });
 });
 
 describe('Personas seguidas', () => {
@@ -365,19 +358,29 @@ describe('Personas seguidas', () => {
 describe('person panel', () => {
   const rect = { x: 100, y: 120, width: 10, height: 20 };
 
-  it('opens next to the anchored person without a close button, and inspects them', () => {
+  it('opens next to the anchored person with a close button, and inspects them', () => {
     const stage = fakePersonStage({ p1: rect });
     const { connection, show, sent } = setup([personView('p1')], [], stage);
     act(() => connection.inspect.anchorPerson('p1'));
     show(found('p1'));
     const panel = screen.getByRole('dialog', { name: 'Oficinista' });
-    expect(within(panel).queryByRole('button', { name: 'Cerrar' })).toBeNull();
     expect(panel.querySelector('canvas.tm-unit__portrait')).not.toBeNull();
     expect(stage.selected.at(-1)).toBe('p1');
     expect(sent.at(-1)).toMatchObject({
       t: 'inspectAdd',
       p: { target: { kind: 'person', id: 'p1' } },
     });
+  });
+
+  it('closes the panel from its close button', () => {
+    const stage = fakePersonStage({ p1: rect });
+    const { connection, show } = setup([personView('p1')], [], stage);
+    act(() => connection.inspect.anchorPerson('p1'));
+    show(found('p1'));
+    const panel = screen.getByRole('dialog', { name: 'Oficinista' });
+    fireEvent.click(within(panel).getByRole('button', { name: 'Cerrar' }));
+    expect(connection.inspect.anchoredPerson()).toBeNull();
+    expect(screen.queryByRole('dialog', { name: 'Oficinista' })).toBeNull();
   });
 
   it('hides the panel and the frame when the anchor is cleared', () => {
@@ -409,11 +412,7 @@ describe('person panel', () => {
 
   it('follows with a star and unfollows with the same star', () => {
     const stage = fakePersonStage({ p1: rect });
-    const { connection, show, store, commandsSent } = setup(
-      [personView('p1')],
-      [],
-      stage,
-    );
+    const { connection, show, store, commandsSent } = setup([personView('p1')], [], stage);
     act(() => connection.inspect.anchorPerson('p1'));
     show(found('p1', { name: 'Ana' }));
     const star = screen.getByRole('button', { name: 'Seguir' });
