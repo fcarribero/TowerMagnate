@@ -17,7 +17,7 @@ import { isWeekendDay, weekdayOfDay } from './calendar';
 import { SECONDS_PER_STEP, STEPS_PER_DAY } from './clock';
 import { addCarRider, carLevels, stepsFelt, stressPerMinute } from './heat';
 import { parsePersonId, slotOfPerson } from './people';
-import { addAmbient } from './trip-ledger';
+import { addAmbient, mindsNoiseAndWalks } from './trip-ledger';
 import { isCarryingBag } from './venue-staff';
 import { boardFromQueue, hallCallAge, queueLength } from './elevator-queues';
 import type { SimulationSystem, StepContext } from './step';
@@ -282,7 +282,7 @@ function feelCar(
   const { noise, dirt } = carLevels(state, shaft.id, carIndex);
   const minutes = rideSteps / 6;
   const felt = stepsFelt(
-    stressPerMinute(noise, dirt),
+    stressPerMinute(mindsNoiseAndWalks(state.people, slot) ? noise : 0, dirt),
     minutes,
     state.people.id[slot] as number,
     state.step,

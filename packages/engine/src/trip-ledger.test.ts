@@ -82,7 +82,11 @@ function buildRideTower(): TowerState {
   return buildTower(plan as never).state;
 }
 
-function sendRider(state: TowerState, kind: 'officeWorker' | 'maid', toLevel: number): number {
+function sendRider(
+  state: TowerState,
+  kind: 'officeWorker' | 'maid' | 'resident',
+  toLevel: number,
+): number {
   const id = addPerson(state, { kind, homeUnit: 0, level: 1, column: SHAFT_COLUMN });
   const context = { state, events: [], graph: new TransportGraph(state) };
   startTrek(context, slotOfPerson(state.people, id), { level: toLevel as never, column: 30 });
@@ -113,8 +117,10 @@ function rideToArrival(start: TowerState, id: number): Ride {
   return { state, waitSteps, rideSteps };
 }
 
-/** The 30 columns the riders walk after getting off add 1 per 3; a minute of calm may give back a little. */
-const WALK_CELLS = 30 / AMBIENT_WALK_COLUMNS_PER_STRESS;
+/** Office workers do not mind the 30 columns they walk after getting off; a minute of calm may give back a little. */
+const WALK_CELLS = 0;
+/** A resident minds them: 1 per 3 columns. */
+const RESIDENT_WALK_CELLS = 30 / AMBIENT_WALK_COLUMNS_PER_STRESS;
 const CALM_SLACK = 6;
 
 function expectNearWalk(actual: number | undefined, base: number): void {
@@ -143,9 +149,18 @@ describe('trip ledger', () => {
     expect(findPerson(waiting.people, id)?.stress).toBe(2);
   });
 
+  it('adds the walk after the ride for a resident, who minds walking', () => {
+    const state = buildRideTower();
+    const id = sendRider(state, 'resident', 4);
+    const { state: arrived, waitSteps, rideSteps } = rideToArrival(state, id);
+    const stress = tripsOf(arrived, id)[0]?.stress ?? 0;
+    expect(stress).toBeGreaterThanOrEqual(waitSteps + rideSteps + RESIDENT_WALK_CELLS - CALM_SLACK);
+    expect(stress).toBeLessThanOrEqual(waitSteps + rideSteps + RESIDENT_WALK_CELLS + CALM_SLACK);
+  });
+
   it('keeps the stress of a waiting and riding person exact within one long step call', () => {
     const state = buildRideTower();
-    const id = sendRider(state, 'officeWorker', 4);
+    const id = sendRider(state, 'resident', 4);
     state.tripLedger[String(id)] = [state.step, 7];
     const inOneCall = stressTraceInOneCall(state, id, 40);
     expect(inOneCall).toEqual(stressTraceStepByStep(state, id, 40));

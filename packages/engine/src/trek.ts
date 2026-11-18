@@ -55,6 +55,7 @@ import {
   boardCar,
   finishRide,
   lobbyHeightAt,
+  mindsNoiseAndWalks,
   recordTrip,
   refreshPersonStress,
   settlePartUnderWay,
@@ -1119,7 +1120,7 @@ function walk(context: StepContext, slot: number, pass: TrekPass): boolean {
   if (!onStreet) {
     const state = context.state;
     addPersonTrail(state, level, column + direction, NOISE_PER_CELL, DIRT_PER_CELL);
-    if (!pass.ambient.insideUnit(level, column + direction)) {
+    if (!pass.ambient.insideUnit(level, column + direction) && mindsNoiseAndWalks(pool, slot)) {
       addAmbient(pool, slot, walkCellStress(column + direction), 'walk');
     }
   }
@@ -1321,7 +1322,7 @@ function feelEnvironment(context: StepContext, slot: number, phase: number): voi
   const level = pool.level[slot] as number;
   const column = pool.column[slot] as number;
   const minute = Math.floor(state.step / STEPS_PER_MINUTE);
-  let perMinute = cellStressPerMinute(state, level, column);
+  let perMinute = cellStressPerMinute(state, level, column, mindsNoiseAndWalks(pool, slot));
   // An officer with cameras watching the cell makes people there feel less of it.
   if (watchedCells(state)?.get(level)?.[column] === 1) perMinute *= WATCHED_STRESS;
   addAmbient(pool, slot, stepsFelt(perMinute, 1, id, minute));

@@ -43,7 +43,6 @@ describe.each([
   ['single-room', 20],
   ['double-room', 20],
   ['suite', 20],
-  ['office', 10],
   ['condo', 30],
 ] as const)('noise radius of a %s', (unit, radius) => {
   it(`is noisy at gap ${radius - 1} and ${radius} and quiet at ${radius + 1}, source on the right`, () => {
@@ -64,21 +63,28 @@ describe.each([
 });
 
 describe('noise sources', () => {
+  it('never makes an office noisy, since office workers do not mind noise', () => {
+    expect(noisyWith('office', { type: 'fast-food', x: rightOf('office', 0) })).toBe(false);
+    expect(noisyWith('office', { type: 'cinema', level: 3, x: rightOf('office', 0) })).toBe(false);
+  });
+
   it('ignores a source on another level', () => {
-    expect(noisyWith('office', { type: 'fast-food', level: 4, x: rightOf('office', 0) })).toBe(
-      false,
-    );
+    expect(
+      noisyWith('single-room', { type: 'fast-food', level: 4, x: rightOf('single-room', 0) }),
+    ).toBe(false);
   });
 
   it('counts a cinema on every level it covers', () => {
-    const cinemaX = rightOf('office', 0);
-    expect(noisyWith('office', { type: 'cinema', level: 2, x: cinemaX })).toBe(true);
-    expect(noisyWith('office', { type: 'cinema', level: 3, x: cinemaX })).toBe(true);
-    expect(noisyWith('office', { type: 'cinema', level: 1, x: cinemaX })).toBe(false);
+    const cinemaX = rightOf('single-room', 0);
+    expect(noisyWith('single-room', { type: 'cinema', level: 2, x: cinemaX })).toBe(true);
+    expect(noisyWith('single-room', { type: 'cinema', level: 3, x: cinemaX })).toBe(true);
+    expect(noisyWith('single-room', { type: 'cinema', level: 1, x: cinemaX })).toBe(false);
   });
 
   it('counts a vacant source', () => {
-    expect(noisyWith('office', { type: 'restaurant', x: rightOf('office', 5) })).toBe(true);
+    expect(noisyWith('single-room', { type: 'restaurant', x: rightOf('single-room', 5) })).toBe(
+      true,
+    );
   });
 
   it('does not count housekeeping or a retail shop for a hotel room', () => {
@@ -93,14 +99,12 @@ describe('noise sources', () => {
     );
   });
 
-  it('lets an office disturb a hotel room but not another office', () => {
+  it('lets an office disturb a hotel room', () => {
     expect(noisyWith('single-room', { type: 'office', x: rightOf('single-room', 0) })).toBe(true);
-    expect(noisyWith('office', { type: 'office', x: rightOf('office', 0) })).toBe(false);
   });
 
-  it('lets hotel rooms disturb a condo but not an office', () => {
+  it('lets hotel rooms disturb a condo', () => {
     expect(noisyWith('condo', { type: 'suite', x: rightOf('condo', 0) })).toBe(true);
-    expect(noisyWith('office', { type: 'suite', x: rightOf('office', 0) })).toBe(false);
   });
 
   it('stays a flag with five sources', () => {

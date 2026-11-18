@@ -114,6 +114,8 @@ People sitting still between trips are not visited each minute. When their next 
 
 Walking: every third column walked adds 1 (`AMBIENT_WALK_CELL_STRESS` on each column that is a multiple of `AMBIENT_WALK_COLUMNS_PER_STRESS`, 3), so any walk of 3 columns adds 1. It was 1 per column; in a wide tower walking was then the main cause for almost every hotel room. Cells inside a unit do not count, so moving around inside the destination unit is free. The walk in from the map edge and the walk out to it does not count either.
 
+Office workers mind neither noise nor walking. A walk adds them nothing, and they feel only the dirt of the cells and cars they pass, not the noise. An office is never noisy (5.4), so a noise source next to it changes neither its score nor its fair price. They still feel waits, rides, stairs, full queues and failed routes.
+
 Maids, guards, builders and couriers add to the maps like everyone else but record no stress. The total for a trip never goes below 0. The 540 cap and the long-trip extra work as before.
 
 Design call: all values are first guesses, kept in `balance.ts`. Heat only exists on cells with floor or lobby; cells that lose their floor are cleared. The maps live in the saved state as plain arrays and are copied by slicing each step. The noise of the unit score (5.4) is a separate point added to the score, and the maps add to the trip stress that feeds the base.
@@ -231,7 +233,6 @@ A unit gets +1.0 on its occupant score when at least one noise source of its lis
 | Unit | Radius | Noise sources |
 |---|---|---|
 | Hotel room | 20 | fast food, restaurant, office, retail shop, cinema, party hall |
-| Office | 10 | fast food, restaurant, retail shop, cinema, party hall |
 | Condo | 30 | single room, double room, suite, fast food, restaurant, office, retail shop, cinema, party hall |
 | Retail shop | none | none |
 

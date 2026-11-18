@@ -759,7 +759,6 @@ export const NOISE_RULES: Readonly<Partial<Record<UnitType, NoiseRule>>> = {
   'single-room': HOTEL_ROOM_NOISE,
   'double-room': HOTEL_ROOM_NOISE,
   suite: HOTEL_ROOM_NOISE,
-  office: { radius: 10, sources: COMMERCE_AND_ENTERTAINMENT },
   condo: {
     radius: 30,
     sources: [...COMMERCE_AND_ENTERTAINMENT, 'office', 'single-room', 'double-room', 'suite'],

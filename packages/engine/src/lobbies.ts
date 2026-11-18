@@ -167,9 +167,14 @@ export function lobbyComfortAt(
  * The stress a minute in this cell gives: its noise and dirt, less what the music, the lighting and
  * the plants of an upgraded lobby take off, and less again near a garden, a lounge or a library.
  */
-export function cellStressPerMinute(state: TowerState, level: number, column: number): number {
+export function cellStressPerMinute(
+  state: TowerState,
+  level: number,
+  column: number,
+  withNoise = true,
+): number {
   const heat = heatOf(state);
-  const noise = valueAt(heat.noise, level, column);
+  const noise = withNoise ? valueAt(heat.noise, level, column) : 0;
   const dirt = valueAt(heat.dirt, level, column);
   const calm = calmAt(state, level, column);
   const comfort = lobbyComfortAt(state, level, column);

@@ -36,6 +36,12 @@ const BUILDER_KIND = PERSON_KINDS.indexOf('builder');
 const COURIER_KIND = PERSON_KINDS.indexOf('courier');
 const CLEANER_KIND = PERSON_KINDS.indexOf('cleaner');
 const DOCTOR_KIND = PERSON_KINDS.indexOf('doctor');
+const OFFICE_WORKER_KIND = PERSON_KINDS.indexOf('officeWorker');
+
+/** Office workers mind neither noise nor long walks; they still feel dirt and everything else. */
+export function mindsNoiseAndWalks(pool: PersonPool, slot: number): boolean {
+  return pool.kind[slot] !== OFFICE_WORKER_KIND;
+}
 
 function recordsStress(pool: PersonPool, slot: number): boolean {
   return (
@@ -286,7 +292,7 @@ export function addStay(state: TowerState, slot: number): void {
   );
   const level = field(pool.level, slot);
   const column = field(pool.column, slot);
-  const perMinute = cellStressPerMinute(state, level, column);
+  const perMinute = cellStressPerMinute(state, level, column, mindsNoiseAndWalks(pool, slot));
   addAmbient(
     pool,
     slot,

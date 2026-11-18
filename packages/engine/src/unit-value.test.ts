@@ -55,17 +55,15 @@ describe('occupant score', () => {
     expect(occupantScore(state, state.units[office]!)).toBeCloseTo(stressScore(180), 9);
   });
 
-  it('adds 1 for a noise source close by, never past 10', () => {
+  it('adds nothing for a noise source next to an office, since office workers do not mind noise', () => {
     const quiet = officeTower();
     const noisy = officeTower(true);
     fileTrips(quiet.state, quiet.office, 90);
     fileTrips(noisy.state, noisy.office, 90);
     expect(occupantScore(noisy.state, noisy.state.units[noisy.office]!)).toBeCloseTo(
-      occupantScore(quiet.state, quiet.state.units[quiet.office]!) + 1,
+      occupantScore(quiet.state, quiet.state.units[quiet.office]!),
       9,
     );
-    fileTrips(noisy.state, noisy.office, 1e9);
-    expect(occupantScore(noisy.state, noisy.state.units[noisy.office]!)).toBeLessThanOrEqual(10);
   });
 });
 

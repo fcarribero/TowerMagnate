@@ -73,23 +73,10 @@ function newsKeys(result: StepResult): string[] {
 }
 
 describe('office weekly end by grade (E-12)', () => {
-  it('lets the tenant go when a fast food 10 columns away makes the office poor', () => {
+  it('renews for another week with a fast food next door, since office workers do not mind noise', () => {
     const { state, unit } = leaseEndingNext('office', 130, {
       type: 'fast-food',
-      x: OFFICE_LAST_COLUMN + 11,
-    });
-    const result = stepOnce(state);
-    const office = result.state.units[unit.id] as Unit;
-    expect(office.lease).toBeNull();
-    expect(office.evaluation).toBeNull();
-    expect(result.state.money).toBe(state.money);
-    expect(newsKeys(result)).toEqual(['news.officeLeft']);
-  });
-
-  it('renews for another week with the fast food 11 columns away', () => {
-    const { state, unit } = leaseEndingNext('office', 130, {
-      type: 'fast-food',
-      x: OFFICE_LAST_COLUMN + 12,
+      x: OFFICE_LAST_COLUMN + 1,
     });
     const result = stepOnce(state);
     const office = result.state.units[unit.id] as Unit;
