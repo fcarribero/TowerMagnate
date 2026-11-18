@@ -130,7 +130,7 @@ const GDD_UNIT_TABLE: GddUnitRow[] = [
   },
   {
     type: 'security',
-    name: 'Seguridad',
+    name: 'Policía',
     width: 16,
     floors: 1,
     cost: unit(100_000),

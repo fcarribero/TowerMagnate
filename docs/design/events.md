@@ -441,7 +441,7 @@ The tower also keeps `closedDecisions: string[]`, the ids of the last 20 closed 
 |---|---|---|---|
 | `news.bombThreat` | 4.2 | yes | in ui.md 13.9 |
 | `news.bombPaid` | 4.3 | | in ui.md 13.9 |
-| `news.bombSearch` | 4.4, search starts | | Seguridad empezó a buscar la bomba. |
+| `news.bombSearch` | 4.4, search starts | | La policía empezó a buscar la bomba. |
 | `news.bombFound` | 4.4 | | in ui.md 13.9 |
 | `news.bombExploded` | 4.5 | yes | in ui.md 13.9 |
 | `news.fire` | 5.2 | yes | in ui.md 13.9 |

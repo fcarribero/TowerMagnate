@@ -279,7 +279,7 @@ The failure notices at the moment a visit or a parking pass fails stay in people
 | Key | When | Text | Alert |
 |---|---|---|---|
 | `news.starsUp` | promotion | La torre llegó a {n} estrellas. | |
-| `news.starBlockedSecurity` | 2 to 3 blocked by 5.1 | La torre no subió de estrellas: falta una oficina de seguridad. | yes |
+| `news.starBlockedSecurity` | 2 to 3 blocked by 5.1 | La torre no subió de estrellas: falta una policía. | yes |
 | `news.starBlockedVip` | 3 to 4 blocked by 5.2 | La torre no subió de estrellas: falta la aprobación del VIP. | yes |
 | `news.starBlockedSuites` | 3 to 4 blocked by 5.3 | La torre no subió de estrellas: hacen falta 2 suites. | yes |
 | `news.starBlockedRecycling` | blocked by 5.4 | La torre no subió de estrellas: hace falta un centro de reciclaje cada 2.500 personas. | yes |

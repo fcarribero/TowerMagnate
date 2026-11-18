@@ -102,7 +102,7 @@ These notices are not alerts. The alert comes at the star check, when the failur
 | Key | Text | Trigger | Alert | Params | Scope |
 |---|---|---|---|---|---|
 | `news.starsUp` | La torre llegó a {n} estrellas. | A star check promotes the tower (stars.md 4, S-08). | | `n` | tower |
-| `news.starBlockedSecurity` | La torre no subió de estrellas: falta una oficina de seguridad. | The 2 to 3 check meets population and fails requirement 5.1 (stars.md 4, S-07). | yes | | tower |
+| `news.starBlockedSecurity` | La torre no subió de estrellas: falta una policía. | The 2 to 3 check meets population and fails requirement 5.1 (stars.md 4, S-07). | yes | | tower |
 | `news.starBlockedVip` | La torre no subió de estrellas: falta la aprobación del VIP. | The 3 to 4 check meets population and fails 5.2. | yes | | tower |
 | `news.starBlockedSuites` | La torre no subió de estrellas: hacen falta 2 suites. | The 3 to 4 check meets population and fails 5.3. | yes | | tower |
 | `news.starBlockedRecycling` | La torre no subió de estrellas: hace falta un centro de reciclaje cada 2.500 personas. | A check meets population and fails 5.4. | yes | | tower |
@@ -120,8 +120,8 @@ The `starBlocked` server event carries a `reason`; the reasons `security`, `vip`
 |---|---|---|---|---|---|
 | `news.bombThreat` | Amenaza de bomba en la torre. | A bomb threat starts and its decision opens (events.md 4.2). | yes | | event |
 | `news.bombPaid` | Se pagó el rescate. La amenaza terminó. | The player answers `pay` (events.md 4.3). | | | event |
-| `news.bombSearch` | Seguridad empezó a buscar la bomba. | The search starts, after a `refuse` answer or at the deadline (events.md 4.4, 12). | | | event |
-| `news.bombFound` | Seguridad encontró la bomba y la desactivó. | A guard finds the bomb (events.md 4.4). | | | event |
+| `news.bombSearch` | La policía empezó a buscar la bomba. | The search starts, after a `refuse` answer or at the deadline (events.md 4.4, 12). | | | event |
+| `news.bombFound` | La policía encontró la bomba y la desactivó. | A guard finds the bomb (events.md 4.4). | | | event |
 | `news.bombExploded` | Explotó la bomba en el piso {level}. | The bomb explodes at 13:00 (events.md 4.5). | yes | `level` | event |
 | `news.fire` | Incendio en el piso {level}. | A fire ignites and its decision opens (events.md 5.2). | yes | `level` | event |
 | `news.fireHelicopter` | El helicóptero apagó el incendio. | The player answers `helicopter` (events.md 5.3). | | | event |
@@ -147,11 +147,11 @@ The dialogs of ui.md section 9. Decision dialogs are opened by `decisionOpened` 
 | Key | Text | Params |
 |---|---|---|
 | `dialog.bomb.title` | Amenaza de bomba | |
-| `dialog.bomb.body` | Alguien llamó para avisar que dejó una bomba en la torre. Pide {ransom} para decir dónde está. Si no pagás, seguridad la va a buscar. Si no la encuentra antes de las 13:00, explota. | `ransom` |
+| `dialog.bomb.body` | Alguien llamó para avisar que dejó una bomba en la torre. Pide {ransom} para decir dónde está. Si no pagás, la policía la va a buscar. Si no la encuentra antes de las 13:00, explota. | `ransom` |
 | `dialog.bomb.pay` | Pagar {ransom} | `ransom` |
 | `dialog.bomb.refuse` | No pagar | |
 | `dialog.fire.title` | Incendio | |
-| `dialog.fire.body` | Hay un incendio en el piso {level}. Un helicóptero lo puede apagar por $500.000. Si no lo llamás, seguridad va a tratar de contenerlo. | `level` |
+| `dialog.fire.body` | Hay un incendio en el piso {level}. Un helicóptero lo puede apagar por $500.000. Si no lo llamás, la policía va a tratar de contenerlo. | `level` |
 | `dialog.fire.helicopter` | Llamar al helicóptero ($500.000) | |
 | `dialog.fire.burn` | No llamar | |
 | `dialog.deadlineToday` | Respondé antes de las {time} | `time` |
@@ -209,7 +209,7 @@ Units unlocked by each `starsChanged` value, as `{units}` shows them:
 
 | `stars` | `{units}` |
 |---|---|
-| 2 | Habitación simple, Habitación doble, Suite, Limpieza, Seguridad |
+| 2 | Habitación simple, Habitación doble, Suite, Limpieza, Policía |
 | 3 | Restaurante, Local comercial, Cine, Salón de fiestas, Centro médico, Rampa de estacionamiento, Cochera, Centro de reciclaje |
 | 4 | Estación de subte |
 | 5 | Catedral |

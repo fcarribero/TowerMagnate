@@ -9,7 +9,7 @@ describe('unitsUnlockedAt', () => {
       'Habitación doble',
       'Suite',
       'Limpieza',
-      'Seguridad',
+      'Policía',
       'Cuarto de limpieza',
       'Sala de estar',
     ]);
