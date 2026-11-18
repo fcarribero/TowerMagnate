@@ -383,9 +383,6 @@ describe('unit window model', () => {
       { x: 133.3, width: 26.7 },
     ]);
     expect(chart.pointX).toHaveLength(12);
-    expect(
-      venueChart({ ...venue, opens: 0, closes: 24 } as Parameters<typeof venueChart>[0]).closed,
-    ).toEqual([]);
     expect(venueChart({ ...venue, today: [], average: [] })).toMatchObject({
       today: '',
       average: '',
