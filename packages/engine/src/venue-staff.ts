@@ -1,5 +1,4 @@
 import {
-  GARBAGE_PILE_POSITION,
   PERSON_KINDS,
   ROUTE_RETRY_STEPS,
   STAFF_EARLY_ARRIVAL,
@@ -38,7 +37,8 @@ import { customersInsideVenue } from './venue-visitors';
 
 /**
  * What a crew member is doing: outside until the arrival step, walking in, working inside the
- * unit until closing, walking to the garbage pile, carrying a bag to the street, or walking out.
+ * unit until closing, or walking out. `toPile` and `carrying` are only read from saves made when
+ * the crew still carried the bags out themselves.
  */
 export type StaffPhase = 'outside' | 'walkingIn' | 'working' | 'toPile' | 'carrying' | 'leaving';
 
@@ -254,13 +254,8 @@ function planDay(context: StepContext, occurrence: HookOccurrence): void {
     .filter(needsCrew)
     .sort((a, b) => unitNumber(a.id) - unitNumber(b.id));
   for (const unit of units) addCrew(state, unit.id, { planToday: false });
+  // A pile stays until the cleaners carry it out (cleaning.ts); the crew never does.
   const closing = unitsStillClosing(state, occurrence.step);
-  for (const unit of Object.values(state.units)) {
-    if (unit.venue && unit.venue.garbage > 0 && !closing.has(unitNumber(unit.id))) {
-      // A pile left by a crew that never got to carry it out: it goes with the new day.
-      (writableUnit(state, unit).venue as VenueDay).garbage = 0;
-    }
-  }
   for (let slot = 0; slot < pool.id.length; slot++) {
     if (!isStaff(pool, slot)) continue;
     if (closing.has(pool.homeUnit[slot] as number)) continue;
@@ -310,18 +305,6 @@ function walk(worker: Worker, phase: StaffPhase, to: Place, from?: Place, outTo?
   if (previousColumn !== undefined) pool.column[slot] = previousColumn;
   save(worker, NOTHING_DUE);
   return false;
-}
-
-function pileColumn(unit: Unit): number {
-  return unit.x + Math.floor(UNIT_CATALOG[unit.type].width * GARBAGE_PILE_POSITION);
-}
-
-function pilePlace(unit: Unit): Place {
-  return { level: unit.level, column: pileColumn(unit) };
-}
-
-function garbageOf(unit: Unit): number {
-  return unit.venue?.garbage ?? 0;
 }
 
 function startArrival(worker: Worker): void {
@@ -374,7 +357,7 @@ function finishShift(worker: Worker): void {
 
 /**
  * Closing: waits until the last customer has left, then the first worker to get here makes the
- * pile; then everyone goes to it, or leaves if it is empty.
+ * day's pile of bags and everyone walks out. Only the cleaners carry the bags out.
  */
 function startClosing(worker: Worker): void {
   const { state, unit } = worker;
@@ -390,31 +373,18 @@ function startClosing(worker: Worker): void {
     venue.garbage = VENUE_STAFF[unit.type].bags;
     venue.garbageDay = today;
   }
-  if (garbageOf(current) > 0 && walk(worker, 'toPile', pilePlace(current))) return;
-  if (garbageOf(current) === 0 && walkToExit(worker, 'leaving')) return;
+  if (walkToExit(worker, 'leaving')) return;
   worker.routine.phase = 'working';
   save(worker, state.step + ROUTE_RETRY_STEPS);
 }
 
-/** At the pile: take a bag and carry it out, or leave when none are left. */
+/** At the pile, from a save made when the crew still carried bags: leave it and walk out. */
 function arriveAtPile(worker: Worker): void {
-  const { state, unit } = worker;
-  if (garbageOf(unit) > 0) {
-    const writable = writableUnit(state, unit);
-    if (walkToExit(worker, 'carrying')) {
-      (writable.venue as VenueDay).garbage -= 1;
-      return;
-    }
-    save(worker, state.step + ROUTE_RETRY_STEPS);
-    return;
-  }
   if (!walkToExit(worker, 'leaving')) finishShift(worker);
 }
 
-/** At the street with a bag: it is gone; go back for another one if the pile still has any. */
+/** At the street with a bag, from a save made when the crew still carried bags: done. */
 function arriveWithBag(worker: Worker): void {
-  const { unit } = worker;
-  if (garbageOf(unit) > 0 && walk(worker, 'toPile', pilePlace(unit))) return;
   finishShift(worker);
 }
 

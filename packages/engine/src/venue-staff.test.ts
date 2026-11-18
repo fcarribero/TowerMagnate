@@ -124,18 +124,17 @@ describe('a venue crew', () => {
 });
 
 describe('closing time', () => {
-  it('leaves the pile of a restaurant, empties it and sends everyone out', () => {
+  it('leaves the pile of a restaurant for the cleaners and sends everyone out with no bags', () => {
     const { state, id } = venueTower('restaurant');
     let pile = 0;
-    let carrying = 0;
+    let carried = false;
     const end = runDay(state, 25, (now) => {
       pile = Math.max(pile, garbageOf(now, id));
-      const bags = staffSlots(now).filter((slot) => isCarryingBag(now.people, slot)).length;
-      carrying = Math.max(carrying, bags);
+      carried ||= staffSlots(now).some((slot) => isCarryingBag(now.people, slot));
     });
     expect(pile).toBe(VENUE_STAFF.restaurant.bags);
-    expect(carrying).toBeGreaterThan(0);
-    expect(garbageOf(end, id)).toBe(0);
+    expect(carried).toBe(false);
+    expect(garbageOf(end, id)).toBe(VENUE_STAFF.restaurant.bags);
     for (const slot of staffSlots(end)) expect(isOutsideTower(end.people, slot)).toBe(true);
   });
 
@@ -162,25 +161,14 @@ describe('closing time', () => {
     for (const slot of staffSlots(after)) expect(isOutsideTower(after.people, slot)).toBe(true);
   });
 
-  it('has a cinema crew go back for more bags while the pile has some', () => {
+  it('keeps a cinema pile through the new day, since only cleaners carry bags out', () => {
     const { state, id } = venueTower('cinema');
-    const trips = new Map<number, number>();
-    const wasCarrying = new Set<number>();
-    const end = runDay(state, 24, (now) => {
-      for (const slot of staffSlots(now)) {
-        const person = now.people.id[slot] as number;
-        const carrying = isCarryingBag(now.people, slot);
-        if (carrying && !wasCarrying.has(person)) trips.set(person, (trips.get(person) ?? 0) + 1);
-        if (carrying) wasCarrying.add(person);
-        else wasCarrying.delete(person);
-      }
+    let carried = false;
+    const end = runDay(state, 26, (now) => {
+      carried ||= staffSlots(now).some((slot) => isCarryingBag(now.people, slot));
     });
-    const total = [...trips.values()].reduce((sum, count) => sum + count, 0);
-    expect(VENUE_STAFF.cinema.bags).toBeGreaterThan(VENUE_STAFF.cinema.crew);
-    expect(total).toBe(VENUE_STAFF.cinema.bags);
-    expect(Math.max(...trips.values())).toBeGreaterThanOrEqual(2);
-    expect(garbageOf(end, id)).toBe(0);
-    for (const slot of staffSlots(end)) expect(isOutsideTower(end.people, slot)).toBe(true);
+    expect(carried).toBe(false);
+    expect(garbageOf(end, id)).toBe(VENUE_STAFF.cinema.bags);
   });
 
   it('lets a shop crew leave without any bags', () => {
