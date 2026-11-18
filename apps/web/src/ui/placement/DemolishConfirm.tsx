@@ -8,6 +8,7 @@ const DIALOG_IDS = {
   soldCondo: 'demolishSoldCondo',
   expensive: 'demolishExpensive',
   rented: 'demolishRented',
+  lastCar: 'demolishLastCar',
 } as const;
 // A floor run over units: only the units go, the walls stay.
 

@@ -550,6 +550,9 @@ export const SPANISH_STRINGS = {
     'Este departamento está vendido. Si lo demolés, le devolvés {price} a los dueños.',
   'dialog.demolishExpensive.title': 'Demoler {typeName}',
   'dialog.demolishExpensive.body': '¿Seguro que querés demoler {typeName}? Costó {price}.',
+  'dialog.demolishLastCar.title': 'Última cabina',
+  'dialog.demolishLastCar.body':
+    'Es la única cabina de este ascensor y no se puede quitar sola. ¿Querés demoler el ascensor completo? Costó {price}.',
   'dialog.demolishRented.title': 'Demoler {typeName} alquilado',
   'dialog.demolishRented.body':
     'Hay un contrato vigente. Si lo demolés, pagás {indemnity} de indemnización, una semana de renta. Si no renovás el contrato, el inquilino se va cuando termine.',

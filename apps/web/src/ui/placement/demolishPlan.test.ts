@@ -82,7 +82,7 @@ describe('pickDemolition', () => {
 
   it('picks the car before its shaft, and the shaft where no car is', () => {
     const shafts = [shaft];
-    const cars = [car];
+    const cars = [car, { ...car, index: 1, position: levelToIndex(4) }];
     expect(pickDemolition(world({ shafts, cars }), { x: 40, level: 3 })?.command).toEqual({
       type: 'removeCar',
       shaftId: 's1',
@@ -91,6 +91,19 @@ describe('pickDemolition', () => {
     const top = pickDemolition(world({ shafts, cars }), { x: 40, level: 5 });
     expect(top?.command).toEqual({ type: 'demolish', target: { kind: 'shaft', id: 's1' } });
     expect(top?.confirmation).not.toBeNull();
+  });
+
+  it('turns a click on the last car into the whole shaft, with the last-car confirmation', () => {
+    const shafts = [shaft];
+    for (const level of [1, 3]) {
+      const cars = [{ ...car, position: levelToIndex(level) }];
+      const pick = pickDemolition(world({ shafts, cars }), { x: 41, level });
+      expect(pick?.command).toEqual({ type: 'demolish', target: { kind: 'shaft', id: 's1' } });
+      expect(pick?.confirmation).toMatchObject({ kind: 'lastCar', unitType: 'standard-elevator' });
+      expect(pick?.footprint).toMatchObject({ level: 1, floors: 5 });
+    }
+    // Away from the car, the middle of the shaft still offers nothing.
+    expect(pickDemolition(world({ shafts, cars: [car] }), { x: 41, level: 2 })).toBeNull();
   });
 
   it('demolishes a shaft only from its base or its top, with a confirmation', () => {

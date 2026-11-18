@@ -36,7 +36,8 @@ export interface DemolishWorld {
 }
 
 export interface Confirmation {
-  kind: 'soldCondo' | 'expensive' | 'rented';
+  /** `lastCar`: the click was on the last car of a shaft, which only goes with the whole shaft. */
+  kind: 'soldCondo' | 'expensive' | 'rented' | 'lastCar';
   unitType: UnitType;
   price: number;
   /** Rented units only: the indemnity, one week of rent summed over the units. */
@@ -197,21 +198,36 @@ function footprintOfShaft(shaft: ShaftView): Footprint {
   };
 }
 
+/**
+ * The car under the cursor. A shaft keeps at least one car, so a click on its last car picks the
+ * whole shaft instead, behind a confirmation that says why.
+ */
 function pickCar(world: DemolishWorld, cell: Cell): DemolishPick | null {
+  const cars = [...world.cars];
   for (const shaft of world.shafts) {
     const footprint = footprintOfShaft(shaft);
     if (!coversCell(footprint, cell)) {
       continue;
     }
-    for (const car of world.cars) {
-      if (car.shaftId === shaft.id && Math.round(car.position) === levelToIndex(cell.level)) {
-        return {
-          command: { type: 'removeCar', shaftId: shaft.id, carIndex: car.index },
-          footprint: { ...footprint, level: cell.level, floors: 1 },
-          run: null,
-          confirmation: null,
-        };
+    const own = cars.filter((car) => car.shaftId === shaft.id);
+    for (const car of own) {
+      if (Math.round(car.position) !== levelToIndex(cell.level)) {
+        continue;
       }
+      if (own.length === 1) {
+        const unitType = SHAFT_UNIT_TYPES[shaft.type];
+        return targetPick({ kind: 'shaft', id: shaft.id }, footprint, {
+          kind: 'lastCar',
+          unitType,
+          price: buildPrice(unitType),
+        });
+      }
+      return {
+        command: { type: 'removeCar', shaftId: shaft.id, carIndex: car.index },
+        footprint: { ...footprint, level: cell.level, floors: 1 },
+        run: null,
+        confirmation: null,
+      };
     }
   }
   return null;
