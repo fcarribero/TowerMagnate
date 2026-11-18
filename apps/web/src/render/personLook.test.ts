@@ -172,6 +172,15 @@ describe('personLook', () => {
     }
   });
 
+  it('dresses every uniformed cleaner in the maid uniform, which has art only for the woman model', () => {
+    for (const id of IDS.slice(0, 100)) {
+      const cleaner = computeLook(id, 'cleaner', false, 'uniform');
+      expect(cleaner.model).toBe('woman');
+      expect(cleaner.subjects.fixed).toBe('people/fixed-maid-woman');
+      expect(computeLook(id, 'cleaner').model).toBe('woman');
+    }
+  });
+
   it('uses one base model per gender and the matching lower body', () => {
     for (const id of IDS.slice(0, 100)) {
       for (const kind of KINDS) {

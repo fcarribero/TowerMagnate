@@ -207,7 +207,8 @@ function spriteNameOf(kind: PersonKind, carrying: boolean, outfit: Outfit): stri
 
 /**
  * The look of a person, from their id, kind and outfit. Pure: the same inputs always give the same
- * look. A maid keeps the woman model in civilian clothes so changing does not change who she is.
+ * look. A maid or cleaner keeps the woman model in civilian clothes so changing does not change who
+ * she is.
  */
 export function computeLook(
   id: string,
@@ -217,7 +218,9 @@ export function computeLook(
 ): PersonLook {
   const hash = hashId(id);
   const name = spriteNameOf(kind, carrying, outfit);
-  const model: PersonModel = kind === 'maid' || unit(hash, 0) < 0.5 ? 'woman' : 'man';
+  // The maid uniform has art for the woman model only, and cleaners wear it too.
+  const model: PersonModel =
+    kind === 'maid' || kind === 'cleaner' || unit(hash, 0) < 0.5 ? 'woman' : 'man';
   const clothes =
     kind === 'doctor' && name === 'worker'
       ? { shirt: DOCTOR_COAT, pants: DOCTOR_SCRUBS }
