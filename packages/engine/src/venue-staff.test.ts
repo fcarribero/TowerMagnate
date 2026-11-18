@@ -177,6 +177,23 @@ describe('closing time', () => {
     expect(end.notices.map((notice) => notice.key)).toContain('news.garbageNoCleaning');
   });
 
+  it('posts the garbage notice once a day, however many venues close', () => {
+    const { state, unitIds } = buildTower({
+      ...plainTowerPlan(3, 0, 120),
+      units: [
+        { type: 'fast-food', x: 40, level: 1 },
+        { type: 'restaurant', x: 70, level: 1 },
+        { type: 'fast-food', x: 100, level: 1 },
+      ],
+    });
+    for (const id of unitIds) addCrew(state, id as UnitId, { planToday: false });
+    const end = runDay(state, 24 * 4, () => undefined);
+    const days = end.notices
+      .filter((notice) => notice.key === 'news.garbageNoCleaning')
+      .map((notice) => Math.floor(notice.step / STEPS_PER_DAY));
+    expect(days).toEqual([1, 2, 3, 4]);
+  });
+
   it('posts no garbage notice when the tower has a cleaning room', () => {
     const { state, unitIds } = buildTower({
       ...plainTowerPlan(3, 0, 80),
