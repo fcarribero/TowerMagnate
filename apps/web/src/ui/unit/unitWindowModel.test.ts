@@ -20,6 +20,7 @@ import {
   unitSubtitle,
   venueChart,
   unitTitle,
+  upgradeRows,
 } from './unitWindowModel';
 
 type Details = NonNullable<UnitInspect['details']>;
@@ -56,6 +57,7 @@ const office: UnitInspect = {
   from: 40,
   to: 48,
   details: lease,
+  upgrades: [],
 };
 
 const condoDetails: Condo = {
@@ -427,5 +429,22 @@ describe('unit window model', () => {
     });
     expect(filmChangeState(300_000, false)).toEqual({ disabled: false, tooltip: undefined });
     expect(filmChangeState(1_000_000, true).disabled).toBe(true);
+  });
+
+  it('lists upgrades with level, price and what cannot be bought', () => {
+    const upgrades: UnitInspect['upgrades'] = [
+      { id: 'cameras', level: 1, maxLevel: 3, nextPrice: 50_000 },
+      { id: 'accessControl', level: 2, maxLevel: 2, nextPrice: null },
+    ];
+    const rows = upgradeRows({ upgrades }, 49_999, false);
+    expect(rows.map((row) => [row.id, row.label, row.levelText, row.disabled])).toEqual([
+      ['cameras', 'Cámaras', '1/3', true],
+      ['accessControl', 'Control de acceso', '2/2', true],
+    ]);
+    expect(rows[0]?.tooltip).toBeDefined();
+    expect(rows[1]?.priceText).toBeNull();
+    expect(upgradeRows({ upgrades }, 50_000, false)[0]?.disabled).toBe(false);
+    expect(upgradeRows({ upgrades }, 50_000, true)[0]?.disabled).toBe(true);
+    expect(upgradeRows(office, 0, false)).toEqual([]);
   });
 });

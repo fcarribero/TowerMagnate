@@ -589,6 +589,38 @@ export function unitSubtitle(unit: Pick<UnitInspect, 'type' | 'level'>): string 
   });
 }
 
+export interface UpgradeRow {
+  id: string;
+  label: string;
+  /** "2/3": the level the unit has and the top level. */
+  levelText: string;
+  /** The price of the next level, or null at the top level. */
+  priceText: string | null;
+  /** True when the next level cannot be bought now: top level, or not enough money. */
+  disabled: boolean;
+  tooltip: string | undefined;
+}
+
+/** The upgrades the unit's type can buy, in catalog order; empty when it has none. */
+export function upgradeRows(
+  unit: Pick<UnitInspect, 'upgrades'>,
+  money: number,
+  gone: boolean,
+): UpgradeRow[] {
+  return (unit.upgrades ?? []).map((upgrade) => {
+    const top = upgrade.nextPrice === null;
+    const short = upgrade.nextPrice !== null && money < upgrade.nextPrice;
+    return {
+      id: upgrade.id,
+      label: t(`window.unit.upgrade.${upgrade.id}` as StringKey),
+      levelText: `${upgrade.level}/${upgrade.maxLevel}`,
+      priceText: upgrade.nextPrice === null ? null : formatMoney(upgrade.nextPrice),
+      disabled: gone || top || short,
+      tooltip: short && !gone ? t('error.INSUFFICIENT_FUNDS') : undefined,
+    };
+  });
+}
+
 export interface FilmChangeState {
   disabled: boolean;
   tooltip: string | undefined;

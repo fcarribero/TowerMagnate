@@ -49,6 +49,24 @@ function throughTheWire(data: ReturnType<typeof inspectUnit>) {
 }
 
 describe('inspecting a unit', () => {
+  it('lists the upgrades of a security office with their levels and the next price', () => {
+    const { state, id } = towerWith('security');
+    const unit = state.units[id];
+    if (unit) unit.upgrades = { cameras: 1, accessControl: 2 };
+
+    const data = inspectUnit(state, id);
+
+    expect(throughTheWire(data)).toBe(true);
+    expect(data).toMatchObject({
+      upgrades: [
+        { id: 'cameras', level: 1, maxLevel: 3, nextPrice: 50_000 },
+        { id: 'guards', level: 0, maxLevel: 3, nextPrice: 25_000 },
+        { id: 'fireSystem', level: 0, maxLevel: 3, nextPrice: 25_000 },
+        { id: 'accessControl', level: 2, maxLevel: 2, nextPrice: null },
+      ],
+    });
+  });
+
   it('answers an office for rent with the common fields and lease fields', () => {
     const { state, id } = towerWith('office');
 
@@ -64,6 +82,7 @@ describe('inspecting a unit', () => {
       level: 4,
       from: 10,
       to: 18,
+      upgrades: [],
       details: {
         group: 'lease',
         state: 'forRent',
@@ -389,6 +408,7 @@ describe('inspecting a unit', () => {
       level: 4,
       from: 10,
       to: 18,
+      upgrades: [],
       details: {
         group: 'construction',
         price: 10_000,

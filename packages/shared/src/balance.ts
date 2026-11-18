@@ -925,3 +925,43 @@ export const LEASE_PROSPECT_ROLL_MINUTES = 15;
 
 /** Weeks of locked rent paid to the tenant when a rented office or shop is demolished. */
 export const DEMOLITION_INDEMNITY_WEEKS = 1;
+
+/** A level of an upgrade costs this share of the unit's price, times the level (service-units 5). */
+export const UPGRADE_PRICE_SHARE = 0.25;
+
+/** A lobby is priced per cell, so its upgrades count from this base price instead (guess). */
+export const LOBBY_UPGRADE_BASE_PRICE = 200_000;
+
+export interface UpgradeDefinition {
+  id: string;
+  maxLevel: number;
+}
+
+/**
+ * The upgrades a unit of each type can buy, level by level. A type that is missing has none.
+ * Effects are not applied yet; the level is only stored (service-units 2 and 5).
+ */
+export const UPGRADE_CATALOG: Partial<Record<UnitType, readonly UpgradeDefinition[]>> = {
+  security: [
+    { id: 'cameras', maxLevel: 3 },
+    { id: 'guards', maxLevel: 3 },
+    { id: 'fireSystem', maxLevel: 3 },
+    { id: 'accessControl', maxLevel: 2 },
+  ],
+  lobby: [
+    { id: 'plants', maxLevel: 3 },
+    { id: 'music', maxLevel: 3 },
+    { id: 'lighting', maxLevel: 3 },
+  ],
+};
+
+export function upgradesOf(type: UnitType): readonly UpgradeDefinition[] {
+  return UPGRADE_CATALOG[type] ?? [];
+}
+
+/** The price of the next level of an upgrade, given the level the unit has now. */
+export function upgradePrice(type: UnitType, level: number): number {
+  const cost = UNIT_CATALOG[type].cost;
+  const base = cost.kind === 'per-unit' ? cost.amount : LOBBY_UPGRADE_BASE_PRICE;
+  return Math.round(base * UPGRADE_PRICE_SHARE * (level + 1));
+}

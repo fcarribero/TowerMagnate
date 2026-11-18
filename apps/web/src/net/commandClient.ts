@@ -94,6 +94,10 @@ export class CommandClient {
     return this.send({ type: 'setListed', unitId, listed });
   }
 
+  buyUpgrade(unitId: string, upgradeId: string): Promise<CommandResult> {
+    return this.send({ type: 'buyUpgrade', unitId, upgradeId });
+  }
+
   setSitePriority(unitId: string, priority: boolean): Promise<CommandResult> {
     return this.send({ type: 'setSitePriority', unitId, priority });
   }

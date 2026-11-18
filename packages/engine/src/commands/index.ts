@@ -11,6 +11,7 @@ import { demolish } from './demolish';
 import { addCar, removeCar } from './elevator-cars';
 import { followPersonCommand, unfollowPersonCommand } from './follow-person';
 import { acceptStarsCommand } from './accept-stars';
+import { buyUpgrade } from './buy-upgrade';
 import { renamePerson } from './rename-person';
 import { renameUnit } from './rename-unit';
 import { setListed } from './set-listed';
@@ -34,6 +35,7 @@ export const towerCommandHandlers: CommandHandlers = {
   renamePerson,
   setPrice,
   setListed,
+  buyUpgrade,
   setSitePriority,
   setVenueHours,
   setVenueEnabled,

@@ -62,6 +62,7 @@ function inspectOf(id: string, fields: Partial<UnitInspect> = {}): UnitInspect {
     from: 10,
     to: 18,
     details: leaseDetails(),
+    upgrades: [],
     ...fields,
   };
 }
@@ -338,6 +339,27 @@ describe('unit windows', () => {
     expect(box.checked).toBe(false);
     fireEvent.click(box);
     expect(commandsSent()).toEqual([{ type: 'setSitePriority', unitId: 'u1', priority: true }]);
+  });
+
+  it('lists the upgrades with their level and sends the purchase', () => {
+    const { open, show, commandsSent } = setup([unitView('u1')], 60_000);
+    open('u1');
+    show(
+      inspectOf('u1', {
+        type: 'security',
+        details: null,
+        upgrades: [
+          { id: 'cameras', level: 1, maxLevel: 3, nextPrice: 50_000 },
+          { id: 'guards', level: 0, maxLevel: 3, nextPrice: 25_000 },
+          { id: 'accessControl', level: 2, maxLevel: 2, nextPrice: null },
+        ],
+      }),
+    );
+    expect(screen.getByText('Mejoras')).toBeTruthy();
+    expect(screen.getByText('1/3')).toBeTruthy();
+    expect(screen.getByText('Máximo').closest('button')?.disabled).toBe(true);
+    fireEvent.click(screen.getByText(/^Comprar.*50\.000/));
+    expect(commandsSent()).toEqual([{ type: 'buyUpgrade', unitId: 'u1', upgradeId: 'cameras' }]);
   });
 
   it('has no priority checkbox on a finished unit', () => {

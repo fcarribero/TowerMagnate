@@ -22,6 +22,7 @@ import {
   NAME_MAX_LENGTH,
   clampHours,
   filmChangeState,
+  upgradeRows,
   groupUnitRows,
   hourText,
   listedOf,
@@ -35,6 +36,7 @@ import {
   unitTitle,
   venueChart,
   type UnitRow,
+  type UpgradeRow,
   type VenueChart,
 } from './unitWindowModel';
 import './unit.css';
@@ -132,6 +134,7 @@ export function UnitWindow({ unitId, connection, anchored = false }: UnitWindowP
   const listed = found === undefined ? null : listedOf(found);
   const priority = found === undefined ? null : priorityOf(found);
   const people = found === undefined ? [] : peopleGroups(found);
+  const upgrades = found === undefined ? [] : upgradeRows(found, money, gone);
 
   const groups = found === undefined ? null : groupUnitRows(unitRows(found));
 
@@ -230,6 +233,18 @@ export function UnitWindow({ unitId, connection, anchored = false }: UnitWindowP
             onEnabled={(enabled) => void commands.setVenueEnabled(unitId, enabled)}
             onHours={(open, close) => void commands.setVenueHours(unitId, open, close)}
           />
+        )}
+        {upgrades.length > 0 && (
+          <div class="tm-unit__upgrades">
+            <h3 class="tm-unit__upgrades-title">{t('window.unit.upgrades')}</h3>
+            {upgrades.map((row) => (
+              <UpgradeLine
+                key={row.id}
+                row={row}
+                onBuy={() => void commands.buyUpgrade(unitId, row.id)}
+              />
+            ))}
+          </div>
         )}
         {found?.type === 'cinema' && (
           <FilmButton
@@ -463,6 +478,25 @@ function VenueControls({ id, details, disabled, onEnabled, onHours }: VenueContr
         />
       </div>
     </>
+  );
+}
+
+function UpgradeLine({ row, onBuy }: { row: UpgradeRow; onBuy: () => void }) {
+  const button = (
+    <Button disabled={row.disabled} onClick={onBuy}>
+      {row.priceText === null
+        ? t('window.unit.upgradeMax')
+        : `${t('window.unit.upgradeBuy')} ${row.priceText}`}
+    </Button>
+  );
+  const withTooltip =
+    row.tooltip === undefined ? button : <Tooltip text={row.tooltip}>{button}</Tooltip>;
+  return (
+    <div class="tm-unit__upgrade">
+      <span class="tm-unit__upgrade-name">{row.label}</span>
+      <span class="tm-unit__upgrade-level">{row.levelText}</span>
+      {withTooltip}
+    </div>
   );
 }
 

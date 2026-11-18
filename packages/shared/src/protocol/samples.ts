@@ -29,6 +29,7 @@ export const sampleCommands: Command[] = [
   { type: 'removeCar', shaftId: 's4', carIndex: 7 },
   { type: 'setPrice', unitId: 'u12', price: 4_500 },
   { type: 'setListed', unitId: 'u12', listed: true },
+  { type: 'buyUpgrade', unitId: 'u12', upgradeId: 'cameras' },
   { type: 'setSitePriority', unitId: 'u12', priority: true },
   { type: 'setVenueEnabled', unitId: 'u30', enabled: false },
   { type: 'setVenueHours', unitId: 'u30', open: 9, close: 18 },
@@ -229,6 +230,7 @@ export const sampleServerMessages: ServerMessage[] = [
       level: 2,
       from: 12,
       to: 19,
+      upgrades: [],
       details: {
         group: 'lease',
         state: 'occupied',

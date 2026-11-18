@@ -44,6 +44,7 @@ const COMMAND_TRIGGERS: Record<CommandType, SfxTrigger | null> = {
   removeCar: 'build.demolish',
   setPrice: null,
   setListed: null,
+  buyUpgrade: null,
   setSitePriority: null,
   setVenueEnabled: null,
   setVenueHours: null,

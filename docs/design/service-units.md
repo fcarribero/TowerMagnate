@@ -121,6 +121,7 @@ No change. The player can build as many shafts and cars as wanted at any star le
 - Price of level N (guess): 25% of the unit price times N.
 - The unit panel lists the upgrades with their levels, price and effect. A locked upgrade shows what is needed.
 - Demolishing the unit loses its upgrades and its crew goes home.
+- Built so far: the catalog (`UPGRADE_CATALOG`), the command and the panel rows, for the security office. The level is stored but has no effect yet. A lobby is not a unit in the game state (it is a span of the grid), so its upgrades are in the catalog but cannot be bought until a lobby has an id of its own; for now its price base is a fixed 200,000 (guess).
 
 ## 6. Build order
 

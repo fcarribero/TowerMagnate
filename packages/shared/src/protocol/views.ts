@@ -478,6 +478,16 @@ const InspectedUnitDetailsSchema = z.discriminatedUnion('group', [
   }),
 ]);
 
+/** One upgrade a unit can buy: its level now, the most it can have and the price of the next level. */
+export const UnitUpgradeViewSchema = z.object({
+  id: z.string().min(1).max(40),
+  level: z.int().min(0).max(10),
+  maxLevel: z.int().min(1).max(10),
+  /** Null once the upgrade is at its top level. */
+  nextPrice: z.int().min(0).nullable(),
+});
+export type UnitUpgradeView = z.infer<typeof UnitUpgradeViewSchema>;
+
 /** A unit that is gone or never existed: sent once, then the server drops the target. */
 const InspectedUnitGoneSchema = z.object({
   kind: z.literal('unit'),
@@ -503,6 +513,8 @@ const InspectedUnitFoundSchema = z.object({
   to: ColumnSchema,
   /** Fields of the unit's type; null for types that show only the common ones. */
   details: InspectedUnitDetailsSchema.nullable(),
+  /** The upgrades the unit's type has, with their levels; empty for types with none. */
+  upgrades: z.array(UnitUpgradeViewSchema),
 });
 
 /** A shaft that was removed or never existed: sent once, then the server drops the target. */

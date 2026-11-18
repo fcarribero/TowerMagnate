@@ -23,6 +23,8 @@ import {
   priceBand,
   priceBounds,
   UNIT_CATALOG,
+  upgradePrice,
+  upgradesOf,
   type InspectData,
   type TowerState,
   type Unit,
@@ -51,7 +53,21 @@ export function inspectUnit(state: TowerState, unitId: string): InspectData {
     from: unit.x,
     to: unit.x + UNIT_CATALOG[unit.type].width - 1,
     details: unitDetails(state, unit),
+    upgrades: upgradeViews(unit),
   };
+}
+
+/** Every upgrade of the unit's type with its level and what the next level costs. */
+function upgradeViews(unit: Unit): UnitInspection['upgrades'] {
+  return upgradesOf(unit.type).map((definition) => {
+    const level = unit.upgrades?.[definition.id] ?? 0;
+    return {
+      id: definition.id,
+      level,
+      maxLevel: definition.maxLevel,
+      nextPrice: level < definition.maxLevel ? upgradePrice(unit.type, level) : null,
+    };
+  });
 }
 
 /** A unit still being built shows its name, place and that it is under construction. */
@@ -70,6 +86,7 @@ function inspectSite(state: TowerState, siteId: string): InspectData {
     from: site.x,
     to: site.x + UNIT_CATALOG[site.type].width - 1,
     details: siteDetails(state, site),
+    upgrades: [],
   };
 }
 

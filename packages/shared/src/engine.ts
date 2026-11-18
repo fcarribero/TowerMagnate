@@ -109,6 +109,8 @@ export interface Unit {
   evaluation: TenantEvaluation | null;
   /** The day's visit counts of a food, entertainment or retail venue; null for every other unit. */
   venue: VenueDay | null;
+  /** Level of each upgrade bought for this unit, by upgrade id. Missing means every upgrade is at 0. */
+  upgrades?: Record<string, number>;
 }
 
 /**
