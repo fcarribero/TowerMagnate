@@ -6,6 +6,7 @@ export const UNIT_PANEL_KIND = 'unitPanel';
 /** The fixed person panel shown next to the selected person. */
 export const PERSON_PANEL_KIND = 'personPanel';
 export const ELEVATOR_WINDOW_KIND = 'elevator';
+export const LOBBY_WINDOW_KIND = 'lobby';
 export const PERSON_WINDOW_KIND = 'person';
 export const FOLLOWED_WINDOW_ID = 'followed';
 
@@ -19,6 +20,10 @@ export function unitPanelId(unitId: string): string {
 
 export function elevatorWindowId(shaftId: string): string {
   return `${ELEVATOR_WINDOW_KIND}:${shaftId}`;
+}
+
+export function lobbyWindowId(lobbyId: string): string {
+  return `${LOBBY_WINDOW_KIND}:${lobbyId}`;
 }
 
 export function personWindowId(personId: string): string {
@@ -46,13 +51,16 @@ function targetOfWindow(window: { id: string; kind: string }): InspectTarget | n
   if (window.kind === ELEVATOR_WINDOW_KIND) {
     return { kind: 'shaft', id: entityOfWindow(window.id) };
   }
+  if (window.kind === LOBBY_WINDOW_KIND) {
+    return { kind: 'lobby', id: entityOfWindow(window.id) };
+  }
   if (window.kind === PERSON_WINDOW_KIND || window.kind === PERSON_PANEL_KIND) {
     return { kind: 'person', id: entityOfWindow(window.id) };
   }
   return null;
 }
 
-/** Every unit, person and elevator window is inspected. Past the server limit, the windows in front win. */
+/** Every unit, person, elevator and lobby window is inspected. Past the server limit, the windows in front win. */
 export function openInspectTargets(
   windows: readonly { id: string; kind: string }[],
 ): InspectTarget[] {

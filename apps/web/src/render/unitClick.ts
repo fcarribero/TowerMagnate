@@ -2,6 +2,7 @@ import {
   SHAFT_UNIT_TYPES,
   UNIT_CATALOG,
   type PersonView,
+  type Level,
   type ShaftView,
 } from '@tower-magnate/shared';
 import type { ClientStore } from '../model/clientStore';
@@ -30,6 +31,8 @@ export interface InspectWindowOpeners {
   person: (personId: string) => void;
   unit: (unitId: string) => void;
   shaft: (shaftId: string) => void;
+  /** A click on lobby cells with no unit in front asks for the lobby's window. */
+  lobby?: (lobbyId: string) => void;
   /** A click that lands on no unit: the fixed unit panel goes away. */
   clearUnit?: () => void;
 }
@@ -48,6 +51,34 @@ function shaftAt(shafts: Iterable<ShaftView>, cell: Cell): ShaftView | null {
     if (insideColumns && insideLevels) {
       return shaft;
     }
+  }
+  return null;
+}
+
+interface LobbySource {
+  mainLobbyHeight: 1 | 2 | 3 | null;
+  skyLobbyHeights?: Readonly<Record<string, 1 | 2 | 3>>;
+  structure: ReadonlyMap<Level, string>;
+}
+
+/**
+ * The lobby a cell belongs to, as the engine names it: `l<base level>x<first column>`. A cell on
+ * an upper row of a tall lobby belongs to the lobby run below it on the base level.
+ */
+export function lobbyIdAt(source: LobbySource, cell: Cell): string | null {
+  const bases: [number, number][] = [];
+  if (source.mainLobbyHeight !== null) bases.push([1, source.mainLobbyHeight]);
+  for (const [base, height] of Object.entries(source.skyLobbyHeights ?? {})) {
+    bases.push([Number(base), height]);
+  }
+  for (const [base, height] of bases) {
+    if (cell.level < base || cell.level >= base + height) continue;
+    const row = source.structure.get(base as Level);
+    if (row === undefined || row[cell.x] !== 'l') continue;
+    if (source.structure.get(cell.level)?.[cell.x] !== 'l') continue;
+    let x0 = cell.x;
+    while (x0 > 0 && row[x0 - 1] === 'l') x0--;
+    return `l${base}x${x0}`;
   }
   return null;
 }
@@ -74,7 +105,7 @@ export function personAt(people: Iterable<PersonView>, cell: Cell): PersonView |
   return nearest;
 }
 
-/** With the inspect tool, a click on a person, a unit or an elevator shaft asks for its window. */
+/** With the inspect tool, a click on a person, a unit, an elevator shaft or a lobby asks for its window. */
 export function bindUnitClicks(
   stage: ClickStage,
   store: ClientStore,
@@ -119,6 +150,12 @@ export function bindUnitClicks(
     const unit = unitAt(latest.units.values(), input.cell.x, input.cell.level);
     if (unit !== null) {
       open.unit(unit.id);
+      return;
+    }
+    const lobbyId = open.lobby === undefined ? null : lobbyIdAt(latest, input.cell);
+    if (lobbyId !== null) {
+      open.clearUnit?.();
+      open.lobby?.(lobbyId);
       return;
     }
     open.clearUnit?.();

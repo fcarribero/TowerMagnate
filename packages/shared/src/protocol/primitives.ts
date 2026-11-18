@@ -44,6 +44,12 @@ function entityId(prefix: string) {
 }
 
 export const UnitEntityIdSchema = entityId('u');
+/** A lobby, named by its base level and its first column, such as `l1x40` (service-units 2.4). */
+export const LobbyIdSchema = z
+  .string()
+  .regex(/^l[1-9][0-9]*x(0|[1-9][0-9]*)$/, 'Expected a lobby id like l1x40');
+/** What `buyUpgrade` can name: a unit or a lobby. */
+export const UpgradableIdSchema = z.union([UnitEntityIdSchema, LobbyIdSchema]);
 export const TransportEntityIdSchema = entityId('t');
 export const ShaftEntityIdSchema = entityId('s');
 export const PersonEntityIdSchema = entityId('p');

@@ -77,13 +77,19 @@ The tower has no theft or vandalism events, so cameras act on stress instead. An
 ### 2.4 Lobby
 
 - A lobby has its own upgrades. A tower with more lobbies (sky lobbies) buys them per lobby.
-- Effects work on the cells of that lobby level.
+- A lobby is not a unit. It is one run of lobby cells on the base level of the main lobby (level 1) or of a sky lobby, together with the rows above it that a tall lobby takes. Its id is `l<base level>x<first column>`, for example `l1x40`.
+- The levels are kept in `state.lobbies`, by lobby id, with the columns the lobby had when they were written. A lobby takes, for each upgrade, the highest level of every entry its columns overlap on its base level. So a lobby that joins two upgraded lobbies keeps the higher level of each, and both parts of a lobby that is cut in two keep the levels it had. Buying writes the entries of that base level again for the lobbies there now.
+- Price of level N: 25% of what the lobby's cells cost (5,000 a cell, every row of every column), times N, and never from less than 200,000 (`LOBBY_UPGRADE_BASE_PRICE`).
+- Effects work on every cell of the lobby, on all its rows: what a person feels each minute there (stress-evaluation 2.6), standing or walking, and the stay counted at the start of a trip.
 
 | Upgrade | Levels | Effect per level |
 |---|---|---|
-| Plants | 3 | Calm lowers stress for people in the lobby cells |
-| Music | 3 | Lowers the noise felt in the lobby cells |
-| Lighting | 3 | Fewer dirt points are felt there |
+| Plants | 3 | -15% of the stress felt in the lobby cells (`LOBBY_PLANTS_STRESS_CUT`) |
+| Music | 3 | -20% of the noise felt in the lobby cells (`LOBBY_MUSIC_NOISE_CUT`) |
+| Lighting | 3 | -20% of the dirt felt in the lobby cells (`LOBBY_LIGHTING_DIRT_CUT`) |
+
+- Music and lighting change what people feel, not the maps: the noise and dirt in the cells stay as they are.
+- The Lupa opens the lobby window on a click on lobby cells with no person, shaft or unit in front (ui.md 6.5.1).
 
 ## 2.5 Crews, clothes and shifts
 
@@ -129,7 +135,7 @@ No change. The player can build as many shafts and cars as wanted at any star le
 - Price of level N (guess): 25% of the unit price times N.
 - The unit panel lists the upgrades with their levels, price and effect. A locked upgrade shows what is needed.
 - Demolishing the unit loses its upgrades and its crew goes home.
-- Built so far: the catalog (`UPGRADE_CATALOG`), the command and the panel rows, for the security office, the obrador and the cleaning room. All their levels act: the obrador's and the cleaning room's on their crews (2.1, 2.2), the security office's as in 2.3. A lobby is not a unit in the game state (it is a span of the grid), so its upgrades are in the catalog but cannot be bought until a lobby has an id of its own; for now its price base is a fixed 200,000 (guess).
+- Built so far: the catalog (`UPGRADE_CATALOG`), the command and the panel rows, for the security office, the obrador and the cleaning room. All their levels act: the obrador's and the cleaning room's on their crews (2.1, 2.2), the security office's as in 2.3. Lobbies have ids of their own and their upgrades act as in 2.4; `buyUpgrade` takes a lobby id in place of a unit id.
 
 ## 6. Build order
 

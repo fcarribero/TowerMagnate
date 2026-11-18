@@ -1,5 +1,8 @@
 import {
   countPeopleOfUnit,
+  findLobby,
+  lobbyCells,
+  lobbyUpgrades,
   maidsOfUnit,
   officersOnDuty,
   visitorsOfUnit,
@@ -20,6 +23,7 @@ import {
 } from '@tower-magnate/engine';
 import {
   isPricedType,
+  lobbyUpgradePrice,
   priceBand,
   priceBounds,
   UNIT_CATALOG,
@@ -113,6 +117,34 @@ function siteDetails(state: TowerState, site: TowerState['sites'][string]): Site
     ...(site.type === 'condo' || site.type === 'office' || site.type === 'retail-shop'
       ? { listed: site.listed ?? newUnit(site.id, site.type, site.x, site.level).listed }
       : {}),
+  };
+}
+
+/** What the lobby window shows: the lobby's place and its upgrades, or `gone` when there is no such lobby. */
+export function inspectLobby(state: TowerState, lobbyId: string): InspectData {
+  const lobby = findLobby(state.grid, lobbyId);
+  if (!lobby) {
+    return { kind: 'lobby', id: lobbyId, status: 'gone' };
+  }
+  const levels = lobbyUpgrades(state, lobby);
+  const cells = lobbyCells(lobby);
+  return {
+    kind: 'lobby',
+    id: lobby.id,
+    status: 'ok',
+    level: lobby.level,
+    height: lobby.height,
+    from: lobby.x0,
+    to: lobby.x1,
+    upgrades: upgradesOf('lobby').map((definition) => {
+      const level = levels[definition.id] ?? 0;
+      return {
+        id: definition.id,
+        level,
+        maxLevel: definition.maxLevel,
+        nextPrice: level < definition.maxLevel ? lobbyUpgradePrice(cells, level) : null,
+      };
+    }),
   };
 }
 

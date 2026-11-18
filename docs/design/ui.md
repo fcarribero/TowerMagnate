@@ -490,6 +490,12 @@ Horarios tab:
 - A table with 6 rows. Columns: "Franja" (`HH:MM a HH:MM`, from the TM-12 band boundaries), "Modo" (dropdown: Normal, Expreso hacia arriba, Expreso hacia abajo), "Espera" (number field, game seconds, `{n} s`), "Respuesta" (number field, `{n} pisos`, default 5). Number limits come from TM-12; the field clamps to them. The table header is in `text.status-label` with a `border.control` line under it, and the rows are 16 tall.
 - Button "Copiar a fin de semana" (or "Copiar a días hábiles") copies the visible 6 bands to the other day type.
 
+### 6.5.1 Lobby window
+
+The Lupa opens it on a click on a lobby cell that has no person, elevator shaft or unit in front. A cell on an upper row of a tall lobby opens the lobby below it. Title: `Lobby · {level label}`, for example "Lobby · Piso 1". One window per lobby; it closes by itself when the lobby is gone.
+
+It has one section, "Mejoras", with the same rows as the unit window: the upgrade name, its level `n/max` and a button "Comprar {price}" that sends `buyUpgrade` with the lobby id. At the top level the button reads "Máximo" and is disabled; it is also disabled when the money does not cover the price, with the insufficient funds message as tooltip.
+
 ### 6.6 Finance window
 
 Title "Finanzas". Layout as TM-9 section 9.3:

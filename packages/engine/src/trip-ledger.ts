@@ -14,8 +14,9 @@ import {
   type Shaft,
   type TowerState,
 } from '@tower-magnate/shared';
-import { heatOf, STAY_MAX_MINUTES, stepsFelt, stressPerMinute, valueAt } from './heat';
+import { STAY_MAX_MINUTES, stepsFelt } from './heat';
 import { lobbyRows } from './commands/build-lobby';
+import { cellStressPerMinute } from './lobbies';
 import { averageStress, type RecordedTrip } from './person-stress';
 import { floorIndex } from './routing/transport-graph';
 import type { ScheduledHook } from './scheduler';
@@ -229,10 +230,7 @@ export function addStay(state: TowerState, slot: number): void {
   );
   const level = field(pool.level, slot);
   const column = field(pool.column, slot);
-  const perMinute = stressPerMinute(
-    valueAt(heatOf(state).noise, level, column),
-    valueAt(heatOf(state).dirt, level, column),
-  );
+  const perMinute = cellStressPerMinute(state, level, column);
   addAmbient(
     pool,
     slot,
@@ -251,7 +249,7 @@ export function addFlight(pool: PersonPool, slot: number, kind: 'stairs' | 'esca
   if (stairs) pool.tripSlowFloors[slot] = field(pool.tripSlowFloors, slot) + 1;
 }
 
-function lobbyBases(grid: GridState): [Level, LobbyHeight][] {
+export function lobbyBases(grid: GridState): [Level, LobbyHeight][] {
   const bases: [Level, LobbyHeight][] = [];
   if (grid.mainLobbyHeight) bases.push([1, grid.mainLobbyHeight]);
   for (const [base, height] of Object.entries(grid.skyLobbyHeights)) {

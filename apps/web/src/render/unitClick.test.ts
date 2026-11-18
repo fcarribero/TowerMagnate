@@ -3,7 +3,7 @@ import { ClientStore } from '../model/clientStore';
 import { snapshot } from '../testing/protocolFixtures';
 import type { Cell } from './cellAtPoint';
 import type { CellInput } from './stage';
-import { bindUnitClicks } from './unitClick';
+import { bindUnitClicks, lobbyIdAt } from './unitClick';
 
 const office = {
   id: 'u1',
@@ -155,5 +155,31 @@ describe('bindUnitClicks priority', () => {
     const click = bind((x, y) => (y > 90 ? 'p1' : null));
     expect(click({ x: 14, level: 3 }, { x: 115, y: 100 })).toBe('person:p1');
     expect(click({ x: 14, level: 3 }, { x: 115, y: 70 })).toBeUndefined();
+  });
+});
+
+describe('lobbyIdAt', () => {
+  const source = {
+    mainLobbyHeight: 2 as const,
+    skyLobbyHeights: { '15': 1 as const },
+    structure: new Map([
+      [1, '....llllll..ll'],
+      [2, '....llllll....'],
+      [3, '....ffffff....'],
+      [15, 'ffllll'],
+    ]),
+  };
+
+  it('names the lobby run by its base level and first column', () => {
+    expect(lobbyIdAt(source, { x: 7, level: 1 })).toBe('l1x4');
+    expect(lobbyIdAt(source, { x: 13, level: 1 })).toBe('l1x12');
+    expect(lobbyIdAt(source, { x: 3, level: 15 })).toBe('l15x2');
+  });
+
+  it('takes an upper row of a tall lobby to its base run, and skips cells that are not lobby', () => {
+    expect(lobbyIdAt(source, { x: 5, level: 2 })).toBe('l1x4');
+    expect(lobbyIdAt(source, { x: 5, level: 3 })).toBeNull();
+    expect(lobbyIdAt(source, { x: 1, level: 1 })).toBeNull();
+    expect(lobbyIdAt(source, { x: 0, level: 15 })).toBeNull();
   });
 });

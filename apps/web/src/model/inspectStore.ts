@@ -7,6 +7,8 @@ export type PersonInspect = Extract<InspectData, { kind: 'person' }>;
 
 export type ShaftInspect = Extract<InspectData, { kind: 'shaft' }>;
 
+export type LobbyInspect = Extract<InspectData, { kind: 'lobby' }>;
+
 type Listener = () => void;
 type OpenRequestListener = (id: string) => void;
 
@@ -20,6 +22,8 @@ export class InspectStore {
   private readonly shafts = new Map<string, ShaftInspect>();
   private readonly openRequests = new Set<OpenRequestListener>();
   private readonly shaftOpenRequests = new Set<OpenRequestListener>();
+  private readonly lobbies = new Map<string, LobbyInspect>();
+  private readonly lobbyOpenRequests = new Set<OpenRequestListener>();
   private readonly people = new Map<string, PersonInspect>();
   private readonly personOpenRequests = new Set<OpenRequestListener>();
   private anchored: string | null = null;
@@ -36,6 +40,8 @@ export class InspectStore {
       this.shafts.set(message.p.id, message.p);
     } else if (message.p.kind === 'person') {
       this.people.set(message.p.id, message.p);
+    } else if (message.p.kind === 'lobby') {
+      this.lobbies.set(message.p.id, message.p);
     } else {
       return;
     }
@@ -50,6 +56,28 @@ export class InspectStore {
 
   shaft(shaftId: string): ShaftInspect | undefined {
     return this.shafts.get(shaftId);
+  }
+
+  lobby(lobbyId: string): LobbyInspect | undefined {
+    return this.lobbies.get(lobbyId);
+  }
+
+  forgetLobby(lobbyId: string): void {
+    this.lobbies.delete(lobbyId);
+  }
+
+  /** The Lupa asks for a lobby window; the window host answers. */
+  requestLobbyWindow(lobbyId: string): void {
+    for (const listener of this.lobbyOpenRequests) {
+      listener(lobbyId);
+    }
+  }
+
+  onLobbyWindowRequest(listener: OpenRequestListener): () => void {
+    this.lobbyOpenRequests.add(listener);
+    return () => {
+      this.lobbyOpenRequests.delete(listener);
+    };
   }
 
   person(personId: string): PersonInspect | undefined {

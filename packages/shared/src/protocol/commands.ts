@@ -16,6 +16,7 @@ import {
   TransportTypeSchema,
   UnitEntityIdSchema,
   UnitTypeSchema,
+  UpgradableIdSchema,
 } from './primitives';
 
 export const BANDS_PER_DAY_TYPE = 6;
@@ -100,7 +101,7 @@ const demolishCommands = [
 const operateCommands = [
   z.object({ type: z.literal('setPrice'), unitId: UnitEntityIdSchema, price: PriceSchema }),
   z.object({ type: z.literal('setListed'), unitId: UnitEntityIdSchema, listed: z.boolean() }),
-  z.object({ type: z.literal('buyUpgrade'), unitId: UnitEntityIdSchema, upgradeId: z.string().min(1).max(40) }),
+  z.object({ type: z.literal('buyUpgrade'), unitId: UpgradableIdSchema, upgradeId: z.string().min(1).max(40) }),
   z.object({ type: z.literal('setSitePriority'), unitId: UnitEntityIdSchema, priority: z.boolean() }),
   z.object({ type: z.literal('setVenueEnabled'), unitId: UnitEntityIdSchema, enabled: z.boolean() }),
   z.object({

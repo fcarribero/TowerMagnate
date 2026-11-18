@@ -63,6 +63,8 @@ function copyHeat(heat: NonNullable<TowerState['heat']>): NonNullable<TowerState
 function copyOf(key: string, value: unknown): unknown {
   if (SHARED_KEYS.has(key)) return value;
   if (key === 'heat' && value) return copyHeat(value as NonNullable<TowerState['heat']>);
+  // Lobby upgrades are only ever replaced by a new record (lobbies.ts), never changed in place.
+  if (key === 'lobbies') return value;
   if (key === 'people') return clonePersonPool(value as TowerState['people']);
   return copyPlainData(value);
 }

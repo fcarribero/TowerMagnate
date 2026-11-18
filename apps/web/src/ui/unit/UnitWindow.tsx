@@ -488,7 +488,7 @@ function VenueControls({ id, details, disabled, onEnabled, onHours }: VenueContr
   );
 }
 
-function UpgradeLine({ row, onBuy }: { row: UpgradeRow; onBuy: () => void }) {
+export function UpgradeLine({ row, onBuy }: { row: UpgradeRow; onBuy: () => void }) {
   const button = (
     <Button disabled={row.disabled} onClick={onBuy}>
       {row.priceText === null

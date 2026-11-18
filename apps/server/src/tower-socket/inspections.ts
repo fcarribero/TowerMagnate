@@ -6,7 +6,7 @@ import {
 } from '@tower-magnate/shared';
 import { sendMessage, type ConnectionRegistry, type GatewaySocket } from '../gateway';
 import type { TowerRunner } from '../runner';
-import { inspectPerson, inspectShaft, inspectUnit } from './inspect';
+import { inspectLobby, inspectPerson, inspectShaft, inspectUnit } from './inspect';
 
 export const INSPECT_INTERVAL_MS = 1000;
 export const MAX_INSPECT_TARGETS = 5;
@@ -134,5 +134,7 @@ function inspectionOf(state: TowerState, target: Target): InspectData {
       return inspectPerson(state, target.id);
     case 'unit':
       return inspectUnit(state, target.id);
+    case 'lobby':
+      return inspectLobby(state, target.id);
   }
 }

@@ -970,8 +970,18 @@ export const DEMOLITION_INDEMNITY_WEEKS = 1;
 /** A level of an upgrade costs this share of the unit's price, times the level (service-units 5). */
 export const UPGRADE_PRICE_SHARE = 0.25;
 
-/** A lobby is priced per cell, so its upgrades count from this base price instead (guess). */
+/**
+ * A lobby is priced per cell, so its upgrades count from what its cells cost (every row of every
+ * column), and never from less than this (guess).
+ */
 export const LOBBY_UPGRADE_BASE_PRICE = 200_000;
+
+/** Each plants level takes this share off the stress a person feels in the lobby (service-units 2.4). */
+export const LOBBY_PLANTS_STRESS_CUT = 0.15;
+/** Each music level takes this share off the noise felt in the lobby. */
+export const LOBBY_MUSIC_NOISE_CUT = 0.2;
+/** Each lighting level takes this share off the dirt felt in the lobby. */
+export const LOBBY_LIGHTING_DIRT_CUT = 0.2;
 
 export interface UpgradeDefinition {
   id: string;
@@ -982,7 +992,8 @@ export interface UpgradeDefinition {
  * The upgrades a unit of each type can buy, level by level. A type that is missing has none.
  * The obrador's upgrades act on its crew (construction.ts, heat.ts), the cleaning room's on its
  * cleaners (cleaning.ts) and the security office's on its officers, fires and grades (police.ts,
- * fire-guards.ts, unit-evaluation.ts); the lobby's are only stored for now (service-units 2 and 5).
+ * fire-guards.ts, unit-evaluation.ts). A lobby is not a unit: its upgrades are kept by lobby id in
+ * `state.lobbies` and act on what people feel in its cells (lobbies.ts, service-units 2.4).
  */
 export const UPGRADE_CATALOG: Partial<Record<UnitType, readonly UpgradeDefinition[]>> = {
   security: [
@@ -1011,6 +1022,14 @@ export const UPGRADE_CATALOG: Partial<Record<UnitType, readonly UpgradeDefinitio
 
 export function upgradesOf(type: UnitType): readonly UpgradeDefinition[] {
   return UPGRADE_CATALOG[type] ?? [];
+}
+
+/** The price of the next level of a lobby upgrade, for a lobby of `cells` cells, given the level it has now. */
+export function lobbyUpgradePrice(cells: number, level: number): number {
+  const lobby = UNIT_CATALOG.lobby.cost;
+  const perCell = lobby.kind === 'per-cell' ? lobby.amount : 0;
+  const base = Math.max(LOBBY_UPGRADE_BASE_PRICE, perCell * cells);
+  return Math.round(base * UPGRADE_PRICE_SHARE * (level + 1));
 }
 
 /** The price of the next level of an upgrade, given the level the unit has now. */

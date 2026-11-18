@@ -210,6 +210,16 @@ export interface FloorPurchase extends ColumnSpan {
 }
 
 /** Sky lobby columns bought on one lobby level, kept while they can still be refunded. */
+/**
+ * The upgrades of one lobby, kept with the columns its base level spanned when they were last
+ * written. A lobby that grows or splits takes the levels of every entry its columns overlap.
+ */
+export interface LobbyUpgrades extends ColumnSpan {
+  /** The lobby's base level: 1 or a sky lobby floor. */
+  level: Level;
+  upgrades: Record<string, number>;
+}
+
 export interface LobbyPurchase extends ColumnSpan {
   /** The sky lobby level the run stands on. */
   level: Level;
@@ -374,6 +384,8 @@ export interface TowerState {
   tripLedger: Record<string, number[]>;
   /** Noise and dirt of the cells and the cars; missing in a tower that has not filled it yet. */
   heat?: HeatMaps;
+  /** Upgrades bought for lobbies, by lobby id; missing until the first one (service-units 2.4). */
+  lobbies?: Record<string, LobbyUpgrades>;
   /**
    * Trips filed for each evaluated unit since its ledger was last cleared, keyed by unit id:
    * pairs of end step and trip stress, oldest first.

@@ -16,6 +16,10 @@ describe('inspect targets of open windows', () => {
     expect(openInspectTargets([win('person:p7')])).toEqual([{ kind: 'person', id: 'p7' }]);
   });
 
+  it('inspects lobby windows too', () => {
+    expect(openInspectTargets([win('lobby:l1x4')])).toEqual([{ kind: 'lobby', id: 'l1x4' }]);
+  });
+
   it('keeps the five windows in front', () => {
     const ids = ['u1', 'u2', 'u3', 'u4', 'u5', 'u6'].map((id) => win(`unit:${id}`));
     expect(openInspectTargets(ids).map((target) => ('id' in target ? target.id : ''))).toEqual([

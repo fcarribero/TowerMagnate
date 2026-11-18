@@ -32,14 +32,7 @@ import {
   SECURITY_WATCHED_STRESS,
 } from '@tower-magnate/shared';
 import { ambientOf, type Ambient } from './ambient-stress';
-import {
-  addPersonNoise,
-  addPersonTrail,
-  heatOf,
-  stepsFelt,
-  stressPerMinute,
-  valueAt,
-} from './heat';
+import { addPersonNoise, addPersonTrail, stepsFelt } from './heat';
 import { SECONDS_PER_STEP, STEPS_PER_DAY } from './clock';
 
 const STEPS_PER_MINUTE = 6;
@@ -69,6 +62,7 @@ import {
 import { CHILD_KIND, householdIndexOf, isChild } from './children';
 import { NOTHING_DUE, parsePersonId, personEntityId, removePerson, slotOfPerson } from './people';
 import { POLICE_KIND } from './police-phase';
+import { cellStressPerMinute } from './lobbies';
 import { watchedCells } from './police';
 import { floorIndex, type UserClass } from './routing/transport-graph';
 import { mainLobbyEnds, nearestStreetColumn, STREET_LEVEL } from './street';
@@ -1302,10 +1296,7 @@ function feelEnvironment(context: StepContext, slot: number, phase: number): voi
   const level = pool.level[slot] as number;
   const column = pool.column[slot] as number;
   const minute = Math.floor(state.step / STEPS_PER_MINUTE);
-  let perMinute = stressPerMinute(
-    valueAt(heatOf(state).noise, level, column),
-    valueAt(heatOf(state).dirt, level, column),
-  );
+  let perMinute = cellStressPerMinute(state, level, column);
   // An officer with cameras watching the cell makes people there feel less of it.
   if (watchedCells(state)?.get(level)?.[column] === 1) perMinute *= WATCHED_STRESS;
   addAmbient(pool, slot, stepsFelt(perMinute, 1, id, minute));

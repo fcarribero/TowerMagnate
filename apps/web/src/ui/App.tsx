@@ -63,6 +63,7 @@ import { useNotices } from './notices/useNotices';
 import { useUnreadCount } from './notices/useUnreadCount';
 import { Toasts } from './toast/Toasts';
 import { ElevatorWindows } from './elevator/ElevatorWindows';
+import { LobbyWindows } from './lobby/LobbyWindows';
 import { FollowedWindow } from './person/FollowedWindow';
 import { PersonWindows } from './person/PersonWindows';
 import { UnitWindows } from './unit/UnitWindows';
@@ -291,6 +292,7 @@ export function App({ developer = false, onLogout, onRestartTower, onSessionLost
       person: (personId) => connection.inspect.anchorPerson(personId),
       unit: (unitId) => connection.inspect.anchorUnit(unitId),
       shaft: (shaftId) => connection.inspect.requestShaftWindow(shaftId),
+      lobby: (lobbyId) => connection.inspect.requestLobbyWindow(lobbyId),
       clearUnit: () => connection.inspect.clearAnchor(),
     });
     return () => {
@@ -511,6 +513,7 @@ export function App({ developer = false, onLogout, onRestartTower, onSessionLost
             closedIds={notices.closedIds}
           />
           <ElevatorWindows connection={connection} />
+          <LobbyWindows connection={connection} />
           <RestartTowerDialogs
             step={restartStep}
             onStep={setRestartStep}

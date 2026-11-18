@@ -1022,6 +1022,7 @@ function assertCurrentShape(raw: Record<string, unknown>): TowerState {
     treasureLevels: readTreasureLevels(raw.treasureLevels),
     ...readStarState(raw),
     ...readHeat(raw.heat),
+    ...readLobbies(raw.lobbies),
     vipVisit: readVipVisit(raw.vipVisit),
     vipDryDays: readVipDryDays(raw.vipDryDays),
     medicalDay: readMedicalDay(raw.medicalDay),
@@ -1029,6 +1030,23 @@ function assertCurrentShape(raw: Record<string, unknown>): TowerState {
     wedding: readWedding(raw.wedding),
     lastWeddingDay: readLastWeddingDay(raw.lastWeddingDay),
   };
+}
+
+/** Lobby upgrades are an optional part: a save without them has none bought. */
+function readLobbies(raw: unknown): { lobbies?: TowerState['lobbies'] } {
+  if (!isRecord(raw)) return {};
+  const lobbies: NonNullable<TowerState['lobbies']> = {};
+  for (const [id, entry] of Object.entries(raw)) {
+    if (!isRecord(entry) || !isRecord(entry.upgrades)) continue;
+    const { level, x0, x1 } = entry;
+    if (!Number.isInteger(level) || !Number.isInteger(x0) || !Number.isInteger(x1)) continue;
+    const upgrades: Record<string, number> = {};
+    for (const [upgrade, value] of Object.entries(entry.upgrades)) {
+      if (Number.isInteger(value) && (value as number) > 0) upgrades[upgrade] = value as number;
+    }
+    lobbies[id] = { level: level as Level, x0: x0 as number, x1: x1 as number, upgrades };
+  }
+  return { lobbies };
 }
 
 /** The heat maps are an optional part: a save without them starts with empty maps. */

@@ -266,3 +266,12 @@ export { isEvaluatedUnit, storedGrade } from './unit-evaluation';
 export { disconnectedUnits } from './unit-connections';
 export { isLayoutCommand, isLayoutEvent } from './layout-changes';
 export { customersInsideVenue } from './venue-visitors';
+export {
+  cellStressPerMinute,
+  findLobby,
+  lobbiesOf,
+  lobbyCells,
+  lobbyId,
+  lobbyUpgrades,
+} from './lobbies';
+export type { Lobby } from './lobbies';

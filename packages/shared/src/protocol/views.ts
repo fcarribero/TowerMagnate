@@ -23,6 +23,7 @@ import {
   StarRequirementSchema,
   LevelSchema,
   LobbyHeightSchema,
+  LobbyIdSchema,
   MoneyReasonSchema,
   MoneySchema,
   PersonEntityIdSchema,
@@ -551,6 +552,18 @@ export const InspectDataSchema = z.union([
     stops: z.array(LevelSchema),
     cars: z.array(InspectedCarSchema).max(MAX_CARS_PER_SHAFT),
     schedule: ElevatorScheduleSchema,
+  }),
+  z.object({ kind: z.literal('lobby'), id: LobbyIdSchema, status: z.literal('gone') }),
+  z.object({
+    kind: z.literal('lobby'),
+    id: LobbyIdSchema,
+    status: z.literal('ok'),
+    /** The base level of the lobby and how many levels tall it is. */
+    level: LevelSchema,
+    height: LobbyHeightSchema,
+    from: ColumnSchema,
+    to: ColumnSchema,
+    upgrades: z.array(UnitUpgradeViewSchema),
   }),
   z.object({ kind: z.literal('finances'), money: MoneySchema, finances: FinanceSummarySchema }),
 ]);

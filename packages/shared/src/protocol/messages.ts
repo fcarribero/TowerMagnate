@@ -4,6 +4,7 @@ import { ServerErrorCodeSchema } from './errors';
 import {
   ColumnSchema,
   LevelSchema,
+  LobbyIdSchema,
   PersonEntityIdSchema,
   ShaftEntityIdSchema,
   StepSchema,
@@ -42,6 +43,7 @@ export const InspectTargetSchema = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('unit'), id: UnitEntityIdSchema }),
   z.object({ kind: z.literal('person'), id: PersonEntityIdSchema }),
   z.object({ kind: z.literal('shaft'), id: ShaftEntityIdSchema }),
+  z.object({ kind: z.literal('lobby'), id: LobbyIdSchema }),
   z.object({ kind: z.literal('finances') }),
 ]);
 
