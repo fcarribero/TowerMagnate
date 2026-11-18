@@ -14,7 +14,6 @@ import {
   kindName,
   personTitle,
   stressBar,
-  stressColor,
   stressReasons,
   type StressBar,
   type StressReasons,
@@ -149,7 +148,7 @@ export function PersonWindow({
   };
   const title = known === undefined ? '' : personTitle(known.personKind, known.name);
   const home = found === undefined ? null : homeRow(found.personKind, found.homeUnitId, unitOf);
-  const stress = found === undefined ? null : stressBar(found.stressMinutes, found.stress);
+  const stress = found === undefined ? null : stressBar(found.stressScore);
   const reasons = found === undefined ? null : stressReasons(found.stressCauses);
 
   const starButton = (
@@ -191,7 +190,7 @@ export function PersonWindow({
       />
       {found !== undefined && stress !== null && (
         <>
-          <StressMeter bar={stress} />
+          <StressMeter bar={stress} score={found.stressScore} />
           {reasons !== null && <ReasonLists reasons={reasons} />}
           {home !== null && (
             <dl class="tm-person__rows">
@@ -212,30 +211,27 @@ export function PersonWindow({
   );
 }
 
-/** Stress as a level bar with the high and very high zones marked, and the level in words. */
-function StressMeter({ bar }: { bar: StressBar }) {
-  const color = stressColor(bar.level);
+/** Stress as a bar from 0 to 10, its color moving from ink to red, with the score in numbers. */
+function StressMeter({ bar, score }: { bar: StressBar; score: number }) {
   return (
     <div class="tm-person__stress">
       <div class="tm-person__stress-head">
         <span>{t('window.person.stress')}</span>
-        <strong style={bar.level === 'normal' ? undefined : { color }}>{bar.label}</strong>
+        <strong>{bar.text}</strong>
       </div>
       <div
         class="tm-person__stress-bar"
         role="meter"
         aria-label={t('window.person.stress')}
         aria-valuemin={0}
-        aria-valuemax={100}
-        aria-valuenow={Math.round(bar.fill * 100)}
-        aria-valuetext={bar.label}
+        aria-valuemax={10}
+        aria-valuenow={Math.round(score * 10) / 10}
+        aria-valuetext={bar.text}
       >
         <span
           class="tm-person__stress-fill"
-          style={{ width: `${bar.fill * 100}%`, background: color }}
+          style={{ width: `${Math.round(bar.fill * 1000) / 10}%`, background: bar.color }}
         />
-        <span class="tm-person__stress-mark" style={{ left: `${bar.highAt * 100}%` }} />
-        <span class="tm-person__stress-mark" style={{ left: `${bar.veryHighAt * 100}%` }} />
       </div>
     </div>
   );

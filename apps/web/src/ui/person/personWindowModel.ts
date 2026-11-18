@@ -1,7 +1,6 @@
 import {
   MAX_FOLLOWED_PEOPLE,
-  STRESS_ALTO_FROM,
-  STRESS_MUY_ALTO_FROM,
+  STRESS_SCORE_MAX,
   type PersonKind,
   type StressCause,
   type UnitView,
@@ -9,6 +8,7 @@ import {
 import type { PersonInspect } from '../../model/inspectStore';
 import { STRESS_INK, STRESS_PINK, STRESS_RED } from '../../render/stressPalette';
 import { errorText, t, type StringKey } from '../strings';
+import { stressScoreText } from '../stressScoreText';
 import { levelText, typeName } from '../unit/unitWindowModel';
 
 type Found = Extract<PersonInspect, { status: 'ok' }>;
@@ -32,12 +32,6 @@ const KIND_KEYS: Readonly<Record<PersonKind, StringKey>> = {
   child: 'value.person.child',
   cleaner: 'value.person.cleaner',
   doctor: 'value.person.doctor',
-};
-
-const STRESS_KEYS: Readonly<Record<StressLevel, StringKey>> = {
-  normal: 'value.stress.normal',
-  stressed: 'value.stress.high',
-  veryStressed: 'value.stress.veryHigh',
 };
 
 const HOME_ROW_KEYS: Partial<Record<PersonKind, StringKey>> = {
@@ -72,42 +66,33 @@ export function stressColor(level: StressLevel): string {
   return STRESS_COLORS[level];
 }
 
-export interface StressText {
-  text: string;
-  level: StressLevel;
-}
-
-export function stressText(minutes: number, level: StressLevel): StressText {
-  return {
-    text: t('window.person.stressValue', { n: Math.round(minutes), level: t(STRESS_KEYS[level]) }),
-    level,
-  };
-}
-
-const STEPS_PER_MINUTE = 6;
-/** The stress bar is full at 1.5 times the very high threshold: 45 minutes. */
-const STRESS_BAR_FULL_MINUTES = (STRESS_MUY_ALTO_FROM * 1.5) / STEPS_PER_MINUTE;
-
 export interface StressBar {
   /** How full the bar is, 0 to 1. */
   fill: number;
-  /** Where the high and the very high zones start on the bar, 0 to 1. */
-  highAt: number;
-  veryHighAt: number;
-  level: StressLevel;
-  /** The level in words: normal, alto, muy alto. */
-  label: string;
+  /** From the ink color at 0 to red at 10. */
+  color: string;
+  /** The score in numbers: "3,4 / 10". */
+  text: string;
 }
 
-/** Stress as a level bar instead of minutes. */
-export function stressBar(minutes: number, level: StressLevel): StressBar {
-  return {
-    fill: Math.min(1, Math.max(0, minutes / STRESS_BAR_FULL_MINUTES)),
-    highAt: STRESS_ALTO_FROM / STEPS_PER_MINUTE / STRESS_BAR_FULL_MINUTES,
-    veryHighAt: STRESS_MUY_ALTO_FROM / STEPS_PER_MINUTE / STRESS_BAR_FULL_MINUTES,
-    level,
-    label: t(STRESS_KEYS[level]),
-  };
+function channels(hex: string): number[] {
+  return [1, 3, 5].map((at) => Number.parseInt(hex.slice(at, at + 2), 16));
+}
+
+/** The color between ink and red that a share of the scale gets. */
+function inkToRed(share: number): string {
+  const ink = channels(STRESS_INK);
+  const red = channels(STRESS_RED);
+  return `#${ink
+    .map((from, index) => Math.round(from + ((red[index] as number) - from) * share))
+    .map((value) => value.toString(16).padStart(2, '0'))
+    .join('')}`;
+}
+
+/** Stress as a bar from 0 to 10 with the score in numbers; no levels, no thresholds. */
+export function stressBar(score: number): StressBar {
+  const fill = Math.min(1, Math.max(0, score / STRESS_SCORE_MAX));
+  return { fill, color: inkToRed(fill), text: stressScoreText(score) };
 }
 
 type BurdenCause = Exclude<StressCause, 'calm'>;

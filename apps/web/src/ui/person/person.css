@@ -206,14 +206,6 @@
   left: 0;
 }
 
-.tm-person__stress-mark {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  width: var(--tm-px);
-  background: var(--obra-ink);
-}
-
 .tm-person__reasons {
   margin: 0 0 var(--space-2);
 }

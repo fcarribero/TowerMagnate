@@ -72,7 +72,7 @@ function found(id: string, patch: Partial<Found> = {}): Found {
     personKind: 'officeWorker',
     state: 'walk',
     destination: { kind: 'unit', unitId: 'u1', level: 3 },
-    stressMinutes: 42,
+    stressScore: 4.2,
     stress: 'stressed',
     stressCauses: {
       wait: 30,
@@ -166,20 +166,22 @@ describe('person windows', () => {
     });
   });
 
-  it('shows stress as a level bar colored by level, with the level in words', () => {
+  it('shows stress as a bar from 0 to 10 with the score in numbers', () => {
     const { open, show } = setup();
     open('p1');
     show(found('p1'));
     const meter = () => screen.getByRole('meter', { name: 'Estrés' });
     const fill = () => meter().querySelector('.tm-person__stress-fill') as HTMLElement;
-    expect(meter().getAttribute('aria-valuetext')).toBe('alto');
-    expect(fill().style.background).toBe('rgb(240, 122, 168)');
-    expect(screen.queryByText(/ min \(/)).toBeNull();
-    show(found('p1', { stress: 'veryStressed', stressMinutes: 99 }));
-    expect(meter().getAttribute('aria-valuenow')).toBe('100');
+    expect(meter().getAttribute('aria-valuemin')).toBe('0');
+    expect(meter().getAttribute('aria-valuemax')).toBe('10');
+    expect(meter().getAttribute('aria-valuenow')).toBe('4.2');
+    expect(meter().getAttribute('aria-valuetext')).toBe('4,2 / 10');
+    expect(screen.getByText('4,2 / 10')).toBeTruthy();
+    expect(fill().style.width).toBe('42%');
+    expect(screen.queryByText(/alto|min \(/)).toBeNull();
+    expect(meter().querySelector('.tm-person__stress-mark')).toBeNull();
+    show(found('p1', { stressScore: 10 }));
     expect(fill().style.background).toBe('rgb(216, 30, 42)');
-    show(found('p1', { stress: 'normal', stressMinutes: 3 }));
-    expect(meter().getAttribute('aria-valuetext')).toBe('normal');
   });
 
   it('lists what makes the person unhappy and what they are happy with', () => {

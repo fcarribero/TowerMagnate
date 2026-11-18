@@ -27,6 +27,7 @@ import {
 } from '@tower-magnate/engine';
 import {
   isPricedType,
+  stressScore,
   lobbyUpgradePrice,
   priceBand,
   priceBounds,
@@ -201,7 +202,7 @@ export function inspectPerson(state: TowerState, personId: string): InspectData 
     personKind: person.kind,
     state: personState(state, slot, phase),
     destination: phase === 'idle' ? null : destinationOf(state, slot),
-    stressMinutes: person.stress / STEPS_PER_MINUTE,
+    stressScore: stressScore(person.stress),
     stress: stressLevel(person.stress),
     stressCauses: minutesOf(stressCausesOf(pool, slot)),
     homeUnitId: person.homeUnit,

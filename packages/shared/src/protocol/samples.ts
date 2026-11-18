@@ -272,7 +272,7 @@ export const sampleServerMessages: ServerMessage[] = [
       personKind: 'hotelGuest',
       state: 'noRoute',
       destination: { kind: 'exit' },
-      stressMinutes: 12.5,
+      stressScore: 2.1,
       stress: 'normal',
       stressCauses: {
         wait: 8.5,

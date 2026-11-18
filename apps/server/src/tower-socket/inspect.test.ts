@@ -619,7 +619,7 @@ describe('inspecting a person', () => {
       personKind: 'officeWorker',
       state: 'inside',
       destination: null,
-      stressMinutes: 0,
+      stressScore: 0,
       stress: 'normal',
       stressCauses: {
         wait: 0,
@@ -642,15 +642,16 @@ describe('inspecting a person', () => {
     expect(inspectPerson(state, 'p1')).toMatchObject({ name: null, homeUnitId: null });
   });
 
-  it('gives the stress in minutes and its level', () => {
+  it('gives the stress as a 0 to 10 score and its tint', () => {
     const { state, id } = towerWithWorker();
-    state.people.stress[0] = 20 * STEPS_PER_MINUTE;
-
-    expect(inspectPerson(state, id)).toMatchObject({ stressMinutes: 20, stress: 'stressed' });
-    state.people.stress[0] = 40 * STEPS_PER_MINUTE;
-    expect(inspectPerson(state, id)).toMatchObject({ stressMinutes: 40, stress: 'veryStressed' });
-    state.people.stress[0] = 5 * STEPS_PER_MINUTE;
-    expect(inspectPerson(state, id)).toMatchObject({ stressMinutes: 5, stress: 'normal' });
+    state.people.stress[0] = 180;
+    const at180 = inspectPerson(state, id) as { stressScore: number; stress: string };
+    expect(at180.stressScore).toBeCloseTo(6.321, 3);
+    expect(at180.stress).toBe('stressed');
+    state.people.stress[0] = 240;
+    expect(inspectPerson(state, id)).toMatchObject({ stress: 'veryStressed' });
+    state.people.stress[0] = 0;
+    expect(inspectPerson(state, id)).toMatchObject({ stressScore: 0, stress: 'normal' });
   });
 
   it.each([

@@ -11,7 +11,6 @@ import {
   stressBar,
   stressColor,
   stressReasons,
-  stressText,
 } from './personWindowModel';
 
 const office: UnitView = {
@@ -38,11 +37,6 @@ describe('person window text', () => {
     expect(personTitle('courier', null)).toBe('Mensajero');
   });
 
-  it('writes the stress as minutes and level', () => {
-    expect(stressText(12.4, 'normal')).toEqual({ text: '12 min (normal)', level: 'normal' });
-    expect(stressText(40, 'stressed').text).toBe('40 min (alto)');
-    expect(stressText(95, 'veryStressed').text).toBe('95 min (muy alto)');
-  });
 
   it('uses the tower palette for stress colors', () => {
     expect(stressColor('stressed')).toBe('#f07aa8');
@@ -147,12 +141,14 @@ describe('stress bar and reasons', () => {
     calm: 0,
   };
 
-  it('fills the bar up to 45 minutes and marks the high and very high zones', () => {
-    expect(stressBar(0, 'normal')).toMatchObject({ fill: 0, label: 'normal' });
-    expect(stressBar(22.5, 'stressed').fill).toBeCloseTo(0.5);
-    expect(stressBar(90, 'veryStressed').fill).toBe(1);
-    expect(stressBar(0, 'normal').highAt).toBeCloseTo(1 / 3);
-    expect(stressBar(0, 'normal').veryHighAt).toBeCloseTo(2 / 3);
+  it('fills the bar from 0 to 10 and writes the score with one decimal', () => {
+    expect(stressBar(0)).toEqual({ fill: 0, color: '#141218', text: '0,0 / 10' });
+    expect(stressBar(10)).toEqual({ fill: 1, color: '#d81e2a', text: '10,0 / 10' });
+    expect(stressBar(3.44)).toMatchObject({ fill: 0.344, text: '3,4 / 10' });
+  });
+
+  it('moves the color smoothly from ink to red with the score', () => {
+    expect(stressBar(5).color).toBe('#761821');
   });
 
   it('lists nothing before the person has felt any stress', () => {

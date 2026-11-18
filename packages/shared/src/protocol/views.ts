@@ -554,7 +554,8 @@ export const InspectDataSchema = z.union([
     personKind: PersonKindSchema,
     state: z.enum(['walk', 'wait', 'ride', 'stairs', 'inside', 'noRoute', 'outside']),
     destination: PersonDestinationSchema.nullable(),
-    stressMinutes: z.number().nonnegative(),
+    /** Stress as a score from 0 to 10 (stress-evaluation 3.2). */
+    stressScore: z.number().min(0).max(10),
     stress: StressLevelSchema,
     /** Minutes of stress felt lately for each cause, fading day by day (stress-evaluation 2.8). */
     stressCauses: z.record(z.enum(STRESS_CAUSES), z.number().nonnegative()),
