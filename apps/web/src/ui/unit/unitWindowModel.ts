@@ -369,7 +369,7 @@ function appraisalRow(appraisal: number): UnitRow[] {
     ? [
         {
           id: 'appraisal',
-          label: t('window.unit.appraisal'),
+          label: t('window.unit.appraisalCondo'),
           value: formatMoney(appraisal),
           tone: 'plain',
         },
@@ -710,16 +710,40 @@ export function reasonLines(reasons: EvaluationReasons): TooltipLine[] {
   ];
 }
 
-/** What each evaluated unit says when its price is over the fair price, and when it is too far. */
+/** What each evaluated unit says when its price is over or under the fair price, and when it is too far. */
 const UNIT_WORDS: Readonly<
-  Partial<Record<UnitInspect['type'], { dear: StringKey; far: StringKey }>>
+  Partial<Record<UnitInspect['type'], { dear: StringKey; cheap: StringKey; far: StringKey }>>
 > = {
-  office: { dear: 'window.unit.reason.dear.rent', far: 'window.unit.reason.far.office' },
-  'retail-shop': { dear: 'window.unit.reason.dear.rent', far: 'window.unit.reason.far.shop' },
-  condo: { dear: 'window.unit.reason.dear.sale', far: 'window.unit.reason.far.condo' },
-  'single-room': { dear: 'window.unit.reason.dear.rate', far: 'window.unit.reason.far.room' },
-  'double-room': { dear: 'window.unit.reason.dear.rate', far: 'window.unit.reason.far.room' },
-  suite: { dear: 'window.unit.reason.dear.rate', far: 'window.unit.reason.far.room' },
+  office: {
+    dear: 'window.unit.reason.dear.rent',
+    cheap: 'window.unit.reason.cheap.rent',
+    far: 'window.unit.reason.far.office',
+  },
+  'retail-shop': {
+    dear: 'window.unit.reason.dear.rent',
+    cheap: 'window.unit.reason.cheap.rent',
+    far: 'window.unit.reason.far.shop',
+  },
+  condo: {
+    dear: 'window.unit.reason.dear.sale',
+    cheap: 'window.unit.reason.cheap.sale',
+    far: 'window.unit.reason.far.condo',
+  },
+  'single-room': {
+    dear: 'window.unit.reason.dear.rate',
+    cheap: 'window.unit.reason.cheap.rate',
+    far: 'window.unit.reason.far.room',
+  },
+  'double-room': {
+    dear: 'window.unit.reason.dear.rate',
+    cheap: 'window.unit.reason.cheap.rate',
+    far: 'window.unit.reason.far.room',
+  },
+  suite: {
+    dear: 'window.unit.reason.dear.rate',
+    cheap: 'window.unit.reason.cheap.rate',
+    far: 'window.unit.reason.far.room',
+  },
 };
 
 /** The main cause of the occupants' stress, said as what is wrong with the place. */
@@ -736,7 +760,8 @@ function causeText(parts: EvaluationPartsView, far: StringKey): string {
 /**
  * Why a unit has its grade, as what is good or bad about the place: a price over the fair price,
  * calm or the main cause of the occupants' stress, and the parking its people ask for
- * (stress-evaluation 5.6). A fair price and a worse neighbor are not listed. Null when the inspect
+ * (stress-evaluation 5.6). A price under the fair price is in favor; a price equal to it and a
+ * worse neighbor are not listed. Null when the inspect
  * has no parts.
  */
 export function evaluationReasons(
@@ -755,6 +780,7 @@ export function evaluationReasons(
   const good: string[] = [];
   const bad: string[] = [];
   if (details.price > parts.fairPrice) bad.push(t(words.dear));
+  else if (details.price < parts.fairPrice) good.push(t(words.cheap));
   if (parts.occupantScore < CALM_WORKERS_SCORE) good.push(t('window.unit.reason.calm'));
   else bad.push(causeText(parts, words.far));
   if (parts.parking === 'has') good.push(t('window.unit.reason.parking'));

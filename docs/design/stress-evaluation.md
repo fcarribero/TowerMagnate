@@ -277,13 +277,13 @@ Design call: a calm, well-served office can ask for a higher rent, and fixing th
 
 The window of every evaluated unit (office, shop, condo and hotel room) lists what counts for its grade in a tooltip on its evaluation tile, from the parts the grade would use now. Each reason in favor is a green line starting with "+", each reason against a red line starting with "-", with no headings. Each reason says what is good or bad about the place, and none names the occupants.
 
-- Price: a price over the fair price is against: "Alquiler caro" for an office or shop, "Precio alto" for a condo and "Tarifa cara" for a hotel room. A price at or under the fair price is not listed.
+- Price: a price over the fair price is against: "Alquiler caro" for an office or shop, "Precio alto" for a condo and "Tarifa cara" for a hotel room. A price under the fair price is in favor: "Alquiler barato", "Precio bajo" or "Tarifa barata". A price equal to the fair price is not listed.
 - Stress: an occupant score `U` under 3 is "Ambiente tranquilo" in favor, because the occupants raise the fair price. From 3, the cause with the largest total (3.3) among the unit's own people, calm left out, is against: "Demasiada espera de ascensor" (wait), "Viajes en ascensor muy largos" (ride), "Demasiadas escaleras" (stairs), "Colas de ascensor llenas" (queue), "Difícil de llegar" (no route), "Demasiado ruido" or "Demasiada suciedad" (surroundings, noise when the unit is noisy), and for walking "Oficina demasiado lejos", "Local demasiado lejos", "Departamento demasiado lejos" or "Habitación demasiado lejos". With no cause to name, as in a shop whose grade comes from its customers, it reads "Ambiente estresante".
 - Parking: from 3 stars, when the unit has a person who asks for parking (people.md 17), "Con cochera" is in favor if every such person has a space and "Sin cochera" is against if one has none. A missing space also takes 10% off the fair price (economy 3.1).
 
 The neighbor pull still counts in the grade, but it is not listed. Noise is not listed on its own: it counts in the occupant score (5.4) and shows as "Demasiado ruido" when it is the main cause.
 
-The unit window also shows the fair price, labeled "Precio justo" (ui.md 6.2). It does not show the occupant score as a number.
+The unit window also shows the fair price, labeled "Precio justo" on the price bar and "Tasación" in the condo window (ui.md 6.2). It does not show the occupant score as a number.
 
 The parts are worked out when the window asks for them. They are not the stored grade, which changes only at the moments in section 7.
 

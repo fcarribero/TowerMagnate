@@ -321,12 +321,6 @@
   font: var(--text-body);
 }
 
-.tm-unit__people-none {
-  margin: 0;
-  font: var(--text-body);
-  color: var(--obra-muted);
-}
-
 .tm-unit__queue {
   display: flex;
   flex-wrap: wrap;
@@ -337,6 +331,11 @@
   list-style: none;
   background: var(--obra-paper-shade);
   border: var(--border-control);
+}
+
+/* With nobody in it the box stays, empty, as tall as one person (16 sprite pixels at 2 px). */
+.tm-unit__queue:empty {
+  min-height: 32px;
 }
 
 .tm-unit__person {

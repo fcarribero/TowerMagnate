@@ -411,7 +411,7 @@ Then the rows for the unit type. A value in braces comes from the `inspect` data
 |---|---|
 | Oficina | Estado: Ocupada / En alquiler. Personas: `{n} de 6`. Evaluación. Precio por semana (price choice, with the fair price marked). Contrato: `Semana {k} de 4` or `Sin contrato`. Próximo pago: `{weekday} {HH:MM}`. |
 | Local comercial | As Oficina, plus Clientes esta semana: `{n}` (new data). |
-| Departamento | Estado: Vendido / En venta. Residentes: `{n} de 3`. Evaluación. Precio justo: `{money}`. Precio de venta (price choice, disabled when sold, with the note "Ya está vendido."). Próxima evaluación: `{weekday} {day} de {month}` (only when sold). |
+| Departamento | Estado: Vendido / En venta. Residentes: `{n} de 3`. Evaluación. Tasación: `{money}`. Precio de venta (price choice, disabled when sold, with the note "Ya está vendido."). Próxima evaluación: `{weekday} {day} de {month}` (only when sold). |
 | Habitación simple, doble, Suite | Estado: Libre / Ocupada / Sucia / Con plaga. Huéspedes: `{n} de {cap}`. Evaluación (of the last stay). Precio por noche (price choice, with the fair price marked). Salida: `{weekday} 10:00` (only when occupied). |
 | Comida rápida, Restaurante | Three stat tiles: Atendidos (customers served today), Adentro (customers inside now; the crew is not counted) and Resultado (what today pays if it ended now: the economy 7.1 amount for the count so far, which grows with each customer, signed money, green above 0, red below 0). Row Horario: `08:00 a 20:00` (the counting hours). Below the tiles, a small line chart "Clientes por hora": one point per open hour, today in red up to the current hour and the average of the last 7 finished days in blue, both on one vertical scale (`inspect` group `venue`, hourly counts kept in `VenueDay.hourly` and `pastHourly`). Hovering the chart shows a tip with the hour of the nearest point and the customers of today and of the average. |
 | Cine | Película: `Semana {w} (día {age})`. Público por función hoy: `14:00: {n} · 19:00: {n}`. Resultado de ayer: signed money. Button "Cambiar película ($300.000)" (new data for audience and result) |
@@ -436,7 +436,9 @@ The selected tile is `obra.yellow` with a 2 px `obra.ink` bar along its bottom e
 
 Evaluation is shown as a 6 x 6 color square with `border.control` plus the word in `text.body-strong`, using the colors of the Evaluación overlay (section 7): "Buena", "Regular", "Mala", or "Sin evaluar" before the first evaluation.
 
-The unit window does not show the occupants' stress score as a number; it counts in the grade and the fair price. "Precio justo" is the fair price (economy 3.1) as money. On the price control it is a marker on the price bar with the tooltip "Precio justo {price}"; the condo has the plain row because its price control is locked once sold.
+The unit window does not show the occupants' stress score as a number; it counts in the grade and the fair price. "Precio justo" is the fair price (economy 3.1) as money. On the price control it is a marker on the price bar with the tooltip "Precio justo {price}"; the condo has the plain row, labeled "Tasación", because its price control is locked once sold.
+
+A people box with nobody in it stays on the window as an empty box, with no text.
 
 The window of every evaluated unit (office, shop, condo and hotel room) shows the reasons for its grade as a tooltip on the Evaluación tile, when the pointer rests on it or the tile gets keyboard focus (stress-evaluation 5.6). The tooltip has no headings: each reason in favor is a line starting with "+" in `obra.green`, then each reason against is a line starting with "-" in `obra.red`. The reasons below are worded for an office. The words follow the unit: the price is "Alquiler" for an office or shop, "Precio" for a condo and "Tarifa" for a hotel room, and the occupants are "Trabajadores", "Clientes", "Residentes" or "Huéspedes". A shop names no cause, because the people who belong to it are its staff and its grade comes from its customers. The reasons are:
 
@@ -928,7 +930,6 @@ Short button labels, used only on toolbar buttons:
 | `window.unit.people` | Personas |
 | `window.unit.residents` | Residentes |
 | `window.unit.guests` | Huéspedes |
-| `window.unit.peopleNobody` | Nadie |
 | `window.unit.peopleWorkers` | Trabajadores |
 | `window.unit.peopleStaff` | Personal |
 | `window.unit.peopleCustomers` | Clientes |
@@ -937,7 +938,7 @@ Short button labels, used only on toolbar buttons:
 | `window.unit.peopleOfficers` | Policías |
 | `window.unit.peopleAudience` | Público |
 | `window.unit.evaluation` | Evaluación |
-| `window.unit.appraisal` | Precio justo |
+| `window.unit.appraisalCondo` | Tasación |
 | `window.unit.appraisalMark` | Precio justo {price} |
 | `window.stressScore` | {n} / 10 |
 | `window.unit.reason.fairRent` | Alquiler dentro del precio justo |

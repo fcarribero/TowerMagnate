@@ -324,6 +324,15 @@ describe('unit windows', () => {
     }
   });
 
+  it('leaves the people box empty when nobody is there, with no text', () => {
+    const { open, show } = setup([unitView('u1')]);
+    open('u1');
+    show(inspectOf('u1', { details: leaseDetails({ workers: [], persons: 0 }) }));
+    const people = screen.getByRole('dialog').querySelector('.tm-unit__people') as HTMLElement;
+    expect(people.querySelector('.tm-unit__queue')).not.toBeNull();
+    expect(people.textContent).toBe('');
+  });
+
   it('draws the people who are not inside the unit as silhouettes that still open their window', () => {
     const { open, show, inspect } = setup([unitView('u1')]);
     open('u1');

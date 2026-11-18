@@ -317,6 +317,7 @@ describe('unit window model', () => {
     expect(isSoldCondo(forSale)).toBe(false);
     expect(unitRows(forSale).map((row) => row.id)).toEqual(['evaluation', 'appraisal']);
     expect(unitRows(forSale).map((row) => row.label)).not.toContain('Próxima evaluación');
+    expect(unitRows(condo).find((row) => row.id === 'appraisal')?.label).toBe('Tasación');
   });
 
   it('reads a hotel room state from the server', () => {
@@ -532,6 +533,16 @@ describe('evaluation reasons of an office', () => {
     expect([...(none?.good ?? []), ...(none?.bad ?? [])].join()).not.toMatch(/cochera/);
   });
 
+  it('lists a rent under the fair price as cheap, and a rent at it as nothing', () => {
+    expect(evaluationReasons(officeWith({ fairPrice: 10_501 }))?.good).toEqual([
+      'Alquiler barato',
+      'Ambiente tranquilo',
+    ]);
+    expect(evaluationReasons(officeWith({ fairPrice: 10_500 }))?.good).toEqual([
+      'Ambiente tranquilo',
+    ]);
+  });
+
   it('names each cause of stress as what is wrong with the place', () => {
     const causeOf = (patch: Partial<NonNullable<Lease['evaluationParts']>>) =>
       evaluationReasons(officeWith({ occupantScore: 3, ...patch }))?.bad;
@@ -578,7 +589,7 @@ describe('evaluation reasons of other units', () => {
       details: { ...condoDetails, price: 9_000, evaluationParts: parts },
     };
     expect(evaluationReasons(condo as Pick<UnitInspect, 'type' | 'details'>)).toEqual({
-      good: [],
+      good: ['Precio bajo'],
       bad: ['Demasiadas escaleras', 'Sin cochera'],
     });
   });
@@ -605,6 +616,16 @@ describe('evaluation reasons of other units', () => {
     };
     expect(evaluationReasons(room as Pick<UnitInspect, 'type' | 'details'>)?.bad).toContain(
       'Habitación demasiado lejos',
+    );
+  });
+
+  it('says a hotel rate under the fair price is cheap', () => {
+    const room = {
+      type: 'suite',
+      details: { ...hotelDetails, price: 1, evaluationParts: { ...parts, occupantScore: 1 } },
+    };
+    expect(evaluationReasons(room as Pick<UnitInspect, 'type' | 'details'>)?.good).toContain(
+      'Tarifa barata',
     );
   });
 
