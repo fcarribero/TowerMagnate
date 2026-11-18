@@ -24,6 +24,7 @@ import {
   type TowerState,
   type Unit,
 } from '@tower-magnate/shared';
+import { absorbNoise } from './comfort-units';
 import { crewNoiseFactor, crewOf, decodeBuilderTask, isBuilder } from './construction';
 import { isUnitInUse } from './unit-use';
 import { unitNumber } from './units';
@@ -248,13 +249,14 @@ function decayAll(state: TowerState, built: Built): void {
   }
 }
 
-/** Once a game minute units and bags speak, and then the maps fade a little. */
+/** Once a game minute units and bags speak, then the maps fade a little and libraries take some noise. */
 export function heatSystem(context: { state: TowerState }): void {
   const { state } = context;
   if (state.step % STEPS_PER_MINUTE !== 0) return;
   const built = builtOf(state);
   emitMinute(state, built);
   decayAll(state, built);
+  absorbNoise(state, heatOf(state).noise);
 }
 
 /** A person walked into a cell: a little noise and a little dirt, with one lookup of the cell. */

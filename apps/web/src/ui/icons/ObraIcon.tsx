@@ -40,6 +40,10 @@ export const OBRA_ICON_PATHS = {
   recycle: '<path d="M8 6l4-3 4 3M12 3v8M5 14l-2 5h8M19 14l2 5h-8M16 19l-3-3 3-3"/>',
   medical: '<rect x="4" y="4" width="16" height="16"/><path d="M12 8v8M8 12h8"/>',
   housekeeping: '<path d="M6 21h12M9 21V9h6v12M10 9V4h4v5"/>',
+  garden:
+    '<path d="M12 21V11M12 11c-4 0-6-3-6-7 4 0 6 3 6 7zM12 14c3 0 5-2 5-5-3 0-5 2-5 5zM6 21h12"/>',
+  lounge: '<path d="M4 18v-6h16v6M6 12V8h12v4M4 18v2M20 18v2"/>',
+  library: '<path d="M4 4h4v16H4zM10 4h4v16h-4zM16 5l3 1-3 14-3-1"/>',
   tools: '<path d="M3 17h18M5 17a7 7 0 0 1 14 0M12 10V6M10 6h4"/>',
   parking: '<rect x="4" y="3" width="16" height="18"/><path d="M10 17V8h3a3 3 0 0 1 0 6h-3"/>',
   // Weather, for the top bar and the forecast window.

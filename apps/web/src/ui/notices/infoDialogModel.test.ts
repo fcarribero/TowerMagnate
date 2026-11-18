@@ -11,6 +11,7 @@ describe('unitsUnlockedAt', () => {
       'Limpieza',
       'Seguridad',
       'Cuarto de limpieza',
+      'Sala de estar',
     ]);
     expect(unitsUnlockedAt(3)).toEqual([
       'Restaurante',
@@ -21,6 +22,7 @@ describe('unitsUnlockedAt', () => {
       'Rampa de estacionamiento',
       'Cochera',
       'Centro de reciclaje',
+      'Biblioteca',
     ]);
     expect(unitsUnlockedAt(4)).toEqual(['Estación de subte']);
     expect(unitsUnlockedAt(5)).toEqual(['Catedral']);

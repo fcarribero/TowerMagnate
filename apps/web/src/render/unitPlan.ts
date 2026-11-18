@@ -188,10 +188,14 @@ const SHOP_STATES = { empty: 'open', occupied: 'busy' } as const;
 const SERVICE_STATES = { empty: 'closed', occupied: 'occupied' } as const;
 
 /** Units with no art of their own yet, drawn with another unit's sprites of the same width. */
-// TODO: the obrador and the cleaning room use the housekeeping art until they get their own.
+// TODO: the obrador and the cleaning room use the housekeeping art until they get their own; the
+// garden, the lounge and the library borrow the shop, suite and housekeeping art.
 const SPRITE_SUBJECT: Partial<Record<UnitType, string>> = {
   obrador: 'housekeeping',
   'cleaning-room': 'housekeeping',
+  garden: 'retail-shop',
+  lounge: 'suite',
+  library: 'housekeeping',
 };
 
 const SPRITE_STATES: Partial<Record<UnitType, { empty: string; occupied: string }>> = {
@@ -204,6 +208,10 @@ const SPRITE_STATES: Partial<Record<UnitType, { empty: string; occupied: string 
   housekeeping: SERVICE_STATES,
   obrador: SERVICE_STATES,
   'cleaning-room': SERVICE_STATES,
+  // Nobody lives or works in these, so they are always drawn open and lit.
+  garden: { empty: 'open', occupied: 'open' },
+  lounge: { empty: 'occupied', occupied: 'occupied' },
+  library: { empty: 'occupied', occupied: 'occupied' },
   'fast-food': SHOP_STATES,
   restaurant: SHOP_STATES,
   'retail-shop': SHOP_STATES,

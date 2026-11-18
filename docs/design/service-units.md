@@ -116,13 +116,23 @@ This replaces the rules in routing.md that let only maids use service elevators 
 
 ## 3. Quiet and comfort units
 
-Acoustic panels are not an upgrade: their cost would grow with the surface they cover. These are units instead:
+Acoustic panels are not an upgrade: their cost would grow with the surface they cover. These are units instead. They are not made by upgrades and have none.
 
-- Garden: people go there to pass the time; its cells give calm.
-- Lounge: the same, indoors.
-- Library: calm, and it takes some noise from the cells around it.
+| Unit | Width | Price | Stars | Upkeep a week | Calm in its cells | Calm reaches |
+|---|---|---|---|---|---|---|
+| Jardín (`garden`) | 12 | 60,000 | 1 | 5,000 | x0.5 | 8 columns each side |
+| Sala de estar (`lounge`) | 10 | 80,000 | 2 | 5,000 | x0.5 | 6 columns each side |
+| Biblioteca (`library`) | 15 | 150,000 | 3 | 10,000 | x0.5 | 6 columns each side |
 
-Each has a width, a price and a star level to unlock. These are not made by upgrades. Values come in a later step.
+All numbers are guesses (`COMFORT_AURA`, `LIBRARY_NOISE_KEEP` in balance.ts).
+
+- Calm: the stress a person feels in a minute in one of the unit's cells (stress-evaluation 2.6) is multiplied by its calm. Beside the unit, on its own level, the factor rises in a straight line back to 1 over the columns it reaches. Where two of them overlap, the lower factor counts. The maps of noise and dirt do not change; only what people feel does.
+- The library also takes noise out of the map: each game minute, after the noise fades, the noise in its cells is multiplied by 0.7, rising in a straight line back to 1 over the same 6 columns.
+- The garden is built above ground; the lounge and the library anywhere.
+- Nobody lives or works in them, and they need no route from the street.
+- The garden borrows the retail shop art, the lounge the suite art and the library the housekeeping art, until they get their own. That is why the library is 15 wide.
+
+Open point: people do not go to them to pass the time yet. There is no leisure trip to reuse; residents and hotel guests only feel the calm when they walk or stand near one.
 
 ## 4. Elevators
 
@@ -144,7 +154,7 @@ No change. The player can build as many shafts and cars as wanted at any star le
 3. Cleaning room and its crew.
 4. More security offices and their upgrades.
 5. Lobby upgrades.
-6. Garden, lounge and library units.
+6. Garden, lounge and library units (done: calm and noise only, no visits).
 7. Work clothes, changing in the unit, and staff on service elevators with the stress from sharing cars.
 
 ## 7. Open points

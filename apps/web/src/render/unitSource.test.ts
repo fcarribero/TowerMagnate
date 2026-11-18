@@ -65,8 +65,8 @@ describe('bindUnits venue crew', () => {
 describe('debugUnits', () => {
   it('has every placed unit type empty and occupied', () => {
     const { units, transports } = debugUnits(12);
-    expect(units.filter((unit) => unit.variant === 'empty')).toHaveLength(20);
-    expect(units.filter((unit) => unit.occupied)).toHaveLength(20);
+    expect(units.filter((unit) => unit.variant === 'empty')).toHaveLength(23);
+    expect(units.filter((unit) => unit.occupied)).toHaveLength(23);
     expect(transports.map((transport) => transport.type)).toEqual(['stairs', 'escalator']);
   });
 

@@ -26,6 +26,9 @@ export const UNIT_TYPES = [
   'cathedral',
   'obrador',
   'cleaning-room',
+  'garden',
+  'lounge',
+  'library',
 ] as const;
 
 export type UnitType = (typeof UNIT_TYPES)[number];

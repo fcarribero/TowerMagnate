@@ -113,6 +113,9 @@ export const SECURITY_PATROL_WEIGHTS: Readonly<Record<UnitType, number>> = {
   security: 0,
   obrador: 0,
   'cleaning-room': 0,
+  garden: 0,
+  lounge: 0,
+  library: 0,
   'recycling-center': 0,
   office: 1,
   'single-room': 1,
@@ -474,6 +477,42 @@ export const UNIT_CATALOG: Readonly<Record<UnitType, UnitDefinition>> = {
     placement: { zone: 'any' },
     limitGroup: null,
   },
+  garden: {
+    type: 'garden',
+    name: 'Jardín',
+    category: 'services',
+    width: 12,
+    height: fixedHeight(1),
+    cost: perUnit(60_000),
+    capacity: null,
+    unlockStars: 1,
+    placement: { zone: 'above-ground' },
+    limitGroup: null,
+  },
+  lounge: {
+    type: 'lounge',
+    name: 'Sala de estar',
+    category: 'services',
+    width: 10,
+    height: fixedHeight(1),
+    cost: perUnit(80_000),
+    capacity: null,
+    unlockStars: 2,
+    placement: { zone: 'any' },
+    limitGroup: null,
+  },
+  library: {
+    type: 'library',
+    name: 'Biblioteca',
+    category: 'services',
+    width: 15,
+    height: fixedHeight(1),
+    cost: perUnit(150_000),
+    capacity: null,
+    unlockStars: 3,
+    placement: { zone: 'any' },
+    limitGroup: null,
+  },
 };
 
 export const TOWER_LIMITS: Readonly<Record<LimitGroupId, number>> = {
@@ -693,6 +732,9 @@ export const WEEKLY_UPKEEP: Readonly<Record<UnitType, UpkeepRule>> = {
   cathedral: flatUpkeep('per-unit', 200_000),
   obrador: flatUpkeep('per-unit', 10_000),
   'cleaning-room': flatUpkeep('per-unit', 10_000),
+  garden: flatUpkeep('per-unit', 5_000),
+  lounge: flatUpkeep('per-unit', 5_000),
+  library: flatUpkeep('per-unit', 10_000),
 };
 
 export const EVAL_PRICE_ADJUST: Readonly<Record<Exclude<PriceLevel, 'minimum'>, number>> = {
@@ -982,6 +1024,23 @@ export const LOBBY_PLANTS_STRESS_CUT = 0.15;
 export const LOBBY_MUSIC_NOISE_CUT = 0.2;
 /** Each lighting level takes this share off the dirt felt in the lobby. */
 export const LOBBY_LIGHTING_DIRT_CUT = 0.2;
+
+/**
+ * The calm of a garden, a lounge or a library (service-units 3): the stress felt in the unit's own
+ * cells is multiplied by `calm`, and the cells beside it on its level get a share that rises in a
+ * straight line back to 1 over `cells` columns (guess).
+ */
+export const COMFORT_AURA: Readonly<Partial<Record<UnitType, { calm: number; cells: number }>>> = {
+  garden: { calm: 0.5, cells: 8 },
+  lounge: { calm: 0.5, cells: 6 },
+  library: { calm: 0.5, cells: 6 },
+};
+
+/**
+ * Each game minute a library keeps this share of the noise in its own cells, rising back to 1 over
+ * the same columns as its calm (guess).
+ */
+export const LIBRARY_NOISE_KEEP = 0.7;
 
 export interface UpgradeDefinition {
   id: string;

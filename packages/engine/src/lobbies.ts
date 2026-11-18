@@ -11,6 +11,7 @@ import {
   type TowerState,
 } from '@tower-magnate/shared';
 import { lobbyRows } from './commands/build-lobby';
+import { calmAt } from './comfort-units';
 import { heatOf, stressPerMinute, valueAt } from './heat';
 import { lobbyBases } from './trip-ledger';
 
@@ -164,13 +165,14 @@ export function lobbyComfortAt(
 
 /**
  * The stress a minute in this cell gives: its noise and dirt, less what the music, the lighting and
- * the plants of an upgraded lobby take off.
+ * the plants of an upgraded lobby take off, and less again near a garden, a lounge or a library.
  */
 export function cellStressPerMinute(state: TowerState, level: number, column: number): number {
   const heat = heatOf(state);
   const noise = valueAt(heat.noise, level, column);
   const dirt = valueAt(heat.dirt, level, column);
+  const calm = calmAt(state, level, column);
   const comfort = lobbyComfortAt(state, level, column);
-  if (!comfort) return stressPerMinute(noise, dirt);
-  return stressPerMinute(noise * comfort.noise, dirt * comfort.dirt) * comfort.stress;
+  if (!comfort) return stressPerMinute(noise, dirt) * calm;
+  return stressPerMinute(noise * comfort.noise, dirt * comfort.dirt) * comfort.stress * calm;
 }
