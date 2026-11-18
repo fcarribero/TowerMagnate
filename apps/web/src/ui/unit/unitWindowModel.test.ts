@@ -299,7 +299,7 @@ describe('unit window model', () => {
     expect(state('occupied')).toBe('Ocupada');
   });
 
-  it('shows the checkout only while a guest stays', () => {
+  it('never shows the check-out time, even while a guest stays', () => {
     const occupied: Hotel = {
       ...hotelDetails,
       state: 'occupied',
@@ -307,12 +307,7 @@ describe('unit window model', () => {
       checkoutStep: stepOfDate({ year: 1, month: 1, day: 3, hour: 10 }),
     };
     const room: UnitInspect = { ...office, type: 'suite', details: occupied };
-    expect(unitRows(room).find((row) => row.id === 'checkout')).toMatchObject({
-      label: 'Salida',
-      value: 'Miércoles 10:00',
-    });
-    const vacant: UnitInspect = { ...room, details: { ...occupied, state: 'clean', guests: 0 } };
-    expect(unitRows(vacant).map((row) => row.id)).not.toContain('checkout');
+    expect(unitRows(room).map((row) => row.id)).toEqual(['status', 'evaluation']);
   });
 
   it('shows the film week and day of a cinema', () => {
@@ -388,7 +383,9 @@ describe('unit window model', () => {
       { x: 133.3, width: 26.7 },
     ]);
     expect(chart.pointX).toHaveLength(12);
-    expect(venueChart({ ...venue, opens: 0, closes: 24 }).closed).toEqual([]);
+    expect(
+      venueChart({ ...venue, opens: 0, closes: 24 } as Parameters<typeof venueChart>[0]).closed,
+    ).toEqual([]);
     expect(venueChart({ ...venue, today: [], average: [] })).toMatchObject({
       today: '',
       average: '',

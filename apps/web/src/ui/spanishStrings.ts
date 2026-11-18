@@ -198,7 +198,6 @@ export const SPANISH_STRINGS = {
   'window.unit.hoursOpen': 'Hora de apertura',
   'window.unit.hoursClose': 'Hora de cierre',
   'window.unit.nextPayment': 'Próximo pago',
-  'window.unit.checkout': 'Salida',
   'window.unit.customersWeek': 'Clientes esta semana',
   'window.unit.customersToday': 'Clientes hoy',
   'window.unit.served': 'Atendidos',

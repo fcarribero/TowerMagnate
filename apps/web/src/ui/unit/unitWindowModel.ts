@@ -388,8 +388,9 @@ const ROOM_STATE_TONES: Readonly<Record<Details<'hotel'>['state'], RowTone>> = {
   infested: 'bad',
 };
 
+/** A hotel room shows its state and evaluation; the guests' check-out time is not shown. */
 function hotelRows(hotel: Details<'hotel'>): UnitRow[] {
-  const rows: UnitRow[] = [
+  return [
     {
       id: 'status',
       label: t('window.unit.status'),
@@ -398,15 +399,6 @@ function hotelRows(hotel: Details<'hotel'>): UnitRow[] {
     },
     evaluationRow(hotel.evaluation),
   ];
-  if (hotel.state === 'occupied' && hotel.checkoutStep !== null) {
-    rows.push({
-      id: 'checkout',
-      label: t('window.unit.checkout'),
-      value: weekdayAndTime(hotel.checkoutStep),
-      tone: 'plain',
-    });
-  }
-  return rows;
 }
 
 function cinemaRows(cinema: Details<'cinema'>): UnitRow[] {
