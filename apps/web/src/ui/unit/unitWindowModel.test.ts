@@ -377,10 +377,18 @@ describe('unit window model', () => {
 
     const chart = venueChart(venue);
     expect(chart.max).toBe(20);
-    expect(chart.today).toBe('0,48 14.5,24');
+    // The chart spans the day: 08:30 is at 56.7 of 160, 09:30 at 63.3.
+    expect(chart.today).toBe('56.7,48 63.3,24');
     expect(chart.average.split(' ')).toHaveLength(12);
-    expect(chart.average.endsWith('160,0')).toBe(true);
-    expect([chart.from, chart.to]).toEqual(['08:00', '20:00']);
+    expect(chart.average.endsWith('130,0')).toBe(true);
+    expect([chart.from, chart.to]).toEqual(['00:00', '24:00']);
+    // Closed before 08:00 and from 20:00.
+    expect(chart.closed).toEqual([
+      { x: 0, width: 53.3 },
+      { x: 133.3, width: 26.7 },
+    ]);
+    expect(chart.pointX).toHaveLength(12);
+    expect(venueChart({ ...venue, opens: 0, closes: 24 }).closed).toEqual([]);
     expect(venueChart({ ...venue, today: [], average: [] })).toMatchObject({
       today: '',
       average: '',

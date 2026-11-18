@@ -336,15 +336,12 @@ function VenueChartView({ chart }: { chart: VenueChart }) {
     const box = (event.currentTarget as HTMLElement).getBoundingClientRect();
     const across = (event.clientX - box.left) / box.width;
     const x = across * (chart.width + 4) - 2;
-    const last = Math.max(1, chart.hours - 1);
-    setHover(Math.min(chart.hours - 1, Math.max(0, Math.round((x / chart.width) * last))));
+    // Hours of the day across the plot; a closed hour shows no tip.
+    const index = Math.floor((x / chart.width) * 24) - chart.startHour;
+    setHover(index >= 0 && index < chart.hours ? index : null);
   };
   const tipLeft =
-    hover === null
-      ? 0
-      : ((2 + (chart.hours === 1 ? 0 : (hover / (chart.hours - 1)) * chart.width)) /
-          (chart.width + 4)) *
-        100;
+    hover === null ? 0 : ((2 + (chart.pointX[hover] ?? 0)) / (chart.width + 4)) * 100;
   return (
     <figure class="tm-unit__chart">
       <figcaption class="tm-unit__chart-title">{t('window.unit.chartTitle')}</figcaption>
@@ -379,6 +376,16 @@ function VenueChartView({ chart }: { chart: VenueChart }) {
           x2={chart.width}
           y2={chart.height}
         />
+        {chart.closed.map((span) => (
+          <rect
+            key={span.x}
+            class="tm-unit__chart-closed"
+            x={span.x}
+            y={-2}
+            width={span.width}
+            height={chart.height + 4}
+          />
+        ))}
         {chart.average !== '' && <polyline class="tm-unit__chart-average" points={chart.average} />}
         {chart.today !== '' && <polyline class="tm-unit__chart-today" points={chart.today} />}
       </svg>

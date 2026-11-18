@@ -269,6 +269,12 @@
   stroke-width: 1;
 }
 
+/* Hours the venue is closed: a dark veil, as if that part of the chart were disabled. */
+.tm-unit__chart-closed {
+  fill: var(--obra-ink);
+  fill-opacity: 0.35;
+}
+
 .tm-unit__chart-today,
 .tm-unit__chart-average {
   fill: none;

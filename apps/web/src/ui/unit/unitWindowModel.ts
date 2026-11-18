@@ -463,9 +463,13 @@ export interface VenueChart {
   today: string;
   /** SVG `points` of the 7-day average line; empty before the first finished day. */
   average: string;
-  /** Hour labels under the chart: the opening and the closing hour. */
+  /** Hour labels under the chart: the start and the end of the day. */
   from: string;
   to: string;
+  /** The hours the venue is closed, as horizontal spans of the plot, drawn under a dark veil. */
+  closed: readonly { x: number; width: number }[];
+  /** Horizontal position of each point, the middle of its hour. */
+  pointX: readonly number[];
   /** The largest value on the vertical axis. */
   max: number;
   /** The hour of the first point, and how many points the chart has (one per open hour). */
@@ -478,28 +482,47 @@ export interface VenueChart {
 
 const CHART_WIDTH = 160;
 const CHART_HEIGHT = 48;
+const DAY_HOURS = 24;
 
-function linePoints(values: readonly number[], hours: number, max: number): string {
+function round1(value: number): number {
+  return Math.round(value * 10) / 10;
+}
+
+/** Where an hour of the day falls across the plot: 00:00 on the left edge, 24:00 on the right. */
+function hourX(hour: number): number {
+  return round1((hour / DAY_HOURS) * CHART_WIDTH);
+}
+
+function linePoints(values: readonly number[], startHour: number, max: number): string {
   return values
     .map((value, index) => {
-      const x = hours === 1 ? 0 : (index / (hours - 1)) * CHART_WIDTH;
       const y = CHART_HEIGHT - (value / max) * CHART_HEIGHT;
-      return `${Math.round(x * 10) / 10},${Math.round(y * 10) / 10}`;
+      return `${hourX(startHour + index + 0.5)},${round1(y)}`;
     })
     .join(' ');
 }
 
-/** Both lines share one vertical scale: a point per open hour, from the opening to the last. */
+/**
+ * The chart spans the whole day. Both lines share one vertical scale and have a point in the
+ * middle of every open hour; the hours before the opening and after the closing are veiled.
+ */
 export function venueChart(venue: Details<'venue'>): VenueChart {
   const hours = Math.max(1, venue.closes - venue.opens);
   const max = Math.max(1, ...venue.today, ...venue.average);
+  const opensX = hourX(venue.opens);
+  const closesX = hourX(venue.closes);
   return {
     width: CHART_WIDTH,
     height: CHART_HEIGHT,
-    today: linePoints(venue.today, hours, max),
-    average: linePoints(venue.average, hours, max),
-    from: hourText(venue.opens),
-    to: hourText(venue.closes),
+    today: linePoints(venue.today, venue.opens, max),
+    average: linePoints(venue.average, venue.opens, max),
+    from: hourText(0),
+    to: hourText(DAY_HOURS),
+    closed: [
+      { x: 0, width: opensX },
+      { x: closesX, width: round1(CHART_WIDTH - closesX) },
+    ].filter((span) => span.width > 0),
+    pointX: Array.from({ length: hours }, (_, index) => hourX(venue.opens + index + 0.5)),
     max,
     startHour: venue.opens,
     hours,
