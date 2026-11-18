@@ -143,8 +143,17 @@ describe('3-star hotel with 10 rooms and one housekeeping unit over 14 days (TM-
   const saveSteps = [at(CHECK_DAY, 8, 15), at(CHECK_DAY, 12, 55)];
   const straight = play(start, at(DAYS, 0), saveSteps);
 
-  it('keeps every unit standing, so the run tests housekeeping only', () => {
-    expect(straight.log.unitsAtEnd).toBe(unitsAtStart);
+  it('keeps every unit standing but those a fire burned before the helicopter came', () => {
+    // A fire burns its first cells in the step it starts, before any answer; the helicopter the
+    // player calls puts out the rest. Whether a fire starts depends on the seed.
+    const burned = straight.log.events.flatMap((event) =>
+      event.type === 'disaster' && event.kind === 'fire' ? event.cells : [],
+    );
+    const lost = Object.values(start.units).filter((unit) => !straight.state.units[unit.id]);
+    for (const unit of lost) {
+      expect(burned.some((cell) => cell.level === unit.level && cell.x0 <= unit.x + 1)).toBe(true);
+    }
+    expect(straight.log.unitsAtEnd).toBeGreaterThanOrEqual(unitsAtStart - burned.length);
   });
 
   it('cleans every room left at check-out by 13:00 the same day, when the shift ends', () => {

@@ -94,7 +94,7 @@ export function completeSite(state: TowerState, id: UnitId): void {
 
 /** The appraisal a priced site would start at today, and the price it has unless the player chose one. */
 export function siteAppraisal(state: TowerState, site: ConstructionSite): number {
-  return computeAppraisal(state, { type: site.type, evaluation: null });
+  return computeAppraisal(state, { type: site.type });
 }
 
 /**

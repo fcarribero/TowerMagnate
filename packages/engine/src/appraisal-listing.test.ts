@@ -25,32 +25,22 @@ function command(unitId: string, rest: Record<string, unknown>) {
 }
 
 describe('appraisal', () => {
-  it('starts from the base price and moves with the unit grade', () => {
-    const { state } = towerWith('office');
-    const at = (evaluation: 'good' | 'fair' | 'poor' | null) =>
-      computeAppraisal(state, { type: 'office', evaluation });
-    expect(at(null)).toBe(10_000);
-    expect(at('fair')).toBe(10_000);
-    expect(at('good')).toBe(12_000);
-    expect(at('poor')).toBe(8_000);
-  });
-
   it('rises with the stars and the amenities, within the range', () => {
     const { state } = towerWith('office');
     state.stars = 4;
-    expect(computeAppraisal(state, { type: 'office', evaluation: null })).toBe(11_200);
+    expect(computeAppraisal(state, { type: 'office' })).toBe(11_200);
     state.stars = 6;
-    const great = computeAppraisal(state, { type: 'office', evaluation: 'good' });
+    const great = computeAppraisal(state, { type: 'office' });
     expect(great).toBeLessThanOrEqual(10_000 * (APPRAISAL_RANGE_PERCENT.max / 100));
     state.stars = 1;
-    expect(computeAppraisal(state, { type: 'office', evaluation: 'poor' })).toBeGreaterThanOrEqual(
+    expect(computeAppraisal(state, { type: 'office' })).toBeGreaterThanOrEqual(
       10_000 * (APPRAISAL_RANGE_PERCENT.min / 100),
     );
   });
 
   it('counts amenity units but caps their effect', () => {
     const { state } = towerWith('office');
-    const base = computeAppraisal(state, { type: 'office', evaluation: null });
+    const base = computeAppraisal(state, { type: 'office' });
     const shops = buildTower({
       ...plainTowerPlan(3, 0, 370),
       units: Array.from({ length: 30 }, (_, index) => ({
@@ -60,13 +50,13 @@ describe('appraisal', () => {
       })),
     }).state;
     expect(appraisalFactors(shops).amenities).toBe(30);
-    expect(computeAppraisal(shops, { type: 'office', evaluation: null })).toBe(base + 1_200);
+    expect(computeAppraisal(shops, { type: 'office' })).toBe(base + 1_200);
   });
 
   it('is stored every day at 00:00 and leaves the price alone', () => {
     const { state, id } = towerWith('office');
     const unit = state.units[id]!;
-    unit.evaluation = 'good';
+    state.stars = 6;
     storeDailyAppraisals(state);
     expect(unit.appraisal).toBe(12_000);
     expect(unit.price).toBe(10_000);

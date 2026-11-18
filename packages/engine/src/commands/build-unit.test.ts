@@ -147,7 +147,7 @@ describe('buildUnit', () => {
       level: 2,
       name: null,
       price: state.units.u1?.appraisal,
-      appraisal: computeAppraisal(tower, { type: 'office', evaluation: null }),
+      appraisal: computeAppraisal(tower, { type: 'office' }),
       listed: true,
       enabled: true,
       activeToday: true,

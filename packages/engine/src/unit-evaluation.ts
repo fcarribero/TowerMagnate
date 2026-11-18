@@ -66,6 +66,11 @@ function tripsInWindow(state: TowerState, unit: Unit, step: number): WindowTrips
   return trips;
 }
 
+/** True when the unit has ended trips in its window at `step`. */
+export function hasTripsInWindow(state: TowerState, unit: Unit, step = state.step): boolean {
+  return tripsInWindow(state, unit, step).count > 0;
+}
+
 /** Base stress B: the average trip stress in the unit's window, rounded down, 0 with no trips. */
 export function unitBase(state: TowerState, unit: Unit, step = state.step): number {
   const { sum, count } = tripsInWindow(state, unit, step);

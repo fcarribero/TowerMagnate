@@ -990,8 +990,6 @@ export const PRICE_BAND_MARGIN_PERCENT = 5;
 /** The appraisal never leaves this percent range of the base price. */
 export const APPRAISAL_RANGE_PERCENT = { min: 60, max: 160 } as const;
 
-/** Percent of the base price by the unit's last grade; a unit with no grade counts as fair. */
-export const APPRAISAL_GRADE_PERCENT = { good: 120, fair: 100, poor: 80, ungraded: 100 } as const;
 
 /** Percent added to the appraisal for each star of the tower above the first. */
 export const APPRAISAL_STAR_PERCENT = 4;
@@ -1011,16 +1009,16 @@ export const APPRAISAL_AMENITY_PERCENT_EACH = 1;
 export const APPRAISAL_AMENITY_PERCENT_CAP = 12;
 
 /**
- * Percent added for the tower's average trip stress, in steps: `best` at 0 stress, nothing at
- * `neutralAt`, falling in a straight line to `worst` at `worstAt` steps and above. A tower with
- * no filed trips adds nothing.
+ * Percent the occupants' stress score adds to a unit's fair price: `best` at a score of 0,
+ * nothing at `neutralAt`, `worst` at 10, in straight lines between.
  */
-export const APPRAISAL_STRESS_PERCENT = {
-  best: 5,
-  neutralAt: 60,
-  worst: -15,
-  worstAt: STRESS_MUY_ALTO_FROM,
-} as const;
+export const FAIR_PRICE_STRESS_PERCENT = { best: 30, neutralAt: 3, worst: -50 } as const;
+
+/** Score added to a unit's occupants when a noise source is close by (stress-evaluation 5.4). */
+export const EVAL_NOISE_SCORE = 1;
+
+/** Tower score when no trip has been filed yet: the neutral point of the fair price. */
+export const TOWER_SCORE_DEFAULT = 3;
 
 /** New office and shop contracts can only start from this hour until the other, exclusive. */
 export const LEASE_WINDOW_HOURS = { from: 7, until: 9 } as const;
