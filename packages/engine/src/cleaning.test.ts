@@ -2,6 +2,7 @@ import {
   CLEANER_CREW_SIZE,
   LAST_COLUMN,
   type Command,
+  type Level,
   type QueuedCommand,
   type TowerState,
 } from '@tower-magnate/shared';
@@ -124,6 +125,41 @@ describe('cleaning room', () => {
     expect(plain.state.units.u2?.venue?.garbage).toBe(0);
     expect(plain.most).toBe(1);
     expect(run({ tools: 2 }).most).toBe(3);
+  });
+
+  it('carries the bags to a recycling center when the tower has one', () => {
+    const { state: built } = buildTower({
+      lobby: { x0: 0, x1: 120 },
+      floors: [
+        { from: 2, to: 3 as Level, x0: 0, x1: 120 },
+        { from: -2 as Level, to: -1 as Level, x0: 0, x1: 120 },
+      ],
+      shafts: [{ type: 'standard', x: 60, bottom: -2 as Level, top: 3 as Level, cars: 2 }],
+      units: [
+        { type: 'cleaning-room', level: 3 as Level, x: 100 },
+        { type: 'fast-food', level: 2 as Level, x: 80 },
+        { type: 'recycling-center', level: -2 as Level, x: 10 },
+      ],
+    });
+    let state = built;
+    state.money = 99_999_999;
+    state.stars = 6;
+    state.step = 6 * STEPS_PER_HOUR - 6;
+    const recycling = Object.values(state.units).find((unit) => unit.type === 'recycling-center');
+    (state.units.u2?.venue as { garbage: number }).garbage = 2;
+    const levels = new Set<number>();
+    for (let minute = 0; minute < 180; minute++) {
+      state = advance(state, 6);
+      const pool = state.people;
+      for (let slot = 0; slot < pool.id.length; slot++) {
+        if (!isCleaner(pool, slot)) continue;
+        if (decodeCleanerTask(pool.trip[slot] as number)?.phase === 'carrying') {
+          levels.add(pool.level[slot] as number);
+        }
+      }
+    }
+    expect(state.units.u2?.venue?.garbage).toBe(0);
+    expect(levels.has(recycling?.level as number)).toBe(true);
   });
 
   it('adds cleaners with staff and takes dirt off faster with collection speed', () => {

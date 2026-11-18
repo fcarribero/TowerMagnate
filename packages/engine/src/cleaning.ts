@@ -121,7 +121,7 @@ function taskAt(pool: PersonPool, slot: number): CleanerTask | null {
   return decodeCleanerTask(pool.trip[slot] ?? NO_TRIP);
 }
 
-/** True for a cleaner carrying garbage bags out of the tower. */
+/** True for a cleaner carrying garbage bags to a recycling center or out of the tower. */
 export function isCleanerCarrying(pool: PersonPool, slot: number): boolean {
   return pool.kind[slot] === CLEANER_KIND && taskAt(pool, slot)?.phase === 'carrying';
 }
@@ -375,7 +375,31 @@ function startCleaning(cleaner: Cleaner, code: number): void {
   state.people.dueStep[cleaner.slot] = state.step + SPOT_STEPS;
 }
 
-/** At the pile: take as many bags as the tools allow and carry them out to the street. */
+/** The recycling centers, nearest level to `level` first, then by unit number. */
+function recyclingInOrder(state: TowerState, level: number): Unit[] {
+  return Object.values(state.units)
+    .filter((unit) => unit.type === 'recycling-center')
+    .sort(
+      (a, b) =>
+        Math.abs(a.level - level) - Math.abs(b.level - level) ||
+        unitNumber(a.id) - unitNumber(b.id),
+    );
+}
+
+/** Carries the bags to the nearest recycling center it can reach, or else out to the street. */
+function carryBags(cleaner: Cleaner, bags: number): boolean {
+  const { context } = cleaner.shared;
+  for (const center of recyclingInOrder(context.state, here(cleaner).level)) {
+    save(cleaner, { phase: 'carrying', target: bags });
+    if (startTrek(context, cleaner.slot, doorOf(center))) return true;
+  }
+  return walkOut(cleaner, 'carrying', bags);
+}
+
+/**
+ * At the pile: take as many bags as the tools allow and carry them to a recycling center, or out
+ * to the street when the tower has none.
+ */
 function takeBags(cleaner: Cleaner, number: number): void {
   const { state } = cleaner.shared.context;
   const unit = state.units[`u${number}`];
@@ -386,7 +410,7 @@ function takeBags(cleaner: Cleaner, number: number): void {
   }
   const room = roomOf(state, state.people, cleaner.slot);
   const bags = Math.min(garbage, 1 + upgradeLevel(room, 'tools'));
-  if (!walkOut(cleaner, 'carrying', bags)) {
+  if (!carryBags(cleaner, bags)) {
     idle(cleaner);
     return;
   }
@@ -465,7 +489,7 @@ function advanceCleaner(cleaner: Cleaner): void {
       break;
   }
   if (!room || !onShift) {
-    // Bags already on the way out are dropped at the street first.
+    // Bags already on the way are dropped at the recycling center or the street first.
     if (task.phase === 'carrying' && isOnTrek(pool, slot)) return;
     goHome(cleaner);
     return;
