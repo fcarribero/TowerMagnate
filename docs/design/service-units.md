@@ -102,8 +102,9 @@ The tower has no theft or vandalism events, so cameras act on stress instead. An
 
 This replaces the rules in routing.md that let only maids use service elevators and keep guards off them.
 
-- Service elevators are for workers only: builders, cleaners, maids and guards. Other people never use them.
-- For a worker the cost of a service ride is much lower than the cost of a standard or express ride (guess: a quarter of it per floor, and a quarter of the 500 boarding cost).
+- Service elevators are for workers only: maids, builders, cleaners, guards (`police`), venue staff (`staff`) and couriers. Other people never use them. Couriers count because a delivery is the kind of trip a service elevator is for.
+- For a worker a service ride costs `ROUTE_WORKER_SERVICE_RIDE_FACTOR` (0.25) of a passenger ride in the route search: 125 instead of 500. Transfers cost the same for everyone. Each class has its own cached route tables (`maid`, `worker`, `other`).
+- Maids keep their high stair cost and stay off escalators (they push carts), but may now ride standard and express cars.
 - A worker is not barred from the standard elevators. The route is the cheapest one, so a worker takes a standard or express car when it beats the service car by a wide margin, for example when the service car has a long wait or does not stop on a floor the route needs.
 - If the service elevators are too few or too slow, workers end up in the cars of everyone else. The player fixes that by building more service elevators.
 
@@ -111,7 +112,8 @@ This replaces the rules in routing.md that let only maids use service elevators 
 
 - A person who rides a standard or express car with a worker in it, or who walks past one, feels a little stress. Workers inside a service car do not count, because nobody else is there.
 - So a tower with no service elevators makes workers share cars with tenants, and the stress shows up in the score of the units those tenants come from.
-- The value is added to the minute stress of the cell or car: it goes in the car's noise and dirt pair, with a worker counting more than a plain rider (guess: a worker adds 0.5 noise and 0.1 dirt in a car, a bag-carrying cleaner adds 1 dirt more).
+- The value goes in the car's noise and dirt pair. A worker who boards a standard or express car adds 0.5 noise (`CAR_NOISE_RIDER` 0.3 plus `CAR_NOISE_WORKER` 0.2) and the plain 0.1 dirt; a rider with a bag adds 1 dirt more. Extra dirt per worker was left out because car dirt never fades: in the 7-day vertical slice it pushed most office tenants below the renewal grade.
+- A worker on a service car adds only what a plain rider adds.
 - The stress is only for cars. A worker who crosses a person on foot, in a hall or on stairs, adds nothing beyond the small noise and dirt per cell that anyone adds.
 
 ## 3. Quiet and comfort units
@@ -155,7 +157,7 @@ No change. The player can build as many shafts and cars as wanted at any star le
 4. More security offices and their upgrades.
 5. Lobby upgrades.
 6. Garden, lounge and library units (done: calm and noise only, no visits).
-7. Work clothes, changing in the unit, and staff on service elevators with the stress from sharing cars.
+7. Work clothes, changing in the unit, and staff on service elevators with the stress from sharing cars (done).
 
 ## 7. Open points
 

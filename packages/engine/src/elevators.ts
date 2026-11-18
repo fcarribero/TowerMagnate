@@ -21,7 +21,7 @@ import { addAmbient } from './trip-ledger';
 import { isCarryingBag } from './venue-staff';
 import { boardFromQueue, hallCallAge, queueLength } from './elevator-queues';
 import type { SimulationSystem, StepContext } from './step';
-import { alightRider, boardRider, realignQueue, ridersBroughtBy } from './trek';
+import { alightRider, boardRider, isWorker, realignQueue, ridersBroughtBy } from './trek';
 
 /** Elevators 10: shafts in id order, each car in index order, then the shaft's dispatch pass. */
 export function createElevatorSystem(): SimulationSystem {
@@ -255,11 +255,13 @@ function boardPeople(
   for (const person of boarded) {
     boardRider(context, person);
     const slot = slotOfPerson(context.state.people, parsePersonId(person) ?? -1);
+    const pool = context.state.people;
     addCarRider(
       context.state,
       shaft.id,
       carIndex,
-      slot >= 0 && isCarryingBag(context.state.people, slot),
+      slot >= 0 && isCarryingBag(pool, slot),
+      shaft.type !== 'service' && slot >= 0 && isWorker(pool, slot),
     );
   }
   if (boarded.length > 0) realignQueue(context, shaft, car.level, direction);

@@ -1,7 +1,7 @@
 import { UNIT_CATALOG, type TowerState, type Unit, type UnitId } from '@tower-magnate/shared';
 import { entrancePlace, unitPlace } from './office-routine';
 import { connectedSpaces } from './parking';
-import { TransportGraph, TripPlanner } from './routing';
+import { TransportGraph, TripPlanner, type UserClass } from './routing';
 
 /** A built unit or a construction site: both show the sign when no route reaches them. */
 type Placed = Pick<Unit, 'id' | 'type' | 'level' | 'x'>;
@@ -10,6 +10,12 @@ type Placed = Pick<Unit, 'id' | 'type' | 'level' | 'x'>;
 function isVisitedFromOutside(unit: Placed): boolean {
   const { capacity } = UNIT_CATALOG[unit.type];
   return capacity !== null && capacity.role !== 'passengers-per-car' && capacity.role !== 'maids';
+}
+
+/** Units only workers use are reached by the worker routes, service shafts included. */
+function routeClassOf(unit: Placed): UserClass {
+  const role = UNIT_CATALOG[unit.type].capacity?.role;
+  return role === 'builders' || role === 'cleaners' || role === 'guards' ? 'worker' : 'other';
 }
 
 function unitsWithoutRoute(state: TowerState): Set<UnitId> {
@@ -32,10 +38,12 @@ function unitsWithoutRoute(state: TowerState): Set<UnitId> {
       missing.add(unit.id);
       continue;
     }
-    let reachable = reachableByRun.get(run.id);
+    const userClass = routeClassOf(unit);
+    const key = run.id * 2 + (userClass === 'worker' ? 1 : 0);
+    let reachable = reachableByRun.get(key);
     if (reachable === undefined) {
-      reachable = planner.plan(state, { from, to: street, userClass: 'other' }) !== null;
-      reachableByRun.set(run.id, reachable);
+      reachable = planner.plan(state, { from, to: street, userClass }) !== null;
+      reachableByRun.set(key, reachable);
     }
     if (!reachable) missing.add(unit.id);
   }

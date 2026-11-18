@@ -153,7 +153,7 @@ describe('bomb search', () => {
     expect(search?.levels[2]).toBe('taken');
   });
 
-  it('gives guards no route through a service elevator', () => {
+  it('gives guards a route through a service elevator', () => {
     const { state } = buildTower({
       ...plainTowerPlan(TOP, 0, 63),
       units: [
@@ -167,7 +167,7 @@ describe('bomb search', () => {
     const bomb = bombOf(state);
     startBombSearch(contextOf(state), bomb, 5);
     const ids = listPeople(state.people).map((person) => Number(person.id.slice(1)));
-    expect(bomb.search?.unreachable[ids[1] as number]).toEqual([5]);
+    expect(bomb.search?.unreachable[ids[1] as number] ?? []).toEqual([]);
   });
 });
 

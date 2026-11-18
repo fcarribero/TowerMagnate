@@ -112,6 +112,15 @@ describe('heat maps', () => {
     expect(carLevels(state, 's1', 0)).toEqual({ noise: 0, dirt: 0 });
   });
 
+  it('makes a worker in a passenger car noisier than a plain rider', () => {
+    const state = { step: 0 } as TowerState;
+    addCarRider(state, 's1', 0, false, true);
+    addCarRider(state, 's2', 0, true, true);
+    expect(carLevels(state, 's1', 0).noise).toBeCloseTo(0.5);
+    expect(carLevels(state, 's1', 0).dirt).toBeCloseTo(0.1);
+    expect(carLevels(state, 's2', 0).dirt).toBeCloseTo(0.1 + 1);
+  });
+
   it('has a construction site speak on its own levels and on the levels above and below', () => {
     const state = {
       step: 6,

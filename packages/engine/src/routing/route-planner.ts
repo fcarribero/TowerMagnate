@@ -10,6 +10,7 @@ import {
   ROUTE_RETRY_STEPS,
   ROUTE_MAID_STAIR_FACTOR,
   ROUTE_RIDE_COST,
+  ROUTE_WORKER_SERVICE_RIDE_FACTOR,
   ROUTE_STAIR_ENERGY_STEP,
   ROUTE_STAIR_FLOOR_COST,
   ROUTE_STAIR_FLOOR_MIN_COST,
@@ -61,15 +62,18 @@ interface Who {
   energy: number;
   /** Cost of one stair floor for this person: by energy, and much higher for maids. */
   stairCost: number;
+  /** Cost of a ride on a service shaft: workers pay a fraction of a passenger ride. */
+  serviceRideCost: number;
   /** One number per class and energy level, for cache keys. */
   profile: number;
 }
 
-const CLASSES = 2;
+const CLASSES = 3;
 const PROFILES = CLASSES * MAX_ENERGY_LEVEL;
 
 function classIndex(userClass: UserClass): number {
-  return userClass === 'maid' ? 1 : 0;
+  if (userClass === 'maid') return 1;
+  return userClass === 'worker' ? 2 : 0;
 }
 
 function whoOf(userClass: UserClass, energy: number | undefined): Who {
@@ -81,6 +85,8 @@ function whoOf(userClass: UserClass, energy: number | undefined): Who {
     userClass,
     energy: level,
     stairCost: stairFloorCost(level) * (userClass === 'maid' ? ROUTE_MAID_STAIR_FACTOR : 1),
+    serviceRideCost:
+      userClass === 'other' ? ROUTE_RIDE_COST : ROUTE_RIDE_COST * ROUTE_WORKER_SERVICE_RIDE_FACTOR,
     profile: classIndex(userClass) + CLASSES * (level - MIN_ENERGY_LEVEL),
   };
 }
@@ -290,14 +296,15 @@ function counterKey(code: CounterCode, previous: PreviousLeg): number {
 
 const STATES_PER_NODE = (MAX_STAIR_FLOORS_PER_TRIP + 1) * 8 * 4 * 4;
 
-function legCost(link: Link, rides: number, merges: boolean, stairCost: number): number {
+function legCost(link: Link, rides: number, merges: boolean, who: Who): number {
   if (link.kind === 'escalator') {
     return ROUTE_FLOOR_COST * link.floors + ROUTE_ESCALATOR_LEG_COST;
   }
   if (link.kind === 'stairs') {
-    return stairCost * link.floors + (merges ? 0 : ROUTE_STAIR_LEG_COST);
+    return who.stairCost * link.floors + (merges ? 0 : ROUTE_STAIR_LEG_COST);
   }
-  return ROUTE_RIDE_COST + (rides >= 1 ? ROUTE_TRANSFER_COST : 0);
+  const ride = link.kind === 'service' ? who.serviceRideCost : ROUTE_RIDE_COST;
+  return ride + (rides >= 1 ? ROUTE_TRANSFER_COST : 0);
 }
 
 function withinBudget(link: Link, counters: Counters): boolean {
@@ -552,8 +559,8 @@ export class TripPlanner {
             escalatorFloors: link.kind === 'escalator' ? link.floors : 0,
             rides: link.kind === 'stairs' || link.kind === 'escalator' ? 0 : 1,
             transferable: link.kind !== 'stairs' && link.kind !== 'escalator',
-            cost: legCost(link, 0, false, who.stairCost),
-            mergedCost: legCost(link, 0, true, who.stairCost),
+            cost: legCost(link, 0, false, who),
+            mergedCost: legCost(link, 0, true, who),
           });
         }
       }
@@ -602,7 +609,7 @@ export class TripPlanner {
         const shared = this.valueAt(table, link.to, codeAfter(link, startCode), previous);
         if (shared === Infinity) continue;
         const rest = shared + extraColumns * COLUMN_UNIT;
-        const own = pack(legCost(link, counters.rides, false, table.who.stairCost), 1, walk, 0);
+        const own = pack(legCost(link, counters.rides, false, table.who), 1, walk, 0);
         const value = isWalkedLeg(previous)
           ? own + rest
           : own + withoutEnd(rest) + this.endOf(link.to);
@@ -909,7 +916,7 @@ export class TripPlanner {
       const rest = this.valueAt(table, link.to, codeAfter(link, code), option.kindAfter);
       if (rest === Infinity) continue;
       const own = pack(
-        legCost(link, rides, merges, table.who.stairCost),
+        legCost(link, rides, merges, table.who),
         merges ? 0 : 1,
         Math.abs(option.x - here.x),
         0,

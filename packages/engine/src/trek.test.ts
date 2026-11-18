@@ -389,7 +389,7 @@ describe('elevator queues', () => {
     expect(view(state, id)).toMatchObject({ phase: 'idle', dueStep: NOTHING_DUE });
   });
 
-  it('sends maids on stairs only', () => {
+  it('sends maids to the elevator before two stair floors', () => {
     const state = buildTestTower({
       floors: 3,
       shafts: [{ ...shaft, top: 3 }],
@@ -397,7 +397,7 @@ describe('elevator queues', () => {
     });
     const id = addWalker(state, 1, 10, 'maid');
     sendTo(state, id, { level: 3, column: 10 });
-    expect(view(state, id).phase).toBe('walkingToStairs');
+    expect(view(state, id).phase).toBe('walkingToShaft');
   });
 });
 

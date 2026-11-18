@@ -207,17 +207,19 @@ describe('tower C: stairs before a transfer, cathedral and a maid (routing 12.3)
     expect(plan(built, [1, 40], [101, 174])).toBeNull();
   });
 
-  it('C3: keeps maids on the service elevator and the stairs', () => {
+  it('C3: keeps maids on the service elevator, which costs them a quarter of a ride', () => {
     const built = towerC();
-    expect(plan(built, [50, 207], [58, 230], 'maid')).toMatchObject({ cost: 674 });
-    expect(plan(built, [50, 207], [45, 200], 'maid')).toMatchObject({ cost: 2838 });
+    expect(plan(built, [50, 207], [58, 230], 'maid')).toMatchObject({ cost: 299 });
+    // Down to 45 the standard car beats the service car and five stair floors.
+    expect(plan(built, [50, 207], [45, 200], 'maid')?.firstLeg?.kind).toBe('ride');
+    expect(plan(built, [50, 207], [45, 200], 'maid')).toMatchObject({ cost: 706 });
     expect(plan(built, [50, 207], [40, 200], 'maid')).toBeNull();
   });
 
   it('C4: charges maids far more than anybody else for a stair floor', () => {
-    const built = towerC();
-    const maid = plan(built, [50, 207], [45, 200], 'maid');
-    const other = plan(built, [50, 207], [45, 200], 'other');
+    const built = setup({ plan: tower(6, 0, 300), flights: flightsUp('stairs', 1, 3) });
+    const maid = plan(built, [1, 100], [3, 100], 'maid');
+    const other = plan(built, [1, 100], [3, 100], 'other');
     expect(maid).not.toBeNull();
     expect(other).not.toBeNull();
     expect((maid?.cost ?? 0) > (other?.cost ?? 0)).toBe(true);
@@ -277,12 +279,14 @@ describe('limits at the boundary', () => {
 });
 
 describe('who rides what', () => {
-  it('never gives maids a passenger elevator', () => {
+  it('gives workers and maids a passenger elevator when there is no service elevator', () => {
     const built = setup({
       plan: tower(6, 0, 300, [{ type: 'standard', x: 10, bottom: 1, top: 6 }]),
     });
-    expect(plan(built, [1, 100], [6, 100], 'maid')).toBeNull();
-    expect(plan(built, [1, 100], [6, 100], 'other')).not.toBeNull();
+    const other = plan(built, [1, 100], [6, 100], 'other');
+    expect(other?.firstLeg?.steps[0]?.kind).toBe('standard');
+    expect(plan(built, [1, 100], [6, 100], 'maid')).toMatchObject({ cost: other?.cost });
+    expect(plan(built, [1, 100], [6, 100], 'worker')).toMatchObject({ cost: other?.cost });
   });
 
   it('never gives other people the service elevator', () => {
@@ -291,6 +295,33 @@ describe('who rides what', () => {
     });
     expect(plan(built, [1, 100], [6, 100], 'other')).toBeNull();
     expect(plan(built, [1, 100], [6, 100], 'maid')).not.toBeNull();
+    expect(plan(built, [1, 100], [6, 100], 'worker')).not.toBeNull();
+  });
+
+  it('sends workers to the service elevator even when a passenger car is closer', () => {
+    const built = setup({
+      plan: tower(6, 0, 300, [
+        { type: 'standard', x: 100, bottom: 1, top: 6 },
+        { type: 'service', x: 150, bottom: 1, top: 6 },
+      ]),
+    });
+    const worker = plan(built, [1, 100], [6, 100], 'worker');
+    expect(worker?.firstLeg?.steps[0]?.kind).toBe('service');
+    expect(built.graph.node(worker?.firstLeg?.steps[0]?.to ?? -1).level).toBe(6);
+    expect(plan(built, [1, 100], [6, 100], 'other')?.firstLeg?.steps[0]?.kind).toBe('standard');
+  });
+
+  it('lets a worker take a passenger car when the service elevator is much worse', () => {
+    // The service shafts need a transfer; one passenger car goes all the way.
+    const built = setup({
+      plan: tower(10, 0, 300, [
+        { type: 'standard', x: 100, bottom: 1, top: 10 },
+        { type: 'service', x: 200, bottom: 1, top: 5 },
+        { type: 'service', x: 220, bottom: 5, top: 10 },
+      ]),
+    });
+    const worker = plan(built, [1, 100], [10, 100], 'worker');
+    expect(worker?.firstLeg?.steps[0]?.kind).toBe('standard');
   });
 
   it('respects express stops', () => {

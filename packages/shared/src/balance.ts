@@ -818,6 +818,12 @@ export const BAG_DIRT_MINUTE = 1.5;
 export const CAR_NOISE_RIDER = 0.3;
 export const CAR_DIRT_RIDER = 0.1;
 export const CAR_DIRT_BAG = 1;
+/**
+ * The noise a worker adds to a standard or express car on top of a plain rider, so a worker counts
+ * 0.5: people do not like to share a car with builders, cleaners or guards (service units 2.7).
+ * Dirt is the same as a plain rider's, more with a bag. Nothing extra on a service car.
+ */
+export const CAR_NOISE_WORKER = 0.2;
 /** Stress steps a person feels per game minute for each point of noise and of dirt in their cell. */
 export const NOISE_STRESS_PER_LEVEL = 0.03;
 export const DIRT_STRESS_PER_LEVEL = 0.15;
@@ -888,6 +894,11 @@ export const ROUTE_STAIR_FLOOR_MIN_COST = 10;
  * one serves the floors they need and climb stairs only when it does not.
  */
 export const ROUTE_MAID_STAIR_FACTOR = 20;
+/**
+ * A worker's ride on a service shaft costs this share of a passenger ride, so workers keep to
+ * service shafts and take a passenger car only when it is much better (service units 2.6).
+ */
+export const ROUTE_WORKER_SERVICE_RIDE_FACTOR = 0.25;
 /** Added to the cost of a ride for every person already waiting in the queue it starts from. */
 export const ROUTE_QUEUE_PERSON_COST = 40;
 

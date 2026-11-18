@@ -54,11 +54,11 @@ A person whose cell stops being walkable (a two-level unit placed over them, rui
 |---|---|---|---|
 | Stairs | level L and the level above, both directions | everyone | 1 |
 | Escalator | level L and the level above, both directions | everyone except maids | 1 |
-| Standard elevator | any two enabled stops of the shaft | everyone except maids | the floors between the two stops |
-| Express elevator | any two enabled stops of the shaft | everyone except maids | the floors between the two stops |
-| Service elevator | any two enabled stops of the shaft | maids only | the floors between the two stops |
+| Standard elevator | any two enabled stops of the shaft | everyone | the floors between the two stops |
+| Express elevator | any two enabled stops of the shaft | everyone | the floors between the two stops |
+| Service elevator | any two enabled stops of the shaft | workers only (maids, builders, cleaners, guards, venue staff, couriers) | the floors between the two stops |
 
-Who may use what comes from people.md section 2: maids use floors, stairs and service elevators only; everyone else, guards included, uses stairs, escalators, standard and express elevators.
+Who may use what (service-units.md 2.6): workers use everything; maids use everything but escalators; everyone else uses everything but service elevators. A worker's service ride costs a quarter of a passenger ride (`ROUTE_WORKER_SERVICE_RIDE_FACTOR`), so workers keep to service shafts and take a passenger car only when it is much better.
 
 An elevator stop is enabled when it is in the shaft's `stops` list (TM-12 settings). Express shafts can only enable the levels in construction 5.4. Routing ignores the shaft's time-band mode, wait time and response distance; those change how long the ride takes, not whether it exists. A shaft always has at least one car (construction C-42), so a shaft with two enabled stops is always a link.
 
@@ -396,6 +396,7 @@ C2. A wedding guest appears at the street entrance on the left (level 1, column 
 
 C3. A maid leaves u70 (level 50, column 207).
 
+- (Superseded by R-07: the maid now pays a quarter of the ride on v1 and may ride s3 or x1 when they are much better. The engine test C3 holds the new costs.)
 - To a room on level 58: v1 from 50 to 58 costs 8 × 8 + 500 = 564. The maid cannot use x1 or s3.
 - To a room on level 45: v1 from 50 to 46 costs 4 × 8 + 500 = 532, then t20 down from 46 to 45 costs 8 + 600 = 608, total 1,140. The maid walks from column 262 to 174 on level 46 between the two legs.
 - To a room on level 40: v1 goes no lower than 46, and from 46 the maid would need 6 stair floors, over the 3-floor limit. Even with stairs on every level in between there is no route, so the room is not reachable for this maid (TM-16 skips it).
@@ -432,7 +433,7 @@ C3. A maid leaves u70 (level 50, column 207).
 | Order: escalator, elevator without transfer, stairs, elevator with transfer | 6 | Kept, with costs that keep the order for every floor count |
 | At most 3 floors by stairs and 7 by escalator | 5.2 | Kept, counted per trip |
 | No route: wait 2 hours and try again | 9 | Kept for required trips (people.md 4) |
-| Service elevator only for housekeeping | 4 | Kept: maids only |
+| Service elevator only for housekeeping | 4 | Changed: every worker may use it, and workers may use passenger cars (service-units.md 2.6) |
 | Express stops only at basements, floor 1 and sky lobbies | 4, 10 | Kept from construction 5.4 |
 | Queue of 40 per direction per floor | 6, 8.3 | Full-queue surcharge and waiting by the shaft |
 
@@ -456,7 +457,7 @@ R-05. A person whose cell stops being walkable is moved to the nearest walkable 
 
 R-06. Stairs link L and L+1 for everyone. Escalators link L and L+1 for everyone except maids. Both work in both directions.
 
-R-07. Standard and express elevators link any two enabled stops for everyone except maids. Service elevators link any two enabled stops for maids only. Guards never use service elevators.
+R-07. Standard and express elevators link any two enabled stops for everyone. Service elevators link any two enabled stops for workers only: maids, builders, cleaners, guards, venue staff and couriers. For a worker a service ride costs `ROUTE_WORKER_SERVICE_RIDE_FACTOR` (0.25) of a passenger ride.
 
 R-08. Routing ignores elevator mode, wait time and response distance. A shaft with at least two enabled stops is a link.
 

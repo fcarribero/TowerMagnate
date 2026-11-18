@@ -6,6 +6,7 @@ import {
   CAR_DIRT_BAG,
   CAR_DIRT_RIDER,
   CAR_NOISE_RIDER,
+  CAR_NOISE_WORKER,
   CONSTRUCTION_NOISE,
   CONSTRUCTION_NOISE_ADJACENT,
   DIRT_STRESS_PER_LEVEL,
@@ -284,12 +285,23 @@ export function addPersonDirt(state: TowerState, level: number, column: number, 
   addToCell(heatOf(state).dirt, level, column, amount, builtOf(state));
 }
 
-/** A rider boarded the car; a rider with a bag dirties it more. */
-export function addCarRider(state: TowerState, shaftId: string, car: number, bag: boolean): void {
+/**
+ * A rider boarded the car; a rider with a bag dirties it more. `worker` is true for a worker in a
+ * standard or express car, who adds more noise than a plain rider.
+ */
+export function addCarRider(
+  state: TowerState,
+  shaftId: string,
+  car: number,
+  bag: boolean,
+  worker = false,
+): void {
   const pair = (heatOf(state).cars[shaftId] ??= []);
   while (pair.length < (car + 1) * 2) pair.push(0);
-  pair[car * 2] = (pair[car * 2] as number) + CAR_NOISE_RIDER;
-  pair[car * 2 + 1] = (pair[car * 2 + 1] as number) + CAR_DIRT_RIDER + (bag ? CAR_DIRT_BAG : 0);
+  const noise = CAR_NOISE_RIDER + (worker ? CAR_NOISE_WORKER : 0);
+  const dirt = CAR_DIRT_RIDER + (bag ? CAR_DIRT_BAG : 0);
+  pair[car * 2] = (pair[car * 2] as number) + noise;
+  pair[car * 2 + 1] = (pair[car * 2 + 1] as number) + dirt;
 }
 
 export function carLevels(state: TowerState, shaftId: string, car: number) {

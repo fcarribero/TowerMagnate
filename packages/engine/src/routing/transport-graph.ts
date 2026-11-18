@@ -19,7 +19,11 @@ const FLIGHT_POINT_OFFSET = 4;
 
 export type NodeId = number;
 export type RunId = number;
-export type UserClass = 'maid' | 'other';
+/**
+ * Who a route is for: maids, the other workers of the tower (builders, cleaners, guards, venue
+ * staff and couriers) and everyone else.
+ */
+export type UserClass = 'maid' | 'worker' | 'other';
 export type LinkKind = 'stairs' | 'escalator' | 'standard' | 'express' | 'service';
 export type NodeRole = 'street-entrance' | 'subway-entrance' | 'flight-end' | 'shaft-stop';
 
@@ -38,7 +42,8 @@ export interface Link {
   /** The transport or shaft that provides the link. */
   via: EntityId;
   floors: number;
-  maidsOnly: boolean;
+  /** Service shaft links: only workers, maids included, may take them. */
+  workersOnly: boolean;
 }
 
 export interface WalkableRun extends ColumnSpan {
@@ -52,6 +57,7 @@ export type ShaftStops = ReadonlyMap<ShaftId, readonly Level[]>;
 
 interface NodeLinks {
   forMaids: Link[];
+  forWorkers: Link[];
   forOthers: Link[];
 }
 
@@ -102,6 +108,7 @@ export class TransportGraph {
   neighbours(id: NodeId, userClass: UserClass): readonly Link[] {
     const links = this.links[id] as NodeLinks;
     if (userClass === 'maid') return links.forMaids;
+    if (userClass === 'worker') return links.forWorkers;
     return links.forOthers;
   }
 
@@ -136,7 +143,7 @@ export class TransportGraph {
     if (!run) return null;
     const id = this.nodes.length;
     this.nodes.push({ id, level, x, run: run.id, roles: [role] });
-    this.links.push({ forMaids: [], forOthers: [] });
+    this.links.push({ forMaids: [], forWorkers: [], forOthers: [] });
     this.nodeByCell.set(cellKey(level, x), id);
     run.nodes.push(id);
     return id;
@@ -172,7 +179,7 @@ export class TransportGraph {
         kind: transport.type,
         via: transport.id,
         floors: 1,
-        maidsOnly: false,
+        workersOnly: false,
       });
     }
   }
@@ -191,7 +198,7 @@ export class TransportGraph {
             kind: shaft.type,
             via: shaft.id,
             floors: Math.abs(floorIndex(from.level) - floorIndex(to.level)),
-            maidsOnly: shaft.type === 'service',
+            workersOnly: shaft.type === 'service',
           });
         }
       }
@@ -204,12 +211,13 @@ export class TransportGraph {
   }
 
   /**
-   * Routing R-06 and R-07: maids take stairs and service shafts, everyone else takes all but
-   * service.
+   * Routing R-06 and R-07: workers take every link, maids every link but escalators, and
+   * everyone else every link but service shafts.
    */
   private addLink(from: NodeId, link: Link): void {
     const links = this.links[from] as NodeLinks;
-    if (link.kind === 'stairs' || link.kind === 'service') links.forMaids.push(link);
+    links.forWorkers.push(link);
+    if (link.kind !== 'escalator') links.forMaids.push(link);
     if (link.kind !== 'service') links.forOthers.push(link);
   }
 }

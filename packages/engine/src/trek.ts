@@ -114,10 +114,24 @@ const DEPARTING = TREK_PHASES.indexOf('departing');
 
 const MAID_KIND = PERSON_KINDS.indexOf('maid');
 
-/** Maids keep to stairs and service shafts; everyone else, police included, takes the rest. */
+/** The kinds that work in the tower and may ride service shafts (service units 2.6). */
+const WORKER_KINDS: ReadonlySet<number> = new Set(
+  (['builder', 'cleaner', 'police', 'staff', 'courier'] as const).map((kind) =>
+    PERSON_KINDS.indexOf(kind),
+  ),
+);
+
+/** Whether the person works in the tower: a maid, builder, cleaner, guard, venue staff or courier. */
+export function isWorker(pool: PersonPool, slot: number): boolean {
+  const kind = pool.kind[slot] as number;
+  return kind === MAID_KIND || WORKER_KINDS.has(kind);
+}
+
+/** Maids and the other workers may ride service shafts; everyone else never does. */
 function userClassOf(pool: PersonPool, slot: number): UserClass {
-  if (pool.kind[slot] === MAID_KIND) return 'maid';
-  return 'other';
+  const kind = pool.kind[slot] as number;
+  if (kind === MAID_KIND) return 'maid';
+  return WORKER_KINDS.has(kind) ? 'worker' : 'other';
 }
 
 export interface TrekPlace {

@@ -88,7 +88,7 @@ describe('transport graph', () => {
     expect(links.find((link) => link.to === top?.id)).toMatchObject({
       via: shaftIds[0],
       floors: 3,
-      maidsOnly: false,
+      workersOnly: false,
     });
   });
 
@@ -106,14 +106,15 @@ describe('transport graph', () => {
     expect(toTwo?.floors).toBe(3);
   });
 
-  it('tags service shaft links as maids only', () => {
+  it('tags service shaft links as workers only', () => {
     const { state } = tower(4, [{ type: 'service', x: 150, bottom: 1, top: 3 }]);
     const graph = new TransportGraph(state);
     const column = 150 + Math.floor(UNIT_CATALOG['service-elevator'].width / 2);
     expect(neighbourCells(graph, 1, column, 'maid')).toEqual(['2:service', '3:service']);
+    expect(neighbourCells(graph, 1, column, 'worker')).toEqual(['2:service', '3:service']);
     expect(neighbourCells(graph, 1, column, 'other')).toEqual([]);
     const link = graph.neighbours(graph.nodeAtCell(1, column)?.id ?? -1, 'maid')[0];
-    expect(link?.maidsOnly).toBe(true);
+    expect(link?.workersOnly).toBe(true);
   });
 
   it('stops an express shaft only on basements, level 1 and sky lobbies', () => {

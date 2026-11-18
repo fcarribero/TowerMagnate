@@ -279,7 +279,7 @@ describe('room choice', () => {
     expect(servedRun.state.units[served.rooms.r6 as UnitId]?.hotel?.state).toBe('clean');
   });
 
-  it('never rides a passenger elevator', () => {
+  it('rides a passenger elevator when the tower has no service elevator', () => {
     const rooms: RoomPlan[] = [{ name: 'r6', type: 'single-room', level: 15, x: 200 }];
     const { state, rooms: ids } = hotelTower({
       rooms,
@@ -288,8 +288,7 @@ describe('room choice', () => {
     });
     setRoom(state, ids.r6 as UnitId, 'dirty');
     const run = runUntil(state, at(0, 16));
-    expect(run.state.units[ids.r6 as UnitId]?.hotel?.state).toBe('dirty');
-    expect(run.events.some((event) => event.type === 'roomStateChanged')).toBe(false);
+    expect(run.state.units[ids.r6 as UnitId]?.hotel?.state).toBe('clean');
   });
 
   it('asks again at once when the claimed room is demolished', () => {

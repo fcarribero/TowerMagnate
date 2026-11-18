@@ -62,7 +62,7 @@ Design call: plans are drawn once a day instead of rolling a chance at every ste
 | Customer | `customer` | fast food, restaurant, retail shop | formula in section 11 | through the venue's previous-day count | same |
 | Cinema audience | `audience` | cinema | up to the show cap, section 12 | no | same |
 | Party guest | `partyGuest` | party hall | up to 50 a day, section 13 | no | same |
-| Maid | `maid` | housekeeping | 6 per housekeeping unit | no | stairs and service elevators only |
+| Maid | `maid` | housekeeping | 6 per housekeeping unit | no | every transport but escalators; prefers service elevators |
 | Security guard | `guard` | security office | 6 per security office | no | stairs, escalators, standard and express elevators |
 | VIP | `vip` | VIP event (TM-15) | 1 | yes, as a hotel guest | same as hotel guests |
 | Wedding guest | `weddingGuest` | cathedral | 40 per wedding attempt | no | same as hotel guests |
@@ -265,7 +265,7 @@ Six maids per housekeeping unit. Maids work every day of the week. At 06:00 they
 - From 10:00, a maid with no task asks TM-16 for a dirty room and goes there.
 - Cleaning one room takes 30 game minutes (180 steps) from the maid's arrival. The room becomes "Limpia" at the end of that time.
 - A maid can only start a cleaning before 16:00. At 16:00, or when TM-16 has no room for her, she goes back to her unit.
-- Maids walk on floors and use stairs and service elevators only. Rooms they cannot reach that way are not cleaned.
+- Maids walk on floors and use stairs, service elevators and, when much better, standard and express elevators (service-units.md 2.6). They do not use escalators. Rooms they cannot reach are not cleaned.
 
 Maids are not counted in population and their stress is not recorded. Room choice, the floors each maid covers, and infestation are TM-16.
 
@@ -361,7 +361,7 @@ A party hall placed after 12:00 gets no guests that day.
 
 ## 14. Security guards
 
-Each security office has 21 officers: 3 shifts of 8 hours (00:00, 08:00, 16:00) with 7 officers each. An officer walks in from a map edge in plain clothes up to 2 hours before the shift, changes for 5 minutes in the office, and works: 3 officers stay in the office and the others patrol the whole tower, stopping beside units drawn by their crime weight. At the end of the shift an officer waits in the office for the relief of the same spot (2 hours at most), changes back and walks out. They are not counted in population and their stress is not recorded. When a bomb or fire event starts, TM-15 sends them out and brings them back. Guards use the same transport as office workers. They do not use service elevators, which are only for housekeeping staff (construction spec 5.5).
+Each security office has 21 officers: 3 shifts of 8 hours (00:00, 08:00, 16:00) with 7 officers each. An officer walks in from a map edge in plain clothes up to 2 hours before the shift, changes for 5 minutes in the office, and works: 3 officers stay in the office and the others patrol the whole tower, stopping beside units drawn by their crime weight. At the end of the shift an officer waits in the office for the relief of the same spot (2 hours at most), changes back and walks out. They are not counted in population and their stress is not recorded. When a bomb or fire event starts, TM-15 sends them out and brings them back. Guards use the same transport as office workers and also service elevators, which they prefer (service-units.md 2.6).
 
 A tower may have any number of security offices. The guards upgrade adds 1 patrolling officer per shift and level, and cameras, fire system and access control change stress, fires and grades (service-units 2.3).
 
@@ -577,7 +577,7 @@ P-28. The VIP arrives at the street entrance at 17:00 to 19:00 50%, 19:00 to 21:
 
 P-29. Maids walk in from the street at 06:00, change in their housekeeping unit and leave the same way at 17:00. They start cleanings before 17:00 and finish the one they are in. A cleaning takes 180 steps from the maid's arrival at the room, after which the room is "Limpia".
 
-P-30. Maids only use floors, stairs and service elevators. Service elevators carry no one else, guards included.
+P-30. Maids use floors, stairs, service elevators and passenger elevators, never escalators. Service elevators carry workers only: maids, builders, cleaners, guards, venue staff and couriers.
 
 ### Customers
 
@@ -623,4 +623,4 @@ P-44. A condo's prospect becomes resident 1 and the rest of its household (secti
 
 P-45. Draws made in the same step happen in this order: step events (00:00 infestation check, 00:00 plans, 00:00 customer counts and appearance times, 03:00 night move, hourly prospect rolls, 12:00 VIP booking, 12:00 hotel booking rolls), then people with something due. Units go in increasing unit id and people in increasing person id. A person's draws all finish before the next person's start. Subjects created during the step go last in their phase, in creation order.
 
-P-46. Guards use stairs, escalators, standard elevators and express elevators. They never use service elevators.
+P-46. Guards use stairs, escalators and every elevator, and prefer service elevators.
