@@ -118,7 +118,7 @@ Design call: the reference draws 3 px borders and 4 px shadows on a 1280 x 800 f
 | Signed change | `+` or `-` before `$` | `+$3.000`, `-$40.000` |
 | Counts | thousands with `.` | `Población 12.345` |
 | Time | 24 h, two digits each, `:` | `07:30`, `19:05` |
-| Minutes of stress | whole number + ` min` | `18 min` |
+| Stress score | one decimal with a comma + ` / 10` | `3,4 / 10` |
 
 ## 2. Screen layout
 
@@ -409,10 +409,10 @@ Then the rows for the unit type. A value in braces comes from the `inspect` data
 
 | Unit | Rows |
 |---|---|
-| Oficina | Estado: Ocupada / En alquiler. Personas: `{n} de 6`. Evaluación. Precio por semana (price choice). Contrato: `Semana {k} de 4` or `Sin contrato`. Próximo pago: `{weekday} {HH:MM}`. |
+| Oficina | Estado: Ocupada / En alquiler. Personas: `{n} de 6`. Evaluación. Estrés de ocupantes. Precio por semana (price choice, with the fair price marked). Contrato: `Semana {k} de 4` or `Sin contrato`. Próximo pago: `{weekday} {HH:MM}`. |
 | Local comercial | As Oficina, plus Clientes esta semana: `{n}` (new data). |
-| Departamento | Estado: Vendido / En venta. Residentes: `{n} de 3`. Evaluación. Precio de venta (price choice, disabled when sold, with the note "Ya está vendido."). Próxima evaluación: `{weekday} {day} de {month}` (only when sold). |
-| Habitación simple, doble, Suite | Estado: Libre / Ocupada / Sucia / Con plaga. Huéspedes: `{n} de {cap}`. Evaluación (of the last stay). Precio por noche (price choice). Salida: `{weekday} 10:00` (only when occupied). |
+| Departamento | Estado: Vendido / En venta. Residentes: `{n} de 3`. Evaluación. Estrés de ocupantes. Precio justo: `{money}`. Precio de venta (price choice, disabled when sold, with the note "Ya está vendido."). Próxima evaluación: `{weekday} {day} de {month}` (only when sold). |
+| Habitación simple, doble, Suite | Estado: Libre / Ocupada / Sucia / Con plaga. Huéspedes: `{n} de {cap}`. Evaluación (of the last stay). Estrés de ocupantes. Precio por noche (price choice, with the fair price marked). Salida: `{weekday} 10:00` (only when occupied). |
 | Comida rápida, Restaurante | Three stat tiles: Atendidos (customers served today), Adentro (customers inside now; the crew is not counted) and Resultado (what today pays if it ended now: the economy 7.1 amount for the count so far, which grows with each customer, signed money, green above 0, red below 0). Row Horario: `08:00 a 20:00` (the counting hours). Below the tiles, a small line chart "Clientes por hora": one point per open hour, today in red up to the current hour and the average of the last 7 finished days in blue, both on one vertical scale (`inspect` group `venue`, hourly counts kept in `VenueDay.hourly` and `pastHourly`). Hovering the chart shows a tip with the hour of the nearest point and the customers of today and of the average. |
 | Cine | Película: `Semana {w} (día {age})`. Público por función hoy: `14:00: {n} · 19:00: {n}`. Resultado de ayer: signed money. Button "Cambiar película ($300.000)" (new data for audience and result) |
 | Salón de fiestas | Invitados hoy: `{n} de 50`. Resultado de ayer: signed money. (new data) |
@@ -436,6 +436,21 @@ The selected tile is `obra.yellow` with a 2 px `obra.ink` bar along its bottom e
 
 Evaluation is shown as a 6 x 6 color square with `border.control` plus the word in `text.body-strong`, using the colors of the Evaluación overlay (section 7): "Buena", "Regular", "Mala", or "Sin evaluar" before the first evaluation.
 
+"Estrés de ocupantes" is the stress score of the unit's occupants (stress-evaluation 5.3), one decimal with a comma and " / 10", for example "3,4 / 10", in `text.body` with no color. "Precio justo" is the fair price (economy 3.1) as money. On the price control it is a marker on the price bar with the tooltip "Precio justo {price}"; the condo has the plain row because its price control is locked once sold.
+
+The office window lists the reasons for its grade under two headings, "A favor" and "En contra", in the unit's body below the rows (stress-evaluation 5.6):
+
+| Reason | Side |
+|---|---|
+| "Alquiler dentro del precio justo" when the price is at or under the fair price | A favor |
+| "Alquiler por encima del precio justo" when it is over | En contra |
+| "Trabajadores tranquilos" when the occupant score is under 3 | A favor |
+| "Trabajadores estresados por {cause}" from 3, the cause being the heaviest one among the workers; "Trabajadores estresados" with no cause | En contra |
+| "Ruido cerca" with a noise source in range, otherwise "Sin ruido cerca" | En contra, A favor |
+| "Vecino mal valorado" when a worse neighbor pulls the grade down | En contra |
+
+A list with no reasons is not drawn.
+
 The film change button is a primary button. It asks for confirmation (dialog 9.3), then sends `changeFilm`. It is disabled with the tooltip "No alcanza el dinero." when the balance is under $300.000.
 
 State values are drawn as tags: `text.body-strong` with `space.1` padding and `border.control`. "Ocupada", "Vendido", "Abierto", "Libre" (cochera), "Asignada" and "En servicio" are `obra.green` with `obra.ink` text. "Sucia", "Con plaga", "Cerrado" and "Sin conexión" are `obra.red` with `obra.paper` text. Every other state is `obra.paper` with `obra.ink` text.
@@ -449,7 +464,7 @@ Title: the person's name, or the kind ("Oficinista") when unnamed.
 | Row | Content |
 |---|---|
 | Nombre | Text field, max 24 characters, `renamePerson` on Enter or blur |
-| Estrés | A level bar in the stress color, full at 45 minutes, with ticks where alto and muy alto start, and the level in words on the right: normal is `obra.ink`, alto is `stress-pink`, muy alto is `stress-red` |
+| Estrés | A bar from 0 to 10 filled to the person's stress score, with the score in numbers on the right, for example "4,2 / 10". The fill color moves in a straight line from `#141218` (ink) at a score of 0 to `#d81e2a` (red) at 10. There are no ticks and no level words |
 | Disconforme por | Up to 3 causes of the person's stress, heaviest first (stress-evaluation 3.3) |
 | Contento con | Up to 3 things that do not bother the person or calm them (stress-evaluation 3.3) |
 | Vive en / Trabaja en / Se aloja en | The home unit, by kind: residents "Vive en", office workers "Trabaja en", guests "Se aloja en"; hidden for kinds with no home unit |
@@ -921,6 +936,18 @@ Short button labels, used only on toolbar buttons:
 | `window.unit.peopleOfficers` | Policías |
 | `window.unit.peopleAudience` | Público |
 | `window.unit.evaluation` | Evaluación |
+| `window.unit.occupantStress` | Estrés de ocupantes |
+| `window.unit.appraisal` | Precio justo |
+| `window.unit.appraisalMark` | Precio justo {price} |
+| `window.stressScore` | {n} / 10 |
+| `window.unit.reason.fairRent` | Alquiler dentro del precio justo |
+| `window.unit.reason.highRent` | Alquiler por encima del precio justo |
+| `window.unit.reason.calmWorkers` | Trabajadores tranquilos |
+| `window.unit.reason.stressedWorkers` | Trabajadores estresados |
+| `window.unit.reason.stressedWorkersBy` | Trabajadores estresados por {cause} |
+| `window.unit.reason.noise` | Ruido cerca |
+| `window.unit.reason.quiet` | Sin ruido cerca |
+| `window.unit.reason.badNeighbor` | Vecino mal valorado |
 | `window.unit.pricePerWeek` | Precio por semana |
 | `window.unit.pricePerNight` | Precio por noche |
 | `window.unit.salePrice` | Precio de venta |
@@ -1028,9 +1055,6 @@ Finance categories use the TM-9 labels under `value.ledger.{categoryId}`: Alquil
 | `value.parking.free` | Libre |
 | `value.parking.assigned` | Asignada |
 | `value.parking.disconnected` | Sin conexión |
-| `value.stress.normal` | normal |
-| `value.stress.high` | alto |
-| `value.stress.veryHigh` | muy alto |
 | `value.elevatorMode.normal` | Normal |
 | `value.elevatorMode.expressUp` | Expreso hacia arriba |
 | `value.elevatorMode.expressDown` | Expreso hacia abajo |

@@ -314,7 +314,7 @@ An approved visit that started at 3 stars sets the VIP approval flag (stars S-16
 
 Visits go on at 3 stars after the flag is set, since the GDD ties them to 3 stars. They have no effect on the flag then, but the VIP still pays the suite.
 
-Design call on the threshold: the GDD asks for "estrés bajo". TM-13 shows stress in pink from 15 minutes and red from 30, so under 15 means the VIP never looked stressed on average. The original passed at half of its stress scale, which is about the same point.
+Design call on the threshold: the GDD asks for "estrés bajo". TM-13 shows stress as a score from 0 to 10 with pink from 4, and 90 steps (15 minutes) is a score of 3.9, so under it means the VIP never looked stressed on average. The original passed at half of its stress scale, which is about the same point.
 
 Design call on the rising chance: a flat 1 in 9 gave a mean wait of 9 days and left 8% of towers waiting more than 21 game days, which is over 5 real hours with nothing to do (playtest TM-139 saw 24 days). Raising the chance by 4 points for each roll without a VIP gives a mean wait of 5.16 days, about 77 real minutes, and no tower waits past day 21. A failed or rejected visit starts the wait again from 8%, which is the pressure to keep two suites and a quick route to them (stars 5.3).
 
@@ -557,7 +557,7 @@ The natural 09:00 roll is off in the scenario for days 0 to 12, so the forced th
 | `VIP_STEP_PERCENT` | 4 (added for each roll since the last VIP day) |
 | `VIP_GUARANTEE_DAY` | 21 (the roll on this day always succeeds) |
 | `VIP_STARS` | 3 |
-| `VIP_MAX_STRESS_MINUTES` | 15 (approved when under) |
+| `VIP_MAX_STRESS_STEPS` | 90 (approved when under; 15 game minutes, a stress score of 3.9) |
 | `TREASURE_ODDS` | 40 |
 | `TREASURE_AMOUNT` | S1-S3 $50,000; S4-S6 $100,000; S7-S9 $200,000 |
 | `SANTA_TIME` | 24 December 22:00 |

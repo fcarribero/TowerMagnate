@@ -39,9 +39,30 @@ Offices, shops, hotel rooms and condos have four price levels: alto, normal, baj
 | Hotel room | Always | At the next check-in. Guests already staying paid at check-in and are not affected. |
 | Condo | Only while unsold | At the sale. After the sale the command is rejected with `PRICE_LOCKED`. |
 
-The price level also changes the unit's evaluation score (TM-13): alto adds, normal changes nothing, bajo subtracts and mínimo always passes. A price change does not trigger an evaluation.
+The price the player charges is not part of the unit's stress score. It is set against the unit's fair price (3.1), and the grade is the fair price over the price (TM-13, stress-evaluation 5.5 and 6). A price change does not trigger an evaluation.
 
-Changing the price level is free and works at any balance.
+Changing the price is free and works at any balance.
+
+### 3.1 Fair price
+
+Every priced unit has a fair price, the rent, nightly rate or sale price its occupants think the unit is worth. It is stored in `unit.appraisal` and the price control marks it as "Precio justo". It is
+
+`base price × (100 + stars + amenities + occupant percent) / 100`
+
+clamped to 60% to 160% of the base price and rounded to whole money.
+
+| Term | Value |
+|---|---|
+| Base price | the normal price of the unit type |
+| Stars | 4 for each star of the tower above the first |
+| Amenities | 1 for each retail shop, fast food, restaurant, cinema, party hall and medical center in the tower, up to 12. A shop counts itself. |
+| Occupant percent | from the stress score of the unit's occupants: +30 at a score of 0, 0 at 3 and -50 at 10, in straight lines between those points |
+
+The occupant score is worked out in stress-evaluation 5.3: the score of the unit's own trips, with a point added for a noise source close by, or the tower's score when the unit has no trips yet. There is no term for the unit's grade and none for the stress of the whole tower, so the fair price does not depend on the grade that depends on it.
+
+A new unit starts at its fair price, with its price set to it. The fair price is stored again every day at 00:00 after the grades, and for a unit it is recomputed right before its grade is stored at a lease end, a condo evaluation or the end of a hotel stay. Prospects and shop customers read the price over the fair price, so a calm tower also makes new tenants more willing to pay.
+
+Design call: the fair price follows the unit's own occupants, so fixing the elevators of one office lets the player raise that office's rent and keep the grade. Calm occupants accept a high rent and stressed ones only a low one.
 
 ## 4. Leases: offices and shops
 

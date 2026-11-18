@@ -305,7 +305,7 @@ At 00:00 each day, for every fast food, restaurant and retail shop with a tenant
 |---|---|
 | `base` | fast food 20 on weekdays, 30 on weekends; restaurant 20 / 30; retail shop 20 / 25 |
 | `price` | retail shops: alto 0.7, normal 1.0, bajo 1.2, mínimo 1.4. Fast food and restaurant: 1.0 |
-| `stress` | from the average trip stress of the venue's visits on the previous day (TM-13): under 15 minutes 1.0, 15 to under 30 minutes 0.8, 30 minutes or more 0.6. No visits the previous day: 1.0 |
+| `stress` | `1 - 0.04 × S`, where `S` is the 0 to 10 stress score (TM-13, stress-evaluation 3.2) of the average trip stress of the venue's visits on the previous day: 1.0 at a score of 0, 0.6 at 10. No visits the previous day: 1.0 |
 | `subway` | 1.2 if the tower has a subway station, else 1.0 |
 
 The engine draws one appearance time per customer from the venue's window in 11.1, and each customer appears at an entrance at that time and travels to that venue. Customers do not choose: they go to the venue that generated them. A customer who arrives when the venue is closed or full leaves. A customer who reaches it enters, stays the time in 11.2 and leaves the tower.
@@ -479,7 +479,7 @@ Design call: the original filled units as soon as someone reached them. The roll
 | `OUTSIDE_CUSTOMER_BASE` | fast food 20 / 30, restaurant 20 / 30, retail 20 / 25 (weekday / weekend) |
 | `RETAIL_PRICE_CUSTOMER_FACTOR` | alto 0.7, normal 1.0, bajo 1.2, mínimo 1.4 |
 | `RETAIL_PRICE_ATTRACTION` | alto 0.5, normal 1, bajo 1.5, mínimo 2 |
-| `VENUE_STRESS_FACTOR` | under 15 min 1.0, under 30 min 0.8, else 0.6 |
+| `VENUE_FACTOR_PER_POINT` | 0.04 (the stress factor is `1 - 0.04 × score`) |
 | `SUBWAY_VISITOR_FACTOR` | 1.2 |
 | `HOTEL_BOOKING_CHANCE` | bueno 0.9, regular 0.7, malo 0.4, none 0.8 |
 | `CLEANING_MINUTES` | 30 |
@@ -585,7 +585,7 @@ P-31. Fast food is open 08:00 to 20:00, retail shops with a tenant 10:00 to 20:0
 
 P-32. At most 40 people are inside a fast food, 40 inside a restaurant and 25 inside a retail shop at once. Visits last 30, 60 and 45 minutes.
 
-P-33. At 00:00 each venue gets `N = floor(base × price × stress × subway)` outside customers, with base fast food 20/30, restaurant 20/30, retail 20/25 (weekday/weekend); price for retail alto 0.7, normal 1.0, bajo 1.2, mínimo 1.4, otherwise 1.0; stress 1.0 under 15 minutes of the previous day's average visit stress, 0.8 under 30, 0.6 from 30, 1.0 with no visits; subway 1.2 with a subway station.
+P-33. At 00:00 each venue gets `N = floor(base × price × stress × subway)` outside customers, with base fast food 20/30, restaurant 20/30, retail 20/25 (weekday/weekend); price for retail alto 0.7, normal 1.0, bajo 1.2, mínimo 1.4, otherwise 1.0; stress `1 - 0.04 × S` with `S` the score of the previous day's average visit stress, 1.0 with no visits; subway 1.2 with a subway station.
 
 P-34. Outside customer appearance times are drawn from the venue windows in 11.1. Each customer goes only to the venue that generated them and leaves the tower after the visit.
 
