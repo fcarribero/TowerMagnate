@@ -362,6 +362,8 @@ const pricingFields = {
   priceMax: z.int().positive(),
   /** Whole money steps only. */
   priceStep: z.literal(1),
+  /** Stress score of the occupants, 0 to 10, that sets the fair price (`appraisal`). */
+  occupantScore: z.number().min(0).max(10),
 };
 
 const InspectedUnitDetailsSchema = z.discriminatedUnion('group', [
@@ -384,15 +386,15 @@ const InspectedUnitDetailsSchema = z.discriminatedUnion('group', [
     /** What an office's grade is made of now, for the reasons in its window; absent for shops. */
     evaluationParts: z
       .object({
-        /** Base stress of the office's trips, in minutes. */
-        baseMinutes: z.number().nonnegative(),
-        /** Price adjustment in score steps: negative below the appraisal, positive above. */
-        price: z.number(),
-        /** At or below the minimum price, which grades good whatever else. */
-        minimumPrice: z.boolean(),
+        /** Stress score of the office's workers, 0 to 10, noise included. */
+        occupantScore: z.number().min(0).max(10),
+        /** The fair price the score sets now. */
+        fairPrice: z.int().nonnegative(),
         noisy: z.boolean(),
         /** The cause of stress that weighs most on the office's workers lately. */
         mainCause: z.enum(STRESS_CAUSES).nullable(),
+        /** A worse neighbor pulls the grade down. */
+        neighborPull: z.boolean(),
       })
       .optional(),
   }),

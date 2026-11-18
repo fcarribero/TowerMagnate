@@ -25,26 +25,35 @@ function workerSlots(state: TowerState, unit: Unit): number[] {
 }
 
 describe('evaluation parts of an office', () => {
-  it('has no stress, no price adjustment and no noise at the appraisal in a quiet tower', () => {
+  it('has the neutral score, the base price as fair price and no noise in a quiet new tower', () => {
     const { state, unit } = office();
     unit.price = unit.appraisal;
     expect(evaluationParts(state, unit)).toEqual({
-      base: 0,
-      price: 0,
-      minimumPrice: false,
-      noise: 0,
+      occupantScore: 3,
+      fairPrice: 10_000,
+      price: 10_000,
+      noisy: false,
       mainCause: null,
+      pulledBy: null,
     });
   });
 
-  it('adds to the score above the appraisal, takes off below it, and grades good at the minimum', () => {
+  it('names the worse neighbor that pulls the office down', () => {
     const { state, unit } = office();
-    unit.price = unit.appraisal * 1.5;
-    expect(evaluationParts(state, unit).price).toBeGreaterThan(0);
-    unit.price = Math.round(unit.appraisal * 0.8);
-    expect(evaluationParts(state, unit).price).toBeLessThan(0);
-    unit.price = 1;
-    expect(evaluationParts(state, unit)).toMatchObject({ minimumPrice: true, price: 0 });
+    const next = buildTower({
+      ...plainTowerPlan(3, 0, 120),
+      units: [
+        { type: 'office', level: 2, x: 40 },
+        { type: 'office', level: 2, x: 49 },
+      ],
+    }).state;
+    const [mine, theirs] = Object.values(next.units).filter((u) => u.type === 'office');
+    if (!mine || !theirs) throw new Error('no offices');
+    theirs.lease = { anchorStep: 0, nextDueStep: 1e9, weekVisits: 0, rent: 1 };
+    theirs.price = theirs.appraisal * 2;
+    mine.price = mine.appraisal;
+    expect(evaluationParts(next, mine).pulledBy).toBe(theirs.id);
+    expect(evaluationParts(state, unit).pulledBy).toBeNull();
   });
 
   it('names the cause that weighs most on the office workers, never calm', () => {

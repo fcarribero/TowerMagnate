@@ -11,6 +11,7 @@ import type { UnitInspect } from '../../model/inspectStore';
 import { formatMoney } from '../money';
 import { formatGameTime } from '../status/statusFormat';
 import { t, type StringKey } from '../strings';
+import { stressScoreText } from '../stressScoreText';
 
 export const NAME_MAX_LENGTH = 24;
 export const FILM_CHANGE_COST = 300_000;
@@ -347,6 +348,15 @@ function evaluationRow(evaluation: Evaluation | null): UnitRow {
   };
 }
 
+function occupantStressRow(score: number): UnitRow {
+  return {
+    id: 'occupantStress',
+    label: t('window.unit.occupantStress'),
+    value: stressScoreText(score),
+    tone: 'plain',
+  };
+}
+
 function appraisalRow(appraisal: number): UnitRow[] {
   return appraisal > 0
     ? [
@@ -370,6 +380,7 @@ function leaseRows(lease: Details<'lease'>, office: boolean): UnitRow[] {
       tone: leased ? 'good' : 'plain',
     },
     evaluationRow(lease.evaluation),
+    occupantStressRow(lease.occupantScore),
   ];
   if (!office && lease.nextPaymentStep !== null) {
     rows.push({
@@ -392,7 +403,11 @@ function leaseRows(lease: Details<'lease'>, office: boolean): UnitRow[] {
 
 /** People are never counted in a panel: the row of people at the top lists them. */
 function condoRows(condo: Details<'condo'>): UnitRow[] {
-  return [evaluationRow(condo.evaluation), ...appraisalRow(condo.appraisal)];
+  return [
+    evaluationRow(condo.evaluation),
+    occupantStressRow(condo.occupantScore),
+    ...appraisalRow(condo.appraisal),
+  ];
 }
 
 const ROOM_STATE_KEYS: Readonly<Record<Details<'hotel'>['state'], StringKey>> = {
@@ -419,6 +434,7 @@ function hotelRows(hotel: Details<'hotel'>): UnitRow[] {
       tone: ROOM_STATE_TONES[hotel.state],
     },
     evaluationRow(hotel.evaluation),
+    occupantStressRow(hotel.occupantScore),
   ];
 }
 
@@ -666,8 +682,8 @@ export function filmChangeState(money: number, gone: boolean): FilmChangeState {
 type EvaluationPartsView = NonNullable<Details<'lease'>['evaluationParts']>;
 type WorkerCause = NonNullable<EvaluationPartsView['mainCause']>;
 
-/** Base stress under this many minutes counts in favor of the grade: half the good threshold. */
-const CALM_WORKERS_MINUTES = 7.5;
+/** Workers under this score raise the fair price: the neutral point of the fair price. */
+const CALM_WORKERS_SCORE = 3;
 
 const CAUSE_KEYS: Readonly<Record<Exclude<WorkerCause, 'calm'>, StringKey>> = {
   wait: 'window.unit.reason.cause.wait',
@@ -685,8 +701,9 @@ export interface EvaluationReasons {
 }
 
 /**
- * Why an office has its grade: the stress of its workers and its main cause, the rent against
- * the appraisal, and noise close by (stress-evaluation 5.6). Null when the inspect has no parts.
+ * Why an office has its grade: the rent against the fair price, the stress score of its workers
+ * and its main cause, noise close by and a worse neighbor (stress-evaluation 5.6). Null when the
+ * inspect has no parts.
  */
 export function evaluationReasons(unit: Pick<UnitInspect, 'details'>): EvaluationReasons | null {
   const details = unit.details;
@@ -694,14 +711,9 @@ export function evaluationReasons(unit: Pick<UnitInspect, 'details'>): Evaluatio
   const parts = details.evaluationParts;
   const good: string[] = [];
   const bad: string[] = [];
-  if (parts.minimumPrice) {
-    good.push(t('window.unit.reason.minimumPrice'));
-  } else if (parts.price < 0) {
-    good.push(t('window.unit.reason.lowPrice'));
-  } else if (parts.price > 0) {
-    bad.push(t('window.unit.reason.highPrice'));
-  }
-  if (parts.baseMinutes < CALM_WORKERS_MINUTES) {
+  if (details.price <= parts.fairPrice) good.push(t('window.unit.reason.fairRent'));
+  else bad.push(t('window.unit.reason.highRent'));
+  if (parts.occupantScore < CALM_WORKERS_SCORE) {
     good.push(t('window.unit.reason.calmWorkers'));
   } else if (parts.mainCause === null || parts.mainCause === 'calm') {
     bad.push(t('window.unit.reason.stressedWorkers'));
@@ -712,5 +724,6 @@ export function evaluationReasons(unit: Pick<UnitInspect, 'details'>): Evaluatio
   }
   if (parts.noisy) bad.push(t('window.unit.reason.noise'));
   else good.push(t('window.unit.reason.quiet'));
+  if (parts.neighborPull) bad.push(t('window.unit.reason.badNeighbor'));
   return { good, bad };
 }

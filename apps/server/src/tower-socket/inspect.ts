@@ -2,6 +2,7 @@ import {
   countPeopleOfUnit,
   doctorsAtWork,
   evaluationParts,
+  occupantScore,
   stressCausesOf,
   findLobby,
   lobbyCells,
@@ -305,7 +306,7 @@ function venueDetails(state: TowerState, unit: Unit): UnitDetails {
   };
 }
 
-function pricing(unit: Unit) {
+function pricing(state: TowerState, unit: Unit) {
   const { min, max } = priceBounds(unit);
   return {
     price: unit.price,
@@ -314,6 +315,7 @@ function pricing(unit: Unit) {
     priceMin: min,
     priceMax: max,
     priceStep: 1 as const,
+    occupantScore: occupantScore(state, unit),
   };
 }
 
@@ -329,7 +331,7 @@ function leaseDetails(state: TowerState, unit: Unit): UnitDetails {
     persons: countPeopleOfUnit(state.people, unit.id),
     capacity: capacityOf(unit),
     evaluation: unit.evaluation,
-    ...pricing(unit),
+    ...pricing(state, unit),
     listed: unit.listed,
     weeklyRent: lease?.rent ?? null,
     nextPaymentStep: lease?.nextDueStep ?? null,
@@ -342,11 +344,11 @@ function leaseDetails(state: TowerState, unit: Unit): UnitDetails {
 function officeEvaluationParts(state: TowerState, unit: Unit) {
   const parts = evaluationParts(state, unit);
   return {
-    baseMinutes: parts.base / STEPS_PER_MINUTE,
-    price: parts.price,
-    minimumPrice: parts.minimumPrice,
-    noisy: parts.noise > 0,
+    occupantScore: parts.occupantScore,
+    fairPrice: parts.fairPrice,
+    noisy: parts.noisy,
     mainCause: parts.mainCause,
+    neighborPull: parts.pulledBy !== null,
   };
 }
 
@@ -358,7 +360,7 @@ function condoDetails(state: TowerState, unit: Unit): UnitDetails {
     residentCount: countPeopleOfUnit(state.people, unit.id),
     capacity: capacityOf(unit),
     evaluation: unit.evaluation,
-    ...pricing(unit),
+    ...pricing(state, unit),
     listed: unit.listed,
     nextEvaluationStep: unit.sale?.nextEvaluationStep ?? null,
   };
@@ -374,7 +376,7 @@ function hotelDetails(state: TowerState, unit: Unit): UnitDetails {
     tenants: peopleOfUnit(state, unit).residents,
     capacity: capacityOf(unit),
     evaluation: unit.evaluation,
-    ...pricing(unit),
+    ...pricing(state, unit),
     checkoutStep: occupied ? (room?.stayEndStep ?? null) : null,
   };
 }

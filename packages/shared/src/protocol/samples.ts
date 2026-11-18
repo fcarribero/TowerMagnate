@@ -244,6 +244,7 @@ export const sampleServerMessages: ServerMessage[] = [
         priceMin: 4_000,
         priceMax: 25_000,
         priceStep: 1,
+        occupantScore: 3,
         listed: true,
         weeklyRent: 10_000,
         nextPaymentStep: 61000,

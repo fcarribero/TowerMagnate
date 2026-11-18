@@ -737,13 +737,6 @@ export const WEEKLY_UPKEEP: Readonly<Record<UnitType, UpkeepRule>> = {
   library: flatUpkeep('per-unit', 10_000),
 };
 
-export const EVAL_PRICE_ADJUST: Readonly<Record<Exclude<PriceLevel, 'minimum'>, number>> = {
-  high: 30,
-  normal: 0,
-  low: -30,
-};
-export const EVAL_NOISE = 60;
-
 export interface NoiseRule {
   readonly radius: number;
   readonly sources: readonly UnitType[];
@@ -838,9 +831,6 @@ export const CALM_ONE_IN = 5;
 export const AMBIENT_WALK_CELL_STRESS = 1;
 /** A person sitting still between trips is counted for at most this many steps (2 hours). */
 export const AMBIENT_STAY_MAX_STEPS = 720;
-export const EVAL_GOOD_BELOW = 90;
-export const EVAL_FAIR_BELOW = 180;
-export const EVAL_FAIR_BELOW_FROM_FOUR_STARS = 240;
 
 /** Trip stress parts in steps (SE-01 to SE-09). */
 export const STRESS_STAIR_FLOOR = 30;

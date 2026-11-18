@@ -1,26 +1,6 @@
-import type { PriceLevel, StarRating } from '@tower-magnate/shared';
+import type { StarRating } from '@tower-magnate/shared';
 import { describe, expect, it } from 'vitest';
-import { gradeOfValue, unitScore } from './evaluation';
-import { levelRatio } from './pricing';
-
-describe('unitScore', () => {
-  it.each<[PriceLevel, boolean, number]>([
-    ['high', false, 101],
-    ['high', true, 161],
-    ['normal', false, 71],
-    ['normal', true, 131],
-    ['low', false, 41],
-    ['low', true, 101],
-    ['minimum', false, 0],
-    ['minimum', true, 0],
-  ])('price %s with noise %s gives %i for base 71', (price, noisy, expected) => {
-    expect(unitScore(71, levelRatio('office', price), noisy)).toBe(expected);
-  });
-
-  it('can go below zero at low price', () => {
-    expect(unitScore(10, levelRatio('office', 'low'), false)).toBe(-20);
-  });
-});
+import { gradeOfValue } from './evaluation';
 
 describe('gradeOfValue', () => {
   it.each<[number, StarRating, string]>([

@@ -61,7 +61,7 @@ export function hasOccupants(unit: Unit): boolean {
 }
 
 /** What the occupants pay: the stay's nightly rate for a room, the unit's price otherwise. */
-function paidPrice(unit: Unit): number {
+export function paidPrice(unit: Unit): number {
   return unit.hotel?.stayRate ?? unit.price;
 }
 
