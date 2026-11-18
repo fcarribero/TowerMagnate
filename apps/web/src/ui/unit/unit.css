@@ -356,6 +356,12 @@
   image-rendering: pixelated;
 }
 
+/* Someone of the unit who is not inside it now: a dark silhouette that still opens their window. */
+.tm-unit__person.is-away .tm-unit__portrait {
+  filter: brightness(0);
+  opacity: 0.35;
+}
+
 .tm-unit__price-control {
   margin: 0 0 var(--space-3);
 }

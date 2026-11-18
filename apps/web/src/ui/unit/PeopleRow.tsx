@@ -14,6 +14,8 @@ export interface PeopleRowProps {
   connection: Pick<GameConnection, 'store' | 'inspect'>;
   /** No heading and no "nobody" text: just the row of people, and nothing when empty. */
   bare?: boolean;
+  /** The people inside the unit now; the others show as silhouettes. Without it all show in color. */
+  inside?: ReadonlySet<string>;
 }
 
 interface Room {
@@ -62,7 +64,7 @@ function portraitWidth(id: string, kind: PersonKind): number {
  * the people would be too covered to tell apart. A group with `columns` stands in rows of that
  * many people side by side instead.
  */
-export function PeopleRow({ group, connection, bare = false }: PeopleRowProps) {
+export function PeopleRow({ group, connection, bare = false, inside }: PeopleRowProps) {
   const known = connection.store.current?.latest.people;
   const box = useRef<HTMLDivElement>(null);
   const room = useQueueRoom(box);
@@ -107,11 +109,12 @@ export function PeopleRow({ group, connection, bare = false }: PeopleRowProps) {
               {row.map((index) => {
                 const id = group.people[index] as string;
                 const margin = layout?.marginLeft[index] ?? 0;
+                const away = inside !== undefined && !inside.has(id);
                 return (
                   <li key={id} style={margin === 0 ? undefined : { marginLeft: `${margin}px` }}>
                     <button
                       type="button"
-                      class="tm-unit__person"
+                      class={away ? 'tm-unit__person is-away' : 'tm-unit__person'}
                       title={t('window.unit.openPerson')}
                       aria-label={t('window.unit.openPerson')}
                       onClick={() => connection.inspect.requestPersonWindow(id)}

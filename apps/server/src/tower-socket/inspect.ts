@@ -14,7 +14,10 @@ import {
   filmAgeDays as engineFilmAgeDays,
   foodVenueSummary,
   housekeepingSummary,
+  isOnTrek,
   isOutsideTower,
+  peopleCount,
+  personEntityId,
   newUnit,
   siteAppraisal,
   occupantAt,
@@ -62,7 +65,22 @@ export function inspectUnit(state: TowerState, unitId: string): InspectData {
     to: unit.x + UNIT_CATALOG[unit.type].width - 1,
     details: unitDetails(state, unit),
     upgrades: upgradeViews(unit),
+    inside: peopleInside(state, unit),
   };
+}
+
+/** The people standing still inside the unit now, whoever they are. One pass over the pool. */
+function peopleInside(state: TowerState, unit: Unit): string[] {
+  const pool = state.people;
+  const last = unit.x + UNIT_CATALOG[unit.type].width - 1;
+  const inside: string[] = [];
+  for (let slot = 0; slot < peopleCount(pool); slot++) {
+    const column = pool.column[slot] as number;
+    if (pool.level[slot] !== unit.level || column < unit.x || column > last) continue;
+    if (isOnTrek(pool, slot) || isOutsideTower(pool, slot)) continue;
+    inside.push(personEntityId(pool.id[slot] as number));
+  }
+  return inside;
 }
 
 /** Every upgrade of the unit's type with its level and what the next level costs. */

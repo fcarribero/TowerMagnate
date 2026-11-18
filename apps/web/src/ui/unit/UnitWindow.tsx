@@ -137,6 +137,7 @@ export function UnitWindow({ unitId, connection, anchored = false }: UnitWindowP
   const listed = found === undefined ? null : listedOf(found);
   const priority = found === undefined ? null : priorityOf(found);
   const people = found === undefined ? [] : peopleGroups(found);
+  const inside = found?.inside === undefined ? undefined : new Set(found.inside);
   const upgrades = found === undefined ? [] : upgradeRows(found, money, gone);
 
   const groups = found === undefined ? null : groupUnitRows(unitRows(found));
@@ -173,6 +174,7 @@ export function UnitWindow({ unitId, connection, anchored = false }: UnitWindowP
             group={group}
             connection={connection}
             bare={people.length === 1}
+            inside={inside}
           />
         ))}
         {groups !== null && groups.tiles.length > 0 && found?.details?.group === 'venue' && (

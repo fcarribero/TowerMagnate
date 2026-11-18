@@ -177,3 +177,5 @@ No change. The player can build as many shafts and cars as wanted at any star le
 ## Workers in the unit window
 
 The window of a service unit with workers lists every worker of the unit who is in the tower, wherever they are working, and not only those standing in the unit: the cleaners of a cleaning room, the maids of a housekeeping unit, the doctors of a medical center and the officers of a security office. An officer at home is not listed.
+
+In every unit window, a person of the unit who is not standing inside the unit now is drawn as a dark silhouette. Clicking the silhouette still opens that person's window. Only the people inside the unit are drawn in color.

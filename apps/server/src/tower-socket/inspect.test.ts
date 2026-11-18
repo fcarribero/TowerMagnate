@@ -85,6 +85,7 @@ describe('inspecting a unit', () => {
       from: 10,
       to: 18,
       upgrades: [],
+      inside: [],
       details: {
         group: 'lease',
         state: 'forRent',
@@ -439,6 +440,24 @@ describe('inspecting a unit', () => {
     expect(data).toMatchObject({
       details: { group: 'cleaning', workers: [`p${away}`, `p${home}`] },
     });
+  });
+
+  it('tells which of the people of a unit stand inside it now', () => {
+    const { state, id } = towerWith('cleaning-room');
+    const away = addPerson(state, { kind: 'cleaner', homeUnit: 7, level: 2, column: 40 });
+    const home = addPerson(state, { kind: 'cleaner', homeUnit: 7, level: 4, column: 11 });
+    for (const person of [away, home]) {
+      state.people.trip[state.people.id.indexOf(person)] = encodeCleanerTask({
+        phase: 'cleaning',
+        target: 0,
+        shift: 0,
+      });
+    }
+
+    const data = inspectUnit(state, id);
+
+    expect(throughTheWire(data)).toBe(true);
+    expect(data).toMatchObject({ inside: [`p${home}`] });
   });
 
   it('lists the audience and crew of a cinema, and the guests of a party hall', () => {

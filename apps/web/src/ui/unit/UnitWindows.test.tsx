@@ -324,6 +324,23 @@ describe('unit windows', () => {
     }
   });
 
+  it('draws the people who are not inside the unit as silhouettes that still open their window', () => {
+    const { open, show, inspect } = setup([unitView('u1')]);
+    open('u1');
+    show(
+      inspectOf('u1', {
+        details: leaseDetails({ workers: ['p1', 'p2'], persons: 2 }),
+        inside: ['p2'],
+      }),
+    );
+    const buttons = screen.getAllByRole('button', { name: 'Ver a esta persona' });
+    expect(buttons.map((button) => button.classList.contains('is-away'))).toEqual([true, false]);
+    const requested: string[] = [];
+    inspect.onPersonWindowRequest((id: string) => requested.push(id));
+    fireEvent.click(buttons[0] as HTMLElement);
+    expect(requested).toEqual(['p1']);
+  });
+
   it('shows the points for and against as a tooltip on the evaluation tile, not in the window', () => {
     vi.useFakeTimers();
     try {

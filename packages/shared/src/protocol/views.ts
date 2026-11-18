@@ -542,6 +542,8 @@ const InspectedUnitFoundSchema = z.object({
   details: InspectedUnitDetailsSchema.nullable(),
   /** The upgrades the unit's type has, with their levels; empty for types with none. */
   upgrades: z.array(UnitUpgradeViewSchema),
+  /** The people standing inside the unit now; the window draws the others as silhouettes. */
+  inside: z.array(PersonEntityIdSchema).optional(),
 });
 
 /** A shaft that was removed or never existed: sent once, then the server drops the target. */
