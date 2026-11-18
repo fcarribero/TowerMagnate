@@ -8,6 +8,7 @@ import {
   MAID_RETRY_MINUTES,
   PERSON_KINDS,
   UNIT_CATALOG,
+  type Level,
   type PersonPool,
   type TowerState,
   type Unit,
@@ -22,7 +23,14 @@ import { chance } from './rng';
 import { nearestStreetColumn, streetColumn, streetPlace } from './street';
 import type { ScheduledHook } from './scheduler';
 import type { SimulationSystem, StepContext } from './step';
-import { cancelTrek, isOnTrek, plannedTripSteps, startTrek, trekPhaseAt, type TrekPlace } from './trek';
+import {
+  cancelTrek,
+  isOnTrek,
+  plannedTripSteps,
+  startTrek,
+  trekPhaseAt,
+  type TrekPlace,
+} from './trek';
 import { isHotelRoomType, unitNumber } from './units';
 
 const MAID_KIND = PERSON_KINDS.indexOf('maid');
@@ -170,25 +178,46 @@ function claimedRooms(pool: PersonPool): Set<number> {
   return claimed;
 }
 
+/** Steps along the maid's routes to a room's door, from where she stands and from her unit's door. */
+export interface RoomDistance {
+  fromMaid: number | null;
+  fromHome: number | null;
+}
+
+function orderOf(steps: number | null): number {
+  return steps ?? Number.POSITIVE_INFINITY;
+}
+
 /**
- * Dirty rooms nobody has claimed, nearest first (hotel spec 4.2). Near means the fewest steps a
- * maid takes from the door of her housekeeping unit to the room's door, found by the route
- * planner with the maid's routes (stairs and service shafts). A room with no route comes last.
- * Ties go to the lower unit id.
+ * Dirty rooms nobody has claimed, in the order a maid tries them (hotel spec 4.2): the room
+ * nearest to where she stands first, and among rooms as near as that, the one nearest to her
+ * housekeeping unit. Near means the fewest steps along the maid's routes (stairs and service
+ * shafts), found by the route planner. A room with no route comes last. Ties go to the lower
+ * unit id.
  */
 export function roomsInPickOrder(
   state: TowerState,
   claimed: ReadonlySet<number>,
-  stepsTo: (room: RoomUnit) => number | null,
+  distanceTo: (room: RoomUnit) => RoomDistance,
 ): RoomUnit[] {
-  const candidates: { room: RoomUnit; steps: number; id: number }[] = [];
+  const candidates: { room: RoomUnit; fromMaid: number; fromHome: number; id: number }[] = [];
   for (const unit of Object.values(state.units)) {
     if (!isRoom(unit) || unit.hotel.state !== 'dirty') continue;
     const id = unitNumber(unit.id);
     if (claimed.has(id)) continue;
-    candidates.push({ room: unit, steps: stepsTo(unit) ?? Number.POSITIVE_INFINITY, id });
+    const distance = distanceTo(unit);
+    candidates.push({
+      room: unit,
+      fromMaid: orderOf(distance.fromMaid),
+      fromHome: orderOf(distance.fromHome),
+      id,
+    });
   }
-  candidates.sort((a, b) => (a.steps === b.steps ? a.id - b.id : a.steps < b.steps ? -1 : 1));
+  candidates.sort((a, b) => {
+    if (a.fromMaid !== b.fromMaid) return a.fromMaid < b.fromMaid ? -1 : 1;
+    if (a.fromHome !== b.fromHome) return a.fromHome < b.fromHome ? -1 : 1;
+    return a.id - b.id;
+  });
   return candidates.map((candidate) => candidate.room);
 }
 
@@ -246,7 +275,15 @@ function ask(maid: Maid, cleanings: number): void {
     goBack(maid, { phase: 'waiting', room: 0, cleanings });
     return;
   }
-  const rooms = roomsInPickOrder(state, maid.claimed, (room) => stepsFromHome(maid, room));
+  const pool = state.people;
+  const here: TrekPlace = {
+    level: pool.level[maid.slot] as Level,
+    column: pool.column[maid.slot] as number,
+  };
+  const rooms = roomsInPickOrder(state, maid.claimed, (room) => ({
+    fromMaid: plannedTripSteps(maid.context, here, doorOf(room), 'maid'),
+    fromHome: stepsFromHome(maid, room),
+  }));
   if (rooms.length > 0) stopTrek(maid);
   for (const room of rooms) {
     if (!startTrek(maid.context, maid.slot, doorOf(room))) continue;

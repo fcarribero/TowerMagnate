@@ -84,11 +84,11 @@ Design call on the 30-minute retry: rooms only become Sucia at 10:00 (economy E-
 
 A candidate is a room that is Sucia, has no claim, and has a valid maid route (routing 7) from the maid's current cell to the room's door at this step.
 
-The maid takes the candidate nearest to her housekeeping unit. Near means the fewest steps along the maid route (stairs and service shafts only, with stairs costing 20 times a lift) from the door of her housekeeping unit to the room's door, found by the route planner. Ties go to the lower unit id. A room with no route is not a candidate.
+The maid takes the candidate nearest to where she stands. Among candidates as near as that, she takes the one nearest to her housekeeping unit. Near means the fewest steps along the maid route (stairs and service shafts only, with stairs costing 20 times a lift) to the room's door, found by the route planner: from her cell for the first rule, from the door of her housekeeping unit for the second. Remaining ties go to the lower unit id. A room with no route is not a candidate. A maid who asks at her unit's door, as at the start of the shift, gets the same order from both rules.
 
 The maid claims that room at once and starts a trip to its door along the route found.
 
-Implementation note for the engine, not a rule: the steps from each housekeeping door are looked up once per room and step. Rooms are sorted by them and the trip is tried in that order until one succeeds.
+Implementation note for the engine, not a rule: the steps from each housekeeping door are looked up once per room and step; the steps from the maid's cell are looked up when she asks. Rooms are sorted by both and the trip is tried in that order until one succeeds.
 
 Design call on the order: the distance is measured from the unit, not from where the maid stands, so the rooms next to the housekeeping unit are cleaned first and the far ones last. The straight-line distance in floors and columns is not used because a room one floor up can be farther by stairs than a room 50 columns away.
 

@@ -1,4 +1,11 @@
-import { LAST_COLUMN, type EngineEvent, type Level, type TowerState, type UnitId, type UnitType } from '@tower-magnate/shared';
+import {
+  LAST_COLUMN,
+  type EngineEvent,
+  type Level,
+  type TowerState,
+  type UnitId,
+  type UnitType,
+} from '@tower-magnate/shared';
 import { describe, expect, it } from 'vitest';
 import { STEPS_PER_MINUTE } from './calendar';
 import { STEPS_PER_DAY } from './clock';
@@ -7,10 +14,11 @@ import {
   encodeMaidTask,
   housekeepingSummary,
   maidTaskAt,
+  roomsInPickOrder,
   type MaidTask,
 } from './housekeeping';
 import { outfitOf } from './outfit';
-import { removePeopleOfUnit } from './people';
+import { removePeopleOfUnit, removePerson } from './people';
 import { populationOf } from './population';
 import { deserializeState, serializeState } from './serialization';
 import { step } from './step';
@@ -340,6 +348,93 @@ describe('hotel spec 4.2, nearest room by route from the housekeeping unit', () 
   });
 });
 
+describe('hotel spec 4.2, nearest to the maid first, then nearest to her unit', () => {
+  function dirtyRooms() {
+    const rooms: RoomPlan[] = [
+      { name: 'a', type: 'single-room', level: 10, x: 140 },
+      { name: 'b', type: 'single-room', level: 10, x: 160 },
+      { name: 'c', type: 'single-room', level: 10, x: 180 },
+    ];
+    const { state, rooms: ids } = hotelTower({ rooms });
+    for (const id of Object.values(ids)) setRoom(state, id, 'dirty');
+    return { state, ids };
+  }
+
+  it('takes the room nearest to where the maid stands before the one nearest to her unit', () => {
+    const { state, ids } = dirtyRooms();
+    // The maid stands by c, at the far end; a is the nearest to the housekeeping unit.
+    const fromMaid: Record<string, number> = {
+      [ids.a as string]: 40,
+      [ids.b as string]: 20,
+      [ids.c as string]: 2,
+    };
+    const fromHome: Record<string, number> = {
+      [ids.a as string]: 40,
+      [ids.b as string]: 60,
+      [ids.c as string]: 80,
+    };
+    const order = roomsInPickOrder(state, new Set(), (room) => ({
+      fromMaid: fromMaid[room.id] ?? null,
+      fromHome: fromHome[room.id] ?? null,
+    }));
+    expect(order.map((room) => room.id)).toEqual([ids.c, ids.b, ids.a]);
+  });
+
+  it('breaks a tie in distance from the maid by distance from her unit, then by unit id', () => {
+    const { state, ids } = dirtyRooms();
+    const fromHome: Record<string, number> = {
+      [ids.a as string]: 50,
+      [ids.b as string]: 30,
+      [ids.c as string]: 50,
+    };
+    const order = roomsInPickOrder(state, new Set(), (room) => ({
+      fromMaid: 10,
+      fromHome: fromHome[room.id] ?? null,
+    }));
+    expect(order.map((room) => room.id)).toEqual([ids.b, ids.a, ids.c]);
+  });
+
+  it('puts a room with no route from the maid last', () => {
+    const { state, ids } = dirtyRooms();
+    const order = roomsInPickOrder(state, new Set(), (room) => ({
+      fromMaid: room.id === ids.a ? null : 10,
+      fromHome: room.id === ids.a ? 1 : 10,
+    }));
+    expect(order.at(-1)?.id).toBe(ids.a);
+  });
+
+  it('sends a maid who just cleaned a far room to the dirty room next to it, not the one by her unit', () => {
+    const rooms: RoomPlan[] = [
+      { name: 'byUnit', type: 'single-room', level: 10, x: 135 },
+      { name: 'far', type: 'single-room', level: 10, x: 240 },
+      { name: 'nextToFar', type: 'single-room', level: 10, x: 250 },
+    ];
+    const { state, rooms: ids } = hotelTower({ rooms });
+    setRoom(state, ids.far as UnitId, 'dirty');
+    setRoom(state, ids.byUnit as UnitId, 'occupied');
+    setRoom(state, ids.nextToFar as UnitId, 'occupied');
+    let current = runUntil(state, at(0, 6, 35)).state;
+    // Keep only the maid on her way to the far room.
+    const pool = current.people;
+    const others: number[] = [];
+    for (let slot = 0; slot < pool.id.length; slot++) {
+      const task = maidTaskAt(pool, slot);
+      if (task && task.room !== roomNumber(ids.far as UnitId)) others.push(pool.id[slot] as number);
+    }
+    expect(others).toHaveLength(5);
+    for (const id of others) removePerson(current, id);
+    setRoom(current, ids.byUnit as UnitId, 'dirty');
+    setRoom(current, ids.nextToFar as UnitId, 'dirty');
+    // She asks again the moment the far room is clean, standing at its door.
+    while (current.units[ids.far as UnitId]?.hotel?.state === 'dirty' && current.step < at(0, 9)) {
+      current = runUntil(current, current.step + 1).state;
+    }
+    expect(current.units[ids.far as UnitId]?.hotel?.state).not.toBe('dirty');
+    const [task] = maidTasks(current);
+    expect(task?.room).toBe(roomNumber(ids.nextToFar as UnitId));
+  });
+});
+
 describe('hotel spec 9.4, the 17:00 cut and no daily limit', () => {
   function dirtyAt(minuteStep: number, name: string) {
     const rooms: RoomPlan[] = [{ name, type: 'single-room', level: 10, x: 122 }];
@@ -512,7 +607,8 @@ describe('maids walk in from the street and change in their room', () => {
           sawCivilianLeaving.add(id);
         }
       }
-      for (const id of ids) if (!present.has(id) && !firstGone.has(id)) firstGone.set(id, current.step);
+      for (const id of ids)
+        if (!present.has(id) && !firstGone.has(id)) firstGone.set(id, current.step);
     }
     expect(maidCount(current)).toBe(0);
     for (const id of ids) {
@@ -521,7 +617,9 @@ describe('maids walk in from the street and change in their room', () => {
       // Gone only once they stood on the ground level at a map edge, long after 13:00.
       const seen = lastSeen.get(id);
       expect(seen?.level).toBe(1);
-      expect((seen?.column as number) <= 1 || (seen?.column as number) >= LAST_COLUMN - 1).toBe(true);
+      expect((seen?.column as number) <= 1 || (seen?.column as number) >= LAST_COLUMN - 1).toBe(
+        true,
+      );
       expect(firstGone.get(id) as number).toBeGreaterThan(at(0, 13) + 30);
     }
   });
