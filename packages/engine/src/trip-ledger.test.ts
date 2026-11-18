@@ -18,6 +18,8 @@ import { cancelTrek, createTrekSystem, startTrek, trekPhaseAt } from './trek';
 import {
   addFailedSearch,
   createNightReset,
+  finishRide,
+  stressCausesOf,
   hasPendingTrip,
   lobbyHeightAt,
   recordTrip,
@@ -136,7 +138,8 @@ describe('trip ledger', () => {
     const state = buildRideTower();
     const id = sendRider(state, 'officeWorker', 4);
     const waiting = engine.step(state, [], 3).state;
-    expect(findPerson(waiting.people, id)?.stress).toBe(3);
+    // 2 steps of wait, then a step in the car, which counts nothing until the ride ends.
+    expect(findPerson(waiting.people, id)?.stress).toBe(2);
   });
 
   it('keeps the stress of a waiting and riding person exact within one long step call', () => {
@@ -169,7 +172,9 @@ describe('trip ledger', () => {
     expect(trekPhaseAt(beside.people, slot)).toBe('waitingBesideQueue');
     const besideSteps = rechecks * FULL_QUEUE_RECHECK_STEPS;
     const besideStress = findPerson(beside.people, id)?.stress ?? 0;
-    expect(Math.abs(besideStress - (STRESS_QUEUE_FULL + besideSteps))).toBeLessThanOrEqual(CALM_SLACK);
+    expect(Math.abs(besideStress - (STRESS_QUEUE_FULL + besideSteps))).toBeLessThanOrEqual(
+      CALM_SLACK,
+    );
 
     upQueueAtLobby(beside).up = [];
     let joined = beside;
@@ -230,7 +235,8 @@ describe('trip ledger', () => {
     const slot = slotOfPerson(waiting.people, id);
     const context = { state: waiting, events: [] };
     cancelTrek(context, slot, { nightReset: true });
-    expect(tripsOf(waiting, id)).toEqual([{ endStep: waiting.step, stress: 3 + STRESS_NO_ROUTE }]);
+    // The 2 steps of wait count; the step already in the car counts nothing.
+    expect(tripsOf(waiting, id)).toEqual([{ endStep: waiting.step, stress: 2 + STRESS_NO_ROUTE }]);
     expect(trekPhaseAt(waiting.people, slot)).toBe('idle');
   });
 
@@ -273,5 +279,46 @@ describe('lobby height at a cell', () => {
     const state = buildRideTower();
     expect(lobbyHeightAt(state.grid, 1, SHAFT_COLUMN)).toBe(state.grid.mainLobbyHeight);
     expect(lobbyHeightAt(state.grid, 3, SHAFT_COLUMN)).toBeNull();
+  });
+});
+
+describe('stress of a ride', () => {
+  function rider(stops: number[], type: Shaft['type'] = 'standard') {
+    const { state } = buildTower({ ...plainTowerPlan(40, 0, 60) });
+    const id = addPerson(state, {
+      kind: 'officeWorker',
+      homeUnit: 0,
+      level: 1 as Level,
+      column: 5,
+    });
+    const slot = slotOfPerson(state.people, id);
+    state.step = 1_000;
+    state.people.tripPartStep[slot] = 800;
+    const shaft = { type, stops } as unknown as Shaft;
+    return { state, slot, shaft };
+  }
+
+  it('is nothing on a car that goes straight to the floor, however long the ride takes', () => {
+    const { state, slot, shaft } = rider([1, 30]);
+    finishRide(state, slot, shaft, 30 as Level);
+    expect(state.people.tripSum[slot]).toBe(0);
+    expect(state.people.tripSlowFloors[slot]).toBe(0);
+    expect(stressCausesOf(state.people, slot).ride).toBe(0);
+  });
+
+  it('is 5 for each enabled stop the car passes, which also count toward the long-trip extra', () => {
+    const { state, slot, shaft } = rider([1, 3, 5, 9, 12, 30, 35]);
+    finishRide(state, slot, shaft, 30 as Level);
+    expect(state.people.tripSum[slot]).toBe(4 * 5);
+    expect(state.people.tripSlowFloors[slot]).toBe(4);
+    expect(stressCausesOf(state.people, slot).ride).toBe(20);
+  });
+
+  it('counts the stops passed going down too, and none toward the extra on an express', () => {
+    const { state, slot, shaft } = rider([1, 15, 30], 'express');
+    state.people.level[slot] = 30;
+    finishRide(state, slot, shaft, 1 as Level);
+    expect(state.people.tripSum[slot]).toBe(5);
+    expect(state.people.tripSlowFloors[slot]).toBe(0);
   });
 });

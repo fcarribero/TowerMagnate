@@ -6,6 +6,7 @@ import {
   STRESS_ESCALATOR_FLOOR,
   STRESS_NO_ROUTE,
   STRESS_QUEUE_FULL,
+  STRESS_RIDE_STOP_PASSED,
   STRESS_STAIR_FLOOR,
   STRESS_TRIP_CAP,
   STRESS_WINDOW_STEPS,
@@ -64,10 +65,10 @@ export function tripsOf(state: TowerState, personId: number): RecordedTrip[] {
 /** What the person is doing at the shaft, for the wait or ride under way. */
 export type PartUnderWay = 'queued' | 'riding' | null;
 
+/** The stress of the part under way. A ride counts the stops it passes when it ends, not its time. */
 function underWaySteps(state: TowerState, slot: number, part: PartUnderWay): number {
   const pool = state.people;
   const elapsed = state.step - field(pool.tripPartStep, slot);
-  if (part === 'riding') return elapsed;
   if (part === 'queued') return Math.max(0, elapsed - field(pool.tripPartCut, slot));
   return 0;
 }
@@ -351,7 +352,19 @@ export function boardCar(state: TowerState, slot: number): void {
   pool.tripPartCut[slot] = 0;
 }
 
-/** The person leaves the car at `to`; their level is still the one they boarded on. */
+/** Enabled stops of the shaft strictly between two levels: the stops the car passes. */
+function stopsPassed(shaft: Shaft, from: Level, to: Level): number {
+  const low = Math.min(floorIndex(from), floorIndex(to));
+  const high = Math.max(floorIndex(from), floorIndex(to));
+  return shaft.stops.filter((stop) => floorIndex(stop) > low && floorIndex(stop) < high).length;
+}
+
+/**
+ * The person leaves the car at `to`; their level is still the one they boarded on. The ride's
+ * stress is 5 for each enabled stop the car passes, however long it takes: a car that goes straight
+ * to the person's floor adds nothing. Outside an express, those stops count toward the long-trip
+ * extra.
+ */
 export function finishRide(
   state: TowerState,
   slot: number,
@@ -359,13 +372,13 @@ export function finishRide(
   to: Level,
 ): void {
   const pool = state.people;
-  const rideSteps = state.step - field(pool.tripPartStep, slot);
-  pool.tripSum[slot] = field(pool.tripSum, slot) + rideSteps;
-  addCause(pool, slot, 'ride', rideSteps);
+  const from = field(pool.level, slot) as Level;
+  const passed = shaft ? stopsPassed(shaft, from, to) : 0;
+  const stress = passed * STRESS_RIDE_STOP_PASSED;
+  pool.tripSum[slot] = field(pool.tripSum, slot) + stress;
+  addCause(pool, slot, 'ride', stress);
   if (shaft && shaft.type !== 'express') {
-    const from = field(pool.level, slot) as Level;
-    const floors = Math.abs(floorIndex(to) - floorIndex(from));
-    pool.tripSlowFloors[slot] = field(pool.tripSlowFloors, slot) + floors;
+    pool.tripSlowFloors[slot] = field(pool.tripSlowFloors, slot) + passed;
   }
   pool.tripPartStep[slot] = 0;
 }

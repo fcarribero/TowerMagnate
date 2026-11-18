@@ -21,7 +21,7 @@ Each trip produces one stress value `T`, in steps, from the legs recorded by rou
 | Part | Stress |
 |---|---|
 | Elevator wait | `waitSteps` of each ride, after the tall lobby cut (2.3) |
-| Elevator ride | `rideSteps` of each ride |
+| Elevator ride | 5 for each enabled stop of the shaft the car passes between boarding and leaving |
 | Stairs | 30 per stair floor walked, up or down |
 | Escalators | 6 per escalator floor walked, up or down |
 | Full queue | 12 per full-queue event |
@@ -30,6 +30,8 @@ Each trip produces one stress value `T`, in steps, from the legs recorded by rou
 | Horizontal walking | 1 per column outside units (2.6) |
 
 Then `T = min(540, sum of the parts)`.
+
+Design call on rides: the ride counts the enabled stops the car passes, not the time it takes. A car whose shaft goes straight to the person's floor adds nothing, however tall the shaft, so the player can fix a long ride by giving a busy floor a shaft of its own or by turning stops off. A shaft that stops on every floor costs 5 per floor passed, a little more than its travel time. A trip that ends while the person is in the car counts nothing for that ride.
 
 Design call on stairs: the GDD counts "cada piso subido a pie". A stair flight takes 12 steps (routing 8.1), and the stress of 30 per floor replaces that time; it is not added to it. Three stair floors, the most a trip may walk (routing 5.2), give 90 steps, which is the pink line by itself. A small tower can use stairs for the first two floors above the lobby and needs an elevator after that, as in the original. Going down costs the same as going up so that the trip to work and the trip home weigh the same.
 
@@ -41,7 +43,7 @@ Design call on the cap: the original clamped each leg at the top of its scale. O
 
 ### 2.2 Long slow trips
 
-The slow floors of a trip are the sum of `rideFloors` of its standard and service rides plus its stair floors. Express rides and escalators add no slow floors.
+The slow floors of a trip are the enabled stops passed on its standard and service rides plus its stair floors. Express rides and escalators add no slow floors.
 
 | Slow floors in the trip | Extra |
 |---|---|
@@ -347,6 +349,8 @@ The balance simulation checks these and GD retunes the constants in section 11.
 
 ## 10. Worked examples
 
+The ride parts below were worked out when a ride counted its time and its floors. Under SE-02 a ride counts 5 for each enabled stop passed, and the slow floors are those stops: T1 with every floor enabled has 7 stops passed, so its ride is 35 instead of 23.
+
 All examples use the default elevator dwell of 30 seconds (3 steps). "Ride" times follow elevators 2.4: `3 + 1 + ceil(n / speed) + 1` steps for `n` floors with no stop, plus 5 per intermediate stop. Columns are inclusive.
 
 ### 10.1 Trips
@@ -489,9 +493,9 @@ Trip stress and the unit base are in steps. The score, the fair price percent an
 
 SE-01. Stress values are whole numbers of steps. The UI shows them as a score from 0 to 10 (SE-23).
 
-SE-02. A trip's stress is the sum of: the wait of each ride after the tall lobby cut; the ride steps of each ride; 30 per stair floor; 6 per escalator floor; 12 per full-queue event; 360 per failed route search; and the long-trip extra. Horizontal walking adds nothing. The result is capped at 540.
+SE-02. A trip's stress is the sum of: the wait of each ride after the tall lobby cut; 5 for each enabled stop of the shaft the car passes on each ride; 30 per stair floor; 6 per escalator floor; 12 per full-queue event; 360 per failed route search; and the long-trip extra. Horizontal walking adds nothing. The result is capped at 540.
 
-SE-03. Slow floors are the standard and service ride floors plus the stair floors of the trip. The long-trip extra is 0 for 0 to 14 slow floors, 30 for 15 to 24 and 60 for 25 or more. Express rides and escalators add no slow floors.
+SE-03. Slow floors are the enabled stops passed on standard and service rides plus the stair floors of the trip. The long-trip extra is 0 for 0 to 14 slow floors, 30 for 15 to 24 and 60 for 25 or more. Express rides and escalators add no slow floors.
 
 SE-04. A ride that boards on a lobby cell and goes up has its wait reduced by 18 if that lobby level has height 2 and by 36 if it has height 3, never below 0. Rides that go down or board outside a lobby get no cut.
 

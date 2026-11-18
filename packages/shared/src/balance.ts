@@ -835,6 +835,8 @@ export const AMBIENT_STAY_MAX_STEPS = 720;
 /** Trip stress parts in steps (SE-01 to SE-09). */
 export const STRESS_STAIR_FLOOR = 30;
 export const STRESS_ESCALATOR_FLOOR = 6;
+/** Stress of a ride for each enabled stop of the shaft the car passes between boarding and leaving. */
+export const STRESS_RIDE_STOP_PASSED = 5;
 export const STRESS_QUEUE_FULL = 12;
 export const STRESS_NO_ROUTE = 360;
 export const STRESS_TRIP_CAP = 540;
@@ -973,7 +975,6 @@ export const PRICE_BAND_MARGIN_PERCENT = 5;
 
 /** The appraisal never leaves this percent range of the base price. */
 export const APPRAISAL_RANGE_PERCENT = { min: 60, max: 160 } as const;
-
 
 /** Percent added to the appraisal for each star of the tower above the first. */
 export const APPRAISAL_STAR_PERCENT = 4;
