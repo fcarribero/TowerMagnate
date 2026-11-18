@@ -58,6 +58,7 @@ export { priceRatio } from './pricing';
 export {
   maidsOfUnit,
   officersOnDuty,
+  staffOfUnit,
   peopleOfUnit,
   venuePeople,
   visitorsOfUnit,
@@ -73,8 +74,20 @@ export {
 export type { CheckInResult } from './hotel';
 export { housekeepingSummary, maidTaskAt } from './housekeeping';
 export { completeSite, constructionPointsFor, siteAppraisal, siteProgress } from './construction';
-export { cleanerCrewSize, cleanerRate, decodeCleanerTask, isCleaner } from './cleaning';
-export { decodeDoctorTask, doctorsAtWork, doctorSlotsOf, isDoctor } from './doctors';
+export {
+  cleanerCrewSize,
+  cleanerRate,
+  decodeCleanerTask,
+  encodeCleanerTask,
+  isCleaner,
+} from './cleaning';
+export {
+  decodeDoctorTask,
+  doctorsAtWork,
+  doctorSlotsOf,
+  encodeDoctorTask,
+  isDoctor,
+} from './doctors';
 export { stressCausesOf } from './trip-ledger';
 export { evaluationParts, type EvaluationParts } from './evaluation-reasons';
 export type { HousekeepingSummary, MaidPhase, MaidTask } from './housekeeping';

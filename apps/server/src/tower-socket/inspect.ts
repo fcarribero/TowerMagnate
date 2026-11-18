@@ -1,6 +1,6 @@
 import {
   countPeopleOfUnit,
-  doctorsAtWork,
+  staffOfUnit,
   evaluationParts,
   occupantScore,
   stressCausesOf,
@@ -8,7 +8,6 @@ import {
   lobbyCells,
   lobbyUpgrades,
   maidsOfUnit,
-  officersOnDuty,
   visitorsOfUnit,
   peopleOfUnit,
   venuePeople,
@@ -258,13 +257,15 @@ function unitDetails(state: TowerState, unit: Unit): UnitDetails {
     case 'housekeeping':
       return housekeepingDetails(state, unit);
     case 'security':
-      return { group: 'security', officers: officersOnDuty(state, unit) };
+      return { group: 'security', officers: staffOfUnit(state, unit, 'police') };
     case 'medical-center':
       return {
         group: 'visit',
-        workers: doctorsAtWork(state, unit),
+        workers: staffOfUnit(state, unit, 'doctor'),
         customers: visitorsOfUnit(state, unit),
       };
+    case 'cleaning-room':
+      return { group: 'cleaning', workers: staffOfUnit(state, unit, 'cleaner') };
     case 'party-hall':
     case 'cathedral':
       return {

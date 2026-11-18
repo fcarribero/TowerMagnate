@@ -436,6 +436,11 @@ const InspectedUnitDetailsSchema = z.discriminatedUnion('group', [
     customers: PersonIdsSchema.optional(),
   }),
   z.object({
+    group: z.literal('cleaning'),
+    /** Every cleaner of the room in the tower, wherever they work. */
+    workers: PersonIdsSchema,
+  }),
+  z.object({
     group: z.literal('security'),
     /** The officers of the office who are on duty right now. */
     officers: PersonIdsSchema,

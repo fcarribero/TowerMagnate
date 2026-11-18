@@ -7,14 +7,14 @@ import {
 } from '@tower-magnate/shared';
 import { describe, expect, it } from 'vitest';
 import { STEPS_PER_HOUR } from './calendar';
-import { cleanerRate, decodeCleanerTask, isCleaner } from './cleaning';
+import { cleanerRate, decodeCleanerTask, encodeCleanerTask, isCleaner } from './cleaning';
 import { outfitOf } from './outfit';
 import { step } from './step';
 import { buildTower, plainTowerPlan } from './testing';
 
 const ROOM = 'u1';
 
-/** A 3-level tower with a cleaning room on level 3 and a fast food on level 2, at 06:59. */
+/** A 3-level tower with a cleaning room on level 3 and a fast food on level 2, at 05:59. */
 function tower(upgrades?: Record<string, number>): TowerState {
   const { state } = buildTower({
     ...plainTowerPlan(3, 0, 120),
@@ -26,7 +26,7 @@ function tower(upgrades?: Record<string, number>): TowerState {
   });
   state.money = 99_999_999;
   state.stars = 6;
-  state.step = 7 * STEPS_PER_HOUR - 6;
+  state.step = 6 * STEPS_PER_HOUR - 6;
   if (upgrades) (state.units[ROOM] as { upgrades?: Record<string, number> }).upgrades = upgrades;
   return state;
 }
@@ -49,6 +49,7 @@ function advance(state: TowerState, steps: number): TowerState {
 interface Seen {
   phase: string | undefined;
   target: number | undefined;
+  shift: number | undefined;
   uniform: boolean;
 }
 
@@ -61,6 +62,7 @@ function cleaners(state: TowerState): Seen[] {
     seen.push({
       phase: task?.phase,
       target: task?.target,
+      shift: task?.shift,
       uniform: outfitOf(pool, slot) === 'uniform',
     });
   }
@@ -68,7 +70,7 @@ function cleaners(state: TowerState): Seen[] {
 }
 
 describe('cleaning room', () => {
-  it('brings its crew at 07:00 in everyday clothes, and they change in the room', () => {
+  it('brings its crew at 06:00 in everyday clothes, and they change in the room', () => {
     let state = advance(tower(), 12);
     const arrived = cleaners(state);
     expect(arrived).toHaveLength(CLEANER_CREW_SIZE);
@@ -131,17 +133,48 @@ describe('cleaning room', () => {
     expect(cleanerRate(tower({ collectionSpeed: 2 }).units[ROOM] ?? null)).toBeCloseTo(1.5);
   });
 
-  it('changes in the room before it leaves at the end of the shift', () => {
+  it('changes in the room before it leaves at the end of its 8-hour shift', () => {
     let state = tower();
     const phases = new Set<string | undefined>();
-    for (let minute = 0; minute < 12 * 60 + 30; minute++) {
+    for (let minute = 0; minute < 8 * 60 + 30; minute++) {
       state = advance(state, 6);
-      for (const person of cleaners(state)) phases.add(person.phase);
+      for (const person of cleaners(state)) if (person.shift === 0) phases.add(person.phase);
     }
     // A cleaner waiting at the room door changes there without walking back.
     expect(phases.has('changingOut')).toBe(true);
     state = advance(state, 2 * STEPS_PER_HOUR);
-    expect(cleaners(state)).toHaveLength(0);
+    expect(cleaners(state).filter((person) => person.shift === 0)).toHaveLength(0);
+  });
+
+  it('keeps a crew in the tower day and night, in shifts of 06:00, 14:00 and 22:00', () => {
+    let state = tower();
+    // 05:59 + 4 hours: the morning crew works.
+    state = advance(state, 4 * STEPS_PER_HOUR);
+    expect(cleaners(state).map((person) => person.shift)).toEqual([0, 0, 0]);
+    // 16:00: the afternoon crew has taken over and the morning crew has left.
+    state = advance(state, 6 * STEPS_PER_HOUR);
+    expect(cleaners(state).map((person) => person.shift)).toEqual([1, 1, 1]);
+    expect(cleaners(state).every((person) => person.uniform)).toBe(true);
+    // 03:00: the night crew.
+    state = advance(state, 11 * STEPS_PER_HOUR);
+    expect(cleaners(state).map((person) => person.shift)).toEqual([2, 2, 2]);
+    expect(cleaners(state).every((person) => person.uniform)).toBe(true);
+  });
+
+  it('reads a cleaner saved before shifts as one of the shift under way', () => {
+    expect(
+      decodeCleanerTask(encodeCleanerTask({ phase: 'cleaning', target: 812, shift: 2 })),
+    ).toEqual({
+      phase: 'cleaning',
+      target: 812,
+      shift: 2,
+    });
+    // Old saves packed only the phase and the target.
+    expect(decodeCleanerTask(812 * 11 + 6 + 1)).toEqual({
+      phase: 'cleaning',
+      target: 812,
+      shift: null,
+    });
   });
 
   it('lets the crew walk out when its room is demolished', () => {
@@ -164,7 +197,7 @@ describe('cleaning room', () => {
       ...plainTowerPlan(3, 0, 120),
       shafts: [{ type: 'standard', x: 60, bottom: 1, top: 3, cars: 2 }],
     });
-    plain.step = 7 * STEPS_PER_HOUR - 6;
+    plain.step = 6 * STEPS_PER_HOUR - 6;
     expect(cleaners(advance(plain, STEPS_PER_HOUR))).toHaveLength(0);
   });
 });

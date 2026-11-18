@@ -199,6 +199,7 @@ export const SPANISH_STRINGS = {
   'window.unit.peopleCustomers': 'Clientes',
   'window.unit.peopleTenants': 'Huéspedes',
   'window.unit.peopleMaids': 'Mucamas',
+  'window.unit.peopleCleaners': 'Limpiadores',
   'window.unit.peopleOfficers': 'Policías',
   'window.unit.peopleDoctors': 'Médicos',
   'window.unit.reason.fairPrice': '{what} dentro del precio justo',

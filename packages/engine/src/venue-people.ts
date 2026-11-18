@@ -1,9 +1,9 @@
-import { PERSON_KINDS, type TowerState, type Unit } from '@tower-magnate/shared';
+import { PERSON_KINDS, type PersonKind, type TowerState, type Unit } from '@tower-magnate/shared';
 import { isGuestAtVenue } from './hotel-guest-trip';
 import { isMaid } from './housekeeping';
 import { routineAt } from './office-routine';
 import { NO_TRIP, personEntityId } from './people';
-import { isPoliceOnDuty } from './police-phase';
+import { isPoliceOnDuty, policePhaseAt } from './police-phase';
 import { decodeResidentRoutine } from './resident-routine';
 import { staffRoutineAt } from './venue-staff';
 import { customerTripAt } from './venue-visitors';
@@ -91,6 +91,23 @@ export function maidsOfUnit(state: TowerState, unit: Pick<Unit, 'id'>): string[]
     }
   }
   return maids;
+}
+
+/**
+ * Person ids of the people of one kind who belong to a service unit and are in the tower, wherever
+ * they work: officers off duty are at home, and doctors and cleaners leave the pool when they go.
+ */
+export function staffOfUnit(state: TowerState, unit: Pick<Unit, 'id'>, kind: PersonKind): string[] {
+  const pool = state.people;
+  const home = Number(unit.id.slice(1));
+  const code = PERSON_KINDS.indexOf(kind);
+  const people: string[] = [];
+  for (let slot = 0; slot < pool.id.length; slot++) {
+    if (pool.homeUnit[slot] !== home || pool.kind[slot] !== code) continue;
+    if (kind === 'police' && policePhaseAt(pool, slot) === 'off') continue;
+    people.push(personEntityId(pool.id[slot] as number));
+  }
+  return people;
 }
 
 /** Person ids of the officers of one security office who are on duty right now. */

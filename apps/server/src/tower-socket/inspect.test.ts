@@ -2,6 +2,8 @@ import {
   addPerson,
   createTower,
   defaultSchedule,
+  encodeCleanerTask,
+  encodeDoctorTask,
   encodePoliceRoutine,
   encodeStaffRoutine,
   newUnit,
@@ -116,7 +118,12 @@ describe('inspecting a unit', () => {
   it('shows a let office with its persons, and next payment', () => {
     const { state, id } = towerWith('office');
     unitOf(state).name = 'Oficinas';
-    unitOf(state).lease = { anchorStep: 0, nextDueStep: 2 * STEPS_PER_WEEK, weekVisits: 0, rent: 10_000 };
+    unitOf(state).lease = {
+      anchorStep: 0,
+      nextDueStep: 2 * STEPS_PER_WEEK,
+      weekVisits: 0,
+      rent: 10_000,
+    };
     state.step = STEPS_PER_WEEK + 5;
     addOfficeWorkers(state, 7, 6);
 
@@ -132,7 +139,6 @@ describe('inspecting a unit', () => {
       },
     });
   });
-
 
   it('answers a shop like an office', () => {
     const { state, id } = towerWith('retail-shop');
@@ -265,7 +271,12 @@ describe('inspecting a unit', () => {
     unitOf(state).price = 12_000;
     unitOf(state).appraisal = 10_000;
     unitOf(state).listed = true;
-    unitOf(state).lease = { anchorStep: 0, nextDueStep: STEPS_PER_WEEK, weekVisits: 0, rent: 9_000 };
+    unitOf(state).lease = {
+      anchorStep: 0,
+      nextDueStep: STEPS_PER_WEEK,
+      weekVisits: 0,
+      rent: 9_000,
+    };
 
     expect(inspectUnit(state, id)).toMatchObject({
       details: {
@@ -355,13 +366,20 @@ describe('inspecting a unit', () => {
     const data = inspectUnit(state, id);
 
     expect(throughTheWire(data)).toBe(true);
-    expect(data).toMatchObject({ details: { group: 'housekeeping', workers: [`p${first}`, `p${second}`] } });
+    expect(data).toMatchObject({
+      details: { group: 'housekeeping', workers: [`p${first}`, `p${second}`] },
+    });
   });
 
-  it('lists only the officers on duty of a security office', () => {
+  it('lists every officer of a security office in the tower, on duty or on the way in', () => {
     const { state, id } = towerWith('security');
     const on = addPerson(state, { kind: 'police', homeUnit: 7, level: 4, column: 10 });
     const off = addPerson(state, { kind: 'police', homeUnit: 7, level: 4, column: 11 });
+    const coming = addPerson(state, { kind: 'police', homeUnit: 7, level: 1, column: 2 });
+    state.people.trip[state.people.id.indexOf(coming)] = encodePoliceRoutine({
+      phase: 'arriving',
+      entranceOnRight: false,
+    });
     state.people.trip[state.people.id.indexOf(on)] = encodePoliceRoutine({
       phase: 'working',
       entranceOnRight: false,
@@ -374,7 +392,53 @@ describe('inspecting a unit', () => {
     const data = inspectUnit(state, id);
 
     expect(throughTheWire(data)).toBe(true);
-    expect(data).toMatchObject({ details: { group: 'security', officers: [`p${on}`] } });
+    expect(data).toMatchObject({
+      details: { group: 'security', officers: [`p${on}`, `p${coming}`] },
+    });
+  });
+
+  it('lists every doctor of a medical center in the tower, working or not', () => {
+    const { state, id } = towerWith('medical-center');
+    const working = addPerson(state, { kind: 'doctor', homeUnit: 7, level: 4, column: 10 });
+    const changing = addPerson(state, { kind: 'doctor', homeUnit: 7, level: 4, column: 11 });
+    state.people.trip[state.people.id.indexOf(working)] = encodeDoctorTask({
+      phase: 'working',
+      shift: 0,
+      spot: 0,
+    });
+    state.people.trip[state.people.id.indexOf(changing)] = encodeDoctorTask({
+      phase: 'changingIn',
+      shift: 0,
+      spot: 1,
+    });
+
+    const data = inspectUnit(state, id);
+
+    expect(throughTheWire(data)).toBe(true);
+    expect(data).toMatchObject({
+      details: { group: 'visit', workers: [`p${working}`, `p${changing}`] },
+    });
+  });
+
+  it('lists every cleaner of a cleaning room, wherever in the tower they work', () => {
+    const { state, id } = towerWith('cleaning-room');
+    const away = addPerson(state, { kind: 'cleaner', homeUnit: 7, level: 2, column: 40 });
+    const home = addPerson(state, { kind: 'cleaner', homeUnit: 7, level: 4, column: 11 });
+    addPerson(state, { kind: 'cleaner', homeUnit: 9, level: 4, column: 12 });
+    for (const person of [away, home]) {
+      state.people.trip[state.people.id.indexOf(person)] = encodeCleanerTask({
+        phase: 'cleaning',
+        target: 0,
+        shift: 0,
+      });
+    }
+
+    const data = inspectUnit(state, id);
+
+    expect(throughTheWire(data)).toBe(true);
+    expect(data).toMatchObject({
+      details: { group: 'cleaning', workers: [`p${away}`, `p${home}`] },
+    });
   });
 
   it('lists the audience and crew of a cinema, and the guests of a party hall', () => {
@@ -445,14 +509,30 @@ describe('inspecting a unit', () => {
       price: 7_000,
       listed: false,
     };
-    state.sites.u9 = { id: 'u9', type: 'security', x: 0, level: 4, paid: 0, placedAtStep: 0, points: 0 };
+    state.sites.u9 = {
+      id: 'u9',
+      type: 'security',
+      x: 0,
+      level: 4,
+      paid: 0,
+      placedAtStep: 0,
+      points: 0,
+    };
     const office = inspectUnit(state, 'u8');
     expect(throughTheWire(office)).toBe(true);
     expect(office).toMatchObject({
-      details: { group: 'construction', price: 7_000, priceBand: 'low', listed: false, priority: false },
+      details: {
+        group: 'construction',
+        price: 7_000,
+        priceBand: 'low',
+        listed: false,
+        priority: false,
+      },
     });
     state.sites.u9!.priority = true;
-    expect(inspectUnit(state, 'u9')).toMatchObject({ details: { group: 'construction', priority: true } });
+    expect(inspectUnit(state, 'u9')).toMatchObject({
+      details: { group: 'construction', priority: true },
+    });
     expect((inspectUnit(state, 'u9') as { details: object }).details).not.toHaveProperty('price');
   });
 

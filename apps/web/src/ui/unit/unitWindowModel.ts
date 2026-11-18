@@ -131,6 +131,7 @@ export interface PeopleGroup {
     | 'customers'
     | 'tenants'
     | 'maids'
+    | 'cleaners'
     | 'officers'
     | 'audience'
     | 'doctors';
@@ -214,6 +215,15 @@ export function peopleGroups(unit: Pick<UnitInspect, 'type' | 'details'>): Peopl
           label: t('window.unit.peopleMaids'),
           people: details.workers ?? [],
           kind: 'maid',
+        },
+      ];
+    case 'cleaning':
+      return [
+        {
+          id: 'cleaners',
+          label: t('window.unit.peopleCleaners'),
+          people: details.workers,
+          kind: 'cleaner',
         },
       ];
     case 'security':
@@ -583,6 +593,7 @@ function detailRows(details: InspectedUnitDetails, type: UnitType): UnitRow[] {
     case 'security':
       return inServiceRows();
     case 'visit':
+    case 'cleaning':
       return [];
     case 'construction':
       return constructionRows();

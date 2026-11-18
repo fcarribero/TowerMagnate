@@ -40,11 +40,11 @@ Upgrades:
 ### 2.2 Cleaning room
 
 - Unit `cleaning-room`, "Cuarto de limpieza": 15 x 1, $60,000, unlocks at 2 stars, upkeep 10,000 a week (guess). Until it has art of its own it is drawn with the housekeeping sprites.
-- Each room sends a crew of 3 cleaners (person kind `cleaner`), 2 more for each level of staff. The shift is 07:00 to 19:00 every day. At 07:00, or later in the shift up to 18:00 while the room has nobody in the tower, the crew walks in from the street in everyday clothes, goes to the room and changes there for 5 minutes (2.5).
+- Each room sends a crew of 3 cleaners (person kind `cleaner`), 2 more for each level of staff. The room works round the clock in three 8-hour shifts every day: 06:00 to 14:00, 14:00 to 22:00 and 22:00 to 06:00, each with a full crew. At the start of a shift, or later in it up to an hour before it ends while the room has nobody of that shift in the tower, the crew walks in from the street in everyday clothes, goes to the room and changes there for 5 minutes (2.5).
 - A cleaner first takes the nearest venue garbage pile that no other cleaner is heading to, nearest level first. At the pile it picks up 1 bag, 1 more for each level of tools, and carries them out to the street by a lobby end; then it chooses again from the street.
 - With no pile to take, it walks to the dirtiest built cell with 0.5 dirt or more that is not within 3 columns of a spot another cleaner holds. It tries the 5 dirtiest such spots before giving up. At the spot it takes 1 dirt a minute off its cell, 25% more for each level of collection speed, and the same off 1 more cell to each side for each level of materials. It stays until the cell has less than 0.05 dirt, or 30 minutes at most, then chooses again.
 - With nothing to do it waits 10 minutes at the room door and looks again. A cleaner whose route fails waits the same way.
-- At 19:00 cleaners walk back to the room, change for 5 minutes and leave in everyday clothes. One carrying bags drops them at the street first.
+- At the end of their shift cleaners walk back to the room, change for 5 minutes and leave in everyday clothes, while the next crew comes in. One carrying bags drops them at the street first.
 - Dirt only goes down this way; it does not fade by itself (stress-evaluation 2.6).
 - Demolishing the room does not remove its crew at once: the cleaners walk out of the tower.
 - A cleaner carrying bags is drawn with a bag and dirties cells and cars like the venue staff do. Cleaners do not record trip stress.
@@ -173,3 +173,7 @@ No change. The player can build as many shafts and cars as wanted at any star le
 - Whether the first obrador should be free at the start of a new game.
 - How many cleaners a room starts with and how far they walk.
 - The effect of guards on tenant stress, which sets the value of security upgrades.
+
+## Workers in the unit window
+
+The window of a service unit with workers lists every worker of the unit who is in the tower, wherever they are working, and not only those standing in the unit: the cleaners of a cleaning room, the maids of a housekeeping unit, the doctors of a medical center and the officers of a security office. An officer at home is not listed.

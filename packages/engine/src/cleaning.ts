@@ -5,7 +5,7 @@ import {
   CLEANER_IDLE_MINUTES,
   CLEANER_LAST_START_MINUTES,
   CLEANER_MIN_DIRT,
-  CLEANER_SHIFT_END_MINUTE,
+  CLEANER_SHIFT_MINUTES,
   CLEANER_SHIFT_START_MINUTE,
   CLEANER_SPEED_SHARE,
   CLEANER_SPOT_MINUTES,
@@ -35,8 +35,9 @@ import { unitNumber } from './units';
 const CLEANER_KIND = PERSON_KINDS.indexOf('cleaner');
 const COLUMNS = LAST_COLUMN + 1;
 const SHIFT_START_STEP = CLEANER_SHIFT_START_MINUTE * STEPS_PER_MINUTE;
-const SHIFT_END_STEP = CLEANER_SHIFT_END_MINUTE * STEPS_PER_MINUTE;
-const LAST_START_STEP = SHIFT_END_STEP - CLEANER_LAST_START_MINUTES * STEPS_PER_MINUTE;
+const SHIFT_STEPS = CLEANER_SHIFT_MINUTES * STEPS_PER_MINUTE;
+const SHIFTS = Math.round(STEPS_PER_DAY / SHIFT_STEPS);
+const LAST_START_STEP = SHIFT_STEPS - CLEANER_LAST_START_MINUTES * STEPS_PER_MINUTE;
 const CHANGE_STEPS = CLEANER_CHANGE_MINUTES * STEPS_PER_MINUTE;
 const SPOT_STEPS = CLEANER_SPOT_MINUTES * STEPS_PER_MINUTE;
 const IDLE_STEPS = CLEANER_IDLE_MINUTES * STEPS_PER_MINUTE;
@@ -52,6 +53,7 @@ const SPOT_TRIES = 5;
  * garbage pile, the cell of a dirty spot, or the bags carried. A cleaner walks in from the street
  * in everyday clothes (`arriving`), changes in the cleaning room (`changingIn`), works, walks back
  * to the room at the end of the shift (`returning`), changes again (`changingOut`) and leaves.
+ * The shift is the one the cleaner came in for: 0 from 06:00, 1 from 14:00, 2 from 22:00.
  */
 export type CleanerPhase =
   | 'arriving'
@@ -83,18 +85,32 @@ const PHASES: readonly CleanerPhase[] = [
 export interface CleanerTask {
   phase: CleanerPhase;
   target: number;
+  /** The shift the cleaner works; null for a cleaner saved before there were shifts. */
+  shift: number | null;
 }
 
+/** Targets stay under this; the shift is packed above them, so old saves read as no shift. */
+const TARGET_RANGE = 2 ** 22;
+const SHIFT_UNIT = TARGET_RANGE * PHASES.length;
+
 export function encodeCleanerTask(task: CleanerTask): number {
-  return task.target * PHASES.length + PHASES.indexOf(task.phase) + 1;
+  const shift = task.shift === null ? 0 : task.shift + 1;
+  return shift * SHIFT_UNIT + task.target * PHASES.length + PHASES.indexOf(task.phase) + 1;
 }
 
 export function decodeCleanerTask(trip: number): CleanerTask | null {
   if (trip <= NO_TRIP) return null;
-  const code = trip - 1;
+  const code = (trip - 1) % SHIFT_UNIT;
+  const shift = Math.floor((trip - 1) / SHIFT_UNIT);
   const phase = PHASES[code % PHASES.length];
   if (!phase) return null;
-  return { phase, target: Math.floor(code / PHASES.length) };
+  return { phase, target: Math.floor(code / PHASES.length), shift: shift === 0 ? null : shift - 1 };
+}
+
+/** The shift under way at a step, and how far into it the step is. */
+function shiftAt(step: number): { shift: number; into: number } {
+  const time = (step - SHIFT_START_STEP + STEPS_PER_DAY) % STEPS_PER_DAY;
+  return { shift: Math.floor(time / SHIFT_STEPS) % SHIFTS, into: time % SHIFT_STEPS };
 }
 
 export function isCleaner(pool: PersonPool, slot: number): boolean {
@@ -157,14 +173,13 @@ function pileOf(unit: Unit): TrekPlace {
   };
 }
 
-function isShift(step: number): boolean {
-  const time = step % STEPS_PER_DAY;
-  return time >= SHIFT_START_STEP && time < SHIFT_END_STEP;
+/** Whether the cleaner's own shift is still under way. */
+function isOnShift(pool: PersonPool, slot: number, step: number): boolean {
+  return taskAt(pool, slot)?.shift === shiftAt(step).shift;
 }
 
 function isCrewStartTime(step: number): boolean {
-  const time = step % STEPS_PER_DAY;
-  return step % STEPS_PER_MINUTE === 0 && time >= SHIFT_START_STEP && time < LAST_START_STEP;
+  return step % STEPS_PER_MINUTE === 0 && shiftAt(step).into < LAST_START_STEP;
 }
 
 const roomsMemo = new WeakMap<TowerState['units'], Unit[]>();
@@ -199,8 +214,11 @@ function poolOf(cleaner: Cleaner): PersonPool {
   return cleaner.shared.context.state.people;
 }
 
-function save(cleaner: Cleaner, task: CleanerTask): void {
-  poolOf(cleaner).trip[cleaner.slot] = encodeCleanerTask(task);
+/** Keeps the cleaner's phase and target; the shift stays the one they came in for. */
+function save(cleaner: Cleaner, task: Omit<CleanerTask, 'shift'>): void {
+  const pool = poolOf(cleaner);
+  const shift = taskAt(pool, cleaner.slot)?.shift ?? null;
+  pool.trip[cleaner.slot] = encodeCleanerTask({ ...task, shift });
 }
 
 function here(cleaner: Cleaner): TrekPlace {
@@ -404,11 +422,17 @@ function advanceCleaner(cleaner: Cleaner): void {
   const { state } = context;
   const pool = state.people;
   const slot = cleaner.slot;
-  const task = taskAt(pool, slot);
+  let task = taskAt(pool, slot);
   if (!task) {
     leave(cleaner);
     return;
   }
+  if (task.shift === null) {
+    // Saved before there were shifts: the cleaner works the shift under way.
+    task = { ...task, shift: shiftAt(state.step).shift };
+    pool.trip[slot] = encodeCleanerTask(task);
+  }
+  const onShift = isOnShift(pool, slot, state.step);
   const room = roomOf(state, pool, slot);
   switch (task.phase) {
     case 'leaving':
@@ -416,7 +440,7 @@ function advanceCleaner(cleaner: Cleaner): void {
       return;
     case 'arriving':
       if (isOnTrek(pool, slot)) return;
-      if (!room || !isShift(state.step)) leave(cleaner);
+      if (!room || !onShift) leave(cleaner);
       else if (isAt(cleaner, doorOf(room))) startChanging(cleaner, 'changingIn');
       else if (!startTrek(context, slot, doorOf(room))) leave(cleaner);
       return;
@@ -424,7 +448,7 @@ function advanceCleaner(cleaner: Cleaner): void {
       if (state.step < (pool.dueStep[slot] as number)) return;
       pool.dueStep[slot] = NOTHING_DUE;
       save(cleaner, { phase: 'choosing', target: 0 });
-      if (isShift(state.step) && room) choose(cleaner);
+      if (onShift && room) choose(cleaner);
       else goHome(cleaner);
       return;
     case 'returning':
@@ -440,7 +464,7 @@ function advanceCleaner(cleaner: Cleaner): void {
     default:
       break;
   }
-  if (!room || !isShift(state.step)) {
+  if (!room || !onShift) {
     // Bags already on the way out are dropped at the street first.
     if (task.phase === 'carrying' && isOnTrek(pool, slot)) return;
     goHome(cleaner);
@@ -531,14 +555,18 @@ function bringCrew(context: StepContext, room: Unit): void {
       column: street.column,
     });
     const slot = state.people.id.length - 1;
-    state.people.trip[slot] = encodeCleanerTask({ phase: 'arriving', target: 0 });
+    state.people.trip[slot] = encodeCleanerTask({
+      phase: 'arriving',
+      target: 0,
+      shift: shiftAt(state.step).shift,
+    });
     if (!startTrek(context, slot, door)) removePerson(state, id);
   }
 }
 
 /**
- * Each cleaning room sends its crew in at the start of the shift, or later in it while the room
- * has no cleaners in the tower; then every cleaner moves on by one step. Without cleaning rooms
+ * Each cleaning room sends its crew in at the start of each shift, or later in it while the room
+ * has no cleaners of that shift in the tower; then every cleaner moves on by one step. Without cleaning rooms
  * the cleaners still in the tower are only looked at once a minute, on their way out.
  */
 export function createCleaningSystem(): SimulationSystem {
@@ -550,7 +578,9 @@ export function createCleaningSystem(): SimulationSystem {
     let slots = cleanerSlots(pool);
     if (rooms.length > 0 && isCrewStartTime(state.step)) {
       const present = new Set<number>();
-      for (const slot of slots) present.add(pool.homeUnit[slot] as number);
+      for (const slot of slots) {
+        if (isOnShift(pool, slot, state.step)) present.add(pool.homeUnit[slot] as number);
+      }
       const before = pool.id.length;
       for (const room of rooms) {
         if (!present.has(unitNumber(room.id))) bringCrew(context, room);

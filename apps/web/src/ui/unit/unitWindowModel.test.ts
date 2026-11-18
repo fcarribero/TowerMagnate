@@ -228,6 +228,11 @@ describe('unit window model', () => {
       label: 'Policías',
       kind: 'police',
     });
+    expect(
+      peopleGroups({ type: 'cleaning-room', details: { group: 'cleaning', workers: ['p1', 'p2'] } }),
+    ).toEqual([
+      { id: 'cleaners', label: 'Limpiadores', people: ['p1', 'p2'], kind: 'cleaner' },
+    ]);
   });
 
   it('describes a leased office', () => {

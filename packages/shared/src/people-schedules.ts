@@ -468,13 +468,16 @@ export const CLEANER_CREW_SIZE = 3;
 /** Each level of a cleaning room's staff upgrade adds this many cleaners. */
 export const CLEANER_STAFF_BONUS = 2;
 
-/** Minute of the day the cleaners' shift starts, every day of the week. */
-export const CLEANER_SHIFT_START_MINUTE = 7 * 60;
+/**
+ * Minute of the day the first cleaners' shift starts, every day of the week. Three shifts of
+ * CLEANER_SHIFT_MINUTES follow each other round the clock: 06:00, 14:00 and 22:00.
+ */
+export const CLEANER_SHIFT_START_MINUTE = 6 * 60;
 
-/** Minute of the day the cleaners' shift ends; they walk back to change and leave. */
-export const CLEANER_SHIFT_END_MINUTE = 19 * 60;
+/** Length of one cleaners' shift; at its end the crew walks back to change and leaves. */
+export const CLEANER_SHIFT_MINUTES = 8 * 60;
 
-/** No crew comes in for the day this many minutes or less before the shift ends. */
+/** No crew comes in for a shift this many minutes or less before the shift ends. */
 export const CLEANER_LAST_START_MINUTES = 60;
 
 /** Minutes a cleaner stands in the cleaning room to change, on the way in and on the way out. */
