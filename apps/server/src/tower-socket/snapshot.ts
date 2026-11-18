@@ -95,7 +95,7 @@ export function buildSnapshot(
       unitView(
         state,
         unit,
-        homes.has(unit.id) || isTaken(unit),
+        (homes.has(unit.id) && unit.hotel === null) || isTaken(unit),
         disconnected.has(unit.id),
         inside.has(unit.id),
         sleeping.has(unit.id),
@@ -311,13 +311,20 @@ function isInSleepingUnit(
   return occupant?.kind === 'unit' && sleeping.has(occupant.id);
 }
 
-/** Units with at least one person standing idle in one of their cells; riders, people outside and walkers passing through excluded. */
+/**
+ * Units with at least one person standing idle in one of their cells; riders, people outside and
+ * walkers passing through excluded. A hotel room only counts its own guests while it is occupied:
+ * a maid cleaning it does not turn its light on.
+ */
 function unitsWithPeopleInside(state: TowerState, people: EnginePerson[]): Set<string> {
   const inside = new Set<string>();
   people.forEach((person, slot) => {
     if (isOutsideTower(state.people, slot) || trekPhaseAt(state.people, slot) !== 'idle') return;
     const occupant = occupantAt(state.grid, person.level, person.column);
-    if (occupant?.kind === 'unit') inside.add(occupant.id);
+    if (occupant?.kind !== 'unit') return;
+    const room = state.units[occupant.id]?.hotel;
+    if (room && (room.state !== 'occupied' || person.homeUnit !== occupant.id)) return;
+    inside.add(occupant.id);
   });
   return inside;
 }

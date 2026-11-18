@@ -261,7 +261,10 @@ describe('snapshot from tower state', () => {
     const state = towerWithPeople();
     const empty = state.units['u6'];
     if (!empty) throw new Error('u6 is part of the fixture');
-    state.units['u6'] = { ...empty, lease: { anchorStep: 0, nextDueStep: 100, weekVisits: 0, rent: 10_000 } };
+    state.units['u6'] = {
+      ...empty,
+      lease: { anchorStep: 0, nextDueStep: 100, weekVisits: 0, rent: 10_000 },
+    };
     const snapshot = buildSnapshot(state, null);
     expect(snapshot.units).toContainEqual(
       expect.objectContaining({ id: 'u6', occupied: true, variant: 'occupied' }),
@@ -637,6 +640,16 @@ describe('room states and disconnected units', () => {
     expect(SnapshotSchema.safeParse(snapshot).success).toBe(true);
   });
 
+  it('draws a free room as free and dark with a booked guest or a maid in it', () => {
+    const state = hotelTower();
+    addOccupant(state.grid, 1, 0, 3, { kind: 'unit', id: 'u1' });
+    addPerson(state, { kind: 'hotelGuest', homeUnit: 1, level: 1, column: 1 });
+    addPerson(state, { kind: 'maid', homeUnit: 9, level: 1, column: 2 });
+    const room = buildSnapshot(state, null).units.find((unit) => unit.id === 'u1');
+    expect(room).toMatchObject({ occupied: false, variant: 'empty' });
+    expect(room?.inside).toBeUndefined();
+  });
+
   it('draws a Sucia room as dirty and a room with a plague as infested', () => {
     const state = hotelTower();
     roomState(state, 'u3', 'dirty');
@@ -697,11 +710,39 @@ describe('room states and disconnected units', () => {
 
   it('sends the chosen price and the appraisal of a priced site', () => {
     const state = createTower(7);
-    state.sites.u5 = { id: 'u5', type: 'office', x: 0, level: 2, paid: 0, placedAtStep: 0, points: 0, price: 7_000 };
-    state.sites.u6 = { id: 'u6', type: 'office', x: 10, level: 2, paid: 0, placedAtStep: 0, points: 0 };
-    state.sites.u7 = { id: 'u7', type: 'security', x: 20, level: 2, paid: 0, placedAtStep: 0, points: 0 };
+    state.sites.u5 = {
+      id: 'u5',
+      type: 'office',
+      x: 0,
+      level: 2,
+      paid: 0,
+      placedAtStep: 0,
+      points: 0,
+      price: 7_000,
+    };
+    state.sites.u6 = {
+      id: 'u6',
+      type: 'office',
+      x: 10,
+      level: 2,
+      paid: 0,
+      placedAtStep: 0,
+      points: 0,
+    };
+    state.sites.u7 = {
+      id: 'u7',
+      type: 'security',
+      x: 20,
+      level: 2,
+      paid: 0,
+      placedAtStep: 0,
+      points: 0,
+    };
     const units = buildSnapshot(state, null).units;
-    expect(units.find((unit) => unit.id === 'u5')).toMatchObject({ price: 7_000, appraisal: 10_000 });
+    expect(units.find((unit) => unit.id === 'u5')).toMatchObject({
+      price: 7_000,
+      appraisal: 10_000,
+    });
     expect(units.find((unit) => unit.id === 'u6')).toMatchObject({ price: 0, appraisal: 10_000 });
     expect(units.find((unit) => unit.id === 'u7')).not.toHaveProperty('appraisal');
   });
