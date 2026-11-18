@@ -326,7 +326,7 @@ The engine validates a construction command in this order and returns the first 
 6. Level and zone codes: `LOBBY_LEVEL_ONLY`, `LOBBY_FLOOR_NOT_ALLOWED`, `ABOVE_GROUND_ONLY`, `BASEMENT_ONLY`, `CATHEDRAL_LEVEL_ONLY`, `SUBWAY_POSITION`, `CATHEDRAL_POSITION`, `SPANS_GROUND`, `EXPRESS_STOP_NOT_ALLOWED`
 7. `CELL_OCCUPIED`, `NOTHING_TO_BUILD`
 8. `NO_SUPPORT`, `NO_FLOOR`, `TRANSPORT_LANDING`
-9. Type rules: `LOBBY_HEIGHT_MISMATCH`, `LOBBY_NOT_CONTIGUOUS`, `ESCALATOR_FLOOR_TYPE`, `SHAFT_TOO_TALL`, `SHAFT_TOO_CLOSE`, `RAMP_POSITION`, `PARKING_NOT_CONNECTED`, `RECYCLING_NOT_ADJACENT`
+9. Type rules: `LOBBY_HEIGHT_MISMATCH`, `LOBBY_NOT_CONTIGUOUS`, `ESCALATOR_FLOOR_TYPE`, `ESCALATOR_FLOOR_UNIT`, `SHAFT_TOO_TALL`, `SHAFT_TOO_CLOSE`, `RAMP_POSITION`, `PARKING_NOT_CONNECTED`, `RECYCLING_NOT_ADJACENT`
 10. `INSUFFICIENT_FUNDS`
 
 Demolition is checked in this order: `NOTHING_TO_DEMOLISH`, `MAIN_LOBBY_PROTECTED`, `CELL_OCCUPIED`, `SUPPORTS_STRUCTURE`, `RAMP_POSITION`, `SHAFT_IN_USE`, `LAST_CAR`.
@@ -362,6 +362,7 @@ Demolition is checked in this order: `NOTHING_TO_DEMOLISH`, `MAIN_LOBBY_PROTECTE
 | `LOBBY_HEIGHT_MISMATCH` | El lobby de este piso tiene otra altura. |
 | `LOBBY_NOT_CONTIGUOUS` | El lobby principal tiene que ser continuo. |
 | `ESCALATOR_FLOOR_TYPE` | La escalera mecánica solo va en pisos de lobby, comercio, entretenimiento o habitaciones simples. |
+| `ESCALATOR_FLOOR_UNIT` | Este piso tiene una escalera mecánica: solo admite comercio, entretenimiento o habitaciones simples. |
 | `SHAFT_TOO_TALL` | Este ascensor cubre hasta 30 pisos. |
 | `SHAFT_TOO_CLOSE` | Dejá 8 casilleros libres entre huecos de ascensor. |
 | `RAMP_POSITION` | Las rampas van en una sola columna, desde el S1 hacia abajo. |
@@ -446,7 +447,7 @@ C-29. The 8 landing cells on the level above must have structure and no front la
 
 C-30. An escalator needs both of its levels to be escalator floors (section 5.2). Error: `ESCALATOR_FLOOR_TYPE`.
 
-C-31. A unit whose type is not allowed on escalator floors cannot be placed on a level that holds either end of an escalator. Error: `ESCALATOR_FLOOR_TYPE`.
+C-31. A unit whose type is not allowed on escalator floors cannot be placed on a level that holds either end of an escalator. Error: `ESCALATOR_FLOOR_UNIT`.
 
 C-32. Stairs plus escalators are at most 64 per tower. Error: `LIMIT_REACHED`.
 

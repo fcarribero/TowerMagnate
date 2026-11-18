@@ -166,7 +166,7 @@ export const buildUnit: CommandHandler<'buildUnit'> = (context, command) => {
 
   const onEscalatorLevel = footprint.levels.some((row) => escalatorLevels(state).has(row));
   if (onEscalatorLevel && !isEscalatorUnit(definition.type)) {
-    return { ok: false, error: 'ESCALATOR_FLOOR_TYPE' };
+    return { ok: false, error: 'ESCALATOR_FLOOR_UNIT' };
   }
 
   const ruleError = basementRuleError(state, definition.type, { x, level });

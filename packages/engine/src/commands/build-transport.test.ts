@@ -238,13 +238,13 @@ describe('buildTransport escalators', () => {
 describe('buildUnit on escalator levels', () => {
   const escalatorTower = () => run(towerWith(), transport('escalator', 10, 2)).state;
 
-  it('rejects an office on either level of an escalator as ESCALATOR_FLOOR_TYPE', () => {
-    expect(rejection(escalatorTower(), unit('office', 40, 2))).toBe('ESCALATOR_FLOOR_TYPE');
-    expect(rejection(escalatorTower(), unit('office', 40, 3))).toBe('ESCALATOR_FLOOR_TYPE');
+  it('rejects an office on either level of an escalator as ESCALATOR_FLOOR_UNIT', () => {
+    expect(rejection(escalatorTower(), unit('office', 40, 2))).toBe('ESCALATOR_FLOOR_UNIT');
+    expect(rejection(escalatorTower(), unit('office', 40, 3))).toBe('ESCALATOR_FLOOR_UNIT');
   });
 
   it('rejects a tall unit that reaches an escalator level', () => {
-    expect(rejection(escalatorTower(), unit('medical-center', 40, 3))).toBe('ESCALATOR_FLOOR_TYPE');
+    expect(rejection(escalatorTower(), unit('medical-center', 40, 3))).toBe('ESCALATOR_FLOOR_UNIT');
   });
 
   it('accepts a shop on an escalator level and an office on other levels', () => {
@@ -270,6 +270,6 @@ describe('buildUnit on escalator levels', () => {
   });
 
   it('rejects a unit behind an escalator only by the escalator rule', () => {
-    expect(rejection(escalatorTower(), unit('office', 10, 2))).toBe('ESCALATOR_FLOOR_TYPE');
+    expect(rejection(escalatorTower(), unit('office', 10, 2))).toBe('ESCALATOR_FLOOR_UNIT');
   });
 });

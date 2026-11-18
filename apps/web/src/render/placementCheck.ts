@@ -239,7 +239,7 @@ function unitProblem(
   }
   const onEscalator = levels.some((level) => view.escalatorLevels.has(level));
   if (onEscalator && !ESCALATOR_FLOOR_UNITS.has(type)) {
-    return 'ESCALATOR_FLOOR_TYPE';
+    return 'ESCALATOR_FLOOR_UNIT';
   }
   const rule = basementRuleProblem(type, x0, bottom, view);
   if (rule) {
