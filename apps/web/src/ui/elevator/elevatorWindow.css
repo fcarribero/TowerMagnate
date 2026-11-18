@@ -61,3 +61,8 @@
 .elevator-footer__primary .tm-button:not(:disabled) {
   background: var(--obra-yellow);
 }
+
+.elevator-disabled {
+  margin: calc(4 * var(--tm-px)) 0;
+  color: var(--obra-red);
+}

@@ -980,6 +980,7 @@ function readShafts(raw: unknown): Record<ShaftId, Shaft> {
       ),
       paid: shaft.paid,
       placedAtStep: shaft.placedAtStep,
+      ...(shaft.disabled === true ? { disabled: true } : {}),
     };
   }
   return shafts;

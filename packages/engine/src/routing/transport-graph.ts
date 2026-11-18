@@ -222,9 +222,14 @@ export class TransportGraph {
   }
 }
 
+/** The stops a shaft serves: none while the player has it switched off. */
+export function servedStops(shaft: Shaft): readonly Level[] {
+  return shaft.disabled === true ? [] : shaft.stops;
+}
+
 /** The enabled stops each shaft has in the tower state. */
 export function shaftStopsOf(state: TowerState): ShaftStops {
-  return new Map(Object.values(state.shafts).map((shaft) => [shaft.id, shaft.stops]));
+  return new Map(Object.values(state.shafts).map((shaft) => [shaft.id, servedStops(shaft)]));
 }
 
 function cellKey(level: Level, x: number): string {
@@ -278,8 +283,9 @@ function visitGraphInputs(state: TowerState, visit: InputVisitor): boolean {
   }
   for (const shaft of Object.values(state.shafts)) {
     if (!visit('E') || !visit(shaft.id) || !visit(shaft.type) || !visit(shaft.x)) return false;
-    if (!visit(shaft.bottom) || !visit(shaft.top) || !visit(shaft.stops.length)) return false;
-    for (const stop of shaft.stops) if (!visit(stop)) return false;
+    const stops = servedStops(shaft);
+    if (!visit(shaft.bottom) || !visit(shaft.top) || !visit(stops.length)) return false;
+    for (const stop of stops) if (!visit(stop)) return false;
   }
   return true;
 }

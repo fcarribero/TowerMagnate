@@ -330,6 +330,11 @@ export interface Shaft {
   /** Whole dollars charged for the shaft itself, cars not included. */
   paid: number;
   placedAtStep: number;
+  /**
+   * Switched off by the player: no route uses it and no one joins its queues, while riders already
+   * in a car finish their ride. Absent means enabled.
+   */
+  disabled?: boolean;
 }
 
 export interface Lease {

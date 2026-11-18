@@ -252,6 +252,16 @@ A new car is Idle and free at its home. A car can be removed only without riders
 
 A shaft can be demolished only with no riders (C-44). Its queues empty and the people in them re-plan (construction C-69).
 
+### 9.5 Shaft switched off
+
+The elevator window can switch a whole shaft off and back on (`setShaftEnabled`, free at any balance). While it is off:
+
+- No route uses it: the routing graph sees it with no stops. Its own stop list is kept for when it is switched back on.
+- Its queues empty and the cars drop their assigned calls. The people walking to it or waiting at it re-plan from where they stand (routing 8.4).
+- Riders already in a car finish their ride. After that the cars take no calls and stand still.
+
+Switching it back on restores its stops, and routes use it again from the next plan.
+
 ## 10. Order within a step
 
 A step runs commands first (tech doc), then the people phase (walking, joining queues, re-planning, in increasing person id), then the elevator phase. In the elevator phase, shafts are handled in increasing shaft id. For each shaft:

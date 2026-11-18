@@ -125,3 +125,28 @@ export const configureShaft: CommandHandler<'configureShaft'> = (context, comman
   };
   return { ok: true, cost: 0, refund: 0, events: [] };
 };
+
+/**
+ * Switches a shaft off or back on. Off, no route uses it: people walking to it or waiting in its
+ * queues plan again (trek routing 8.4), the cars drop their pending calls and stand still, and
+ * riders already in a car finish their ride. Free at any balance.
+ */
+export const setShaftEnabled: CommandHandler<'setShaftEnabled'> = (context, command) => {
+  if (typeof command.shaftId !== 'string' || typeof command.enabled !== 'boolean') {
+    return { ok: false, error: 'INVALID_COMMAND' };
+  }
+  const shaft = Object.hasOwn(context.state.shafts, command.shaftId)
+    ? context.state.shafts[command.shaftId]
+    : undefined;
+  if (!shaft) {
+    return { ok: false, error: 'UNKNOWN_ENTITY' };
+  }
+  if (command.enabled) {
+    delete shaft.disabled;
+  } else {
+    shaft.disabled = true;
+    shaft.queues = {};
+    for (const car of shaft.cars) car.assigned = [];
+  }
+  return { ok: true, cost: 0, refund: 0, events: [] };
+};

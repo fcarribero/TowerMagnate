@@ -49,6 +49,7 @@ const COMMAND_TRIGGERS: Record<CommandType, SfxTrigger | null> = {
   setVenueEnabled: null,
   setVenueHours: null,
   configureShaft: null,
+  setShaftEnabled: null,
   answerEvent: null,
   changeFilm: null,
   renameUnit: null,

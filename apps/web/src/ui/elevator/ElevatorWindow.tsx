@@ -247,6 +247,7 @@ export function ElevatorWindow({ shaft, send, onClose, bandNow = null }: Elevato
             },
           ]}
         />
+        {shaft.enabled ? null : <p class="elevator-disabled">{t('ui.shaftDisabledNote')}</p>}
         {error === null ? null : <p role="alert">{error}</p>}
         <div class="elevator-footer">
           <span class="elevator-footer__primary">
@@ -276,6 +277,13 @@ export function ElevatorWindow({ shaft, send, onClose, bandNow = null }: Elevato
             }}
           >
             {t('ui.shaftDiscard')}
+          </Button>
+          <Button
+            onClick={() =>
+              void run({ type: 'setShaftEnabled', shaftId: shaft.id, enabled: !shaft.enabled })
+            }
+          >
+            {t(shaft.enabled ? 'ui.shaftDisable' : 'ui.shaftEnable')}
           </Button>
           <Button onClick={() => manager.open(dialogRequest(demolishDialogId))}>
             {t('ui.shaftDemolish')}

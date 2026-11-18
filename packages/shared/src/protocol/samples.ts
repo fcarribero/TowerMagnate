@@ -33,6 +33,7 @@ export const sampleCommands: Command[] = [
   { type: 'setSitePriority', unitId: 'u12', priority: true },
   { type: 'setVenueEnabled', unitId: 'u30', enabled: false },
   { type: 'setVenueHours', unitId: 'u30', open: 9, close: 18 },
+  { type: 'setShaftEnabled', shaftId: 's1', enabled: false },
   {
     type: 'configureShaft',
     shaftId: 's4',
@@ -288,6 +289,7 @@ export const sampleServerMessages: ServerMessage[] = [
       stops: [-1, 1],
       cars: [{ index: 0, homeLevel: 1, load: 3 }],
       schedule: sampleSchedule,
+      enabled: true,
     },
   },
   { v, t: 'inspect', p: { kind: 'finances', money: 99999999, finances } },

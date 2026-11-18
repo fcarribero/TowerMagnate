@@ -94,6 +94,9 @@ export const SPANISH_STRINGS = {
   'ui.shaftAddCar': 'Agregar cabina ({price})',
   'ui.shaftDiscard': 'Descartar',
   'ui.shaftDemolish': 'Eliminar ascensor',
+  'ui.shaftDisable': 'Deshabilitar ascensor',
+  'ui.shaftEnable': 'Habilitar ascensor',
+  'ui.shaftDisabledNote': 'Ascensor deshabilitado: nadie lo usa hasta que lo habilites.',
 
   // 13.4 Status bar, calendar and menus
   'ui.menu': 'Menú',

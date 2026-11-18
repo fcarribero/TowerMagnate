@@ -1148,6 +1148,7 @@ function shaftStillServes(context: StepContext, slot: number): boolean {
   const shaft = context.state.shafts[shaftKey(pool.legVia[slot] as number)];
   return (
     shaft !== undefined &&
+    shaft.disabled !== true &&
     shaft.cars.length > 0 &&
     shaft.stops.includes(pool.level[slot] as Level) &&
     shaft.stops.includes(pool.legLevel[slot] as Level)

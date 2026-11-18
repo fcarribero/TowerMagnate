@@ -168,6 +168,7 @@ export function inspectShaft(state: TowerState, shaftId: string): InspectData {
       load: car.riders.length,
     })),
     schedule: shaft.schedule,
+    enabled: shaft.disabled !== true,
   };
   return result;
 }

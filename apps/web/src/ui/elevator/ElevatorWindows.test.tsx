@@ -31,6 +31,7 @@ const shaftData: ShaftData = {
   stops: [1, 3],
   cars: [{ index: 0, homeLevel: 1, load: 0 }],
   schedule,
+  enabled: true,
 };
 
 function setup() {

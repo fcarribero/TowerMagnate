@@ -29,6 +29,7 @@ const shaft = (patch: Partial<ShaftData> = {}): ShaftData => ({
   stops: [1, 2, 3],
   cars: [{ index: 0, homeLevel: 1, load: 4 }],
   schedule,
+  enabled: true,
   ...patch,
 });
 
@@ -344,5 +345,23 @@ describe('elevator demolition', () => {
     await user.click(screen.getByRole('button', { name: 'Eliminar ascensor' }));
     await user.click(screen.getByRole('button', { name: 'Cancelar' }));
     expect(send).not.toHaveBeenCalled();
+  });
+});
+
+describe('elevator switch', () => {
+  it('switches an enabled elevator off', async () => {
+    const send = show(shaft());
+    const user = userEvent.setup();
+    expect(screen.queryByText(/Ascensor deshabilitado/)).toBeNull();
+    await user.click(screen.getByRole('button', { name: 'Deshabilitar ascensor' }));
+    expect(send).toHaveBeenCalledWith({ type: 'setShaftEnabled', shaftId: 's4', enabled: false });
+  });
+
+  it('shows a disabled elevator as such and switches it back on', async () => {
+    const send = show(shaft({ enabled: false }));
+    const user = userEvent.setup();
+    expect(screen.getByText(/Ascensor deshabilitado/)).toBeTruthy();
+    await user.click(screen.getByRole('button', { name: 'Habilitar ascensor' }));
+    expect(send).toHaveBeenCalledWith({ type: 'setShaftEnabled', shaftId: 's4', enabled: true });
   });
 });

@@ -552,6 +552,8 @@ export const InspectDataSchema = z.union([
     stops: z.array(LevelSchema),
     cars: z.array(InspectedCarSchema).max(MAX_CARS_PER_SHAFT),
     schedule: ElevatorScheduleSchema,
+    /** False while the player has the elevator switched off. */
+    enabled: z.boolean(),
   }),
   z.object({ kind: z.literal('lobby'), id: LobbyIdSchema, status: z.literal('gone') }),
   z.object({
@@ -586,7 +588,6 @@ export type Delta = z.infer<typeof DeltaSchema>;
 export type ClientEvent = z.infer<typeof ClientEventSchema>;
 export type InspectData = z.infer<typeof InspectDataSchema>;
 export type InspectedUnitDetails = z.infer<typeof InspectedUnitDetailsSchema>;
-
 
 /** Which heat map a client asks to see. */
 export const HEAT_KINDS = ['noise', 'dirt'] as const;

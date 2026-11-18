@@ -49,6 +49,7 @@ import { createDailyGradeSystem, storedGrade } from './unit-evaluation';
 import {
   graphInputsMatch,
   graphInputsOf,
+  shaftStopsOf,
   TransportGraph,
   type GraphInputs,
   type ShaftStops,
@@ -106,7 +107,7 @@ export type CommandHandlers = { [K in CommandType]?: CommandHandler<K> };
 export type SimulationSystem = (context: StepContext) => void;
 
 function shaftStops(state: TowerState): ShaftStops {
-  return new Map(Object.values(state.shafts).map((shaft) => [shaft.id, shaft.stops]));
+  return shaftStopsOf(state);
 }
 
 export interface EngineRules {

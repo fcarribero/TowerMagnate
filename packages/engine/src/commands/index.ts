@@ -5,7 +5,7 @@ import { buildLobby } from './build-lobby';
 import { buildTransport } from './build-transport';
 import { buildShaft, resizeShaft } from './build-shaft';
 import { changeFilm } from '../films';
-import { configureShaft } from './configure-shaft';
+import { configureShaft, setShaftEnabled } from './configure-shaft';
 import { buildUnit } from './build-unit';
 import { demolish } from './demolish';
 import { addCar, removeCar } from './elevator-cars';
@@ -28,6 +28,7 @@ export const towerCommandHandlers: CommandHandlers = {
   buildShaft,
   resizeShaft,
   configureShaft,
+  setShaftEnabled,
   addCar,
   removeCar,
   demolish,

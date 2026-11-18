@@ -101,14 +101,31 @@ const demolishCommands = [
 const operateCommands = [
   z.object({ type: z.literal('setPrice'), unitId: UnitEntityIdSchema, price: PriceSchema }),
   z.object({ type: z.literal('setListed'), unitId: UnitEntityIdSchema, listed: z.boolean() }),
-  z.object({ type: z.literal('buyUpgrade'), unitId: UpgradableIdSchema, upgradeId: z.string().min(1).max(40) }),
-  z.object({ type: z.literal('setSitePriority'), unitId: UnitEntityIdSchema, priority: z.boolean() }),
-  z.object({ type: z.literal('setVenueEnabled'), unitId: UnitEntityIdSchema, enabled: z.boolean() }),
+  z.object({
+    type: z.literal('buyUpgrade'),
+    unitId: UpgradableIdSchema,
+    upgradeId: z.string().min(1).max(40),
+  }),
+  z.object({
+    type: z.literal('setSitePriority'),
+    unitId: UnitEntityIdSchema,
+    priority: z.boolean(),
+  }),
+  z.object({
+    type: z.literal('setVenueEnabled'),
+    unitId: UnitEntityIdSchema,
+    enabled: z.boolean(),
+  }),
   z.object({
     type: z.literal('setVenueHours'),
     unitId: UnitEntityIdSchema,
     open: z.int().min(0).max(23),
     close: z.int().min(1).max(24),
+  }),
+  z.object({
+    type: z.literal('setShaftEnabled'),
+    shaftId: ShaftEntityIdSchema,
+    enabled: z.boolean(),
   }),
   z.object({
     type: z.literal('configureShaft'),
