@@ -396,12 +396,6 @@ function hotelRows(hotel: Details<'hotel'>): UnitRow[] {
       value: t(ROOM_STATE_KEYS[hotel.state]),
       tone: ROOM_STATE_TONES[hotel.state],
     },
-    {
-      id: 'guests',
-      label: t('window.unit.guests'),
-      value: String(hotel.guests),
-      tone: 'plain',
-    },
     evaluationRow(hotel.evaluation),
   ];
   if (hotel.state === 'occupied' && hotel.checkoutStep !== null) {
@@ -577,7 +571,7 @@ export interface UnitRowGroups {
   rows: UnitRow[];
 }
 
-const TILE_IDS: readonly string[] = ['status', 'people', 'residents', 'guests', 'evaluation', 'served', 'inside', 'result'];
+const TILE_IDS: readonly string[] = ['status', 'people', 'residents','evaluation', 'served', 'inside', 'result'];
 const CHIP_IDS: readonly string[] = ['lease', 'nextPayment'];
 
 export function groupUnitRows(rows: readonly UnitRow[]): UnitRowGroups {

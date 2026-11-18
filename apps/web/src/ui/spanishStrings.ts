@@ -170,7 +170,6 @@ export const SPANISH_STRINGS = {
   'window.unit.status': 'Estado',
   'window.unit.people': 'Personas',
   'window.unit.residents': 'Residentes',
-  'window.unit.guests': 'Huéspedes',
   'window.unit.evaluation': 'Evaluación',
   'window.unit.pricePerWeek': 'Precio por semana',
   'window.unit.pricePerNight': 'Precio por noche',
