@@ -12,7 +12,7 @@ import {
 import { appraisalFactors, computeAppraisal, type AppraisalFactors } from './appraisal';
 import { touchingUnits } from './neighbors';
 import { isNoisy } from './noise';
-import { guardedBase, hasTripsInWindow, unitBase } from './unit-evaluation';
+import { guardedBase, windowAverage } from './unit-evaluation';
 
 /** Score of the average of every trip filed in the tower; 3, the neutral point, with none. */
 export function towerScore(state: TowerState): number {
@@ -37,9 +37,11 @@ export function occupantScore(
   noisy = isNoisy(state, unit),
   tower?: number,
 ): number {
-  const score = hasTripsInWindow(state, unit)
-    ? stressScore(guardedBase(state, unit, unitBase(state, unit)))
-    : (tower ?? towerScore(state));
+  const average = windowAverage(state, unit);
+  const score =
+    average === null
+      ? (tower ?? towerScore(state))
+      : stressScore(guardedBase(state, unit, average));
   return Math.min(STRESS_SCORE_MAX, score + (noisy ? EVAL_NOISE_SCORE : 0));
 }
 
@@ -68,6 +70,8 @@ export function paidPrice(unit: Unit): number {
 /**
  * Fair price over the price paid; infinite when nothing is paid. `factors` carries the tower-wide
  * numbers when many units are valued at once; with `noisy` set it overrides the noise check.
+ * With `factors.ownValues` the value is worked out once per unit and reused, which the 00:00
+ * pass relies on: there the noise flag always agrees with `factors.noisy`.
  */
 export function ownValue(
   state: TowerState,
@@ -75,11 +79,16 @@ export function ownValue(
   noisy?: boolean,
   factors: AppraisalFactors = appraisalFactors(state),
 ): number {
+  const known = factors.ownValues?.get(unit.id);
+  if (known !== undefined) return known;
   const paid = paidPrice(unit);
-  if (paid <= 0) return Infinity;
   const used =
-    noisy === undefined ? factors : { ...factors, noisy: noisy ? new Set([unit.id]) : new Set<UnitId>() };
-  return computeAppraisal(state, unit, used) / paid;
+    noisy === undefined
+      ? factors
+      : { ...factors, noisy: noisy ? new Set([unit.id]) : new Set<UnitId>() };
+  const value = paid <= 0 ? Infinity : computeAppraisal(state, unit, used) / paid;
+  factors.ownValues?.set(unit.id, value);
+  return value;
 }
 
 export interface UnitValue {
@@ -105,7 +114,7 @@ export function unitValue(
   const own = ownValue(state, unit, noisy, factors);
   let worst: Unit | null = null;
   let lowest = own;
-  for (const neighbor of touchingUnits(state, unit)) {
+  for (const neighbor of touchingUnits(state, unit, factors.levels)) {
     if (!hasOccupants(neighbor)) continue;
     const value = ownValue(state, neighbor, undefined, factors);
     if (value < lowest) {

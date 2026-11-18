@@ -1,7 +1,7 @@
 import type { TowerState, Unit, UnitId, UnitType } from '@tower-magnate/shared';
 import { describe, expect, it } from 'vitest';
 import { storeDailyGrades } from './unit-evaluation';
-import { touchingUnits } from './neighbors';
+import { evaluatedByLevel, touchingUnits } from './neighbors';
 import { buildTower, plainTowerPlan } from './testing';
 import { ownValue, unitValue } from './unit-value';
 
@@ -42,6 +42,22 @@ describe('touching units', () => {
     ]);
     const near = touchingUnits(state, state.units[ids[0]!]!).map((unit) => unit.id);
     expect(near.sort()).toEqual([ids[1], ids[3]].sort());
+  });
+
+  it('finds the same units through the level index as by scanning every unit', () => {
+    const { state, ids } = tower([
+      { type: 'office', level: 3, x: 40 },
+      { type: 'office', level: 3, x: 49 },
+      { type: 'condo', level: 4, x: 30 },
+      { type: 'single-room', level: 2, x: 44 },
+      { type: 'office', level: 5, x: 40 },
+    ]);
+    const index = evaluatedByLevel(state);
+    for (const id of ids) {
+      const unit = state.units[id]!;
+      const byScan = touchingUnits(state, unit).map((u) => u.id).sort();
+      expect(touchingUnits(state, unit, index).map((u) => u.id).sort()).toEqual(byScan);
+    }
   });
 });
 

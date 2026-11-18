@@ -20,7 +20,8 @@ import { isNoisy, noisyUnitIds } from './noise';
 import type { SimulationSystem } from './step';
 import { writableUnit, writableUnitLedger } from './step-copy';
 import { unitNumber } from './units';
-import { unitValue } from './unit-value';
+import { paidPrice, unitValue } from './unit-value';
+import { evaluatedByLevel } from './neighbors';
 
 const EVALUATED_TYPES: readonly UnitType[] = [
   'office',
@@ -71,9 +72,10 @@ function tripsInWindow(state: TowerState, unit: Unit, step: number): WindowTrips
   return trips;
 }
 
-/** True when the unit has ended trips in its window at `step`. */
-export function hasTripsInWindow(state: TowerState, unit: Unit, step = state.step): boolean {
-  return tripsInWindow(state, unit, step).count > 0;
+/** Average trip stress in the unit's window at `step`, or null with no trips, in one pass. */
+export function windowAverage(state: TowerState, unit: Unit, step = state.step): number | null {
+  const { sum, count } = tripsInWindow(state, unit, step);
+  return count === 0 ? null : Math.floor(sum / count);
 }
 
 /** Base stress B: the average trip stress in the unit's window, rounded down, 0 with no trips. */
@@ -110,8 +112,13 @@ export function storeGrade(
   factors: AppraisalFactors = appraisalFactors(state),
 ): TenantEvaluation {
   const writable = writableUnit(state, unit);
-  writable.appraisal = computeAppraisal(state, writable, factors);
-  const grade = gradeUnit(state, writable, noisy, factors);
+  const own = { ...factors, noisy: noisy ? new Set([unit.id]) : new Set<UnitId>() };
+  writable.appraisal = computeAppraisal(state, writable, own);
+  // The unit's own value comes from the fair price just stored, so grading does not redo it.
+  const ownValues = factors.ownValues ?? new Map<UnitId, number>();
+  const paid = paidPrice(writable);
+  ownValues.set(unit.id, paid <= 0 ? Infinity : writable.appraisal / paid);
+  const grade = gradeUnit(state, writable, noisy, { ...factors, ownValues });
   writable.evaluation = grade;
   return grade;
 }
@@ -201,7 +208,12 @@ export function createDailyGradeSystem(): SimulationSystem {
 /** The 00:00 grade of every unit, in unit order. */
 export function storeDailyGrades(state: TowerState): void {
   const noisy = noisyUnitIds(state);
-  const factors = { ...appraisalFactors(state), noisy };
+  const factors = {
+    ...appraisalFactors(state),
+    noisy,
+    ownValues: new Map<UnitId, number>(),
+    levels: evaluatedByLevel(state),
+  };
   const units = Object.values(state.units).sort((a, b) => unitNumber(a.id) - unitNumber(b.id));
   for (const unit of units) storeDailyGrade(state, unit, noisy.has(unit.id), factors);
   storeDailyAppraisals(state);

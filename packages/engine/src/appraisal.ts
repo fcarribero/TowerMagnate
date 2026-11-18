@@ -10,6 +10,7 @@ import {
   type UnitId,
   type UnitType,
 } from '@tower-magnate/shared';
+import type { LevelIndex } from './neighbors';
 import { noisyUnitIds } from './noise';
 import { unitNumber } from './units';
 import { occupantPercent, occupantScore, towerScore } from './unit-value';
@@ -22,6 +23,10 @@ export interface AppraisalFactors {
   towerScore: number;
   /** Units with a noise source close by; worked out per unit when left out. */
   noisy?: ReadonlySet<UnitId>;
+  /** Own values already worked out in this pass, so a unit's neighbors do not redo them. */
+  ownValues?: Map<UnitId, number>;
+  /** Evaluated units by level, so neighbor lookups do not scan every unit. */
+  levels?: LevelIndex;
 }
 
 export function appraisalFactors(state: TowerState): AppraisalFactors {
