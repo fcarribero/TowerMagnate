@@ -7,11 +7,13 @@ export {
   ConfirmDialog,
   DecisionDialog,
   InfoDialog,
+  PromptDialog,
   dialogRequest,
   type ConfirmDialogProps,
   type DecisionDialogProps,
   type DialogChoice,
   type InfoDialogProps,
+  type PromptDialogProps,
 } from './Dialog';
 export { Checkbox, type CheckboxProps } from './Checkbox';
 export { Dropdown, type DropdownOption, type DropdownProps } from './Dropdown';

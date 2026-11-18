@@ -30,6 +30,7 @@ export const OBRA_ICON_PATHS = {
   user: '<circle cx="12" cy="8" r="4"/><path d="M4 21c1-4 4-6 8-6s7 2 8 6"/>',
   check: '<path d="M5 12l5 5 9-10"/>',
   pause: '<path d="M8 5v14M16 5v14"/>',
+  pencil: '<path d="M4 20l1-5L16 4l4 4L9 19z"/><path d="M14 6l4 4"/>',
   // Units without a drawing in the reference.
   generic: '<rect x="4" y="4" width="16" height="16"/><path d="M4 12h16M12 4v16"/>',
   bed: '<path d="M3 18V8M3 14h18v4M21 14v-2a3 3 0 0 0-3-3h-7v5"/><circle cx="7" cy="11" r="2"/>',

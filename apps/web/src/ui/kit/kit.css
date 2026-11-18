@@ -76,6 +76,46 @@
   user-select: text;
 }
 
+/* A title with a small control right after it, such as the rename pencil. */
+.tm-window__title-row {
+  display: flex;
+  gap: var(--space-1);
+  align-items: center;
+  min-width: 0;
+}
+
+.tm-window__title-row .tm-window__title-text {
+  flex: 0 1 auto;
+}
+
+.tm-window__title-action {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: calc(14 * var(--tm-px));
+  height: calc(14 * var(--tm-px));
+  padding: 0;
+  color: inherit;
+  cursor: pointer;
+  background: none;
+  border: none;
+  opacity: 0.8;
+}
+
+.tm-window__title-action:hover {
+  opacity: 1;
+}
+
+.tm-window__title-action .obra-icon {
+  width: calc(11 * var(--tm-px));
+  height: calc(11 * var(--tm-px));
+}
+
+.tm-window__title .tm-window__title-action:focus-visible {
+  outline-color: var(--obra-paper);
+}
+
 /* Window title bar with a subtitle line above the title. */
 .tm-window__heading {
   display: flex;

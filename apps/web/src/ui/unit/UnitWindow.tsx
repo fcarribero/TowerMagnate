@@ -6,12 +6,14 @@ import {
   Button,
   Checkbox,
   ConfirmDialog,
+  PromptDialog,
   RangeSlider,
   Tooltip,
   Window,
   dialogRequest,
   useWindowManager,
 } from '../kit';
+import { ObraIcon } from '../icons/ObraIcon';
 import { unitPanelId, unitWindowId } from '../inspectTarget';
 import { t } from '../strings';
 import { PeopleRow } from './PeopleRow';
@@ -95,18 +97,15 @@ export function UnitWindow({ unitId, connection, anchored = false }: UnitWindowP
   const gone = data?.status === 'gone' || (loaded && view === undefined);
   const windowId = anchored ? unitPanelId(unitId) : unitWindowId(unitId);
   const filmDialogId = `changeFilm:${unitId}`;
+  const renameDialogId = `rename:${unitId}`;
 
   const known = found ?? view;
   const customName = found?.name ?? view?.name ?? null;
-  const [draft, setDraft] = useState<string | null>(null);
-  const shownName = draft ?? customName ?? '';
 
-  const commitName = (): void => {
-    if (draft === null) {
-      return;
-    }
-    const name = draft.trim();
-    setDraft(null);
+  /** An empty name clears the custom one, so the title goes back to type and level. */
+  const confirmRename = (value: string): void => {
+    manager.close(renameDialogId);
+    const name = value.trim();
     if (name !== (customName ?? '')) {
       void commands.renameUnit(unitId, name);
     }
@@ -145,6 +144,19 @@ export function UnitWindow({ unitId, connection, anchored = false }: UnitWindowP
         onClose={close}
         draggable={!anchored}
         width={200}
+        titleAction={
+          known === undefined || gone ? undefined : (
+            <button
+              type="button"
+              class="tm-window__title-action"
+              aria-label={t('window.unit.rename')}
+              title={t('window.unit.rename')}
+              onClick={() => manager.open(dialogRequest(renameDialogId))}
+            >
+              <ObraIcon name="pencil" />
+            </button>
+          )
+        }
       >
         {gone && <p class="tm-unit__gone">{t('ui.goneFromTower')}</p>}
         {/* A unit with people shows them first; one group needs no heading, several do. */}
@@ -156,27 +168,6 @@ export function UnitWindow({ unitId, connection, anchored = false }: UnitWindowP
             bare={people.length === 1}
           />
         ))}
-        <div class="tm-field">
-          <label class="tm-field__label" for={`${windowId}-name`}>
-            {t('window.unit.name')}
-          </label>
-          <input
-            id={`${windowId}-name`}
-            class="tm-input"
-            type="text"
-            value={shownName}
-            maxLength={NAME_MAX_LENGTH}
-            placeholder={known === undefined ? undefined : typeName(known.type)}
-            disabled={gone}
-            onInput={(event) => setDraft(event.currentTarget.value)}
-            onBlur={commitName}
-            onKeyDown={(event) => {
-              if (event.key === 'Enter') {
-                commitName();
-              }
-            }}
-          />
-        </div>
         {groups !== null && groups.tiles.length > 0 && found?.details?.group === 'venue' && (
           <VenueTable rows={groups.tiles} />
         )}
@@ -256,6 +247,16 @@ export function UnitWindow({ unitId, connection, anchored = false }: UnitWindowP
         actionTone="plain"
         onConfirm={confirmFilmChange}
         onCancel={() => manager.close(filmDialogId)}
+      />
+      <PromptDialog
+        id={renameDialogId}
+        title={t('dialog.rename.title')}
+        label={t('window.unit.name')}
+        initialValue={customName ?? ''}
+        placeholder={known === undefined ? undefined : typeName(known.type)}
+        maxLength={NAME_MAX_LENGTH}
+        onConfirm={confirmRename}
+        onCancel={() => manager.close(renameDialogId)}
       />
     </>
   );

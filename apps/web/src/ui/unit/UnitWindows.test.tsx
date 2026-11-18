@@ -168,18 +168,34 @@ describe('unit windows', () => {
     expect(screen.getByRole('dialog', { name: 'Nuevo' })).toBeTruthy();
   });
 
-  it('renames on Enter and on blur, and an empty name clears it', () => {
+  it('has no name field, only the pencil beside the title', () => {
+    const { open, show } = setup([unitView('u1')]);
+    open('u1');
+    show(inspectOf('u1'));
+    const dialog = screen.getByRole('dialog', { name: 'Oficina · Piso 3' });
+    expect(within(dialog).queryByLabelText('Nombre')).toBeNull();
+    const pencil = within(dialog).getByRole('button', { name: 'Cambiar nombre' });
+    expect(pencil.closest('.tm-window__title')).toBeTruthy();
+  });
+
+  it('renames from the pencil: Aceptar and Enter send the name, an empty name clears it', () => {
     const { open, show, commandsSent } = setup([unitView('u1')]);
     open('u1');
     show(inspectOf('u1'));
-    const field = screen.getByLabelText('Nombre');
-    fireEvent.input(field, { target: { value: 'Estudio' } });
-    fireEvent.keyDown(field, { key: 'Enter' });
-    fireEvent.input(field, { target: { value: 'Otro' } });
-    fireEvent.blur(field);
+    const rename = (value: string, how: 'click' | 'enter'): void => {
+      fireEvent.click(screen.getByRole('button', { name: 'Cambiar nombre' }));
+      const prompt = screen.getByRole('alertdialog', { name: 'Cambiar nombre' });
+      const field = within(prompt).getByLabelText('Nombre');
+      fireEvent.input(field, { target: { value } });
+      if (how === 'enter') fireEvent.keyDown(field, { key: 'Enter' });
+      else fireEvent.click(within(prompt).getByRole('button', { name: 'Aceptar' }));
+      expect(screen.queryByRole('alertdialog', { name: 'Cambiar nombre' })).toBeNull();
+    };
+    rename('Estudio', 'click');
+    show(inspectOf('u1', { name: 'Estudio' }));
+    rename('Otro', 'enter');
     show(inspectOf('u1', { name: 'Otro' }));
-    fireEvent.input(screen.getByLabelText('Nombre'), { target: { value: '' } });
-    fireEvent.blur(screen.getByLabelText('Nombre'));
+    rename('', 'click');
     expect(commandsSent()).toEqual([
       { type: 'renameUnit', unitId: 'u1', name: 'Estudio' },
       { type: 'renameUnit', unitId: 'u1', name: 'Otro' },
@@ -187,13 +203,21 @@ describe('unit windows', () => {
     ]);
   });
 
-  it('does not send a rename when the name did not change', () => {
+  it('opens the rename window with the current name and sends nothing on Cancelar or no change', () => {
     const { open, show, commandsSent } = setup([unitView('u1')]);
     open('u1');
     show(inspectOf('u1', { name: 'Estudio' }));
-    const field = screen.getByLabelText('Nombre');
-    fireEvent.input(field, { target: { value: 'Estudio' } });
-    fireEvent.blur(field);
+    fireEvent.click(screen.getByRole('button', { name: 'Cambiar nombre' }));
+    let prompt = screen.getByRole('alertdialog', { name: 'Cambiar nombre' });
+    const field = within(prompt).getByLabelText('Nombre') as HTMLInputElement;
+    expect(field.value).toBe('Estudio');
+    fireEvent.input(field, { target: { value: 'Otro' } });
+    fireEvent.click(within(prompt).getByRole('button', { name: 'Cancelar' }));
+    expect(screen.queryByRole('alertdialog', { name: 'Cambiar nombre' })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Cambiar nombre' }));
+    prompt = screen.getByRole('alertdialog', { name: 'Cambiar nombre' });
+    expect((within(prompt).getByLabelText('Nombre') as HTMLInputElement).value).toBe('Estudio');
+    fireEvent.click(within(prompt).getByRole('button', { name: 'Aceptar' }));
     expect(commandsSent()).toEqual([]);
   });
 
@@ -265,14 +289,13 @@ describe('unit windows', () => {
     expect(requested).toEqual(['p2']);
   });
 
-  it('shows the office workers above the name with no heading, and no appraisal, location or note', () => {
+  it('shows the office workers first with no heading, and no appraisal, location or note', () => {
     const { open, show } = setup([unitView('u1')]);
     open('u1');
     show(inspectOf('u1'));
     const dialog = screen.getByRole('dialog');
     const people = dialog.querySelector('.tm-unit__people') as HTMLElement;
-    const nameField = dialog.querySelector('.tm-field') as HTMLElement;
-    expect(people.compareDocumentPosition(nameField) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(dialog.querySelector('.tm-window__body')?.firstElementChild).toBe(people);
     expect(within(people).queryByRole('heading')).toBeNull();
     expect(within(people).getAllByRole('button', { name: 'Ver a esta persona' }).length).toBeGreaterThan(0);
     expect(screen.queryByText('Tasación')).toBeNull();
@@ -383,7 +406,7 @@ describe('unit windows', () => {
     show(inspectOf('u1'));
     show({ kind: 'unit', id: 'u1', status: 'gone' });
     expect(screen.getByText('Ya no está en la torre.')).toBeTruthy();
-    expect((screen.getByLabelText('Nombre') as HTMLInputElement).disabled).toBe(true);
+    expect(screen.queryByRole('button', { name: 'Cambiar nombre' })).toBeNull();
   });
 
   it('keeps four windows and closes the oldest on a fifth', () => {
@@ -404,7 +427,7 @@ describe('unit windows', () => {
     show(inspectOf('u1'));
     act(() => store.applySnapshot({ ...snapshot, units: [] }));
     expect(screen.getByText('Ya no está en la torre.')).toBeTruthy();
-    expect((screen.getByLabelText('Nombre') as HTMLInputElement).disabled).toBe(true);
+    expect(screen.queryByRole('button', { name: 'Cambiar nombre' })).toBeNull();
     expect(
       (screen.getByRole('slider', { name: 'Ajustar el precio' }) as HTMLInputElement).disabled,
     ).toBe(true);

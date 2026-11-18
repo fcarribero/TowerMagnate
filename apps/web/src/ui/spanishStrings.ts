@@ -167,6 +167,7 @@ export const SPANISH_STRINGS = {
   'window.notices.empty': 'Todavía no hay avisos.',
   'window.stars.title': 'Estrellas',
   'window.unit.name': 'Nombre',
+  'window.unit.rename': 'Cambiar nombre',
   'window.unit.status': 'Estado',
   'window.unit.people': 'Personas',
   'window.unit.residents': 'Residentes',
@@ -541,6 +542,7 @@ export const SPANISH_STRINGS = {
   'dialog.demolishRentedUnits.body':
     'Se demuelen {count} unidades de la selección y los muros quedan en su lugar. Hay contratos vigentes: pagás {indemnity} de indemnización, una semana de renta por contrato. Si no renovás los contratos, los inquilinos se van cuando terminen.',
   'dialog.changeFilm.title': 'Cambiar película',
+  'dialog.rename.title': 'Cambiar nombre',
   'dialog.changeFilm.body': 'La película nueva cuesta $300.000.',
   'dialog.newTower.title': 'Torre nueva',
   'dialog.newTower.body':

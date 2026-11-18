@@ -53,6 +53,8 @@ export interface WindowProps {
   subtitle?: string;
   /** False pins the window where its owner puts it: the title bar no longer drags. */
   draggable?: boolean;
+  /** A small control drawn right after the title text, for example the unit's rename pencil. */
+  titleAction?: ComponentChildren;
 }
 
 export function Window({
@@ -69,6 +71,7 @@ export function Window({
   dialogTone = 'alert',
   subtitle,
   draggable = true,
+  titleAction,
 }: WindowProps) {
   const manager = useWindowManager();
   const frameRef = useRef<HTMLElement>(null);
@@ -237,9 +240,18 @@ export function Window({
         <header class="tm-window__title" {...dragHandlers}>
           <span class="tm-window__heading">
             {subtitle !== undefined && <span class="tm-window__subtitle">{subtitle}</span>}
-            <span id={titleId} class="tm-window__title-text">
-              {title}
-            </span>
+            {titleAction === undefined ? (
+              <span id={titleId} class="tm-window__title-text">
+                {title}
+              </span>
+            ) : (
+              <span class="tm-window__title-row">
+                <span id={titleId} class="tm-window__title-text">
+                  {title}
+                </span>
+                {titleAction}
+              </span>
+            )}
           </span>
           {closable && showCloseButton && (
             <button

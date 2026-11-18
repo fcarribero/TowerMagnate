@@ -13,6 +13,8 @@ export interface TextFieldProps {
   hint?: string;
   error?: string;
   disabled?: boolean;
+  /** Takes focus when its window opens, with the text selected. */
+  autoFocus?: boolean;
 }
 
 export function TextField({
@@ -28,6 +30,7 @@ export function TextField({
   hint,
   error,
   disabled = false,
+  autoFocus = false,
 }: TextFieldProps) {
   const hintId = `${id}-hint`;
   const errorId = `${id}-error`;
@@ -47,6 +50,8 @@ export function TextField({
         disabled={disabled}
         aria-invalid={error !== undefined}
         aria-describedby={describedBy}
+        data-autofocus={autoFocus ? '' : undefined}
+        onFocus={autoFocus ? (event) => event.currentTarget.select() : undefined}
         onInput={(event) => onChange(event.currentTarget.value)}
         onBlur={onBlur && ((event) => onBlur(event.currentTarget.value))}
         onKeyDown={

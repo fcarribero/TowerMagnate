@@ -1,6 +1,8 @@
 import type { ComponentChildren } from 'preact';
+import { useState } from 'preact/hooks';
 import { t } from '../strings';
 import { Button } from './Button';
+import { TextField } from './TextField';
 import { Window } from './Window';
 import type { OpenRequest } from './windowStack';
 
@@ -212,5 +214,86 @@ export function InfoDialog({
       modal={modal}
       tone="info"
     />
+  );
+}
+
+export interface PromptDialogProps {
+  id: string;
+  title: string;
+  /** The label above the text field. */
+  label: string;
+  /** The text the field starts with each time the dialog opens. */
+  initialValue: string;
+  placeholder?: string;
+  maxLength?: number;
+  onConfirm: (value: string) => void;
+  onCancel: () => void;
+}
+
+/** Asks for one line of text. Aceptar or Enter confirms; Cancelar or Esc leaves it as it was. */
+export function PromptDialog({
+  id,
+  title,
+  label,
+  initialValue,
+  placeholder,
+  maxLength,
+  onConfirm,
+  onCancel,
+}: PromptDialogProps) {
+  return (
+    <Window
+      id={id}
+      title={title}
+      showCloseButton={false}
+      modal
+      width={DIALOG_WIDTH}
+      isDialog
+      dialogTone="info"
+      onClose={onCancel}
+    >
+      <PromptForm
+        id={id}
+        label={label}
+        initialValue={initialValue}
+        placeholder={placeholder}
+        maxLength={maxLength}
+        onConfirm={onConfirm}
+        onCancel={onCancel}
+      />
+    </Window>
+  );
+}
+
+/** Mounted only while the dialog is open, so every opening starts from `initialValue`. */
+function PromptForm({
+  id,
+  label,
+  initialValue,
+  placeholder,
+  maxLength,
+  onConfirm,
+  onCancel,
+}: Omit<PromptDialogProps, 'title'>) {
+  const [value, setValue] = useState(initialValue);
+  return (
+    <>
+      <TextField
+        id={`${id}-field`}
+        label={label}
+        value={value}
+        onChange={setValue}
+        onEnter={onConfirm}
+        placeholder={placeholder}
+        maxLength={maxLength}
+        autoFocus
+      />
+      <div class="tm-dialog__buttons">
+        <Button isDefault onClick={() => onConfirm(value)}>
+          {t('ui.accept')}
+        </Button>
+        <Button onClick={onCancel}>{t('ui.cancel')}</Button>
+      </div>
+    </>
   );
 }
