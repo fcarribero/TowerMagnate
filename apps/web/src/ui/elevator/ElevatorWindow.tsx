@@ -9,7 +9,16 @@ import {
 import { useState } from 'preact/hooks';
 import type { CommandOutcome } from '../../api/commandApi';
 import { elevatorWindowId } from '../inspectTarget';
-import { Button, Checkbox, Dropdown, Tabs, Window } from '../kit';
+import {
+  Button,
+  Checkbox,
+  ConfirmDialog,
+  Dropdown,
+  Tabs,
+  Window,
+  dialogRequest,
+  useWindowManager,
+} from '../kit';
 import { formatMoney } from '../money';
 import { errorText, t, type StringKey } from '../strings';
 import {
@@ -72,7 +81,14 @@ function carPrice(type: ShaftData['type']): number {
   return cost.kind === 'shaft' ? cost.perCarAmount : 0;
 }
 
+function shaftPrice(type: ShaftData['type']): number {
+  const { cost } = UNIT_CATALOG[SHAFT_UNIT_TYPES[type]];
+  return cost.kind === 'shaft' ? cost.shaftAmount : 0;
+}
+
 export function ElevatorWindow({ shaft, send, onClose, bandNow = null }: ElevatorWindowProps) {
+  const manager = useWindowManager();
+  const demolishDialogId = `demolishShaft:${shaft.id}`;
   const savedHomes = shaft.cars.map((car) => car.homeLevel);
   const [tab, setTab] = useState('route');
   const [stops, setStops] = useState<Level[]>([...shaft.stops]);
@@ -207,60 +223,76 @@ export function ElevatorWindow({ shaft, send, onClose, bandNow = null }: Elevato
   );
 
   return (
-    <Window id={elevatorWindowId(shaft.id)} title={title} onClose={onClose} width={310}>
-      <Tabs
-        id="elevator-tabs"
-        label={title}
-        selectedId={tab}
-        onSelect={setTab}
-        tabs={[
-          { id: 'route', label: t('ui.shaftTabRoute'), content: routeTab },
-          { id: 'cars', label: t('ui.shaftTabCars'), content: carsTab },
-          {
-            id: 'schedule',
-            label: t('ui.shaftTabSchedule'),
-            content: (
-              <ScheduleTab
-                shaftId={shaft.id}
-                draft={schedule}
-                inForce={bandNow}
-                onChange={setSchedule}
-              />
-            ),
-          },
-        ]}
-      />
-      {error === null ? null : <p role="alert">{error}</p>}
-      <div class="elevator-footer">
-        <span class="elevator-footer__primary">
+    <>
+      <Window id={elevatorWindowId(shaft.id)} title={title} onClose={onClose} width={310}>
+        <Tabs
+          id="elevator-tabs"
+          label={title}
+          selectedId={tab}
+          onSelect={setTab}
+          tabs={[
+            { id: 'route', label: t('ui.shaftTabRoute'), content: routeTab },
+            { id: 'cars', label: t('ui.shaftTabCars'), content: carsTab },
+            {
+              id: 'schedule',
+              label: t('ui.shaftTabSchedule'),
+              content: (
+                <ScheduleTab
+                  shaftId={shaft.id}
+                  draft={schedule}
+                  inForce={bandNow}
+                  onChange={setSchedule}
+                />
+              ),
+            },
+          ]}
+        />
+        {error === null ? null : <p role="alert">{error}</p>}
+        <div class="elevator-footer">
+          <span class="elevator-footer__primary">
+            <Button
+              disabled={!changed || scheduleToSend === null}
+              onClick={() => {
+                if (scheduleToSend !== null) {
+                  void run({
+                    type: 'configureShaft',
+                    shaftId: shaft.id,
+                    stops,
+                    carHomes: homes,
+                    schedule: scheduleToSend,
+                  });
+                }
+              }}
+            >
+              {t('ui.apply')}
+            </Button>
+          </span>
           <Button
-            disabled={!changed || scheduleToSend === null}
+            disabled={!changed}
             onClick={() => {
-              if (scheduleToSend !== null) {
-                void run({
-                  type: 'configureShaft',
-                  shaftId: shaft.id,
-                  stops,
-                  carHomes: homes,
-                  schedule: scheduleToSend,
-                });
-              }
+              setStops([...shaft.stops]);
+              setHomes(savedHomes);
+              setSchedule(draftOf(shaft.schedule));
             }}
           >
-            {t('ui.apply')}
+            {t('ui.shaftDiscard')}
           </Button>
-        </span>
-        <Button
-          disabled={!changed}
-          onClick={() => {
-            setStops([...shaft.stops]);
-            setHomes(savedHomes);
-            setSchedule(draftOf(shaft.schedule));
-          }}
-        >
-          {t('ui.shaftDiscard')}
-        </Button>
-      </div>
-    </Window>
+          <Button onClick={() => manager.open(dialogRequest(demolishDialogId))}>
+            {t('ui.shaftDemolish')}
+          </Button>
+        </div>
+      </Window>
+      <ConfirmDialog
+        id={demolishDialogId}
+        title={t('dialog.demolishShaft.title')}
+        body={t('dialog.demolishShaft.body', { price: formatMoney(shaftPrice(shaft.type)) })}
+        actionLabel={t('dialog.demolish')}
+        onConfirm={() => {
+          manager.close(demolishDialogId);
+          void run({ type: 'demolish', target: { kind: 'shaft', id: shaft.id } });
+        }}
+        onCancel={() => manager.close(demolishDialogId)}
+      />
+    </>
   );
 }

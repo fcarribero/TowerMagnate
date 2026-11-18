@@ -90,6 +90,7 @@ export const SPANISH_STRINGS = {
   'ui.shaftRemoveCar': 'Quitar',
   'ui.shaftAddCar': 'Agregar cabina ({price})',
   'ui.shaftDiscard': 'Descartar',
+  'ui.shaftDemolish': 'Eliminar ascensor',
 
   // 13.4 Status bar, calendar and menus
   'ui.menu': 'Menú',
@@ -550,6 +551,9 @@ export const SPANISH_STRINGS = {
     'Este departamento está vendido. Si lo demolés, le devolvés {price} a los dueños.',
   'dialog.demolishExpensive.title': 'Demoler {typeName}',
   'dialog.demolishExpensive.body': '¿Seguro que querés demoler {typeName}? Costó {price}.',
+  'dialog.demolishShaft.title': 'Eliminar ascensor',
+  'dialog.demolishShaft.body':
+    '¿Seguro que querés eliminar este ascensor con todas sus cabinas? El hueco costó {price}.',
   'dialog.demolishLastCar.title': 'Última cabina',
   'dialog.demolishLastCar.body':
     'Es la única cabina de este ascensor y no se puede quitar sola. ¿Querés demoler el ascensor completo? Costó {price}.',

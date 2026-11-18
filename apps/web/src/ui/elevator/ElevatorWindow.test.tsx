@@ -324,3 +324,25 @@ describe('Schedule Modo column width', () => {
     expect(modeCell()?.querySelector('.tm-dropdown')).not.toBeNull();
   });
 });
+
+describe('elevator demolition', () => {
+  it('asks first and then demolishes the whole shaft', async () => {
+    const send = show(shaft());
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('button', { name: 'Eliminar ascensor' }));
+    const dialog = screen.getByRole('alertdialog', { name: 'Eliminar ascensor' });
+    expect(dialog.textContent).toContain('$');
+    expect(send).not.toHaveBeenCalled();
+    await user.click(screen.getByRole('button', { name: 'Demoler' }));
+    expect(send).toHaveBeenCalledWith({ type: 'demolish', target: { kind: 'shaft', id: 's4' } });
+    expect(screen.queryByRole('alertdialog', { name: 'Eliminar ascensor' })).toBeNull();
+  });
+
+  it('does nothing on Cancelar', async () => {
+    const send = show(shaft());
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('button', { name: 'Eliminar ascensor' }));
+    await user.click(screen.getByRole('button', { name: 'Cancelar' }));
+    expect(send).not.toHaveBeenCalled();
+  });
+});
