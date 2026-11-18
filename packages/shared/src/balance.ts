@@ -1017,6 +1017,14 @@ export const FAIR_PRICE_STRESS_PERCENT = { best: 30, neutralAt: 3, worst: -50 } 
 /** Score added to a unit's occupants when a noise source is close by (stress-evaluation 5.4). */
 export const EVAL_NOISE_SCORE = 1;
 
+/** A unit grades good from this value (fair price over price), fair from the next one. */
+export const GRADE_GOOD_FROM = 1;
+export const GRADE_FAIR_FROM = 0.8;
+/** From 4 stars a unit stays fair down to this value. */
+export const GRADE_FAIR_FROM_FOUR_STARS = 0.7;
+/** Share of the gap to its worst neighbor's lower value that a unit's value loses. */
+export const NEIGHBOR_PULL = 0.15;
+
 /** Tower score when no trip has been filed yet: the neutral point of the fair price. */
 export const TOWER_SCORE_DEFAULT = 3;
 

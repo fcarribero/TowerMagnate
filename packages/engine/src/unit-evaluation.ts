@@ -7,15 +7,20 @@ import {
   type UnitId,
   type UnitType,
 } from '@tower-magnate/shared';
-import { storeDailyAppraisals } from './appraisal';
+import {
+  appraisalFactors,
+  computeAppraisal,
+  storeDailyAppraisals,
+  type AppraisalFactors,
+} from './appraisal';
 import { STEPS_PER_DAY } from './clock';
-import { evaluateUnit } from './evaluation';
+import { gradeOfValue } from './evaluation';
 import { bestSecurityUpgrade } from './security-upgrades';
-import { priceRatio } from './pricing';
 import { isNoisy, noisyUnitIds } from './noise';
 import type { SimulationSystem } from './step';
 import { writableUnit, writableUnitLedger } from './step-copy';
 import { unitNumber } from './units';
+import { unitValue } from './unit-value';
 
 const EVALUATED_TYPES: readonly UnitType[] = [
   'office',
@@ -77,15 +82,6 @@ export function unitBase(state: TowerState, unit: Unit, step = state.step): numb
   return count === 0 ? 0 : Math.floor(sum / count);
 }
 
-/**
- * The price over appraisal the grade uses (SE-15). A sold condo cannot change its price, so it
- * is the sale price; a room uses what its stay paid.
- */
-function ratioOf(unit: Unit): number {
-  if (isHotelRoom(unit)) return unit.hotel?.paidRatio ?? priceRatio(unit);
-  return priceRatio(unit);
-}
-
 /** Access control in the tower takes stress off condos and suites (service-units 2.3). */
 export function guardedBase(state: TowerState, unit: Unit, base: number): number {
   if (unit.type !== 'condo' && unit.type !== 'suite') return base;
@@ -93,29 +89,30 @@ export function guardedBase(state: TowerState, unit: Unit, base: number): number
   return level === 0 ? base : Math.max(0, base - level * SECURITY_ACCESS_CONTROL_SCORE);
 }
 
-/** The grade of the unit at `state.step` from its ledger, price, noise and the tower rating. */
+/** The grade of the unit at `state.step`: its value against its neighbors, at the tower rating. */
 export function gradeUnit(
   state: TowerState,
   unit: Unit,
   noisy = isNoisy(state, unit),
+  factors?: AppraisalFactors,
 ): TenantEvaluation {
-  return evaluateUnit({
-    base: guardedBase(state, unit, unitBase(state, unit)),
-    priceRatio: ratioOf(unit),
-    type: unit.type,
-    noisy,
-    stars: state.stars,
-  }).grade;
+  return gradeOfValue(unitValue(state, unit, noisy, factors).value, state.stars);
 }
 
-/** Grades the unit and stores the grade: lease end, condo evaluation and hotel stay end (SE-19). */
+/**
+ * Grades the unit and stores the grade: lease end, condo evaluation and hotel stay end (SE-19).
+ * The fair price is brought up to date first, so the decision and the window agree.
+ */
 export function storeGrade(
   state: TowerState,
   unit: Unit,
   noisy = isNoisy(state, unit),
+  factors: AppraisalFactors = appraisalFactors(state),
 ): TenantEvaluation {
-  const grade = gradeUnit(state, unit, noisy);
-  writableUnit(state, unit).evaluation = grade;
+  const writable = writableUnit(state, unit);
+  writable.appraisal = computeAppraisal(state, writable, factors);
+  const grade = gradeUnit(state, writable, noisy, factors);
+  writable.evaluation = grade;
   return grade;
 }
 
@@ -136,16 +133,22 @@ function hasOccupants(unit: Unit): boolean {
  * has no grade; one with no trips in its window keeps the grade it had, or gets one from a base
  * of 0 if it has none.
  */
-export function storeDailyGrade(state: TowerState, unit: Unit, noisy = isNoisy(state, unit)): void {
+export function storeDailyGrade(
+  state: TowerState,
+  unit: Unit,
+  noisy = isNoisy(state, unit),
+  factors?: AppraisalFactors,
+): void {
   if (!isEvaluatedUnit(unit) || isHotelRoom(unit)) return;
   if (!hasOccupants(unit)) {
     if (unit.evaluation !== null) writableUnit(state, unit).evaluation = null;
     return;
   }
   // With no trips in the window the unit keeps its grade, but an occupied unit that has none yet
-  // gets one from a base of 0, so it never shows "Sin evaluar" while someone lives or works there.
+  // gets one from the tower score, so it never shows "Sin evaluar" while someone lives or works
+  // there.
   if (tripsInWindow(state, unit, state.step).count === 0 && unit.evaluation !== null) return;
-  storeGrade(state, unit, noisy);
+  storeGrade(state, unit, noisy, factors);
 }
 
 /**
@@ -198,7 +201,8 @@ export function createDailyGradeSystem(): SimulationSystem {
 /** The 00:00 grade of every unit, in unit order. */
 export function storeDailyGrades(state: TowerState): void {
   const noisy = noisyUnitIds(state);
+  const factors = { ...appraisalFactors(state), noisy };
   const units = Object.values(state.units).sort((a, b) => unitNumber(a.id) - unitNumber(b.id));
-  for (const unit of units) storeDailyGrade(state, unit, noisy.has(unit.id));
+  for (const unit of units) storeDailyGrade(state, unit, noisy.has(unit.id), factors);
   storeDailyAppraisals(state);
 }

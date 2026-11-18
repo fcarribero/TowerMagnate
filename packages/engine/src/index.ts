@@ -33,8 +33,8 @@ export { emptyTripParts, tripStress, tripStressSoFar } from './trip-stress';
 export type { RideStress, TripStressParts } from './trip-stress';
 export { isNoisy } from './noise';
 export { defaultSchedule, defaultStops, isExpressStop, shaftLevels } from './commands/shafts';
-export { evaluateUnit, gradeOfScore, unitScore } from './evaluation';
-export type { UnitEvaluation, UnitEvaluationInput, UnitGrade } from './evaluation';
+export { gradeOfValue, unitScore } from './evaluation';
+export type { UnitGrade } from './evaluation';
 export {
   announceSanta,
   answerDecision,

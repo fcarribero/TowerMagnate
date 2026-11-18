@@ -1,6 +1,6 @@
 import type { PriceLevel, StarRating } from '@tower-magnate/shared';
 import { describe, expect, it } from 'vitest';
-import { evaluateUnit, gradeOfScore, unitScore } from './evaluation';
+import { gradeOfValue, unitScore } from './evaluation';
 import { levelRatio } from './pricing';
 
 describe('unitScore', () => {
@@ -22,71 +22,21 @@ describe('unitScore', () => {
   });
 });
 
-describe('gradeOfScore', () => {
+describe('gradeOfValue', () => {
   it.each<[number, StarRating, string]>([
-    [0, 3, 'good'],
-    [89, 3, 'good'],
-    [90, 3, 'fair'],
-    [179, 3, 'fair'],
-    [180, 3, 'poor'],
-    [239, 3, 'poor'],
-    [240, 3, 'poor'],
-    [89, 1, 'good'],
-    [180, 1, 'poor'],
-    [89, 4, 'good'],
-    [90, 4, 'fair'],
-    [180, 4, 'fair'],
-    [239, 4, 'fair'],
-    [240, 4, 'poor'],
-    [239, 5, 'fair'],
-    [240, 5, 'poor'],
-    [239, 6, 'fair'],
-    [240, 6, 'poor'],
-  ])('score %i at %i stars is %s', (score, stars, expected) => {
-    expect(gradeOfScore(score, stars)).toBe(expected);
-  });
-});
-
-describe('evaluateUnit', () => {
-  it('matches the office example at 3 stars with noise', () => {
-    const grade = (price: PriceLevel) => evaluateUnit({ base: 71, priceRatio: levelRatio('office', price), noisy: true, stars: 3 });
-    expect(grade('normal')).toEqual({ score: 131, grade: 'fair' });
-    expect(grade('high')).toEqual({ score: 161, grade: 'fair' });
-    expect(grade('low')).toEqual({ score: 101, grade: 'fair' });
-    expect(grade('minimum')).toEqual({ score: 0, grade: 'good' });
-  });
-
-  it('matches the office example without noise', () => {
-    expect(evaluateUnit({ base: 71, priceRatio: levelRatio('office', 'normal'), noisy: false, stars: 3 }).grade).toBe('good');
-    expect(evaluateUnit({ base: 71, priceRatio: levelRatio('office', 'high'), noisy: false, stars: 3 }).grade).toBe('fair');
-  });
-
-  it('is poor at 3 stars and fair at 4 for base 125, high price, noise', () => {
-    expect(evaluateUnit({ base: 125, priceRatio: levelRatio('office', 'high'), noisy: true, stars: 3 })).toEqual({
-      score: 215,
-      grade: 'poor',
-    });
-    expect(evaluateUnit({ base: 125, priceRatio: levelRatio('office', 'high'), noisy: true, stars: 4 })).toEqual({
-      score: 215,
-      grade: 'fair',
-    });
-  });
-
-  it('gives good at minimum price whatever the base, noise and stars', () => {
-    expect(evaluateUnit({ base: 900, priceRatio: levelRatio('office', 'minimum'), noisy: true, stars: 1 })).toEqual({
-      score: 0,
-      grade: 'good',
-    });
-  });
-
-  it('matches the condo example at the 180 line', () => {
-    expect(evaluateUnit({ base: 150, priceRatio: levelRatio('office', 'low'), noisy: true, stars: 3 })).toEqual({
-      score: 180,
-      grade: 'poor',
-    });
-    expect(evaluateUnit({ base: 150, priceRatio: levelRatio('office', 'low'), noisy: true, stars: 4 })).toEqual({
-      score: 180,
-      grade: 'fair',
-    });
+    [Infinity, 1, 'good'],
+    [1.3, 3, 'good'],
+    [1.0, 3, 'good'],
+    [0.999, 3, 'fair'],
+    [0.8, 3, 'fair'],
+    [0.799, 3, 'poor'],
+    [0.75, 3, 'poor'],
+    [0.75, 4, 'fair'],
+    [0.7, 4, 'fair'],
+    [0.699, 4, 'poor'],
+    [0.75, 6, 'fair'],
+    [0, 6, 'poor'],
+  ])('value %d at %i stars is %s', (value, stars, expected) => {
+    expect(gradeOfValue(value, stars)).toBe(expected);
   });
 });

@@ -159,8 +159,17 @@ describe('3-star hotel with 10 rooms and one housekeeping unit over 14 days (TM-
   it('cleans every room left at check-out by 13:00 the same day, when the shift ends', () => {
     const checkOuts = straight.log.events.filter((event) => event.type === 'hotelCheckOut');
     expect(checkOuts.length).toBeGreaterThan(20);
+    const fires = straight.log.events.flatMap((event) =>
+      event.type === 'disaster' && event.kind === 'fire'
+        ? event.cells.map((cell) => ({ day: dayOf(event.step), level: cell.level }))
+        : [],
+    );
     for (const checkOut of checkOuts) {
       const day = dayOf(checkOut.step);
+      // From the day a fire burns part of a level, the burned cells can cut the maids off from
+      // the rooms on that level, and a burned room is gone.
+      const level = start.units[checkOut.unitId]?.level;
+      if (fires.some((fire) => fire.level === level && fire.day <= day)) continue;
       const cleaned = straight.log.events.find(
         (event) =>
           event.type === 'roomStateChanged' &&

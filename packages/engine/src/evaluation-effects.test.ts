@@ -104,9 +104,10 @@ describe('office weekly end by grade (E-12)', () => {
     expect(newsKeys(result)).toEqual([]);
   });
 
-  it('treats a score of exactly 180 as poor at 3 stars and fair at 4 stars', () => {
+  it('is poor at 3 stars and fair at 4 with the rent between 25% and 43% over the fair price', () => {
+    // 300 steps is a score of 8.1: the fair price is 71.5% of the rent at 3 stars, 75.5% at 4.
     const outcomes = ([3, 4] as StarRating[]).map((stars) => {
-      const { state, unit } = leaseEndingNext('office', 180);
+      const { state, unit } = leaseEndingNext('office', 300);
       state.stars = stars;
       return stepOnce(state).state.units[unit.id] as Unit;
     });

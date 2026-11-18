@@ -68,20 +68,28 @@ describe('condo evaluation (10.4)', () => {
     return { state, condo };
   }
 
-  it('is fair with B = 110, bajo and a single room at gap 24', () => {
+  it('takes the single room at gap 24 as noise and is fair up to 25% over the fair price', () => {
     const { state, condo } = soldCondo();
     fileTrips(state, condo, 54, 5_940);
     expect(unitBase(state, condo)).toBe(110);
+    // 110 steps is a score of 4.57, 5.57 with the noise: 18.4% off the base price.
+    const fair = Math.round(priceOfLevel('condo', 'normal') * (1 - (50 * 2.5729) / 7 / 100));
+    condo.price = Math.round(fair / 0.9);
     expect(storeGrade(state, condo)).toBe('fair');
     expect(condo.evaluation).toBe('fair');
+    expect(condo.appraisal).toBeCloseTo(fair, -1);
   });
 
-  it('is poor at 3 stars and fair at 4 with a score of exactly 180', () => {
+  it('is poor at 3 stars and fair at 4 with the price 1/0.75 of the fair price', () => {
     const { state, condo } = soldCondo();
     fileTrips(state, condo, 54, 8_100);
     state.stars = 3;
+    storeGrade(state, condo);
+    condo.price = Math.round(condo.appraisal / 0.75);
     expect(storeGrade(state, condo)).toBe('poor');
     state.stars = 4;
+    storeGrade(state, condo);
+    condo.price = Math.round(condo.appraisal / 0.75);
     expect(storeGrade(state, condo)).toBe('fair');
   });
 });
@@ -101,6 +109,7 @@ describe('hotel room evaluation (10.5)', () => {
       stayEndStep: at(WEDNESDAY, 10),
       checkInStep: at(MONDAY, 17),
       paidRatio: 1.5,
+      stayRate: 3_500,
       arrivalStep: null,
       rollDue: false,
       dirtyChecks: 0,
@@ -120,13 +129,16 @@ describe('hotel room evaluation (10.5)', () => {
     return { state, room };
   }
 
+  // B = 34 is a score of 1.72. At 3 stars the fair price is 3,624 without noise and 3,324 with
+  // the office close by (+1 to the score). The stay paid 3,500 a night.
   it('counts the stay up to its end, so B = 34 and the grade is fair with the office at gap 14', () => {
     const { state, room } = stayedRoom(70);
     expect(unitBase(state, room)).toBe(34);
     expect(storeGrade(state, room)).toBe('fair');
+    expect(room.appraisal).toBe(3_324);
   });
 
-  it('uses the level paid at check-in, not the level set now', () => {
+  it('uses the rate the stay paid, not the price set now', () => {
     const { state, room } = stayedRoom(70);
     room.price = priceOfLevel('double-room', 'minimum');
     expect(storeGrade(state, room)).toBe('fair');
@@ -135,6 +147,7 @@ describe('hotel room evaluation (10.5)', () => {
   it('is good with the office at gap 21', () => {
     const { state, room } = stayedRoom(77);
     expect(storeGrade(state, room)).toBe('good');
+    expect(room.appraisal).toBe(3_624);
   });
 
   it('has no base before the first stay', () => {
@@ -152,13 +165,16 @@ describe('retail shop evaluation (10.6)', () => {
     return { state, shop };
   }
 
-  it('is fair at alto and good at normal and minimo with B = 81', () => {
+  it('is poor at alto, fair at normal and good at minimo with B = 81', () => {
     const { state, shop } = leasedShop();
     expect(unitBase(state, shop)).toBe(81);
+    // 81 steps is a score of 3.62: the fair price is 4.5% under the base price, plus 1% for the
+    // shop itself as an amenity, 14,482.
     shop.price = priceOfLevel('retail-shop', 'high');
-    expect(storeGrade(state, shop)).toBe('fair');
+    expect(storeGrade(state, shop)).toBe('poor');
+    expect(shop.appraisal).toBe(14_482);
     shop.price = priceOfLevel('retail-shop', 'normal');
-    expect(storeGrade(state, shop)).toBe('good');
+    expect(storeGrade(state, shop)).toBe('fair');
     shop.price = priceOfLevel('retail-shop', 'minimum');
     expect(storeGrade(state, shop)).toBe('good');
   });
@@ -217,7 +233,7 @@ describe('daily grade at 00:00', () => {
     expect(office.evaluation).toBe('poor');
   });
 
-  it('grades a tenant who has no trips yet from a base of 0, so it is never unevaluated', () => {
+  it('grades a tenant who has no trips yet from the tower score, so it is never unevaluated', () => {
     const { state, office } = leasedOffice();
     expect(office.evaluation).toBeNull();
     storeDailyGrade(state, office);
@@ -234,7 +250,8 @@ describe('daily grade at 00:00', () => {
 
   it('shows a price change at the next 00:00', () => {
     const { state, office } = leasedOffice();
-    fileTrips(state, office, 10, 800);
+    // 30 steps a trip is a score of 1.54: the fair price is 11,460, so normal is good and high poor.
+    fileTrips(state, office, 10, 300);
     state.step = EVALUATION_STEP - 1;
     const engine = createEngine({ commandHandlers: {}, systems: [createDailyGradeSystem()] });
     const first = engine.step(state, [], 1).state;
@@ -245,7 +262,7 @@ describe('daily grade at 00:00', () => {
     const beforeMidnight = engine.step(first, [], STEPS_PER_DAY - 1).state;
     expect(beforeMidnight.units[office.id]?.evaluation).toBe('good');
     const atMidnight = engine.step(beforeMidnight, [], 1).state;
-    expect(atMidnight.units[office.id]?.evaluation).toBe('fair');
+    expect(atMidnight.units[office.id]?.evaluation).toBe('poor');
   });
 
   it('leaves hotel rooms to their stay end', () => {
