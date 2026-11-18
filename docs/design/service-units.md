@@ -76,6 +76,29 @@ The exact effects depend on what the security system will do; this is not built 
 | Music | 3 | Lowers the noise felt in the lobby cells |
 | Lighting | 3 | Fewer dirt points are felt there |
 
+## 2.5 Crews, clothes and shifts
+
+- The default crew from outside always exists, whatever the tower has built. It comes in work clothes and walks straight to its site. It is one more crew on top of the ones the obradores make.
+- The workers of an obrador come in from the street in everyday clothes and walk to their obrador. There they change and become builders, and then walk to their site. At the end of the work day they walk back to the obrador, change into everyday clothes and leave for home.
+- The same goes for the cleaners of a cleaning room and the guards of a security office: they arrive in everyday clothes, change in their unit and leave through it at the end of the shift.
+- A person who has changed shows the work look (builder, cleaner, guard); one in everyday clothes shows the look of a plain person.
+- Changing takes a fixed time standing in the unit (guess: 5 minutes).
+
+## 2.6 Elevators for staff
+
+This replaces the rules in routing.md that let only maids use service elevators and keep guards off them.
+
+- Every worker inside the tower (builders, cleaners, maids, guards) prefers a service elevator. The route cost of a service ride is lower than the cost of any other way for them (guess: the ride cost of a service shaft is halved for staff).
+- If the tower has no service elevator that links their two floors, they use what the other people use: stairs, escalators and standard and express elevators.
+- Other people never use a service elevator.
+
+## 2.7 Stress from seeing workers
+
+- A person who rides a standard or express car with a worker in it, or who walks past one, feels a little stress. Workers inside a service car do not count, because nobody else is there.
+- So a tower with no service elevators makes workers share cars with tenants, and the stress shows up in the score of the units those tenants come from.
+- The value is added to the minute stress of the cell or car: it goes in the car's noise and dirt pair, with a worker counting more than a plain rider (guess: a worker adds 0.5 noise and 0.1 dirt in a car, a bag-carrying cleaner adds 1 dirt more).
+- A worker walking in the open adds the same small noise and dirt per cell as anyone else; no extra.
+
 ## 3. Quiet and comfort units
 
 Acoustic panels are not an upgrade: their cost would grow with the surface they cover. These are units instead:
@@ -106,6 +129,7 @@ No change. The player can build as many shafts and cars as wanted at any star le
 4. More security offices and their upgrades.
 5. Lobby upgrades.
 6. Garden, lounge and library units.
+7. Work clothes, changing in the unit, and staff on service elevators with the stress from sharing cars.
 
 ## 7. Open points
 
