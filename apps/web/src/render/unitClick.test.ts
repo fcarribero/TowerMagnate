@@ -41,13 +41,16 @@ const rider = { ...walker, id: 'p2', x: 30, level: 4, mode: 'ride' as const };
 /** A walker in the hall, outside any unit. */
 const hallWalker = { ...walker, id: 'p3', x: 24.4 };
 
+/** Someone standing still inside the office. */
+const sitter = { ...walker, id: 'p4', x: 12.4, mode: 'inside' as const };
+
 function setup() {
   const store = new ClientStore({ requestResync: () => undefined, now: () => 0 });
   store.applySnapshot({
     ...snapshot,
     units: [office],
     shafts: [shaft],
-    people: [walker, rider, hallWalker],
+    people: [walker, rider, hallWalker, sitter],
   });
   let input: (event: CellInput) => void = () => undefined;
   const opened: string[] = [];
@@ -81,9 +84,15 @@ describe('bindUnitClicks', () => {
     expect(opened).toEqual(['person:p3', 'person:p3']);
   });
 
-  it('opens the unit, not the person, for someone inside a unit', () => {
+  it('opens a person walking past the front of a unit', () => {
     const { click, opened } = setup();
     click({ x: 14, level: 3 });
+    expect(opened).toEqual(['person:p1']);
+  });
+
+  it('opens the unit, not the person, for someone inside a unit', () => {
+    const { click, opened } = setup();
+    click({ x: 12, level: 3 });
     expect(opened).toEqual(['u1']);
   });
 
@@ -172,11 +181,11 @@ describe('bindUnitClicks priority', () => {
 
   it('skips a person the sprites find inside a unit, and opens the unit', () => {
     const store = new ClientStore({ requestResync: () => undefined, now: () => 0 });
-    store.applySnapshot({ ...snapshot, units: [office], shafts: [], people: [walker] });
+    store.applySnapshot({ ...snapshot, units: [office], shafts: [], people: [sitter] });
     let input: (event: CellInput) => void = () => undefined;
     const opened: string[] = [];
     bindUnitClicks(
-      { onCellInput: (l) => ((input = l), () => undefined), personIdAt: () => 'p1' },
+      { onCellInput: (l) => ((input = l), () => undefined), personIdAt: () => 'p4' },
       store,
       {
         person: (id) => opened.push(`person:${id}`),
