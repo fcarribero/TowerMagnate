@@ -116,6 +116,15 @@ This replaces the rules in routing.md that let only maids use service elevators 
 - A worker on a service car adds only what a plain rider adds.
 - The stress is only for cars. A worker who crosses a person on foot, in a hall or on stairs, adds nothing beyond the small noise and dirt per cell that anyone adds.
 
+## 2.8 Medical center doctors
+
+- Every medical center has 4 doctors at work at all times (`DOCTORS_PER_SHIFT`), in 2 shifts of 12 hours: the day shift from 08:00 to 20:00 and the night shift from 20:00 to 08:00 (`DOCTOR_SHIFTS`, `DOCTOR_SHIFT_HOURS`, `DOCTOR_DAY_SHIFT_HOUR`).
+- Each doctor has a spot, 0 to 3, inside the center. They come in from the street in everyday clothes `DOCTOR_ARRIVAL_LEAD_MINUTES` (60) before the shift, change for `DOCTOR_CHANGE_MINUTES` (5) in the center and work at their spot in a white coat.
+- At the end of the shift a doctor stays until the doctor of the same spot on the next shift is at work, then changes and leaves. A doctor whose relief has not come goes home `DOCTOR_RELIEF_GRACE_MINUTES` (120) after the shift ends.
+- Doctors exist only while they are in the tower: each shift brings in new ones, and the ones who leave are removed at the street. A center built in the middle of a shift, or one from an older save, gets the doctors it lacks within a minute.
+- Doctors are workers: they record no stress, may ride service elevators (2.6) and count for the stress of sharing a car (2.7).
+- The medical center window lists the doctors at work as Médicos.
+
 ## 3. Quiet and comfort units
 
 Acoustic panels are not an upgrade: their cost would grow with the surface they cover. These are units instead. They are not made by upgrades and have none.

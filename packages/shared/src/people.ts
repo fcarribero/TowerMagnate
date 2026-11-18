@@ -16,6 +16,7 @@ export const PERSON_KINDS = [
   'courier',
   'child',
   'cleaner',
+  'doctor',
 ] as const;
 
 /**

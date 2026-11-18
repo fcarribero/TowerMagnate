@@ -50,6 +50,8 @@ export const SPRITE_NAME_OF_KIND: Record<PersonKind, string> = {
   child: 'customer',
   // TODO: cleaners wear the maids' uniform until the person art gets one of their own.
   cleaner: 'maid',
+  // Doctors use the office worker's body; their clothes are a white coat over light blue scrubs.
+  doctor: 'worker',
 };
 
 export const SKIN_TONES: readonly number[] = [
@@ -88,6 +90,8 @@ export const SKIRT_COLORS: readonly number[] = [
 ];
 
 const MAID_COLOR = 0xd6d4d0;
+const DOCTOR_COAT = 0xf6f6f2;
+const DOCTOR_SCRUBS = 0x8cc0d6;
 const GUARD_SHIRT = 0x4f86d8;
 const GUARD_PANTS = 0x2f3a6a;
 const BUILDER_SHIRT = 0xe0875a;
@@ -183,13 +187,17 @@ function clothesOf(name: string, model: PersonModel, hash: number): Clothes {
   }
 }
 
-/** Police, maids, builders and cleaners are drawn as ordinary civilians until the engine says they wear the uniform. */
+/** Police, maids, builders, cleaners and doctors are drawn as ordinary civilians until the engine says they wear the uniform. */
 export type Outfit = 'uniform' | undefined;
 
 function spriteNameOf(kind: PersonKind, carrying: boolean, outfit: Outfit): string {
   if (carrying) return 'staffbag';
   if (
-    (kind === 'police' || kind === 'maid' || kind === 'builder' || kind === 'cleaner') &&
+    (kind === 'police' ||
+      kind === 'maid' ||
+      kind === 'builder' ||
+      kind === 'cleaner' ||
+      kind === 'doctor') &&
     outfit !== 'uniform'
   ) {
     return 'customer';
@@ -210,7 +218,10 @@ export function computeLook(
   const hash = hashId(id);
   const name = spriteNameOf(kind, carrying, outfit);
   const model: PersonModel = kind === 'maid' || unit(hash, 0) < 0.5 ? 'woman' : 'man';
-  const clothes = clothesOf(name, model, hash);
+  const clothes =
+    kind === 'doctor' && name === 'worker'
+      ? { shirt: DOCTOR_COAT, pants: DOCTOR_SCRUBS }
+      : clothesOf(name, model, hash);
   const child = kind === 'child';
   const height = child ? childHeightPixels(unit(hash, 6)) : heightPixels(unit(hash, 6), model);
   const width = child ? childWidthPixels(unit(hash, 7)) : widthPixels(unit(hash, 7));

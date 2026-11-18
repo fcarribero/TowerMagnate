@@ -73,6 +73,7 @@ export type { CheckInResult } from './hotel';
 export { housekeepingSummary, maidTaskAt } from './housekeeping';
 export { completeSite, constructionPointsFor, siteAppraisal, siteProgress } from './construction';
 export { cleanerCrewSize, cleanerRate, decodeCleanerTask, isCleaner } from './cleaning';
+export { decodeDoctorTask, doctorsAtWork, doctorSlotsOf, isDoctor } from './doctors';
 export type { HousekeepingSummary, MaidPhase, MaidTask } from './housekeeping';
 export {
   createLeaseSystem,

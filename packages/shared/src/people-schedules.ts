@@ -494,3 +494,16 @@ export const CLEANER_SPOT_MINUTES = 30;
 
 /** Minutes a cleaner with nothing to clean waits in the room before looking again. */
 export const CLEANER_IDLE_MINUTES = 10;
+
+/** Doctors of a medical center (service-units 2.8): two 12-hour shifts of four. */
+export const DOCTOR_SHIFTS = 2;
+export const DOCTOR_SHIFT_HOURS = 12;
+export const DOCTORS_PER_SHIFT = 4;
+/** The day shift starts at this hour; the night shift starts 12 hours later. */
+export const DOCTOR_DAY_SHIFT_HOUR = 8;
+/** A doctor walks in from the street this long before the shift starts. */
+export const DOCTOR_ARRIVAL_LEAD_MINUTES = 60;
+/** A doctor whose relief has not arrived goes home anyway this long after the shift ends. */
+export const DOCTOR_RELIEF_GRACE_MINUTES = 120;
+/** Minutes a doctor stands in the medical center to change, on the way in and on the way out. */
+export const DOCTOR_CHANGE_MINUTES = 5;

@@ -116,7 +116,7 @@ const MAID_KIND = PERSON_KINDS.indexOf('maid');
 
 /** The kinds that work in the tower and may ride service shafts (service units 2.6). */
 const WORKER_KINDS: ReadonlySet<number> = new Set(
-  (['builder', 'cleaner', 'police', 'staff', 'courier'] as const).map((kind) =>
+  (['builder', 'cleaner', 'police', 'staff', 'courier', 'doctor'] as const).map((kind) =>
     PERSON_KINDS.indexOf(kind),
   ),
 );

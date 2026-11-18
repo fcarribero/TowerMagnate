@@ -1,5 +1,6 @@
 import {
   countPeopleOfUnit,
+  doctorsAtWork,
   findLobby,
   lobbyCells,
   lobbyUpgrades,
@@ -247,9 +248,14 @@ function unitDetails(state: TowerState, unit: Unit): UnitDetails {
       return housekeepingDetails(state, unit);
     case 'security':
       return { group: 'security', officers: officersOnDuty(state, unit) };
+    case 'medical-center':
+      return {
+        group: 'visit',
+        workers: doctorsAtWork(state, unit),
+        customers: visitorsOfUnit(state, unit),
+      };
     case 'party-hall':
     case 'cathedral':
-    case 'medical-center':
       return {
         group: 'visit',
         workers: venuePeople(state, unit).workers,

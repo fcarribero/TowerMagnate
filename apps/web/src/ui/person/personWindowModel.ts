@@ -24,6 +24,7 @@ const KIND_KEYS: Readonly<Record<PersonKind, StringKey>> = {
   courier: 'value.person.courier',
   child: 'value.person.child',
   cleaner: 'value.person.cleaner',
+  doctor: 'value.person.doctor',
 };
 
 const STRESS_KEYS: Readonly<Record<StressLevel, StringKey>> = {
@@ -37,6 +38,7 @@ const HOME_ROW_KEYS: Partial<Record<PersonKind, StringKey>> = {
   child: 'window.person.livesIn',
   officeWorker: 'window.person.worksIn',
   hotelGuest: 'window.person.staysIn',
+  doctor: 'window.person.worksIn',
 };
 
 export function kindName(kind: PersonKind): string {

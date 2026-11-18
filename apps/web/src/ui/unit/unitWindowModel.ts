@@ -123,7 +123,16 @@ export function listedOf(unit: Pick<UnitInspect, 'details'>): boolean | null {
 }
 
 export interface PeopleGroup {
-  id: 'residents' | 'workers' | 'staff' | 'customers' | 'tenants' | 'maids' | 'officers' | 'audience';
+  id:
+    | 'residents'
+    | 'workers'
+    | 'staff'
+    | 'customers'
+    | 'tenants'
+    | 'maids'
+    | 'officers'
+    | 'audience'
+    | 'doctors';
   label: string;
   /** Person ids, in the order the server sent them. */
   people: readonly string[];
@@ -178,7 +187,12 @@ export function peopleGroups(unit: Pick<UnitInspect, 'type' | 'details'>): Peopl
     }
     case 'venue':
       return [
-        { id: 'staff', label: t('window.unit.peopleStaff'), people: details.workers, kind: 'staff' },
+        {
+          id: 'staff',
+          label: t('window.unit.peopleStaff'),
+          people: details.workers,
+          kind: 'staff',
+        },
         {
           id: 'customers',
           label: t('window.unit.peopleCustomers'),
@@ -207,7 +221,12 @@ export function peopleGroups(unit: Pick<UnitInspect, 'type' | 'details'>): Peopl
     case 'cinema': {
       const groups: PeopleGroup[] = [];
       if (details.workers && details.workers.length > 0) {
-        groups.push({ id: 'staff', label: t('window.unit.peopleStaff'), people: details.workers, kind: 'staff' });
+        groups.push({
+          id: 'staff',
+          label: t('window.unit.peopleStaff'),
+          people: details.workers,
+          kind: 'staff',
+        });
       }
       groups.push({
         id: 'audience',
@@ -219,7 +238,19 @@ export function peopleGroups(unit: Pick<UnitInspect, 'type' | 'details'>): Peopl
     }
     case 'visit':
       return [
-        { id: 'staff', label: t('window.unit.peopleStaff'), people: details.workers, kind: 'staff' },
+        unit.type === 'medical-center'
+          ? {
+              id: 'doctors',
+              label: t('window.unit.peopleDoctors'),
+              people: details.workers,
+              kind: 'doctor',
+            }
+          : {
+              id: 'staff',
+              label: t('window.unit.peopleStaff'),
+              people: details.workers,
+              kind: 'staff',
+            },
         {
           id: 'customers',
           label: t('window.unit.peopleCustomers'),
@@ -233,7 +264,11 @@ export function peopleGroups(unit: Pick<UnitInspect, 'type' | 'details'>): Peopl
 }
 
 /** Opening and closing hour after one of them moved: the close stays at least an hour after the open. */
-export function clampHours(open: number, close: number, moved: 'open' | 'close'): { open: number; close: number } {
+export function clampHours(
+  open: number,
+  close: number,
+  moved: 'open' | 'close',
+): { open: number; close: number } {
   let nextOpen = Math.min(23, Math.max(0, Math.round(open)));
   let nextClose = Math.min(24, Math.max(1, Math.round(close)));
   if (nextClose <= nextOpen) {
@@ -357,10 +392,7 @@ function leaseRows(lease: Details<'lease'>, office: boolean): UnitRow[] {
 
 /** People are never counted in a panel: the row of people at the top lists them. */
 function condoRows(condo: Details<'condo'>): UnitRow[] {
-  return [
-    evaluationRow(condo.evaluation),
-    ...appraisalRow(condo.appraisal),
-  ];
+  return [evaluationRow(condo.evaluation), ...appraisalRow(condo.appraisal)];
 }
 
 const ROOM_STATE_KEYS: Readonly<Record<Details<'hotel'>['state'], StringKey>> = {
