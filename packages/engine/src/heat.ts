@@ -28,7 +28,7 @@ import {
 } from '@tower-magnate/shared';
 import { absorbNoise } from './comfort-units';
 import { crewNoiseFactor, crewOf, decodeBuilderTask, isBuilder } from './construction';
-import { isUnitInUse } from './unit-use';
+import { homesInUse, isUnitInUse } from './unit-use';
 import { unitNumber } from './units';
 import { isCarryingBag } from './venue-staff';
 

@@ -90,10 +90,12 @@ The tower keeps two maps of floats, one for noise and one for dirt, with a value
 Noise sources:
 
 - Every game minute, each unit that is in use adds its noise (`UNIT_NOISE`) to every cell it covers, on every level it covers, and to the 15 cells on each side. The amount fades in a straight line from the unit's edge: the cell at distance d gets `noise * (1 - d / 16)`.
-- A unit is in use when a venue (fast food, restaurant, shop, cinema, party hall) is open to customers, an office has a tenant between 08:00 and 18:00, a condo is sold, or a hotel room has a guest.
-- A person adds 0.02 to each cell they walk into and 0.05 to the cell they stand in at each minute (in a queue, waiting for a retry, or at home). This is small, but dozens of people through one cell add up.
+- A unit is in use when a venue (fast food, restaurant, shop, cinema, party hall) is open to customers, an office has a tenant between 08:00 and 18:00, or a home (a sold condo, or a hotel room with a guest) has one of its own people awake inside it, standing still. A home whose people are asleep or away is quiet.
+- A person adds 0.02 to each cell they walk into and 0.05 to the cell they stand in at each minute (in a queue, waiting for a retry, or at home). A person asleep adds nothing. This is small, but dozens of people through one cell add up.
 - Every game minute, each noise cell loses a little, so that 5 minutes leave 50% of its value (a factor of about 0.87 a minute). The map does not jump every 5 minutes.
 - A construction site adds 8 per minute to the cells of every level it covers and 5 to the level above and the level below, with the same fade to the sides. It only does so in the minutes when a builder is working on it; a site nobody is building is quiet.
+
+Design call: a home only makes noise while someone of it is awake inside, so at night, with the offices closed and people asleep, the noise map goes quiet.
 
 Dirt sources:
 
@@ -274,8 +276,10 @@ The office window lists what counts for its grade in a tooltip on its evaluation
 
 - Rent: a price at or under the fair price is "Alquiler dentro del precio justo" in favor. A price over it is "Alquiler por encima del precio justo" against.
 - Workers: an occupant score `U` under 3 is "Trabajadores tranquilos" in favor, because they raise the fair price. From 3, "Trabajadores estresados por {cause}" is against, where the cause is the one with the largest total (3.3) among the office's workers, calm left out. With no cause to name it reads "Trabajadores estresados".
-- Noise: a noise source close by (5.4) is "Ruido cerca" against, otherwise "Sin ruido cerca" in favor.
 - Neighbor: when the neighbor pull applies, "Vecino mal valorado" is against.
+- Parking: from 3 stars, when the office has a worker who asks for parking (people.md 17), "Con cochera" is in favor if every such worker has a space and "Sin cochera" is against if one has none. A missing space also takes 10% off the fair price (economy 3.1).
+
+Noise is not listed on its own. It counts in the occupant score (5.4) and in the workers' "Ruido y suciedad" cause, so a separate line could say "quiet" next to workers stressed by noise.
 
 The unit window also shows the fair price, labeled "Precio justo" (ui.md 6.2). It does not show the occupant score as a number.
 

@@ -33,6 +33,7 @@ import {
 } from '@tower-magnate/shared';
 import { ambientOf, type Ambient } from './ambient-stress';
 import { addPersonNoise, addPersonTrail, stepsFelt } from './heat';
+import { makesStandNoise } from './unit-use';
 import { SECONDS_PER_STEP, STEPS_PER_DAY } from './clock';
 
 const STEPS_PER_MINUTE = 6;
@@ -1315,7 +1316,9 @@ function feelEnvironment(context: StepContext, slot: number, phase: number): voi
   // An officer with cameras watching the cell makes people there feel less of it.
   if (watchedCells(state)?.get(level)?.[column] === 1) perMinute *= WATCHED_STRESS;
   addAmbient(pool, slot, stepsFelt(perMinute, 1, id, minute));
-  if (!isWalkingPhase(phase)) addPersonNoise(state, level, column, NOISE_PER_STAND);
+  if (!isWalkingPhase(phase) && makesStandNoise(pool, slot)) {
+    addPersonNoise(state, level, column, NOISE_PER_STAND);
+  }
 }
 
 function stepPerson(context: StepContext, slot: number, pass: TrekPass): void {
@@ -1352,7 +1355,10 @@ export function createTrekSystem(): SimulationSystem {
       const phase = pool.trek[slot] as number;
       if (phase === IDLE) {
         restEnergy(pool, slot);
-        if (((pool.id[slot] as number) + now) % STEPS_PER_MINUTE === 0) {
+        if (
+          ((pool.id[slot] as number) + now) % STEPS_PER_MINUTE === 0 &&
+          makesStandNoise(pool, slot)
+        ) {
           addPersonNoise(
             context.state,
             pool.level[slot] as number,
