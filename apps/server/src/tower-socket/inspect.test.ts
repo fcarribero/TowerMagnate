@@ -100,6 +100,13 @@ describe('inspecting a unit', () => {
         nextPaymentStep: null,
         workers: [],
         customers: [],
+        evaluationParts: {
+          baseMinutes: 0,
+          price: 0,
+          minimumPrice: false,
+          noisy: false,
+          mainCause: null,
+        },
       },
     });
   });

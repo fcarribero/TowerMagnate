@@ -2,6 +2,7 @@ import { stepOfDate } from '@tower-magnate/engine/calendar';
 import { describe, expect, it } from 'vitest';
 import type { UnitInspect } from '../../model/inspectStore';
 import {
+  evaluationReasons,
   evaluationView,
   filmChangeState,
   groupUnitRows,
@@ -137,7 +138,9 @@ describe('unit window model', () => {
     expect(priceControlOf(condo)).toBeNull();
     const forSale = { ...condo, details: { ...condoDetails, state: 'forSale' as const } };
     expect(priceControlOf(forSale)).not.toBeNull();
-    expect(priceControlOf({ details: { group: 'cinema', filmWeek: 1, filmAgeDays: 0 } })).toBeNull();
+    expect(
+      priceControlOf({ details: { group: 'cinema', filmWeek: 1, filmAgeDays: 0 } }),
+    ).toBeNull();
   });
 
   it('reads the builders priority of a site only', () => {
@@ -180,13 +183,31 @@ describe('unit window model', () => {
     expect(ids({ type: 'cinema', details: null })).toEqual([]);
     expect(ids({ type: 'recycling-center', details: null })).toEqual([]);
     expect(
-      ids({ type: 'housekeeping', details: { group: 'housekeeping', maidsWorking: 1, maids: 6, dirtyRooms: 0, workers: ['p1', 'p2'] } }),
+      ids({
+        type: 'housekeeping',
+        details: {
+          group: 'housekeeping',
+          maidsWorking: 1,
+          maids: 6,
+          dirtyRooms: 0,
+          workers: ['p1', 'p2'],
+        },
+      }),
     ).toEqual([['maids', 2]]);
     expect(ids({ type: 'security', details: { group: 'security', officers: ['p3'] } })).toEqual([
       ['officers', 1],
     ]);
     expect(
-      ids({ type: 'cinema', details: { group: 'cinema', filmWeek: 1, filmAgeDays: 0, workers: ['p4'], customers: ['p5', 'p6'] } }),
+      ids({
+        type: 'cinema',
+        details: {
+          group: 'cinema',
+          filmWeek: 1,
+          filmAgeDays: 0,
+          workers: ['p4'],
+          customers: ['p5', 'p6'],
+        },
+      }),
     ).toEqual([
       ['staff', 1],
       ['audience', 2],
@@ -197,7 +218,9 @@ describe('unit window model', () => {
       ['staff', 0],
       ['customers', 1],
     ]);
-    expect(peopleGroups({ type: 'security', details: { group: 'security', officers: [] } })[0]).toMatchObject({
+    expect(
+      peopleGroups({ type: 'security', details: { group: 'security', officers: [] } })[0],
+    ).toMatchObject({
       label: 'Policías',
       kind: 'police',
     });
@@ -443,5 +466,55 @@ describe('unit window model', () => {
     expect(upgradeRows({ upgrades }, 50_000, false)[0]?.disabled).toBe(false);
     expect(upgradeRows({ upgrades }, 50_000, true)[0]?.disabled).toBe(true);
     expect(upgradeRows(office, 0, false)).toEqual([]);
+  });
+});
+
+describe('evaluation reasons of an office', () => {
+  const parts = {
+    baseMinutes: 3,
+    price: 0,
+    minimumPrice: false,
+    noisy: false,
+    mainCause: null,
+  } as const;
+  const officeWith = (patch: Partial<NonNullable<Lease['evaluationParts']>> | null) =>
+    ({
+      details:
+        patch === null
+          ? { ...lease, evaluationParts: undefined }
+          : { ...lease, evaluationParts: { ...parts, ...patch } },
+    }) as Pick<UnitInspect, 'details'>;
+
+  it('has no reasons for a unit without parts, such as a shop', () => {
+    expect(evaluationReasons(officeWith(null))).toBeNull();
+  });
+
+  it('lists calm workers and a quiet floor in favor', () => {
+    expect(evaluationReasons(officeWith({}))).toEqual({
+      good: ['Trabajadores tranquilos', 'Sin ruido cerca'],
+      bad: [],
+    });
+  });
+
+  it('lists stressed workers with their main cause, a high rent and noise against', () => {
+    expect(
+      evaluationReasons(officeWith({ baseMinutes: 20, mainCause: 'wait', price: 30, noisy: true })),
+    ).toEqual({
+      good: [],
+      bad: [
+        'Alquiler por encima de la tasación',
+        'Trabajadores estresados por esperas del ascensor',
+        'Ruido cerca',
+      ],
+    });
+  });
+
+  it('counts a low rent and the minimum rent in favor', () => {
+    expect(evaluationReasons(officeWith({ price: -30 }))?.good[0]).toBe(
+      'Alquiler por debajo de la tasación',
+    );
+    expect(evaluationReasons(officeWith({ minimumPrice: true }))?.good[0]).toBe(
+      'Alquiler mínimo: buena evaluación asegurada',
+    );
   });
 });

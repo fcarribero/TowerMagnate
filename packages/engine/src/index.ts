@@ -75,6 +75,7 @@ export { completeSite, constructionPointsFor, siteAppraisal, siteProgress } from
 export { cleanerCrewSize, cleanerRate, decodeCleanerTask, isCleaner } from './cleaning';
 export { decodeDoctorTask, doctorsAtWork, doctorSlotsOf, isDoctor } from './doctors';
 export { stressCausesOf } from './trip-ledger';
+export { evaluationParts, type EvaluationParts } from './evaluation-reasons';
 export type { HousekeepingSummary, MaidPhase, MaidTask } from './housekeeping';
 export {
   createLeaseSystem,

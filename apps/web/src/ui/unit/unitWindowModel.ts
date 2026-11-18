@@ -662,3 +662,55 @@ export function filmChangeState(money: number, gone: boolean): FilmChangeState {
   const short = money < FILM_CHANGE_COST;
   return { disabled: short, tooltip: short ? t('error.INSUFFICIENT_FUNDS') : undefined };
 }
+
+type EvaluationPartsView = NonNullable<Details<'lease'>['evaluationParts']>;
+type WorkerCause = NonNullable<EvaluationPartsView['mainCause']>;
+
+/** Base stress under this many minutes counts in favor of the grade: half the good threshold. */
+const CALM_WORKERS_MINUTES = 7.5;
+
+const CAUSE_KEYS: Readonly<Record<Exclude<WorkerCause, 'calm'>, StringKey>> = {
+  wait: 'window.unit.reason.cause.wait',
+  ride: 'window.unit.reason.cause.ride',
+  stairs: 'window.unit.reason.cause.stairs',
+  queue: 'window.unit.reason.cause.queue',
+  noRoute: 'window.unit.reason.cause.noRoute',
+  walk: 'window.unit.reason.cause.walk',
+  surroundings: 'window.unit.reason.cause.surroundings',
+};
+
+export interface EvaluationReasons {
+  good: string[];
+  bad: string[];
+}
+
+/**
+ * Why an office has its grade: the stress of its workers and its main cause, the rent against
+ * the appraisal, and noise close by (stress-evaluation 5.6). Null when the inspect has no parts.
+ */
+export function evaluationReasons(unit: Pick<UnitInspect, 'details'>): EvaluationReasons | null {
+  const details = unit.details;
+  if (details?.group !== 'lease' || details.evaluationParts === undefined) return null;
+  const parts = details.evaluationParts;
+  const good: string[] = [];
+  const bad: string[] = [];
+  if (parts.minimumPrice) {
+    good.push(t('window.unit.reason.minimumPrice'));
+  } else if (parts.price < 0) {
+    good.push(t('window.unit.reason.lowPrice'));
+  } else if (parts.price > 0) {
+    bad.push(t('window.unit.reason.highPrice'));
+  }
+  if (parts.baseMinutes < CALM_WORKERS_MINUTES) {
+    good.push(t('window.unit.reason.calmWorkers'));
+  } else if (parts.mainCause === null || parts.mainCause === 'calm') {
+    bad.push(t('window.unit.reason.stressedWorkers'));
+  } else {
+    bad.push(
+      t('window.unit.reason.stressedWorkersBy', { cause: t(CAUSE_KEYS[parts.mainCause]) }),
+    );
+  }
+  if (parts.noisy) bad.push(t('window.unit.reason.noise'));
+  else good.push(t('window.unit.reason.quiet'));
+  return { good, bad };
+}

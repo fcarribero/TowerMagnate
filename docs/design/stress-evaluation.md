@@ -234,6 +234,16 @@ For any price level other than mínimo:
 
 The score can be negative.
 
+### 5.6 Reasons in the office window
+
+The office window lists what counts for its grade under "A favor" and what counts against it under "En contra", from the parts the score would add now:
+
+- Rent: at or below the minimum price, "Alquiler mínimo: buena evaluación asegurada" in favor. Otherwise a negative price adjustment is "Alquiler por debajo de la tasación" in favor and a positive one is "Alquiler por encima de la tasación" against. At the appraisal nothing is listed.
+- Workers: a base stress under 7.5 minutes (45 steps, half the good threshold) is "Trabajadores tranquilos" in favor. Above it, "Trabajadores estresados por {cause}" is against, where the cause is the one with the largest total (3.3) among the office's workers, calm left out.
+- Noise: a noise source close by (5.4) is "Ruido cerca" against, otherwise "Sin ruido cerca" in favor.
+
+The parts are worked out when the window asks for them. They are not the stored grade, which changes only at the moments in section 7.
+
 ## 6. Grade
 
 | Score | Below 4 stars | 4 stars or more |

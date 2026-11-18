@@ -381,6 +381,20 @@ const InspectedUnitDetailsSchema = z.discriminatedUnion('group', [
     workers: PersonIdsSchema,
     /** People inside a shop as customers right now; empty for offices. */
     customers: PersonIdsSchema,
+    /** What an office's grade is made of now, for the reasons in its window; absent for shops. */
+    evaluationParts: z
+      .object({
+        /** Base stress of the office's trips, in minutes. */
+        baseMinutes: z.number().nonnegative(),
+        /** Price adjustment in score steps: negative below the appraisal, positive above. */
+        price: z.number(),
+        /** At or below the minimum price, which grades good whatever else. */
+        minimumPrice: z.boolean(),
+        noisy: z.boolean(),
+        /** The cause of stress that weighs most on the office's workers lately. */
+        mainCause: z.enum(STRESS_CAUSES).nullable(),
+      })
+      .optional(),
   }),
   z.object({
     group: z.literal('condo'),

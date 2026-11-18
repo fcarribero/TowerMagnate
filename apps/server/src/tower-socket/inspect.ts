@@ -1,6 +1,7 @@
 import {
   countPeopleOfUnit,
   doctorsAtWork,
+  evaluationParts,
   stressCausesOf,
   findLobby,
   lobbyCells,
@@ -334,6 +335,18 @@ function leaseDetails(state: TowerState, unit: Unit): UnitDetails {
     nextPaymentStep: lease?.nextDueStep ?? null,
     workers: peopleOfUnit(state, unit).workers,
     customers: unit.type === 'retail-shop' ? venuePeople(state, unit).customers : [],
+    ...(unit.type === 'office' ? { evaluationParts: officeEvaluationParts(state, unit) } : {}),
+  };
+}
+
+function officeEvaluationParts(state: TowerState, unit: Unit) {
+  const parts = evaluationParts(state, unit);
+  return {
+    baseMinutes: parts.base / STEPS_PER_MINUTE,
+    price: parts.price,
+    minimumPrice: parts.minimumPrice,
+    noisy: parts.noise > 0,
+    mainCause: parts.mainCause,
   };
 }
 

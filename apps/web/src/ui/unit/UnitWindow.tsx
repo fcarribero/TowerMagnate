@@ -21,6 +21,7 @@ import { PriceControlView } from './PriceControl';
 import {
   NAME_MAX_LENGTH,
   clampHours,
+  evaluationReasons,
   filmChangeState,
   upgradeRows,
   groupUnitRows,
@@ -35,6 +36,7 @@ import {
   unitSubtitle,
   unitTitle,
   venueChart,
+  type EvaluationReasons,
   type UnitRow,
   type UpgradeRow,
   type VenueChart,
@@ -137,6 +139,7 @@ export function UnitWindow({ unitId, connection, anchored = false }: UnitWindowP
   const upgrades = found === undefined ? [] : upgradeRows(found, money, gone);
 
   const groups = found === undefined ? null : groupUnitRows(unitRows(found));
+  const reasons = found === undefined ? null : evaluationReasons(found);
 
   return (
     <>
@@ -189,6 +192,7 @@ export function UnitWindow({ unitId, connection, anchored = false }: UnitWindowP
             ))}
           </dl>
         )}
+        {reasons !== null && <ReasonLists reasons={reasons} />}
         {found !== undefined && priceLabel !== null && priceControl !== null && (
           <PriceControlView
             id={`${windowId}-price`}
@@ -198,15 +202,19 @@ export function UnitWindow({ unitId, connection, anchored = false }: UnitWindowP
             onCommit={(price) => void commands.setPrice(unitId, price)}
           />
         )}
-        {found !== undefined && listed !== null && !(found.details?.group === 'condo' && found.details.state === 'sold') && (
-          <ListedToggle
-            id={`${windowId}-listed`}
-            label={t(found.type === 'condo' ? 'window.unit.listedSale' : 'window.unit.listedRent')}
-            listed={listed}
-            disabled={gone}
-            onChange={(next) => void commands.setListed(unitId, next)}
-          />
-        )}
+        {found !== undefined &&
+          listed !== null &&
+          !(found.details?.group === 'condo' && found.details.state === 'sold') && (
+            <ListedToggle
+              id={`${windowId}-listed`}
+              label={t(
+                found.type === 'condo' ? 'window.unit.listedSale' : 'window.unit.listedRent',
+              )}
+              listed={listed}
+              disabled={gone}
+              onChange={(next) => void commands.setListed(unitId, next)}
+            />
+          )}
         {found !== undefined && priority !== null && (
           <ListedToggle
             id={`${windowId}-priority`}
@@ -277,6 +285,34 @@ export function UnitWindow({ unitId, connection, anchored = false }: UnitWindowP
   );
 }
 
+/** What counts for and against an office's evaluation. */
+function ReasonLists({ reasons }: { reasons: EvaluationReasons }) {
+  return (
+    <div class="tm-unit__reasons">
+      {reasons.good.length > 0 && (
+        <section class="tm-unit__reason-group is-good">
+          <h3>{t('window.unit.reasonsGood')}</h3>
+          <ul>
+            {reasons.good.map((reason) => (
+              <li key={reason}>{reason}</li>
+            ))}
+          </ul>
+        </section>
+      )}
+      {reasons.bad.length > 0 && (
+        <section class="tm-unit__reason-group is-bad">
+          <h3>{t('window.unit.reasonsBad')}</h3>
+          <ul>
+            {reasons.bad.map((reason) => (
+              <li key={reason}>{reason}</li>
+            ))}
+          </ul>
+        </section>
+      )}
+    </div>
+  );
+}
+
 interface RowProps {
   label: string;
   value: string;
@@ -340,55 +376,50 @@ function VenueChartView({ chart }: { chart: VenueChart }) {
     const index = Math.floor((x / chart.width) * 24) - chart.startHour;
     setHover(index >= 0 && index < chart.hours ? index : null);
   };
-  const tipLeft =
-    hover === null ? 0 : ((2 + (chart.pointX[hover] ?? 0)) / (chart.width + 4)) * 100;
+  const tipLeft = hover === null ? 0 : ((2 + (chart.pointX[hover] ?? 0)) / (chart.width + 4)) * 100;
   return (
     <figure class="tm-unit__chart">
       <figcaption class="tm-unit__chart-title">{t('window.unit.chartTitle')}</figcaption>
-      <div
-        class="tm-unit__chart-plot"
-        onMouseMove={overChart}
-        onMouseLeave={() => setHover(null)}
-      >
-      {hover !== null && (
-        <div class="tm-unit__chart-tip" style={{ left: `${tipLeft}%` }} role="tooltip">
-          <strong>{hourText(chart.startHour + hover)}</strong>
-          <span>
-            {t('window.unit.chartTipToday', { n: chart.todayValues[hover] ?? 0 })}
-          </span>
-          {chart.averageValues.length > 0 && (
-            <span>
-              {t('window.unit.chartTipAverage', { n: chart.averageValues[hover] ?? 0 })}
-            </span>
-          )}
-        </div>
-      )}
-      <svg
-        class="tm-unit__chart-svg"
-        viewBox={`-2 -2 ${chart.width + 4} ${chart.height + 4}`}
-        role="img"
-        aria-label={t('window.unit.chartLabel')}
-      >
-        <line
-          class="tm-unit__chart-axis"
-          x1="0"
-          y1={chart.height}
-          x2={chart.width}
-          y2={chart.height}
-        />
-        {chart.closed.map((span) => (
-          <rect
-            key={span.x}
-            class="tm-unit__chart-closed"
-            x={span.x}
-            y={-2}
-            width={span.width}
-            height={chart.height + 4}
+      <div class="tm-unit__chart-plot" onMouseMove={overChart} onMouseLeave={() => setHover(null)}>
+        {hover !== null && (
+          <div class="tm-unit__chart-tip" style={{ left: `${tipLeft}%` }} role="tooltip">
+            <strong>{hourText(chart.startHour + hover)}</strong>
+            <span>{t('window.unit.chartTipToday', { n: chart.todayValues[hover] ?? 0 })}</span>
+            {chart.averageValues.length > 0 && (
+              <span>
+                {t('window.unit.chartTipAverage', { n: chart.averageValues[hover] ?? 0 })}
+              </span>
+            )}
+          </div>
+        )}
+        <svg
+          class="tm-unit__chart-svg"
+          viewBox={`-2 -2 ${chart.width + 4} ${chart.height + 4}`}
+          role="img"
+          aria-label={t('window.unit.chartLabel')}
+        >
+          <line
+            class="tm-unit__chart-axis"
+            x1="0"
+            y1={chart.height}
+            x2={chart.width}
+            y2={chart.height}
           />
-        ))}
-        {chart.average !== '' && <polyline class="tm-unit__chart-average" points={chart.average} />}
-        {chart.today !== '' && <polyline class="tm-unit__chart-today" points={chart.today} />}
-      </svg>
+          {chart.closed.map((span) => (
+            <rect
+              key={span.x}
+              class="tm-unit__chart-closed"
+              x={span.x}
+              y={-2}
+              width={span.width}
+              height={chart.height + 4}
+            />
+          ))}
+          {chart.average !== '' && (
+            <polyline class="tm-unit__chart-average" points={chart.average} />
+          )}
+          {chart.today !== '' && <polyline class="tm-unit__chart-today" points={chart.today} />}
+        </svg>
       </div>
       <div class="tm-unit__chart-hours">
         <span>{chart.from}</span>
