@@ -36,7 +36,7 @@ import {
   unitSubtitle,
   unitTitle,
   venueChart,
-  type EvaluationReasons,
+  reasonLines,
   type UnitRow,
   type UpgradeRow,
   type VenueChart,
@@ -180,7 +180,11 @@ export function UnitWindow({ unitId, connection, anchored = false }: UnitWindowP
         {groups !== null && groups.tiles.length > 0 && found?.details?.group !== 'venue' && (
           <div class="tm-unit__tiles">
             {groups.tiles.map((row) => (
-              <StatTile key={row.id} row={row} />
+              <StatTile
+                key={row.id}
+                row={row}
+                reasons={row.id === 'evaluation' && reasons !== null ? reasonLines(reasons) : []}
+              />
             ))}
           </div>
         )}
@@ -192,7 +196,6 @@ export function UnitWindow({ unitId, connection, anchored = false }: UnitWindowP
             ))}
           </dl>
         )}
-        {reasons !== null && <ReasonLists reasons={reasons} />}
         {found !== undefined && priceLabel !== null && priceControl !== null && (
           <PriceControlView
             id={`${windowId}-price`}
@@ -285,34 +288,6 @@ export function UnitWindow({ unitId, connection, anchored = false }: UnitWindowP
   );
 }
 
-/** What counts for and against an office's evaluation. */
-function ReasonLists({ reasons }: { reasons: EvaluationReasons }) {
-  return (
-    <div class="tm-unit__reasons">
-      {reasons.good.length > 0 && (
-        <section class="tm-unit__reason-group is-good">
-          <h3>{t('window.unit.reasonsGood')}</h3>
-          <ul>
-            {reasons.good.map((reason) => (
-              <li key={reason}>{reason}</li>
-            ))}
-          </ul>
-        </section>
-      )}
-      {reasons.bad.length > 0 && (
-        <section class="tm-unit__reason-group is-bad">
-          <h3>{t('window.unit.reasonsBad')}</h3>
-          <ul>
-            {reasons.bad.map((reason) => (
-              <li key={reason}>{reason}</li>
-            ))}
-          </ul>
-        </section>
-      )}
-    </div>
-  );
-}
-
 interface RowProps {
   label: string;
   value: string;
@@ -327,13 +302,15 @@ function Row({ label, value }: RowProps) {
   );
 }
 
-function StatTile({ row }: { row: UnitRow }) {
-  return (
-    <div class={`tm-unit__tile is-${row.tone}`}>
+/** A tile with reasons shows them as a tooltip: the evaluation tile lists what counts for and against it. */
+function StatTile({ row, reasons }: { row: UnitRow; reasons: readonly string[] }) {
+  const tile = (
+    <div class={`tm-unit__tile is-${row.tone}`} tabIndex={reasons.length > 0 ? 0 : undefined}>
       <span class="tm-unit__tile-label">{row.label}</span>
       <span class="tm-unit__tile-value">{row.value}</span>
     </div>
   );
+  return reasons.length > 0 ? <Tooltip text={reasons}>{tile}</Tooltip> : tile;
 }
 
 /** The day of a fast food or restaurant laid out like the finance window: rows with amounts on the right, the result last. */

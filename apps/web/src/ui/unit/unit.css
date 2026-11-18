@@ -432,28 +432,3 @@
 .tm-unit__upgrade-level {
   font: var(--text-body-strong);
 }
-
-/* What counts for and against an office's evaluation. */
-.tm-unit__reasons {
-  margin: 0 0 var(--space-3);
-}
-
-.tm-unit__reason-group h3 {
-  margin: var(--space-1) 0;
-  font: var(--text-tile-label);
-  text-transform: uppercase;
-}
-
-.tm-unit__reason-group ul {
-  margin: 0;
-  padding-left: var(--space-3);
-  font: var(--text-body);
-}
-
-.tm-unit__reason-group.is-good h3 {
-  color: var(--obra-green);
-}
-
-.tm-unit__reason-group.is-bad h3 {
-  color: var(--obra-red);
-}

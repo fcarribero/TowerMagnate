@@ -1,6 +1,6 @@
 import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/preact';
 import type { ClientMessage, ServerMessage, UnitView } from '@tower-magnate/shared';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ClientStore } from '../../model/clientStore';
 import { InspectStore, type UnitInspect, type UnitInspectData } from '../../model/inspectStore';
 import { CommandClient } from '../../net/commandClient';
@@ -321,6 +321,38 @@ describe('unit windows', () => {
       expect(row.classList.contains('is-grid')).toBe(true);
       for (const li of row.querySelectorAll('li'))
         expect((li as HTMLElement).style.marginLeft).toBe('');
+    }
+  });
+
+  it('shows the points for and against as a tooltip on the evaluation tile, not in the window', () => {
+    vi.useFakeTimers();
+    try {
+      const { open, show } = setup([unitView('u1')]);
+      open('u1');
+      const evaluationParts = {
+        occupantScore: 1,
+        fairPrice: 10_000,
+        noisy: true,
+        mainCause: null,
+        neighborPull: false,
+      };
+      show(inspectOf('u1', { details: leaseDetails({ evaluationParts }) }));
+      expect(screen.getByRole('dialog').querySelector('.tm-unit__reasons')).toBeNull();
+      const tile = screen.getByText('Evaluación').closest('.tm-unit__tile') as HTMLElement;
+      fireEvent.pointerEnter(tile.closest('.tm-tooltip-anchor') as HTMLElement);
+      act(() => {
+        vi.advanceTimersByTime(600);
+      });
+      const lines = [...screen.getByRole('tooltip').querySelectorAll('.tm-tooltip__line')];
+      expect(lines.map((line) => line.textContent)).toEqual([
+        'A favor',
+        '+ Alquiler dentro del precio justo',
+        '+ Trabajadores tranquilos',
+        'En contra',
+        '- Ruido cerca',
+      ]);
+    } finally {
+      vi.useRealTimers();
     }
   });
 

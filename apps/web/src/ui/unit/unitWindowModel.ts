@@ -706,6 +706,18 @@ export interface EvaluationReasons {
   bad: string[];
 }
 
+/** The reasons as tooltip lines: a heading per side, then each reason marked + or -. */
+export function reasonLines(reasons: EvaluationReasons): string[] {
+  const lines: string[] = [];
+  if (reasons.good.length > 0) {
+    lines.push(t('window.unit.reasonsGood'), ...reasons.good.map((reason) => `+ ${reason}`));
+  }
+  if (reasons.bad.length > 0) {
+    lines.push(t('window.unit.reasonsBad'), ...reasons.bad.map((reason) => `- ${reason}`));
+  }
+  return lines;
+}
+
 /**
  * Why an office has its grade: the rent against the fair price, the stress score of its workers
  * and its main cause, noise close by and a worse neighbor (stress-evaluation 5.6). Null when the

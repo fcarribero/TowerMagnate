@@ -63,9 +63,7 @@ export function UnitWindows({ connection, stage = null }: UnitWindowsProps) {
     }
     const canvas = document.querySelector('.stage-host canvas')?.getBoundingClientRect();
     const scale = stage.cssPerDevicePixel();
-    const frame = document.querySelector<HTMLElement>(
-      `[data-window-id="${unitPanelId(unitId)}"]`,
-    );
+    const frame = document.querySelector<HTMLElement>(`[data-window-id="${unitPanelId(unitId)}"]`);
     const size = frame
       ? { width: frame.offsetWidth, height: frame.offsetHeight }
       : { width: 200 * current.uiScale, height: PANEL_FALLBACK_HEIGHT * current.uiScale };
@@ -170,7 +168,12 @@ export function UnitWindows({ connection, stage = null }: UnitWindowsProps) {
         <UnitWindow key={window.id} unitId={entityOfWindow(window.id)} connection={connection} />
       ))}
       {anchoredId !== null && (
-        <UnitWindow key={unitPanelId(anchoredId)} unitId={anchoredId} connection={connection} anchored />
+        <UnitWindow
+          key={unitPanelId(anchoredId)}
+          unitId={anchoredId}
+          connection={connection}
+          anchored
+        />
       )}
     </>
   );

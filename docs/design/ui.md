@@ -438,7 +438,7 @@ Evaluation is shown as a 6 x 6 color square with `border.control` plus the word 
 
 "Estrés de ocupantes" is the stress score of the unit's occupants (stress-evaluation 5.3), one decimal with a comma and " / 10", for example "3,4 / 10", in `text.body` with no color. "Precio justo" is the fair price (economy 3.1) as money. On the price control it is a marker on the price bar with the tooltip "Precio justo {price}"; the condo has the plain row because its price control is locked once sold.
 
-The office window lists the reasons for its grade under two headings, "A favor" and "En contra", in the unit's body below the rows (stress-evaluation 5.6):
+The office window shows the reasons for its grade as a tooltip on the Evaluación tile, when the pointer rests on it or the tile gets keyboard focus (stress-evaluation 5.6). The tooltip has a line "A favor" followed by each reason in favor, marked "+", then a line "En contra" followed by each reason against, marked "-". A side with no reasons is left out. The reasons are:
 
 | Reason | Side |
 |---|---|

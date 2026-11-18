@@ -270,7 +270,7 @@ Design call: a calm, well-served office can ask for a higher rent, and fixing th
 
 ### 5.6 Reasons in the office window
 
-The office window lists what counts for its grade under "A favor" and what counts against it under "En contra", from the parts the grade would use now:
+The office window lists what counts for its grade under "A favor" and what counts against it under "En contra", in a tooltip on its evaluation tile, from the parts the grade would use now:
 
 - Rent: a price at or under the fair price is "Alquiler dentro del precio justo" in favor. A price over it is "Alquiler por encima del precio justo" against.
 - Workers: an occupant score `U` under 3 is "Trabajadores tranquilos" in favor, because they raise the fair price. From 3, "Trabajadores estresados por {cause}" is against, where the cause is the one with the largest total (3.3) among the office's workers, calm left out. With no cause to name it reads "Trabajadores estresados".
