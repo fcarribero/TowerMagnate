@@ -44,20 +44,20 @@ describe('show guest count', () => {
     expect(withSubway(120, LOW_STRESS)).toBe(120);
   });
 
-  it('takes 0.8 for stress from 15 minutes and 0.6 from 30 minutes', () => {
-    expect(noSubway(120, HIGH_STRESS)).toBe(96);
-    expect(noSubway(120, VERY_HIGH_STRESS)).toBe(72);
-    expect(withSubway(120, HIGH_STRESS)).toBe(115);
-    expect(withSubway(120, VERY_HIGH_STRESS)).toBe(86);
+  it('takes 0.04 off per point of stress score', () => {
+    expect(noSubway(120, HIGH_STRESS)).toBe(100);
+    expect(noSubway(120, VERY_HIGH_STRESS)).toBe(90);
+    expect(withSubway(120, HIGH_STRESS)).toBe(120);
+    expect(withSubway(120, VERY_HIGH_STRESS)).toBe(108);
   });
 
   it('keeps the party hall at 50 guests or fewer', () => {
     expect(noSubway(50, LOW_STRESS)).toBe(50);
     expect(withSubway(50, LOW_STRESS)).toBe(50);
-    expect(noSubway(50, HIGH_STRESS)).toBe(40);
-    expect(withSubway(50, HIGH_STRESS)).toBe(48);
-    expect(noSubway(50, VERY_HIGH_STRESS)).toBe(30);
-    expect(withSubway(50, VERY_HIGH_STRESS)).toBe(36);
+    expect(noSubway(50, HIGH_STRESS)).toBe(42);
+    expect(withSubway(50, HIGH_STRESS)).toBe(50);
+    expect(noSubway(50, VERY_HIGH_STRESS)).toBe(37);
+    expect(withSubway(50, VERY_HIGH_STRESS)).toBe(45);
   });
 
   it('never goes over the cap of any film age', () => {
@@ -196,13 +196,13 @@ describe('the 00:00 plan of shows', () => {
     const tower = showTower();
     stressYesterday(tower);
     const stressed = planDay(tower.state, TUESDAY);
-    expect(venueOf(stressed, tower.cinema).customers).toHaveLength(2 * 72);
-    expect(venueOf(stressed, tower.partyHall).customers).toHaveLength(30);
+    expect(venueOf(stressed, tower.cinema).customers).toHaveLength(2 * 87);
+    expect(venueOf(stressed, tower.partyHall).customers).toHaveLength(36);
 
     tower.state.units.u99 = newUnit('u99', 'subway-station', 0, -9);
     const withStation = planDay(tower.state, TUESDAY);
-    expect(venueOf(withStation, tower.cinema).customers).toHaveLength(2 * 86);
-    expect(venueOf(withStation, tower.partyHall).customers).toHaveLength(36);
+    expect(venueOf(withStation, tower.cinema).customers).toHaveLength(2 * 105);
+    expect(venueOf(withStation, tower.partyHall).customers).toHaveLength(43);
   });
 });
 

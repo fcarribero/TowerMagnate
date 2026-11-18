@@ -84,15 +84,15 @@ describe('outside customers a day', () => {
     }
   });
 
-  it('applies each stress band, with 1.0 when nobody came yesterday', () => {
+  it('takes 0.04 off per point of stress score, with 1.0 when nobody came yesterday', () => {
     const food = { ...base, type: 'fast-food', priceRatio: 1 } as const;
     const cases: [number | null, number][] = [
       [null, 20],
       [0, 20],
-      [89, 20],
+      [89, 16],
       [90, 16],
-      [179, 16],
-      [180, 12],
+      [179, 15],
+      [180, 15],
       [540, 12],
     ];
     for (const [averageStress, count] of cases) {
@@ -104,10 +104,10 @@ describe('outside customers a day', () => {
     const shop = { ...base, type: 'retail-shop', subway: true } as const;
     expect(outsideCustomerCount({ ...shop, priceRatio: levelRatio('retail-shop', 'normal') })).toBe(24);
     expect(outsideCustomerCount({ ...shop, priceRatio: levelRatio('retail-shop', 'minimum') })).toBe(33);
-    expect(outsideCustomerCount({ ...shop, priceRatio: levelRatio('retail-shop', 'high'), averageStress: 200 })).toBe(10);
+    expect(outsideCustomerCount({ ...shop, priceRatio: levelRatio('retail-shop', 'high'), averageStress: 200 })).toBe(12);
     expect(
       outsideCustomerCount({ ...shop, priceRatio: levelRatio('retail-shop', 'low'), weekend: true, averageStress: 100 }),
-    ).toBe(28);
+    ).toBe(29);
   });
 });
 

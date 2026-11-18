@@ -46,24 +46,20 @@ describe('personStress', () => {
 describe('stressBand', () => {
   it.each([
     [0, 'normal'],
-    [89, 'normal'],
-    [90, 'alto'],
-    [179, 'alto'],
-    [180, 'muy alto'],
+    [91, 'normal'],
+    [92, 'alto'],
+    [216, 'alto'],
+    [217, 'muy alto'],
     [540, 'muy alto'],
-  ] as const)('maps %i to %s', (stress, band) => {
+  ] as const)('maps %i steps to %s by the 0 to 10 score', (stress, band) => {
     expect(stressBand(stress)).toBe(band);
   });
 });
 
 describe('venueStressFactor', () => {
-  it.each([
-    [0, 1],
-    [89, 1],
-    [90, 0.8],
-    [179, 0.8],
-    [180, 0.6],
-  ])('gives the factor for %i', (average, factor) => {
-    expect(venueStressFactor(average)).toBe(factor);
+  it('is 1 with no stress and falls by 0.04 per point of score', () => {
+    expect(venueStressFactor(0)).toBe(1);
+    expect(venueStressFactor(180)).toBeCloseTo(1 - 0.04 * 6.321, 3);
+    expect(venueStressFactor(1e9)).toBeCloseTo(0.6, 3);
   });
 });

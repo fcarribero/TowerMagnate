@@ -1,10 +1,9 @@
 import {
-  STRESS_ALTO_FROM,
-  STRESS_MUY_ALTO_FROM,
+  STRESS_SCORE_PINK_FROM,
+  STRESS_SCORE_RED_FROM,
   STRESS_WINDOW_STEPS,
-  VENUE_STRESS_FACTOR_ALTO,
-  VENUE_STRESS_FACTOR_MUY_ALTO,
-  VENUE_STRESS_FACTOR_NORMAL,
+  stressScore,
+  VENUE_FACTOR_PER_POINT,
 } from '@tower-magnate/shared';
 
 export type StressBand = 'normal' | 'alto' | 'muy alto';
@@ -50,16 +49,15 @@ export function averageStress(sum: number, count: number, stressSoFar: number | 
   return count === 0 ? 0 : Math.floor(sum / count);
 }
 
+/** The tint people are drawn with, picked from the 0 to 10 score; display only. */
 export function stressBand(stress: number): StressBand {
-  if (stress >= STRESS_MUY_ALTO_FROM) return 'muy alto';
-  if (stress >= STRESS_ALTO_FROM) return 'alto';
+  const score = stressScore(stress);
+  if (score >= STRESS_SCORE_RED_FROM) return 'muy alto';
+  if (score >= STRESS_SCORE_PINK_FROM) return 'alto';
   return 'normal';
 }
 
-/** Venue factor from the average trip stress at its door the day before; 1 with no trips. */
+/** Venue factor from the average trip stress at its door the day before: 1 − 0.04 per point. */
 export function venueStressFactor(averageStress: number): number {
-  const band = stressBand(averageStress);
-  if (band === 'muy alto') return VENUE_STRESS_FACTOR_MUY_ALTO;
-  if (band === 'alto') return VENUE_STRESS_FACTOR_ALTO;
-  return VENUE_STRESS_FACTOR_NORMAL;
+  return 1 - VENUE_FACTOR_PER_POINT * stressScore(averageStress);
 }

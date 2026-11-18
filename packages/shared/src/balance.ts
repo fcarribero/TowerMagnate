@@ -862,6 +862,14 @@ export const STRESS_WINDOW_STEPS = 60_480;
 export const STRESS_CAUSE_DAILY_KEEP = 0.82;
 export const STRESS_ALTO_FROM = 90;
 export const STRESS_MUY_ALTO_FROM = 180;
+/** Steps of stress that put the 0 to 10 score at 6.3, the scale of `stressScore`. */
+export const STRESS_SCORE_SCALE_STEPS = 180;
+export const STRESS_SCORE_MAX = 10;
+/** Score where people are drawn pink, and red; display only, no rule reads them. */
+export const STRESS_SCORE_PINK_FROM = 4;
+export const STRESS_SCORE_RED_FROM = 7;
+/** A venue loses this share of its customers per point of its visitors' stress score. */
+export const VENUE_FACTOR_PER_POINT = 0.04;
 /** Venue stress factor by the average trip stress at its door (SE-10). */
 export const VENUE_STRESS_FACTOR_NORMAL = 1;
 export const VENUE_STRESS_FACTOR_ALTO = 0.8;

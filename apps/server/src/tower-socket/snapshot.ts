@@ -29,8 +29,9 @@ import {
   levelToIndex,
   STAIR_FLIGHT_STEPS,
   LEDGER_CATEGORIES,
-  STRESS_ALTO_FROM,
-  STRESS_MUY_ALTO_FROM,
+  STRESS_SCORE_PINK_FROM,
+  STRESS_SCORE_RED_FROM,
+  stressScore,
   TOWER_LAYOUT,
   VENUE_STAFF,
   type FinanceSummary,
@@ -482,13 +483,11 @@ export function flightOf(
   };
 }
 
+/** The tint of a person, from the 0 to 10 score of their stress in steps. */
 export function stressLevel(steps: number): PersonView['stress'] {
-  if (steps >= STRESS_MUY_ALTO_FROM) {
-    return 'veryStressed';
-  }
-  if (steps >= STRESS_ALTO_FROM) {
-    return 'stressed';
-  }
+  const score = stressScore(steps);
+  if (score >= STRESS_SCORE_RED_FROM) return 'veryStressed';
+  if (score >= STRESS_SCORE_PINK_FROM) return 'stressed';
   return 'normal';
 }
 

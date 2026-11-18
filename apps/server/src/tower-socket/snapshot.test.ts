@@ -520,9 +520,9 @@ describe('snapshot from tower state', () => {
     });
   });
 
-  it('tints stress at 90 and 180 steps', () => {
+  it('tints stress pink from a score of 4 and red from 7', () => {
     const state = towerWithPeople();
-    const steps = [89, 90, 180];
+    const steps = [91, 92, 217];
     steps.forEach((value, index) => {
       state.people.stress[index] = value;
     });
