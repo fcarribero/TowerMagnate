@@ -102,7 +102,7 @@ Dirt sources:
 - Dirt does not fade. It stays until a cleaner of a cleaning room takes it off (service-units 2.2).
 - Near a garden, a lounge or a library the stress felt from a cell is lower, and a library takes noise out of the cells around it each minute (service-units 3).
 
-Elevator cars: each rider that boards adds 0.3 noise and 0.1 dirt to the car's pair, and a rider carrying a bag adds 1 more dirt. Car noise fades like the cells; car dirt stays. A rider gets the stress of the car for the minutes of the ride, when they get out.
+Elevator cars: each rider that boards adds 0.3 noise and 0.1 dirt to the car's pair, and a rider carrying a bag adds 1 more dirt. Car noise fades like the cells. Car dirt fades slowly: it falls by half every 12 game hours when nobody adds more. A rider gets the stress of the car for the minutes of the ride, when they get out.
 
 Stress from the maps: a cell gives `0.03 * noise + 0.15 * dirt` steps of stress per game minute. Once a minute each person on a trip, except in a car, feels their cell (each person has their own step in the minute, so a sixth of the people are visited per step). The amount is turned into whole steps with a fixed dither per person and minute, so small amounts still add up. A cell below 0.1 per minute is calm and gives back 1 step on about one minute in five.
 

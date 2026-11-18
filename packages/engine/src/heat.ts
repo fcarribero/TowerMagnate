@@ -4,6 +4,7 @@ import {
   CALM_BELOW,
   CALM_ONE_IN,
   CAR_DIRT_BAG,
+  CAR_DIRT_DECAY_MINUTE,
   CAR_DIRT_RIDER,
   CAR_NOISE_RIDER,
   CAR_NOISE_WORKER,
@@ -36,6 +37,7 @@ const COLUMNS = LAST_COLUMN + 1;
 const LAST = LAST_COLUMN;
 const NOISE_CELLS = HEAT_NOISE_CELLS;
 const NOISE_DECAY = HEAT_NOISE_DECAY_MINUTE;
+const CAR_DIRT_DECAY = CAR_DIRT_DECAY_MINUTE;
 const NOISE_STRESS = NOISE_STRESS_PER_LEVEL;
 const DIRT_STRESS = DIRT_STRESS_PER_LEVEL;
 const CALM = CALM_BELOW;
@@ -246,6 +248,7 @@ function decayAll(state: TowerState, built: Built): void {
   for (const pair of Object.values(heat.cars)) {
     for (let at = 0; at < pair.length; at += 2) {
       pair[at] = (pair[at] as number) * NOISE_DECAY;
+      pair[at + 1] = (pair[at + 1] as number) * CAR_DIRT_DECAY;
     }
   }
 }

@@ -112,7 +112,7 @@ This replaces the rules in routing.md that let only maids use service elevators 
 
 - A person who rides a standard or express car with a worker in it, or who walks past one, feels a little stress. Workers inside a service car do not count, because nobody else is there.
 - So a tower with no service elevators makes workers share cars with tenants, and the stress shows up in the score of the units those tenants come from.
-- The value goes in the car's noise and dirt pair. A worker who boards a standard or express car adds 0.5 noise (`CAR_NOISE_RIDER` 0.3 plus `CAR_NOISE_WORKER` 0.2) and the plain 0.1 dirt; a rider with a bag adds 1 dirt more. Extra dirt per worker was left out because car dirt never fades: in the 7-day vertical slice it pushed most office tenants below the renewal grade.
+- The value goes in the car's noise and dirt pair. A worker who boards a standard or express car adds 0.5 noise (`CAR_NOISE_RIDER` 0.3 plus `CAR_NOISE_WORKER` 0.2) and the plain 0.1 dirt; a rider with a bag adds 1 dirt more. Extra dirt per worker was left out: when car dirt did not fade, it pushed most office tenants below the renewal grade in the 7-day vertical slice. Car dirt now falls by half every 12 game hours.
 - A worker on a service car adds only what a plain rider adds.
 - The stress is only for cars. A worker who crosses a person on foot, in a hall or on stairs, adds nothing beyond the small noise and dirt per cell that anyone adds.
 

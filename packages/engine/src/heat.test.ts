@@ -112,6 +112,23 @@ describe('heat maps', () => {
     expect(carLevels(state, 's1', 0)).toEqual({ noise: 0, dirt: 0 });
   });
 
+  it('lets the dirt of a car fall by half in 12 game hours', () => {
+    const state = {
+      step: 0,
+      units: {},
+      grid: { levels: {} },
+      sites: {},
+      people: { id: [], level: [], column: [], trip: [], kind: [] },
+    } as unknown as TowerState;
+    addCarRider(state, 's1', 0, true);
+    const start = carLevels(state, 's1', 0).dirt;
+    for (let minute = 1; minute <= 12 * 60; minute++) {
+      state.step = minute * 6;
+      heatSystem({ state });
+    }
+    expect(carLevels(state, 's1', 0).dirt).toBeCloseTo(start / 2);
+  });
+
   it('makes a worker in a passenger car noisier than a plain rider', () => {
     const state = { step: 0 } as TowerState;
     addCarRider(state, 's1', 0, false, true);
