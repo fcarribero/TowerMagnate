@@ -118,7 +118,8 @@ function planUnit(state: TowerState, unitId: string): Plan {
       if (unit.sale) chargeMoney(state, 'condoBuybacks', unit.sale.price);
       const indemnity = demolitionIndemnity(state, [unit.id]);
       if (indemnity > 0) chargeMoney(state, 'rent', indemnity);
-      removePeopleOfUnit(state, unit.id);
+      // An obrador's crew is not sent away at once: with the obrador gone they walk out (construction.ts).
+      if (unit.type !== 'obrador') removePeopleOfUnit(state, unit.id);
       for (const level of unitLevels(unit)) {
         removeOccupant(state.grid, level, { kind: 'unit', id: unit.id });
         setStructure(state.grid, level, unit.x, x1, 'floor');
@@ -271,7 +272,9 @@ function planMainLobby(state: TowerState, columns: readonly number[]): Plan {
   while (isLobby(runStart - 1)) runStart -= 1;
   let runEnd = right;
   while (isLobby(runEnd + 1)) runEnd += 1;
-  const contiguous = sorted.every((x, index) => index === 0 || x === (sorted[index - 1] as number) + 1);
+  const contiguous = sorted.every(
+    (x, index) => index === 0 || x === (sorted[index - 1] as number) + 1,
+  );
   if (!contiguous || (left !== runStart && right !== runEnd)) return reject('MAIN_LOBBY_INNER');
   let above: Level | null = levelAbove(rows[rows.length - 1] as Level);
   for (; above !== null; above = levelAbove(above)) {
@@ -292,7 +295,9 @@ function planMainLobby(state: TowerState, columns: readonly number[]): Plan {
         for (const run of columnRuns(sorted)) clearStructure(grid, row, run.x0, run.x1);
       }
       sendPeopleToStreet(state, first, sorted);
-      const stillThere = (grid.levels[first]?.structure ?? []).some((span) => span.kind === 'lobby');
+      const stillThere = (grid.levels[first]?.structure ?? []).some(
+        (span) => span.kind === 'lobby',
+      );
       if (!stillThere) grid.mainLobbyHeight = null;
       return refundLobby(state, TOWER_LAYOUT.mainLobbyFloor, sorted);
     },

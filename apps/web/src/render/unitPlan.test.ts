@@ -17,8 +17,8 @@ const base = {
 } as const;
 
 describe('planUnit', () => {
-  it('draws 18 unit types', () => {
-    expect(UNIT_TYPES.filter(isPlacedUnit)).toHaveLength(18);
+  it('draws 19 unit types', () => {
+    expect(UNIT_TYPES.filter(isPlacedUnit)).toHaveLength(19);
   });
 
   it('picks the empty or occupied sprite and the time of day', () => {
@@ -237,8 +237,12 @@ describe('availability tape', () => {
   });
 
   it('draws no tape on a unit that is not listed', () => {
-    expect(planUnit({ ...base, type: 'condo', listed: false }, 'day')?.availability).toBeUndefined();
-    expect(planUnit({ ...base, type: 'office', listed: false }, 'day')?.availability).toBeUndefined();
+    expect(
+      planUnit({ ...base, type: 'condo', listed: false }, 'day')?.availability,
+    ).toBeUndefined();
+    expect(
+      planUnit({ ...base, type: 'office', listed: false }, 'day')?.availability,
+    ).toBeUndefined();
     expect(planUnit({ ...base, type: 'office', listed: true }, 'day')?.availability).toBe('rent');
   });
 

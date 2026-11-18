@@ -94,7 +94,13 @@ export function planUnit(
     openVenues,
     hour,
   );
-  const drawing = footprint(unit.id, `units/${unit.type}`, unit, { state, time }, overlay);
+  const drawing = footprint(
+    unit.id,
+    `units/${SPRITE_SUBJECT[unit.type] ?? unit.type}`,
+    unit,
+    { state, time },
+    overlay,
+  );
   const open =
     !building && state === 'empty' && unit.listed !== false ? AVAILABILITY[unit.type] : undefined;
   const offered = open === undefined ? drawing : { ...drawing, availability: open };
@@ -181,6 +187,12 @@ const SHOP_STATES = { empty: 'open', occupied: 'busy' } as const;
 /** Units whose sprites name their states differently from `empty` and `occupied`. */
 const SERVICE_STATES = { empty: 'closed', occupied: 'occupied' } as const;
 
+/** Units with no art of their own yet, drawn with another unit's sprites of the same width. */
+// TODO: the obrador uses the housekeeping art until it gets its own.
+const SPRITE_SUBJECT: Partial<Record<UnitType, string>> = {
+  obrador: 'housekeeping',
+};
+
 const SPRITE_STATES: Partial<Record<UnitType, { empty: string; occupied: string }>> = {
   security: SERVICE_STATES,
   'medical-center': SERVICE_STATES,
@@ -189,6 +201,7 @@ const SPRITE_STATES: Partial<Record<UnitType, { empty: string; occupied: string 
   'parking-ramp': SERVICE_STATES,
   'parking-space': SERVICE_STATES,
   housekeeping: SERVICE_STATES,
+  obrador: SERVICE_STATES,
   'fast-food': SHOP_STATES,
   restaurant: SHOP_STATES,
   'retail-shop': SHOP_STATES,

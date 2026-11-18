@@ -85,10 +85,10 @@ export function isValidVenueHours(hours: VenueHours): boolean {
  * Opening and closing minute of the day of a staffed venue. A fast food uses the hours the
  * player set; every other venue uses its listed hours.
  */
-export function venueHoursOf(unit: {
-  type: string;
-  hours?: VenueHours | null;
-}): { open: number; close: number } {
+export function venueHoursOf(unit: { type: string; hours?: VenueHours | null }): {
+  open: number;
+  close: number;
+} {
   if (unit.type === 'fast-food' && unit.hours) {
     return { open: minutes(unit.hours.open), close: minutes(unit.hours.close) };
   }
@@ -452,3 +452,12 @@ export const BUILDER_LAST_START_MINUTES = 60;
 
 /** Builders in one crew. */
 export const BUILDER_CREW_SIZE = 5;
+
+/** Minutes an obrador's builder stands in the obrador to change, on the way in and on the way out (service-units 2.5). */
+export const BUILDER_CHANGE_MINUTES = 5;
+
+/** Each level of an obrador's tools upgrade adds this share of a point a minute per builder (service-units 2.1). */
+export const BUILDER_TOOLS_BONUS = 0.2;
+
+/** Each level of an obrador's quiet equipment takes this share off the noise of its crew's site. */
+export const BUILDER_QUIET_SHARE = 0.2;

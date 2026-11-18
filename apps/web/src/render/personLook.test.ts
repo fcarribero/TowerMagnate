@@ -142,18 +142,19 @@ describe('personLook', () => {
     expect(guards.every((look) => look.subjects.fixed.startsWith('people/fixed-security-'))).toBe(
       true,
     );
-    const builders = IDS.map((id) => computeLook(id, 'builder'));
+    const builders = IDS.map((id) => computeLook(id, 'builder', false, 'uniform'));
     expect(new Set(builders.map((look) => look.shirt))).toEqual(new Set([0xe0875a]));
   });
 
-  it('draws police and maids as civilians until they wear the uniform', () => {
+  it('draws police, maids and builders as civilians until they wear the uniform', () => {
     for (const id of IDS.slice(0, 100)) {
-      for (const kind of ['police', 'maid'] as const) {
+      for (const kind of ['police', 'maid', 'builder'] as const) {
         const civil = computeLook(id, kind);
         const uniform = computeLook(id, kind, false, 'uniform');
         expect(civil.subjects.fixed).toMatch(/^people\/fixed-customer-/);
         expect(SHIRT_COLORS).toContain(civil.shirt);
-        expect(uniform.subjects.fixed).toMatch(kind === 'maid' ? /fixed-maid-/ : /fixed-security-/);
+        const worn = { maid: /fixed-maid-/, police: /fixed-security-/, builder: /fixed-builder-/ };
+        expect(uniform.subjects.fixed).toMatch(worn[kind]);
         expect(uniform.model).toBe(civil.model);
         expect(uniform.skin).toBe(civil.skin);
         expect(personLook(id, kind, false, 'uniform')).not.toBe(personLook(id, kind));

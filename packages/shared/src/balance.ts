@@ -11,6 +11,7 @@ import type {
   UnitType,
   UpkeepRule,
 } from './units';
+import { BUILDER_CREW_SIZE } from './people-schedules';
 import { SHAFT_UNIT_TYPES } from './units';
 
 // Every tunable balance number of the game lives in this module.
@@ -97,6 +98,7 @@ export const SECURITY_PATROL_WEIGHTS: Readonly<Record<UnitType, number>> = {
   condo: 0,
   housekeeping: 0,
   security: 0,
+  obrador: 0,
   'recycling-center': 0,
   office: 1,
   'single-room': 1,
@@ -434,6 +436,18 @@ export const UNIT_CATALOG: Readonly<Record<UnitType, UnitDefinition>> = {
     placement: { zone: 'above-top-floor' },
     limitGroup: 'cathedral',
   },
+  obrador: {
+    type: 'obrador',
+    name: 'Obrador',
+    category: 'services',
+    width: 15,
+    height: fixedHeight(1),
+    cost: perUnit(80_000),
+    capacity: { role: 'builders', people: BUILDER_CREW_SIZE },
+    unlockStars: 1,
+    placement: { zone: 'any' },
+    limitGroup: null,
+  },
 };
 
 export const TOWER_LIMITS: Readonly<Record<LimitGroupId, number>> = {
@@ -652,6 +666,7 @@ export const WEEKLY_UPKEEP: Readonly<Record<UnitType, UpkeepRule>> = {
   'recycling-center': flatUpkeep('per-unit', 50_000),
   'subway-station': flatUpkeep('per-unit', 250_000),
   cathedral: flatUpkeep('per-unit', 200_000),
+  obrador: flatUpkeep('per-unit', 10_000),
 };
 
 export const EVAL_PRICE_ADJUST: Readonly<Record<Exclude<PriceLevel, 'minimum'>, number>> = {
@@ -939,7 +954,8 @@ export interface UpgradeDefinition {
 
 /**
  * The upgrades a unit of each type can buy, level by level. A type that is missing has none.
- * Effects are not applied yet; the level is only stored (service-units 2 and 5).
+ * The obrador's upgrades act on its crew (construction.ts, heat.ts); the others are only stored for now
+ * (service-units 2 and 5).
  */
 export const UPGRADE_CATALOG: Partial<Record<UnitType, readonly UpgradeDefinition[]>> = {
   security: [
@@ -947,6 +963,11 @@ export const UPGRADE_CATALOG: Partial<Record<UnitType, readonly UpgradeDefinitio
     { id: 'guards', maxLevel: 3 },
     { id: 'fireSystem', maxLevel: 3 },
     { id: 'accessControl', maxLevel: 2 },
+  ],
+  obrador: [
+    { id: 'tools', maxLevel: 3 },
+    { id: 'storage', maxLevel: 3 },
+    { id: 'quietEquipment', maxLevel: 3 },
   ],
   lobby: [
     { id: 'plants', maxLevel: 3 },

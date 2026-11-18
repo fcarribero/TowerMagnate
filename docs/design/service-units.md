@@ -1,6 +1,6 @@
 # Service units and their upgrades
 
-Status: draft for review. Numbers marked (guess) are first values to tune.
+Status: steps 1 and 2 built (upgrades, obrador); the rest is a draft. Numbers marked (guess) are first values to tune.
 
 ## 1. Idea
 
@@ -21,10 +21,13 @@ The name Obrador is the Spanish word for the place where a builder keeps tools a
 
 ### 2.1 Obrador
 
-- With no obrador the builders come from outside as today: one crew.
-- Each obrador adds one crew of `BUILDER_CREW_SIZE` people. They start the work day inside the obrador and walk to a site from there. They go back to it at the end of the day.
-- Each crew works on its own site. A site that has a crew on it is skipped by the other crews. The site queue keeps its order and priority.
-- Upkeep per day (guess): 10,000, as housekeeping.
+Built (unit type `obrador`, 15 x 1, $80,000, 1 star, upkeep 10,000 a week). It has no art of its own yet and is drawn with the housekeeping sprites.
+
+- The crew from outside always exists, as before: `BUILDER_CREW_SIZE` builders who come in work clothes at 08:00 on a work day when there is a site and go straight to it.
+- Each obrador adds one crew of `BUILDER_CREW_SIZE` builders plus one per level of storage. An obrador's crew comes in at the same times, but only while the tower has more sites than crews in it: the crew from outside comes first, then the obradors in the order they were built.
+- Each crew works on its own site. A builder takes the first site in the queue (priority, then the order placed) that no builder of another crew is heading to or working on; all builders of a crew end up on the same site. When no free site is left, the builder goes home.
+- A builder's crew is kept in the person's home unit: 0 for the crew from outside, the obrador's unit number otherwise.
+- Demolishing an obrador does not remove its builders at once: with the obrador gone they walk out of the tower in the clothes they have on.
 
 Upgrades:
 
@@ -78,11 +81,10 @@ The exact effects depend on what the security system will do; this is not built 
 
 ## 2.5 Crews, clothes and shifts
 
-- The default crew from outside always exists, whatever the tower has built. It comes in work clothes and walks straight to its site. It is one more crew on top of the ones the obradores make.
-- The workers of an obrador come in from the street in everyday clothes and walk to their obrador. There they change and become builders, and then walk to their site. At the end of the work day they walk back to the obrador, change into everyday clothes and leave for home.
-- The same goes for the cleaners of a cleaning room and the guards of a security office: they arrive in everyday clothes, change in their unit and leave through it at the end of the shift.
-- A person who has changed shows the work look (builder, cleaner, guard); one in everyday clothes shows the look of a plain person.
-- Changing takes a fixed time standing in the unit (guess: 5 minutes).
+- The crew from outside always exists, whatever the tower has built. It comes in work clothes and walks straight to its site. It is one more crew on top of the ones the obradores make.
+- The builders of an obrador come in from the street in everyday clothes and walk to their obrador (`arriving`). There they stand `BUILDER_CHANGE_MINUTES` (5) to change (`changingIn`), and then pick a site. At 17:00, or when no free site is left, they walk back to the obrador (`returning`), change for 5 minutes (`changingOut`) and leave for home in everyday clothes. These phases are stored as negative trip codes so the codes of old saves keep their meaning.
+- The client draws a builder in everyday clothes until the engine marks it in uniform, as it does for police and maids.
+- The same is planned for the cleaners of a cleaning room and the guards of a security office: they arrive in everyday clothes, change in their unit and leave through it at the end of the shift.
 
 ## 2.6 Elevators for staff
 
@@ -121,7 +123,7 @@ No change. The player can build as many shafts and cars as wanted at any star le
 - Price of level N (guess): 25% of the unit price times N.
 - The unit panel lists the upgrades with their levels, price and effect. A locked upgrade shows what is needed.
 - Demolishing the unit loses its upgrades and its crew goes home.
-- Built so far: the catalog (`UPGRADE_CATALOG`), the command and the panel rows, for the security office. The level is stored but has no effect yet. A lobby is not a unit in the game state (it is a span of the grid), so its upgrades are in the catalog but cannot be bought until a lobby has an id of its own; for now its price base is a fixed 200,000 (guess).
+- Built so far: the catalog (`UPGRADE_CATALOG`), the command and the panel rows, for the security office and the obrador. The obrador's levels act on its crew (2.1); the security office's are stored but have no effect yet. A lobby is not a unit in the game state (it is a span of the grid), so its upgrades are in the catalog but cannot be bought until a lobby has an id of its own; for now its price base is a fixed 200,000 (guess).
 
 ## 6. Build order
 

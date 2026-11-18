@@ -134,6 +134,7 @@ describe('heat maps', () => {
         level: [5],
         column: [42],
         trip: [encodeBuilderTask({ phase: 'working', site: 9 })],
+        homeUnit: [0],
         kind: [PERSON_KINDS.indexOf('builder')],
       },
     } as unknown as TowerState;

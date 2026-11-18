@@ -95,7 +95,10 @@ describe('Toolbar', () => {
   it('hides locked tools and the categories that have none unlocked', () => {
     render(<Harness stars={1} />);
     expect(screen.queryByRole('tab', { name: 'Hotel' })).toBeNull();
-    expect(screen.queryByRole('tab', { name: 'Servicios' })).toBeNull();
+    // Services opens at 1 star with the obrador alone.
+    openCategory('Servicios');
+    expect(toolButton('Obrador')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Seguridad' })).toBeNull();
     openCategory('Transporte');
     expect(screen.queryByRole('button', { name: 'Ascensor expreso' })).toBeNull();
     expect(screen.queryByRole('button', { name: 'Ascensor de servicio' })).toBeNull();

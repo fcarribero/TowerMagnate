@@ -181,12 +181,14 @@ function clothesOf(name: string, model: PersonModel, hash: number): Clothes {
   }
 }
 
-/** Police and maids are drawn as ordinary civilians until the engine says they wear the uniform. */
+/** Police, maids and builders are drawn as ordinary civilians until the engine says they wear the uniform. */
 export type Outfit = 'uniform' | undefined;
 
 function spriteNameOf(kind: PersonKind, carrying: boolean, outfit: Outfit): string {
   if (carrying) return 'staffbag';
-  if ((kind === 'police' || kind === 'maid') && outfit !== 'uniform') return 'customer';
+  if ((kind === 'police' || kind === 'maid' || kind === 'builder') && outfit !== 'uniform') {
+    return 'customer';
+  }
   return SPRITE_NAME_OF_KIND[kind];
 }
 

@@ -31,6 +31,7 @@ const TOOL_ICONS: Readonly<Record<ToolId, ObraIconName>> = {
   'recycling-center': 'recycle',
   'subway-station': 'transport',
   cathedral: 'generic',
+  obrador: 'tools',
 } satisfies Record<ToolId, ObraIconName> & Record<UnitType, ObraIconName>;
 
 const CATEGORY_ICONS: Readonly<Record<ToolbarCategory, ObraIconName>> = {
