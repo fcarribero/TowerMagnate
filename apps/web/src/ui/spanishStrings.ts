@@ -543,6 +543,7 @@ export const SPANISH_STRINGS = {
   'news.balanceNegative': 'La caja quedó en rojo. No se puede construir hasta recuperar.',
   'news.bombSearch': 'Seguridad empezó a buscar la bomba.',
   'news.cinemaLowAudience': 'El cine no cobró nada: menos de 40 espectadores por función.',
+  'news.garbageNoCleaning': 'Hay basura en los locales y no hay cuarto de limpieza para sacarla.',
   'news.fastFoodLoss': 'Una comida rápida tuvo pérdidas: vinieron menos de 25 clientes.',
   'news.medicalDemanded': 'Los oficinistas necesitan un centro médico.',
   'news.medicalFull': 'Los centros médicos están llenos. Hace falta otro.',

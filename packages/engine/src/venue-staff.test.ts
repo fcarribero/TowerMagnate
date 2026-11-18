@@ -171,6 +171,25 @@ describe('closing time', () => {
     expect(garbageOf(end, id)).toBe(VENUE_STAFF.cinema.bags);
   });
 
+  it('posts a notice when a venue leaves garbage and the tower has no cleaning room', () => {
+    const { state } = venueTower('restaurant');
+    const end = runDay(state, 25, () => undefined);
+    expect(end.notices.map((notice) => notice.key)).toContain('news.garbageNoCleaning');
+  });
+
+  it('posts no garbage notice when the tower has a cleaning room', () => {
+    const { state, unitIds } = buildTower({
+      ...plainTowerPlan(3, 0, 80),
+      units: [
+        { type: 'restaurant', x: 40, level: 1 },
+        { type: 'cleaning-room', x: 10, level: 2 },
+      ],
+    });
+    addCrew(state, unitIds[0] as UnitId, { planToday: false });
+    const end = runDay(state, 25, () => undefined);
+    expect(end.notices.map((notice) => notice.key)).not.toContain('news.garbageNoCleaning');
+  });
+
   it('lets a shop crew leave without any bags', () => {
     const { state, id } = venueTower('retail-shop');
     let carried = false;

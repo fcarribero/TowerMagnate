@@ -34,6 +34,7 @@ import { streetColumn, streetPlace } from './street';
 import { cancelTrek, isOnTrek, startTrek } from './trek';
 import { unitNumber } from './units';
 import { customersInsideVenue } from './venue-visitors';
+import { emitNews } from './news';
 
 /**
  * What a crew member is doing: outside until the arrival step, walking in, working inside the
@@ -307,6 +308,15 @@ function walk(worker: Worker, phase: StaffPhase, to: Place, from?: Place, outTo?
   return false;
 }
 
+function garbageOf(unit: Unit): number {
+  return unit.venue?.garbage ?? 0;
+}
+
+/** Whether any cleaning room is built to carry the venues' garbage out. */
+function hasCleaningRoom(state: TowerState): boolean {
+  return Object.values(state.units).some((unit) => unit.type === 'cleaning-room');
+}
+
 function startArrival(worker: Worker): void {
   const { state, unit, routine } = worker;
   const closeStep = closeStepOf(unit, state.step);
@@ -372,6 +382,9 @@ function startClosing(worker: Worker): void {
     const venue = current.venue as VenueDay;
     venue.garbage = VENUE_STAFF[unit.type].bags;
     venue.garbageDay = today;
+  }
+  if (current !== unit && garbageOf(current) > 0 && !hasCleaningRoom(state)) {
+    worker.context.events.push(...emitNews(state, 'news.garbageNoCleaning'));
   }
   if (walkToExit(worker, 'leaving')) return;
   worker.routine.phase = 'working';

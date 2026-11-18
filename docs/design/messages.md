@@ -87,6 +87,7 @@ These are the failure notices of people.md 16 and 17. They used the `notice.*` p
 | `news.parkingOffice` | Los oficinistas piden cochera. | The parking pass leaves an office holder without a space (people.md 17.2). | | | tower, 1 per day |
 | `news.parkingCondo` | Los residentes piden cochera. | The parking pass leaves a condo holder without a space (people.md 17.2). | | | tower, 1 per day |
 | `news.parkingSuite` | Los huéspedes de las suites piden cochera. | The parking pass, at 06:00 or at a suite check-in, leaves a suite holder without a space (people.md 17.2). This is the no parking notice. | | | tower, 1 per day |
+| `news.garbageNoCleaning` | Hay basura en los locales y no hay cuarto de limpieza para sacarla. | A venue crew leaves its garbage pile at closing and the tower has no cleaning room (service-units.md). | | | tower, 1 per day |
 
 These notices are not alerts. The alert comes at the star check, when the failure blocks a promotion (`news.starBlockedMedical`, `news.starBlockedParking`).
 
