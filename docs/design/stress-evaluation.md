@@ -136,9 +136,28 @@ Design call on the trip in progress: a person who has waited 20 minutes at a cro
 | 90 to 179 | 15 to 29 | alto | `stress-pink` |
 | 180 or more | 30 or more | muy alto | `stress-red` |
 
-The person window shows `{floor(P / 6)} min ({level})` (ui.md 6.3). The thresholds do not change with stars.
+The person window shows the stress as a level bar, full at 45 minutes, with ticks where alto and muy alto start, the bar in the level's color and the level in words (ui.md 6.3). The thresholds do not change with stars.
 
 Design call: the GDD's starting values, 15 and 30 minutes, are kept. A well-served office trip is 4 to 7 minutes (section 9), so pink means a real problem and red means a broken route or an overloaded shaft.
+
+### 3.3 Causes
+
+Every stress part that goes into a trip is also added to one of eight running totals per person, so the person window can say why the person is stressed. Only people who record stress (2.5) keep them.
+
+| Cause | Parts |
+|---|---|
+| `wait` | Counted elevator waits, also a wait cut short |
+| `ride` | Ride steps, also a ride cut short, and the long slow trip extra (2.2) |
+| `stairs` | Stair and escalator floors |
+| `queue` | Full queue events |
+| `noRoute` | Failed searches and the 03:00 reset |
+| `walk` | The stress of each column walked |
+| `surroundings` | Noise and dirt felt in cells, at the start of a trip and in cars |
+| `calm` | Stress taken off by calm cells and cars, kept as a positive amount |
+
+At 00:00 each total keeps `STRESS_CAUSE_DAILY_KEEP` (0.82) of itself, so a cause halves in about 3.5 days, in step with the 7-day window of `P`. The totals only rank causes. They are not `P` and the trip cap (2.1) does not apply to them.
+
+The person window lists up to 3 causes under "Disconforme por": the causes worth at least 10% of the person's stress and at least a minute, heaviest first. Under "Contento con" it lists up to 3 things: "Lugares tranquilos" when calm is at least a minute, then the causes worth less than 5% of the stress or less than a minute, lightest first. Before a person has felt any stress both lists are empty.
 
 ## 4. Venue visit stress
 

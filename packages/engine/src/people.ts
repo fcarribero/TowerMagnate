@@ -2,6 +2,7 @@ import {
   MAX_FOLLOWED_PEOPLE,
   PARKING_HOLDER_CHANCE,
   PERSON_KINDS,
+  STRESS_CAUSE_FIELDS,
   UNIT_CATALOG,
   type CapacityRole,
   type EntityId,
@@ -10,6 +11,8 @@ import {
   type PersonKind,
   type ParkingState,
   type PersonPool,
+  type StressCauseArrays,
+  type StressCauseField,
   type TowerState,
   type UnitId,
   type UnitType,
@@ -62,8 +65,17 @@ export interface PersonView {
   followed: boolean;
 }
 
+const CAUSE_FIELDS: readonly StressCauseField[] = Object.values(STRESS_CAUSE_FIELDS);
+
+function causeArrays(make: (field: StressCauseField) => number[]): StressCauseArrays {
+  const arrays = {} as StressCauseArrays;
+  for (const field of CAUSE_FIELDS) arrays[field] = make(field);
+  return arrays;
+}
+
 export function createPersonPool(): PersonPool {
   return {
+    ...causeArrays(() => []),
     nextId: 1,
     id: [],
     kind: [],
@@ -99,6 +111,7 @@ export function createPersonPool(): PersonPool {
 /** A deep copy, much faster than structuredClone for pools of thousands of people. */
 export function clonePersonPool(pool: PersonPool): PersonPool {
   return {
+    ...causeArrays((field) => pool[field].slice()),
     nextId: pool.nextId,
     id: pool.id.slice(),
     kind: pool.kind.slice(),
@@ -191,6 +204,7 @@ export function addPerson(state: TowerState, person: NewPerson): number {
   const nameSeed = person.nameSeed ?? nextUint32(state.rng);
   pool.nameSeed.push(nameSeed);
   pool.energy.push(startingEnergy(person.kind, nameSeed));
+  for (const field of CAUSE_FIELDS) pool[field].push(0);
   pool.nextId += 1;
   return id;
 }
@@ -522,6 +536,7 @@ function poolArrays(pool: PersonPool): number[][] {
     pool.facing,
     pool.energy,
     pool.nameSeed,
+    ...CAUSE_FIELDS.map((field) => pool[field]),
   ];
 }
 

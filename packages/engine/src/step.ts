@@ -45,7 +45,7 @@ import {
   isOnTrek,
   plannedTripSteps,
 } from './trek';
-import { createNightReset } from './trip-ledger';
+import { createNightReset, fadeStressCausesHook } from './trip-ledger';
 import { createDailyGradeSystem, storedGrade } from './unit-evaluation';
 import {
   graphInputsMatch,
@@ -307,6 +307,7 @@ export const namedTowerSystems: readonly { name: string; system: SimulationSyste
       weddingAttemptHook,
       maidArrivalHook,
       policeRosterHook,
+      fadeStressCausesHook,
       constructionEndHook,
     ]),
   },

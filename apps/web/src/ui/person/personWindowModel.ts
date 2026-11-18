@@ -1,4 +1,11 @@
-import { MAX_FOLLOWED_PEOPLE, type PersonKind, type UnitView } from '@tower-magnate/shared';
+import {
+  MAX_FOLLOWED_PEOPLE,
+  STRESS_ALTO_FROM,
+  STRESS_MUY_ALTO_FROM,
+  type PersonKind,
+  type StressCause,
+  type UnitView,
+} from '@tower-magnate/shared';
 import type { PersonInspect } from '../../model/inspectStore';
 import { STRESS_INK, STRESS_PINK, STRESS_RED } from '../../render/stressPalette';
 import { errorText, t, type StringKey } from '../strings';
@@ -75,6 +82,99 @@ export function stressText(minutes: number, level: StressLevel): StressText {
     text: t('window.person.stressValue', { n: Math.round(minutes), level: t(STRESS_KEYS[level]) }),
     level,
   };
+}
+
+const STEPS_PER_MINUTE = 6;
+/** The stress bar is full at 1.5 times the very high threshold: 45 minutes. */
+const STRESS_BAR_FULL_MINUTES = (STRESS_MUY_ALTO_FROM * 1.5) / STEPS_PER_MINUTE;
+
+export interface StressBar {
+  /** How full the bar is, 0 to 1. */
+  fill: number;
+  /** Where the high and the very high zones start on the bar, 0 to 1. */
+  highAt: number;
+  veryHighAt: number;
+  level: StressLevel;
+  /** The level in words: normal, alto, muy alto. */
+  label: string;
+}
+
+/** Stress as a level bar instead of minutes. */
+export function stressBar(minutes: number, level: StressLevel): StressBar {
+  return {
+    fill: Math.min(1, Math.max(0, minutes / STRESS_BAR_FULL_MINUTES)),
+    highAt: STRESS_ALTO_FROM / STEPS_PER_MINUTE / STRESS_BAR_FULL_MINUTES,
+    veryHighAt: STRESS_MUY_ALTO_FROM / STEPS_PER_MINUTE / STRESS_BAR_FULL_MINUTES,
+    level,
+    label: t(STRESS_KEYS[level]),
+  };
+}
+
+type BurdenCause = Exclude<StressCause, 'calm'>;
+
+const BURDENS: readonly BurdenCause[] = [
+  'wait',
+  'ride',
+  'stairs',
+  'queue',
+  'noRoute',
+  'walk',
+  'surroundings',
+];
+
+const UNHAPPY_KEYS: Readonly<Record<BurdenCause, StringKey>> = {
+  wait: 'window.person.unhappy.wait',
+  ride: 'window.person.unhappy.ride',
+  stairs: 'window.person.unhappy.stairs',
+  queue: 'window.person.unhappy.queue',
+  noRoute: 'window.person.unhappy.noRoute',
+  walk: 'window.person.unhappy.walk',
+  surroundings: 'window.person.unhappy.surroundings',
+};
+
+const HAPPY_KEYS: Readonly<Record<BurdenCause, StringKey>> = {
+  wait: 'window.person.happy.wait',
+  ride: 'window.person.happy.ride',
+  stairs: 'window.person.happy.stairs',
+  queue: 'window.person.happy.queue',
+  noRoute: 'window.person.happy.noRoute',
+  walk: 'window.person.happy.walk',
+  surroundings: 'window.person.happy.surroundings',
+};
+
+/** A cause weighs on the person when it is at least this share of their stress and a full minute. */
+const UNHAPPY_SHARE = 0.1;
+/** A cause pleases the person when it is less than this share of their stress. */
+const HAPPY_SHARE = 0.05;
+const MOST_REASONS = 3;
+
+export interface StressReasons {
+  /** What weighs most on the person lately, heaviest first. */
+  unhappy: string[];
+  /** What does not bother them, or calms them. */
+  happy: string[];
+}
+
+/**
+ * The main reasons a person is unhappy and the things they are happy with, from the minutes of
+ * stress felt lately for each cause. Nothing is listed before the person has felt any stress.
+ */
+export function stressReasons(causes: Readonly<Record<StressCause, number>>): StressReasons {
+  const total = BURDENS.reduce((sum, cause) => sum + causes[cause], 0);
+  if (total <= 0 && causes.calm <= 0) {
+    return { unhappy: [], happy: [] };
+  }
+  const unhappy = BURDENS.filter(
+    (cause) => causes[cause] >= 1 && causes[cause] >= total * UNHAPPY_SHARE,
+  )
+    .sort((a, b) => causes[b] - causes[a])
+    .slice(0, MOST_REASONS)
+    .map((cause) => t(UNHAPPY_KEYS[cause]));
+  const calm = causes.calm >= 1 ? [t('window.person.happy.calm')] : [];
+  const light = BURDENS.filter((cause) => causes[cause] < total * HAPPY_SHARE || causes[cause] < 1)
+    .sort((a, b) => causes[a] - causes[b])
+    .map((cause) => t(HAPPY_KEYS[cause]));
+  return { unhappy, happy: [...calm, ...light].slice(0, MOST_REASONS) };
 }
 
 /** What the person is doing; `unit` is the unit they are in, when there is one. A courier on foot is delivering. */

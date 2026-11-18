@@ -2,6 +2,7 @@ import {
   MAX_FOLLOWED_PEOPLE,
   MAX_NAME_LENGTH,
   PERSON_KINDS,
+  STRESS_CAUSE_FIELDS,
   type PersonPool,
 } from '@tower-magnate/shared';
 import { MAX_ENERGY, MIN_ENERGY, startingEnergy } from '../energy';
@@ -121,6 +122,20 @@ function readFullQueueTrip(raw: Record<string, unknown>, pool: PersonPool): void
   }
 }
 
+/** Saves from before stress causes were kept start everyone with none. */
+function readStressCauses(raw: Record<string, unknown>, pool: PersonPool): void {
+  for (const field of Object.values(STRESS_CAUSE_FIELDS)) {
+    const values = raw[field];
+    if (values === undefined) {
+      pool[field] = Array<number>(pool.id.length).fill(0);
+    } else if (isNumberArray(values) && values.length === pool.id.length) {
+      pool[field] = values.slice();
+    } else {
+      fail(`${field} must hold one number per person`);
+    }
+  }
+}
+
 const TRIP_FIELDS = ['tripSum', 'tripSlowFloors', 'tripPartStep', 'tripPartCut'] as const;
 
 export function readTripLedger(raw: unknown, ids: readonly number[]): Record<string, number[]> {
@@ -169,6 +184,7 @@ export function readPeople(raw: unknown): PersonPool {
     pool[field] = values.slice();
   }
   readFullQueueTrip(raw, pool);
+  readStressCauses(raw, pool);
   pool.facing = readFacing(raw.facing, id.length);
   pool.energy = readEnergy(raw.energy, pool);
   pool.names = readNames(raw.names, id);

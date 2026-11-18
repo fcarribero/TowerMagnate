@@ -858,6 +858,8 @@ export const STRESS_LONG_TRIP: readonly { from: number; extra: number }[] = [
 
 /** Trips that ended within this many steps (one week) count toward a person's stress. */
 export const STRESS_WINDOW_STEPS = 60_480;
+/** Share of each stress cause a person keeps from one day to the next: about half in 3.5 days. */
+export const STRESS_CAUSE_DAILY_KEEP = 0.82;
 export const STRESS_ALTO_FROM = 90;
 export const STRESS_MUY_ALTO_FROM = 180;
 /** Venue stress factor by the average trip stress at its door (SE-10). */

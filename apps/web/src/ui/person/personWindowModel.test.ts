@@ -8,7 +8,9 @@ import {
   kindName,
   personTitle,
   stateText,
+  stressBar,
   stressColor,
+  stressReasons,
   stressText,
 } from './personWindowModel';
 
@@ -130,5 +132,48 @@ describe('follow star', () => {
       reason: undefined,
     });
     expect(followStar(true, true, 3, true)).toMatchObject({ disabled: true });
+  });
+});
+
+describe('stress bar and reasons', () => {
+  const none = {
+    wait: 0,
+    ride: 0,
+    stairs: 0,
+    queue: 0,
+    noRoute: 0,
+    walk: 0,
+    surroundings: 0,
+    calm: 0,
+  };
+
+  it('fills the bar up to 45 minutes and marks the high and very high zones', () => {
+    expect(stressBar(0, 'normal')).toMatchObject({ fill: 0, label: 'normal' });
+    expect(stressBar(22.5, 'stressed').fill).toBeCloseTo(0.5);
+    expect(stressBar(90, 'veryStressed').fill).toBe(1);
+    expect(stressBar(0, 'normal').highAt).toBeCloseTo(1 / 3);
+    expect(stressBar(0, 'normal').veryHighAt).toBeCloseTo(2 / 3);
+  });
+
+  it('lists nothing before the person has felt any stress', () => {
+    expect(stressReasons(none)).toEqual({ unhappy: [], happy: [] });
+  });
+
+  it('puts the heaviest causes first and at most three', () => {
+    const causes = { ...none, wait: 5, ride: 10, stairs: 20, queue: 8, walk: 1 };
+    expect(stressReasons(causes).unhappy).toEqual([
+      'Subir y bajar escaleras',
+      'Viajes largos en ascensor',
+      'Colas de ascensor llenas',
+    ]);
+  });
+
+  it('is happy with calm places first, then the causes that barely weigh', () => {
+    const causes = { ...none, wait: 40, calm: 3 };
+    const { unhappy, happy } = stressReasons(causes);
+    expect(unhappy).toEqual(['Esperas largas del ascensor']);
+    expect(happy[0]).toBe('Lugares tranquilos');
+    expect(happy).toHaveLength(3);
+    expect(happy).not.toContain('Ascensores sin espera');
   });
 });

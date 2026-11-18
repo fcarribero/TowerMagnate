@@ -74,6 +74,16 @@ function found(id: string, patch: Partial<Found> = {}): Found {
     destination: { kind: 'unit', unitId: 'u1', level: 3 },
     stressMinutes: 42,
     stress: 'stressed',
+    stressCauses: {
+      wait: 30,
+      ride: 6,
+      stairs: 0,
+      queue: 0,
+      noRoute: 0,
+      walk: 4,
+      surroundings: 2,
+      calm: 0,
+    },
     homeUnitId: 'u1',
     ...patch,
   };
@@ -148,24 +158,42 @@ describe('person windows', () => {
     show(found('p1'));
     const dialog = screen.getByRole('dialog', { name: 'Oficinista' });
     const rows = [...dialog.querySelectorAll('.tm-person__row')].map((row) => row.textContent);
-    // Type, state and destination are not shown in the panel.
-    expect(rows).toEqual(['Estrés42 min (alto)', 'Trabaja enOficina · Piso 3']);
+    // Type, state and destination are not shown in the panel; stress is a bar, not a row.
+    expect(rows).toEqual(['Trabaja enOficina · Piso 3']);
     expect(sent.at(-1)).toMatchObject({
       t: 'inspectAdd',
       p: { target: { kind: 'person', id: 'p1' } },
     });
   });
 
-  it('colors the stress by level and keeps normal in ink', () => {
+  it('shows stress as a level bar colored by level, with the level in words', () => {
     const { open, show } = setup();
     open('p1');
     show(found('p1'));
-    const stress = () => screen.getByText(/ min \(/);
-    expect(stress().style.color).toBe('rgb(240, 122, 168)');
+    const meter = () => screen.getByRole('meter', { name: 'Estrés' });
+    const fill = () => meter().querySelector('.tm-person__stress-fill') as HTMLElement;
+    expect(meter().getAttribute('aria-valuetext')).toBe('alto');
+    expect(fill().style.background).toBe('rgb(240, 122, 168)');
+    expect(screen.queryByText(/ min \(/)).toBeNull();
     show(found('p1', { stress: 'veryStressed', stressMinutes: 99 }));
-    expect(stress().style.color).toBe('rgb(216, 30, 42)');
+    expect(meter().getAttribute('aria-valuenow')).toBe('100');
+    expect(fill().style.background).toBe('rgb(216, 30, 42)');
     show(found('p1', { stress: 'normal', stressMinutes: 3 }));
-    expect(stress().style.color).toBe('');
+    expect(meter().getAttribute('aria-valuetext')).toBe('normal');
+  });
+
+  it('lists what makes the person unhappy and what they are happy with', () => {
+    const { open, show } = setup();
+    open('p1');
+    show(found('p1'));
+    const unhappy = screen.getByText('Disconforme por').closest('section') as HTMLElement;
+    const happy = screen.getByText('Contento con').closest('section') as HTMLElement;
+    // Waits are 30 of 42 minutes, rides 6: both weigh on them; walking (4) is under 10%.
+    expect([...unhappy.querySelectorAll('li')].map((li) => li.textContent)).toEqual([
+      'Esperas largas del ascensor',
+      'Viajes largos en ascensor',
+    ]);
+    expect(within(happy).getByText('Casi no usa escaleras')).toBeTruthy();
   });
 
   it('shows the person name as title and renames on Enter and blur', () => {

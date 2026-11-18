@@ -1,6 +1,7 @@
 import {
   countPeopleOfUnit,
   doctorsAtWork,
+  stressCausesOf,
   findLobby,
   lobbyCells,
   lobbyUpgrades,
@@ -174,6 +175,12 @@ export function inspectShaft(state: TowerState, shaftId: string): InspectData {
   return result;
 }
 
+function minutesOf<K extends string>(steps: Record<K, number>): Record<K, number> {
+  const minutes = {} as Record<K, number>;
+  for (const key in steps) minutes[key] = Math.round((steps[key] / STEPS_PER_MINUTE) * 10) / 10;
+  return minutes;
+}
+
 /** What the person window shows for one person, or a `gone` answer when the person is not in the tower. */
 export function inspectPerson(state: TowerState, personId: string): InspectData {
   const pool = state.people;
@@ -194,6 +201,7 @@ export function inspectPerson(state: TowerState, personId: string): InspectData 
     destination: phase === 'idle' ? null : destinationOf(state, slot),
     stressMinutes: person.stress / STEPS_PER_MINUTE,
     stress: stressLevel(person.stress),
+    stressCauses: minutesOf(stressCausesOf(pool, slot)),
     homeUnitId: person.homeUnit,
   };
   return result;

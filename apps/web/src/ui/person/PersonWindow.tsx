@@ -13,8 +13,11 @@ import {
   homeRow,
   kindName,
   personTitle,
+  stressBar,
   stressColor,
-  stressText,
+  stressReasons,
+  type StressBar,
+  type StressReasons,
 } from './personWindowModel';
 import './person.css';
 
@@ -146,7 +149,8 @@ export function PersonWindow({
   };
   const title = known === undefined ? '' : personTitle(known.personKind, known.name);
   const home = found === undefined ? null : homeRow(found.personKind, found.homeUnitId, unitOf);
-  const stress = found === undefined ? null : stressText(found.stressMinutes, found.stress);
+  const stress = found === undefined ? null : stressBar(found.stressMinutes, found.stress);
+  const reasons = found === undefined ? null : stressReasons(found.stressCauses);
 
   const starButton = (
     <button
@@ -186,14 +190,15 @@ export function PersonWindow({
         onEnter={commitName}
       />
       {found !== undefined && stress !== null && (
-        <dl class="tm-person__rows">
-          <Row
-            label={t('window.person.stress')}
-            value={stress.text}
-            color={stress.level === 'normal' ? undefined : stressColor(stress.level)}
-          />
-          {home !== null && <Row label={home.label} value={home.value} />}
-        </dl>
+        <>
+          <StressMeter bar={stress} />
+          {reasons !== null && <ReasonLists reasons={reasons} />}
+          {home !== null && (
+            <dl class="tm-person__rows">
+              <Row label={home.label} value={home.value} />
+            </dl>
+          )}
+        </>
       )}
       <div class="tm-person__buttons">
         <Button
@@ -204,6 +209,65 @@ export function PersonWindow({
         </Button>
       </div>
     </Window>
+  );
+}
+
+/** Stress as a level bar with the high and very high zones marked, and the level in words. */
+function StressMeter({ bar }: { bar: StressBar }) {
+  const color = stressColor(bar.level);
+  return (
+    <div class="tm-person__stress">
+      <div class="tm-person__stress-head">
+        <span>{t('window.person.stress')}</span>
+        <strong style={bar.level === 'normal' ? undefined : { color }}>{bar.label}</strong>
+      </div>
+      <div
+        class="tm-person__stress-bar"
+        role="meter"
+        aria-label={t('window.person.stress')}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={Math.round(bar.fill * 100)}
+        aria-valuetext={bar.label}
+      >
+        <span
+          class="tm-person__stress-fill"
+          style={{ width: `${bar.fill * 100}%`, background: color }}
+        />
+        <span class="tm-person__stress-mark" style={{ left: `${bar.highAt * 100}%` }} />
+        <span class="tm-person__stress-mark" style={{ left: `${bar.veryHighAt * 100}%` }} />
+      </div>
+    </div>
+  );
+}
+
+function ReasonLists({ reasons }: { reasons: StressReasons }) {
+  if (reasons.unhappy.length === 0 && reasons.happy.length === 0) {
+    return null;
+  }
+  return (
+    <div class="tm-person__reasons">
+      {reasons.unhappy.length > 0 && (
+        <section class="tm-person__reason-group is-unhappy">
+          <h3>{t('window.person.unhappyTitle')}</h3>
+          <ul>
+            {reasons.unhappy.map((reason) => (
+              <li key={reason}>{reason}</li>
+            ))}
+          </ul>
+        </section>
+      )}
+      {reasons.happy.length > 0 && (
+        <section class="tm-person__reason-group is-happy">
+          <h3>{t('window.person.happyTitle')}</h3>
+          <ul>
+            {reasons.happy.map((reason) => (
+              <li key={reason}>{reason}</li>
+            ))}
+          </ul>
+        </section>
+      )}
+    </div>
   );
 }
 

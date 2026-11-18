@@ -1,5 +1,8 @@
 import {
   PERSON_KINDS,
+  STRESS_CAUSE_DAILY_KEEP,
+  STRESS_CAUSE_FIELDS,
+  STRESS_CAUSES,
   STRESS_ESCALATOR_FLOOR,
   STRESS_NO_ROUTE,
   STRESS_QUEUE_FULL,
@@ -12,6 +15,7 @@ import {
   type LobbyHeight,
   type PersonPool,
   type Shaft,
+  type StressCause,
   type TowerState,
 } from '@tower-magnate/shared';
 import { STAY_MAX_MINUTES, stepsFelt } from './heat';
@@ -140,7 +144,9 @@ export function refreshPersonStress(
 /** A trip that ends mid-wait or mid-ride keeps the part under way. */
 export function settlePartUnderWay(state: TowerState, slot: number, part: PartUnderWay): void {
   const pool = state.people;
-  pool.tripSum[slot] = field(pool.tripSum, slot) + underWaySteps(state, slot, part);
+  const steps = underWaySteps(state, slot, part);
+  pool.tripSum[slot] = field(pool.tripSum, slot) + steps;
+  addCause(pool, slot, part === 'riding' ? 'ride' : 'wait', steps);
   pool.tripPartStep[slot] = 0;
 }
 
@@ -177,6 +183,9 @@ export function recordTrip(
   const failedAttempt = options.nightReset ? STRESS_NO_ROUTE : 0;
   const sum = field(pool.tripSum, slot) + failedAttempt;
   const stress = finishedTripStress(sum, field(pool.tripSlowFloors, slot));
+  addCause(pool, slot, 'noRoute', failedAttempt);
+  // The extra for a long slow trip counts as riding.
+  addCause(pool, slot, 'ride', Math.max(0, stress - sum));
   const key = String(field(pool.id, slot));
   writableTripLedger(state)[key] = [
     ...stillInWindow(state, state.tripLedger[key] ?? []),
@@ -207,14 +216,58 @@ export function hasPendingTrip(pool: PersonPool, slot: number): boolean {
   return field(pool.tripSum, slot) > 0 || field(pool.tripSlowFloors, slot) > 0;
 }
 
-export function addFailedSearch(pool: PersonPool, slot: number): void {
-  pool.tripSum[slot] = field(pool.tripSum, slot) + STRESS_NO_ROUTE;
+/**
+ * Adds stress steps to the running total of one cause (stress-evaluation 2.8). Only people who
+ * record stress keep causes; the totals fade every day with `fadeStressCauses`.
+ */
+export function addCause(pool: PersonPool, slot: number, cause: StressCause, steps: number): void {
+  if (steps <= 0 || !recordsStress(pool, slot)) return;
+  const totals = pool[STRESS_CAUSE_FIELDS[cause]];
+  totals[slot] = field(totals, slot) + steps;
 }
 
-/** Noise, dirt or calm felt while walking a column; only people who record stress feel it. */
-export function addAmbient(pool: PersonPool, slot: number, delta: number): void {
+/** The running total of every cause for one person. */
+export function stressCausesOf(pool: PersonPool, slot: number): Record<StressCause, number> {
+  const totals = {} as Record<StressCause, number>;
+  for (const cause of STRESS_CAUSES) totals[cause] = field(pool[STRESS_CAUSE_FIELDS[cause]], slot);
+  return totals;
+}
+
+/** At 00:00 every cause total keeps STRESS_CAUSE_DAILY_KEEP of itself, so old causes fade. */
+export const fadeStressCausesHook: ScheduledHook = {
+  name: 'stress-causes-fade',
+  schedule: { every: 'day', hour: 0, minute: 0 },
+  run({ state }) {
+    const pool = state.people;
+    for (const cause of STRESS_CAUSES) {
+      const totals = pool[STRESS_CAUSE_FIELDS[cause]];
+      for (let slot = 0; slot < totals.length; slot++) {
+        const kept = field(totals, slot) * STRESS_CAUSE_DAILY_KEEP;
+        totals[slot] = kept < 0.5 ? 0 : Math.round(kept * 100) / 100;
+      }
+    }
+  },
+};
+
+export function addFailedSearch(pool: PersonPool, slot: number): void {
+  pool.tripSum[slot] = field(pool.tripSum, slot) + STRESS_NO_ROUTE;
+  addCause(pool, slot, 'noRoute', STRESS_NO_ROUTE);
+}
+
+/**
+ * Noise, dirt or calm felt where the person is, or the stress of walking a column (`walk`); only
+ * people who record stress feel it. Calm takes stress off and is kept as its own cause.
+ */
+export function addAmbient(
+  pool: PersonPool,
+  slot: number,
+  delta: number,
+  cause: 'surroundings' | 'walk' = 'surroundings',
+): void {
   if (delta === 0 || !recordsStress(pool, slot)) return;
   pool.tripSum[slot] = field(pool.tripSum, slot) + delta;
+  if (delta > 0) addCause(pool, slot, cause, delta);
+  else addCause(pool, slot, 'calm', -delta);
 }
 
 /**
@@ -242,12 +295,14 @@ export function addStay(state: TowerState, slot: number): void {
 
 export function addFullQueueEvent(pool: PersonPool, slot: number): void {
   pool.tripSum[slot] = field(pool.tripSum, slot) + STRESS_QUEUE_FULL;
+  addCause(pool, slot, 'queue', STRESS_QUEUE_FULL);
 }
 
 export function addFlight(pool: PersonPool, slot: number, kind: 'stairs' | 'escalator'): void {
   const stairs = kind === 'stairs';
   const stress = stairs ? STRESS_STAIR_FLOOR : STRESS_ESCALATOR_FLOOR;
   pool.tripSum[slot] = field(pool.tripSum, slot) + stress;
+  addCause(pool, slot, 'stairs', stress);
   if (stairs) pool.tripSlowFloors[slot] = field(pool.tripSlowFloors, slot) + 1;
 }
 
@@ -291,6 +346,7 @@ export function boardCar(state: TowerState, slot: number): void {
   const wait = state.step - field(pool.tripPartStep, slot);
   const counted = Math.max(0, wait - field(pool.tripPartCut, slot));
   pool.tripSum[slot] = field(pool.tripSum, slot) + counted;
+  addCause(pool, slot, 'wait', counted);
   pool.tripPartStep[slot] = state.step;
   pool.tripPartCut[slot] = 0;
 }
@@ -305,6 +361,7 @@ export function finishRide(
   const pool = state.people;
   const rideSteps = state.step - field(pool.tripPartStep, slot);
   pool.tripSum[slot] = field(pool.tripSum, slot) + rideSteps;
+  addCause(pool, slot, 'ride', rideSteps);
   if (shaft && shaft.type !== 'express') {
     const from = field(pool.level, slot) as Level;
     const floors = Math.abs(floorIndex(to) - floorIndex(from));

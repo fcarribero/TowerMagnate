@@ -174,3 +174,66 @@
   outline: var(--border-control);
   outline-offset: 2px;
 }
+
+/* Stress as a level bar: ticks where the high and very high zones start. */
+.tm-person__stress {
+  margin: 0 0 var(--space-2);
+}
+
+.tm-person__stress-head {
+  display: flex;
+  justify-content: space-between;
+  margin: 0 0 var(--space-1);
+  font: var(--text-body);
+}
+
+.tm-person__stress-head strong {
+  font: var(--text-body-strong);
+}
+
+.tm-person__stress-bar {
+  position: relative;
+  height: calc(8 * var(--tm-px));
+  overflow: hidden;
+  background: var(--obra-paper-shade);
+  border: var(--border-control);
+}
+
+.tm-person__stress-fill {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+}
+
+.tm-person__stress-mark {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: var(--tm-px);
+  background: var(--obra-ink);
+}
+
+.tm-person__reasons {
+  margin: 0 0 var(--space-2);
+}
+
+.tm-person__reason-group h3 {
+  margin: var(--space-1) 0;
+  font: var(--text-tile-label);
+  text-transform: uppercase;
+}
+
+.tm-person__reason-group ul {
+  margin: 0;
+  padding-left: var(--space-3);
+  font: var(--text-body);
+}
+
+.tm-person__reason-group.is-unhappy h3 {
+  color: var(--obra-red);
+}
+
+.tm-person__reason-group.is-happy h3 {
+  color: var(--obra-green);
+}

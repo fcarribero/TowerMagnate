@@ -3,6 +3,7 @@ import { TOWER_LAYOUT } from '../balance';
 import { CAR_DIRECTIONS } from '../engine';
 import { MAX_FLIGHT_STEPS } from '../flight';
 import { MAX_NAME_LENGTH } from '../names';
+import { STRESS_CAUSES } from '../people';
 import { WEDDING_GUESTS } from '../people-schedules';
 import { ElevatorScheduleSchema, MAX_CARS_PER_SHAFT } from './commands';
 import {
@@ -539,6 +540,8 @@ export const InspectDataSchema = z.union([
     destination: PersonDestinationSchema.nullable(),
     stressMinutes: z.number().nonnegative(),
     stress: StressLevelSchema,
+    /** Minutes of stress felt lately for each cause, fading day by day (stress-evaluation 2.8). */
+    stressCauses: z.record(z.enum(STRESS_CAUSES), z.number().nonnegative()),
     homeUnitId: UnitEntityIdSchema.nullable(),
   }),
   InspectedShaftGoneSchema,

@@ -1118,7 +1118,7 @@ function walk(context: StepContext, slot: number, pass: TrekPass): boolean {
     const state = context.state;
     addPersonTrail(state, level, column + direction, NOISE_PER_CELL, DIRT_PER_CELL);
     if (!pass.ambient.insideUnit(level, column + direction)) {
-      addAmbient(pool, slot, WALK_CELL_STRESS);
+      addAmbient(pool, slot, WALK_CELL_STRESS, 'walk');
     }
   }
   syncLane(pass, slot);

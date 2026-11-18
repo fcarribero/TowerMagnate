@@ -613,6 +613,16 @@ describe('inspecting a person', () => {
       destination: null,
       stressMinutes: 0,
       stress: 'normal',
+      stressCauses: {
+        wait: 0,
+        ride: 0,
+        stairs: 0,
+        queue: 0,
+        noRoute: 0,
+        walk: 0,
+        surroundings: 0,
+        calm: 0,
+      },
       homeUnitId: 'u7',
     });
   });

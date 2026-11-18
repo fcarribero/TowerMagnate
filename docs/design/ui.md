@@ -449,11 +449,12 @@ Title: the person's name, or the kind ("Oficinista") when unnamed.
 | Row | Content |
 |---|---|
 | Nombre | Text field, max 24 characters, `renamePerson` on Enter or blur |
-| Tipo | Person kind (13.6) |
-| Estado | Caminando / Esperando el ascensor / En el ascensor / En la escalera / En {unit name} / Sin ruta / Fuera de la torre |
-| Destino | `{unit name} · {level label}`, or "Sale de la torre", or "Ninguno" |
-| Estrés | `{n} min ({level})` in the stress color: normal is `obra.ink`, alto is `stress-pink`, muy alto is `stress-red` |
+| Estrés | A level bar in the stress color, full at 45 minutes, with ticks where alto and muy alto start, and the level in words on the right: normal is `obra.ink`, alto is `stress-pink`, muy alto is `stress-red` |
+| Disconforme por | Up to 3 causes of the person's stress, heaviest first (stress-evaluation 3.3) |
+| Contento con | Up to 3 things that do not bother the person or calm them (stress-evaluation 3.3) |
 | Vive en / Trabaja en / Se aloja en | The home unit, by kind: residents "Vive en", office workers "Trabaja en", guests "Se aloja en"; hidden for kinds with no home unit |
+
+The kind, state and destination are not shown. The window has a close button, also when it is the fixed panel next to the selected person.
 
 Buttons:
 
@@ -472,7 +473,7 @@ Title "Personas seguidas ({n} de 20)". One row per followed person: stress color
 
 Title: `{shaft type name} · {bottom label} a {top label}`, for example "Ascensor estándar · S2 a Piso 25". An asterisk is added at the end while there are unapplied changes.
 
-Three tabs: "Recorrido", "Cabinas", "Horarios". The footer has "Aplicar" (primary button) and "Descartar" (plain button) on the right, above a `border.control` line, with `space.3` padding; which act on the stops, car homes and schedule together (`configureShaft`). Both are disabled when there are no changes. Closing the window with unapplied changes discards them.
+Three tabs: "Recorrido", "Cabinas", "Horarios". The footer has "Aplicar" (primary button) and "Descartar" (plain button) on the right, above a `border.control` line, with `space.3` padding; which act on the stops, car homes and schedule together (`configureShaft`). Both are disabled when there are no changes. Closing the window with unapplied changes discards them. The footer also has "Deshabilitar ascensor" / "Habilitar ascensor" (`setShaftEnabled`, elevators 9.5), with a red note in the body while the elevator is off, and "Eliminar ascensor", which asks first and demolishes the shaft.
 
 Recorrido tab:
 

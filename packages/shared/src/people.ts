@@ -20,10 +20,47 @@ export const PERSON_KINDS = [
 ] as const;
 
 /**
+ * Why a person feels stress (stress-evaluation 2.8). `calm` is stress taken off by calm cells
+ * and cars, kept as a positive amount.
+ */
+export const STRESS_CAUSES = [
+  'wait',
+  'ride',
+  'stairs',
+  'queue',
+  'noRoute',
+  'walk',
+  'surroundings',
+  'calm',
+] as const;
+
+export type StressCause = (typeof STRESS_CAUSES)[number];
+
+/** The person pool array that keeps the running total of each cause. */
+export const STRESS_CAUSE_FIELDS = {
+  wait: 'causeWait',
+  ride: 'causeRide',
+  stairs: 'causeStairs',
+  queue: 'causeQueue',
+  noRoute: 'causeNoRoute',
+  walk: 'causeWalk',
+  surroundings: 'causeSurroundings',
+  calm: 'causeCalm',
+} as const satisfies Record<StressCause, string>;
+
+export type StressCauseField = (typeof STRESS_CAUSE_FIELDS)[StressCause];
+
+/**
+ * Stress steps felt for each cause, one array per cause. They fade by STRESS_CAUSE_DAILY_KEEP
+ * every day, so they tell what weighs on the person lately, not the stress itself.
+ */
+export type StressCauseArrays = { [Field in StressCauseField]: number[] };
+
+/**
  * Every person in the tower, one slot per person across parallel arrays of the same length.
  * Slots are sorted by increasing person id with no gaps.
  */
-export interface PersonPool {
+export interface PersonPool extends StressCauseArrays {
   /** The id the next person gets; ids are never reused. */
   nextId: number;
   /** Person number: person `p12` has id 12. */
