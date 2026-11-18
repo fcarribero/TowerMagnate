@@ -438,7 +438,7 @@ Evaluation is shown as a 6 x 6 color square with `border.control` plus the word 
 
 The unit window does not show the occupants' stress score as a number; it counts in the grade and the fair price. "Precio justo" is the fair price (economy 3.1) as money. On the price control it is a marker on the price bar with the tooltip "Precio justo {price}"; the condo has the plain row because its price control is locked once sold.
 
-The office window shows the reasons for its grade as a tooltip on the Evaluación tile, when the pointer rests on it or the tile gets keyboard focus (stress-evaluation 5.6). The tooltip has no headings: each reason in favor is a line starting with "+" in `obra.green`, then each reason against is a line starting with "-" in `obra.red`. The reasons are:
+The window of every evaluated unit (office, shop, condo and hotel room) shows the reasons for its grade as a tooltip on the Evaluación tile, when the pointer rests on it or the tile gets keyboard focus (stress-evaluation 5.6). The tooltip has no headings: each reason in favor is a line starting with "+" in `obra.green`, then each reason against is a line starting with "-" in `obra.red`. The reasons below are worded for an office. The words follow the unit: the price is "Alquiler" for an office or shop, "Precio" for a condo and "Tarifa" for a hotel room, and the occupants are "Trabajadores", "Clientes", "Residentes" or "Huéspedes". A shop names no cause, because the people who belong to it are its staff and its grade comes from its customers. The reasons are:
 
 | Reason | Side |
 |---|---|

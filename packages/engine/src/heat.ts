@@ -187,9 +187,10 @@ function sitesBeingBuilt(state: TowerState): Map<number, number> {
 /** What the units in use and the bags put into the maps in one game minute. */
 function emitMinute(state: TowerState, built: Built): void {
   const heat = heatOf(state);
+  const homes = homesInUse(state);
   for (const unit of Object.values(state.units)) {
     const noise = UNIT_NOISE[unit.type];
-    if (noise !== undefined && isUnitInUse(state, unit)) {
+    if (noise !== undefined && isUnitInUse(state, unit, homes)) {
       const last = unit.x + UNIT_CATALOG[unit.type].width - 1;
       for (let level = unit.level; level < unit.level + floorsOf(unit); level++) {
         addWithFade(heat.noise, level, unit.x, last, noise, NOISE_CELLS, built);

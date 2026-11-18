@@ -31,6 +31,8 @@ export interface EvaluationParts {
 
 /** The cause with the largest running total among the people who belong to the unit. */
 function mainCauseOf(state: TowerState, unit: Unit): EvaluationParts['mainCause'] {
+  // A shop is graded by its customers' trips; the people who belong to it are its staff.
+  if (unit.type === 'retail-shop') return null;
   const pool = state.people;
   const number = unitNumber(unit.id);
   const totals: Partial<Record<StressCause, number>> = {};

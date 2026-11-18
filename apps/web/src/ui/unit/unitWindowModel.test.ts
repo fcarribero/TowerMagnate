@@ -484,13 +484,14 @@ describe('evaluation reasons of an office', () => {
   } as const;
   const officeWith = (patch: Partial<NonNullable<Lease['evaluationParts']>> | null) =>
     ({
+      type: 'office',
       details:
         patch === null
           ? { ...lease, evaluationParts: undefined }
           : { ...lease, evaluationParts: { ...parts, ...patch } },
-    }) as Pick<UnitInspect, 'details'>;
+    }) as Pick<UnitInspect, 'type' | 'details'>;
 
-  it('has no reasons for a unit without parts, such as a shop', () => {
+  it('has no reasons for a unit without parts', () => {
     expect(evaluationReasons(officeWith(null))).toBeNull();
   });
 
@@ -543,5 +544,57 @@ describe('occupant stress', () => {
     for (const details of [lease, condoDetails, hotelDetails] as Details[]) {
       expect(unitRows({ ...office, details }).map((row) => row.id)).not.toContain('occupantStress');
     }
+  });
+});
+
+describe('evaluation reasons of other units', () => {
+  const parts = {
+    occupantScore: 4,
+    fairPrice: 10_000,
+    noisy: false,
+    mainCause: 'stairs',
+    neighborPull: false,
+    parking: 'missing',
+  } as const;
+
+  it('names the residents and the price of a condo', () => {
+    const condo = {
+      type: 'condo',
+      details: { ...condoDetails, price: 9_000, evaluationParts: parts },
+    };
+    expect(evaluationReasons(condo as Pick<UnitInspect, 'type' | 'details'>)).toEqual({
+      good: ['Precio dentro del precio justo'],
+      bad: ['Residentes estresados por las escaleras', 'Sin cochera'],
+    });
+  });
+
+  it('names the guests and the rate of a hotel room', () => {
+    const room = {
+      type: 'suite',
+      details: {
+        ...hotelDetails,
+        price: 12_000,
+        evaluationParts: { ...parts, occupantScore: 1, parking: 'has' },
+      },
+    };
+    expect(evaluationReasons(room as Pick<UnitInspect, 'type' | 'details'>)).toEqual({
+      good: ['Huéspedes tranquilos', 'Con cochera'],
+      bad: ['Tarifa por encima del precio justo'],
+    });
+  });
+
+  it('names the customers of a shop', () => {
+    const shop = {
+      type: 'retail-shop',
+      details: {
+        ...lease,
+        price: 10_000,
+        evaluationParts: { ...parts, mainCause: null, parking: null },
+      },
+    };
+    expect(evaluationReasons(shop as Pick<UnitInspect, 'type' | 'details'>)).toEqual({
+      good: ['Alquiler dentro del precio justo'],
+      bad: ['Clientes estresados'],
+    });
   });
 });

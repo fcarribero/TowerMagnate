@@ -272,9 +272,9 @@ Example: unit A has `v = 1.0`. Neighbor B is poor with `v = 0.6`. A becomes `1.0
 
 Design call: a calm, well-served office can ask for a higher rent, and fixing the elevators of one office raises the rent that office accepts. A unit only accepts what its own occupants think it is worth.
 
-### 5.6 Reasons in the office window
+### 5.6 Reasons in the unit window
 
-The office window lists what counts for its grade in a tooltip on its evaluation tile, from the parts the grade would use now. Each reason in favor is a green line starting with "+", each reason against a red line starting with "-", with no headings:
+The window of every evaluated unit (office, shop, condo and hotel room) lists what counts for its grade in a tooltip on its evaluation tile, from the parts the grade would use now. Each reason in favor is a green line starting with "+", each reason against a red line starting with "-", with no headings. The reasons below are worded for an office. The words follow the unit: the price is "Alquiler" for an office or shop, "Precio" for a condo and "Tarifa" for a hotel room, and the occupants are "Trabajadores", "Clientes", "Residentes" or "Huéspedes". A shop names no cause, because the people who belong to it are its staff and its grade comes from its customers.
 
 - Rent: a price at or under the fair price is "Alquiler dentro del precio justo" in favor. A price over it is "Alquiler por encima del precio justo" against.
 - Workers: an occupant score `U` under 3 is "Trabajadores tranquilos" in favor, because they raise the fair price. From 3, "Trabajadores estresados por {cause}" is against, where the cause is the one with the largest total (3.3) among the office's workers, calm left out. With no cause to name it reads "Trabajadores estresados".

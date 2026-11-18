@@ -354,6 +354,21 @@ const InspectedCarSchema = z.object({
 const PersonIdsSchema = z.array(PersonEntityIdSchema);
 
 /** What a priced unit's window shows about its price: the number, its appraisal and the limits. */
+/** What a unit's grade is made of now, for the reasons in its window (stress-evaluation 5.6). */
+const EvaluationPartsSchema = z.object({
+  /** Stress score of the unit's occupants, 0 to 10, noise included. */
+  occupantScore: z.number().min(0).max(10),
+  /** The fair price the score sets now. */
+  fairPrice: z.int().nonnegative(),
+  noisy: z.boolean(),
+  /** The cause of stress that weighs most on the unit's own people lately; null for a shop. */
+  mainCause: z.enum(STRESS_CAUSES).nullable(),
+  /** A worse neighbor pulls the grade down. */
+  neighborPull: z.boolean(),
+  /** Whether the people who ask for parking have it; null when none asks. */
+  parking: z.enum(['has', 'missing']).nullable(),
+});
+
 const pricingFields = {
   price: z.int().nonnegative(),
   appraisal: z.int().nonnegative(),
@@ -383,22 +398,7 @@ const InspectedUnitDetailsSchema = z.discriminatedUnion('group', [
     workers: PersonIdsSchema,
     /** People inside a shop as customers right now; empty for offices. */
     customers: PersonIdsSchema,
-    /** What an office's grade is made of now, for the reasons in its window; absent for shops. */
-    evaluationParts: z
-      .object({
-        /** Stress score of the office's workers, 0 to 10, noise included. */
-        occupantScore: z.number().min(0).max(10),
-        /** The fair price the score sets now. */
-        fairPrice: z.int().nonnegative(),
-        noisy: z.boolean(),
-        /** The cause of stress that weighs most on the office's workers lately. */
-        mainCause: z.enum(STRESS_CAUSES).nullable(),
-        /** A worse neighbor pulls the grade down. */
-        neighborPull: z.boolean(),
-        /** Whether the workers who ask for parking have it; null when none asks. */
-        parking: z.enum(['has', 'missing']).nullable(),
-      })
-      .optional(),
+    evaluationParts: EvaluationPartsSchema.optional(),
   }),
   z.object({
     group: z.literal('condo'),
@@ -412,6 +412,7 @@ const InspectedUnitDetailsSchema = z.discriminatedUnion('group', [
     /** On the market ("en venta"); a new condo is not. */
     listed: z.boolean(),
     nextEvaluationStep: StepSchema.nullable(),
+    evaluationParts: EvaluationPartsSchema.optional(),
   }),
   z.object({
     group: z.literal('hotel'),
@@ -423,6 +424,7 @@ const InspectedUnitDetailsSchema = z.discriminatedUnion('group', [
     evaluation: EvaluationSchema.nullable(),
     ...pricingFields,
     checkoutStep: StepSchema.nullable(),
+    evaluationParts: EvaluationPartsSchema.optional(),
   }),
   z.object({
     group: z.literal('cinema'),

@@ -699,26 +699,52 @@ export function reasonLines(reasons: EvaluationReasons): TooltipLine[] {
   ];
 }
 
+/** Who the occupants of each evaluated unit are, and what their price is called. */
+const OCCUPANT_WORDS: Readonly<
+  Partial<Record<UnitInspect['type'], { who: StringKey; price: StringKey }>>
+> = {
+  office: { who: 'window.unit.reason.who.workers', price: 'window.unit.reason.price.rent' },
+  'retail-shop': {
+    who: 'window.unit.reason.who.customers',
+    price: 'window.unit.reason.price.rent',
+  },
+  condo: { who: 'window.unit.reason.who.residents', price: 'window.unit.reason.price.sale' },
+  'single-room': { who: 'window.unit.reason.who.guests', price: 'window.unit.reason.price.rate' },
+  'double-room': { who: 'window.unit.reason.who.guests', price: 'window.unit.reason.price.rate' },
+  suite: { who: 'window.unit.reason.who.guests', price: 'window.unit.reason.price.rate' },
+};
+
 /**
- * Why an office has its grade: the rent against the fair price, the stress score of its workers
- * and its main cause, a worse neighbor and the parking its workers ask for (stress-evaluation 5.6).
- * Noise is not listed: the workers feel it, and it shows in their main cause. Null when the
+ * Why a unit has its grade: its price against the fair price, the stress score of its occupants
+ * and their main cause, a worse neighbor and the parking its people ask for (stress-evaluation
+ * 5.6). Noise is not listed: the occupants feel it, and it shows in their main cause. Null when the
  * inspect has no parts.
  */
-export function evaluationReasons(unit: Pick<UnitInspect, 'details'>): EvaluationReasons | null {
+export function evaluationReasons(
+  unit: Pick<UnitInspect, 'type' | 'details'>,
+): EvaluationReasons | null {
   const details = unit.details;
-  if (details?.group !== 'lease' || details.evaluationParts === undefined) return null;
+  const words = OCCUPANT_WORDS[unit.type];
+  if (
+    words === undefined ||
+    (details?.group !== 'lease' && details?.group !== 'condo' && details?.group !== 'hotel') ||
+    details.evaluationParts === undefined
+  ) {
+    return null;
+  }
   const parts = details.evaluationParts;
+  const what = t(words.price);
+  const who = t(words.who);
   const good: string[] = [];
   const bad: string[] = [];
-  if (details.price <= parts.fairPrice) good.push(t('window.unit.reason.fairRent'));
-  else bad.push(t('window.unit.reason.highRent'));
+  if (details.price <= parts.fairPrice) good.push(t('window.unit.reason.fairPrice', { what }));
+  else bad.push(t('window.unit.reason.highPrice', { what }));
   if (parts.occupantScore < CALM_WORKERS_SCORE) {
-    good.push(t('window.unit.reason.calmWorkers'));
+    good.push(t('window.unit.reason.calm', { who }));
   } else if (parts.mainCause === null || parts.mainCause === 'calm') {
-    bad.push(t('window.unit.reason.stressedWorkers'));
+    bad.push(t('window.unit.reason.stressed', { who }));
   } else {
-    bad.push(t('window.unit.reason.stressedWorkersBy', { cause: t(CAUSE_KEYS[parts.mainCause]) }));
+    bad.push(t('window.unit.reason.stressedBy', { who, cause: t(CAUSE_KEYS[parts.mainCause]) }));
   }
   if (parts.neighborPull) bad.push(t('window.unit.reason.badNeighbor'));
   if (parts.parking === 'has') good.push(t('window.unit.reason.parking'));

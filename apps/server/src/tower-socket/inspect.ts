@@ -338,11 +338,12 @@ function leaseDetails(state: TowerState, unit: Unit): UnitDetails {
     nextPaymentStep: lease?.nextDueStep ?? null,
     workers: peopleOfUnit(state, unit).workers,
     customers: unit.type === 'retail-shop' ? venuePeople(state, unit).customers : [],
-    ...(unit.type === 'office' ? { evaluationParts: officeEvaluationParts(state, unit) } : {}),
+    evaluationParts: unitEvaluationParts(state, unit),
   };
 }
 
-function officeEvaluationParts(state: TowerState, unit: Unit) {
+/** What the unit's grade is made of now, for the reasons in its window. */
+function unitEvaluationParts(state: TowerState, unit: Unit) {
   const parts = evaluationParts(state, unit);
   return {
     occupantScore: parts.occupantScore,
@@ -365,6 +366,7 @@ function condoDetails(state: TowerState, unit: Unit): UnitDetails {
     ...pricing(state, unit),
     listed: unit.listed,
     nextEvaluationStep: unit.sale?.nextEvaluationStep ?? null,
+    evaluationParts: unitEvaluationParts(state, unit),
   };
 }
 
@@ -380,6 +382,7 @@ function hotelDetails(state: TowerState, unit: Unit): UnitDetails {
     evaluation: unit.evaluation,
     ...pricing(state, unit),
     checkoutStep: occupied ? (room?.stayEndStep ?? null) : null,
+    evaluationParts: unitEvaluationParts(state, unit),
   };
 }
 
