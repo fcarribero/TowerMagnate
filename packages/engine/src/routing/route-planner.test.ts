@@ -1,5 +1,6 @@
 import {
   ELEVATOR_QUEUE_CAPACITY,
+  ROUTE_STOP_PASSED_COST,
   type Level,
   type Shaft,
   type TowerState,
@@ -77,6 +78,31 @@ function third(ids: string[]): string {
   return ids[2] as string;
 }
 
+describe('stops on the way', () => {
+  it('prefers an elevator with fewer stops before the destination over a nearer one', () => {
+    const built = setup({
+      plan: tower(10, 100, 179, [
+        { type: 'standard', x: 110, bottom: 1, top: 10 },
+        { type: 'standard', x: 150, bottom: 1, top: 10 },
+      ]),
+      stops: (ids) => new Map([[ids[1] as string, [1, 10] as Level[]]]),
+    });
+    const route = plan(built, [1, 100], [10, 100]);
+    expect(route?.firstLeg?.steps[0]?.via).toBe(built.shaftIds[1]);
+  });
+
+  it('takes the nearer elevator when both stop the same number of times', () => {
+    const built = setup({
+      plan: tower(10, 100, 179, [
+        { type: 'standard', x: 110, bottom: 1, top: 10 },
+        { type: 'standard', x: 150, bottom: 1, top: 10 },
+      ]),
+    });
+    const route = plan(built, [1, 100], [10, 100]);
+    expect(route?.firstLeg?.steps[0]?.via).toBe(built.shaftIds[0]);
+  });
+});
+
 describe('tower A: stairs and one elevator (routing 12.1)', () => {
   const flights: Flight[] = [
     { type: 'escalator', x: 160, level: 1 },
@@ -130,18 +156,18 @@ describe('tower B: sky lobby and one transfer (routing 12.2)', () => {
     });
   }
 
-  it('B1: rides the nearest elevator to the sky lobby and transfers', () => {
+  it('B1: rides the express to the sky lobby, which passes no stops, and transfers', () => {
     const route = plan(towerB(), [1, 249], [22, 214]);
-    expect(route).toMatchObject({ cost: 3938, transportLegs: 2 });
-    expect(route?.firstLeg).toMatchObject({ kind: 'ride', walkColumns: 127 });
-    expect(route?.firstLeg?.steps[0]?.kind).toBe('standard');
+    expect(route).toMatchObject({ cost: 4354, transportLegs: 2 });
+    expect(route?.firstLeg).toMatchObject({ kind: 'ride', walkColumns: 186 });
+    expect(route?.firstLeg?.steps[0]?.kind).toBe('express');
   });
 
   it('B2: takes the local elevator when the express queue is full', () => {
     const built = towerB();
     fillQueue(built.state, first(built.shaftIds), 1, 'up');
     const route = plan(built, [1, 249], [22, 214]);
-    expect(route).toMatchObject({ cost: 3938 });
+    expect(route).toMatchObject({ cost: 4508 });
     expect(route?.firstLeg).toMatchObject({ kind: 'ride', walkColumns: 127 });
     expect(route?.firstLeg?.steps[0]?.kind).toBe('standard');
   });
@@ -154,7 +180,7 @@ describe('tower B: sky lobby and one transfer (routing 12.2)', () => {
       escalatorFloors: 0,
       rides: 1,
     });
-    expect(route).toMatchObject({ cost: 3490, transportLegs: 2, columnsWalked: 195 });
+    expect(route).toMatchObject({ cost: 3640, transportLegs: 2, columnsWalked: 195 });
     expect(route?.firstLeg).toMatchObject({ kind: 'stairs', walkColumns: 161 });
     expect(route?.firstLeg?.steps).toHaveLength(1);
     expect(built.graph.node(route?.firstLeg?.steps[0]?.to ?? -1).level).toBe(16);
@@ -190,13 +216,13 @@ describe('tower C: stairs before a transfer, cathedral and a maid (routing 12.3)
 
   it('C1: prefers two flights of stairs to a transfer', () => {
     const route = plan(towerC(), [-7, 110], [47, 184]);
-    expect(route).toMatchObject({ cost: 1036, transportLegs: 2, columnsWalked: 168 });
+    expect(route).toMatchObject({ cost: 1126, transportLegs: 2, columnsWalked: 168 });
     expect(route?.firstLeg).toMatchObject({ kind: 'ride', walkColumns: 47 });
   });
 
   it('C2: reaches the cathedral only while the level 101 stop is enabled', () => {
     const built = towerC();
-    expect(plan(built, [1, 40], [101, 174])).toMatchObject({ cost: 3768 });
+    expect(plan(built, [1, 40], [101, 174])).toMatchObject({ cost: 4218 });
     built.graph.rebuild(
       built.state,
       new Map([
@@ -209,10 +235,10 @@ describe('tower C: stairs before a transfer, cathedral and a maid (routing 12.3)
 
   it('C3: keeps maids on the service elevator, which costs them a quarter of a ride', () => {
     const built = towerC();
-    expect(plan(built, [50, 207], [58, 230], 'maid')).toMatchObject({ cost: 299 });
+    expect(plan(built, [50, 207], [58, 230], 'maid')).toMatchObject({ cost: 509 });
     // Down to 45 the standard car beats the service car and five stair floors.
     expect(plan(built, [50, 207], [45, 200], 'maid')?.firstLeg?.kind).toBe('ride');
-    expect(plan(built, [50, 207], [45, 200], 'maid')).toMatchObject({ cost: 706 });
+    expect(plan(built, [50, 207], [45, 200], 'maid')).toMatchObject({ cost: 826 });
     expect(plan(built, [50, 207], [40, 200], 'maid')).toBeNull();
   });
 
@@ -430,6 +456,8 @@ describe('energy and waiting people change the weights', () => {
 
   it('sends a tired person to the elevator and an energetic one up the stairs', () => {
     const built = towerE();
+    // The car goes straight from 1 to 4, so stops on the way do not weigh in.
+    built.graph.rebuild(built.state, new Map([[first(built.shaftIds), [1, 4] as Level[]]]));
     const tired = built.planner.plan(built.state, {
       from: { level: 1, x: 140 },
       to: { level: 4, x: 140 },
@@ -446,13 +474,17 @@ describe('energy and waiting people change the weights', () => {
     expect(fresh?.firstLeg?.kind).toBe('stairs');
   });
 
-  it('costs the same ride for one floor or many', () => {
+  it('costs the same ride for one floor or many, plus each enabled stop passed', () => {
     const built = setup({
       plan: tower(30, 100, 179, [{ type: 'standard', x: 110, bottom: 1, top: 30 }]),
     });
     const short = plan(built, [1, 110], [2, 110]);
     const long = plan(built, [1, 110], [29, 110]);
-    expect(short?.cost).toBe(long?.cost);
+    expect((long?.cost ?? 0) - (short?.cost ?? 0)).toBe(27 * ROUTE_STOP_PASSED_COST);
+    built.graph.rebuild(built.state, new Map([[first(built.shaftIds), [1, 2, 29] as Level[]]]));
+    expect(plan(built, [1, 110], [29, 110])?.cost).toBe(
+      (short?.cost ?? 0) + ROUTE_STOP_PASSED_COST,
+    );
   });
 
   it('adds the people waiting to the cost of a ride', () => {

@@ -10,6 +10,7 @@ import {
   ROUTE_RETRY_STEPS,
   ROUTE_MAID_STAIR_FACTOR,
   ROUTE_RIDE_COST,
+  ROUTE_STOP_PASSED_COST,
   ROUTE_WORKER_SERVICE_RIDE_FACTOR,
   ROUTE_STAIR_ENERGY_STEP,
   ROUTE_STAIR_FLOOR_COST,
@@ -304,7 +305,8 @@ function legCost(link: Link, rides: number, merges: boolean, who: Who): number {
     return who.stairCost * link.floors + (merges ? 0 : ROUTE_STAIR_LEG_COST);
   }
   const ride = link.kind === 'service' ? who.serviceRideCost : ROUTE_RIDE_COST;
-  return ride + (rides >= 1 ? ROUTE_TRANSFER_COST : 0);
+  const stops = ROUTE_STOP_PASSED_COST * link.stopsPassed;
+  return ride + stops + (rides >= 1 ? ROUTE_TRANSFER_COST : 0);
 }
 
 function withinBudget(link: Link, counters: Counters): boolean {

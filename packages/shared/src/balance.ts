@@ -880,6 +880,11 @@ export const ROUTE_FLOOR_COST = 8;
 export const ROUTE_ESCALATOR_LEG_COST = 0;
 /** One ride costs this much for any number of floors; waiting people add to it (ROUTE_QUEUE_PERSON_COST). */
 export const ROUTE_RIDE_COST = 500;
+/**
+ * Each enabled stop a ride passes before the person's stop adds this, so people take the
+ * elevator with fewer stops on the way. About 17 stops cost as much as a ride.
+ */
+export const ROUTE_STOP_PASSED_COST = 30;
 export const ROUTE_STAIR_LEG_COST = 0;
 export const ROUTE_TRANSFER_COST = 2_500;
 /** Every column walked on a level adds this to the cost of a route. */

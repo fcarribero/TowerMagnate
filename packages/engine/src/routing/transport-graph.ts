@@ -42,6 +42,8 @@ export interface Link {
   /** The transport or shaft that provides the link. */
   via: EntityId;
   floors: number;
+  /** Enabled stops of the shaft strictly between the two ends; 0 for stairs and escalators. */
+  stopsPassed: number;
   /** Service shaft links: only workers, maids included, may take them. */
   workersOnly: boolean;
 }
@@ -179,6 +181,7 @@ export class TransportGraph {
         kind: transport.type,
         via: transport.id,
         floors: 1,
+        stopsPassed: 0,
         workersOnly: false,
       });
     }
@@ -187,10 +190,10 @@ export class TransportGraph {
   private addShafts(state: TowerState, stops: ShaftStops): void {
     for (const shaft of Object.values(state.shafts)) {
       const column = shaftColumn(shaft);
-      const reached: { level: Level; node: NodeId }[] = [];
-      for (const level of enabledStops(shaft, stops.get(shaft.id))) {
+      const reached: { level: Level; node: NodeId; stop: number }[] = [];
+      for (const [stop, level] of enabledStops(shaft, stops.get(shaft.id)).entries()) {
         const node = this.point(level, column, 'shaft-stop');
-        if (node !== null) reached.push({ level, node });
+        if (node !== null) reached.push({ level, node, stop });
       }
       for (const [index, from] of reached.entries()) {
         for (const to of reached.slice(index + 1)) {
@@ -198,6 +201,7 @@ export class TransportGraph {
             kind: shaft.type,
             via: shaft.id,
             floors: Math.abs(floorIndex(from.level) - floorIndex(to.level)),
+            stopsPassed: to.stop - from.stop - 1,
             workersOnly: shaft.type === 'service',
           });
         }

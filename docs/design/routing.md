@@ -115,6 +115,7 @@ Two surcharges are added to a ride:
 |---|---|---|
 | Transfer | +2,500 | the ride is the 2nd or 3rd ride of the trip, counting rides already taken |
 | Full queue | +1,000 | the ride boards on the person's current run, and that shaft's queue at this level in the ride's direction holds 40 people at the planning step |
+| Stops on the way | +30 per stop (`ROUTE_STOP_PASSED_COST`) | every enabled stop of the shaft strictly between the boarding and the leaving level. People take the elevator with fewer stops before their own, such as an express or a car with only a few stops enabled |
 
 The full-queue surcharge applies only to the first leg of the route, because that is the only queue the person can see. Queues on later levels are not looked at.
 
@@ -409,6 +410,7 @@ C3. A maid leaves u70 (level 50, column 207).
 | `ROUTE_EXPRESS_FLOOR_COST` | 3 |
 | `ROUTE_ESCALATOR_LEG_COST` | 0 |
 | `ROUTE_RIDE_COST` | 500 |
+| `ROUTE_STOP_PASSED_COST` | 30 |
 | `ROUTE_STAIR_LEG_COST` | 600 |
 | `ROUTE_TRANSFER_COST` | 2,500 |
 | `ROUTE_QUEUE_FULL_COST` | 1,000 |
