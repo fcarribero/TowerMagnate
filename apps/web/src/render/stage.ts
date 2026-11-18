@@ -169,10 +169,11 @@ export async function mountStage(host: HTMLElement, options: StageOptions = {}):
   const elevators = new ElevatorLayer(sprites);
   world.addChild(units.view);
   world.addChild(elevators.shaftView);
-  world.addChild(elevators.carView);
   world.addChild(units.frontView);
+  // People outside the cars stand behind them; only the riders, drawn with their car, are in front.
   const people = new PeopleLayer(sprites);
   world.addChild(people.view);
+  world.addChild(elevators.carView);
   const heat = new HeatLayer();
   world.addChild(heat.view);
   const events = new EventLayer(sprites);
