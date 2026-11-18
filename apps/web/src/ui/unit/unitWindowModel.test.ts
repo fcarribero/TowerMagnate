@@ -207,7 +207,6 @@ describe('unit window model', () => {
     const rows = unitRows(office);
     expect(rows.map((row) => [row.label, row.value])).toEqual([
       ['Estado', 'Ocupada'],
-      ['Personas', '4'],
       ['Evaluación', 'Regular'],
       ['Renta semanal', '$10.500'],
     ]);
@@ -217,7 +216,6 @@ describe('unit window model', () => {
     const rows = unitRows({ ...office, type: 'retail-shop' });
     expect(rows.map((row) => row.label)).toEqual([
       'Estado',
-      'Personas',
       'Evaluación',
       'Próximo pago',
       'Renta semanal',
@@ -273,7 +271,6 @@ describe('unit window model', () => {
     };
     expect(unitRows({ ...office, details: forRent }).map((row) => row.value)).toEqual([
       'En alquiler',
-      '0',
       'Sin evaluar',
     ]);
   });
@@ -281,11 +278,11 @@ describe('unit window model', () => {
   it('shows no status tile, no next evaluation and the appraisal for a condo', () => {
     const condo: UnitInspect = { ...office, type: 'condo', details: condoDetails };
     expect(isSoldCondo(condo)).toBe(true);
-    expect(unitRows(condo).map((row) => row.id)).toEqual(['residents', 'evaluation', 'appraisal']);
-    expect(unitRows(condo)[0]?.value).toBe('2');
+    // People are listed in the row at the top, never counted in a tile.
+    expect(unitRows(condo).map((row) => row.id)).toEqual(['evaluation', 'appraisal']);
     const forSale: UnitInspect = { ...condo, details: { ...condoDetails, state: 'forSale' } };
     expect(isSoldCondo(forSale)).toBe(false);
-    expect(unitRows(forSale).map((row) => row.id)).toEqual(['residents', 'evaluation', 'appraisal']);
+    expect(unitRows(forSale).map((row) => row.id)).toEqual(['evaluation', 'appraisal']);
     expect(unitRows(forSale).map((row) => row.label)).not.toContain('Próxima evaluación');
   });
 
@@ -321,14 +318,13 @@ describe('unit window model', () => {
     ]);
   });
 
-  it('shows the working maids and the dirty rooms of a housekeeping unit', () => {
+  it('shows the dirty rooms of a housekeeping unit and no count of maids', () => {
     const housekeeping: UnitInspect = {
       ...office,
       type: 'housekeeping',
       details: { group: 'housekeeping', maidsWorking: 4, maids: 6, dirtyRooms: 11 },
     };
     expect(unitRows(housekeeping)).toEqual([
-      { id: 'maidsWorking', label: 'Mucamas trabajando', value: '4', tone: 'plain' },
       { id: 'dirtyRooms', label: 'Habitaciones sucias en la torre', value: '11', tone: 'plain' },
     ]);
     expect(priceControlOf(housekeeping)).toBeNull();
@@ -343,7 +339,7 @@ describe('unit window model', () => {
     expect(unitRows(cinema)).toEqual([]);
   });
 
-  it('shows served, inside, result and hours of a fast food, and charts both lines', () => {
+  it('shows served, result and hours of a fast food and no count of people inside, and charts both lines', () => {
     const venue = {
       group: 'venue',
       served: 30,
@@ -363,12 +359,11 @@ describe('unit window model', () => {
     const food: UnitInspect = { ...office, type: 'fast-food', details: venue };
     expect(unitRows(food)).toEqual([
       { id: 'served', label: 'Atendidos', value: '30', tone: 'plain' },
-      { id: 'inside', label: 'Adentro', value: '4', tone: 'plain' },
       { id: 'result', label: 'Resultado', value: '-$3.000', tone: 'bad' },
     ]);
     const shop: UnitInspect = { ...food, type: 'restaurant' };
     expect(unitRows(shop).at(-1)).toMatchObject({ id: 'hours', value: '08:00 a 20:00' });
-    expect(groupUnitRows(unitRows(food)).tiles).toHaveLength(3);
+    expect(groupUnitRows(unitRows(food)).tiles).toHaveLength(2);
 
     const chart = venueChart(venue);
     expect(chart.max).toBe(20);
@@ -404,9 +399,9 @@ describe('unit window model', () => {
     expect(unitSubtitle(office)).toBe('Oficina · Piso 12');
   });
 
-  it('groups state, occupancy and evaluation as tiles and the shop payment as a chip', () => {
+  it('groups state and evaluation as tiles and the shop payment as a chip', () => {
     const groups = groupUnitRows(unitRows({ ...office, type: 'retail-shop' }));
-    expect(groups.tiles.map((row) => row.id)).toEqual(['status', 'people', 'evaluation']);
+    expect(groups.tiles.map((row) => row.id)).toEqual(['status', 'evaluation']);
     expect(groups.chips.map((row) => row.id)).toEqual(['nextPayment']);
     expect(groups.rows.map((row) => row.id)).toEqual(['weeklyRent']);
     const cinema = groupUnitRows([{ id: 'film', label: 'Película', value: 'x', tone: 'plain' }]);
@@ -414,14 +409,14 @@ describe('unit window model', () => {
   });
 
   it('tones the state and evaluation tiles', () => {
-    const [status, , evaluation] = unitRows(office);
+    const [status, evaluation] = unitRows(office);
     expect(status?.tone).toBe('good');
     expect(evaluation?.tone).toBe('warn');
     const forRent: Lease = { ...lease, state: 'forRent', evaluation: 'good' };
-    const [vacant, , good] = unitRows({ ...office, details: forRent });
+    const [vacant, good] = unitRows({ ...office, details: forRent });
     expect([vacant?.tone, good?.tone]).toEqual(['plain', 'good']);
     const poor: Lease = { ...lease, evaluation: 'poor' };
-    expect(unitRows({ ...office, details: poor })[2]?.tone).toBe('bad');
+    expect(unitRows({ ...office, details: poor })[1]?.tone).toBe('bad');
   });
 
   it('disables the film change under $300.000, with a reason', () => {

@@ -408,7 +408,7 @@ describe('unit windows', () => {
     expect(screen.getByText('Personal')).toBeTruthy();
     const table = document.querySelector('.tm-unit__table') as HTMLElement;
     expect(within(table).getByText('Atendidos').closest('tr')?.textContent).toBe('Atendidos0');
-    expect(within(table).getByText('Adentro')).toBeTruthy();
+    expect(within(table).queryByText('Adentro')).toBeNull();
     expect(table.querySelector('tfoot')?.textContent).toContain('Resultado');
     expect(document.querySelector('.tm-unit__tile')).toBeNull();
     expect(screen.getByText('Clientes')).toBeTruthy();

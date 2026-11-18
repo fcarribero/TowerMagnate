@@ -334,12 +334,6 @@ function leaseRows(lease: Details<'lease'>, office: boolean): UnitRow[] {
       value: t(leased ? 'value.lease.occupied' : 'value.lease.forRent'),
       tone: leased ? 'good' : 'plain',
     },
-    {
-      id: 'people',
-      label: t('window.unit.people'),
-      value: String(lease.persons),
-      tone: 'plain',
-    },
     evaluationRow(lease.evaluation),
   ];
   if (!office && lease.nextPaymentStep !== null) {
@@ -361,14 +355,9 @@ function leaseRows(lease: Details<'lease'>, office: boolean): UnitRow[] {
   return rows;
 }
 
+/** People are never counted in a panel: the row of people at the top lists them. */
 function condoRows(condo: Details<'condo'>): UnitRow[] {
   return [
-    {
-      id: 'residents',
-      label: t('window.unit.residents'),
-      value: String(condo.residentCount),
-      tone: 'plain',
-    },
     evaluationRow(condo.evaluation),
     ...appraisalRow(condo.appraisal),
   ];
@@ -412,12 +401,6 @@ function cinemaRows(cinema: Details<'cinema'>): UnitRow[] {
 function housekeepingRows(housekeeping: Details<'housekeeping'>): UnitRow[] {
   return [
     {
-      id: 'maidsWorking',
-      label: t('window.unit.maidsWorking'),
-      value: String(housekeeping.maidsWorking),
-      tone: 'plain',
-    },
-    {
       id: 'dirtyRooms',
       label: t('window.unit.dirtyRooms'),
       value: String(housekeeping.dirtyRooms),
@@ -429,7 +412,6 @@ function housekeepingRows(housekeeping: Details<'housekeeping'>): UnitRow[] {
 function venueRows(venue: Details<'venue'>): UnitRow[] {
   return [
     { id: 'served', label: t('window.unit.served'), value: String(venue.served), tone: 'plain' },
-    { id: 'inside', label: t('window.unit.inside'), value: String(venue.inside), tone: 'plain' },
     {
       id: 'result',
       label: t('window.unit.resultToday'),
@@ -586,7 +568,7 @@ export interface UnitRowGroups {
   rows: UnitRow[];
 }
 
-const TILE_IDS: readonly string[] = ['status', 'people', 'residents','evaluation', 'served', 'inside', 'result'];
+const TILE_IDS: readonly string[] = ['status', 'evaluation', 'served', 'result'];
 const CHIP_IDS: readonly string[] = ['lease', 'nextPayment'];
 
 export function groupUnitRows(rows: readonly UnitRow[]): UnitRowGroups {
