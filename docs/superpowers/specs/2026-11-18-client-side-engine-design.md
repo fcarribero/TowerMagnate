@@ -118,7 +118,7 @@ Existing saves in `tower_snapshots` load as they are. The schema changes are the
 
 ### Versions
 
-A client built before a deploy may hold an older engine than the server. On load, if the saved state has a `schemaVersion` newer than the client's engine knows, the client does not start the Worker and asks the player to reload the page. Saves from an older client are accepted: the server only checks that the state parses and migrates, and the next load migrates it forward. An old client never runs a newer state, because of the check above.
+A client built before a deploy may hold an older engine than the server. On load the Worker starts and checks the saved state's `schemaVersion` before it migrates anything. If the version is newer than the Worker's engine knows, the Worker reports the state as outdated without running it, and the page shows the blocker that asks the player to reload. Saves from an older client are accepted: the server only checks that the state parses and migrates, and the next load migrates it forward. An old client never runs a newer state, because of the check above.
 
 ### Docs
 
