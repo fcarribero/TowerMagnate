@@ -161,6 +161,10 @@ body,
   right: var(--chrome-gap);
 }
 
+.level-ruler-mark.is-lobby {
+  color: var(--obra-yellow);
+}
+
 .level-ruler.is-right .level-ruler-mark {
   justify-content: flex-end;
 }

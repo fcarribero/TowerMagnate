@@ -1,6 +1,12 @@
+import { TOWER_LAYOUT, type Level } from '@tower-magnate/shared';
 import { useEffect, useState } from 'preact/hooks';
 import { rulerMarks, type RulerMark } from '../render/levelRuler';
 import type { Stage } from '../render/stage';
+
+const LOBBY_FLOORS: ReadonlySet<Level> = new Set<Level>([
+  TOWER_LAYOUT.mainLobbyFloor,
+  ...TOWER_LAYOUT.skyLobbyFloors,
+]);
 
 interface LevelRulerProps {
   stage: Stage;
@@ -22,7 +28,7 @@ export function LevelRuler({ stage, side }: LevelRulerProps) {
       {marks.map((mark) => (
         <div
           key={mark.level}
-          class="level-ruler-mark"
+          class={LOBBY_FLOORS.has(mark.level) ? 'level-ruler-mark is-lobby' : 'level-ruler-mark'}
           style={{ top: `${mark.top * cssScale}px`, height: `${mark.height * cssScale}px` }}
         >
           {mark.label}
