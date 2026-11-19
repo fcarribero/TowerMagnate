@@ -3,8 +3,9 @@ import { describe, expect, it } from 'vitest';
 import { SPRITE_IDS } from './atlasManifest';
 import { FLOOR_HEIGHT, TILE_WIDTH } from './metrics';
 import { spriteVariantId } from './spriteRegistry';
-import { isPlacedUnit, planTransport, planUnit, spriteState } from './unitPlan';
+import { isPlacedUnit, planTransport, planUnit, spriteState, type UnitDrawing } from './unitPlan';
 import { stepAtHour } from './timeOfDay';
+import { interiorSpecOf } from './interior';
 import { ALL_VENUES_OPEN, openVenuesAt } from './venueHours';
 
 const base = {
@@ -15,6 +16,12 @@ const base = {
   variant: 'empty',
   price: 1,
 } as const;
+
+/** The state and time a drawing shows, from its seeded interior when it has one. */
+function shown(drawing: UnitDrawing | null): { state?: string; time?: string } | undefined {
+  if (drawing?.interior) return { state: drawing.interior.state, time: drawing.interior.time };
+  return drawing?.variant;
+}
 
 describe('planUnit', () => {
   it('draws 23 unit types', () => {
@@ -56,6 +63,14 @@ describe('planUnit', () => {
     expect(asleep?.interior).toEqual({ type: 'condo', seed: 9, state: 'sleeping', time: 'night' });
   });
 
+  it('draws every hotel room of a type from the fixed seed of the type', () => {
+    for (const type of ['single-room', 'double-room', 'suite'] as const) {
+      const room = planUnit({ ...base, type }, 'day');
+      expect(room?.variant).toEqual({ state: 'empty', time: 'day' });
+      expect(room?.interior?.seed).toBe(interiorSpecOf(type)?.fixedSeed);
+    }
+  });
+
   it('keeps the fixed sprites for an office with no look and for a site being built', () => {
     expect(planUnit({ ...base, type: 'office' }, 'day')?.interior).toBeUndefined();
     const site = planUnit({ ...base, type: 'office', look: 77, construction: 40 }, 'day');
@@ -66,8 +81,8 @@ describe('planUnit', () => {
   it('draws a condo or hotel room with someone asleep as sleeping, day or night', () => {
     for (const type of ['condo', 'single-room', 'double-room', 'suite'] as const) {
       const unit = { ...base, type, occupied: true, variant: 'sleeping' as const, inside: true };
-      expect(planUnit(unit, 'night')?.variant).toEqual({ state: 'sleeping', time: 'night' });
-      expect(planUnit(unit, 'day')?.variant).toEqual({ state: 'sleeping', time: 'day' });
+      expect(shown(planUnit(unit, 'night'))).toEqual({ state: 'sleeping', time: 'night' });
+      expect(shown(planUnit(unit, 'day'))).toEqual({ state: 'sleeping', time: 'day' });
     }
   });
 
@@ -89,8 +104,8 @@ describe('planUnit', () => {
     const dirty = planUnit({ ...base, type: 'single-room', variant: 'dirty' }, 'day');
     const infested = planUnit({ ...base, type: 'suite', variant: 'infested' }, 'night');
     const cut = planUnit({ ...base, type: 'parking-space', variant: 'disconnected' }, 'day');
-    expect(dirty?.variant).toEqual({ state: 'dirty', time: 'day' });
-    expect(infested?.variant).toEqual({ state: 'infested', time: 'night' });
+    expect(shown(dirty)).toEqual({ state: 'dirty', time: 'day' });
+    expect(shown(infested)).toEqual({ state: 'infested', time: 'night' });
     expect(cut?.variant).toEqual({ state: 'disconnected', time: 'day' });
   });
 
@@ -263,8 +278,8 @@ describe('availability tape', () => {
     for (const type of ['suite', 'single-room', 'double-room'] as const) {
       const free = planUnit({ ...base, type }, 'day');
       const taken = planUnit({ ...base, type, occupied: true, variant: 'occupied' }, 'day');
-      expect(free?.variant).toEqual({ state: 'vacant', time: 'day' });
-      expect(taken?.variant).toEqual({ state: 'closed', time: 'day' });
+      expect(shown(free)).toEqual({ state: 'vacant', time: 'day' });
+      expect(shown(taken)).toEqual({ state: 'closed', time: 'day' });
     }
   });
 

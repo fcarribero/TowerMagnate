@@ -11,6 +11,7 @@ const GROUP_NAMES = [
   'lobby',
   'office',
   'condo',
+  'hotel',
   'rooftop',
   'sky',
   'ui',

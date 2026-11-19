@@ -593,38 +593,43 @@ export function officeProps() {
 }
 
 // Curtains over an office window (14x8 glass), drawn by the client on top of the room.
-export function curtainsClosed() {
-  const canvas = blank(14, 8);
-  canvas.fillRect(0, 0, 14, 8, 'cloud');
-  for (let x = 2; x < 14; x += 3) canvas.vline(x, 1, 7, 'silver');
-  canvas.hline(0, 0, 14, 'gray');
-  canvas.hline(0, 7, 14, 'silver');
+// Closed curtains over window glass `width` by `height`: a rod, cloth in soft folds and a hem.
+export function curtainsClosed(width, height) {
+  const canvas = blank(width, height);
+  canvas.fillRect(0, 0, width, height, 'cloud');
+  for (let x = 2; x < width; x += 3) canvas.vline(x, 1, height - 1, 'silver');
+  canvas.hline(0, 0, width, 'gray');
+  canvas.hline(0, height - 1, width, 'silver');
   return canvas;
 }
 
-export function curtainsOpen() {
-  const canvas = blank(14, 8);
-  for (const x of [0, 11]) {
-    canvas.fillRect(x, 1, 3, 7, 'cloud');
-    canvas.vline(x + 1, 1, 7, 'silver');
-    canvas.hline(x, 7, 3, 'silver');
+// Open curtains: the same rod and cloth gathered at both sides, the glass left clear.
+export function curtainsOpen(width, height) {
+  const canvas = blank(width, height);
+  for (const x of [0, width - 3]) {
+    canvas.fillRect(x, 1, 3, height - 1, 'cloud');
+    canvas.vline(x + 1, 1, height - 1, 'silver');
+    canvas.hline(x, height - 1, 3, 'silver');
   }
-  canvas.hline(0, 0, 14, 'gray');
+  canvas.hline(0, 0, width, 'gray');
   return canvas;
 }
 
-// The sprites of a set of props: `<group>/<kind>/<look>` for every look a prop has (idle, plus
-// busy or sleep when it changes), and the window curtains, closed and open.
-export function propSprites(group, props) {
+// Curtains closed and open come for each window size, named
+// `<group>/curtains/<closed|open>_<width>x<height>`. Extra sprites (overlays) can be passed in.
+export function propSprites(group, props, windowSizes = [[14, 8]], extra = []) {
   const sprites = [];
   for (const [kind, looks] of Object.entries(props)) {
     for (const [look, canvas] of Object.entries(looks)) {
       sprites.push({ id: `${group}/${kind}/${look}`, canvas });
     }
   }
-  sprites.push({ id: `${group}/curtains/closed`, canvas: curtainsClosed() });
-  sprites.push({ id: `${group}/curtains/open`, canvas: curtainsOpen() });
-  return sprites;
+  for (const [width, height] of windowSizes) {
+    const size = `${width}x${height}`;
+    sprites.push({ id: `${group}/curtains/closed_${size}`, canvas: curtainsClosed(width, height) });
+    sprites.push({ id: `${group}/curtains/open_${size}`, canvas: curtainsOpen(width, height) });
+  }
+  return [...sprites, ...extra];
 }
 
 export const officeGroup = {

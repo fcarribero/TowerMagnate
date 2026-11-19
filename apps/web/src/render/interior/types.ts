@@ -10,8 +10,8 @@ export type InteriorLayer = 0 | 1;
 export type InteriorMount = 'floor' | 'wall';
 /** Functional props are what the people inside use; decor is there for looks. */
 export type InteriorRole = 'functional' | 'decor';
-/** idle is every prop's look; busy and sleep are extra looks some props have. */
-export type PropLook = 'idle' | 'busy' | 'sleep';
+/** idle is every prop's look; the others are extra looks some props have. */
+export type PropLook = 'idle' | 'busy' | 'sleep' | 'dirty';
 export type InteriorTime = 'day' | 'night';
 
 export interface InteriorKind {
@@ -32,6 +32,8 @@ export interface InteriorKind {
   flip?: boolean;
   /** Zones the prop may go in; every zone when left out. */
   zones?: readonly string[];
+  /** States the prop is not drawn in, such as luggage while no guest is staying. */
+  hiddenIn?: readonly string[];
 }
 
 export interface InteriorRect {
@@ -108,6 +110,13 @@ export interface InteriorSpec<State extends string = string> {
   curtains: Record<State, 'open' | 'closed' | null>;
   /** How dark the shade over the room is in each state and time, 0 (none) to 1 (black). */
   shade: Record<State, Record<InteriorTime, number>>;
+  /** Whole-room sprites drawn over the props in some states, such as grime in a dirty room. */
+  overlays?: Partial<Record<State, readonly string[]>>;
+  /**
+   * The seed every unit of this type uses, for types whose rooms all look alike; left out when
+   * each unit stores its own seed (`UnitView.look`).
+   */
+  fixedSeed?: number;
 }
 
 export interface InteriorProp {

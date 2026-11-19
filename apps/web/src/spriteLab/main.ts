@@ -20,7 +20,7 @@ import './spriteLab.css';
  * dev server. A unit type with a seeded interior (office, condo) shows the room a seed builds,
  * its neighbor seeds, the old fixed sprite and the prop catalog; any other type shows its fixed
  * sprites for every state and time.
- * Keys: R new seed, Left/Right previous/next seed, N day or night, 1-4 state, B layer boxes.
+ * Keys: R new seed, Left/Right previous/next seed, N day or night, 1-9 state, B layer boxes.
  * The URL keeps type, seed, template, state and time, so a view can be shared by link.
  */
 
@@ -129,18 +129,19 @@ function roomTile(
   layout: InteriorLayout,
   zoom: number,
   boxes: boolean,
+  state = lab.state,
 ): Container {
   const tile = new Container();
   tile.addChild(new Graphics().rect(0, 0, spec.room.width, spec.room.height).fill(SKY[lab.time]));
   tile.addChild(
     buildInteriorRoom(registry, spec, layout, {
-      state: lab.state,
+      state,
       time: lab.time,
       shade: lab.shade[spec.unitType],
       shadeColor: lab.shadeColor,
     }),
   );
-  if (boxes && spec.propLook[lab.state] !== null) {
+  if (boxes && spec.propLook[state] !== null) {
     const outline = new Graphics();
     for (const prop of layout.props) {
       const color =
@@ -203,12 +204,32 @@ function flow(
 function renderSeeded(spec: InteriorSpec): number {
   const template = interiorTemplate(spec, lab.template);
   const layout = generateInteriorLayout(spec, lab.seed, template);
-  const zoom = Math.max(2, Math.min(6, Math.floor((CANVAS_WIDTH - 2 * PAD) / spec.room.width)));
-  label(`seed ${lab.seed}`, PAD, PAD, true);
+  const zoom = Math.max(2, Math.min(8, Math.floor((CANVAS_WIDTH - 2 * PAD) / spec.room.width)));
+  const inGame =
+    spec.fixedSeed === undefined
+      ? 'each unit has its own seed'
+      : `every ${spec.unitType} in the game uses seed ${spec.fixedSeed}${spec.fixedSeed === lab.seed ? ' (this one)' : ''}`;
+  label(`seed ${lab.seed}  -  ${inGame}`, PAD, PAD, true);
   const main = roomTile(spec, layout, zoom, lab.boxes);
   main.position.set(PAD, PAD + LABEL);
   world.addChild(main);
   let top = PAD + LABEL + spec.room.height * zoom + PAD * 2;
+
+  label('this seed in every state', PAD, top, true);
+  top += LABEL + 4;
+  const stateZoom = spec.room.width > 100 ? 2 : 3;
+  top =
+    flow(
+      spec.states.map((state) => ({
+        tile: roomTile(spec, layout, stateZoom, false, state),
+        width: spec.room.width * stateZoom,
+        height: spec.room.height * stateZoom,
+        text: state,
+        onTap: () => setLab({ state }),
+      })),
+      top,
+    ) +
+    PAD * 2;
 
   const fixedId = `units/${spec.unitType}/${lab.state}_${lab.time}`;
   if (registry.has(fixedId)) {
@@ -230,7 +251,7 @@ function renderSeeded(spec: InteriorSpec): number {
   label('neighbor seeds (click to open)', PAD, top, true);
   top += LABEL + 4;
   const neighbors = Array.from(
-    { length: spec.room.width > 100 ? 8 : 12 },
+    { length: spec.room.width > 100 ? 8 : spec.room.width > 60 ? 12 : 30 },
     (_, i) => (lab.seed + i + 1) >>> 0,
   );
   top =
@@ -366,7 +387,7 @@ function buildControls(): void {
           `<option value="${t.id}" ${t.id === lab.template ? 'selected' : ''}>${t.name}</option>`,
       )
       .join('')}</select></label>
-    ${radios('state', states, lab.state, '(1-4)')}
+    ${radios('state', states, lab.state, `(1-${states.length})`)}
     ${radios('time', ['day', 'night'], lab.time, '(N)')}
     <label class="inline"><input id="boxes" type="checkbox" ${lab.boxes ? 'checked' : ''}/> Layer boxes (B)</label>
     <p class="legend"><i style="background:#e0875a"></i>L0 wall <i style="background:#3d6fb6"></i>L0 floor <i style="background:#d23c3c"></i>L1 middle</p>

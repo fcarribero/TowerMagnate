@@ -113,8 +113,10 @@ export function planUnit(
     openVenues,
     hour,
   );
-  // Unit types with an interior spec draw their furniture from `UnitView.look`.
-  const seeded = !building && unit.look !== undefined && interiorSpecOf(unit.type) !== undefined;
+  // Unit types with an interior spec draw their furniture from the unit's seed (`UnitView.look`)
+  // or, for types whose rooms all look alike, from the spec's fixed seed.
+  const seed = unit.look ?? interiorSpecOf(unit.type)?.fixedSeed;
+  const seeded = !building && seed !== undefined && interiorSpecOf(unit.type) !== undefined;
   const drawing = footprint(
     unit.id,
     `units/${SPRITE_SUBJECT[unit.type] ?? unit.type}`,
@@ -123,7 +125,7 @@ export function planUnit(
     overlay,
   );
   if (seeded) {
-    drawing.interior = { type: unit.type, seed: unit.look as number, state, time };
+    drawing.interior = { type: unit.type, seed: seed as number, state, time };
   }
   const open =
     !building && state === 'empty' && unit.listed !== false ? AVAILABILITY[unit.type] : undefined;

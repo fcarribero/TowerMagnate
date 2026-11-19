@@ -7,6 +7,7 @@ import {
   generateInteriorLayout,
   interiorKind,
   interiorTemplate,
+  curtainSpriteId,
   rectsAround,
   type InteriorProp,
   type InteriorSpec,
@@ -44,15 +45,15 @@ describe.each(Object.values(INTERIOR_SPECS))('$unitType interior', (spec: Interi
     }
   });
 
-  it('lists every drawn prop and has curtains', () => {
-    const drawn = new Set(
-      Object.keys(frames)
-        .filter((id) => !id.startsWith(`${spec.group}/curtains/`))
-        .map((id) => id.split('/')[1]),
-    );
-    expect([...drawn].sort()).toEqual(spec.catalog.map((entry) => entry.kind).sort());
-    expect(frames[`${spec.group}/curtains/open`]).toBeDefined();
-    expect(frames[`${spec.group}/curtains/closed`]).toBeDefined();
+  it('has curtains for every window and every overlay it draws', () => {
+    for (const window of spec.windows) {
+      for (const curtains of ['open', 'closed'] as const) {
+        expect(frames[curtainSpriteId(spec, curtains, window)]).toBeDefined();
+      }
+    }
+    for (const overlay of Object.values(spec.overlays ?? {}).flat()) {
+      expect(frames[overlay as string], overlay as string).toBeDefined();
+    }
   });
 
   it('gives the same layout for the same seed and different ones for different seeds', () => {
@@ -64,7 +65,8 @@ describe.each(Object.values(INTERIOR_SPECS))('$unitType interior', (spec: Interi
     const layouts = new Set(
       SEEDS.map((seed) => JSON.stringify(generateInteriorLayout(spec, seed).props)),
     );
-    expect(layouts.size).toBeGreaterThan(SEEDS.length * 0.9);
+    // A single hotel room has little floor, so far fewer layouts fit in it.
+    expect(layouts.size).toBeGreaterThan(SEEDS.length * (spec.room.width >= 64 ? 0.9 : 0.2));
   });
 
   it('keeps props inside their zones, apart within a layer and off the windows', () => {
@@ -78,7 +80,7 @@ describe.each(Object.values(INTERIOR_SPECS))('$unitType interior', (spec: Interi
           );
           expect(zone, `${seed} ${prop.kind} at ${prop.x}`).toBeDefined();
           if (entry.zones && zone) expect(entry.zones).toContain(zone.id);
-          expect(prop.y).toBeGreaterThanOrEqual(spec.room.wallTop);
+          expect(prop.y).toBeGreaterThanOrEqual(prop.mount === 'wall' ? spec.room.wallTop : 1);
           if (prop.layer === 0) {
             for (const glass of spec.windows) {
               const window = {
@@ -120,6 +122,25 @@ describe.each(Object.values(INTERIOR_SPECS))('$unitType interior', (spec: Interi
       expect(spec.propLook).toHaveProperty(state);
       expect(spec.curtains).toHaveProperty(state);
       expect(spec.shade[state]).toBeDefined();
+    }
+  });
+});
+
+describe('interior atlases', () => {
+  it('draws exactly the props the specs of each group list', () => {
+    const groups = new Map<string, Set<string>>();
+    for (const spec of Object.values(INTERIOR_SPECS)) {
+      const kinds = groups.get(spec.group) ?? new Set<string>();
+      spec.catalog.forEach((entry) => kinds.add(entry.kind));
+      groups.set(spec.group, kinds);
+    }
+    for (const [group, kinds] of groups) {
+      const drawn = new Set(
+        Object.keys(atlas(group).frames)
+          .map((id) => id.split('/')[1] as string)
+          .filter((kind) => kind !== 'curtains' && kind !== 'overlay'),
+      );
+      expect([...drawn].sort(), group).toEqual([...kinds].sort());
     }
   });
 });

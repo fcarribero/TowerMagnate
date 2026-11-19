@@ -193,7 +193,7 @@ function diningTable() {
   return { idle: draw(false), busy: draw(true) };
 }
 
-function floorLamp() {
+export function floorLamp() {
   const draw = (lit) => {
     const canvas = blank(5, 13);
     lampShade(canvas, 0, 0, lit);
@@ -204,7 +204,7 @@ function floorLamp() {
   return { idle: draw(false), busy: draw(true) };
 }
 
-function plantSmall() {
+export function plantSmall() {
   return idle(map(['.L.L.', 'LDLLD', '.LDL.', '..D..', '.oCo.', '.ooo.']));
 }
 
@@ -246,7 +246,7 @@ function nightstand() {
   return { idle: draw(false), busy: draw(true) };
 }
 
-function wardrobe() {
+export function wardrobe() {
   const canvas = blank(14, 21);
   canvas.fillRect(0, 0, 14, 21, 'wood');
   canvas.hline(0, 0, 14, 'wood-light');
@@ -260,7 +260,7 @@ function wardrobe() {
   return idle(canvas);
 }
 
-function dresser() {
+export function dresser() {
   return idle(
     map([
       '.bb.......L.L.',
@@ -277,7 +277,7 @@ function dresser() {
   );
 }
 
-function mirror() {
+export function mirror() {
   const canvas = blank(6, 10);
   canvas.strokeRect(0, 0, 6, 10, 'wood');
   canvas.fillRect(1, 1, 4, 8, 'sky-light');

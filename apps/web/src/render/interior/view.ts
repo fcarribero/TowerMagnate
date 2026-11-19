@@ -1,7 +1,14 @@
 import { Container, Graphics, Sprite } from 'pixi.js';
 import type { SpriteId } from '../atlasManifest';
 import type { SpriteRegistry } from '../spriteRegistry';
-import type { InteriorKind, InteriorLayout, InteriorSpec, InteriorTime, PropLook } from './types';
+import type {
+  InteriorKind,
+  InteriorLayout,
+  InteriorRect,
+  InteriorSpec,
+  InteriorTime,
+  PropLook,
+} from './types';
 import { interiorKind } from './layout';
 
 /** Night-deep from the palette, so the shade reads as a dark room rather than gray paint. */
@@ -56,6 +63,15 @@ export function propSpriteId(spec: InteriorSpec, entry: InteriorKind, look: Prop
   return `${spec.group}/${entry.kind}/${drawn}`;
 }
 
+/** Curtains come in the size of the window they hang over. */
+export function curtainSpriteId(
+  spec: InteriorSpec,
+  curtains: 'open' | 'closed',
+  window: InteriorRect,
+): string {
+  return `${spec.group}/curtains/${curtains}_${window.width}x${window.height}`;
+}
+
 const shadeAroundGlass = new WeakMap<InteriorSpec, Rect[]>();
 
 /** The shade of a room whose glass is open: everything but the window glass. */
@@ -91,7 +107,9 @@ export function buildInterior(
   const look = spec.propLook[state];
   if (look !== null && look !== undefined) {
     for (const prop of layout.props) {
-      const id = propSpriteId(spec, interiorKind(spec, prop.kind), look);
+      const entry = interiorKind(spec, prop.kind);
+      if (entry.hiddenIn?.includes(state) === true) continue;
+      const id = propSpriteId(spec, entry, look);
       const sprite = new Sprite(registry.texture(id as SpriteId));
       sprite.y = prop.y;
       if (prop.flip) {
@@ -103,11 +121,15 @@ export function buildInterior(
       room.addChild(sprite);
     }
   }
+  for (const overlay of spec.overlays?.[state] ?? []) {
+    room.addChild(new Sprite(registry.texture(overlay as SpriteId)));
+  }
   const curtains = spec.curtains[state];
   if (curtains !== null && curtains !== undefined) {
-    const texture = registry.texture(`${spec.group}/curtains/${curtains}` as SpriteId);
     for (const window of spec.windows) {
-      const sprite = new Sprite(texture);
+      const sprite = new Sprite(
+        registry.texture(curtainSpriteId(spec, curtains, window) as SpriteId),
+      );
       sprite.position.set(window.left, window.top);
       room.addChild(sprite);
     }
