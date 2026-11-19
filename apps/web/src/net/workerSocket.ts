@@ -16,6 +16,18 @@ export interface WorkerLike {
   postMessage(message: PageToWorker): void;
   terminate(): void;
   onmessage: ((event: MessageEvent<WorkerToPage>) => void) | null;
+  /** The script failed to load or an error escaped it. */
+  onerror: ((event: ErrorEvent) => void) | null;
+  onmessageerror: ((event: MessageEvent) => void) | null;
+}
+
+/** How long readState waits for the Worker before it gives up. */
+export const READ_STATE_TIMEOUT_MS = 10_000;
+
+interface StateWaiter {
+  resolve: (state: TowerState) => void;
+  reject: (error: Error) => void;
+  timer: ReturnType<typeof setTimeout>;
 }
 
 export interface PageVisibility {
@@ -66,7 +78,7 @@ export class WorkerSocket implements TowerLink {
   private worker: WorkerLike | null = null;
   private status: ConnectionStatus = 'closed';
   private visibility: PageVisibility | null = null;
-  private stateWaiters: ((state: TowerState) => void)[] = [];
+  private stateWaiters: StateWaiter[] = [];
 
   constructor(private readonly options: WorkerSocketOptions) {}
 
@@ -78,6 +90,8 @@ export class WorkerSocket implements TowerLink {
     if (this.worker !== null) return;
     const worker = (this.options.createWorker ?? createTowerWorker)();
     worker.onmessage = (event) => this.handle(event.data);
+    worker.onerror = (event) => this.fail(event.message || 'the worker script failed');
+    worker.onmessageerror = () => this.fail('a worker message could not be read');
     this.worker = worker;
     this.setStatus('connecting');
     const { play, debug } = this.options;
@@ -94,16 +108,8 @@ export class WorkerSocket implements TowerLink {
   }
 
   stop(): void {
-    const worker = this.worker;
-    this.worker = null;
-    if (worker !== null) {
-      worker.postMessage({ kind: 'stop' });
-      worker.onmessage = null;
-      worker.terminate();
-    }
-    this.visibility?.removeEventListener('visibilitychange', this.onVisibilityChange);
-    this.visibility = null;
-    this.stateWaiters = [];
+    this.post({ kind: 'stop' });
+    this.release();
     if (this.options.debug) {
       delete (globalThis as HookGlobal).__towerMagnate;
     }
@@ -122,12 +128,51 @@ export class WorkerSocket implements TowerLink {
     return this.sendText(JSON.stringify({ v: PROTOCOL_VERSION, t: `debug.${type}`, p: payload }));
   }
 
-  /** The state the Worker would save now. */
+  /** The state the Worker would save now. Rejects when there is no Worker or it does not answer in time. */
   readState(): Promise<TowerState> {
-    return new Promise((resolve) => {
-      this.stateWaiters.push(resolve);
+    return new Promise((resolve, reject) => {
+      if (this.worker === null) {
+        reject(new Error('The tower worker is not running'));
+        return;
+      }
+      const waiter: StateWaiter = {
+        resolve,
+        reject,
+        timer: setTimeout(() => {
+          this.stateWaiters = this.stateWaiters.filter((w) => w !== waiter);
+          reject(new Error('The tower worker did not answer readState'));
+        }, READ_STATE_TIMEOUT_MS),
+      };
+      this.stateWaiters.push(waiter);
       this.post({ kind: 'readState' });
     });
+  }
+
+  /** Drops the Worker at once, so nothing keeps running or saving behind a blocker. */
+  private release(): void {
+    const worker = this.worker;
+    this.worker = null;
+    if (worker !== null) {
+      worker.onmessage = null;
+      worker.onerror = null;
+      worker.onmessageerror = null;
+      worker.terminate();
+    }
+    this.visibility?.removeEventListener('visibilitychange', this.onVisibilityChange);
+    this.visibility = null;
+    const waiters = this.stateWaiters;
+    this.stateWaiters = [];
+    for (const waiter of waiters) {
+      clearTimeout(waiter.timer);
+      waiter.reject(new Error('The tower worker stopped'));
+    }
+  }
+
+  private fail(message: string): void {
+    console.error('The tower worker stopped:', message);
+    this.release();
+    this.setStatus('closed');
+    this.options.onFatal?.(message);
   }
 
   private readonly onVisibilityChange = (): void => {
@@ -163,23 +208,26 @@ export class WorkerSocket implements TowerLink {
         this.options.onSaveFailing?.(message.failing);
         return;
       case 'takenOver':
+        this.release();
         this.setStatus('closed');
         this.options.onTakenOver?.();
         return;
       case 'outdated':
+        this.release();
         this.setStatus('closed');
         this.options.onOutdated?.();
         return;
       case 'state': {
         const waiters = this.stateWaiters;
         this.stateWaiters = [];
-        for (const resolve of waiters) resolve(message.state);
+        for (const waiter of waiters) {
+          clearTimeout(waiter.timer);
+          waiter.resolve(message.state);
+        }
         return;
       }
       case 'fatal':
-        console.error('The tower worker stopped:', message.message);
-        this.setStatus('closed');
-        this.options.onFatal?.(message.message);
+        this.fail(message.message);
         return;
     }
   }

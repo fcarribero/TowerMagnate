@@ -15,6 +15,8 @@ class FakeWorker implements WorkerLike {
   posted: PageToWorker[] = [];
   terminated = false;
   onmessage: ((event: MessageEvent<WorkerToPage>) => void) | null = null;
+  onerror: ((event: ErrorEvent) => void) | null = null;
+  onmessageerror: ((event: MessageEvent) => void) | null = null;
 
   postMessage(message: PageToWorker): void {
     this.posted.push(message);
@@ -92,5 +94,13 @@ describe('App and the tower worker', () => {
     worker.emit({ kind: 'fatal', message: 'boom' });
     expect(screen.getByText('No se pudo seguir con la partida.')).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Recargar' })).toBeTruthy();
+  });
+
+  it('a worker load error shows the error blocker', () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    renderApp({});
+    act(() => worker.onerror?.({ message: 'chunk 404' } as ErrorEvent));
+    expect(screen.getByText('No se pudo seguir con la partida.')).toBeTruthy();
+    vi.restoreAllMocks();
   });
 });

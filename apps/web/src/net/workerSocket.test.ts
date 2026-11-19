@@ -1,13 +1,20 @@
 import { PROTOCOL_VERSION, type ServerMessage } from '@tower-magnate/shared';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { PageToWorker, WorkerToPage } from '../worker/workerMessages';
 import type { ConnectionStatus } from './gameSocket';
-import { WorkerSocket, type WorkerLike, type WorkerSocketOptions } from './workerSocket';
+import {
+  READ_STATE_TIMEOUT_MS,
+  WorkerSocket,
+  type WorkerLike,
+  type WorkerSocketOptions,
+} from './workerSocket';
 
 class FakeWorker implements WorkerLike {
   posted: PageToWorker[] = [];
   terminated = false;
   onmessage: ((event: MessageEvent<WorkerToPage>) => void) | null = null;
+  onerror: ((event: ErrorEvent) => void) | null = null;
+  onmessageerror: ((event: MessageEvent) => void) | null = null;
 
   postMessage(message: PageToWorker): void {
     this.posted.push(message);
@@ -124,4 +131,60 @@ describe('WorkerSocket', () => {
     expect(visibility.listenerCount).toBe(0);
     expect(socket.connectionStatus).toBe('closed');
   });
+
+  it('a fatal closes, calls onFatal and terminates the worker right away', () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    const onFatal = vi.fn();
+    const { worker, socket, visibility } = setup({ onFatal });
+    socket.connect();
+    worker.emit({ kind: 'fatal', message: 'boom' });
+    expect(socket.connectionStatus).toBe('closed');
+    expect(onFatal).toHaveBeenCalledWith('boom');
+    expect(worker.terminated).toBe(true);
+    expect(visibility.listenerCount).toBe(0);
+  });
+
+  it('takenOver and outdated terminate the worker right away', () => {
+    for (const kind of ['takenOver', 'outdated'] as const) {
+      const { worker, socket } = setup();
+      socket.connect();
+      worker.emit({ kind });
+      expect(worker.terminated).toBe(true);
+    }
+  });
+
+  it('a worker load error closes and calls onFatal', () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    const onFatal = vi.fn();
+    const { worker, socket } = setup({ onFatal });
+    socket.connect();
+    worker.onerror?.({ message: 'chunk 404' } as ErrorEvent);
+    expect(socket.connectionStatus).toBe('closed');
+    expect(onFatal).toHaveBeenCalledOnce();
+    expect(worker.terminated).toBe(true);
+  });
+
+  it('readState rejects when the worker does not answer', async () => {
+    vi.useFakeTimers();
+    const { socket } = setup();
+    socket.connect();
+    const read = socket.readState();
+    const outcome = expect(read).rejects.toThrow();
+    await vi.advanceTimersByTimeAsync(READ_STATE_TIMEOUT_MS);
+    await outcome;
+  });
+
+  it('readState rejects once the worker is gone', async () => {
+    const { socket } = setup();
+    socket.connect();
+    const pending = socket.readState();
+    socket.stop();
+    await expect(pending).rejects.toThrow();
+    await expect(socket.readState()).rejects.toThrow();
+  });
+});
+
+afterEach(() => {
+  vi.useRealTimers();
+  vi.restoreAllMocks();
 });

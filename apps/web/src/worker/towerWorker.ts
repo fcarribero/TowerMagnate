@@ -8,4 +8,11 @@ const scope = self as unknown as {
 };
 
 const host = createWorkerHost((m) => scope.postMessage(m));
-scope.onmessage = (e) => void host.handle(e.data);
+// handle() already posts fatal for its own errors; this catches anything that still escapes.
+scope.onmessage = (e) =>
+  void host.handle(e.data).catch((error: unknown) => {
+    scope.postMessage({
+      kind: 'fatal',
+      message: error instanceof Error ? error.message : String(error),
+    });
+  });
