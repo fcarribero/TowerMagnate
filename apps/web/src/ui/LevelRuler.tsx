@@ -4,10 +4,11 @@ import type { Stage } from '../render/stage';
 
 interface LevelRulerProps {
   stage: Stage;
+  side: 'left' | 'right';
 }
 
-/** Floor numbers in white down the left edge of the tower view, one per visible level. */
-export function LevelRuler({ stage }: LevelRulerProps) {
+/** Floor numbers in white down one side edge of the tower view, one per visible level. */
+export function LevelRuler({ stage, side }: LevelRulerProps) {
   const [marks, setMarks] = useState<RulerMark[]>(() => rulerMarks(stage.camera()));
 
   useEffect(() => {
@@ -17,7 +18,7 @@ export function LevelRuler({ stage }: LevelRulerProps) {
 
   const cssScale = stage.cssPerDevicePixel();
   return (
-    <div class="level-ruler" aria-hidden="true">
+    <div class={`level-ruler is-${side}`} aria-hidden="true">
       {marks.map((mark) => (
         <div
           key={mark.level}

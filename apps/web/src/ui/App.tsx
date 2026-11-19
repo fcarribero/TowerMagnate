@@ -451,7 +451,8 @@ export function App({
     <>
       <StageHost onStage={setStage} />
       <div class="ui-layer" onClick={onUiClick}>
-        {stage && <LevelRuler stage={stage} />}
+        {stage && <LevelRuler stage={stage} side="left" />}
+        {stage && <LevelRuler stage={stage} side="right" />}
         <StatusPanel
           store={connection.store}
           onOpenWindow={onOpenWindow}
