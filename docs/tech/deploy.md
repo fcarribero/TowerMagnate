@@ -45,7 +45,7 @@ pnpm --filter @tower-magnate/server dev     # server on http://localhost:3000
 pnpm dev                                    # web on http://localhost:5173, in another terminal
 ```
 
-The dev server proxies `/api` and `/ws` to the game server. Set `TM_SERVER_URL` and `TM_WEB_PORT` to change that.
+The dev server proxies `/api` to the game server. Set `TM_SERVER_URL` and `TM_WEB_PORT` to change that.
 
 If your `.env` sets another password or `PORT_BASE`, change `DATABASE_URL` to match.
 
@@ -102,7 +102,9 @@ The session cookie gets the `Secure` flag in production, so a browser only keeps
 | `SECURE_COOKIES`   | `false`; `true` when `NODE_ENV=production` | `true` or `false`. Adds the `Secure` flag to the session cookie.                                                          |
 | `NODE_ENV`         | unset                                      | `production` changes the defaults of `MIGRATE_ON_START` and `SECURE_COOKIES`. The production image sets it.              |
 
-When `NODE_ENV` is not `production`, the tower socket also accepts the dev-only messages `debug.forceEvent {kind}`, `debug.fastForward {steps}` (1 to 8,640), `debug.setClock {day, time}` (day 0 is Monday, time is `HH:MM`, jumps forward to the next match) and `debug.setMoney {amount}` and `debug.loadScenario {name}`, which replaces the tower with a test scenario's starting tower (`verticalSlice`: the 10-floor office tower with stairs, step 0; reload the page after it). Each takes an optional `id` that comes back in the `commandResult`. In production every one of them is answered with an `error` frame with code `NOT_ALLOWED`. `forceEvent` supports `bomb`, `fire` and `santa`. `santa` sends the `news.santa` notice at the current step and adds it to the tower notices; nothing else in the tower changes. The other kinds answer `INVALID_COMMAND` until their events exist in the engine.
+The tower runs in the player's browser, so the server has no WebSocket, no runner and no per-tower memory. Server load is the save endpoint: one `PUT /api/tower/state` per player every 30 seconds at most, from 16 KB (vertical slice) to 197 KB (full tower of 15,000 people) of gzip, with one gunzip, one JSON parse and one row write each. The save limit is 4 MB compressed and 32 MB uncompressed, so a reverse proxy in front of the server needs a body limit of at least 4 MB on `PUT /api/tower/state`.
+
+The developer menu (debug clock jumps, money, scenarios, forced events) runs in the browser Worker. The page offers it only when `/api/account` answers `developer: true`, which needs `NODE_ENV` other than `production` and a username listed in `DEVELOPER_USERNAMES`. Since the player owns the saved state, this is a convenience and not a security boundary.
 
 The production image sets `NODE_ENV=production`, `HOST=0.0.0.0`, `PORT=3000` and `WEB_DIR=/app/web`. Compose sets `DATABASE_URL` for both server services and `MIGRATE_ON_START=true` for `app`.
 
@@ -120,7 +122,7 @@ Set these in `.env` or in the shell.
 | `POSTGRES_PASSWORD`                        | `tower`                 | Password for that user. `.env.example` sets `change-me`.                                                         |
 | `POSTGRES_DB`                              | `tower_magnate`         | Database name.                                                                                                   |
 | `CHOKIDAR_USEPOLLING`                      | `false`                 | Dev watchers use file events. Set `true` if edits do not reload, for example when the repo is on a Windows bind mount. |
-| `TM_SERVER_URL`                            | `http://localhost:3000` | Where the Vite dev server proxies `/api` and `/ws`. The compose `web` service sets `http://server:3000`.         |
+| `TM_SERVER_URL`                            | `http://localhost:3000` | Where the Vite dev server proxies `/api`. The compose `web` service sets `http://server:3000`.         |
 | `TM_WEB_PORT`                              | `5173`                  | Port of the Vite dev server.                                                                                     |
 | `TEST_DATABASE_URL`                        | unset                   | Postgres for the server tests. Without it the tests start a container.                                           |
 | `BASE_URL`                                 | unset                   | Web address of a running stack for `pnpm e2e`. Without it the run starts its own stack.                          |

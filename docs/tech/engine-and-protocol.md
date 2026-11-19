@@ -1,20 +1,24 @@
 # Engine API, state model and wire protocol
 
-Version 1.2, 16 November 2026. Owner: Tech Lead. Tasks TM-5, TM-23 and TM-24.
+Version 1.3, 18 November 2026. Owner: Tech Lead. Tasks TM-5, TM-23 and TM-24.
 
-This document fixes the contract between `packages/engine`, `packages/shared`, `apps/server` and `apps/web`. The type sketches below are the target shape. Field names may change during implementation only through a PR that updates this document too.
+This document fixes the contract between `packages/engine`, `packages/shared`, `packages/host`, `apps/server` and `apps/web`. The type sketches below are the target shape. Field names may change during implementation only through a PR that updates this document too.
 
 Placement rules and their error codes come from `docs/design/construction.md` (TM-8). Economy, routing, elevator and event details belong to their own specs; this document only defines how their data travels.
 
 ## 1. Package boundaries
 
-`packages/shared` holds everything both sides of the socket need: plain data types for state, commands, events and messages, the unit catalog, balance constants, error codes and the zod schemas. It has no logic beyond validation and small pure helpers such as level ordering.
+`packages/shared` holds everything both sides of the message channel need: plain data types for state, commands, events and messages, the unit catalog, balance constants, error codes and the zod schemas. It has no logic beyond validation and small pure helpers such as level ordering.
 
 `packages/engine` depends on `shared`. It owns the simulation and nothing else. It never reads the clock, the network or the disk, and it never calls `Math.random`. ESLint already enforces this.
 
-`apps/server` depends on both. It owns sessions, persistence, the runner loop and the translation from engine state to wire messages.
+`packages/host` depends on `engine` and `shared`. It owns the runner loop, the translation from engine state to wire messages (snapshots, deltas, inspection), the debug messages and the routing of client messages. It has no Node, DOM, network or database imports, so it runs in a Web Worker and in Vitest.
 
-`apps/web` depends only on `shared`. It never imports the engine.
+`apps/server` depends on `engine` and `shared`. It owns accounts, sessions and the stored saves. It runs no tower. From the engine it uses `createTower`, `deserializeState` and `migrateState` to start and validate saves.
+
+`apps/web` depends on `shared`. Only the Worker bundle in `apps/web/src/worker/` imports `host` and `engine`. The main bundle imports `engine/calendar` and `engine/weather` and nothing else from the engine.
+
+In the rest of this document, "the server" in a protocol sentence means the host, which runs inside the Worker. The messages are the same ones the old WebSocket server sent.
 
 ## 2. Engine entry point
 
@@ -45,13 +49,13 @@ export function deserializeState(text: string): TowerState;
 
 `step` is a pure function. It does not mutate its input; the returned state is a new object (structural sharing is allowed). The same state, commands and step count always give the same result.
 
-Commands are applied in list order before any simulation runs. Each command sees the state left by the previous one. A rejected command changes nothing: the handler works on a copy, and the copy is dropped on rejection. After the commands, the engine runs `steps` simulation steps. `steps` can be 0, which the server uses to apply a command between ticks.
+Commands are applied in list order before any simulation runs. Each command sees the state left by the previous one. A rejected command changes nothing: the handler works on a copy, and the copy is dropped on rejection. After the commands, the engine runs `steps` simulation steps. `steps` can be 0, which the host uses to apply a command between ticks.
 
-The server always calls `step(state, queued, 0)` between ticks, so commands run after the last completed step, including that step's ledger roll, upkeep, leases, hotel and venue payouts. That is the order in `docs/design/economy.md` section 10. The `step` in a `CommandResult` is the last completed step, the one in `state.step` when the command ran.
+The host always calls `step(state, queued, 0)` between ticks, so commands run after the last completed step, including that step's ledger roll, upkeep, leases, hotel and venue payouts. That is the order in `docs/design/economy.md` section 10. The `step` in a `CommandResult` is the last completed step, the one in `state.step` when the command ran.
 
-Commands come from the network, so the engine does not trust their shape. A command that is not an object, has an unknown `type` or has a field of the wrong type is rejected with `INVALID_COMMAND`. Each handler checks its own fields. The zod schemas in `shared` catch the same problems earlier, on the server.
+Commands come from the network, so the engine does not trust their shape. A command that is not an object, has an unknown `type` or has a field of the wrong type is rejected with `INVALID_COMMAND`. Each handler checks its own fields. The zod schemas in `shared` catch the same problems earlier, in the host.
 
-One step is 10 game seconds (`SECONDS_PER_STEP`), so 8,640 steps per game day. The runner calls `step` about 9.6 times per real second with `steps = 1`. Tests and the accelerated mode call it with large step counts, for example `steps = STEPS_PER_DAY * 7` for a week.
+One step is 10 game seconds (`SECONDS_PER_STEP`), so 8,640 steps per game day. The runner in the Worker calls `step` about 9.6 times per real second with `steps = 1`. Tests and the accelerated mode call it with large step counts, for example `steps = STEPS_PER_DAY * 7` for a week.
 
 ## 3. State model
 
@@ -168,13 +172,13 @@ The game date is derived from `step` with the calendar module (`dateOfStep(step)
 
 `schemaVersion` starts at 1 and increases with every change to the `TowerState` shape that is not purely additive with a safe default. Each bump adds one migration function in `packages/engine/src/migrations/` from version N to N+1, plus a test that loads a frozen fixture of version N.
 
-`migrateState(raw)` reads `schemaVersion`, runs the chain up to the current version, and validates the result. The server calls it every time it loads a snapshot from PostgreSQL. A snapshot with a version higher than the engine knows, or a malformed one, is refused with `StateMigrationError`. The server keeps the tower paused, logs it, and closes the client's socket with close code 4409.
+`migrateState(raw)` reads `schemaVersion`, runs the chain up to the current version, and validates the result. The server calls it (through `deserializeState`) to validate every save it receives and every old `jsonb` snapshot it reads, and the Worker calls it when it starts. A state with a version higher than the engine knows, or a malformed one, is refused with `StateMigrationError`. The server answers 400 to such a save. In the browser, a loaded state with a newer `schemaVersion` than the client's engine does not start the Worker, and the page asks the player to reload.
 
-The server stores the text from `serializeState(state)`, which is the full `TowerState` as JSON with its `schemaVersion`. It loads it back with `deserializeState(text)`, which parses the text and passes it to `migrateState`. Text that is not JSON, a missing or invalid `schemaVersion`, and a version newer than the engine all throw `StateMigrationError` with a message that names the problem. A restored state runs exactly like the state that was saved, so its hash after any number of steps matches an uninterrupted run. The serialized empty tower stays under 5 KB.
+The Worker saves the text from `serializeState(state)`, which is the full `TowerState` as JSON with its `schemaVersion`, gzipped. The server stores the gzipped bytes in `tower_snapshots.state_gz`; rows from before 18 November 2026 keep the same text in a `jsonb` `state` column. The text is loaded back with `deserializeState(text)`, which parses the text and passes it to `migrateState`. Text that is not JSON, a missing or invalid `schemaVersion`, and a version newer than the engine all throw `StateMigrationError` with a message that names the problem. A restored state runs exactly like the state that was saved, so its hash after any number of steps matches an uninterrupted run. The serialized empty tower stays under 5 KB.
 
 Frozen saves for the migration tests live in `packages/engine/src/migrations/fixtures.ts`. A fixture is never edited after it is added.
 
-Protocol version (`PROTOCOL_VERSION` in `shared`) is separate from `schemaVersion`. It changes when a wire message changes. Clients send it in `hello`; a mismatch closes the socket with `PROTOCOL_MISMATCH` and the client reloads.
+Protocol version (`PROTOCOL_VERSION` in `shared`) is separate from `schemaVersion`. It changes when a wire message changes. The page sends it in `hello`. The Worker and the page come from the same build, so a mismatch only happens with a stale cached page; the host then answers `PROTOCOL_MISMATCH` and closes the link.
 
 ## 5. Commands
 
@@ -227,7 +231,7 @@ export interface ElevatorBand {
 
 A person's name is kept in `people.names`, a record from person id to name; unnamed people have no entry, and the entry goes when the person is removed. Clearing the name of a followed person also unfollows them. `followPerson` needs a named person: an unnamed one gives `INVALID_COMMAND`, a 21st followed person gives `FOLLOW_LIMIT`, an unknown id gives `UNKNOWN_ENTITY`, and following someone already followed changes nothing. `unfollowPerson` of someone not followed changes nothing. Names and the followed list are part of the saved state (schema version 36); saves from before it load with no names and an empty followed list. Neither command draws from the RNG. `answerEvent` choices are defined in the events spec (TM-15, `docs/design/events.md` section 3): `'pay' | 'refuse'` for the bomb and `'helicopter' | 'burn'` for fire.
 
-Commands from the socket are first parsed with the zod schema in `shared`. A message that fails parsing never reaches the engine and gets `INVALID_COMMAND`. The engine still checks every rule of TM-8, since a schema cannot know the tower.
+Commands from the page are first parsed with the zod schema in `shared`. A message that fails parsing never reaches the engine and gets `INVALID_COMMAND`. The engine still checks every rule of TM-8, since a schema cannot know the tower.
 
 ## 6. Error codes
 
@@ -288,7 +292,16 @@ Events caused by a player command carry that command's id in `commandId`. A hand
 
 ### 8.1 Transport and envelope
 
-One WebSocket per open tower tab, at `/ws`, authenticated by the session cookie during the HTTP upgrade. Account actions (register, login, logout, account, create or reset tower) stay on the REST API.
+The page and the host talk through `postMessage` between the main thread and a Web Worker, one Worker per open tower tab. Each message crosses as the same JSON text the WebSocket carried before 18 November 2026, so the client parsing path did not change. There is no network hop and no `/ws` route. Account actions (register, login, logout, account, create or reset tower) and the two save endpoints below stay on the REST API.
+
+Save endpoints, both for the logged-in user's tower:
+
+- `POST /api/tower/play` makes a new play token, stores it in `towers.play_token` and returns `{ token, state }` with the latest saved state, or `createTower(seed)` when the tower was never saved. Any earlier token stops being valid, so only one tab plays a tower at a time.
+- `PUT /api/tower/state` takes the gzipped `serializeState` text as `application/octet-stream` with the token in the `X-Play-Token` header. It answers 204 when saved, 409 when the token is not the current one (the tab stops and asks the player to take the tower back), 413 above 4 MB compressed or 32 MB uncompressed, and 400 when the state is not valid gzip or does not parse with `deserializeState`. The server checks the token and writes in one transaction and keeps the 3 latest snapshots.
+
+`POST /api/tower/reset` builds a fresh tower and clears the play token.
+
+The Worker saves every 30 seconds, 5 seconds after the last accepted command or debug change, and when the page becomes hidden. A failed save is retried after 5, 15 and 30 seconds and then every 60 seconds.
 
 Every message in both directions is JSON with one envelope, validated with zod in `shared`:
 
@@ -300,14 +313,13 @@ export interface Envelope<T extends string, P> {
 }
 ```
 
-The server validates every client message with `ClientMessageSchema.safeParse`. When a `command` envelope parses but its `Command` fails the schema, and the `id` can still be read, the server answers `commandResult` `{ id, ok: false, error: 'INVALID_COMMAND' }` so the client's pending preview resolves. Any other message that fails is answered with an `error` message and dropped; the socket stays open. The client validates server messages in development builds only, to keep the hot path cheap.
+The host validates every client message with `ClientMessageSchema.safeParse`. When a `command` envelope parses but its `Command` fails the schema, and the `id` can still be read, the host answers `commandResult` `{ id, ok: false, error: 'INVALID_COMMAND' }` so the client's pending preview resolves. Any other message that fails is answered with an `error` message and dropped; the link stays open. The client validates server messages in development builds only, to keep the hot path cheap.
 
 Order and limits:
 
-- Messages before `hello` are dropped. A socket that sends no `hello` within 5 s is closed.
-- Close codes: 4400 no `hello` within 5 s, 4401 not authenticated, 4409 protocol mismatch or a snapshot the engine refused, 4429 rate limited.
-- At most 20 commands per second per socket and 16 KB per message. `viewport` is limited to 4 per second.
-- The upgrade checks `Origin` against the configured web origin. SameSite=Lax alone does not protect against sibling subdomains.
+- Messages before `hello` are dropped.
+- The page sends at most 20 commands per second and `viewport` at most 4 per second.
+- The save endpoints go through the same `Origin` check as every other state-changing API request, and need the session cookie.
 
 ### 8.2 Client to server
 
@@ -465,12 +477,12 @@ Rules for the client:
 ### 8.7 Command flow
 
 1. The client sends `command` with a fresh `id`.
-2. The server queues it for the tower. Before the next tick, the runner calls `step(state, queued, 0)` and then continues ticking. Commands are therefore applied in arrival order, within at most one tick (about 104 ms).
-3. The server sends `commandResult` with the same `id`. If the command was accepted, the change also appears in the next delta.
+2. The host queues it for the tower. Before the next tick, the runner calls `step(state, queued, 0)` and then continues ticking. Commands are therefore applied in arrival order, within at most one tick (about 104 ms).
+3. The host sends `commandResult` with the same `id`. If the command was accepted, the change also appears in the next delta.
 
 The client shows build previews locally but never treats them as built until the delta arrives. A rejected command shows the message for its code.
 
-The server saves a snapshot once per tick when that tick accepted at least one command. That meets the ARCHITECTURE.md rule of saving after each command and keeps the write count bounded when a player drags a long floor.
+The Worker saves 5 seconds after the last accepted command, so dragging a long floor gives one save, not dozens. A build, price change or rename is lost only when the tab closes inside those 5 seconds.
 
 ### 8.8 Events to the client
 
@@ -525,9 +537,9 @@ The zod schemas for every message, command and view are in `packages/shared/src/
 
 ## 9. Performance budgets
 
-- One `step` call with `steps = 1` on a tower of 15,000 people has an average under 5 ms, a p95 under 8 ms and a p99 under 15 ms on the CI runner, raw, with no CPU scaling. At 1x a step is due every 104 ms (8,640 steps in a 15-minute day), so 8 ms on the largest tower is under 8% of a tick. Process capacity is covered by the runner load gate (30 towers, p95 lag 100 ms). The trek system and the office routine each stay under 3.0 ms at p95; a median p95 above 2.5 ms is reported but does not fail the gate. Engine scenario tests that run a game week stay under 10 s.
+- One `step` call with `steps = 1` on a tower of 15,000 people has an average under 5 ms, a p95 under 8 ms and a p99 under 15 ms on the CI runner, raw, with no CPU scaling. At 1x a step is due every 104 ms (8,640 steps in a 15-minute day), so 8 ms on the largest tower is under 8% of a tick. The tick runs in the player's browser, so there is no server capacity gate any more (see `performance.md`). The trek system and the office routine each stay under 3.0 ms at p95; a median p95 above 2.5 ms is reported but does not fail the gate. Engine scenario tests that run a game week stay under 10 s.
 - A delta for a full-screen viewport stays under 50 KB of JSON. People and cars are already packed arrays; a binary format is the next step if it grows past that.
-- Snapshot size is not budgeted, but it is gzip-compressed with permessage-deflate. Messages under 1 KB skip compression.
+- Snapshot size is not budgeted, and it does not cross a network any more. The size that matters is the save: measured on 18 November 2026, the vertical slice is 102 KB of JSON and 16 KB gzipped, and the full tower of 15,000 people is 2.6 MB and 197 KB. Both are under the 4 MB compressed save limit. Both are far over the 64 KB that `fetch` with `keepalive` and `sendBeacon` can send on page close, so there is no special close-tab save.
 
 ## 10. What goes where
 
@@ -536,5 +548,7 @@ The zod schemas for every message, command and view are in `packages/shared/src/
 | `TowerState`, `Command`, `EngineEvent`, `ErrorCode`, `Level` helpers, `normalizeName`, calendar, catalog | `packages/shared` |
 | zod schemas for `ClientMessage`, `ServerMessage`, `Command` | `packages/shared` |
 | `step`, `createTower`, `migrateState`, `serializeState`, `deserializeState`, command handlers | `packages/engine` |
-| View builders (state to `Snapshot`, `Delta`, `InspectData`), runner, viewport filter | `apps/server` |
+| View builders (state to `Snapshot`, `Delta`, `InspectData`), runner, viewport filter, debug messages | `packages/host` |
+| Web Worker entry, save timers and upload, play token handling | `apps/web` |
+| Accounts, play token, stored saves | `apps/server` |
 | Interpolation buffer, message handling, error messages in Spanish | `apps/web` |

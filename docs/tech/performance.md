@@ -2,6 +2,8 @@
 
 ## Runner load test
 
+Note, 18 November 2026: the tower now runs in the player's browser (Web Worker), and the server no longer has a runner, a delta broadcaster or a WebSocket. The numbers in this section describe the old server runner and no longer apply to the deployed game. The bench (`bench:runner-load`), its `Runner load` workflow, the CPU calibration and the release-image runner check were deleted with the server code. The history is kept below because the same tick work now runs on the player's machine. What matters for the server is the save endpoint: at most one save per player every 30 seconds, 16 KB gzip for the vertical slice and 197 KB for the full tower (2.6 MB of JSON), measured on 18 November 2026. `pnpm bench:snapshots` still measures the database write.
+
 TM-114 measures how many running towers one server process can hold. The bench starts N copies of a mid-size tower in one `TowerRunner`, each with one connected client that watches the whole tower, and runs them at 1x speed for 10 minutes of real time. The code is in `apps/server/src/bench/runner-load.ts`, `load-towers.ts` and `load-stats.ts`.
 
 The tower has 20 floors over columns 100 to 199: 90 offices on levels 2 to 10, 50 condos on levels 11 to 20 and two standard elevators that serve every floor. Before the load starts it is stepped to 07:00 of its second day, when it has 636 people, so the 10 minutes cover the morning rush and most of the working day.
@@ -90,7 +92,7 @@ TM-137 checks the TM-114 and TM-124 targets on the release build. The `Performan
 
 ### What "release build" means here
 
-The server check builds the production image from `docker/prod/Dockerfile` (TM-88) and runs the runner load bench inside it, with `NODE_ENV=production` and the image's `node_modules`. The bench is bundled by `pnpm --filter @tower-magnate/server build:bench`, which uses the same esbuild settings as the server bundle, and mounted into the container. The image itself does not contain the bench.
+The server check described in this paragraph was removed on 18 November 2026 together with the runner bench. It built the production image from `docker/prod/Dockerfile` (TM-88) and runs the runner load bench inside it, with `NODE_ENV=production` and the image's `node_modules`. The bench is bundled by `pnpm --filter @tower-magnate/server build:bench`, which uses the same esbuild settings as the server bundle, and mounted into the container. The image itself does not contain the bench.
 
 The client check uses a production Vite build. The release build leaves out the stress page, so `pnpm --filter @tower-magnate/web build:perf` builds the same pages plus `perf.html` into `apps/web/dist-perf` (Vite mode `perf`), and `vite preview` serves it. The render code and the build settings are the ones the release uses.
 

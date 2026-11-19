@@ -38,7 +38,7 @@ pnpm build      # static build in apps/web/dist
 pnpm art:build  # draw the sprites, atlases, previews and atlas manifest
 ```
 
-The dev server proxies `/api` and `/ws` to the game server. Set `TM_SERVER_URL` (default `http://localhost:3000`) and `TM_WEB_PORT` (default `5173`) to change them, for example `TM_WEB_PORT=4140 pnpm --filter web dev`.
+The dev server proxies `/api` to the game server. Set `TM_SERVER_URL` (default `http://localhost:3000`) and `TM_WEB_PORT` (default `5173`) to change them, for example `TM_WEB_PORT=4140 pnpm --filter web dev`.
 
 ## Layout
 
