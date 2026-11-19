@@ -182,6 +182,33 @@ describe('WorkerSocket', () => {
     await expect(pending).rejects.toThrow();
     await expect(socket.readState()).rejects.toThrow();
   });
+
+  it('the debug hook relays server messages until unsubscribed or stopped', () => {
+    const { worker, socket } = setup({ debug: true });
+    socket.connect();
+    const hook = (
+      globalThis as unknown as {
+        __towerMagnate: { onServerMessage(cb: (m: ServerMessage) => void): () => void };
+      }
+    ).__towerMagnate;
+    const first: ServerMessage[] = [];
+    const second: ServerMessage[] = [];
+    const stopFirst = hook.onServerMessage((m) => first.push(m));
+    hook.onServerMessage((m) => second.push(m));
+
+    worker.emit({ kind: 'server', data: PONG_FRAME });
+    expect(first).toHaveLength(1);
+    expect(second).toHaveLength(1);
+
+    stopFirst();
+    worker.emit({ kind: 'server', data: PONG_FRAME });
+    expect(first).toHaveLength(1);
+    expect(second).toHaveLength(2);
+
+    socket.stop();
+    worker.emit({ kind: 'server', data: PONG_FRAME });
+    expect(second).toHaveLength(2);
+  });
 });
 
 afterEach(() => {

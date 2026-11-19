@@ -1,40 +1,58 @@
 import { expect, type Page } from '@playwright/test';
 import { registerUser, type TestUser } from './users';
 
+const GAME_LOAD_TIMEOUT_MS = 45_000;
+
 /** Registers a fresh player, which leaves its session cookie in the page's browser context. */
 export async function openGame(page: Page): Promise<TestUser> {
   const user = await registerUser(page.request);
   await page.goto('/');
-  await expect(page.locator('#app canvas')).toBeVisible();
+  // A freshly started dev server compiles the page and the tower worker on first load.
+  await expect(page.locator('#app canvas')).toBeVisible({ timeout: GAME_LOAD_TIMEOUT_MS });
   return user;
 }
 
-/** Sends one frame over a second socket of the page's session and resolves with the server's commandResult. */
+/** The dev hook the page's worker socket sets in debug builds. */
+interface TowerMagnateHook {
+  sendFrame(text: string): void;
+  readState(): Promise<TowerState>;
+  onServerMessage(callback: (message: { t: string; p: { id?: string } }) => void): () => void;
+}
+
+const REPLY_TIMEOUT_MS = 10_000;
+let nextFrameId = 0;
+
+/** Sends one frame to the tower worker and resolves with the commandResult that carries the same id. */
 export async function sendFrame(
   page: Page,
   type: string,
   payload: Record<string, unknown>,
 ): Promise<unknown> {
+  nextFrameId += 1;
+  const id = `e2e-${nextFrameId}`;
   return page.evaluate(
-    ({ frameType, body }) =>
+    ({ frameType, body, frameId, timeoutMs }) =>
       new Promise((resolve, reject) => {
-        const scheme = location.protocol === 'https:' ? 'wss:' : 'ws:';
-        const socket = new WebSocket(`${scheme}//${location.host}/ws`);
-        const id = 'e2e-command';
-        const timer = setTimeout(() => reject(new Error('no command result')), 10_000);
-        socket.onopen = () => socket.send(JSON.stringify({ v: 1, t: 'hello', p: { protocol: 1 } }));
-        socket.onmessage = (event) => {
-          const message = JSON.parse(String(event.data));
-          if (message.t === 'welcome' || message.t === 'snapshot') {
-            socket.send(JSON.stringify({ v: 1, t: frameType, p: { id, ...body } }));
-          } else if (message.t === 'commandResult' && message.p.id === id) {
+        const hook = (globalThis as unknown as { __towerMagnate?: TowerMagnateHook })
+          .__towerMagnate;
+        if (hook === undefined) {
+          reject(new Error('The page has no __towerMagnate hook'));
+          return;
+        }
+        const timer = setTimeout(() => {
+          unsubscribe();
+          reject(new Error('no command result'));
+        }, timeoutMs);
+        const unsubscribe = hook.onServerMessage((message) => {
+          if (message.t === 'commandResult' && message.p.id === frameId) {
             clearTimeout(timer);
-            socket.close();
+            unsubscribe();
             resolve(message.p);
           }
-        };
+        });
+        hook.sendFrame(JSON.stringify({ v: 1, t: frameType, p: { id: frameId, ...body } }));
       }),
-    { frameType: type, body: payload },
+    { frameType: type, body: payload, frameId: id, timeoutMs: REPLY_TIMEOUT_MS },
   );
 }
 
@@ -56,40 +74,25 @@ export interface TowerState {
   shafts: { type: string; x: number; bottom: number; top: number }[];
 }
 
-/** Opens a second socket of the page's session and resolves with the first snapshot the server sends. */
+/** The tower's current state, read from the worker. */
 export async function readTowerState(page: Page): Promise<TowerState> {
-  return page.evaluate(
-    () =>
-      new Promise<TowerState>((resolve, reject) => {
-        const scheme = location.protocol === 'https:' ? 'wss:' : 'ws:';
-        const socket = new WebSocket(`${scheme}//${location.host}/ws`);
-        const timer = setTimeout(() => reject(new Error('no snapshot')), 10_000);
-        socket.onopen = () => socket.send(JSON.stringify({ v: 1, t: 'hello', p: { protocol: 1 } }));
-        socket.onmessage = (event) => {
-          const message = JSON.parse(String(event.data));
-          if (message.t !== 'snapshot') {
-            return;
-          }
-          clearTimeout(timer);
-          socket.close();
-          const { step, money, stars, units, shafts } = message.p;
-          resolve({
-            step,
-            money,
-            stars,
-            units: units.map((u: TowerState['units'][number]) => ({
-              type: u.type,
-              x: u.x,
-              level: u.level,
-            })),
-            shafts: shafts.map((s: TowerState['shafts'][number]) => ({
-              type: s.type,
-              x: s.x,
-              bottom: s.bottom,
-              top: s.top,
-            })),
-          });
-        };
-      }),
-  );
+  return page.evaluate(async () => {
+    const hook = (globalThis as unknown as { __towerMagnate?: TowerMagnateHook }).__towerMagnate;
+    if (hook === undefined) {
+      throw new Error('The page has no __towerMagnate hook');
+    }
+    const { step, money, stars, units, shafts } = await hook.readState();
+    return {
+      step,
+      money,
+      stars,
+      units: Object.values(units).map((u) => ({ type: u.type, x: u.x, level: u.level })),
+      shafts: Object.values(shafts).map((s) => ({
+        type: s.type,
+        x: s.x,
+        bottom: s.bottom,
+        top: s.top,
+      })),
+    };
+  });
 }

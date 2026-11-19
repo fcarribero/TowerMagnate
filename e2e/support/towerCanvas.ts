@@ -15,11 +15,15 @@ function levelIndex(level: number): number {
   return level < 0 ? level - LOWEST_LEVEL : level - LOWEST_LEVEL - 1;
 }
 
-/** Canvas pixel inside a tile of the starting camera: zoom 2, level 1 on the ground row above two basements. */
+/**
+ * Canvas pixel inside a tile of the starting camera: zoom 2, level 1 on the ground row above two basements.
+ * `levelsScrolled` is how many times the view was scrolled down a level (ArrowDown), which moves the tiles up.
+ */
 export function tilePoint(
   canvas: { width: number; height: number },
   column: number,
   level: number,
+  levelsScrolled = 0,
 ): { x: number; y: number } {
   const left = Math.round((WORLD_WIDTH_TILES * TILE_PIXELS - canvas.width) / 2);
   const viewBottom = (GROUND_ROW_FROM_TOP + 1 + BASEMENT_ROWS_SHOWN) * FLOOR_PIXELS;
@@ -27,7 +31,7 @@ export function tilePoint(
   const rowFromTop = LEVEL_COUNT - 1 - levelIndex(level);
   return {
     x: (column + 0.5) * TILE_PIXELS - left,
-    y: (rowFromTop + 0.5) * FLOOR_PIXELS - top,
+    y: (rowFromTop + 0.5 - levelsScrolled) * FLOOR_PIXELS - top,
   };
 }
 

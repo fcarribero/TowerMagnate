@@ -11,6 +11,8 @@ const LOBBY_LAST = CENTER_COLUMN + 15;
 const OFFICE_COLUMN = LOBBY_FIRST;
 const STAIRS_COLUMN = CENTER_COLUMN - 6;
 const ELEVATOR_COLUMN = CENTER_COLUMN + 6;
+// The toolbar covers the ground rows of the starting view, so the test scrolls the tiles up first.
+const LEVELS_SCROLLED = 4;
 
 function moneyOf(page: Page): Promise<number> {
   return page.locator('.status-panel__money').innerText().then(parseMoney);
@@ -55,7 +57,7 @@ async function chooseTool(page: Page, category: number, tool: string): Promise<v
 
 async function pointAt(page: Page, column: number, level: number): Promise<void> {
   const box = await canvasBox(page);
-  const point = tilePoint(box, column, level);
+  const point = tilePoint(box, column, level, LEVELS_SCROLLED);
   await page.mouse.move(box.x + point.x, box.y + point.y);
 }
 
@@ -114,6 +116,9 @@ test(
     test.setTimeout(TEST_TIMEOUT_MS);
     await openGame(page);
     await dismissWelcome(page);
+    for (let press = 0; press < LEVELS_SCROLLED; press++) {
+      await page.keyboard.press('ArrowDown');
+    }
     await expect(page.getByRole('navigation')).toBeVisible();
     await expect(page.locator('.status-panel__population')).toHaveText(/Población 0$/);
 

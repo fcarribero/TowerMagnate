@@ -5,6 +5,8 @@ const CLOSED_TAB_WAIT_MS = 30_000;
 const MINUTES_PER_DAY = 24 * 60;
 // A running tower gains 48 game minutes in 30 s, so a few minutes still proves it was paused.
 const MAX_DRIFT_MINUTES = 5;
+// The browser saves every 30 s, so reopening resumes from a save up to 30 s (48 game minutes) old.
+const MAX_LOST_MINUTES = 48 + MAX_DRIFT_MINUTES;
 
 async function readGameMinutes(page: Page): Promise<number> {
   const bar = page.getByRole('toolbar', { name: 'Barra de estado' });
@@ -17,7 +19,7 @@ async function readGameMinutes(page: Page): Promise<number> {
   return dayOfMonth * MINUTES_PER_DAY + hours * 60 + minutes;
 }
 
-test('the tower is paused while no tab is open and resumes from the same instant', async ({
+test('the tower is paused while no tab is open and resumes from its last save', async ({
   page,
   context,
 }) => {
@@ -36,7 +38,8 @@ test('the tower is paused while no tab is open and resumes from the same instant
   await expect(reopened.locator('#app canvas')).toBeVisible();
   const afterReopen = await readGameMinutes(reopened);
 
-  // One game minute is about 0.6 s, so page close and reopen time on a slow runner adds a few.
-  expect(afterReopen).toBeGreaterThanOrEqual(beforeClose);
+  // Resuming from the last save can go back by up to one autosave interval. One game minute
+  // is about 0.6 s, so page close and reopen time on a slow runner adds a few going forward.
+  expect(afterReopen).toBeGreaterThanOrEqual(beforeClose - MAX_LOST_MINUTES);
   expect(afterReopen - beforeClose).toBeLessThanOrEqual(MAX_DRIFT_MINUTES);
 });

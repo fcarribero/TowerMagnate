@@ -59,6 +59,8 @@ export interface WorkerSocketOptions {
 export interface TowerMagnateHook {
   sendFrame(text: string): void;
   readState(): Promise<TowerState>;
+  /** Calls back with every server message the page receives. Returns the unsubscribe function. */
+  onServerMessage(callback: (message: ServerMessage) => void): () => void;
 }
 
 type HookGlobal = typeof globalThis & { __towerMagnate?: TowerMagnateHook };
@@ -79,6 +81,7 @@ export class WorkerSocket implements TowerLink {
   private status: ConnectionStatus = 'closed';
   private visibility: PageVisibility | null = null;
   private stateWaiters: StateWaiter[] = [];
+  private messageListeners = new Set<(message: ServerMessage) => void>();
 
   constructor(private readonly options: WorkerSocketOptions) {}
 
@@ -103,6 +106,12 @@ export class WorkerSocket implements TowerLink {
       (globalThis as HookGlobal).__towerMagnate = {
         sendFrame: (text) => this.post({ kind: 'client', data: text }),
         readState: () => this.readState(),
+        onServerMessage: (callback) => {
+          this.messageListeners.add(callback);
+          return () => {
+            this.messageListeners.delete(callback);
+          };
+        },
       };
     }
   }
@@ -160,6 +169,7 @@ export class WorkerSocket implements TowerLink {
     }
     this.visibility?.removeEventListener('visibilitychange', this.onVisibilityChange);
     this.visibility = null;
+    this.messageListeners.clear();
     const waiters = this.stateWaiters;
     this.stateWaiters = [];
     for (const waiter of waiters) {
@@ -202,6 +212,7 @@ export class WorkerSocket implements TowerLink {
         if (parsed === null) return;
         if (this.status === 'connecting') this.setStatus('live');
         this.options.sink.receive(parsed);
+        for (const listener of this.messageListeners) listener(parsed);
         return;
       }
       case 'saveFailing':

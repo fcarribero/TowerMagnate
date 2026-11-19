@@ -7,6 +7,9 @@ export default defineConfig({
   testDir: '.',
   testMatch: '**/*.spec.ts',
   grepInvert: target.debugCommands ? undefined : new RegExp(DEBUG_TAG),
+  // A freshly started dev stack compiles the page and the tower worker on first load; parallel
+  // browsers on top of that make the first specs time out.
+  workers: 1,
   outputDir: 'test-results',
   globalSetup: './global-setup.ts',
   forbidOnly: Boolean(process.env.CI),
