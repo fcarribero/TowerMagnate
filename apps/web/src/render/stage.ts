@@ -188,7 +188,13 @@ export async function mountStage(host: HTMLElement, options: StageOptions = {}):
   app.stage.addChild(world);
 
   const firstSize = measureHost(host);
-  let camera = createCamera(firstSize.deviceWidth, firstSize.deviceHeight, DEFAULT_ZOOM);
+  const hudProbe = createHudProbe(host);
+  let camera = createCamera(
+    firstSize.deviceWidth,
+    firstSize.deviceHeight,
+    DEFAULT_ZOOM,
+    hudInset(hudProbe, firstSize),
+  );
   const cameraListeners = new Set<CameraListener>();
   const hoverListeners = new Set<HoverLevelListener>();
   let hoveredLevel: Level | null = null;
@@ -247,7 +253,11 @@ export async function mountStage(host: HTMLElement, options: StageOptions = {}):
     app.renderer.resize(size.deviceWidth, size.deviceHeight);
     app.canvas.style.width = `${size.cssWidth}px`;
     app.canvas.style.height = `${size.cssHeight}px`;
-    camera = resizeCamera(camera, size.deviceWidth, size.deviceHeight);
+    camera = resizeCamera(
+      { ...camera, bottomInset: hudInset(hudProbe, size) },
+      size.deviceWidth,
+      size.deviceHeight,
+    );
     showCamera();
   };
 
@@ -466,6 +476,7 @@ export async function mountStage(host: HTMLElement, options: StageOptions = {}):
     },
     destroy() {
       destroyed = true;
+      hudProbe.remove();
       app.ticker.remove(drawCars);
       app.ticker.remove(drawEvents);
       app.ticker.remove(growBuildings);
@@ -484,6 +495,23 @@ export async function mountStage(host: HTMLElement, options: StageOptions = {}):
       app.destroy({ removeView: true }, { children: true });
     },
   };
+}
+
+/** A hidden box as tall as the bottom HUD, so the stage can read its height in pixels. */
+function createHudProbe(host: HTMLElement): HTMLElement {
+  const probe = document.createElement('div');
+  probe.setAttribute('aria-hidden', 'true');
+  probe.style.cssText =
+    'position:absolute;left:0;bottom:0;width:0;visibility:hidden;pointer-events:none;' +
+    'height:calc(var(--chrome-gap, 0px) + var(--chrome-bottom-height, 0px));';
+  host.appendChild(probe);
+  return probe;
+}
+
+/** The bottom HUD's height in device pixels. */
+function hudInset(probe: HTMLElement, size: CanvasSize): number {
+  const devicePerCss = size.cssHeight === 0 ? 1 : size.deviceHeight / size.cssHeight;
+  return Math.round(probe.getBoundingClientRect().height * devicePerCss);
 }
 
 function measureHost(host: HTMLElement): CanvasSize {

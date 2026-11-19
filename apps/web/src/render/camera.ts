@@ -21,6 +21,12 @@ export interface Camera {
   top: number;
   viewWidth: number;
   viewHeight: number;
+  /**
+   * Device pixels at the bottom of the canvas hidden behind the HUD. The camera
+   * may scroll this far past the bottom of the world so the lowest levels can
+   * sit above the HUD.
+   */
+  bottomInset?: number;
 }
 
 export interface LevelRange {
@@ -37,15 +43,21 @@ export interface ViewportRequest {
 
 const BASEMENT_FLOORS_SHOWN_AT_START = 2;
 
-export function createCamera(viewWidth: number, viewHeight: number, zoom: Zoom): Camera {
+export function createCamera(
+  viewWidth: number,
+  viewHeight: number,
+  zoom: Zoom,
+  bottomInset = 0,
+): Camera {
   const groundY = levelTop(levelToIndex(1)) + FLOOR_HEIGHT;
   const viewBottomY = groundY + BASEMENT_FLOORS_SHOWN_AT_START * FLOOR_HEIGHT;
   return clampCamera({
     zoom,
     left: (WORLD_WIDTH * zoom - viewWidth) / 2,
-    top: viewBottomY * zoom - viewHeight,
+    top: viewBottomY * zoom - (viewHeight - bottomInset),
     viewWidth,
     viewHeight,
+    bottomInset,
   });
 }
 
@@ -90,16 +102,23 @@ export function clampCamera(camera: Camera): Camera {
   return {
     ...camera,
     left: clampAxis(camera.left, WORLD_WIDTH * camera.zoom, camera.viewWidth),
-    top: clampAxis(camera.top, WORLD_HEIGHT * camera.zoom, camera.viewHeight),
+    top: clampAxis(
+      camera.top,
+      WORLD_HEIGHT * camera.zoom,
+      camera.viewHeight,
+      Math.max(0, Math.round(camera.bottomInset ?? 0)),
+    ),
   };
 }
 
-function clampAxis(offset: number, worldSize: number, viewSize: number): number {
-  if (worldSize <= viewSize) {
-    return -Math.floor((viewSize - worldSize) / 2);
+/** `endInset` is the canvas strip at the far end that the HUD covers; the world may scroll past it. */
+function clampAxis(offset: number, worldSize: number, viewSize: number, endInset = 0): number {
+  const freeSize = viewSize - endInset;
+  if (worldSize <= freeSize) {
+    return -Math.floor((freeSize - worldSize) / 2);
   }
   const wholeOffset = Math.round(offset);
-  return Math.min(worldSize - viewSize, Math.max(0, wholeOffset));
+  return Math.min(worldSize - freeSize, Math.max(0, wholeOffset));
 }
 
 /** Levels with at least one pixel on the canvas, as dense indices. */

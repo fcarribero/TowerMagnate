@@ -51,6 +51,13 @@ describe('panCamera', () => {
     expect(bottomRight.top).toBe(WORLD_HEIGHT * 2 - 600);
   });
 
+  it('scrolls past the bottom of the world by the HUD inset', () => {
+    const camera = createCamera(1000, 600, 2, 120);
+    const bottom = panCamera(camera, 0, -1e6);
+    expect(bottom.top).toBe(WORLD_HEIGHT * 2 - 600 + 120);
+    expect(panCamera(camera, 0, 1e6).top).toBe(0);
+  });
+
   it('centers the world on an axis where it is smaller than the canvas', () => {
     const camera = createCamera(3200, 600, 1);
     expect(camera.left).toBe(-100);
