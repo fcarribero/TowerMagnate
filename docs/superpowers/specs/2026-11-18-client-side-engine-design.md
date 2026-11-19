@@ -79,21 +79,23 @@ When it saves:
 
 - every 30 seconds while running, as today;
 - 5 seconds after the last accepted command, so dragging a long floor gives one save, not dozens;
-- after a debug change (clock jump, scenario load), as today;
-- when the page becomes hidden. A Worker cannot be asked synchronously during `pagehide`, so this works in two parts. The Worker pushes its latest gzipped state to the page every 5 seconds and the page keeps the newest copy along with the play token. On `visibilitychange` to hidden, which leaves time for a round trip, the page asks the Worker for a fresh copy. On `pagehide`, or if the fresh copy has not arrived, the page sends the newest copy it holds with `fetch(..., { keepalive: true })`. On tab close the loss is then at most 5 seconds.
+- 5 seconds after a debug change (clock jump, scenario load);
+- right away when the page becomes hidden (`visibilitychange` to hidden). The page tells the Worker, and the Worker starts a normal save. Switching tabs or minimizing gives it time to finish. Closing the tab may cut it off.
 
-`keepalive` bodies are capped near 64 KB. Today's state is about 98 KB of JSON and should compress to well under that. The first step of the work measures the compressed size of the largest scenario tower (`bench:full-tower`). If it is above 40 KB, the plan adds a smaller save encoding before going on. If a compressed state ever passes 60 KB at runtime, the page falls back to a normal `fetch` and logs it.
+Measured on 18 November 2026: the vertical slice tower is 102 KB of JSON and 16 KB gzipped. The full tower of `engine/testing` (`fullTower()`, 15,000 people) is 2.6 MB of JSON and 197 KB gzipped. That is far above the 64 KB that `fetch(..., { keepalive: true })` and `sendBeacon` can carry on page close, so there is no special close-tab send. On tab close the player can lose up to 30 seconds of simulated time. Player actions are saved within 5 seconds, so a build, price change or rename is only lost if the tab closes in those 5 seconds.
 
 Failures: a failed save is retried with backoff (5 s, 15 s, 30 s, then every 60 s). After two minutes without a successful save, the status bar shows "No se pudo guardar la partida" until a save succeeds. The game keeps running.
 
-Worst case after a browser crash the player loses up to 30 seconds of play, or 5 seconds after a command.
+Worst case after a browser crash or tab close the player loses up to 30 seconds of simulated time, and player actions from the last 5 seconds.
+
+Server load per player is now one save every 30 seconds at most: a gunzip, a JSON parse and migrate to validate, and one row write. For a full tower that is about 200 KB uploaded and a few tens of milliseconds of CPU per save.
 
 ### Play sessions
 
 A new column `towers.play_token` (random, like session tokens) holds the token of the active play session.
 
 - `POST /api/tower/play`: creates a new token, stores it, and returns `{ token, state }` with the latest snapshot. When the tower has never been saved, it returns `createTower(seed)` from `towers.seed`, as `TowerStore.load` does today; the first save creates the first snapshot. Any older token stops being valid. Needs a logged-in session that owns a tower.
-- `PUT /api/tower/state`: body is the gzipped serialized state, header `X-Play-Token`. Answers 409 when the token is not the current one, and the tab stops (below). Answers 413 above a size cap of 2 MB uncompressed and 400 when the state does not parse with `deserializeState` and `migrateState`. On success it stores the state through the existing snapshot repository (keeps 3 snapshots).
+- `PUT /api/tower/state`: body is the gzipped serialized state, header `X-Play-Token`. Answers 409 when the token is not the current one, and the tab stops (below). Answers 413 above 4 MB compressed or 32 MB uncompressed, and 400 when the state does not parse with `deserializeState` (which migrates). On success it stores the gzipped bytes as they came, in a new `tower_snapshots.state_gz bytea` column, and keeps 3 snapshots as today. Storing gzip instead of `jsonb` makes a full tower save write about 200 KB instead of 2.6 MB. Older rows keep their `jsonb` `state`; loading reads `state_gz` when present and falls back to `state`.
 - `POST /api/tower/reset`: as today, it builds a fresh state with `createTower` and also clears the play token, so an open tab gets 409 on its next save.
 
 A save that is in flight when another tab takes over gets 409 like any later one. The server checks the token and writes in one transaction, so a stale save never lands after the takeover.
@@ -112,7 +114,7 @@ The debug messages and developer settings (speed, infinite money, fast forward, 
 
 Removed from `apps/server`: the runner, the WebSocket gateway and its plugin, `tower-socket/`, `debug/`, `follow-connections.ts`, the per-tick save logic, and the WebSocket dependencies. The runner and person-view benchmarks move to `packages/host` or are deleted if they only measure server load. The server keeps auth, the account and tower routes, the snapshot repository, migrations, static files, security headers and health checks. It still depends on `engine` for `createTower`, `deserializeState` and `migrateState`.
 
-Existing saves in `tower_snapshots` load as they are. No data migration besides the new column.
+Existing saves in `tower_snapshots` load as they are. The schema changes are the two new columns, `towers.play_token` and `tower_snapshots.state_gz`, with `tower_snapshots.state` becoming nullable.
 
 ### Versions
 
