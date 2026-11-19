@@ -2,12 +2,7 @@ import { createTower, setStructure, STEPS_PER_DAY, structureAt } from '@tower-ma
 import { MONEY_CAP, type QueuedCommand, type TowerState } from '@tower-magnate/shared';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { REAL_MS_PER_GAME_DAY, stepsForElapsed } from './real-time';
-import {
-  MAX_CATCH_UP_MS,
-  TowerRunner,
-  UnknownTowerError,
-  type AdvanceTower,
-} from './tower-runner';
+import { MAX_CATCH_UP_MS, TowerRunner, UnknownTowerError, type AdvanceTower } from './tower-runner';
 import type { TowerStore } from './tower-store';
 
 const SECOND = 1000;
