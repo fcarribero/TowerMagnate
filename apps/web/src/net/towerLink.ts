@@ -1,6 +1,6 @@
 import type { ClientMessage, ServerMessage } from '@tower-magnate/shared';
 
-export type ConnectionStatus = 'connecting' | 'live' | 'retrying' | 'closed';
+export type ConnectionStatus = 'connecting' | 'live' | 'closed';
 
 /** What the link feeds. `ClientStore` fits. */
 export interface MessageSink {

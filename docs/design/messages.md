@@ -173,10 +173,7 @@ The dialogs of ui.md section 9. Decision dialogs are opened by `decisionOpened` 
 | `dialog.newTower.title` | Torre nueva | |
 | `dialog.newTower.body` | Se demuele toda la torre y empezás de cero el lunes 1 de enero del año 1, con $2.000.000. No se puede deshacer. | |
 | `dialog.newTower.confirm` | Demoler y empezar | |
-| `dialog.protocolMismatch.body` | Hay una versión nueva del juego. Recargá la página. | |
-| `dialog.protocolMismatch.reload` | Recargar | |
 | `dialog.connecting.body` | Conectando... | |
-| `dialog.connectionLost.body` | Se perdió la conexión. Reintentando... | |
 
 The `NOT_AUTHENTICATED` notice above the login form is `error.NOT_AUTHENTICATED` (ui.md 13.8), and the rejected-answer toast is `error.EVENT_EXPIRED`; neither is part of this catalog.
 

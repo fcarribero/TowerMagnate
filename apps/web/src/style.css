@@ -32,28 +32,6 @@ body,
   pointer-events: auto;
 }
 
-.connection-banner {
-  position: absolute;
-  top: 0;
-  right: 0;
-  left: 0;
-  z-index: 5;
-  box-sizing: border-box;
-  height: calc(18 * var(--tm-px));
-  padding: 0 var(--space-2);
-  font: var(--text-button);
-  line-height: calc(16 * var(--tm-px));
-  color: var(--obra-paper);
-  text-align: center;
-  background: var(--obra-red);
-  border-bottom: var(--border-window);
-}
-
-/* The lost-connection banner sits above the top bar, so the bar moves down to make room. */
-.ui-layer:has(.connection-banner) .status-panel {
-  top: calc(18 * var(--tm-px) + var(--chrome-gap));
-}
-
 .connection-box,
 .connection-dialog {
   position: absolute;

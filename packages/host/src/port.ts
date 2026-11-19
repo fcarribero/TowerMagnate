@@ -49,10 +49,7 @@ export interface DebugFrames {
 }
 
 export const CLOSE_CODES = {
-  noHello: 4400,
-  notAuthenticated: 4401,
   protocolMismatch: 4409,
-  rateLimited: 4429,
 } as const;
 
 export function sendMessage(socket: HostSocket, message: ServerMessage): void {

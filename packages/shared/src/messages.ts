@@ -72,10 +72,7 @@ export const DIALOG_MESSAGE_IDS = [
   'dialog.newTower.title',
   'dialog.newTower.body',
   'dialog.newTower.confirm',
-  'dialog.protocolMismatch.body',
-  'dialog.protocolMismatch.reload',
   'dialog.connecting.body',
-  'dialog.connectionLost.body',
 ] as const;
 
 export const MESSAGE_IDS = [...NEWS_IDS, ...DIALOG_MESSAGE_IDS] as const;

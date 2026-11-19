@@ -277,12 +277,12 @@ describe('InfoDialog', () => {
   it('can require its button, with no close button and no Esc', () => {
     const onClose = vi.fn();
     render(
-      <Layer dialogId="protocolMismatch">
+      <Layer dialogId="required">
         <InfoDialog
-          id="protocolMismatch"
+          id="required"
           title="Tower Magnate"
-          body={t('dialog.protocolMismatch.body')}
-          buttonLabel={t('dialog.protocolMismatch.reload')}
+          body={t('dialog.changeFilm.body')}
+          buttonLabel={t('game.reload')}
           closable={false}
           modal
           onClose={onClose}

@@ -704,9 +704,7 @@ Two buttons, the safe one on the right and focused. Esc means the safe option. T
 | State | How it is shown | Text |
 |---|---|---|
 | Connecting after load | Centered box over the tower view: `obra.paper`, `border.dialog`, `shadow.dialog`, `space.4` padding, text in `text.dialog-title` | Conectando... |
-| Socket lost | Banner across the top of the tower view, 18 tall: `obra.red` background, `obra.paper` text in `text.button`, `border.window` under it; input disabled; retries every 2 s | Se perdió la conexión. Reintentando... |
-| `PROTOCOL_MISMATCH` | Centered information-style dialog with an `obra.scrim`, no close button; its only button "Recargar" reloads the page | Hay una versión nueva del juego. Recargá la página. |
-| `NOT_AUTHENTICATED` | Go to the login screen with a notice above the form: an `obra.red` block with `obra.paper` text in `text.body-strong` and `space.2` padding | La sesión se cerró. Entrá de nuevo. |
+| Session lost (a save answered 401) | Go to the login screen with a notice above the form: an `obra.red` block with `obra.paper` text in `text.body-strong` and `space.2` padding | La sesión se cerró. Entrá de nuevo. |
 
 ## 10. Login and register screens
 
@@ -1216,7 +1214,7 @@ These follow the GDD table with the numbers from `docs/design/stars.md` (TM-14).
 
 ### 13.11 Dialog texts
 
-All texts of section 9 are keyed `dialog.{id}.title`, `dialog.{id}.body` and `dialog.{id}.{option}`, with these ids: `bomb`, `fire`, `starsUp`, `towerRank`, `welcome`, `demolishSoldCondo`, `demolishExpensive`, `changeFilm`, `newTower`, `protocolMismatch`, `connecting`, `connectionLost`. The texts are the ones in the section 9 tables; extra keys:
+All texts of section 9 are keyed `dialog.{id}.title`, `dialog.{id}.body` and `dialog.{id}.{option}`, with these ids: `bomb`, `fire`, `starsUp`, `towerRank`, `welcome`, `demolishSoldCondo`, `demolishExpensive`, `changeFilm`, `newTower`, `connecting`. The texts are the ones in the section 9 tables; extra keys:
 
 | Key | Text |
 |---|---|
@@ -1229,7 +1227,6 @@ All texts of section 9 are keyed `dialog.{id}.title`, `dialog.{id}.body` and `di
 | `dialog.demolish` | Demoler |
 | `dialog.changeFilm.confirm` | Cambiar |
 | `dialog.newTower.confirm` | Demoler y empezar |
-| `dialog.protocolMismatch.reload` | Recargar |
 | `dialog.starsUp.title` | ¡{n} estrellas! |
 | `dialog.starsUp.body` | La torre llegó a {n} estrellas. Ahora podés construir: {units}. |
 | `dialog.towerRank.title` | ¡Rango Torre! |
@@ -1383,7 +1380,7 @@ UI-42. A decision dialog closes when answered or at `decisionClosed`, and in the
 
 UI-43. Confirm dialogs put the safe button on the right with focus; Esc chooses it.
 
-UI-44. Losing the socket shows "Se perdió la conexión. Reintentando..." and disables input until reconnected.
+UI-44. A save answered 401 stops the tower and goes to the login screen with "La sesión se cerró. Entrá de nuevo." above the form.
 
 ### Text
 

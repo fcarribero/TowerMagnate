@@ -620,9 +620,7 @@ export const SPANISH_STRINGS = {
   'dialog.newTower.title': 'Torre nueva',
   'dialog.newTower.body':
     'Se demuele toda la torre y empezás de cero el lunes 1 de enero del año 1, con $2.000.000. No se puede deshacer.',
-  'dialog.protocolMismatch.body': 'Hay una versión nueva del juego. Recargá la página.',
   'dialog.connecting.body': 'Conectando...',
-  'dialog.connectionLost.body': 'Se perdió la conexión. Reintentando...',
 
   'dialog.deadlineToday': 'Respondé antes de las {time}',
   'dialog.deadlineOtherDay': 'Respondé antes del {weekday} {time}',
@@ -641,7 +639,6 @@ export const SPANISH_STRINGS = {
   'dialog.newTowerSure.confirm': 'Sí, demoler todo',
   'dialog.newTowerFailed.title': 'Torre nueva',
   'dialog.newTowerFailed.body': 'No se pudo empezar una torre nueva. Tu torre sigue como estaba.',
-  'dialog.protocolMismatch.reload': 'Recargar',
 
   // 13.12 Login and register
   'auth.login.title': 'Entrar',

@@ -8,9 +8,9 @@ import { load, save, speedForKey, type DeveloperSettings } from './developerSett
 import type { SpeedControlsProps } from './SpeedControls';
 
 /**
- * Developer settings kept in the browser and sent to the server whenever the connection goes
- * live, since the server forgets them when the tower is paused. The pause is not kept: a tower
- * opened again runs at the speed that was picked.
+ * Developer settings kept in the browser and sent to the tower Worker whenever the connection
+ * goes live, since a new Worker starts without them. The pause is not kept: a tower opened
+ * again runs at the speed that was picked.
  */
 export function useDeveloperMenu(
   developer: boolean,

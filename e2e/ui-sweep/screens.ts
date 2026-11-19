@@ -418,28 +418,6 @@ export const SCREENS: Screen[] = [
       ),
   },
   {
-    id: 'connection-lost',
-    state: 'socket closed by the server: banner',
-    run: (context) =>
-      onExtraPage(
-        context,
-        'connection-lost',
-        (page) => page.addInitScript(closeSocketsWith(1011)),
-        '.connection-banner',
-      ),
-  },
-  {
-    id: 'protocol-mismatch',
-    state: 'socket closed with PROTOCOL_MISMATCH',
-    run: (context) =>
-      onExtraPage(
-        context,
-        'protocol-mismatch',
-        (page) => page.addInitScript(closeSocketsWith(4409)),
-        '.connection-dialog',
-      ),
-  },
-  {
     id: 'session-expired',
     state: 'socket closed with NOT_AUTHENTICATED: login with notice',
     run: (context) =>
