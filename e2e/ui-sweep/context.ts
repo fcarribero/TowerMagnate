@@ -138,25 +138,33 @@ const PERSON_MODE_WALKING = 0;
 const PERSON_SPOT_TIMEOUT_MS = 8_000;
 
 /**
- * Asks the server, on a second socket that reports a viewport over the tower, for the people it
- * sends, and returns one standing in a floor that is not the lobby and not riding a car.
+ * Reports a viewport over the tower through the page's worker hook, and returns a person from
+ * the deltas it gets back: one standing in a floor that is not the lobby and not riding a car.
  */
 async function readPersonSpot(page: Page): Promise<PersonSpot> {
   const spot = await page.evaluate(
     ({ walking, timeoutMs }) =>
       new Promise<PersonSpot | null>((resolve) => {
-        const scheme = location.protocol === 'https:' ? 'wss:' : 'ws:';
-        const socket = new WebSocket(`${scheme}//${location.host}/ws`);
-        const timer = setTimeout(() => resolve(null), timeoutMs);
-        let reported = false;
-        socket.onopen = () => socket.send(JSON.stringify({ v: 1, t: 'hello', p: { protocol: 1 } }));
-        socket.onmessage = (event) => {
-          const message = JSON.parse(String(event.data));
-          if (!reported) {
-            reported = true;
-            const viewport = { levelFrom: 1, levelTo: 10, xFrom: 100, xTo: 210 };
-            socket.send(JSON.stringify({ v: 1, t: 'viewport', p: viewport }));
+        const hook = (
+          globalThis as unknown as {
+            __towerMagnate?: {
+              sendFrame(text: string): void;
+              onServerMessage(
+                callback: (message: { p?: { people?: number[][] } }) => void,
+              ): () => void;
+            };
           }
+        ).__towerMagnate;
+        if (hook === undefined) {
+          resolve(null);
+          return;
+        }
+        // No named inner functions: tsx adds a `__name` helper that does not exist in the page.
+        const timer = setTimeout(() => {
+          unsubscribe();
+          resolve(null);
+        }, timeoutMs);
+        const unsubscribe = hook.onServerMessage((message) => {
           const packed: number[][] = message.p?.people ?? [];
           // packed person: id, kind, x, level, facing, mode, stress, shaft, car
           const found = packed.find(
@@ -164,13 +172,15 @@ async function readPersonSpot(page: Page): Promise<PersonSpot> {
           );
           if (found) {
             clearTimeout(timer);
-            socket.close();
+            unsubscribe();
             resolve({ x: found[2] as number, level: found[3] as number });
           }
-        };
+        });
+        const viewport = { levelFrom: 1, levelTo: 10, xFrom: 100, xTo: 210 };
+        hook.sendFrame(JSON.stringify({ v: 1, t: 'viewport', p: viewport }));
       }),
     { walking: PERSON_MODE_WALKING, timeoutMs: PERSON_SPOT_TIMEOUT_MS },
   );
-  if (spot === null) throw new Error('the server sent no walking person');
+  if (spot === null) throw new Error('the tower sent no walking person');
   return spot;
 }
