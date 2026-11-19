@@ -6,6 +6,7 @@ import {
   type ClientMessage,
   type ServerMessage,
 } from '@tower-magnate/shared';
+import type { TowerLink } from './towerLink';
 
 export const CLOSE_NOT_AUTHENTICATED = 4401;
 export const CLOSE_PROTOCOL_MISMATCH = 4409;
@@ -53,7 +54,7 @@ const OPEN = 1;
  * reconnects at a fixed delay. After a reconnect the sink is told, so it
  * drops what it had and waits for the new snapshot.
  */
-export class GameSocket {
+export class GameSocket implements TowerLink {
   private socket: SocketLike | null = null;
   private status: ConnectionStatus = 'closed';
   private hasBeenOpen = false;

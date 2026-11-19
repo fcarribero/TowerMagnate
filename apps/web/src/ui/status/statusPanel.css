@@ -139,6 +139,15 @@
   background: var(--obra-red);
 }
 
+.status-panel__save-failing {
+  flex: none;
+  align-self: center;
+  padding: var(--space-1);
+  font: 400 calc(12 * var(--tm-px)) / 1 var(--font-display);
+  color: var(--obra-paper);
+  background: var(--obra-red);
+}
+
 .status-panel__population {
   flex-direction: column;
   align-items: flex-start;

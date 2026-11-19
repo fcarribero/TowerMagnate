@@ -669,4 +669,14 @@ export const SPANISH_STRINGS = {
   'auth.passwordLong': 'La contraseña lleva como máximo 128 caracteres.',
   'ui.stage.loading': 'Cargando gráficos…',
   'ui.stage.loadError': 'No se pudieron cargar los gráficos. Recargá la página.',
+
+  // Loading the tower and the play session
+  'game.loading': 'Cargando la torre…',
+  'game.loadFailed': 'No se pudo cargar la torre.',
+  'game.retry': 'Reintentar',
+  'game.takenOver': 'La torre se abrió en otra ventana.',
+  'game.playHere': 'Jugar acá',
+  'game.outdated': 'Hay una versión nueva del juego.',
+  'game.reload': 'Recargar',
+  'game.saveFailing': 'No se pudo guardar la partida',
 } as const;

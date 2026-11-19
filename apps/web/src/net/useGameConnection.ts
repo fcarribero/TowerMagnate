@@ -1,43 +1,47 @@
+import type { PlayResponse } from '@tower-magnate/shared';
 import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import { createGameConnection, type GameConnection } from './gameConnection';
-import {
-  CLOSE_NOT_AUTHENTICATED,
-  CLOSE_PROTOCOL_MISMATCH,
-  gameSocketUrl,
-  type ConnectionStatus,
-} from './gameSocket';
+import type { ConnectionStatus } from './gameSocket';
+import { WorkerSocket, type WorkerLike } from './workerSocket';
 
 export interface GameConnectionOptions {
-  /** The server refused the session cookie. */
-  onNotAuthenticated?: () => void;
+  play: PlayResponse;
+  /** Debug and developer messages are answered only when true. */
+  debug: boolean;
+  onTakenOver?: () => void;
+  onOutdated?: () => void;
+  onSaveFailing?: (failing: boolean) => void;
+  /** Tests stand in for the Worker. Read once, when the connection is made. */
+  createWorker?: () => WorkerLike;
 }
 
-/** Opens the tower socket for as long as the component is mounted. */
-export function useGameConnection({ onNotAuthenticated }: GameConnectionOptions = {}): {
+/** Runs the tower in a Worker for as long as the component is mounted. */
+export function useGameConnection(options: GameConnectionOptions): {
   connection: GameConnection;
   status: ConnectionStatus;
-  protocolMismatch: boolean;
 } {
   const [status, setStatus] = useState<ConnectionStatus>('connecting');
-  const [protocolMismatch, setProtocolMismatch] = useState(false);
-  const notAuthenticatedRef = useRef(onNotAuthenticated);
-  notAuthenticatedRef.current = onNotAuthenticated;
+  const latest = useRef(options);
+  latest.current = options;
 
+  const { play, debug } = options;
   const connection = useMemo(
     () =>
-      createGameConnection({
-        url: gameSocketUrl(location),
-        validate: import.meta.env.DEV,
-        onStatus: setStatus,
-        onClosedForGood: (code) => {
-          if (code === CLOSE_PROTOCOL_MISMATCH) {
-            setProtocolMismatch(true);
-          } else if (code === CLOSE_NOT_AUTHENTICATED) {
-            notAuthenticatedRef.current?.();
-          }
-        },
-      }),
-    [],
+      createGameConnection(
+        (sink) =>
+          new WorkerSocket({
+            sink,
+            play,
+            debug,
+            createWorker: latest.current.createWorker,
+            validate: import.meta.env.DEV,
+            onStatus: setStatus,
+            onTakenOver: () => latest.current.onTakenOver?.(),
+            onOutdated: () => latest.current.onOutdated?.(),
+            onSaveFailing: (failing) => latest.current.onSaveFailing?.(failing),
+          }),
+      ),
+    [play, debug],
   );
 
   useEffect(() => {
@@ -48,5 +52,5 @@ export function useGameConnection({ onNotAuthenticated }: GameConnectionOptions 
     };
   }, [connection]);
 
-  return { connection, status, protocolMismatch };
+  return { connection, status };
 }

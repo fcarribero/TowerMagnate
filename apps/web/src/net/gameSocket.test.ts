@@ -226,7 +226,9 @@ describe('GameSocket', () => {
 describe('createGameConnection', () => {
   function connected() {
     const { createSocket, last, sockets } = fakeSockets();
-    const connection = createGameConnection({ url: 'ws://test/ws', createSocket });
+    const connection = createGameConnection(
+      (sink) => new GameSocket({ url: 'ws://test/ws', createSocket, sink }),
+    );
     connection.socket.connect();
     last().serverOpens();
     last().serverSends(serverMessage('snapshot', snapshot));
@@ -266,7 +268,9 @@ describe('createGameConnection', () => {
 
   it('sends the camera viewport after the first snapshot, a forced snapshot and a reconnect', () => {
     const { createSocket, last } = fakeSockets();
-    const connection = createGameConnection({ url: 'ws://test/ws', createSocket });
+    const connection = createGameConnection(
+      (sink) => new GameSocket({ url: 'ws://test/ws', createSocket, sink }),
+    );
     const camera = createCamera(1200, 800, 2);
     const expected = { t: 'viewport', p: cameraViewport(camera, 2) };
     connection.viewport.cameraChanged(camera);

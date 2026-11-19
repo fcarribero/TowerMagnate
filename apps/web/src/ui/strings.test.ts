@@ -91,7 +91,7 @@ describe('strings', () => {
 
   it('follows the key patterns of the spec', () => {
     const pattern =
-      /^(ui|calendar|unit|category|tool|window|value|overlay|error|news|dialog|auth|stars)\.[\w.-]+$/;
+      /^(ui|calendar|unit|category|tool|window|value|overlay|error|news|dialog|auth|stars|game)\.[\w.-]+$/;
     for (const key of stringKeys()) {
       expect(key).toMatch(pattern);
     }

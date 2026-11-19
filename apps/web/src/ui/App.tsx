@@ -1,4 +1,4 @@
-import type { StarRating } from '@tower-magnate/shared';
+import type { PlayResponse, StarRating } from '@tower-magnate/shared';
 import { useCallback, useEffect, useMemo, useState } from 'preact/hooks';
 import { TOWER_LAYOUT, type Level } from '@tower-magnate/shared';
 import { createCommandApi } from '../api/commandApi';
@@ -9,6 +9,7 @@ import { bindTowerContent } from '../model/stateContent';
 import { TowerContentStore } from '../model/towerContent';
 import { useStoreSelect } from '../model/useStoreSelect';
 import { useGameConnection } from '../net/useGameConnection';
+import type { WorkerLike } from '../net/workerSocket';
 import { bindPreview, previewToolOf, worldOf } from '../render/placementSource';
 import type { Stage } from '../render/stage';
 import { bindUnitClicks } from '../render/unitClick';
@@ -32,6 +33,7 @@ import { overlayForKey } from './overlay/overlayModel';
 import { FinanceWindow } from './finance/FinanceWindow';
 import { isFinanceToggleKey, isMapToggleKey, isPlainShortcut } from './keys';
 import { ConnectionOverlay } from './ConnectionOverlay';
+import { PlayBlocker, type PlayBlockReason } from './PlayBlocker';
 import { SpeedControls } from './developer/SpeedControls';
 import { useDeveloperMenu } from './developer/useDeveloperMenu';
 import { BuildFeedback } from './placement/BuildFeedback';
@@ -69,22 +71,39 @@ import { PersonWindows } from './person/PersonWindows';
 import { UnitWindows } from './unit/UnitWindows';
 
 export interface AppProps {
+  /** The play session: the token for saves and the tower to start from. */
+  play: PlayResponse;
+  /** Takes the tower back from another tab with a new play session. */
+  onPlayHere: () => void;
   /** Shows the developer entries of the game menu. */
   developer?: boolean;
   onLogout: () => void;
   /** Resolves true when the server started a new tower. */
   onRestartTower: () => Promise<boolean>;
-  onSessionLost: () => void;
+  /** Tests stand in for the tower Worker. */
+  createWorker?: () => WorkerLike;
 }
 
 const selectStars = (state: GameState): StarRating => state.stars;
 
-export function App({ developer = false, onLogout, onRestartTower, onSessionLost }: AppProps) {
-  const {
-    connection,
-    status: connectionStatus,
-    protocolMismatch,
-  } = useGameConnection({ onNotAuthenticated: onSessionLost });
+export function App({
+  play,
+  onPlayHere,
+  developer = false,
+  onLogout,
+  onRestartTower,
+  createWorker,
+}: AppProps) {
+  const [blocker, setBlocker] = useState<PlayBlockReason | null>(null);
+  const [saveFailing, setSaveFailing] = useState(false);
+  const { connection, status: connectionStatus } = useGameConnection({
+    play,
+    debug: developer || import.meta.env.DEV,
+    onTakenOver: () => setBlocker('takenOver'),
+    onOutdated: () => setBlocker('outdated'),
+    onSaveFailing: setSaveFailing,
+    createWorker,
+  });
   const connected = connectionStatus === 'live';
   const content = useMemo(() => new TowerContentStore(), []);
   useEffect(() => bindTowerContent(connection.store, content), [connection, content]);
@@ -193,6 +212,8 @@ export function App({ developer = false, onLogout, onRestartTower, onSessionLost
 
   const restartTower = (): void => {
     setRestartStep(null);
+    // Stop first, so this tab's last save cannot land after the reset.
+    connection.socket.stop();
     void onRestartTower().then((restarted) => {
       if (!restarted) {
         setRestartStep('failed');
@@ -423,6 +444,7 @@ export function App({ developer = false, onLogout, onRestartTower, onSessionLost
           onLogout={onLogout}
           infiniteMoney={developer && developerSettings.infiniteMoney}
           belowClock={speedControls !== null && <SpeedControls {...speedControls} />}
+          saveFailing={saveFailing}
           extraMenuItems={[
             {
               id: 'newTower',
@@ -449,9 +471,10 @@ export function App({ developer = false, onLogout, onRestartTower, onSessionLost
         <IncomeFloaters floaters={incomeFloats} />
         <ConnectionOverlay
           status={connectionStatus}
-          protocolMismatch={protocolMismatch}
+          protocolMismatch={false}
           onReload={() => location.reload()}
         />
+        {blocker !== null && <PlayBlocker reason={blocker} onPlayHere={onPlayHere} />}
         <Toasts commands={connection.commands} />
         <NewsLine
           subscribe={notices.subscribeLine}

@@ -48,6 +48,8 @@ export interface StatusPanelProps {
   infiniteMoney?: boolean;
   /** Shown right under the clock. */
   belowClock?: ComponentChildren;
+  /** Saves have kept failing for a while; shows a warning on the bar. */
+  saveFailing?: boolean;
 }
 
 const MAX_BADGE_COUNT = 9;
@@ -108,6 +110,7 @@ export function StatusPanel({
   unreadNotices = 0,
   infiniteMoney = false,
   belowClock,
+  saveFailing = false,
 }: StatusPanelProps) {
   const status = useStoreSelect(store, selectStatus);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -142,6 +145,11 @@ export function StatusPanel({
             onOpenFinance={() => onOpenWindow('finance')}
             financeOpen={openWindows.has('finance')}
           />
+        )}
+        {saveFailing && (
+          <span class="status-panel__save-failing" role="alert">
+            {t('game.saveFailing')}
+          </span>
         )}
         <span class="status-panel__spacer" />
         {overlaySlot !== undefined && <div class="status-panel__overlay">{overlaySlot}</div>}

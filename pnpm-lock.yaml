@@ -105,6 +105,9 @@ importers:
       '@tower-magnate/engine':
         specifier: workspace:*
         version: link:../../packages/engine
+      '@tower-magnate/host':
+        specifier: workspace:*
+        version: link:../../packages/host
       '@tower-magnate/shared':
         specifier: workspace:*
         version: link:../../packages/shared

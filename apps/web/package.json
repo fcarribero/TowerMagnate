@@ -15,6 +15,7 @@
   },
   "dependencies": {
     "@tower-magnate/engine": "workspace:*",
+    "@tower-magnate/host": "workspace:*",
     "@tower-magnate/shared": "workspace:*",
     "pixi.js": "^8.22.0",
     "preact": "^10.29.8"

@@ -69,6 +69,8 @@ services:
       - web-modules-root:/app/node_modules
       - web-modules-web:/app/apps/web/node_modules
       - web-modules-shared:/app/packages/shared/node_modules
+      - web-modules-host:/app/packages/host/node_modules
+      - web-modules-engine:/app/packages/engine/node_modules
     depends_on:
       - server
 
@@ -102,3 +104,5 @@ volumes:
   web-modules-root:
   web-modules-web:
   web-modules-shared:
+  web-modules-host:
+  web-modules-engine:

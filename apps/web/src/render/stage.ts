@@ -313,6 +313,8 @@ export async function mountStage(host: HTMLElement, options: StageOptions = {}):
       selectedPerson === null ? null : (personRectOf(selectedPerson) ?? null),
     );
   };
+  // Panels unmounted after the stage clear their selection; by then the graphics are gone.
+  let destroyed = false;
   const drawCars = (): void => {
     const next = carSource?.();
     if (next) {
@@ -367,6 +369,7 @@ export async function mountStage(host: HTMLElement, options: StageOptions = {}):
       return rect === undefined ? null : screenRectOf(camera, rect);
     },
     showPersonSelection(personId) {
+      if (destroyed) return;
       selectedPerson = personId;
       drawPersonSelection();
     },
@@ -404,6 +407,7 @@ export async function mountStage(host: HTMLElement, options: StageOptions = {}):
       ghost.showHighlight(input, color);
     },
     showSelection(unitIds) {
+      if (destroyed) return;
       ghost.showSelection(
         unitIds.flatMap((id) => {
           const rect = units.rectOf(id);
@@ -451,6 +455,7 @@ export async function mountStage(host: HTMLElement, options: StageOptions = {}):
       events.start(effect, animationNow());
     },
     destroy() {
+      destroyed = true;
       app.ticker.remove(drawCars);
       app.ticker.remove(drawEvents);
       app.ticker.remove(growBuildings);
