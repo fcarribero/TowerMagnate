@@ -1,5 +1,5 @@
 import { STEPS_PER_MINUTE, stepOfDate } from '@tower-magnate/engine/calendar';
-import { act, cleanup, fireEvent, render, screen } from '@testing-library/preact';
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/preact';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ClientStore } from '../../model/clientStore';
 import { delta, snapshot } from '../../testing/protocolFixtures';
@@ -110,7 +110,7 @@ describe('StatusPanel', () => {
     expect(screen.getByText('TORRE')).toBeTruthy();
   });
 
-  it('updates money and population on every delta and the time every game minute', () => {
+  it('updates money and population on every delta and the time every game minute', async () => {
     const store = storeAt({ step: 0, money: 1000, population: 5 });
     renderPanel(store);
 
@@ -120,7 +120,7 @@ describe('StatusPanel', () => {
     expect(text('.status-panel__time')).toBe('00:00');
 
     act(() => store.applyDelta(delta({ step: STEPS_PER_MINUTE })));
-    expect(text('.status-panel__time')).toBe('00:01');
+    await waitFor(() => expect(text('.status-panel__time')).toBe('00:01'));
   });
 
   it('opens windows from its buttons', () => {

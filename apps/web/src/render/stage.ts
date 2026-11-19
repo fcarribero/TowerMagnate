@@ -1,4 +1,4 @@
-import { animationNow, isAnimationPaused } from './animationClock';
+import { animationNow, gameSpeed, isAnimationPaused } from './animationClock';
 import type { FireSpan, HeatData, Level, ShaftView } from '@tower-magnate/shared';
 import { Application, Container, TextureSource } from 'pixi.js';
 import type { DrawnFrame } from '../model/interpolation';
@@ -331,8 +331,8 @@ export async function mountStage(host: HTMLElement, options: StageOptions = {}):
   const growBuildings = (): void => {
     structure.animate();
     if (!isAnimationPaused()) {
-      driftClouds(sky, app.ticker.deltaMS / 1000);
-      updateWeather(sky, app.ticker.deltaMS / 1000);
+      driftClouds(sky, (app.ticker.deltaMS * gameSpeed()) / 1000);
+      updateWeather(sky, (app.ticker.deltaMS * gameSpeed()) / 1000);
     }
   };
   app.ticker.add(growBuildings);

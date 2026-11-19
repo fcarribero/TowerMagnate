@@ -88,7 +88,7 @@ export class LocalSession {
     });
   }
 
-  /** Loads the state into the runner and starts the 100, 200 and 250 ms timers. Later calls share the first. */
+  /** Loads the state into the runner and starts the tick, delta and inspection timers. Later calls share the first. */
   start(): Promise<void> {
     this.starting ??= this.load();
     return this.starting;

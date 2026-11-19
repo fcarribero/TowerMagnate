@@ -1,5 +1,6 @@
 import type { Level } from '@tower-magnate/shared';
 import { Container, Graphics, Sprite, TilingSprite, type Texture } from 'pixi.js';
+import { animationNow } from './animationClock';
 import {
   buildProgress,
   columnRuns,
@@ -46,7 +47,7 @@ export class StructureLayer {
   constructor(
     private readonly sprites: SpriteRegistry,
     private readonly time: TimeOfDay = 'day',
-    private readonly now: () => number = () => performance.now(),
+    private readonly now: () => number = animationNow,
   ) {
     this.planner = new StructureRows((level, pieces) => this.drawLevel(level, pieces));
   }

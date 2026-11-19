@@ -1,4 +1,7 @@
 import {
+  BASE_DELTA_INTERVAL_MS,
+  deltaIntervalMs,
+  FASTEST_DELTA_INTERVAL_MS,
   serverMessage,
   type ClientEvent,
   type HeatKind,
@@ -14,10 +17,12 @@ import { buildSnapshot } from '../views/snapshot';
 import { DisconnectedUnitsCache } from './disconnected-units';
 import type { Viewports } from './viewports';
 
-export const DELTA_INTERVAL_MS = 200;
+export const DELTA_INTERVAL_MS = BASE_DELTA_INTERVAL_MS;
 export const HEARTBEAT_INTERVAL_MS = 1000;
-/** A heat map changes once a game minute, which is 6 steps. */
+/** A game minute is 6 steps. A heat map changes once a game minute. */
 const HEAT_STEPS = 6;
+/** A delta that moves the clock on by this many steps goes out even when nothing else changed. */
+const CLOCK_STEPS = 6;
 
 export interface DeltaBroadcasterOptions {
   runner: TowerRunner;
@@ -104,10 +109,29 @@ export class DeltaBroadcaster {
     }
   }
 
-  /** Ticks on a timer until the returned function is called. */
-  start(sockets: SocketSet, intervalMs = DELTA_INTERVAL_MS): () => void {
-    const timer = setInterval(() => this.tick(sockets), intervalMs);
+  /**
+   * Ticks on a timer until the returned function is called. The timer runs at the fastest delta
+   * rate and a tick goes out once the interval for the fastest running tower has passed, so a
+   * tower sped up by a developer sends more, smaller deltas.
+   */
+  start(sockets: SocketSet, intervalMs = FASTEST_DELTA_INTERVAL_MS): () => void {
+    let lastTickAt: number | null = null;
+    const timer = setInterval(() => {
+      const now = this.now();
+      const due = deltaIntervalMs(this.fastestSpeed()) - intervalMs / 2;
+      if (lastTickAt !== null && now - lastTickAt < due) return;
+      lastTickAt = now;
+      this.tick(sockets);
+    }, intervalMs);
     return () => clearInterval(timer);
+  }
+
+  private fastestSpeed(): number {
+    let fastest = 1;
+    for (const towerId of this.options.runner.runningTowers()) {
+      fastest = Math.max(fastest, this.options.runner.speedOf(towerId) ?? 1);
+    }
+    return fastest;
   }
 
   private update(
@@ -127,7 +151,10 @@ export class DeltaBroadcaster {
     }
   }
 
-  /** The delta, or a snapshot when that is smaller. Idle updates wait for the heartbeat. */
+  /**
+   * The delta, or a snapshot when that is smaller. Idle updates wait for the heartbeat, unless
+   * the clock has moved on a game minute, so the client's clock goes through every minute.
+   */
   private sendUpdate(
     socket: HostSocket,
     baseline: SentState,
@@ -140,7 +167,8 @@ export class DeltaBroadcaster {
       return;
     }
     const { delta, quiet } = diffSnapshots(baseline.snapshot, snapshot);
-    if (quiet && !hasEvents && now - baseline.sentAt < HEARTBEAT_INTERVAL_MS) {
+    const clockMoved = snapshot.step - baseline.snapshot.step >= CLOCK_STEPS;
+    if (quiet && !hasEvents && !clockMoved && now - baseline.sentAt < HEARTBEAT_INTERVAL_MS) {
       return;
     }
     const deltaText = JSON.stringify(serverMessage('delta', delta));

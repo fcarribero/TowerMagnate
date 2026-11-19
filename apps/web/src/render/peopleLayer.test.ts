@@ -180,9 +180,10 @@ describe('PeopleLayer', () => {
 
 describe('PeopleLayer idle animation', () => {
   it('alternates the two idle frames of a person who stands', () => {
-    const { layer } = layerWithArt();
+    let clock = 0;
+    const { layer } = layerWithArt(() => clock);
     const seen = new Set<unknown>();
-    for (let tick = 0; tick < 100; tick += 1) {
+    for (let tick = 0; tick < 100; tick += 1, clock += 16) {
       layer.show(frameOf(person('p1', { mode: 'wait', stress: 'normal' })));
       seen.add(pantsOf(layer.view.children[0]).texture);
     }

@@ -1,5 +1,6 @@
 import type { Level, ShaftView } from '@tower-magnate/shared';
 import { Container, Sprite, Texture } from 'pixi.js';
+import { animationNow } from './animationClock';
 import type { DrawnCar, DrawnFrame, DrawnPerson } from '../model/interpolation';
 import { carKey } from '../model/gameState';
 import type { LevelRange, WorldRect } from './camera';
@@ -71,7 +72,7 @@ export class ElevatorLayer {
 
   constructor(
     private readonly sprites: SpriteRegistry,
-    private readonly now: () => number = () => performance.now(),
+    private readonly now: () => number = animationNow,
   ) {}
 
   get shaftCount(): number {

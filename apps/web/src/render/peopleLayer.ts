@@ -4,7 +4,7 @@ import type { DrawnFlight, DrawnFrame } from '../model/interpolation';
 import type { LevelRange, WorldRect } from './camera';
 import { floorSprite } from './elevatorPlan';
 import { fitFollowedMarker, newFollowedMarker } from './followedMarker';
-import { animationNow, isAnimationPaused } from './animationClock';
+import { animationNow } from './animationClock';
 import { drawnOnFlight, findFlightSpan, type FlightPose, type FlightSpan } from './flightMotion';
 import { insideLook, type UnitSpan } from './insideMotion';
 import { levelTop } from './levels';
@@ -20,8 +20,8 @@ const INSIDE_PERSON_COLUMNS = 2;
 const GUEST_TINT = 0xffe9a8;
 const NO_TINT = 0xffffff;
 const PERSON_HEIGHT = FRAME_HEIGHT;
-/** Render frames each idle frame is shown for, about half a second at 60 frames a second. */
-const IDLE_FRAME_LENGTH = 30;
+/** Animation milliseconds each idle frame is shown for; shorter in real time at a higher game speed. */
+const IDLE_FRAME_MS = 500;
 
 /** A small number from the person id, so people who stand together do not breathe in step. */
 function idlePhase(id: string): number {
@@ -56,8 +56,6 @@ export class PeopleLayer {
   private readonly spare: DrawnWalker[] = [];
   private range: LevelRange | null = null;
   private frameNumber = 0;
-  /** Counts the frames drawn while the game runs; idle animations follow it. */
-  private idleFrames = 0;
   private guests: ReadonlySet<string> = new Set();
   private followed: ReadonlySet<string> = new Set();
 
@@ -163,9 +161,6 @@ export class PeopleLayer {
 
   show(frame: DrawnFrame): void {
     this.frameNumber += 1;
-    if (!isAnimationPaused()) {
-      this.idleFrames += 1;
-    }
     for (const { person, x, position, flight } of frame.people) {
       if (person.mode === 'ride') {
         continue;
@@ -257,7 +252,7 @@ export class PeopleLayer {
     if (look.state !== 'stand') {
       return look;
     }
-    const tick = Math.floor(this.idleFrames / IDLE_FRAME_LENGTH) + idlePhase(id);
+    const tick = Math.floor(this.now() / IDLE_FRAME_MS) + idlePhase(id);
     return { look: look.look, state: 'idle', frame: (tick % 2) + 1 };
   }
 

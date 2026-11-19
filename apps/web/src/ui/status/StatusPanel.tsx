@@ -1,9 +1,10 @@
 import type { WeatherCondition } from '@tower-magnate/engine/weather';
 import type { StarRating } from '@tower-magnate/shared';
 import type { ComponentChildren } from 'preact';
-import { useLayoutEffect, useRef, useState, type MutableRef } from 'preact/hooks';
+import { useEffect, useLayoutEffect, useRef, useState, type MutableRef } from 'preact/hooks';
 import type { ClientStore } from '../../model/clientStore';
 import type { GameState } from '../../model/gameState';
+import { drawnStep, progressSince } from '../../model/interpolation';
 import { useStoreSelect } from '../../model/useStoreSelect';
 import { Tooltip } from '../kit';
 import { GameMenu, type MenuItem } from '../menu/GameMenu';
@@ -112,7 +113,12 @@ export function StatusPanel({
   belowClock,
   saveFailing = false,
 }: StatusPanelProps) {
-  const status = useStoreSelect(store, selectStatus);
+  const latestStatus = useStoreSelect(store, selectStatus);
+  const drawnMinute = useDrawnMinute(store);
+  const status =
+    latestStatus === null || drawnMinute === null
+      ? latestStatus
+      : { ...latestStatus, minute: Math.min(drawnMinute, latestStatus.minute) };
   const panelRef = useRef<HTMLDivElement>(null);
   const rowRef = useRef<HTMLDivElement>(null);
   const windowsRef = useRef<HTMLDivElement>(null);
@@ -182,6 +188,29 @@ export function StatusPanel({
       </div>
     </div>
   );
+}
+
+/**
+ * The game minute the tower is drawn at, which runs one delta behind the latest state and moves
+ * on every frame, so the clock goes through each minute even when a delta covers several.
+ */
+function useDrawnMinute(store: ClientStore): number | null {
+  const [minute, setMinute] = useState<number | null>(null);
+  useEffect(() => {
+    let frame = 0;
+    const update = (): void => {
+      const frames = store.current;
+      if (frames !== null) {
+        const progress = progressSince(frames.latestArrivedAtMs, performance.now());
+        const next = gameMinuteOfStep(drawnStep(frames, progress));
+        setMinute((was) => (was === next ? was : next));
+      }
+      frame = requestAnimationFrame(update);
+    };
+    update();
+    return () => cancelAnimationFrame(frame);
+  }, [store]);
+  return minute;
 }
 
 function unreadLabel(count: number): string {

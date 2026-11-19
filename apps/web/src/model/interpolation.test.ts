@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { car, delta, shaft, snapshot, walker } from '../testing/protocolFixtures';
 import type { StoreFrames } from './clientStore';
 import { applyDelta, stateFromSnapshot, type GameState } from './gameState';
-import { CAR_SNAP_GAP_STEPS, drawnFrame, progressSince } from './interpolation';
+import { CAR_SNAP_GAP_STEPS, drawnFrame, drawnStep, progressSince } from './interpolation';
 
 const start = stateFromSnapshot(snapshot);
 
@@ -37,6 +37,26 @@ describe('progressSince', () => {
     expect(progressSince(1000, 1100)).toBe(0.5);
     expect(progressSince(1000, 1600)).toBe(1);
     expect(progressSince(1000, 900)).toBe(0);
+  });
+
+  it('catches up sooner when the game runs faster and deltas come more often', () => {
+    expect(progressSince(1000, 1025, 20)).toBe(0.5);
+    expect(progressSince(1000, 1050, 20)).toBe(1);
+    expect(progressSince(1000, 1050, 2)).toBe(0.5);
+  });
+});
+
+describe('drawnStep', () => {
+  it('runs from the previous step to the latest one', () => {
+    const before = applyDelta(start, delta({ step: 100 }));
+    const after = applyDelta(before, delta({ step: 160 }));
+    expect(drawnStep(frames(before, after), 0)).toBe(100);
+    expect(drawnStep(frames(before, after), 0.5)).toBe(130);
+    expect(drawnStep(frames(before, after), 1)).toBe(160);
+  });
+
+  it('is the snapshot step before any delta', () => {
+    expect(drawnStep(frames(null, start), 0.5)).toBe(start.step);
   });
 });
 
@@ -81,6 +101,12 @@ describe('drawnFrame cars', () => {
     const before = applyDelta(start, delta({ step: 101, cars: [carAt(10)] }));
     const after = applyDelta(before, delta({ step: 101 + CAR_SNAP_GAP_STEPS, cars: [carAt(30)] }));
     expect(drawnFrame(frames(before, after), 0.5).cars.get('s4#0')?.position).toBe(20);
+  });
+
+  it('glides across a gap the game speed makes normal', () => {
+    const before = applyDelta(start, delta({ step: 101, cars: [carAt(10)] }));
+    const after = applyDelta(before, delta({ step: 101 + 10, cars: [carAt(30)] }));
+    expect(drawnFrame(frames(before, after), 0.5, 20).cars.get('s4#0')?.position).toBe(20);
   });
 
   it('draws the snapshot as it is', () => {

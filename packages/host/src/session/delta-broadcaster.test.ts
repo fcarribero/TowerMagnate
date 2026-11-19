@@ -10,7 +10,7 @@ import {
   type Snapshot,
   type TowerState,
 } from '@tower-magnate/shared';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { FakeSocket, FakeSocketSet } from '../testing/fake-socket';
 import { TowerRunner } from '../runner/tower-runner';
 import type { TowerStore } from '../runner/tower-store';
@@ -118,11 +118,17 @@ describe('delta broadcaster', () => {
     expect(messages('snapshot')).toHaveLength(1);
   });
 
-  it('sends a step-only heartbeat once a second when idle', () => {
+  it('sends a step-only delta once a game minute when idle', () => {
     pass(5000);
 
     const deltas = messages('delta');
-    expect(deltas).toHaveLength(5);
+    // 5 s is 48 steps; a delta goes out on the first tick 6 steps (a game minute) past the last one.
+    expect(deltas).toHaveLength(7);
+    const steps = deltas.map((message) => (message.p as Delta).step);
+    for (const [index, step] of steps.entries()) {
+      const before = index === 0 ? 0 : (steps[index - 1] ?? 0);
+      expect(step - before).toBeGreaterThanOrEqual(6);
+    }
     expect(Object.keys(deltas[0]?.p ?? {})).toEqual(['step', 'cars', 'people']);
   });
 
@@ -266,5 +272,63 @@ describe('delta broadcaster', () => {
     pass(1000);
 
     expect(other.sent).toEqual([]);
+  });
+});
+
+describe('delta broadcaster timer', () => {
+  let clock: number;
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  async function deltasIn(speed: number, ms: number, busy = true): Promise<number> {
+    vi.useFakeTimers();
+    clock = 1_000_000;
+    const state = createTower(5);
+    setStructure(state.grid, 1, 0, 9, 'lobby');
+    const runner = new TowerRunner({
+      store: new OneTowerStore(state),
+      now: () => clock,
+      advance: (current, steps) => ({
+        state: {
+          ...current,
+          step: current.step + steps,
+          money: current.money + (busy ? steps : 0),
+        },
+        events: [],
+      }),
+    });
+    const registry = new FakeSocketSet();
+    const viewports = new Viewports();
+    const broadcaster = new DeltaBroadcaster({ runner, viewports, now: () => clock });
+    const socket = new FakeSocket();
+    registry.add(socket, { userId: 'u1', towerId: TOWER });
+    await runner.resume(TOWER);
+    await runner.setSpeed(TOWER, speed);
+    viewports.update(socket, VIEW);
+    broadcaster.sendSnapshot(socket, buildSnapshot(state, VIEW));
+    const stopRunner = runner.start();
+    const stopBroadcaster = broadcaster.start(registry);
+    for (let elapsed = 0; elapsed < ms; elapsed += 10) {
+      clock += 10;
+      vi.advanceTimersByTime(10);
+    }
+    stopRunner();
+    stopBroadcaster();
+    return (socket.sent as Message[]).filter((message) => message.t === 'delta').length;
+  }
+
+  // The first tick, 50 ms in, has no new step at normal speed and sends nothing.
+  it('sends a delta every 200 ms at normal speed', async () => {
+    expect(await deltasIn(1, 2000)).toBe(9);
+  });
+
+  it('sends a delta every 50 ms at twenty times the speed', async () => {
+    expect(await deltasIn(20, 2000)).toBe(40);
+  });
+
+  it('sends a delta for every game minute even when nothing else changes', async () => {
+    expect(await deltasIn(20, 2000, false)).toBe(40);
   });
 });

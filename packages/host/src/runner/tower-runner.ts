@@ -1,5 +1,6 @@
 import { isLayoutCommand, isLayoutEvent, step } from '@tower-magnate/engine';
 import {
+  FASTEST_DELTA_INTERVAL_MS,
   MONEY_CAP,
   type CommandResult,
   type EngineEvent,
@@ -11,7 +12,8 @@ import type { TowerStore } from './tower-store';
 
 type TowerId = string;
 
-export const TICK_INTERVAL_MS = 100;
+/** As often as the fastest deltas, so each delta carries the steps up to the moment it is sent. */
+export const TICK_INTERVAL_MS = FASTEST_DELTA_INTERVAL_MS;
 
 /** Running towers are saved this often, on top of the saves after commands and on pause. */
 export const SNAPSHOT_INTERVAL_MS = 30_000;
@@ -152,6 +154,11 @@ export class TowerRunner {
 
   stateOf(towerId: TowerId): TowerState | undefined {
     return this.running.get(towerId)?.state;
+  }
+
+  /** How many times faster than real time the tower runs: 1 unless a developer changed it, 0 paused. */
+  speedOf(towerId: TowerId): number | undefined {
+    return this.running.get(towerId)?.speed;
   }
 
   /**

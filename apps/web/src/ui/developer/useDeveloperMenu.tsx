@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'preact/hooks';
-import { setAnimationPaused } from '../../render/animationClock';
+import { setAnimationPaused, setAnimationSpeed } from '../../render/animationClock';
 import type { MenuItem } from '../menu/GameMenu';
 import { isPlainShortcut } from '../keys';
 import { t } from '../strings';
@@ -32,6 +32,11 @@ export function useDeveloperMenu(
     setAnimationPaused(developer && paused);
     return () => setAnimationPaused(false);
   }, [developer, paused]);
+
+  useEffect(() => {
+    setAnimationSpeed(developer ? settings.speed : 1);
+    return () => setAnimationSpeed(1);
+  }, [developer, settings.speed]);
 
   const pickSpeed = (speed: number): void => {
     const next = { ...settings, speed };

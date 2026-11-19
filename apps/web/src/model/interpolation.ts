@@ -1,11 +1,21 @@
-import { levelToIndex, type CarView, type PersonView } from '@tower-magnate/shared';
+import {
+  BASE_DELTA_INTERVAL_MS,
+  deltaIntervalMs,
+  levelToIndex,
+  type CarView,
+  type PersonView,
+} from '@tower-magnate/shared';
+import { gameSpeed } from '../render/animationClock';
 import type { StoreFrames } from './clientStore';
 import { carKey, type GameState } from './gameState';
 
-/** Real time between two deltas from the server. The client draws one delta behind. */
-export const DELTA_INTERVAL_MS = 200;
+/** Real time between two deltas from the server at normal speed. The client draws one delta behind. */
+export const DELTA_INTERVAL_MS = BASE_DELTA_INTERVAL_MS;
 
-/** Buffered deltas further apart than this many steps make cars snap instead of glide. */
+/**
+ * Buffered deltas further apart than this many steps, times the game speed, make cars snap
+ * instead of glide.
+ */
 export const CAR_SNAP_GAP_STEPS = 6;
 
 export interface DrawnCar {
@@ -48,23 +58,37 @@ export interface DrawnFrame {
   readonly stepMs?: number;
 }
 
-/** How far the drawing has moved from the previous delta to the latest one, from 0 to 1. */
-export function progressSince(latestArrivedAtMs: number, nowMs: number): number {
+/**
+ * How far the drawing has moved from the previous delta to the latest one, from 0 to 1. Deltas
+ * come more often at a higher game speed, so the drawing takes less time to catch up.
+ */
+export function progressSince(
+  latestArrivedAtMs: number,
+  nowMs: number,
+  speed: number = gameSpeed(),
+): number {
   const elapsed = nowMs - latestArrivedAtMs;
-  return Math.min(Math.max(elapsed / DELTA_INTERVAL_MS, 0), 1);
+  return Math.min(Math.max(elapsed / deltaIntervalMs(speed), 0), 1);
+}
+
+/** The step the drawing shows, between the two buffered states. */
+export function drawnStep(frames: StoreFrames, progress: number): number {
+  const { previous, latest } = frames;
+  if (previous === null) return latest.step;
+  return Math.floor(previous.step + (latest.step - previous.step) * progress);
 }
 
 function lerp(from: number, to: number, progress: number): number {
   return from + (to - from) * progress;
 }
 
-function carsSnap(previous: GameState | null, latest: GameState): boolean {
-  return previous === null || latest.step - previous.step > CAR_SNAP_GAP_STEPS;
+function carsSnap(previous: GameState | null, latest: GameState, speed: number): boolean {
+  return previous === null || latest.step - previous.step > CAR_SNAP_GAP_STEPS * Math.max(speed, 1);
 }
 
-function drawCars(frames: StoreFrames, progress: number): Map<string, DrawnCar> {
+function drawCars(frames: StoreFrames, progress: number, speed: number): Map<string, DrawnCar> {
   const { previous, latest } = frames;
-  const snapAll = carsSnap(previous, latest);
+  const snapAll = carsSnap(previous, latest, speed);
   const drawn = new Map<string, DrawnCar>();
   for (const [key, car] of latest.cars) {
     const before = snapAll ? undefined : previous?.cars.get(key);
@@ -180,11 +204,15 @@ function drawPeople(
 }
 
 /** Positions of every car and visible person at `progress` between the two buffered states. */
-export function drawnFrame(frames: StoreFrames, progress: number): DrawnFrame {
-  const cars = drawCars(frames, progress);
+export function drawnFrame(
+  frames: StoreFrames,
+  progress: number,
+  speed: number = gameSpeed(),
+): DrawnFrame {
+  const cars = drawCars(frames, progress, speed);
   const inside = [...frames.latest.people.values()].filter((person) => person.mode === 'inside');
   const { previous, latest } = frames;
   const steps = previous === null ? 0 : latest.step - previous.step;
-  const stepMs = steps > 0 ? DELTA_INTERVAL_MS / steps : undefined;
+  const stepMs = steps > 0 ? deltaIntervalMs(speed) / steps : undefined;
   return { cars, people: drawPeople(frames, progress, cars), inside, stepMs };
 }
