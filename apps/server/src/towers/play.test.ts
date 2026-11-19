@@ -91,11 +91,12 @@ describe('play and save', () => {
   it('a save with an old token answers stale and writes nothing', async () => {
     const player = await createPlayer(pool);
     const userId = Number(player.userId);
+    await createSnapshotRepository(pool).save(player.towerId, towerAtStep(300));
     const first = await startPlay(pool, userId);
     await startPlay(pool, userId);
     const outcome = await savePlayedState(pool, userId, first?.token ?? '', gz(towerAtStep(500)));
     expect(outcome).toBe('stale');
-    expect(await latestStep(player.towerId)).toBeUndefined();
+    expect(await latestStep(player.towerId)).toBe(300);
   });
 
   it('a save for a user without a tower answers noTower', async () => {
@@ -104,30 +105,56 @@ describe('play and save', () => {
     expect(outcome).toBe('noTower');
   });
 
-  it('token check and write are atomic', async () => {
+  async function waitForLockWaiter(): Promise<void> {
+    for (let attempt = 0; attempt < 100; attempt++) {
+      const waiting = await pool.query(
+        `select 1 from pg_stat_activity where wait_event_type = 'Lock' and query ilike '%for update%'`,
+      );
+      if (waiting.rowCount) {
+        return;
+      }
+      await new Promise((resolve) => setTimeout(resolve, 20));
+    }
+    throw new Error('The save never waited on the row lock');
+  }
+
+  it('a takeover holding the row lock makes a waiting save stale', async () => {
     const player = await createPlayer(pool);
     const userId = Number(player.userId);
-    const play = await startPlay(pool, userId);
-    const locker = await pool.connect();
+    const old = await startPlay(pool, userId);
+    const taker = await pool.connect();
     try {
-      await locker.query('begin');
-      await locker.query('select id from towers where id = $1 for update', [player.towerId]);
-      const save = savePlayedState(pool, userId, play?.token ?? '', gz(towerAtStep(500)));
-      await new Promise((resolve) => setTimeout(resolve, 150));
-      const newPlay = startPlay(pool, userId);
-      await new Promise((resolve) => setTimeout(resolve, 150));
-      await locker.query('commit');
-      const outcome = await save;
-      const next = await newPlay;
-      if (outcome === 'saved') {
-        // The save ran before the token changed, so the new play already sees it.
-        expect(stepOf(next)).toBe(500);
-      } else {
-        expect(outcome).toBe('stale');
-        expect(await latestStep(player.towerId)).toBeUndefined();
-      }
+      await taker.query('begin');
+      await taker.query(`update towers set play_token = 'taken' where id = $1`, [player.towerId]);
+      const save = savePlayedState(pool, userId, old?.token ?? '', gz(towerAtStep(500)));
+      await waitForLockWaiter();
+      await taker.query('commit');
+      await expect(save).resolves.toBe('stale');
+      expect(await latestStep(player.towerId)).toBeUndefined();
     } finally {
-      locker.release();
+      taker.release();
+    }
+  });
+
+  it('a save that locks the row before a takeover is stored, and the takeover sees it', async () => {
+    const player = await createPlayer(pool);
+    const userId = Number(player.userId);
+    const old = await startPlay(pool, userId);
+    const holder = await pool.connect();
+    try {
+      await holder.query('begin');
+      await holder.query('select id from towers where id = $1 for update', [player.towerId]);
+      const save = savePlayedState(pool, userId, old?.token ?? '', gz(towerAtStep(500)));
+      await waitForLockWaiter();
+      const takeover = startPlay(pool, userId);
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      await holder.query('commit');
+      await expect(save).resolves.toBe('saved');
+      const next = await takeover;
+      expect(next?.token).not.toBe(old?.token);
+      expect(stepOf(next)).toBe(500);
+    } finally {
+      holder.release();
     }
   });
 
@@ -210,7 +237,9 @@ describe('play and save', () => {
       await play(player.cookie);
       const stale = await put(gz(towerAtStep(600)), firstBody.token, player.cookie);
       expect(stale.statusCode).toBe(409);
-      expect(stale.json()).toEqual({ error: expect.any(String) });
+      expect(stale.json()).toEqual({
+        error: 'Esta torre se abrió en otra pestaña. Recarga para seguir jugando.',
+      });
     });
 
     it('answers 400 for a body that is not a gzipped tower', async () => {
@@ -218,6 +247,7 @@ describe('play and save', () => {
       const body = (await play(player.cookie)).json<PlayResponse>();
       const response = await put(Buffer.from('nope'), body.token, player.cookie);
       expect(response.statusCode).toBe(400);
+      expect(response.json()).toEqual({ error: 'El estado guardado no es válido.' });
     });
 
     it('answers 413 over 4 MB', async () => {
@@ -225,6 +255,7 @@ describe('play and save', () => {
       const body = (await play(player.cookie)).json<PlayResponse>();
       const response = await put(randomBytes(MAX_SAVE_BYTES + 1024), body.token, player.cookie);
       expect(response.statusCode).toBe(413);
+      expect(response.json()).toEqual({ error: 'El estado guardado es demasiado grande.' });
     });
   });
 });

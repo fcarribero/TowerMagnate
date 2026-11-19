@@ -18,8 +18,8 @@ const MESSAGES = {
   notLoggedIn: 'No has iniciado sesión.',
   towerExists: 'Ya tienes una torre.',
   noTower: 'Todavía no tienes una torre.',
-  staleToken: 'Esta torre se abri� en otra pesta�a. Recarga para seguir jugando.',
-  invalidState: 'El estado guardado no es v�lido.',
+  staleToken: 'Esta torre se abrió en otra pestaña. Recarga para seguir jugando.',
+  invalidState: 'El estado guardado no es válido.',
   stateTooLarge: 'El estado guardado es demasiado grande.',
   resetNotConfirmed: 'Confirma que quieres demoler la torre y empezar de nuevo.',
 };
@@ -79,6 +79,12 @@ export const towerRoutes: FastifyPluginAsync<TowerRoutesOptions> = async (app, o
       { parseAs: 'buffer', bodyLimit: MAX_SAVE_BYTES },
       (_request, body, done) => done(null, body),
     );
+    saveScope.setErrorHandler((error, _request, reply) => {
+      if (isBodyTooLarge(error)) {
+        return sendError(reply, 413, MESSAGES.stateTooLarge);
+      }
+      return reply.send(error);
+    });
     saveScope.put(TOWER_STATE_PATH, { bodyLimit: MAX_SAVE_BYTES }, async (request, reply) => {
       const user = await sessionUserOf(pool, request);
       if (!user) {
@@ -127,6 +133,15 @@ export const towerRoutes: FastifyPluginAsync<TowerRoutesOptions> = async (app, o
     return reply.send(body);
   });
 };
+
+function isBodyTooLarge(error: unknown): boolean {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'code' in error &&
+    error.code === 'FST_ERR_CTP_BODY_TOO_LARGE'
+  );
+}
 
 function isResetConfirmed(body: unknown): boolean {
   return typeof body === 'object' && body !== null && 'confirm' in body && body.confirm === true;
