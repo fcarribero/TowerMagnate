@@ -20,7 +20,7 @@ import { isNoisy, noisyUnitIds } from './noise';
 import type { SimulationSystem } from './step';
 import { writableUnit, writableUnitLedger } from './step-copy';
 import { unitNumber } from './units';
-import { paidPrice, unitValue } from './unit-value';
+import { gradedPrice, unitValue } from './unit-value';
 import { evaluatedByLevel } from './neighbors';
 
 const EVALUATED_TYPES: readonly UnitType[] = [
@@ -116,7 +116,7 @@ export function storeGrade(
   writable.appraisal = computeAppraisal(state, writable, own);
   // The unit's own value comes from the fair price just stored, so grading does not redo it.
   const ownValues = factors.ownValues ?? new Map<UnitId, number>();
-  const paid = paidPrice(writable);
+  const paid = gradedPrice(writable);
   ownValues.set(unit.id, paid <= 0 ? Infinity : writable.appraisal / paid);
   const grade = gradeUnit(state, writable, noisy, { ...factors, ownValues });
   writable.evaluation = grade;

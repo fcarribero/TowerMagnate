@@ -1,6 +1,7 @@
 import {
   EVAL_NOISE_SCORE,
   FAIR_PRICE_STRESS_PERCENT,
+  basePrice,
   NEIGHBOR_PULL,
   STRESS_SCORE_MAX,
   stressScore,
@@ -68,7 +69,15 @@ export function paidPrice(unit: Unit): number {
 }
 
 /**
- * Fair price over the price paid; infinite when nothing is paid. `factors` carries the tower-wide
+ * The price a unit's value is measured against: what the occupants pay for a rented unit, and
+ * the condo base price for a condo, so a condo's grade never depends on what it sold for.
+ */
+export function gradedPrice(unit: Unit): number {
+  return unit.type === 'condo' ? basePrice('condo') : paidPrice(unit);
+}
+
+/**
+ * Fair price over the graded price (`gradedPrice`); infinite when nothing is paid. `factors` carries the tower-wide
  * numbers when many units are valued at once; with `noisy` set it overrides the noise check.
  * With `factors.ownValues` the value is worked out once per unit and reused, which the 00:00
  * pass relies on: there the noise flag always agrees with `factors.noisy`.
@@ -81,7 +90,7 @@ export function ownValue(
 ): number {
   const known = factors.ownValues?.get(unit.id);
   if (known !== undefined) return known;
-  const paid = paidPrice(unit);
+  const paid = gradedPrice(unit);
   const used =
     noisy === undefined
       ? factors

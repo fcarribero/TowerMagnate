@@ -68,28 +68,37 @@ describe('condo evaluation (10.4)', () => {
     return { state, condo };
   }
 
-  it('takes the single room at gap 24 as noise and is fair up to 25% over the fair price', () => {
+  it('takes the single room at gap 24 as noise and grades the fair price against the base price', () => {
     const { state, condo } = soldCondo();
     fileTrips(state, condo, 54, 5_940);
     expect(unitBase(state, condo)).toBe(110);
-    // 110 steps is a score of 4.57, 5.57 with the noise: 18.4% off the base price.
+    // 110 steps is a score of 4.57, 5.57 with the noise: 18.4% off the base price, v = 0.82.
     const fair = Math.round(priceOfLevel('condo', 'normal') * (1 - (50 * 2.5729) / 7 / 100));
-    condo.price = Math.round(fair / 0.9);
     expect(storeGrade(state, condo)).toBe('fair');
     expect(condo.evaluation).toBe('fair');
     expect(condo.appraisal).toBeCloseTo(fair, -1);
   });
 
-  it('is poor at 3 stars and fair at 4 with the price 1/0.75 of the fair price', () => {
+  it('grades the same whatever the condo sold for', () => {
     const { state, condo } = soldCondo();
     fileTrips(state, condo, 54, 8_100);
     state.stars = 3;
-    storeGrade(state, condo);
-    condo.price = Math.round(condo.appraisal / 0.75);
+    const grades = [1, priceOfLevel('condo', 'normal'), priceOfLevel('condo', 'high') * 10].map(
+      (price) => {
+        condo.price = price;
+        return storeGrade(state, condo);
+      },
+    );
+    expect(new Set(grades).size).toBe(1);
+  });
+
+  it('is poor at 3 stars and fair at 4 with a fair price 0.75 of the base price', () => {
+    const { state, condo } = soldCondo();
+    // A score near 7.4 takes about 31% off at 3 stars and about 27% off at 4.
+    fileTrips(state, condo, 54, 54 * 230);
+    state.stars = 3;
     expect(storeGrade(state, condo)).toBe('poor');
     state.stars = 4;
-    storeGrade(state, condo);
-    condo.price = Math.round(condo.appraisal / 0.75);
     expect(storeGrade(state, condo)).toBe('fair');
   });
 });

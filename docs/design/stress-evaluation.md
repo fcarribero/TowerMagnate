@@ -262,7 +262,9 @@ clamped to 60% to 160% of the base price and rounded to whole money.
 
 There is no grade term and no tower-wide stress term, so the fair price does not depend on the grade that depends on it. A unit with no score of its own uses the tower score.
 
-The value of a unit is `v = fair price / price paid`. The price paid is the unit's price for an office or shop, the sale price for a condo, and for a hotel room the rate the stay paid at check-in (the room's price when no stay has a rate). A price of 0 gives an infinite `v`.
+The value of a unit is `v = fair price / graded price`. The graded price is the unit's price for an office or shop, the base price of a condo, and for a hotel room the rate the stay paid at check-in (the room's price when no stay has a rate). A price of 0 gives an infinite `v`.
+
+Design call on condos: only rented units (offices, shops and hotel rooms) are graded against what the player charges. A condo is graded against the condo base price, so its sale price never changes its grade.
 
 Neighbor pull: the units that touch a unit are the evaluated units on the same level with a gap of 0 columns (5.4), and those on the level directly above or below with at least one column in common. Only neighbors with occupants count: an office or shop with a lease, a sold condo, and a hotel room with a stay in progress. An empty room, an unleased office or shop and an unsold condo do not. The own value of a neighbor is worked out on demand from the current state, with the tower score when it has no trips in its window, so nothing new is stored.
 
@@ -278,7 +280,7 @@ Design call: a calm, well-served office can ask for a higher rent, and fixing th
 
 The window of every evaluated unit (office, shop, condo and hotel room) lists what counts for its grade in a tooltip on its evaluation tile, from the parts the grade would use now. Each reason in favor is a green line starting with "+", each reason against a red line starting with "-", with no headings. Each reason says what is good or bad about the place, and none names the occupants.
 
-- Price: a price over the fair price is against: "Alquiler caro" for an office or shop, "Precio alto" for a condo and "Tarifa cara" for a hotel room. A price under the fair price is in favor: "Alquiler barato", "Precio bajo" or "Tarifa barata". A price equal to the fair price is not listed.
+- Price: a price over the fair price is against: "Alquiler caro" for an office or shop and "Tarifa cara" for a hotel room. A price under the fair price is in favor: "Alquiler barato" or "Tarifa barata". A price equal to the fair price is not listed. A condo never lists its price, since the price does not change its grade.
 - Stress: an occupant score `U` under 3 is "Ambiente tranquilo" in favor, because the occupants raise the fair price. From 3, the cause with the largest total (3.3) among the unit's own people, calm left out, is against: "Demasiada espera de ascensor" (wait), "Viajes en ascensor muy largos" (ride), "Demasiadas escaleras" (stairs), "Colas de ascensor llenas" (queue), "Difícil de llegar" (no route), "Demasiado ruido" (noise), "Demasiada suciedad" (dirt), and for walking "Oficina demasiado lejos", "Local demasiado lejos", "Departamento demasiado lejos" or "Habitación demasiado lejos". With no cause to name, as in a shop whose grade comes from its customers, it reads "Ambiente estresante".
 - Parking: from 3 stars, when the unit has a person who asks for parking (people.md 17), "Con cochera" is in favor if every such person has a space and "Sin cochera" is against if one has none. A missing space also takes 10% off the fair price (economy 3.1).
 
@@ -405,8 +407,8 @@ A poor neighbor: the first office at a price of 10,000 has `v = 1.00`. A shop to
 
 A condo on level 20, columns 200 to 215, in a 3-star tower with one amenity, sold for 190,000. The base price is 175,000. A single room on level 20 at columns 240 to 243: gap `240 - 215 - 1 = 24`, at or below 30, so noise. The evaluation step falls 8 weeks after the sale.
 
-- In the window the 3 residents finished 54 trips with a total of 5,940. `B = 110`, a score of 4.57, so `U = 5.57`. Occupant percent `-50 × 2.57 / 7 = -18.4`. Fair price `175,000 × (100 + 8 + 1 - 18.4) / 100 = 158,593`. `v = 158,593 / 190,000 = 0.83`: fair, the owners stay.
-- In another window, 54 trips with a total of 8,100. `B = 150`, a score of 5.65, so `U = 6.65`. Occupant percent `-50 × 3.65 / 7 = -26.1`. Fair price `175,000 × (100 + 8 + 1 - 26.1) / 100 = 145,075`. `v = 145,075 / 190,000 = 0.76`. At 3 stars that is poor: the owners leave and the player pays back the sale price (economy E-25). At 4 stars the fair price is 152,075 and `v = 0.80`, which is fair, so nothing happens.
+- In the window the 3 residents finished 54 trips with a total of 5,940. `B = 110`, a score of 4.57, so `U = 5.57`. Occupant percent `-50 × 2.57 / 7 = -18.4`. Fair price `175,000 × (100 + 8 + 1 - 18.4) / 100 = 158,593`. `v = 158,593 / 175,000 = 0.91`, against the base price and not the 190,000 it sold for: fair, the owners stay.
+- In another window, 54 trips with a total of 8,100. `B = 150`, a score of 5.65, so `U = 6.65`. Occupant percent `-50 × 3.65 / 7 = -26.1`. Fair price `175,000 × (100 + 8 + 1 - 26.1) / 100 = 145,075`. `v = 145,075 / 175,000 = 0.83`, fair, so nothing happens. With 54 trips totaling 12,420 (`B = 230`, a score of 7.21, `U = 8.21`) the occupant percent is -37.2, the fair price 125,582 and `v = 0.72`. At 3 stars that is poor: the owners leave and the player pays back the sale price (economy E-25). At 4 stars the fair price is 132,582 and `v = 0.76`, which is fair.
 
 ### 10.5 Hotel room
 
@@ -552,7 +554,7 @@ SE-25. The occupant score of a unit is the score of its base (access control app
 
 SE-26. The fair price is `base price × (100 + stars + amenities + occupant percent) / 100`, clamped to 60% to 160% of the base price. Stars are 4 for each star above the first. Amenities are 1 for each retail shop, fast food, restaurant, cinema, party hall and medical center, up to 12, and a shop counts itself. The occupant percent is +30 at score 0, 0 at 3 and -50 at 10, in straight lines.
 
-SE-27. The value of a unit is its fair price over the price paid: the price for an office or shop, the sale price for a condo, the rate the stay paid for a hotel room. A price of 0 gives an infinite value. The fair price is recomputed before each grade is stored.
+SE-27. The value of a unit is its fair price over the graded price: the price for an office or shop, the condo base price for a condo (its sale price never counts), the rate the stay paid for a hotel room. A price of 0 gives an infinite value. The fair price is recomputed before each grade is stored.
 
 SE-28. A touching neighbor with occupants and a lower own value `n` pulls the value to `v − 0.15 × (v − n)`. Only the lowest neighbor counts, a neighbor never pulls up, and the neighbor's own value is used with no pull of its own.
 

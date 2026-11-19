@@ -583,13 +583,13 @@ describe('evaluation reasons of other units', () => {
     parking: 'missing',
   } as const;
 
-  it('names the residents and the price of a condo', () => {
+  it('names the residents of a condo and never its price', () => {
     const condo = {
       type: 'condo',
       details: { ...condoDetails, price: 9_000, evaluationParts: parts },
     };
     expect(evaluationReasons(condo as Pick<UnitInspect, 'type' | 'details'>)).toEqual({
-      good: ['Precio bajo'],
+      good: [],
       bad: ['Demasiadas escaleras', 'Sin cochera'],
     });
   });
@@ -629,12 +629,12 @@ describe('evaluation reasons of other units', () => {
     );
   });
 
-  it('says a condo price over the fair price is high', () => {
+  it('does not list a condo price over the fair price', () => {
     const condo = {
       type: 'condo',
       details: { ...condoDetails, price: 10_001, evaluationParts: parts },
     };
-    expect(evaluationReasons(condo as Pick<UnitInspect, 'type' | 'details'>)?.bad).toContain(
+    expect(evaluationReasons(condo as Pick<UnitInspect, 'type' | 'details'>)?.bad).not.toContain(
       'Precio alto',
     );
   });

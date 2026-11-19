@@ -712,7 +712,9 @@ export function reasonLines(reasons: EvaluationReasons): TooltipLine[] {
 
 /** What each evaluated unit says when its price is over or under the fair price, and when it is too far. */
 const UNIT_WORDS: Readonly<
-  Partial<Record<UnitInspect['type'], { dear: StringKey; cheap: StringKey; far: StringKey }>>
+  Partial<
+    Record<UnitInspect['type'], { dear: StringKey | null; cheap: StringKey | null; far: StringKey }>
+  >
 > = {
   office: {
     dear: 'window.unit.reason.dear.rent',
@@ -724,9 +726,10 @@ const UNIT_WORDS: Readonly<
     cheap: 'window.unit.reason.cheap.rent',
     far: 'window.unit.reason.far.shop',
   },
+  // A condo's grade does not depend on its sale price, so the price is never a reason.
   condo: {
-    dear: 'window.unit.reason.dear.sale',
-    cheap: 'window.unit.reason.cheap.sale',
+    dear: null,
+    cheap: null,
     far: 'window.unit.reason.far.condo',
   },
   'single-room': {
@@ -776,8 +779,8 @@ export function evaluationReasons(
   const parts = details.evaluationParts;
   const good: string[] = [];
   const bad: string[] = [];
-  if (details.price > parts.fairPrice) bad.push(t(words.dear));
-  else if (details.price < parts.fairPrice) good.push(t(words.cheap));
+  if (words.dear !== null && details.price > parts.fairPrice) bad.push(t(words.dear));
+  else if (words.cheap !== null && details.price < parts.fairPrice) good.push(t(words.cheap));
   if (parts.occupantScore < CALM_WORKERS_SCORE) good.push(t('window.unit.reason.calm'));
   else bad.push(causeText(parts, words.far));
   if (parts.parking === 'has') good.push(t('window.unit.reason.parking'));
