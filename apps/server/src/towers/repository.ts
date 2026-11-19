@@ -2,6 +2,7 @@ import { randomInt } from 'node:crypto';
 import { createTower, dateOfStep, deserializeState, serializeState } from '@tower-magnate/engine';
 import type { TowerState, TowerSummary } from '@tower-magnate/shared';
 import pg from 'pg';
+import { snapshotText } from '../snapshots';
 
 const SEED_LIMIT = 2 ** 32;
 const UNIQUE_VIOLATION = '23505';
@@ -21,13 +22,14 @@ interface TowerRow {
 
 interface TowerWithStateRow extends TowerRow {
   state: string | null;
+  state_gz: Buffer | null;
 }
 
 const SELECT_TOWER_WITH_LATEST_STATE = `
-  select towers.id, towers.seed, towers.created_at, latest.state
+  select towers.id, towers.seed, towers.created_at, latest.state, latest.state_gz
   from towers
   left join lateral (
-    select state::text as state
+    select state::text as state, state_gz
     from tower_snapshots
     where tower_snapshots.tower_id = towers.id
     order by step desc
@@ -49,7 +51,8 @@ export async function findTowerSummary(
   if (!row) {
     return undefined;
   }
-  const state = row.state === null ? createTower(Number(row.seed)) : deserializeState(row.state);
+  const hasSnapshot = row.state !== null || row.state_gz !== null;
+  const state = hasSnapshot ? deserializeState(snapshotText(row)) : createTower(Number(row.seed));
   return summarize(row, state);
 }
 
@@ -78,7 +81,7 @@ export async function resetTowerOf(
     const seed = randomSeedOtherThan(Number(tower.seed));
     await client.query('delete from tower_snapshots where tower_id = $1', [tower.id]);
     const updated = await client.query<TowerRow>(
-      'update towers set seed = $2, created_at = now() where id = $1 returning id, seed, created_at',
+      'update towers set seed = $2, created_at = now(), play_token = null where id = $1 returning id, seed, created_at',
       [tower.id, seed],
     );
     const row = firstRow(updated, 'Resetting a tower');

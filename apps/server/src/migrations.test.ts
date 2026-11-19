@@ -41,8 +41,8 @@ describe('initial schema', () => {
     expect(columnsByTable).toEqual({
       users: ['id', 'username', 'password_hash', 'created_at'],
       sessions: ['token', 'user_id', 'created_at'],
-      towers: ['id', 'user_id', 'seed', 'created_at'],
-      tower_snapshots: ['tower_id', 'step', 'state', 'saved_at'],
+      towers: ['id', 'user_id', 'seed', 'created_at', 'play_token'],
+      tower_snapshots: ['tower_id', 'step', 'state', 'saved_at', 'state_gz'],
     });
   });
 

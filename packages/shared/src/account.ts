@@ -31,3 +31,13 @@ export interface TowerResponse {
 export interface TowerResetRequest {
   confirm: true;
 }
+
+export const PLAY_TOKEN_HEADER = 'x-play-token';
+export const TOWER_PLAY_PATH = '/api/tower/play';
+export const TOWER_STATE_PATH = '/api/tower/state';
+
+export interface PlayResponse {
+  token: string;
+  /** The serialized tower state, in the engine's JSON shape. */
+  state: unknown;
+}

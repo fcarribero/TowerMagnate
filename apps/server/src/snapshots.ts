@@ -1,3 +1,4 @@
+import { gunzipSync } from 'node:zlib';
 import { deserializeState, serializeState } from '@tower-magnate/engine';
 import type { TowerState } from '@tower-magnate/shared';
 import type pg from 'pg';
@@ -38,8 +39,15 @@ const PRUNE_OLD_SNAPSHOTS = `
     )
 `;
 
+const UPSERT_COMPRESSED_SNAPSHOT = `
+  insert into tower_snapshots (tower_id, step, state, state_gz)
+  values ($1, $2, null, $3)
+  on conflict (tower_id, step)
+  do update set state = null, state_gz = excluded.state_gz, saved_at = now()
+`;
+
 const SELECT_LATEST_SNAPSHOT = `
-  select step, state::text as state, saved_at
+  select step, state::text as state, state_gz, saved_at
   from tower_snapshots
   where tower_id = $1
   order by step desc
@@ -48,7 +56,8 @@ const SELECT_LATEST_SNAPSHOT = `
 
 interface SnapshotRow {
   step: string;
-  state: string;
+  state: string | null;
+  state_gz: Buffer | null;
   saved_at: Date;
 }
 
@@ -74,6 +83,28 @@ async function saveSnapshot(pool: pg.Pool, towerId: TowerId, state: TowerState):
   }
 }
 
+/** Stores a gzipped serialized state on the caller's client, so it joins the caller's transaction. */
+export async function saveCompressedSnapshot(
+  client: pg.PoolClient,
+  towerId: TowerId,
+  step: number,
+  gzipped: Buffer,
+): Promise<void> {
+  await client.query(UPSERT_COMPRESSED_SNAPSHOT, [towerId, step, gzipped]);
+  await client.query(PRUNE_OLD_SNAPSHOTS, [towerId, SNAPSHOTS_KEPT]);
+}
+
+/** The serialized state text of a snapshot row, from `state_gz` when set. */
+export function snapshotText(row: { state: string | null; state_gz: Buffer | null }): string {
+  if (row.state_gz !== null) {
+    return gunzipSync(row.state_gz).toString('utf8');
+  }
+  if (row.state === null) {
+    throw new Error('Snapshot has neither state nor state_gz');
+  }
+  return row.state;
+}
+
 async function loadLatestSnapshot(pool: pg.Pool, towerId: TowerId): Promise<TowerSnapshot | null> {
   const result = await pool.query<SnapshotRow>(SELECT_LATEST_SNAPSHOT, [towerId]);
   const row = result.rows[0];
@@ -83,7 +114,7 @@ async function loadLatestSnapshot(pool: pg.Pool, towerId: TowerId): Promise<Towe
   return {
     towerId,
     step: Number(row.step),
-    state: deserializeState(row.state),
+    state: deserializeState(snapshotText(row)),
     savedAt: row.saved_at,
   };
 }

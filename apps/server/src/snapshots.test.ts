@@ -1,6 +1,13 @@
+import { gzipSync } from 'node:zlib';
+import { serializeState } from '@tower-magnate/engine';
 import pg from 'pg';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
-import { createSnapshotRepository, SNAPSHOTS_KEPT, type SnapshotRepository } from './snapshots';
+import {
+  createSnapshotRepository,
+  saveCompressedSnapshot,
+  SNAPSHOTS_KEPT,
+  type SnapshotRepository,
+} from './snapshots';
 import { startTestDatabase, type TestDatabase } from './testing/database';
 import { createTowerRow } from './testing/tower-rows';
 import { ONE_MEGABYTE, towerAtStep, towerOfAtLeast } from './testing/towers';
@@ -93,5 +100,28 @@ describe('snapshot repository', () => {
     await repository.save(towerId, bigTower);
 
     expect((await repository.loadLatest(towerId))?.state).toEqual(bigTower);
+  });
+
+  it('saves compressed snapshots, replaces a step and prunes old ones', async () => {
+    const client = await pool.connect();
+    try {
+      for (const step of [1, 2, 3, 4, 4]) {
+        await saveCompressedSnapshot(
+          client,
+          towerId,
+          step,
+          gzipSync(serializeState(towerAtStep(step))),
+        );
+      }
+    } finally {
+      client.release();
+    }
+
+    expect(await storedSteps(towerId)).toEqual([2, 3, 4]);
+    expect((await repository.loadLatest(towerId))?.state).toEqual(towerAtStep(4));
+    const stored = await pool.query('select state from tower_snapshots where tower_id = $1', [
+      towerId,
+    ]);
+    expect(stored.rows.every((row) => row.state === null)).toBe(true);
   });
 });
