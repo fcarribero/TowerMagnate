@@ -45,7 +45,7 @@ const stoolTable = [
   'kkk.....kkk',
 ];
 
-const fastFoodLook = {
+export const fastFoodLook = {
   shell,
   signColor: 'cloth-red',
   textWidth: 40,

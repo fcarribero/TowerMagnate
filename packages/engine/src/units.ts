@@ -84,6 +84,7 @@ export const SEEDED_LOOK_TYPES: readonly UnitType[] = [
   'condo',
   'housekeeping',
   'cleaning-room',
+  'fast-food',
 ];
 
 /**

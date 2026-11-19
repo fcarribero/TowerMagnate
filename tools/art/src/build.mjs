@@ -14,6 +14,7 @@ const GROUP_NAMES = [
   'hotel',
   'housekeeping',
   'cleaning',
+  'fast-food',
   'rooftop',
   'sky',
   'ui',

@@ -3,6 +3,7 @@ import { drawGroups } from '../src/build.mjs';
 import { condoGroup } from '../src/groups/condo.mjs';
 import { hotelGroup } from '../src/groups/hotel.mjs';
 import { cleaningGroup } from '../src/groups/cleaning.mjs';
+import { fastFoodGroup } from '../src/groups/fast-food.mjs';
 import { housekeepingGroup } from '../src/groups/housekeeping.mjs';
 import { officeGroup } from '../src/groups/office.mjs';
 import { colorIndex } from '../src/palette.mjs';
@@ -18,6 +19,7 @@ describe('interior props', () => {
       hotelGroup,
       housekeepingGroup,
       cleaningGroup,
+      fastFoodGroup,
     ])) {
       for (const { id, canvas } of sprites) {
         expect(

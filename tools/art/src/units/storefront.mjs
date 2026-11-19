@@ -1,3 +1,4 @@
+import { PixelCanvas } from '../canvas.mjs';
 import { FLOOR_ROW, roomShell } from './shell.mjs';
 import { toNight } from '../night.mjs';
 
@@ -121,6 +122,16 @@ function drawShop(widthTiles, look, state, lampsOn = true) {
     placeCustomers(room, look.customers);
   }
   return room;
+}
+
+// The front of a closed shop, to lay over the bare shop and its seeded furniture: the sign with
+// its lights off and the rolled-down shutter. Everything else is transparent.
+export function closedShopOverlay(widthTiles, look) {
+  const room = roomShell(widthTiles, look.shell);
+  const overlay = new PixelCanvas(room.width, room.height);
+  drawSign(overlay, look, false);
+  drawShutter(overlay);
+  return overlay;
 }
 
 // Six sprites per shop: closed, open and busy, each by day and by night.
