@@ -314,7 +314,7 @@ describe('inspecting a unit', () => {
         today: [5, 12, 13],
       },
     });
-    const details = data.status === 'ok' ? data.details : null;
+    const details = data.kind === 'unit' && data.status === 'ok' ? data.details : null;
     expect(details?.group === 'venue' && details.average).toHaveLength(12);
   });
 

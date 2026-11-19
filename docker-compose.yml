@@ -47,6 +47,7 @@ services:
       - server-modules-server:/app/apps/server/node_modules
       - server-modules-engine:/app/packages/engine/node_modules
       - server-modules-shared:/app/packages/shared/node_modules
+      - server-modules-host:/app/packages/host/node_modules
     depends_on:
       postgres:
         condition: service_healthy
@@ -97,6 +98,7 @@ volumes:
   server-modules-server:
   server-modules-engine:
   server-modules-shared:
+  server-modules-host:
   web-modules-root:
   web-modules-web:
   web-modules-shared:
