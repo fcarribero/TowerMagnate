@@ -118,6 +118,7 @@ describe('local session', () => {
     await session.receive(HELLO);
     await vi.advanceTimersByTimeAsync(1_000);
     session.stop();
+    expect(vi.getTimerCount()).toBe(0);
     const count = sent.length;
 
     await vi.advanceTimersByTimeAsync(5_000);
@@ -140,5 +141,44 @@ describe('local session', () => {
     expect(saved.money).toBe(startMoney - 2500);
     expect(sent.find((m) => m.t === 'commandResult')?.p).toMatchObject({ id: 'c1', ok: true });
     await answered;
+  });
+
+  it('savedState rejects and receive does nothing after a failed start', async () => {
+    const broken = {
+      get state(): TowerState {
+        throw new Error('no state');
+      },
+      debug: false,
+      send: (data: string) => sent.push(JSON.parse(data) as Sent),
+      onChange,
+    } as unknown as ConstructorParameters<typeof LocalSession>[0];
+    session = new LocalSession(broken);
+
+    await expect(session.start()).rejects.toThrow();
+    await session.receive(HELLO);
+    await expect(session.savedState()).rejects.toThrow(/never loaded/);
+    expect(sent).toHaveLength(0);
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it('savedState rejects when stop came before start', async () => {
+    session.stop();
+    await session.start();
+    await expect(session.savedState()).rejects.toThrow(/never loaded/);
+  });
+
+  it('a second start does not stack timers', async () => {
+    await session.start();
+    const timers = vi.getTimerCount();
+    await session.start();
+    expect(vi.getTimerCount()).toBe(timers);
+  });
+
+  it('onChange is called after a debug change', async () => {
+    open(true);
+    await session.start();
+    await session.receive(HELLO);
+    await session.receive(debugFrame('debug.setMoney', { amount: 1234 }));
+    await vi.waitFor(() => expect(onChange).toHaveBeenCalled());
   });
 });

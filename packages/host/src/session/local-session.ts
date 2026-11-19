@@ -35,8 +35,10 @@ export class LocalSession {
   private markReady: () => void = () => {};
   private stops: (() => void)[] = [];
   private stopped = false;
+  private starting: Promise<void> | undefined;
+  private loaded = false;
 
-  constructor(private readonly options: LocalSessionOptions) {
+  constructor(options: LocalSessionOptions) {
     const socket: HostSocket = {
       send: (data) => {
         if (!this.stopped) {
@@ -75,23 +77,35 @@ export class LocalSession {
     });
   }
 
-  /** Loads the state into the runner and starts the 100, 200 and 250 ms timers. */
-  async start(): Promise<void> {
-    await this.runner.resume(LOCAL_TOWER_ID);
-    if (!this.stopped) {
-      this.stops = [
-        this.runner.start(),
-        this.broadcaster.start(this.sockets),
-        this.inspections.start(this.sockets),
-      ];
+  /** Loads the state into the runner and starts the 100, 200 and 250 ms timers. Later calls share the first. */
+  start(): Promise<void> {
+    this.starting ??= this.load();
+    return this.starting;
+  }
+
+  private async load(): Promise<void> {
+    try {
+      if (this.stopped) {
+        return;
+      }
+      await this.runner.resume(LOCAL_TOWER_ID);
+      this.loaded = true;
+      if (!this.stopped) {
+        this.stops = [
+          this.runner.start(),
+          this.broadcaster.start(this.sockets),
+          this.inspections.start(this.sockets),
+        ];
+      }
+    } finally {
+      this.markReady();
     }
-    this.markReady();
   }
 
   /** Routes one client frame. Frames that arrive before start() resolves wait for it. */
   async receive(data: string): Promise<void> {
     await this.ready;
-    if (this.stopped) {
+    if (this.stopped || !this.loaded) {
       return;
     }
     await routeFrame(data, this.context, this.handlers, this.debugFrames);
@@ -100,13 +114,17 @@ export class LocalSession {
   /** The state to save: caught up to now, with the real money when infinite money is on. */
   async savedState(): Promise<TowerState> {
     await this.ready;
-    const state = await this.runner.savedStateOf(LOCAL_TOWER_ID);
-    return state ?? this.options.state;
+    const state = this.loaded ? await this.runner.savedStateOf(LOCAL_TOWER_ID) : undefined;
+    if (!state) {
+      throw new Error('The local session never loaded its tower, so there is no state to save');
+    }
+    return state;
   }
 
   /** Stops every timer. Nothing is sent afterwards. */
   stop(): void {
     this.stopped = true;
+    this.markReady();
     for (const stop of this.stops) {
       stop();
     }
