@@ -9,7 +9,7 @@ import {
   staggerFor,
 } from './constructionReveal';
 import { CulledRows } from './culledRows';
-import { levelToIndex, levelTop, WORLD_WIDTH } from './levels';
+import { levelToIndex, levelTop, WORLD_HEIGHT, WORLD_WIDTH } from './levels';
 import { FLOOR_HEIGHT, TILE_WIDTH } from './metrics';
 import { StructureRows, type StructureInput } from './structureRows';
 import {
@@ -23,6 +23,9 @@ import type { SpriteRegistry } from './spriteRegistry';
 /** A lobby row can be up to three floors tall and stands on the row's bottom edge. */
 const MASK_TOP = -3 * FLOOR_HEIGHT;
 const MASK_BOTTOM = FLOOR_HEIGHT + TILE_WIDTH;
+
+/** Rock drawn under the deepest level, deeper than the camera can scroll past the world. */
+const BEDROCK_HEIGHT = 32 * FLOOR_HEIGHT;
 
 /** New floor cells of a level rising from the ground, one tile after another along each run. */
 interface RowConstruction {
@@ -50,6 +53,13 @@ export class StructureLayer {
     private readonly now: () => number = animationNow,
   ) {
     this.planner = new StructureRows((level, pieces) => this.drawLevel(level, pieces));
+    const bedrock = new TilingSprite({
+      texture: this.texture('bedrock'),
+      width: WORLD_WIDTH,
+      height: BEDROCK_HEIGHT,
+    });
+    bedrock.y = WORLD_HEIGHT;
+    this.view.addChild(bedrock);
   }
 
   update(input: StructureInput): void {

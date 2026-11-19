@@ -225,6 +225,34 @@ function soilLevel(level) {
   return tile;
 }
 
+// Solid rock under the subway tunnel, filling the canvas below the deepest level. The tile
+// repeats both ways, so every speck and stone stays inside it and nothing crosses an edge.
+function bedrock() {
+  const tile = new PixelCanvas(SOIL_TILE_WIDTH, floorHeight);
+  for (let y = 0; y < tile.height; y++) {
+    for (let x = 0; x < tile.width; x++) {
+      const patch = soilWave(x, tile.width, 81) + (pixelNoise(Math.floor(x / 3), y, 82) - 0.5) * 0.5;
+      tile.set(x, y, patch > 0.62 ? 'slate' : 'charcoal');
+    }
+  }
+  for (const seamRow of [9, 23]) {
+    for (let x = 0; x < tile.width; x++) {
+      const y = seamRow + Math.round(Math.sin((x / tile.width) * 2 * Math.PI * 4 + seamRow) * 2);
+      if (pixelNoise(Math.floor(x / 5), seamRow, 83) < 0.55) {
+        tile.set(x, y, 'ink');
+      }
+    }
+  }
+  speckle(tile, 0, 'gray', 0.012, 84);
+  speckle(tile, 0, 'ink', 0.02, 85);
+  for (let index = 0; index < 28; index++) {
+    const left = Math.floor(pixelNoise(index, 0, 86) * (tile.width - 4));
+    const top = Math.floor(pixelNoise(index, 0, 87) * (tile.height - 3));
+    tile.drawMap(left, top, ['.LB.', 'LBBD', '.DD.'], { L: 'gray', B: 'slate', D: 'ink' });
+  }
+  return tile;
+}
+
 function drawTunnelLining(tile) {
   tile.hline(0, 0, tileWidth, 'charcoal');
   tile.hline(0, 1, tileWidth, 'concrete-light');
@@ -391,6 +419,7 @@ const subjects = [
     subject: `soil-${index + 1}`,
     draw: () => soilLevel(index + 1),
   })),
+  { subject: 'bedrock', draw: bedrock },
   { subject: 'subway-tunnel', draw: () => subwayTunnel({ lamp: false }) },
   { subject: 'subway-tunnel-lamp', draw: () => subwayTunnel({ lamp: true }) },
   { subject: 'subway-tunnel-edge-left', draw: () => subwayTunnelEdge('left') },
