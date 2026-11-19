@@ -2,8 +2,10 @@ import {
   CLEANER_CHANGE_MINUTES,
   CLEANER_CREW_SIZE,
   CLEANER_DIRT_MINUTE,
+  CLEANER_COLUMN_WEIGHT,
   CLEANER_IDLE_MINUTES,
   CLEANER_LAST_START_MINUTES,
+  CLEANER_LEVEL_WEIGHT,
   CLEANER_MIN_DIRT,
   CLEANER_SHIFT_MINUTES,
   CLEANER_SHIFT_START_MINUTE,
@@ -201,8 +203,10 @@ interface Shared {
   piles: Set<number>;
   /** Spot codes held by a cleaner heading to them or cleaning them. */
   spots: Set<number>;
-  /** The dirtiest spots of this step, worked out on first need. */
-  ranked: number[] | null;
+  /** Every cell with enough dirt this step, worked out on first need. */
+  dirty: DirtySpot[] | null;
+  /** Those cells best first for each cleaning room, by room unit number, worked out on first need. */
+  ranked: Map<number, number[]>;
 }
 
 interface Cleaner {
@@ -303,21 +307,60 @@ function pilesInOrder(state: TowerState, level: number): Unit[] {
   );
 }
 
-/** Every built cell with enough dirt to be worth the walk, dirtiest first. */
-function rankSpots(state: TowerState): number[] {
+interface DirtySpot {
+  code: number;
+  level: number;
+  column: number;
+  dirt: number;
+}
+
+/** Every built cell with enough dirt to be worth the walk. */
+function dirtySpots(state: TowerState): DirtySpot[] {
   const rows = state.heat?.dirt;
   if (!rows) return [];
-  const found: { code: number; dirt: number }[] = [];
+  const found: DirtySpot[] = [];
   for (const key of Object.keys(rows)) {
     const row = rows[key] as number[];
-    const base = levelToIndex(Number(key)) * COLUMNS;
+    const level = Number(key);
+    const base = levelToIndex(level) * COLUMNS;
     for (let column = 0; column < row.length; column++) {
       const dirt = row[column] as number;
-      if (dirt >= CLEANER_MIN_DIRT) found.push({ code: base + column, dirt });
+      if (dirt >= CLEANER_MIN_DIRT) found.push({ code: base + column, level, column, dirt });
     }
   }
-  found.sort((a, b) => b.dirt - a.dirt || a.code - b.code);
-  return found.map((spot) => spot.code);
+  return found;
+}
+
+/** How much a cleaner of the room wants a spot: its dirt, less the farther it is from the room. */
+export function spotScore(dirt: number, levelsAway: number, columnsAway: number): number {
+  return dirt / (1 + CLEANER_LEVEL_WEIGHT * levelsAway + CLEANER_COLUMN_WEIGHT * columnsAway);
+}
+
+/** The dirty spots best first for the cleaners of a room: dirtiest and nearest the room door. */
+function rankSpots(spots: readonly DirtySpot[], room: Unit): number[] {
+  const door = doorOf(room);
+  return spots
+    .map((spot) => ({
+      code: spot.code,
+      score: spotScore(
+        spot.dirt,
+        Math.abs(spot.level - door.level),
+        Math.abs(spot.column - door.column),
+      ),
+    }))
+    .sort((a, b) => b.score - a.score || a.code - b.code)
+    .map((spot) => spot.code);
+}
+
+function rankedFor(shared: Shared, room: Unit): number[] {
+  const number = unitNumber(room.id);
+  let ranked = shared.ranked.get(number);
+  if (!ranked) {
+    shared.dirty ??= dirtySpots(shared.context.state);
+    ranked = rankSpots(shared.dirty, room);
+    shared.ranked.set(number, ranked);
+  }
+  return ranked;
 }
 
 function isNearHeldSpot(spots: Set<number>, code: number): boolean {
@@ -327,7 +370,10 @@ function isNearHeldSpot(spots: Set<number>, code: number): boolean {
   return false;
 }
 
-/** Takes the nearest pile nobody holds, else the dirtiest spot nobody is near, else waits. */
+/**
+ * Takes the nearest pile nobody holds, else the best spot nobody is near (dirty and close to the
+ * room), else waits.
+ */
 function choose(cleaner: Cleaner): void {
   const { shared } = cleaner;
   const { context } = shared;
@@ -349,9 +395,13 @@ function choose(cleaner: Cleaner): void {
       return;
     }
   }
-  shared.ranked ??= rankSpots(state);
+  const room = roomOf(state, state.people, cleaner.slot);
+  if (!room) {
+    idle(cleaner);
+    return;
+  }
   let tries = 0;
-  for (const code of shared.ranked) {
+  for (const code of rankedFor(shared, room)) {
     if (isNearHeldSpot(shared.spots, code)) continue;
     if (tries++ >= SPOT_TRIES) break;
     const spot = spotPlace(code);
@@ -612,7 +662,7 @@ export function createCleaningSystem(): SimulationSystem {
       if (pool.id.length !== before) slots = cleanerSlots(pool);
     }
     if (slots.length === 0) return;
-    const shared: Shared = { context, ...heldBy(pool, slots), ranked: null };
+    const shared: Shared = { context, ...heldBy(pool, slots), dirty: null, ranked: new Map() };
     // Backwards, because a cleaner who leaves the tower is removed from the pool.
     for (let index = slots.length - 1; index >= 0; index--) {
       advanceCleaner({ shared, slot: slots[index] as number });

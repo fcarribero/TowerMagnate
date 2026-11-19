@@ -492,6 +492,14 @@ export const CLEANER_SPEED_SHARE = 0.25;
 /** A cell with less dirt than this is not worth walking to, and a cleaner stops cleaning there. */
 export const CLEANER_MIN_DIRT = 0.5;
 
+/**
+ * A cleaner ranks a dirty cell by its dirt divided by 1 plus these weights times its distance from
+ * the cleaning room: levels away and columns away. A cell 15 levels off counts as 2.5 times less
+ * dirty than the same cell on the room's level; 100 columns off counts as 1.5 times less dirty.
+ */
+export const CLEANER_LEVEL_WEIGHT = 0.1;
+export const CLEANER_COLUMN_WEIGHT = 0.005;
+
 /** A cleaner stays at most this many minutes on one spot before choosing again. */
 export const CLEANER_SPOT_MINUTES = 30;
 

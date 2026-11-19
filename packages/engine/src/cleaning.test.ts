@@ -8,7 +8,14 @@ import {
 } from '@tower-magnate/shared';
 import { describe, expect, it } from 'vitest';
 import { STEPS_PER_HOUR } from './calendar';
-import { cleanerRate, decodeCleanerTask, encodeCleanerTask, isCleaner } from './cleaning';
+import {
+  cleanerRate,
+  decodeCleanerTask,
+  encodeCleanerTask,
+  isCleaner,
+  spotCode,
+  spotScore,
+} from './cleaning';
 import { outfitOf } from './outfit';
 import { step } from './step';
 import { buildTower, plainTowerPlan } from './testing';
@@ -91,6 +98,28 @@ describe('cleaning room', () => {
     dirty(state, { 30: 20 });
     const later = advance(state, 2 * STEPS_PER_HOUR);
     expect(dirtAt(later, 30)).toBeLessThan(0.5);
+  });
+
+  it('goes first to a dirty spot near the room over a dirtier one far from it', () => {
+    let state = tower();
+    dirty(state, { 5: 3, 95: 2.5 });
+    let first: number | undefined;
+    for (let minute = 0; minute < 120 && first === undefined; minute++) {
+      state = advance(state, 6);
+      first = cleaners(state).find(
+        (person) => person.phase === 'toSpot' || person.phase === 'cleaning',
+      )?.target;
+    }
+    expect(first).toBe(spotCode(2, 95));
+  });
+
+  it('scores a spot by its dirt and how far it is from the room', () => {
+    expect(spotScore(1, 0, 0)).toBe(1);
+    // Fully dirty 15 levels away loses to very dirty nearby.
+    expect(spotScore(1, 15, 0)).toBeLessThan(spotScore(0.8, 1, 0));
+    expect(spotScore(1, 0, 100)).toBeLessThan(spotScore(1, 0, 10));
+    // Same distance: the dirtier spot still wins.
+    expect(spotScore(2, 5, 20)).toBeGreaterThan(spotScore(1, 5, 20));
   });
 
   it('reaches the cells beside the spot with materials', () => {
