@@ -2,8 +2,7 @@ import { PixelCanvas } from '../canvas.mjs';
 
 // Office props that the client places on top of the bare office room (units/office/empty_day).
 // Each prop is drawn once by day; night is a shade the client lays over the room, so there
-// is no night version. A prop that changes when the office is occupied (screens on, chairs
-// pulled out) also has a `busy` sprite. Every sprite rests on its bottom row, except wall
+// is no night version. A prop that changes when the office is occupied (screens on) also has a `busy` sprite. Every sprite rests on its bottom row, except wall
 // props, which hang. The sizes here must match OFFICE_CATALOG in apps/web/src/render/officeCatalog.ts.
 
 const legend = {
@@ -39,10 +38,8 @@ function blank(width, height) {
   return new PixelCanvas(width, height);
 }
 
-// Office chair, 4 wide and 5 tall. Tucked faces the desk on its left; pulled out has the
-// seat turned toward the desk with the back away from it.
-const chairTucked = ['..s.', '..s.', 'ssss', '..c.', '.c.c'];
-const chairPulled = ['...s', '...s', 'ssss', '.c..', 'c.c.'];
+// Office chair seen from behind, standing in front of the desk: backrest, post and a wheeled base.
+const deskChair = ['.ssss.', 'sggggs', 'sggggs', '.ssss.', '..cc..', '.cccc.', 'c....c'];
 
 // A 16-wide desk, 7 rows: top, front and two legs. `look` picks the material.
 const deskRows = [
@@ -57,11 +54,11 @@ const deskRows = [
 const METAL = { 'wood-light': 'silver', wood: 'gray', 'wood-dark': 'slate' };
 const WHITE = { 'wood-light': 'white', wood: 'cloud', 'wood-dark': 'silver' };
 
-// A workstation is a desk with its screen and chair, 20 wide and 13 tall: the desk takes the
-// left 16 columns, the chair is tucked under its right end or pulled out past it.
-function workstation({ material, top, screens, busyExtras }) {
+// A workstation is a desk with its screen and its chair, 16 wide and 13 tall. The chair stands
+// in front of the desk, under the screen, at column `chairLeft`.
+function workstation({ material, top, screens, busyExtras, chairLeft }) {
   const draw = (busy) => {
-    const canvas = blank(20, 13);
+    const canvas = blank(16, 13);
     let desk = map(deskRows);
     if (material) desk = desk.recolor(material);
     canvas.stamp(desk, 0, 6);
@@ -73,7 +70,7 @@ function workstation({ material, top, screens, busyExtras }) {
       }
       busyExtras?.(canvas);
     }
-    canvas.drawMap(busy ? 16 : 11, 8, busy ? chairPulled : chairTucked, legend);
+    canvas.drawMap(chairLeft, 6, deskChair, legend);
     return canvas;
   };
   return { idle: draw(false), busy: draw(true) };
@@ -105,12 +102,18 @@ function papers(canvas) {
 }
 
 const workstations = {
-  workstation: workstation({ top: monitorTop, screens: [[5, 1, 4, 3]], busyExtras: mug }),
+  workstation: workstation({
+    top: monitorTop,
+    screens: [[5, 1, 4, 3]],
+    busyExtras: mug,
+    chairLeft: 4,
+  }),
   'workstation-metal': workstation({
     material: METAL,
     top: monitorTop,
     screens: [[5, 1, 4, 3]],
     busyExtras: papers,
+    chairLeft: 4,
   }),
   'workstation-dual': workstation({
     material: WHITE,
@@ -120,11 +123,13 @@ const workstations = {
       [8, 2, 3, 2],
     ],
     busyExtras: (canvas) => canvas.drawMap(13, 4, ['ww', 'wr'], legend),
+    chairLeft: 3,
   }),
   'workstation-laptop': workstation({
     top: laptopTop,
     screens: [[7, 3, 2, 2]],
     busyExtras: mug,
+    chairLeft: 5,
   }),
 };
 

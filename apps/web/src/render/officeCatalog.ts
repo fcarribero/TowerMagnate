@@ -35,7 +35,7 @@ const workstation = (kind: string, weight: number): OfficeKind => ({
   layer: 1,
   mount: 'floor',
   role: 'functional',
-  width: 20,
+  width: 16,
   height: 13,
   weight,
   max: 4,
@@ -74,17 +74,6 @@ export const OFFICE_CATALOG: readonly OfficeKind[] = [
     flip: true,
   },
   {
-    kind: 'plant-medium',
-    layer: 1,
-    mount: 'floor',
-    role: 'decor',
-    width: 7,
-    height: 12,
-    weight: 3,
-    max: 2,
-    flip: true,
-  },
-  {
     kind: 'partition',
     layer: 1,
     mount: 'floor',
@@ -96,6 +85,17 @@ export const OFFICE_CATALOG: readonly OfficeKind[] = [
   },
 
   // Layer 0: against the wall, on the floor.
+  {
+    kind: 'plant-medium',
+    layer: 0,
+    mount: 'floor',
+    role: 'decor',
+    width: 7,
+    height: 12,
+    weight: 3,
+    max: 2,
+    flip: true,
+  },
   {
     kind: 'filing-cabinet',
     layer: 0,

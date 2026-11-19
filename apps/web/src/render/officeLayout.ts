@@ -64,7 +64,7 @@ export interface OfficeTemplate {
   fixed: readonly FixedOfficeProp[];
   /** Workstations in the office, the fixed ones included. */
   workstations: CountRange;
-  /** Other layer 1 props: meeting table, copier, plants, partitions. */
+  /** Other layer 1 props: meeting table, copier, partitions. */
   front: CountRange;
   /** Layer 0 props standing on the floor against the wall. */
   back: CountRange;
