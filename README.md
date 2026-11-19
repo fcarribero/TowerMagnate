@@ -42,14 +42,14 @@ The dev server proxies `/api` to the game server. Set `TM_SERVER_URL` (default `
 
 ## Layout
 
-| Path              | Contents                                                 |
-| ----------------- | -------------------------------------------------------- |
-| `packages/engine` | Simulation engine. Pure TypeScript with no runtime deps. |
-| `packages/shared` | Types, catalog, balance constants and the wire protocol. |
-| `apps/server`     | Node server: auth, persistence and the tower runner.     |
-| `apps/web`        | Browser client.                                          |
-| `tools/*`         | Standalone asset tooling (art, sound).                   |
-| `tests`           | Repository-level checks, such as the engine lint rules.  |
+| Path              | Contents                                                               |
+| ----------------- | ---------------------------------------------------------------------- |
+| `packages/engine` | Simulation engine. Pure TypeScript with no runtime deps.               |
+| `packages/shared` | Types, catalog, balance constants and the wire protocol.               |
+| `apps/server`     | Node server: accounts and saved towers. The tower runs in the browser. |
+| `apps/web`        | Browser client.                                                        |
+| `tools/*`         | Standalone asset tooling (art, sound).                                 |
+| `tests`           | Repository-level checks, such as the engine lint rules.                |
 
 The engine must stay deterministic. ESLint fails on `Math.random`, `Date`, timers and IO inside `packages/engine`.
 

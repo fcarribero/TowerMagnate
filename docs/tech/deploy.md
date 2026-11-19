@@ -122,7 +122,7 @@ Set these in `.env` or in the shell.
 | `POSTGRES_PASSWORD`                        | `tower`                 | Password for that user. `.env.example` sets `change-me`.                                                         |
 | `POSTGRES_DB`                              | `tower_magnate`         | Database name.                                                                                                   |
 | `CHOKIDAR_USEPOLLING`                      | `false`                 | Dev watchers use file events. Set `true` if edits do not reload, for example when the repo is on a Windows bind mount. |
-| `TM_SERVER_URL`                            | `http://localhost:3000` | Where the Vite dev server proxies `/api`. The compose `web` service sets `http://server:3000`.         |
+| `TM_SERVER_URL`                            | `http://localhost:3000` | Where the Vite dev server proxies `/api`. The compose `web` service sets `http://server:3000`.                   |
 | `TM_WEB_PORT`                              | `5173`                  | Port of the Vite dev server.                                                                                     |
 | `TEST_DATABASE_URL`                        | unset                   | Postgres for the server tests. Without it the tests start a container.                                           |
 | `BASE_URL`                                 | unset                   | Web address of a running stack for `pnpm e2e`. Without it the run starts its own stack.                          |

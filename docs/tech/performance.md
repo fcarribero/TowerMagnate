@@ -92,7 +92,7 @@ TM-137 checks the TM-114 and TM-124 targets on the release build. The `Performan
 
 ### What "release build" means here
 
-The server check described in this paragraph was removed on 18 November 2026 together with the runner bench. It built the production image from `docker/prod/Dockerfile` (TM-88) and runs the runner load bench inside it, with `NODE_ENV=production` and the image's `node_modules`. The bench is bundled by `pnpm --filter @tower-magnate/server build:bench`, which uses the same esbuild settings as the server bundle, and mounted into the container. The image itself does not contain the bench.
+The server check was removed on 18 November 2026 together with the runner bench. It built the production image from `docker/prod/Dockerfile` (TM-88) and ran the runner load bench inside it, with `NODE_ENV=production` and the image's `node_modules`. The bench was bundled with the server's esbuild settings and mounted into the container.
 
 The client check uses a production Vite build. The release build leaves out the stress page, so `pnpm --filter @tower-magnate/web build:perf` builds the same pages plus `perf.html` into `apps/web/dist-perf` (Vite mode `perf`), and `vite preview` serves it. The render code and the build settings are the ones the release uses.
 
