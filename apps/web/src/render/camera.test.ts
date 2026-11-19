@@ -137,6 +137,12 @@ describe('cameraViewport', () => {
     expect(visibleLevels(camera)).toEqual({ lowest: levelToIndex(1), highest: levelToIndex(2) });
     expect(cameraViewport(camera, 1)).toEqual({ levelFrom: -1, levelTo: 3, xFrom: 10, xTo: 29 });
   });
+
+  it('widens the columns by the column margin, within the site', () => {
+    const camera: Camera = { zoom: 2, left: 160, top: 0, viewWidth: 320, viewHeight: 128 };
+    expect(cameraViewport(camera, 0, 4)).toMatchObject({ xFrom: 6, xTo: 33 });
+    expect(cameraViewport({ ...camera, left: 0 }, 0, 4)).toMatchObject({ xFrom: 0 });
+  });
 });
 
 describe('centerCameraOnRect', () => {

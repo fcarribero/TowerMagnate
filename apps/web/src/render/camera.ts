@@ -116,7 +116,11 @@ export function visibleLevels(camera: Camera): LevelRange {
 }
 
 /** The `viewport` message for the server: visible levels and columns, widened by a margin. */
-export function cameraViewport(camera: Camera, marginLevels: number): ViewportRequest {
+export function cameraViewport(
+  camera: Camera,
+  marginLevels: number,
+  marginColumns = 0,
+): ViewportRequest {
   const levels = visibleLevels(camera);
   const lowest = Math.max(0, levels.lowest - marginLevels);
   const highest = Math.min(LEVEL_COUNT - 1, levels.highest + marginLevels);
@@ -125,8 +129,11 @@ export function cameraViewport(camera: Camera, marginLevels: number): ViewportRe
   return {
     levelFrom: indexToLevel(lowest),
     levelTo: indexToLevel(highest),
-    xFrom: Math.max(0, Math.floor(camera.left / tileOnScreen)),
-    xTo: Math.min(lastColumn, Math.floor((camera.left + camera.viewWidth - 1) / tileOnScreen)),
+    xFrom: Math.max(0, Math.floor(camera.left / tileOnScreen) - marginColumns),
+    xTo: Math.min(
+      lastColumn,
+      Math.floor((camera.left + camera.viewWidth - 1) / tileOnScreen) + marginColumns,
+    ),
   };
 }
 

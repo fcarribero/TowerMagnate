@@ -4,6 +4,11 @@ import { cameraViewport, type Camera, type ViewportRequest } from '../render/cam
 /** Levels above and below the visible ones whose people the server still sends. */
 export const VIEWPORT_MARGIN_LEVELS = 2;
 /**
+ * Columns left and right of the visible ones whose people the server still sends, so people
+ * walk out past the edge of the view instead of vanishing at it, and are there when the view pans.
+ */
+export const VIEWPORT_MARGIN_COLUMNS = 16;
+/**
  * The server accepts 4 viewports per second (engine-and-protocol.md 8.1). The
  * spacing is a little wider than 250 ms so network jitter cannot squeeze five
  * into one server-side second.
@@ -30,7 +35,7 @@ export class ViewportReporter {
   constructor(private readonly options: ViewportReporterOptions) {}
 
   cameraChanged(camera: Camera): void {
-    this.latest = cameraViewport(camera, VIEWPORT_MARGIN_LEVELS);
+    this.latest = cameraViewport(camera, VIEWPORT_MARGIN_LEVELS, VIEWPORT_MARGIN_COLUMNS);
     this.sendSoon();
   }
 

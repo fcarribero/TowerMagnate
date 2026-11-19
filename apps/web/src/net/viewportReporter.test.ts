@@ -7,7 +7,12 @@ import {
   resizeCamera,
   zoomCamera,
 } from '../render/camera';
-import { VIEWPORT_INTERVAL_MS, VIEWPORT_MARGIN_LEVELS, ViewportReporter } from './viewportReporter';
+import {
+  VIEWPORT_INTERVAL_MS,
+  VIEWPORT_MARGIN_COLUMNS,
+  VIEWPORT_MARGIN_LEVELS,
+  ViewportReporter,
+} from './viewportReporter';
 
 function fakeServer(open = true) {
   const sent: ClientMessage[] = [];
@@ -54,7 +59,9 @@ describe('ViewportReporter', () => {
     vi.advanceTimersByTime(5_000);
 
     reporter.snapshotReceived();
-    expect(server.viewports()).toEqual([cameraViewport(camera, VIEWPORT_MARGIN_LEVELS)]);
+    expect(server.viewports()).toEqual([
+      cameraViewport(camera, VIEWPORT_MARGIN_LEVELS, VIEWPORT_MARGIN_COLUMNS),
+    ]);
     expect(VIEWPORT_MARGIN_LEVELS).toBe(2);
   });
 
@@ -75,7 +82,7 @@ describe('ViewportReporter', () => {
     expect(server.viewports()).toHaveLength(0);
     const camera = createCamera(1200, 800, 2);
     reporter.cameraChanged(camera);
-    expect(server.viewports()).toEqual([cameraViewport(camera, 2)]);
+    expect(server.viewports()).toEqual([cameraViewport(camera, 2, VIEWPORT_MARGIN_COLUMNS)]);
   });
 
   it('sends again after a snapshot on a socket that was closed when the camera moved', () => {
@@ -86,7 +93,7 @@ describe('ViewportReporter', () => {
     server.open = true;
     vi.advanceTimersByTime(VIEWPORT_INTERVAL_MS);
     reporter.snapshotReceived();
-    expect(server.viewports()).toEqual([cameraViewport(camera, 2)]);
+    expect(server.viewports()).toEqual([cameraViewport(camera, 2, VIEWPORT_MARGIN_COLUMNS)]);
   });
 
   it('sends a new range after pan, zoom and resize', () => {
@@ -105,7 +112,7 @@ describe('ViewportReporter', () => {
     }
     const sent = server.viewports();
     expect(sent).toHaveLength(4);
-    expect(sent.at(-1)).toEqual(cameraViewport(camera, 2));
+    expect(sent.at(-1)).toEqual(cameraViewport(camera, 2, VIEWPORT_MARGIN_COLUMNS));
     expect(new Set(sent.map((range) => JSON.stringify(range))).size).toBe(4);
   });
 
@@ -148,7 +155,7 @@ describe('ViewportReporter', () => {
     expect(sent.length).toBeLessThanOrEqual(5);
     expect(sendTimes.filter((time) => time < 1000).length).toBeLessThanOrEqual(4);
     expect(mostSendsInOneSecond(sendTimes)).toBeLessThanOrEqual(4);
-    expect(sent.at(-1)).toEqual(cameraViewport(camera, 2));
+    expect(sent.at(-1)).toEqual(cameraViewport(camera, 2, VIEWPORT_MARGIN_COLUMNS));
   });
 
   it('stops a pending send', () => {
