@@ -85,4 +85,12 @@ describe('App and the tower worker', () => {
     worker.emit({ kind: 'saveFailing', failing: false });
     expect(screen.queryByText('No se pudo guardar la partida')).toBeNull();
   });
+
+  it('a fatal from the worker shows the error blocker', () => {
+    renderApp({});
+    expect(screen.queryByText('No se pudo seguir con la partida.')).toBeNull();
+    worker.emit({ kind: 'fatal', message: 'boom' });
+    expect(screen.getByText('No se pudo seguir con la partida.')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Recargar' })).toBeTruthy();
+  });
 });

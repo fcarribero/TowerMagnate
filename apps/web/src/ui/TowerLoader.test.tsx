@@ -17,7 +17,7 @@ describe('TowerLoader', () => {
     let answer: (play: PlayResponse | null) => void = () => {};
     const play = vi.fn(() => new Promise<PlayResponse | null>((resolve) => (answer = resolve)));
     render(
-      <TowerLoader towerApi={fakeApi(play)}>
+      <TowerLoader towerApi={fakeApi(play)} onSessionLost={() => {}}>
         {(response) => <p>token {response.token}</p>}
       </TowerLoader>,
     );
@@ -31,7 +31,7 @@ describe('TowerLoader', () => {
   it('shows retry on failure and plays again on click', async () => {
     const play = vi.fn<TowerApi['play']>().mockResolvedValueOnce(null).mockResolvedValueOnce(PLAY);
     render(
-      <TowerLoader towerApi={fakeApi(play)}>
+      <TowerLoader towerApi={fakeApi(play)} onSessionLost={() => {}}>
         {(response) => <p>token {response.token}</p>}
       </TowerLoader>,
     );
@@ -39,5 +39,17 @@ describe('TowerLoader', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Reintentar' }));
     expect(await screen.findByText('token tok')).toBeTruthy();
     expect(play).toHaveBeenCalledTimes(2);
+  });
+
+  it('play returning 401 calls onSessionLost', async () => {
+    const onSessionLost = vi.fn();
+    const play = vi.fn<TowerApi['play']>().mockResolvedValue('unauthenticated');
+    render(
+      <TowerLoader towerApi={fakeApi(play)} onSessionLost={onSessionLost}>
+        {(response) => <p>token {response.token}</p>}
+      </TowerLoader>,
+    );
+    await vi.waitFor(() => expect(onSessionLost).toHaveBeenCalledOnce());
+    expect(screen.queryByText('No se pudo cargar la torre.')).toBeNull();
   });
 });

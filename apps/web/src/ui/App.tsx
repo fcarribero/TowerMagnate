@@ -102,6 +102,7 @@ export function App({
     onTakenOver: () => setBlocker('takenOver'),
     onOutdated: () => setBlocker('outdated'),
     onSaveFailing: setSaveFailing,
+    onFatal: () => setBlocker('error'),
     createWorker,
   });
   const connected = connectionStatus === 'live';

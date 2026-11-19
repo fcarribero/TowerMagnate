@@ -31,8 +31,8 @@ export function Root({ api, towerApi }: RootProps) {
   }
   return (
     <SessionGate api={authApi}>
-      {({ user, logout }) => (
-        <TowerLoader key={towerGeneration} towerApi={tower}>
+      {({ user, logout, sessionLost }) => (
+        <TowerLoader key={towerGeneration} towerApi={tower} onSessionLost={sessionLost}>
           {(play) => (
             <App
               play={play}

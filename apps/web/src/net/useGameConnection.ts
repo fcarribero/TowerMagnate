@@ -11,6 +11,7 @@ export interface GameConnectionOptions {
   onTakenOver?: () => void;
   onOutdated?: () => void;
   onSaveFailing?: (failing: boolean) => void;
+  onFatal?: (message: string) => void;
   /** Tests stand in for the Worker. Read once, when the connection is made. */
   createWorker?: () => WorkerLike;
 }
@@ -39,6 +40,7 @@ export function useGameConnection(options: GameConnectionOptions): {
             onTakenOver: () => latest.current.onTakenOver?.(),
             onOutdated: () => latest.current.onOutdated?.(),
             onSaveFailing: (failing) => latest.current.onSaveFailing?.(failing),
+            onFatal: (message) => latest.current.onFatal?.(message),
           }),
       ),
     [play, debug],

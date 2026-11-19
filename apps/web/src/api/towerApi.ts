@@ -7,11 +7,14 @@ export const TOWER_PATHS = {
 
 type Fetch = typeof fetch;
 
+/** What `play()` gives: the session, `'unauthenticated'` on 401, or null on any other failure. */
+export type PlayResult = PlayResponse | 'unauthenticated' | null;
+
 export interface TowerApi {
   /** Resolves true when the server demolished the tower and started a new one. */
   resetTower(): Promise<boolean>;
-  /** Starts a play session: the token for saves and the latest saved state. Null on any failure. */
-  play(): Promise<PlayResponse | null>;
+  /** Starts a play session: the token for saves and the latest saved state. */
+  play(): Promise<PlayResult>;
 }
 
 export function createTowerApi(fetchImpl: Fetch = (input, init) => fetch(input, init)): TowerApi {
@@ -36,6 +39,7 @@ export function createTowerApi(fetchImpl: Fetch = (input, init) => fetch(input, 
           method: 'POST',
           credentials: 'same-origin',
         });
+        if (response.status === 401) return 'unauthenticated';
         if (response.status !== 200) return null;
         return (await response.json()) as PlayResponse;
       } catch {

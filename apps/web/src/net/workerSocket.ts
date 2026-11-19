@@ -38,6 +38,8 @@ export interface WorkerSocketOptions {
   /** The saved state is newer than this build's engine. */
   onOutdated?: () => void;
   onSaveFailing?: (failing: boolean) => void;
+  /** The Worker stopped on an error. */
+  onFatal?: (message: string) => void;
   visibility?: PageVisibility;
 }
 
@@ -177,6 +179,7 @@ export class WorkerSocket implements TowerLink {
       case 'fatal':
         console.error('The tower worker stopped:', message.message);
         this.setStatus('closed');
+        this.options.onFatal?.(message.message);
         return;
     }
   }

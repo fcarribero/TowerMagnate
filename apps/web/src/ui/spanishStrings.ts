@@ -678,5 +678,6 @@ export const SPANISH_STRINGS = {
   'game.playHere': 'Jugar acá',
   'game.outdated': 'Hay una versión nueva del juego.',
   'game.reload': 'Recargar',
+  'game.fatal': 'No se pudo seguir con la partida.',
   'game.saveFailing': 'No se pudo guardar la partida',
 } as const;
