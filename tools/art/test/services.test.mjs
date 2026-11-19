@@ -21,7 +21,7 @@ const catalog = {
 };
 const variants = ['closed_day', 'closed_night', 'occupied_day', 'occupied_night', 'burnt'];
 const disconnected = ['disconnected_day', 'disconnected_night'];
-const SEEDED = ['security', 'medical-center'];
+const SEEDED = ['security', 'medical-center', 'parking-space'];
 const countColor = (canvas, color) =>
   canvas.pixels.filter((index) => index === colorIndex(color)).length;
 

@@ -115,6 +115,7 @@ const MIGRATIONS: readonly Migration[] = [
   addCleaningRoomLooks,
   addFastFoodLooks,
   addShopAndServiceLooks,
+  addParkingSpaceLooks,
 ];
 
 /** Version 40 gives every office a furniture seed, from where and when it was built. */
@@ -146,6 +147,11 @@ function addFastFoodLooks(raw: Record<string, unknown>): Record<string, unknown>
 function addShopAndServiceLooks(raw: Record<string, unknown>): Record<string, unknown> {
   const types: UnitType[] = ['restaurant', 'retail-shop', 'security', 'medical-center'];
   return types.reduce((state, type) => addLooks(state, type, 45), raw);
+}
+
+/** Version 46 gives every parking space a seed, which picks the vehicle parked in it. */
+function addParkingSpaceLooks(raw: Record<string, unknown>): Record<string, unknown> {
+  return addLooks(raw, 'parking-space', 46);
 }
 
 function addLooks(

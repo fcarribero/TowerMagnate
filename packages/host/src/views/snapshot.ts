@@ -90,12 +90,13 @@ export function buildSnapshot(
   const homes = occupiedUnits(people);
   const inside = unitsWithPeopleInside(state, people);
   const sleeping = unitsWithSleepers(state, people);
+  const parked = heldSpaces(state);
   const units = [
     ...Object.values(state.units).map((unit) =>
       unitView(
         state,
         unit,
-        (homes.has(unit.id) && unit.hotel === null) || isTaken(unit),
+        (homes.has(unit.id) && unit.hotel === null) || isTaken(unit) || parked.has(unit.id),
         disconnected.has(unit.id),
         inside.has(unit.id),
         sleeping.has(unit.id),
@@ -281,6 +282,15 @@ function carViews(shaft: Shaft): CarView[] {
     doors: 'closed',
     load: car.riders.length,
   }));
+}
+
+/** Parking spaces someone holds: each shows a parked vehicle. */
+function heldSpaces(state: TowerState): Set<string> {
+  const held = new Set<string>();
+  for (const space of Object.values(state.parking.spaces)) {
+    if (space > 0) held.add(`u${space}`);
+  }
+  return held;
 }
 
 function occupiedUnits(people: EnginePerson[]): Set<string> {

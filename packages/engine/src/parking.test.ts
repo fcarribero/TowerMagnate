@@ -101,6 +101,26 @@ describe('parking assignment', () => {
     expect(state.lastParkingFailureStep).toBe(state.step);
   });
 
+  it('gives a space a new seed when someone new takes it and keeps it while they hold it', () => {
+    const { state, unitIds } = basementTower([16]);
+    const space = state.units[unitIds[2] as string];
+    const [first] = addHolders(state, 1);
+    const built = space?.look;
+    state.step += 10;
+    assignParking(context(state));
+    const taken = space?.look;
+    expect(taken).toBeDefined();
+    expect(taken).not.toBe(built);
+    state.step += STEPS_PER_DAY;
+    assignParking(context(state));
+    expect(space?.look).toBe(taken);
+    removePerson(state, first as number);
+    addHolders(state, 1);
+    state.step += STEPS_PER_DAY;
+    assignParking(context(state));
+    expect(space?.look).not.toBe(taken);
+  });
+
   it('runs no pass below 3 stars', () => {
     const { state } = basementTower([16]);
     const [id] = addHolders(state, 1);

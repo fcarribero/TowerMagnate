@@ -10,7 +10,7 @@ import { STEPS_PER_DAY } from './clock';
 import { slotOfPerson } from './people';
 import type { ScheduledHook } from './scheduler';
 import type { StepContext } from './step';
-import { unitNumber } from './units';
+import { reseedLook, unitNumber } from './units';
 import { emitNews } from './news';
 
 type Holder = 'office' | 'condo' | 'suite';
@@ -62,6 +62,15 @@ function holderKind(state: TowerState, personId: number): Holder | undefined {
   return slot < 0 ? undefined : HOLDER_BY_KIND[state.people.kind[slot] as number];
 }
 
+/** Who holds each parking space, by unit number. */
+function holderBySpace(state: TowerState): Map<number, number> {
+  const holders = new Map<number, number>();
+  for (const [holder, space] of Object.entries(state.parking.spaces)) {
+    if (space > 0) holders.set(space, Number(holder));
+  }
+  return holders;
+}
+
 /**
  * People spec 17.2: holders keep a valid space, the others take the free valid space with the
  * lowest unit id in increasing person id, and each holder left without one is a parking failure.
@@ -69,6 +78,7 @@ function holderKind(state: TowerState, personId: number): Holder | undefined {
 export function assignParking(context: StepContext): void {
   const { state } = context;
   if (state.stars < 3) return;
+  const before = holderBySpace(state);
   const valid = new Set(connectedSpaces(state).map((space) => unitNumber(space.id)));
   const taken = new Set<number>();
   const holders = Object.keys(state.parking.spaces)
@@ -86,6 +96,11 @@ export function assignParking(context: StepContext): void {
     const space = free.shift();
     if (space === undefined) failed.add(holderKind(state, id) ?? 'office');
     else state.parking.spaces[id] = space;
+  }
+  // A space taken by someone new gets a new seed, and with it another vehicle.
+  for (const [space, holder] of holderBySpace(state)) {
+    const unit = state.units[`u${space}`];
+    if (unit && before.get(space) !== holder) reseedLook(unit, state.step);
   }
   if (failed.size > 0) state.lastParkingFailureStep = state.step;
   const today = noticesToday(state);

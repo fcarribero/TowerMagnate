@@ -1,4 +1,5 @@
 import { toBurnt } from '../burnt.mjs';
+import { PixelCanvas } from '../canvas.mjs';
 import { metrics } from '../metrics.mjs';
 import { FLOOR_ROW, drawWindow, nightVersion, rentalSprites, roomShell } from './shell.mjs';
 
@@ -355,6 +356,20 @@ function drawDisconnectedParkingSpace() {
   return room;
 }
 
+// What a disconnected parking space adds to the bare one (dead lamps, the red cross), with
+// every other pixel clear, to lay over the bare space and its seeded vehicle.
+export function parkingDisconnectedOverlay() {
+  const bare = drawParkingSpace(false);
+  const cut = drawDisconnectedParkingSpace();
+  const overlay = new PixelCanvas(bare.width, bare.height);
+  for (let y = 0; y < bare.height; y++) {
+    for (let x = 0; x < bare.width; x++) {
+      if (cut.get(x, y) !== bare.get(x, y)) overlay.set(x, y, cut.get(x, y));
+    }
+  }
+  return overlay;
+}
+
 const RECYCLING_FLOORS = 2;
 const RECYCLING_WINDOWS = [
   { left: 40, top: 4, width: 14, height: 8 },
@@ -600,7 +615,10 @@ export function parkingRampSprites() {
 export function parkingSpaceSprites() {
   const disconnected = drawDisconnectedParkingSpace();
   return [
-    ...serviceSprites('parking-space', { drawDay: drawParkingSpace }),
+    ...serviceSprites('parking-space', {
+      drawDay: drawParkingSpace,
+      bare: () => drawParkingSpace(false),
+    }),
     { id: 'units/parking-space/disconnected_day', canvas: disconnected },
     { id: 'units/parking-space/disconnected_night', canvas: nightVersion(disconnected, []) },
   ];

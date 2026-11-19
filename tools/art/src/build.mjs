@@ -19,6 +19,7 @@ const GROUP_NAMES = [
   'medical',
   'restaurant',
   'retail',
+  'parking',
   'rooftop',
   'sky',
   'ui',

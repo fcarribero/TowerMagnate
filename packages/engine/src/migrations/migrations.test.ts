@@ -669,6 +669,13 @@ describe('migrateState unit evaluation', () => {
     expect(migrated.units.u7?.look).toBeUndefined();
   });
 
+  it('gives a parking space saved at version 45 its seed', () => {
+    const tower = createTower(5);
+    tower.units.u3 = newUnit('u3', 'parking-space', 10, -1);
+    const migrated = migrateState({ ...JSON.parse(JSON.stringify(tower)), schemaVersion: 45 });
+    expect(migrated.units.u3?.look).toBe(lookSeed('u3', 10, -1, 0));
+  });
+
   it('gives a condo saved at version 40 its furniture seed and leaves other units alone', () => {
     const tower = createTower(5);
     tower.units.u3 = newUnit('u3', 'condo', 10, 2);
