@@ -5,6 +5,7 @@ import {
   type Unit,
   type UnitId,
 } from '@tower-magnate/shared';
+import { structureAt } from './grid';
 
 function floorsOf(unit: Unit): number {
   const { height } = UNIT_CATALOG[unit.type];
@@ -29,24 +30,43 @@ function sharesLevel(unit: Unit, source: Unit): boolean {
   return source.level <= unitTop && unit.level <= sourceTop;
 }
 
-function isSourceFor(unit: Unit, source: Unit): boolean {
+/**
+ * True when, on a level both units cover, every column between them has floor or lobby. Noise
+ * only travels over built floor, so one cell with no floor stops it.
+ */
+function gapIsBuilt(state: TowerState, unit: Unit, source: Unit): boolean {
+  const [left, right] = source.x > unit.x ? [unit, source] : [source, unit];
+  const from = lastColumn(left) + 1;
+  const to = right.x - 1;
+  const bottom = Math.max(unit.level, source.level);
+  const top = Math.min(unit.level + floorsOf(unit), source.level + floorsOf(source)) - 1;
+  for (let level = bottom; level <= top; level++) {
+    let built = true;
+    for (let x = from; x <= to && built; x++) built = structureAt(state.grid, level, x) !== null;
+    if (built) return true;
+  }
+  return false;
+}
+
+function isSourceFor(state: TowerState, unit: Unit, source: Unit): boolean {
   const rule = NOISE_RULES[unit.type];
   return (
     rule !== undefined &&
     source.id !== unit.id &&
     rule.sources.includes(source.type) &&
     sharesLevel(unit, source) &&
-    gapBetween(unit, source) <= rule.radius
+    gapBetween(unit, source) <= rule.radius &&
+    gapIsBuilt(state, unit, source)
   );
 }
 
 /**
- * Noise is a flag, not a sum: one source in range is enough. Sources count whether rented or
+ * Noise is a flag, not a sum: one source in range, over built floor, is enough. Sources count whether rented or
  * not. Ruins and housekeeping are never sources, so only the unit lists decide.
  */
 export function isNoisy(state: TowerState, unit: Unit): boolean {
   if (!NOISE_RULES[unit.type]) return false;
-  return Object.values(state.units).some((source) => isSourceFor(unit, source));
+  return Object.values(state.units).some((source) => isSourceFor(state, unit, source));
 }
 
 function unitsByLevel(state: TowerState): Map<number, Unit[]> {
@@ -68,7 +88,7 @@ export function noisyUnitIds(state: TowerState): Set<UnitId> {
   for (const unit of Object.values(state.units)) {
     if (!NOISE_RULES[unit.type]) continue;
     for (let level = unit.level; level < unit.level + floorsOf(unit); level++) {
-      if (byLevel.get(level)?.some((source) => isSourceFor(unit, source))) {
+      if (byLevel.get(level)?.some((source) => isSourceFor(state, unit, source))) {
         noisy.add(unit.id);
         break;
       }

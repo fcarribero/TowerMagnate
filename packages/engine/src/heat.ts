@@ -113,6 +113,7 @@ export function addToCell(
 /**
  * Adds `amount` on every column from `from` to `to` and, on each side, `fade` more columns whose
  * share falls in a straight line from the edge: distance d gets `amount * (1 - d / (fade + 1))`.
+ * With `built`, a side stops at the first cell with no floor: heat never crosses a gap.
  */
 export function addWithFade(
   rows: Rows,
@@ -123,17 +124,21 @@ export function addWithFade(
   fade: number,
   built?: Built,
 ): void {
-  const add = (column: number, value: number): void => {
-    if (column < 0 || column > LAST) return;
-    if (built && !isBuilt(built, level, column)) return;
+  /** Adds to a cell; false when the cell is off the grid or has no floor. */
+  const add = (column: number, value: number): boolean => {
+    if (column < 0 || column > LAST) return false;
+    if (built && !isBuilt(built, level, column)) return false;
     const row = rowOf(rows, level);
     row[column] = (row[column] as number) + value;
+    return true;
   };
   for (let column = from; column <= to; column++) add(column, amount);
-  for (let d = 1; d <= fade; d++) {
+  let left = true;
+  let right = true;
+  for (let d = 1; d <= fade && (left || right); d++) {
     const share = amount * (1 - d / (fade + 1));
-    add(from - d, share);
-    add(to + d, share);
+    if (left) left = add(from - d, share);
+    if (right) right = add(to + d, share);
   }
 }
 

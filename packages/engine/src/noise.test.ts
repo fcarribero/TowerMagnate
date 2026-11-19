@@ -135,3 +135,34 @@ describe('noise sources', () => {
     expect(isNoisy(state, room)).toBe(true);
   });
 });
+
+describe('noise over floor', () => {
+  function condoWithFastFood(floors: { from: number; to: number; x0: number; x1: number }[]) {
+    const { state, unitIds } = buildTower({
+      lobby: { x0: 0, x1: 374 },
+      floors,
+      units: [
+        { type: 'condo', level: 3, x: 100 },
+        { type: 'fast-food', level: 3, x: 100 + UNIT_CATALOG.condo.width + 9 },
+      ],
+    });
+    const [condoId] = unitIds as [string];
+    const noisy = isNoisy(state, unitById(state, condoId));
+    expect(noisyUnitIds(state).has(condoId)).toBe(noisy);
+    return noisy;
+  }
+
+  it('reaches a unit when every cell between them has floor', () => {
+    expect(condoWithFastFood([{ from: 2, to: 6, x0: 0, x1: 374 }])).toBe(true);
+  });
+
+  it('stops at a cell with no floor between the source and the unit', () => {
+    const gapColumn = 100 + UNIT_CATALOG.condo.width + 4;
+    expect(
+      condoWithFastFood([
+        { from: 2, to: 6, x0: 0, x1: gapColumn - 1 },
+        { from: 2, to: 6, x0: gapColumn + 1, x1: 374 },
+      ]),
+    ).toBe(false);
+  });
+});

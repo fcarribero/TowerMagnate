@@ -91,7 +91,7 @@ The tower keeps two maps of floats, one for noise and one for dirt, with a value
 
 Noise sources:
 
-- Every game minute, each unit that is in use adds its noise (`UNIT_NOISE`) to every cell it covers, on every level it covers, and to the 15 cells on each side. The amount fades in a straight line from the unit's edge: the cell at distance d gets `noise * (1 - d / 16)`.
+- Every game minute, each unit that is in use adds its noise (`UNIT_NOISE`) to every cell it covers, on every level it covers, and to the 15 cells on each side. The amount fades in a straight line from the unit's edge: the cell at distance d gets `noise * (1 - d / 16)`. The fade stops at the first cell with no floor or lobby, so noise never crosses a gap in the floor.
 - A unit is in use when a venue (fast food, restaurant, shop, cinema, party hall) is open to customers, an office has a tenant between 08:00 and 18:00, or a home (a sold condo, or a hotel room with a guest) has one of its own people awake inside it, standing still. A home whose people are asleep or away is quiet.
 - A person adds 0.02 to each cell they walk into and 0.05 to the cell they stand in at each minute (in a queue, waiting for a retry, or at home). A person asleep adds nothing. This is small, but dozens of people through one cell add up.
 - Every game minute, each noise cell loses a little, so that 5 minutes leave 50% of its value (a factor of about 0.87 a minute). The map does not jump every 5 minutes.
@@ -237,7 +237,7 @@ A unit gets +1.0 on its occupant score when at least one noise source of its lis
 | Condo | 30 | single room, double room, suite, fast food, restaurant, office, retail shop, cinema, party hall |
 | Retail shop | none | none |
 
-The gap between a unit on columns `a` to `b` and a source on columns `c` to `d` on the same level is `c - b - 1` when the source is to the right (`c > b`) and `a - d - 1` when it is to the left (`d < a`). The source is in range when the gap is at or below the radius. Two adjacent units have a gap of 0.
+The gap between a unit on columns `a` to `b` and a source on columns `c` to `d` on the same level is `c - b - 1` when the source is to the right (`c > b`) and `a - d - 1` when it is to the left (`d < a`). The source is in range when the gap is at or below the radius and every cell of the gap has floor or lobby: noise only travels over built floor, so one cell with no floor stops it. Two adjacent units have a gap of 0.
 
 A source taller than one level (cinema, party hall) is on every level it covers. A source counts while it exists, with or without a tenant, stay or customers. Ruins are not a source.
 
@@ -528,7 +528,7 @@ SE-14. Retired, replaced by SE-25 and SE-26.
 
 SE-15. Retired, replaced by SE-27.
 
-SE-16. Noise is +1 on the occupant score, once, when at least one source of the unit's list is on the same level with a gap at or below the radius: hotel rooms 20 columns (fast food, restaurant, office, retail, cinema, party hall), offices 10 (fast food, restaurant, retail, cinema, party hall), condos 30 (single, double, suite, fast food, restaurant, office, retail, cinema, party hall). Shops get no noise.
+SE-16. Noise is +1 on the occupant score, once, when at least one source of the unit's list is on the same level with a gap at or below the radius and every cell of the gap has floor or lobby on that level: hotel rooms 20 columns (fast food, restaurant, office, retail, cinema, party hall), offices 10 (fast food, restaurant, retail, cinema, party hall), condos 30 (single, double, suite, fast food, restaurant, office, retail, cinema, party hall). Shops get no noise.
 
 SE-17. The gap is `c - b - 1` for a source on columns `c` to `d` right of a unit on `a` to `b`, and `a - d - 1` for a source on the left. A source taller than one level is on every level it covers. A source counts while it exists, rented or not. Ruins are not a source.
 

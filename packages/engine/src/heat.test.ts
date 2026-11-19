@@ -27,6 +27,17 @@ describe('heat maps', () => {
     expect(valueAt(heat.noise, 3, 45)).toBe(0);
   });
 
+  it('stops the fade at the first cell with no floor', () => {
+    const heat = emptyHeat();
+    const row = new Uint8Array(LAST_COLUMN + 1).fill(1);
+    row[55] = 0;
+    addWithFade(heat.noise, 2, 40, 49, 1, HEAT_NOISE_CELLS, new Map([[2, row]]));
+    expect(valueAt(heat.noise, 2, 54)).toBeCloseTo(11 / 16);
+    expect(valueAt(heat.noise, 2, 55)).toBe(0);
+    expect(valueAt(heat.noise, 2, 56)).toBe(0);
+    expect(valueAt(heat.noise, 2, 39)).toBeCloseTo(15 / 16);
+  });
+
   it('keeps inside the site at the edges', () => {
     const heat = emptyHeat();
     addWithFade(heat.noise, 1, 0, 2, 1, HEAT_NOISE_CELLS);
