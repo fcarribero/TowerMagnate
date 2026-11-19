@@ -8,7 +8,7 @@ Related specs: construction (TM-8, `docs/design/construction.md`) for shaft plac
 
 ## 1. Time and distance units
 
-The engine runs one step per 10 game seconds. One game day is 8,640 steps and lasts 15 real minutes, so one step is 0.104 real seconds and one real second is 9.6 steps.
+The engine runs one step per 10 game seconds. One game day is 8,640 steps and lasts 24 real minutes, so one game minute is one real second, one step is 0.167 real seconds and one real second is 6 steps.
 
 Car positions and distances use the dense level index from the tech doc (3.1): index 0 is level -10, level -1 is 9, level 1 is 10 and level 104 is 113. "Floors" between two levels means the difference of their dense indexes, as in routing section 1. From level 1 to level 30 is 29 floors; from S1 to 1 is 1 floor.
 

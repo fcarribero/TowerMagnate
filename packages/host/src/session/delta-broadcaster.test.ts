@@ -122,8 +122,8 @@ describe('delta broadcaster', () => {
     pass(5000);
 
     const deltas = messages('delta');
-    // 5 s is 48 steps; a delta goes out on the first tick 6 steps (a game minute) past the last one.
-    expect(deltas).toHaveLength(7);
+    // 5 s is 30 steps; a delta goes out on the first tick 6 steps (a game minute) past the last one.
+    expect(deltas).toHaveLength(5);
     const steps = deltas.map((message) => (message.p as Delta).step);
     for (const [index, step] of steps.entries()) {
       const before = index === 0 ? 0 : (steps[index - 1] ?? 0);

@@ -57,7 +57,7 @@ describe('tower runner', () => {
     runner = new TowerRunner({ store, now: () => clock, advance: countingAdvance });
   });
 
-  it('advances one game day in 15 real minutes', async () => {
+  it('advances one game day in 24 real minutes', async () => {
     await runner.resume('1');
 
     passTime(REAL_MS_PER_GAME_DAY);
@@ -110,7 +110,7 @@ describe('tower runner', () => {
     await runner.resume('1');
     runner.tick();
 
-    expect(stepOf('1')).toBe(1152);
+    expect(stepOf('1')).toBe(720);
   });
 
   it('treats a gap longer than two minutes as a pause and resumes from there', async () => {
@@ -126,7 +126,7 @@ describe('tower runner', () => {
     expect(afterGap - before).toBeGreaterThan(0);
 
     passTime(10 * SECOND);
-    expect(stepOf('1')).toBe(afterGap + 96);
+    expect(stepOf('1')).toBe(afterGap + 60);
   });
 
   it('caps the catch-up at the developer speed times two minutes', async () => {
@@ -146,7 +146,7 @@ describe('tower runner', () => {
 
     await runner.pause('1');
 
-    expect(store.saves).toEqual([{ towerId: '1', step: 96 }]);
+    expect(store.saves).toEqual([{ towerId: '1', step: 60 }]);
     expect(runner.isRunning('1')).toBe(false);
     expect(runner.stateOf('1')).toBeUndefined();
   });
@@ -157,7 +157,7 @@ describe('tower runner', () => {
     await runner.resume('1');
     passTime(10 * SECOND);
 
-    expect(stepOf('1')).toBe(5096);
+    expect(stepOf('1')).toBe(5060);
   });
 
   it('advances several towers independently', async () => {
@@ -168,8 +168,8 @@ describe('tower runner', () => {
     await runner.pause('1');
     passTime(1 * MINUTE);
 
-    expect(store.towers.get('1')?.step).toBe(1152);
-    expect(stepOf('2')).toBe(1152);
+    expect(store.towers.get('1')?.step).toBe(720);
+    expect(stepOf('2')).toBe(720);
     expect(runner.runningTowers()).toEqual(['2']);
   });
 
@@ -180,7 +180,7 @@ describe('tower runner', () => {
     await runner.resume('1');
     passTime(10 * SECOND);
 
-    expect(stepOf('1')).toBe(192);
+    expect(stepOf('1')).toBe(120);
   });
 
   it('ignores a pause for a tower that is not running', async () => {
@@ -213,7 +213,7 @@ describe('tower runner', () => {
     await Promise.all([pausing, resuming]);
 
     expect(runner.isRunning('1')).toBe(true);
-    expect(stepOf('1')).toBe(96);
+    expect(stepOf('1')).toBe(60);
   });
 
   it('keeps ticking other towers when one fails', async () => {
@@ -238,7 +238,7 @@ describe('tower runner', () => {
 
     expect(failures).toEqual(['1']);
     expect(stepOf('1')).toBe(brokenStep);
-    expect(stepOf('2')).toBe(9);
+    expect(stepOf('2')).toBe(6);
   });
 
   it('saves a running tower up to date and keeps it running', async () => {
@@ -247,7 +247,7 @@ describe('tower runner', () => {
 
     await runner.save('1');
 
-    expect(store.saves).toEqual([{ towerId: '1', step: 96 }]);
+    expect(store.saves).toEqual([{ towerId: '1', step: 60 }]);
     expect(runner.isRunning('1')).toBe(true);
   });
 
@@ -271,7 +271,7 @@ describe('tower runner', () => {
     await runner.saveAll();
 
     expect(failures).toEqual(['1']);
-    expect(store.saves).toEqual([{ towerId: '2', step: 96 }]);
+    expect(store.saves).toEqual([{ towerId: '2', step: 60 }]);
   });
 
   it('saves and pauses every tower on shutdown', async () => {
@@ -283,8 +283,8 @@ describe('tower runner', () => {
 
     const savesByTower = [...store.saves].sort((a, b) => a.towerId.localeCompare(b.towerId));
     expect(savesByTower).toEqual([
-      { towerId: '1', step: 96 },
-      { towerId: '2', step: 96 },
+      { towerId: '1', step: 60 },
+      { towerId: '2', step: 60 },
     ]);
     expect(runner.runningTowers()).toEqual([]);
   });
@@ -312,7 +312,7 @@ describe('tower runner', () => {
 
     passTime(10 * SECOND);
 
-    expect(stepOf('1')).toBe(96);
+    expect(stepOf('1')).toBe(60);
   });
 
   it('runs faster once the developer speed is set, without making up the past', async () => {
@@ -387,7 +387,7 @@ describe('tower runner timer', () => {
     stop();
     vi.advanceTimersByTime(10 * SECOND);
 
-    expect(runner.stateOf('1')?.step).toBe(96);
+    expect(runner.stateOf('1')?.step).toBe(60);
   });
 });
 
@@ -408,10 +408,10 @@ describe('tower runner autosave', () => {
     expect(store.saves).toEqual([]);
 
     await vi.advanceTimersByTimeAsync(1 * SECOND);
-    expect(store.saves).toEqual([{ towerId: '1', step: 288 }]);
+    expect(store.saves).toEqual([{ towerId: '1', step: 180 }]);
 
     await vi.advanceTimersByTimeAsync(30 * SECOND);
-    expect(store.saves.map((save) => save.step)).toEqual([288, 576]);
+    expect(store.saves.map((save) => save.step)).toEqual([180, 360]);
 
     stop();
     await vi.advanceTimersByTimeAsync(60 * SECOND);

@@ -27,7 +27,7 @@ Nombre, arte, sonido y textos son propios. No se usa ningún asset, nombre de pe
 
 ## Tiempo y calendario
 
-Un día del juego dura 15 minutos reales. Una hora del juego dura 37,5 segundos y una semana dura 1 hora y 45 minutos. El reloj es lineal, a diferencia del original que estiraba el mediodía.
+Un minuto del juego dura un segundo real, así que un día del juego dura 24 minutos reales. Una hora del juego dura 1 minuto real y una semana dura 2 horas y 48 minutos. El reloj es lineal, a diferencia del original que estiraba el mediodía.
 
 El calendario es gregoriano en UTC. Toda torre nueva empieza el lunes 1 de enero del año 1 a las 00:00. Los días hábiles son de lunes a viernes y el fin de semana es sábado y domingo. Los años tienen sus 365 o 366 días y la torre puede vivir cientos de años del juego.
 

@@ -1,7 +1,7 @@
 import { STEPS_PER_DAY } from '@tower-magnate/engine';
 
-/** One game day lasts 15 real minutes, so a running tower advances about 9.6 steps a second. */
-export const REAL_MS_PER_GAME_DAY = 15 * 60 * 1000;
+/** One game minute lasts one real second, so a game day lasts 24 real minutes and a running tower advances 6 steps a second. */
+export const REAL_MS_PER_GAME_DAY = 24 * 60 * 1000;
 
 /** How many whole steps fit in a stretch of real time. */
 export function stepsForElapsed(elapsedMs: number): number {

@@ -55,7 +55,7 @@ The host always calls `step(state, queued, 0)` between ticks, so commands run af
 
 Commands come from the network, so the engine does not trust their shape. A command that is not an object, has an unknown `type` or has a field of the wrong type is rejected with `INVALID_COMMAND`. Each handler checks its own fields. The zod schemas in `shared` catch the same problems earlier, in the host.
 
-One step is 10 game seconds (`SECONDS_PER_STEP`), so 8,640 steps per game day. The runner in the Worker calls `step` about 9.6 times per real second with `steps = 1`. Tests and the accelerated mode call it with large step counts, for example `steps = STEPS_PER_DAY * 7` for a week.
+One step is 10 game seconds (`SECONDS_PER_STEP`), so 8,640 steps per game day. The runner in the Worker calls `step` 6 times per real second with `steps = 1`, so one game minute is one real second. Tests and the accelerated mode call it with large step counts, for example `steps = STEPS_PER_DAY * 7` for a week.
 
 ## 3. State model
 
@@ -413,7 +413,7 @@ The day and night sprite variant is derived on the client from `step`.
 
 ### 8.5 Delta
 
-The runner advances each tower at about 9.6 steps per real second. The server sends one delta every 200 ms of real time (5 per second), covering whatever steps ran since the last one. Deltas are not sent for steps where nothing visible changed, except that a heartbeat delta goes out at least once per second. The heartbeat carries `step`, `cars` and `people` like any other delta, so the client has one code path.
+The runner advances each tower at 6 steps (one game minute) per real second. The server sends one delta every 200 ms of real time (5 per second), covering whatever steps ran since the last one. When a developer speeds the game up, deltas come more often, down to one every 50 ms (`deltaIntervalMs`). Deltas are not sent for steps where nothing visible changed, except that one goes out whenever the clock has moved a game minute, and a heartbeat delta goes out at least once per second. The heartbeat carries `step`, `cars` and `people` like any other delta, so the client has one code path.
 
 ```ts
 export interface Delta {
