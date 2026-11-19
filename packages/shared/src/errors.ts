@@ -53,6 +53,7 @@ export const ERROR_CODES = [
   'INVALID_SCHEDULE',
   'INSPECT_LIMIT',
   'CONDO_OWNED',
+  'PRICE_CHANGED',
 ] as const;
 
 export type ErrorCode = (typeof ERROR_CODES)[number];

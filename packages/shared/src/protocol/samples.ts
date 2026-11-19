@@ -29,7 +29,7 @@ export const sampleCommands: Command[] = [
   { type: 'removeCar', shaftId: 's4', carIndex: 7 },
   { type: 'setPrice', unitId: 'u12', price: 4_500 },
   { type: 'setListed', unitId: 'u12', listed: true },
-  { type: 'buyBackCondo', unitId: 'u12' },
+  { type: 'buyBackCondo', unitId: 'u12', price: 120_000 },
   { type: 'buyUpgrade', unitId: 'u12', upgradeId: 'cameras' },
   { type: 'setSitePriority', unitId: 'u12', priority: true },
   { type: 'setVenueEnabled', unitId: 'u30', enabled: false },

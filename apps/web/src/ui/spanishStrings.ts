@@ -507,6 +507,7 @@ export const SPANISH_STRINGS = {
   'error.FOLLOW_LIMIT': 'Ya seguís a 20 personas.',
   'error.INVALID_SCHEDULE': 'Revisá las paradas y las bases de las cabinas.',
   'error.INSPECT_LIMIT': 'Podés tener hasta 5 ventanas abiertas.',
+  'error.PRICE_CHANGED': 'El precio de venta cambió. Volvé a intentar la compra.',
   'error.CONDO_OWNED': 'El departamento tiene dueños. Compralo antes de demolerlo.',
   'error.PROTOCOL_MISMATCH': 'Hay una versión nueva del juego. Recargá la página.',
   'error.NOT_AUTHENTICATED': 'La sesión se cerró. Entrá de nuevo.',
@@ -592,10 +593,9 @@ export const SPANISH_STRINGS = {
   'dialog.welcome.title': 'Bienvenida',
   'dialog.welcome.body':
     'Tenés $2.000.000 para empezar. Construí el lobby en el piso 1 y después los pisos, las oficinas y los ascensores.',
-  'dialog.buyBackCondo.title': 'Departamento con dueños',
-  'dialog.buyBackCondo.body':
-    'No se puede demoler un departamento con dueños. Podés comprarlo al precio de tasación, {price}. Los dueños se mudan en el acto y el departamento queda vacío y fuera de venta.',
-  'dialog.buyBackCondo.confirm': 'Comprar',
+  'dialog.buyBackCondo.title': 'No es posible demoler',
+  'dialog.buyBackCondo.body': 'El departamento debe ser adquirido.',
+  'dialog.buyBackCondo.confirm': 'Comprar por {price}',
   'dialog.demolishExpensive.title': 'Demoler {typeName}',
   'dialog.demolishExpensive.body': '¿Seguro que querés demoler {typeName}? Costó {price}.',
   'dialog.demolishShaft.title': 'Eliminar ascensor',

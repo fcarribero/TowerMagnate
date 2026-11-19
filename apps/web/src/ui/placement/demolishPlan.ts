@@ -287,15 +287,14 @@ function pickUnit(world: DemolishWorld, cell: Cell): DemolishPick | null {
     const footprint = footprintOfThing(unit);
     if (coversCell(footprint, cell)) {
       if (isOwnedCondo(unit)) {
+        // The command carries the price shown in the warning; the engine refuses it if the
+        // appraisal has changed by the time the player presses Comprar.
+        const price = unit.appraisal ?? unit.price;
         return {
-          command: { type: 'buyBackCondo', unitId: unit.id },
+          command: { type: 'buyBackCondo', unitId: unit.id, price },
           footprint,
           run: null,
-          confirmation: {
-            kind: 'buyCondo',
-            unitType: unit.type,
-            price: unit.appraisal ?? unit.price,
-          },
+          confirmation: { kind: 'buyCondo', unitType: unit.type, price },
         };
       }
       const confirmation =

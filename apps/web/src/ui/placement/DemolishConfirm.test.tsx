@@ -72,10 +72,13 @@ describe.each([['demolishExpensive', expensive, 'Demoler cine']])(
 );
 
 describe('demolish dialog texts', () => {
-  it('offers to buy a condo with owners at its appraisal', () => {
+  it('says the condo must be bought and offers it at its appraisal', () => {
     renderConfirm(ownedCondo);
-    expect(screen.getByText(/precio de tasación, \$80\.000/)).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Comprar' })).toBeTruthy();
+    expect(
+      screen.getByText('No es posible demoler', { selector: '.tm-window__title-text' }),
+    ).toBeTruthy();
+    expect(screen.getByText('El departamento debe ser adquirido.')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Comprar por $80.000' })).toBeTruthy();
   });
 
   it('names the price of an expensive unit', () => {

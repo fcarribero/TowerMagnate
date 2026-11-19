@@ -59,6 +59,7 @@ const ERROR_CODES: Readonly<Record<ErrorCode | SocketErrorCode, true>> = {
   INVALID_SCHEDULE: true,
   INSPECT_LIMIT: true,
   CONDO_OWNED: true,
+  PRICE_CHANGED: true,
   PROTOCOL_MISMATCH: true,
   NOT_AUTHENTICATED: true,
   RATE_LIMITED: true,

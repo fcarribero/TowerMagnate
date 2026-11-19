@@ -55,8 +55,9 @@ export function DemolishConfirm({
             : kind === 'buyCondo'
               ? 'dialog.buyBackCondo.confirm'
               : 'dialog.demolish',
+          params,
         )}
-        actionTone={kind === 'rented' ? 'danger' : kind === 'buyCondo' ? 'plain' : undefined}
+        actionTone={kind === 'rented' || kind === 'buyCondo' ? 'danger' : undefined}
         onConfirm={onConfirm}
         onCancel={onCancel}
         extra={

@@ -125,19 +125,32 @@ describe('demolish', () => {
       const { sold, id } = soldCondo(500_000);
       expect(listPeople(sold.people).length).toBeGreaterThan(0);
 
-      const { state: after, result } = run(sold, { type: 'buyBackCondo', unitId: id });
+      const { state: after, result } = run(sold, {
+        type: 'buyBackCondo',
+        unitId: id,
+        price: 120_000,
+      });
 
       expect(result.ok).toBe(true);
       expect(after.money).toBe(500_000 - 120_000);
       expect(after.ledger.currentWeek.condoBuybacks.expense).toBe(-120_000);
-      expect(after.units[id]).toMatchObject({ sale: null, listed: false });
+      expect(after.units[id]).toMatchObject({ sale: null, listed: false, price: 120_000 });
       expect(listPeople(after.people)).toEqual([]);
       expect(accept(after, demolishUnit(id)).state.units[id]).toBeUndefined();
     });
 
+    it('refuses when the appraisal changed from the price the player agreed to', () => {
+      const { sold, id } = soldCondo(500_000);
+      expect(rejection(sold, { type: 'buyBackCondo', unitId: id, price: 110_000 })).toBe(
+        'PRICE_CHANGED',
+      );
+    });
+
     it('refuses when the money does not cover the appraisal', () => {
       const { sold, id } = soldCondo(50_000);
-      expect(rejection(sold, { type: 'buyBackCondo', unitId: id })).toBe('INSUFFICIENT_FUNDS');
+      expect(rejection(sold, { type: 'buyBackCondo', unitId: id, price: 120_000 })).toBe(
+        'INSUFFICIENT_FUNDS',
+      );
     });
   });
 

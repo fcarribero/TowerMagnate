@@ -236,7 +236,7 @@ describe('bindDemolishInput', () => {
       t.input('up', { x: 21, level: 2 });
       expect(t.asked[0]).toMatchObject({ kind: 'buyCondo', price: 70_000 });
       t.answers[0]?.();
-      expect(t.sent).toEqual([{ type: 'buyBackCondo', unitId: 'b' }]);
+      expect(t.sent).toEqual([{ type: 'buyBackCondo', unitId: 'b', price: 70_000 }]);
     });
 
     it('sends nothing when Esc drops the sweep', () => {

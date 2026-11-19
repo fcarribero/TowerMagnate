@@ -74,6 +74,7 @@ describe('error codes', () => {
         "INVALID_SCHEDULE",
         "INSPECT_LIMIT",
         "CONDO_OWNED",
+        "PRICE_CHANGED",
       ]
     `);
   });

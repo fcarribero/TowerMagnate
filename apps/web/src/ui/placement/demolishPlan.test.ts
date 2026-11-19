@@ -77,7 +77,7 @@ describe('pickDemolition', () => {
   it('offers to buy back a condo with owners at its appraisal instead of demolishing it', () => {
     const condo = unit({ type: 'condo', occupied: true, appraisal: 90_000 });
     const pick = pickDemolition(world({ units: [condo] }), { x: 10, level: 2 });
-    expect(pick?.command).toEqual({ type: 'buyBackCondo', unitId: condo.id });
+    expect(pick?.command).toEqual({ type: 'buyBackCondo', unitId: condo.id, price: 90_000 });
     expect(pick?.confirmation).toMatchObject({ kind: 'buyCondo', price: 90_000 });
   });
 

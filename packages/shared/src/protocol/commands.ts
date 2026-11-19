@@ -101,7 +101,12 @@ const demolishCommands = [
 const operateCommands = [
   z.object({ type: z.literal('setPrice'), unitId: UnitEntityIdSchema, price: PriceSchema }),
   z.object({ type: z.literal('setListed'), unitId: UnitEntityIdSchema, listed: z.boolean() }),
-  z.object({ type: z.literal('buyBackCondo'), unitId: UnitEntityIdSchema }),
+  z.object({
+    type: z.literal('buyBackCondo'),
+    unitId: UnitEntityIdSchema,
+    /** The appraisal the player agreed to pay; the purchase is refused if it changed since. */
+    price: PriceSchema,
+  }),
   z.object({
     type: z.literal('buyUpgrade'),
     unitId: UpgradableIdSchema,
