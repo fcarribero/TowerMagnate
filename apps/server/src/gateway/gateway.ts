@@ -1,7 +1,7 @@
 import { ConnectionRegistry } from './connection-registry';
 import { Heartbeat } from './heartbeat';
-import type { DebugFrames, MessageContext, MessageHandlers } from '@tower-magnate/host';
-import { readClientFrame, rejectInvalidCommand, routeMessage } from './message-router';
+import type { DebugFrames, MessageHandlers } from '@tower-magnate/host';
+import { routeFrame } from './message-router';
 import { MAX_MESSAGES_PER_SECOND, MessageRateLimiter } from './rate-limiter';
 import { CLOSE_CODES, sendError, type GatewaySocket, type SocketIdentity } from './socket';
 
@@ -72,38 +72,13 @@ export class Gateway {
     data: unknown,
   ): Promise<void> {
     const join = () => this.registry.add(socket, identity);
-    if (this.debugFrames?.typeOf(data)) {
-      if (this.registry.hasSocket(socket)) {
-        await this.handleDebugFrame(this.debugFrames, data, { socket, identity, join });
-      }
-      return;
-    }
-    const frame = readClientFrame(data, socket);
-    if (!frame) {
-      return;
-    }
-    const isHello = frame.kind === 'message' && frame.message.t === 'hello';
-    if (!isHello && !this.registry.hasSocket(socket)) {
-      return;
-    }
-    const context = { socket, identity, join };
-    if (frame.kind === 'invalidCommand') {
-      rejectInvalidCommand(this.handlers, frame.id, context);
-      return;
-    }
-    await routeMessage(this.handlers, frame.message, context);
-  }
-
-  private async handleDebugFrame(
-    debugFrames: DebugFrames,
-    data: unknown,
-    context: MessageContext,
-  ): Promise<void> {
-    try {
-      await debugFrames.handle(data, context);
-    } catch {
-      sendError(context.socket, 'INVALID_COMMAND', 'Could not handle the debug message');
-    }
+    await routeFrame(
+      data,
+      { socket, identity, join },
+      this.handlers,
+      this.debugFrames,
+      () => this.registry.hasSocket(socket),
+    );
   }
 
   private closeWithoutHello(socket: GatewaySocket): void {

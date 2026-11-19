@@ -52,3 +52,11 @@ export { towerSocketHandlers, type TowerSocketDependencies } from './session/han
 export { INSPECT_INTERVAL_MS, Inspections, MAX_INSPECT_TARGETS } from './session/inspections';
 export { MAX_VIEWPORTS_PER_SECOND, Viewports } from './session/viewports';
 export { createDebugFrames, type DebugFramesOptions } from './debug/handler';
+export {
+  MAX_MESSAGE_BYTES,
+  readClientFrame,
+  rejectInvalidCommand,
+  routeFrame,
+  routeMessage,
+  type ClientFrame,
+} from './session/route';
