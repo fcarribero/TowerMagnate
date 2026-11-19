@@ -171,13 +171,64 @@ describe('bindDemolishInput', () => {
     expect(t.sent).toEqual([]);
   });
 
-  it('waits for the answer before demolishing a cinema', () => {
+  it('demolishes a single unit on the release without asking', () => {
     const t = setup([cinema]);
     t.input('down', { x: 4, level: 2 });
-    expect(t.asked).toHaveLength(1);
     expect(t.sent).toEqual([]);
-    t.answers[0]?.();
+    t.input('up', { x: 4, level: 2 });
+    expect(t.asked).toEqual([]);
     expect(t.sent).toEqual([{ type: 'demolish', target: { kind: 'unit', id: 'u9' } }]);
+  });
+
+  describe('unit sweep', () => {
+    const left = { ...cinema, id: 'a', type: 'office', x: 0 } as const;
+    const right = { ...cinema, id: 'b', type: 'office', x: 20 } as const;
+    const above = { ...cinema, id: 'c', type: 'office', x: 20, level: 5 } as const;
+
+    it('frames every unit the pointer crosses, skipping none on a fast drag', () => {
+      const t = setup([left, right, above]);
+      t.input('down', { x: 1, level: 2 });
+      t.hover({ x: 30, level: 2 });
+      expect(t.frames.at(-1)).toHaveLength(2);
+      expect(t.sent).toEqual([]);
+    });
+
+    it('asks once for several units and demolishes them all after a yes', () => {
+      const t = setup([left, right, above]);
+      t.input('down', { x: 1, level: 2 });
+      t.hover({ x: 21, level: 2 });
+      t.hover({ x: 21, level: 5 });
+      t.input('up', { x: 21, level: 5 });
+      expect(t.asked[0]).toMatchObject({ kind: 'expensive', units: 3 });
+      expect(t.sent).toEqual([]);
+      t.answers[0]?.();
+      expect(t.sent.map((command) => command.type === 'demolish' && command.target)).toEqual([
+        { kind: 'unit', id: 'a' },
+        { kind: 'unit', id: 'b' },
+        { kind: 'unit', id: 'c' },
+      ]);
+    });
+
+    it('sums the indemnity of the rented units in the sweep', () => {
+      const rented = { ...right, rent: 9000, listed: true, occupied: true } as const;
+      const t = setup([left, rented]);
+      t.input('down', { x: 1, level: 2 });
+      t.hover({ x: 21, level: 2 });
+      t.input('up', { x: 21, level: 2 });
+      expect(t.asked[0]).toMatchObject({ kind: 'rented', indemnity: 9000, units: 2 });
+      t.keeps[0]?.();
+      expect(t.sent).toEqual([{ type: 'setListed', unitId: 'b', listed: false }]);
+    });
+
+    it('sends nothing when Esc drops the sweep', () => {
+      const t = setup([left, right]);
+      t.input('down', { x: 1, level: 2 });
+      t.hover({ x: 21, level: 2 });
+      t.escape();
+      t.input('up', { x: 21, level: 2 });
+      expect(t.sent).toEqual([]);
+      expect(t.asked).toEqual([]);
+    });
   });
 
   it('asks about a rented office and unlists it on "No renovar" without demolishing', () => {
@@ -191,6 +242,7 @@ describe('bindDemolishInput', () => {
     } as const;
     const t = setup([office]);
     t.input('down', { x: 5, level: 2 });
+    t.input('up', { x: 5, level: 2 });
     expect(t.asked[0]).toMatchObject({ kind: 'rented', indemnity: 9000 });
     expect(t.sent).toEqual([]);
     t.keeps[0]?.();

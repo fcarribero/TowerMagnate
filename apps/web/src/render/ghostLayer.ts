@@ -11,6 +11,7 @@ const GHOST_ALPHA = 0.65;
 export const SELECTION_COLOR = 0xf2d36b;
 const SELECTION_FILL_ALPHA = 0.18;
 const SELECTION_LINE = 2;
+const HIGHLIGHT_FILL_ALPHA = 0.3;
 
 /** A footprint whose bottom-left cell is (x, level), sized in tiles and levels. */
 export interface Footprint {
@@ -63,8 +64,9 @@ export class GhostLayer {
   private run: RunInput | null = null;
   private zoom = 1;
   private ghost: GhostInput | null = null;
-  private highlight: Footprint | null = null;
+  private highlight: readonly Footprint[] = [];
   private highlightColor = HOVER_COLOR;
+  private highlightFill = false;
   private selection: Area[] = [];
   private readonly selectionFrame = new Graphics();
 
@@ -89,8 +91,13 @@ export class GhostLayer {
     this.drawFrames();
   }
 
-  showHighlight(highlight: Footprint | null, color: number = HOVER_COLOR): void {
-    this.highlight = highlight;
+  /** Frames one footprint, or several (such as units swept for demolition) with a light fill. */
+  showHighlight(
+    highlight: Footprint | readonly Footprint[] | null,
+    color: number = HOVER_COLOR,
+  ): void {
+    this.highlight = highlight === null ? [] : 'level' in highlight ? [highlight] : highlight;
+    this.highlightFill = highlight !== null && !('level' in highlight);
     this.highlightColor = color;
     this.drawFrames();
   }
@@ -128,8 +135,14 @@ export class GhostLayer {
         .rect(area.x, area.y, area.width, area.height)
         .fill({ color, alpha: GHOST_ALPHA });
     }
-    if (this.highlight !== null) {
-      outline(this.hoverFrame, areaOf(this.highlight), this.highlightColor, this.zoom);
+    for (const footprint of this.highlight) {
+      const area = areaOf(footprint);
+      if (this.highlightFill) {
+        this.hoverFrame
+          .rect(area.x, area.y, area.width, area.height)
+          .fill({ color: this.highlightColor, alpha: HIGHLIGHT_FILL_ALPHA });
+      }
+      outline(this.hoverFrame, area, this.highlightColor, this.zoom);
     }
   }
 }

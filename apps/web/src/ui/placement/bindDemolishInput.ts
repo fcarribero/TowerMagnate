@@ -2,6 +2,7 @@ import type { Command } from '@tower-magnate/shared';
 import type { CommandApi, CommandOutcome } from '../../api/commandApi';
 import type { Cell } from '../../render/cellAtPoint';
 import type { Footprint } from '../../render/ghostLayer';
+import { indexToLevel, levelToIndex } from '../../render/levels';
 import type { CellInput } from '../../render/stage';
 import type { ScreenPoint } from './bindBuildInput';
 import {
@@ -11,6 +12,10 @@ import {
   runCommands,
   unlistCommands,
   runFootprint,
+  singleUnitConfirmation,
+  unitAt,
+  unitFootprint,
+  unitsConfirmation,
   type Confirmation,
   type DemolishPick,
   type DemolishWorld,
@@ -28,7 +33,7 @@ const waitMs = (ms: number): Promise<void> => new Promise((resolve) => setTimeou
 export interface DemolishStage {
   onCellInput(listener: (input: CellInput) => void): () => void;
   onHoverCell(listener: (cell: Cell | null) => void): () => void;
-  showHighlight(highlight: Footprint | null, color?: number): void;
+  showHighlight(highlight: Footprint | readonly Footprint[] | null, color?: number): void;
 }
 
 export interface DemolishInputOptions {
@@ -55,10 +60,34 @@ interface RunDrag {
   currentX: number;
 }
 
+/** A press that started on a unit: every unit the pointer crosses joins it until the release. */
+interface UnitSweep {
+  ids: string[];
+  last: Cell;
+}
+
+/** The cells on a straight line between two cells, both ends included, so a fast drag skips none. */
+export function cellsBetween(from: Cell, to: Cell): Cell[] {
+  const fromIndex = levelToIndex(from.level);
+  const toIndex = levelToIndex(to.level);
+  const steps = Math.max(Math.abs(to.x - from.x), Math.abs(toIndex - fromIndex));
+  const cells: Cell[] = [];
+  for (let step = 0; step <= steps; step += 1) {
+    const t = steps === 0 ? 0 : step / steps;
+    cells.push({
+      x: Math.round(from.x + (to.x - from.x) * t),
+      level: indexToLevel(Math.round(fromIndex + (toIndex - fromIndex) * t)),
+    });
+  }
+  return cells;
+}
+
 /**
- * The Topadora: frames what a click would remove, removes it on a press, and
- * removes a run of floor, lobby or ruins when dragged along one level. Esc or a right
- * click drops a drag without sending anything.
+ * The Topadora: frames what a click would remove and removes it on the release. A press on a
+ * unit sweeps up every unit the pointer crosses while the button is held; on the release one
+ * unit goes at once (a lease still asks about the indemnity) and several ask for a yes first.
+ * A press on floor, lobby or ruins removes a run along one level. Esc or a right click drops
+ * the press without sending anything.
  */
 export function bindDemolishInput(options: DemolishInputOptions): () => void {
   const { stage, api, world, confirm, onOutcome } = options;
@@ -66,6 +95,8 @@ export function bindDemolishInput(options: DemolishInputOptions): () => void {
   const keyTarget = options.keyTarget ?? window;
   let hovered: Cell | null = null;
   let drag: RunDrag | null = null;
+  let sweep: UnitSweep | null = null;
+  let pending: DemolishPick | null = null;
   let batches = 0;
 
   const pickAt = (cell: Cell | null): DemolishPick | null => {
@@ -91,7 +122,27 @@ export function bindDemolishInput(options: DemolishInputOptions): () => void {
     return outcomes;
   };
 
+  const sweptUnits = () => {
+    const current = world();
+    if (sweep === null || current === null) {
+      return [];
+    }
+    const byId = new Map([...current.units].map((unit) => [unit.id, unit]));
+    return sweep.ids.flatMap((id) => {
+      const unit = byId.get(id);
+      return unit === undefined ? [] : [unit];
+    });
+  };
+
   const frame = (): void => {
+    if (sweep !== null) {
+      stage.showHighlight(sweptUnits().map(unitFootprint), DEMOLISH_COLOR);
+      return;
+    }
+    if (pending !== null) {
+      stage.showHighlight(pending.footprint, DEMOLISH_COLOR);
+      return;
+    }
     if (drag !== null) {
       const { press, currentX } = drag;
       stage.showHighlight(runFootprint(press.level, press.x, currentX), DEMOLISH_COLOR);
@@ -102,14 +153,28 @@ export function bindDemolishInput(options: DemolishInputOptions): () => void {
 
   const cancelDrag = (): void => {
     drag = null;
+    sweep = null;
+    pending = null;
     frame();
   };
 
-  const askFor = (confirmation: Confirmation, command: Command, at: ScreenPoint): void => {
+  const sendAll = (commands: readonly Command[], at: ScreenPoint): void => {
+    const [first, ...rest] = commands;
+    if (first === undefined) {
+      return;
+    }
+    if (rest.length === 0) {
+      send(first, at);
+      return;
+    }
+    void sendPaced(commands).then((outcomes) => onOutcome(combineOutcomes(outcomes), first, at));
+  };
+
+  const askFor = (confirmation: Confirmation, commands: readonly Command[], at: ScreenPoint): void => {
     const unlist = unlistCommands(confirmation);
     confirm(
       confirmation,
-      () => send(command, at),
+      () => sendAll(commands, at),
       unlist.length === 0
         ? undefined
         : () => {
@@ -120,22 +185,78 @@ export function bindDemolishInput(options: DemolishInputOptions): () => void {
     );
   };
 
-  const press = (cell: Cell, at: ScreenPoint): void => {
+  const press = (cell: Cell): void => {
     const pick = pickAt(cell);
     if (pick === null) {
       return;
     }
     if (pick.run !== null) {
       drag = { kind: pick.run, press: cell, currentX: cell.x };
-      frame();
-    } else if (pick.confirmation !== null) {
-      askFor(pick.confirmation, pick.command, at);
+    } else if (pick.command.type === 'demolish' && pick.command.target.kind === 'unit') {
+      sweep = { ids: [pick.command.target.id], last: cell };
+    } else {
+      pending = pick;
+    }
+    frame();
+  };
+
+  const extendSweep = (cell: Cell): void => {
+    const current = world();
+    if (sweep === null || current === null) {
+      return;
+    }
+    const ids = new Set(sweep.ids);
+    for (const crossed of cellsBetween(sweep.last, cell)) {
+      const unit = unitAt(current, crossed);
+      if (unit !== null && !ids.has(unit.id)) {
+        ids.add(unit.id);
+      }
+    }
+    sweep = { ids: [...ids], last: cell };
+  };
+
+  const releaseSweep = (at: ScreenPoint): void => {
+    const units = sweptUnits();
+    cancelDrag();
+    const commands: Command[] = units.map((unit) => ({
+      type: 'demolish',
+      target: { kind: 'unit', id: unit.id },
+    }));
+    const only = units.length === 1 ? units[0] : undefined;
+    const confirmation =
+      only !== undefined ? singleUnitConfirmation(only) : unitsConfirmation(units);
+    if (confirmation !== null) {
+      askFor(confirmation, commands, at);
+    } else {
+      sendAll(commands, at);
+    }
+  };
+
+  const releasePending = (at: ScreenPoint): void => {
+    const pick = pending;
+    cancelDrag();
+    if (pick === null) {
+      return;
+    }
+    if (pick.confirmation !== null) {
+      askFor(pick.confirmation, [pick.command], at);
     } else {
       send(pick.command, at);
     }
   };
 
   const release = (cell: Cell | null, at: ScreenPoint): void => {
+    if (sweep !== null) {
+      if (cell !== null) {
+        extendSweep(cell);
+      }
+      releaseSweep(at);
+      return;
+    }
+    if (pending !== null) {
+      releasePending(at);
+      return;
+    }
     if (drag === null) {
       return;
     }
@@ -152,16 +273,10 @@ export function bindDemolishInput(options: DemolishInputOptions): () => void {
         ? floorRunConfirmation(current, start.level, start.x, cell?.x ?? currentX)
         : null;
     if (confirmation !== null) {
-      askFor(confirmation, first, at);
+      askFor(confirmation, [first], at);
       return;
     }
-    if (rest.length === 0) {
-      send(first, at);
-      return;
-    }
-    void sendPaced([first, ...rest]).then((outcomes) =>
-      onOutcome(combineOutcomes(outcomes), first, at),
-    );
+    sendAll([first, ...rest], at);
   };
 
   const onInput = (input: CellInput): void => {
@@ -169,7 +284,7 @@ export function bindDemolishInput(options: DemolishInputOptions): () => void {
     if (input.kind === 'cancel') {
       cancelDrag();
     } else if (input.kind === 'down' && input.cell !== null) {
-      press(input.cell, at);
+      press(input.cell);
     } else if (input.kind === 'up') {
       release(input.cell, at);
     }
@@ -177,6 +292,9 @@ export function bindDemolishInput(options: DemolishInputOptions): () => void {
 
   const onHover = (cell: Cell | null): void => {
     hovered = cell;
+    if (sweep !== null && cell !== null) {
+      extendSweep(cell);
+    }
     if (drag !== null && cell !== null) {
       drag = { ...drag, currentX: cell.x };
     }
@@ -184,7 +302,8 @@ export function bindDemolishInput(options: DemolishInputOptions): () => void {
   };
 
   const onKeyDown = (event: Event): void => {
-    if ((event as KeyboardEvent).key === 'Escape' && drag !== null) {
+    const pressed = drag !== null || sweep !== null || pending !== null;
+    if ((event as KeyboardEvent).key === 'Escape' && pressed) {
       event.preventDefault();
       cancelDrag();
     }
@@ -201,6 +320,8 @@ export function bindDemolishInput(options: DemolishInputOptions): () => void {
     stopWorld?.();
     keyTarget.removeEventListener('keydown', onKeyDown, true);
     drag = null;
+    sweep = null;
+    pending = null;
     stage.showHighlight(null);
   };
 }

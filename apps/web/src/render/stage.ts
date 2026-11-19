@@ -113,8 +113,8 @@ export interface Stage {
   showRun(run: RunInput | null): void;
   /** Draws the placement ghost, snapped to tiles; null removes it. */
   showGhost(ghost: GhostInput | null): void;
-  /** Frames a footprint, such as the unit under the pointer; null removes the frame. */
-  showHighlight(highlight: Footprint | null, color?: number): void;
+  /** Frames a footprint, such as the unit under the pointer, or several; null removes the frames. */
+  showHighlight(highlight: Footprint | readonly Footprint[] | null, color?: number): void;
   /** Marks the drawn units with these ids as selected; ids that are not drawn are skipped. */
   showSelection(unitIds: string[]): void;
   /** CSS pixels per canvas device pixel, to place DOM overlays over the canvas. */

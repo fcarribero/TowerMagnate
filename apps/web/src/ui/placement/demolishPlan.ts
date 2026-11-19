@@ -134,7 +134,11 @@ export function floorRunConfirmation(
   columnA: number,
   columnB: number,
 ): Confirmation | null {
-  const inSpan = unitsInSpan(world.units, level, columnA, columnB);
+  return confirmationForUnits(unitsInSpan(world.units, level, columnA, columnB));
+}
+
+/** Rented units ask about the indemnity, a sold condo or a large total ask for a yes, else null. */
+function confirmationForUnits(inSpan: readonly UnitView[]): Confirmation | null {
   const first = inSpan[0];
   if (first === undefined) {
     return null;
@@ -231,6 +235,48 @@ function pickCar(world: DemolishWorld, cell: Cell): DemolishPick | null {
     }
   }
   return null;
+}
+
+/** The unit whose footprint covers the cell, ignoring stairs, escalators, shafts and cars. */
+export function unitAt(world: DemolishWorld, cell: Cell): UnitView | null {
+  for (const unit of world.units) {
+    if (coversCell(footprintOfThing(unit), cell)) {
+      return unit;
+    }
+  }
+  return null;
+}
+
+export function unitFootprint(unit: UnitView): Footprint {
+  return footprintOfThing(unit);
+}
+
+/**
+ * What removing one swept unit asks. Only a lease needs an answer, since it costs an indemnity
+ * and can be left to run out instead; anything else goes straight away.
+ */
+export function singleUnitConfirmation(unit: UnitView): Confirmation | null {
+  const soldCondo = unit.type === 'condo' && unit.occupied;
+  return unit.rent !== undefined && !soldCondo ? rentedConfirmation(unit) : null;
+}
+
+/**
+ * What removing several swept units asks: always a yes. Rented ones add the summed indemnity and
+ * a "No renovar" choice, sold condos say their price goes back to the owners.
+ */
+export function unitsConfirmation(units: readonly UnitView[]): Confirmation | null {
+  const first = units[0];
+  if (first === undefined) {
+    return null;
+  }
+  return (
+    confirmationForUnits(units) ?? {
+      kind: 'expensive',
+      unitType: first.type,
+      price: units.reduce((sum, unit) => sum + buildPrice(unit.type), 0),
+      units: units.length,
+    }
+  );
 }
 
 function pickUnit(world: DemolishWorld, cell: Cell): DemolishPick | null {
