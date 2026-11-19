@@ -36,8 +36,12 @@ export interface DemolishWorld {
 }
 
 export interface Confirmation {
-  /** `lastCar`: the click was on the last car of a shaft, which only goes with the whole shaft. */
-  kind: 'soldCondo' | 'expensive' | 'rented' | 'lastCar';
+  /**
+   * `lastCar`: the click was on the last car of a shaft, which only goes with the whole shaft.
+   * `buyCondo`: the click was on a condo with owners, which cannot be demolished; the offer is
+   * to buy it back at its appraisal (`price`).
+   */
+  kind: 'buyCondo' | 'expensive' | 'rented' | 'lastCar';
   unitType: UnitType;
   price: number;
   /** Rented units only: the indemnity, one week of rent summed over the units. */
@@ -63,11 +67,8 @@ export function buildPrice(type: UnitType): number {
   return cost.kind === 'shaft' ? cost.shaftAmount : cost.amount;
 }
 
-function confirmationFor(unitType: UnitType, soldCondo: boolean): Confirmation | null {
+function confirmationFor(unitType: UnitType): Confirmation | null {
   const price = buildPrice(unitType);
-  if (soldCondo) {
-    return { kind: 'soldCondo', unitType, price };
-  }
   return price >= CONFIRM_PRICE ? { kind: 'expensive', unitType, price } : null;
 }
 
@@ -155,11 +156,6 @@ function confirmationForUnits(inSpan: readonly UnitView[]): Confirmation | null 
       units: inSpan.length,
     };
   }
-  const sold = inSpan.filter((unit) => unit.type === 'condo' && unit.occupied);
-  if (sold.length > 0) {
-    const refund = sold.reduce((sum, unit) => sum + buildPrice(unit.type), 0);
-    return { kind: 'soldCondo', unitType: 'condo', price: refund, units: inSpan.length };
-  }
   return total >= CONFIRM_PRICE
     ? { kind: 'expensive', unitType: first.type, price: total, units: inSpan.length }
     : null;
@@ -237,10 +233,13 @@ function pickCar(world: DemolishWorld, cell: Cell): DemolishPick | null {
   return null;
 }
 
-/** The unit whose footprint covers the cell, ignoring stairs, escalators, shafts and cars. */
+/**
+ * The unit a sweep can take at the cell, ignoring stairs, escalators, shafts and cars, and condos
+ * with owners, which cannot be demolished.
+ */
 export function unitAt(world: DemolishWorld, cell: Cell): UnitView | null {
   for (const unit of world.units) {
-    if (coversCell(footprintOfThing(unit), cell)) {
+    if (!isOwnedCondo(unit) && coversCell(footprintOfThing(unit), cell)) {
       return unit;
     }
   }
@@ -256,8 +255,12 @@ export function unitFootprint(unit: UnitView): Footprint {
  * and can be left to run out instead; anything else goes straight away.
  */
 export function singleUnitConfirmation(unit: UnitView): Confirmation | null {
-  const soldCondo = unit.type === 'condo' && unit.occupied;
-  return unit.rent !== undefined && !soldCondo ? rentedConfirmation(unit) : null;
+  return unit.rent !== undefined ? rentedConfirmation(unit) : null;
+}
+
+/** A condo with owners: the engine refuses to demolish it until it is bought back. */
+export function isOwnedCondo(unit: Pick<UnitView, 'type' | 'occupied'>): boolean {
+  return unit.type === 'condo' && unit.occupied;
 }
 
 /**
@@ -283,11 +286,20 @@ function pickUnit(world: DemolishWorld, cell: Cell): DemolishPick | null {
   for (const unit of world.units) {
     const footprint = footprintOfThing(unit);
     if (coversCell(footprint, cell)) {
-      const soldCondo = unit.type === 'condo' && unit.occupied;
+      if (isOwnedCondo(unit)) {
+        return {
+          command: { type: 'buyBackCondo', unitId: unit.id },
+          footprint,
+          run: null,
+          confirmation: {
+            kind: 'buyCondo',
+            unitType: unit.type,
+            price: unit.appraisal ?? unit.price,
+          },
+        };
+      }
       const confirmation =
-        unit.rent !== undefined && !soldCondo
-          ? rentedConfirmation(unit)
-          : confirmationFor(unit.type, soldCondo);
+        unit.rent !== undefined ? rentedConfirmation(unit) : confirmationFor(unit.type);
       return targetPick({ kind: 'unit', id: unit.id }, footprint, confirmation);
     }
   }

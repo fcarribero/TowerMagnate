@@ -9,7 +9,7 @@ useFakeLayoutSizes({ clientWidth: 800, clientHeight: 600, offsetWidth: 260, offs
 
 afterEach(cleanup);
 
-const soldCondo: Confirmation = { kind: 'soldCondo', unitType: 'condo', price: 80_000 };
+const ownedCondo: Confirmation = { kind: 'buyCondo', unitType: 'condo', price: 80_000 };
 const expensive: Confirmation = { kind: 'expensive', unitType: 'cinema', price: 500_000 };
 
 function renderConfirm(confirmation: Confirmation, onKeepContract?: () => void) {
@@ -17,7 +17,10 @@ function renderConfirm(confirmation: Confirmation, onKeepContract?: () => void) 
   const onCancel = vi.fn();
   render(
     <WindowLayer>
-      <DemolishConfirm confirmation={confirmation} onConfirm={onConfirm} onCancel={onCancel}
+      <DemolishConfirm
+        confirmation={confirmation}
+        onConfirm={onConfirm}
+        onCancel={onCancel}
         onKeepContract={onKeepContract}
       />
     </WindowLayer>,
@@ -30,48 +33,49 @@ function frameOf(title: string): HTMLElement {
   return text.closest('section') as HTMLElement;
 }
 
-describe.each([
-  ['demolishSoldCondo', soldCondo, 'Demoler departamento'],
-  ['demolishExpensive', expensive, 'Demoler cine'],
-])('%s dialog', (_id, confirmation, title) => {
-  it('has a red title, a hazard stripe and a red Demoler next to a focused Cancelar', () => {
-    renderConfirm(confirmation);
+describe.each([['demolishExpensive', expensive, 'Demoler cine']])(
+  '%s dialog',
+  (_id, confirmation, title) => {
+    it('has a red title, a hazard stripe and a red Demoler next to a focused Cancelar', () => {
+      renderConfirm(confirmation);
 
-    const frame = frameOf(title);
-    expect(frame.classList.contains('tm-window--dialog')).toBe(true);
-    expect(frame.classList.contains('tm-window--dialog-info')).toBe(false);
-    expect(frame.querySelector('.tm-window__stripe')).not.toBeNull();
-    const buttons = Array.from(frame.querySelectorAll('.tm-dialog__buttons button'));
-    expect(buttons.map((button) => button.textContent)).toEqual(['Demoler', 'Cancelar']);
-    expect(buttons[0]?.classList.contains('is-default')).toBe(true);
-    expect(buttons[1]?.classList.contains('is-default')).toBe(false);
-    expect(document.activeElement).toBe(buttons[1]);
-  });
+      const frame = frameOf(title);
+      expect(frame.classList.contains('tm-window--dialog')).toBe(true);
+      expect(frame.classList.contains('tm-window--dialog-info')).toBe(false);
+      expect(frame.querySelector('.tm-window__stripe')).not.toBeNull();
+      const buttons = Array.from(frame.querySelectorAll('.tm-dialog__buttons button'));
+      expect(buttons.map((button) => button.textContent)).toEqual(['Demoler', 'Cancelar']);
+      expect(buttons[0]?.classList.contains('is-default')).toBe(true);
+      expect(buttons[1]?.classList.contains('is-default')).toBe(false);
+      expect(document.activeElement).toBe(buttons[1]);
+    });
 
-  it('dims the tower, ignores the scrim and cancels on Esc', () => {
-    const { onConfirm, onCancel } = renderConfirm(confirmation);
+    it('dims the tower, ignores the scrim and cancels on Esc', () => {
+      const { onConfirm, onCancel } = renderConfirm(confirmation);
 
-    fireEvent.click(document.querySelector('.tm-modal-backdrop') as HTMLElement);
-    expect(onCancel).not.toHaveBeenCalled();
+      fireEvent.click(document.querySelector('.tm-modal-backdrop') as HTMLElement);
+      expect(onCancel).not.toHaveBeenCalled();
 
-    fireEvent.keyDown(window, { key: 'Escape' });
-    expect(onCancel).toHaveBeenCalledTimes(1);
-    expect(onConfirm).not.toHaveBeenCalled();
-  });
+      fireEvent.keyDown(window, { key: 'Escape' });
+      expect(onCancel).toHaveBeenCalledTimes(1);
+      expect(onConfirm).not.toHaveBeenCalled();
+    });
 
-  it('confirms with the action button', () => {
-    const { onConfirm } = renderConfirm(confirmation);
+    it('confirms with the action button', () => {
+      const { onConfirm } = renderConfirm(confirmation);
 
-    fireEvent.click(screen.getByRole('button', { name: 'Demoler' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Demoler' }));
 
-    expect(onConfirm).toHaveBeenCalledTimes(1);
-  });
-});
+      expect(onConfirm).toHaveBeenCalledTimes(1);
+    });
+  },
+);
 
 describe('demolish dialog texts', () => {
-  it('names the refund for a sold condo', () => {
-    renderConfirm(soldCondo);
-    expect(screen.getByText(/le devolvés \$80\.000 a los dueños/)).toBeTruthy();
+  it('offers to buy a condo with owners at its appraisal', () => {
+    renderConfirm(ownedCondo);
+    expect(screen.getByText(/precio de tasación, \$80\.000/)).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Comprar' })).toBeTruthy();
   });
 
   it('names the price of an expensive unit', () => {

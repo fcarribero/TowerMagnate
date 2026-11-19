@@ -97,19 +97,48 @@ describe('demolish', () => {
     expect(after.money).toBe(MONEY_CAP);
   });
 
-  it('charges the sale price of a sold condo, even into negative balance', () => {
+  it('refuses a condo that has owners', () => {
     const { state, id } = build(towerReadyToBuild(), 'condo', 10, 5);
     const sold = structuredClone(state);
     const condo = sold.units[id] as TowerState['units'][string];
     condo.used = true;
     condo.sale = { price: 80_000, anchorStep: 0, nextEvaluationStep: 100_000 };
-    sold.money = 5_000;
 
-    const { state: after, result } = run(sold, demolishUnit(id));
+    expect(rejection(sold, demolishUnit(id))).toBe('CONDO_OWNED');
+  });
 
-    expect(result.ok).toBe(true);
-    expect(after.money).toBe(5_000 - 80_000);
-    expect(after.ledger.currentWeek.condoBuybacks.expense).toBe(-80_000);
+  describe('buyBackCondo', () => {
+    function soldCondo(money: number) {
+      const { state, id } = build(towerReadyToBuild(), 'condo', 10, 5);
+      const sold = structuredClone(state);
+      const condo = sold.units[id] as TowerState['units'][string];
+      condo.used = true;
+      condo.listed = true;
+      condo.appraisal = 120_000;
+      condo.sale = { price: 80_000, anchorStep: 0, nextEvaluationStep: 100_000 };
+      addPeopleForUnit(sold, id);
+      sold.money = money;
+      return { sold, id };
+    }
+
+    it('pays the appraisal, empties the condo at once and takes it off the market', () => {
+      const { sold, id } = soldCondo(500_000);
+      expect(listPeople(sold.people).length).toBeGreaterThan(0);
+
+      const { state: after, result } = run(sold, { type: 'buyBackCondo', unitId: id });
+
+      expect(result.ok).toBe(true);
+      expect(after.money).toBe(500_000 - 120_000);
+      expect(after.ledger.currentWeek.condoBuybacks.expense).toBe(-120_000);
+      expect(after.units[id]).toMatchObject({ sale: null, listed: false });
+      expect(listPeople(after.people)).toEqual([]);
+      expect(accept(after, demolishUnit(id)).state.units[id]).toBeUndefined();
+    });
+
+    it('refuses when the money does not cover the appraisal', () => {
+      const { sold, id } = soldCondo(50_000);
+      expect(rejection(sold, { type: 'buyBackCondo', unitId: id })).toBe('INSUFFICIENT_FUNDS');
+    });
   });
 
   it('ends the lease and removes people homed or working in the unit', () => {
@@ -550,7 +579,11 @@ describe('demolish indemnity', () => {
     const other = structuredClone(state);
     const first = other.units[id] as TowerState['units'][string];
     first.lease = { anchorStep: 0, nextDueStep: 100, weekVisits: 0, rent: 7_000 };
-    other.units.u90 = { ...first, id: 'u90', lease: { ...(first.lease as object), rent: 5_000 } as never };
+    other.units.u90 = {
+      ...first,
+      id: 'u90',
+      lease: { ...(first.lease as object), rent: 5_000 } as never,
+    };
     expect(demolitionIndemnity(other, [id, 'u90', id, 'u999'])).toBe(12_000);
   });
 });

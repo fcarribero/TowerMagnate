@@ -507,6 +507,7 @@ export const SPANISH_STRINGS = {
   'error.FOLLOW_LIMIT': 'Ya seguís a 20 personas.',
   'error.INVALID_SCHEDULE': 'Revisá las paradas y las bases de las cabinas.',
   'error.INSPECT_LIMIT': 'Podés tener hasta 5 ventanas abiertas.',
+  'error.CONDO_OWNED': 'El departamento tiene dueños. Compralo antes de demolerlo.',
   'error.PROTOCOL_MISMATCH': 'Hay una versión nueva del juego. Recargá la página.',
   'error.NOT_AUTHENTICATED': 'La sesión se cerró. Entrá de nuevo.',
   'error.RATE_LIMITED': 'Demasiadas órdenes seguidas. Esperá un momento.',
@@ -591,9 +592,10 @@ export const SPANISH_STRINGS = {
   'dialog.welcome.title': 'Bienvenida',
   'dialog.welcome.body':
     'Tenés $2.000.000 para empezar. Construí el lobby en el piso 1 y después los pisos, las oficinas y los ascensores.',
-  'dialog.demolishSoldCondo.title': 'Demoler departamento',
-  'dialog.demolishSoldCondo.body':
-    'Este departamento está vendido. Si lo demolés, le devolvés {price} a los dueños.',
+  'dialog.buyBackCondo.title': 'Departamento con dueños',
+  'dialog.buyBackCondo.body':
+    'No se puede demoler un departamento con dueños. Podés comprarlo al precio de tasación, {price}. Los dueños se mudan en el acto y el departamento queda vacío y fuera de venta.',
+  'dialog.buyBackCondo.confirm': 'Comprar',
   'dialog.demolishExpensive.title': 'Demoler {typeName}',
   'dialog.demolishExpensive.body': '¿Seguro que querés demoler {typeName}? Costó {price}.',
   'dialog.demolishShaft.title': 'Eliminar ascensor',
@@ -607,7 +609,7 @@ export const SPANISH_STRINGS = {
     'Hay un contrato vigente. Si lo demolés, pagás {indemnity} de indemnización, una semana de renta. Si no renovás el contrato, el inquilino se va cuando termine.',
   'dialog.demolishUnits.title': 'Demoler unidades',
   'dialog.demolishUnits.body':
-    'Se demuelen {count} unidades de la selección y los muros quedan en su lugar. Si hay departamentos vendidos, se devuelve su precio a los dueños. Las unidades costaron {price} en total.',
+    'Se demuelen {count} unidades de la selección y los muros quedan en su lugar. Las unidades costaron {price} en total.',
   'dialog.demolishRentedUnits.title': 'Demoler unidades alquiladas',
   'dialog.demolishRentedUnits.body':
     'Se demuelen {count} unidades de la selección y los muros quedan en su lugar. Hay contratos vigentes: pagás {indemnity} de indemnización, una semana de renta por contrato. Si no renovás los contratos, los inquilinos se van cuando terminen.',

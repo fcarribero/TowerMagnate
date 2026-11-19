@@ -44,7 +44,7 @@ describe('round trips through JSON', () => {
 
   it('has a sample for every command type and every message type', () => {
     expect(new Set(sampleCommands.map((command) => command.type))).toEqual(new Set(COMMAND_TYPES));
-    expect(COMMAND_TYPES).toHaveLength(24);
+    expect(COMMAND_TYPES).toHaveLength(25);
     expect(new Set(sampleClientMessages.map((message) => message.t))).toEqual(
       new Set(ClientMessageSchema.options.map((option) => option.shape.t.value)),
     );

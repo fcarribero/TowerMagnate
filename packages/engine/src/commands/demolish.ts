@@ -109,13 +109,14 @@ function planUnit(state: TowerState, unitId: string): Plan {
   const unit = Object.hasOwn(state.units, unitId) ? state.units[unitId] : undefined;
   if (!unit) return NOTHING;
   if (unit.type === 'parking-ramp' && !isLowestRamp(state, unit)) return reject('RAMP_POSITION');
+  // Owned condos are bought back first (buyBackCondo), which empties them.
+  if (unit.sale) return reject('CONDO_OWNED');
 
   return {
     ok: true,
     apply() {
       const width = UNIT_CATALOG[unit.type].width;
       const x1 = unit.x + width - 1;
-      if (unit.sale) chargeMoney(state, 'condoBuybacks', unit.sale.price);
       const indemnity = demolitionIndemnity(state, [unit.id]);
       if (indemnity > 0) chargeMoney(state, 'rent', indemnity);
       // The crew of an obrador or a cleaning room is not sent away at once: with the unit gone they

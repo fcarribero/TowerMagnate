@@ -5,7 +5,7 @@ import { t, type StringKey } from '../strings';
 import type { Confirmation } from './demolishPlan';
 
 const DIALOG_IDS = {
-  soldCondo: 'demolishSoldCondo',
+  buyCondo: 'buyBackCondo',
   expensive: 'demolishExpensive',
   rented: 'demolishRented',
   lastCar: 'demolishLastCar',
@@ -21,7 +21,12 @@ export interface DemolishConfirmProps {
   onKeepContract?: () => void;
 }
 
-export function DemolishConfirm({ confirmation, onConfirm, onCancel, onKeepContract }: DemolishConfirmProps) {
+export function DemolishConfirm({
+  confirmation,
+  onConfirm,
+  onCancel,
+  onKeepContract,
+}: DemolishConfirmProps) {
   if (confirmation === null) {
     return null;
   }
@@ -44,8 +49,14 @@ export function DemolishConfirm({ confirmation, onConfirm, onCancel, onKeepContr
         id={id}
         title={t(`dialog.${id}.title`, params)}
         body={t(`dialog.${id}.body`, params)}
-        actionLabel={t(kind === 'rented' ? 'dialog.demolishRented.confirm' : 'dialog.demolish')}
-        actionTone={kind === 'rented' ? 'danger' : undefined}
+        actionLabel={t(
+          kind === 'rented'
+            ? 'dialog.demolishRented.confirm'
+            : kind === 'buyCondo'
+              ? 'dialog.buyBackCondo.confirm'
+              : 'dialog.demolish',
+        )}
+        actionTone={kind === 'rented' ? 'danger' : kind === 'buyCondo' ? 'plain' : undefined}
         onConfirm={onConfirm}
         onCancel={onCancel}
         extra={

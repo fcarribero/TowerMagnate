@@ -74,10 +74,11 @@ describe('pickDemolition', () => {
     expect(pick?.confirmation).toMatchObject({ kind: 'expensive', unitType: 'cinema' });
   });
 
-  it('asks before demolishing a sold condo', () => {
-    const condo = unit({ type: 'condo', occupied: true });
+  it('offers to buy back a condo with owners at its appraisal instead of demolishing it', () => {
+    const condo = unit({ type: 'condo', occupied: true, appraisal: 90_000 });
     const pick = pickDemolition(world({ units: [condo] }), { x: 10, level: 2 });
-    expect(pick?.confirmation?.kind).toBe('soldCondo');
+    expect(pick?.command).toEqual({ type: 'buyBackCondo', unitId: condo.id });
+    expect(pick?.confirmation).toMatchObject({ kind: 'buyCondo', price: 90_000 });
   });
 
   it('picks the car before its shaft, and the shaft where no car is', () => {
@@ -181,7 +182,11 @@ describe('rented units', () => {
 
   it('asks before demolishing a rented office and names a week of rent', () => {
     const pick = pickDemolition(world({ units: [rented] }), { x: 12, level: 2 });
-    expect(pick?.confirmation).toMatchObject({ kind: 'rented', unitType: 'office', indemnity: 12_000 });
+    expect(pick?.confirmation).toMatchObject({
+      kind: 'rented',
+      unitType: 'office',
+      indemnity: 12_000,
+    });
     expect(unlistCommands(pick!.confirmation!)).toEqual([
       { type: 'setListed', unitId: 'u1', listed: false },
     ]);
@@ -239,11 +244,8 @@ describe('floor run over units', () => {
     ]);
   });
 
-  it('asks about sold condos', () => {
+  it('leaves a condo with owners to the engine, which refuses the run', () => {
     const condo = unit({ id: 'k', type: 'condo', x: 20, occupied: true });
-    expect(floorRunConfirmation(world({ units: [condo] }), 2, 20, 21)).toMatchObject({
-      kind: 'soldCondo',
-      units: 1,
-    });
+    expect(floorRunConfirmation(world({ units: [condo] }), 2, 20, 21)).toBeNull();
   });
 });

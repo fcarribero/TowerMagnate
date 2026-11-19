@@ -73,6 +73,7 @@ describe('error codes', () => {
         "FOLLOW_LIMIT",
         "INVALID_SCHEDULE",
         "INSPECT_LIMIT",
+        "CONDO_OWNED",
       ]
     `);
   });
