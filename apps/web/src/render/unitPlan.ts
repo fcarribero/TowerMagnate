@@ -49,12 +49,24 @@ export interface UnitInterior {
   /** The interior spec's type: the unit type, or for a retail shop the line it sells, such as `retail-shop-books`. */
   type: string;
   seed: number;
+  /** Built underground: the room has no windows (render/interior `undergroundSpec`). */
+  underground?: boolean;
   /** One of the spec's states, such as `closed` or `sleeping`. */
   state: string;
   time: TimeOfDay;
 }
 /** The sprite under a seeded interior: the bare room, lit. The shade does night and dark rooms. */
 const BARE_ROOM: SpriteVariant = { state: 'empty', time: 'day' };
+
+/**
+ * Art subjects with windows whose units can be built underground; each has a windowless
+ * `<state>-underground` copy of its sprites (tools/art/src/groups/units.mjs).
+ */
+const UNDERGROUND_ART: ReadonlySet<string> = new Set(
+  ['housekeeping', 'security', 'medical-center', 'suite', 'party-hall'].map(
+    (subject) => `units/${subject}`,
+  ),
+);
 
 /** Pixels the stairs sprite reaches beyond each side of its footprint; matches the art tool. */
 const STAIRS_MARGIN = 8;
@@ -119,17 +131,27 @@ export function planUnit(
   const seed = unit.look ?? interiorSpecOf(unit.type)?.fixedSeed;
   const spec = interiorSpecOf(unit.type, seed);
   const seeded = !building && seed !== undefined && spec !== undefined;
+  const subject = seeded
+    ? spec.baseSprite.slice(0, spec.baseSprite.lastIndexOf('/'))
+    : `units/${SPRITE_SUBJECT[unit.type] ?? unit.type}`;
+  // Below ground a unit has no windows: art with windows has a `<state>-underground` copy.
+  const buried = unit.level < 0 && UNDERGROUND_ART.has(subject);
+  const variant = seeded ? BARE_ROOM : { state, time };
   const drawing = footprint(
     unit.id,
-    seeded
-      ? spec.baseSprite.slice(0, spec.baseSprite.lastIndexOf('/'))
-      : `units/${SPRITE_SUBJECT[unit.type] ?? unit.type}`,
+    subject,
     unit,
-    seeded ? BARE_ROOM : { state, time },
+    buried ? { ...variant, state: `${variant.state}-underground` } : variant,
     overlay,
   );
   if (seeded) {
-    drawing.interior = { type: spec.unitType, seed, state, time };
+    drawing.interior = {
+      type: spec.unitType,
+      seed,
+      state,
+      time,
+      ...(buried ? { underground: true } : {}),
+    };
   }
   const open =
     !building && state === 'empty' && unit.listed !== false ? AVAILABILITY[unit.type] : undefined;

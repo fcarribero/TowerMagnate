@@ -224,7 +224,8 @@ const CACHE_LIMIT = 8192;
 
 /** `generateInteriorLayout` with the default template, remembered, so redrawing a tower does not roll every room again. */
 export function interiorLayoutFor(spec: InteriorSpec, seed: number): InteriorLayout {
-  const key = `${spec.unitType}:${seed >>> 0}`;
+  // The base sprite tells a room above ground from the same type underground, without windows.
+  const key = `${spec.unitType}:${spec.baseSprite}:${seed >>> 0}`;
   let layout = cache.get(key);
   if (layout === undefined) {
     if (cache.size >= CACHE_LIMIT) cache.clear();

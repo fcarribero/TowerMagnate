@@ -289,13 +289,15 @@ export function doubleRoomSprites() {
   });
 }
 
+export const SUITE_WINDOWS = [
+  { left: 15, top: 4, width: 14, height: 7 },
+  { left: 55, top: 4, width: 14, height: 7 },
+];
+
 export function suiteSprites() {
   return roomSprites('suite', {
     widthTiles: 10,
-    windows: [
-      { left: 15, top: 4, width: 14, height: 7 },
-      { left: 55, top: 4, width: 14, height: 7 },
-    ],
+    windows: SUITE_WINDOWS,
     drawFurniture: drawSuiteFurniture,
     grime: [
       [11, 27],

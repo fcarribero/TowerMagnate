@@ -1,7 +1,7 @@
 import { FLOOR_ROW, drawWindow, rentalSprites, roomShell } from './shell.mjs';
 
 const WIDTH_TILES = 15;
-const WINDOWS = [
+export const HOUSEKEEPING_WINDOWS = [
   { left: 49, top: 4, width: 12, height: 7 },
   { left: 81, top: 4, width: 12, height: 7 },
 ];
@@ -107,7 +107,7 @@ function standOnFloor(room, left, map) {
 function drawHousekeeping(state) {
   const occupied = state === 'occupied';
   const room = roomShell(WIDTH_TILES, look);
-  WINDOWS.forEach((window) => drawWindow(room, window));
+  HOUSEKEEPING_WINDOWS.forEach((window) => drawWindow(room, window));
   // The bare room is the base the client puts seeded furniture on (render/interior/housekeeping.ts).
   if (state === 'empty') return room;
   room.drawMap(12, 9, timeClock, legend);
@@ -132,7 +132,7 @@ function drawHousekeeping(state) {
 
 export function housekeepingSprites() {
   return rentalSprites('housekeeping', {
-    windows: WINDOWS,
+    windows: HOUSEKEEPING_WINDOWS,
     drawDay: drawHousekeeping,
     states: ['empty', 'closed', 'occupied'],
   });

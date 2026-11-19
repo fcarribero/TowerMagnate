@@ -48,6 +48,27 @@ export const INTERIOR_SPECS: Readonly<Record<string, InteriorSpec>> = {
   ...Object.fromEntries(RETAIL_LINES.map((spec) => [spec.unitType, spec as InteriorSpec])),
 };
 
+const buried = new WeakMap<InteriorSpec, InteriorSpec>();
+
+/**
+ * The spec of a room built underground: it has no windows, so its bare room is the
+ * `<state>-underground` sprite and props may stand where the windows were. A spec with no
+ * windows is the same above and below ground.
+ */
+export function undergroundSpec(spec: InteriorSpec): InteriorSpec {
+  if (spec.windows.length === 0) return spec;
+  let underground = buried.get(spec);
+  if (underground === undefined) {
+    underground = {
+      ...spec,
+      windows: [],
+      baseSprite: spec.baseSprite.replace(/_day$/, '-underground_day'),
+    };
+    buried.set(spec, underground);
+  }
+  return underground;
+}
+
 /**
  * The interior spec of a unit type, or undefined when it is drawn from fixed sprites. A retail
  * shop's seed also picks the line it sells, so with a seed it gives that line's spec.

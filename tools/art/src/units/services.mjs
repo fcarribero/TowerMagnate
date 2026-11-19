@@ -137,7 +137,7 @@ function ceilingLamp(room, left) {
   room.hline(left + 1, 3, 3, 'lamp');
 }
 
-const SECURITY_WINDOWS = [{ left: 6, top: 4, width: 12, height: 7 }];
+export const SECURITY_WINDOWS = [{ left: 6, top: 4, width: 12, height: 7 }];
 const securityLook = {
   wall: 'concrete-light',
   wallLight: 'cloud',
@@ -205,7 +205,7 @@ function drawSecurity(occupied) {
   return room;
 }
 
-const MEDICAL_WINDOWS = [
+export const MEDICAL_WINDOWS = [
   { left: 10, top: 4, width: 14, height: 8 },
   { left: 56, top: 4, width: 14, height: 8 },
   { left: 150, top: 4, width: 14, height: 8 },
@@ -371,10 +371,8 @@ export function parkingDisconnectedOverlay() {
 }
 
 const RECYCLING_FLOORS = 2;
-const RECYCLING_WINDOWS = [
-  { left: 40, top: 4, width: 14, height: 8 },
-  { left: 130, top: 4, width: 14, height: 8 },
-];
+// The recycling center and the subway station are always underground, so they have no windows.
+const RECYCLING_WINDOWS = [];
 const recyclingLook = {
   wall: 'concrete-light',
   wallLight: 'cloud',
@@ -492,11 +490,7 @@ function drawRecycling(occupied) {
 
 const SUBWAY_FLOORS = 3;
 const PLATFORM_LEVEL = SUBWAY_FLOORS - 1;
-const SUBWAY_WINDOWS = [
-  { left: 20, top: 4, width: 16, height: 7 },
-  { left: 100, top: 4, width: 16, height: 7 },
-  { left: 180, top: 4, width: 16, height: 7 },
-];
+const SUBWAY_WINDOWS = [];
 const ESCALATOR_LENGTH = 56;
 const TRAIN = { left: 70, width: 156, cars: 3 };
 const subwayLook = {

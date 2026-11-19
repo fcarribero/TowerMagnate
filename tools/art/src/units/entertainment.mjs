@@ -188,7 +188,7 @@ export function cinemaSprites() {
 // and a bar. The party state adds a lit disco ball, streamers, balloons and guests.
 
 const PARTY_WIDTH = 24 * tileWidth;
-const PARTY_WINDOWS = [
+export const PARTY_WINDOWS = [
   { left: 14, top: 10, width: 14, height: 40 },
   { left: PARTY_WIDTH - 28, top: 10, width: 14, height: 40 },
 ];

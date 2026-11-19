@@ -8,7 +8,10 @@ const [{ sprites }] = drawGroups([unitsGroup]);
 const byId = Object.fromEntries(sprites.map((sprite) => [sprite.id, sprite.canvas]));
 const DEPTH_LAYER = /\/(back-|front-|side_|ceiling_|floor_)/;
 const rentableIds = Object.keys(byId).filter(
-  (id) => /^units\/(office|condo|.*room|suite|housekeeping)\//.test(id) && !DEPTH_LAYER.test(id),
+  (id) =>
+    /^units\/(office|condo|.*room|suite|housekeeping)\//.test(id) &&
+    !DEPTH_LAYER.test(id) &&
+    !id.includes('-underground_'),
 );
 const cathedralVariants = ['empty_day', 'empty_night', 'wedding_day', 'wedding_night'];
 const catalogWidthTiles = {

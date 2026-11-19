@@ -5,7 +5,7 @@ import { CulledRows } from './culledRows';
 import type { LevelRange, WorldRect } from './camera';
 import { levelTop } from './levels';
 import { FLOOR_HEIGHT, SLAB_HEIGHT } from './metrics';
-import { buildInterior, interiorLayoutFor, interiorSpecOf } from './interior';
+import { buildInterior, interiorLayoutFor, interiorSpecOf, undergroundSpec } from './interior';
 import { checkerTexture } from './overlayChecker';
 import { overlayColorOf, transportOverlayColor, type OverlayId } from './overlayColors';
 import type { SpriteRegistry } from './spriteRegistry';
@@ -296,14 +296,15 @@ export class UnitLayer {
    */
   private showInterior(entry: DrawnUnit, drawing: UnitDrawing, moved: boolean): void {
     const interior = drawing.interior;
-    const spec = interior && interiorSpecOf(interior.type);
+    const found = interior && interiorSpecOf(interior.type);
+    const spec = found && interior?.underground === true ? undergroundSpec(found) : found;
     if (interior === undefined || spec === undefined) {
       entry.interior?.destroy({ children: true });
       entry.interior = null;
       entry.interiorKey = '';
       return;
     }
-    const key = `${interior.seed}|${interior.state}|${interior.time}|${drawing.x},${drawing.y}`;
+    const key = `${interior.seed}|${interior.state}|${interior.time}|${spec.baseSprite}|${drawing.x},${drawing.y}`;
     if (entry.interior !== null && entry.interiorKey === key && !moved) {
       return;
     }

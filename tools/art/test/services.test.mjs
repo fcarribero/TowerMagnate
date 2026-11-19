@@ -30,12 +30,27 @@ describe('service facility sprites', () => {
     for (const subject of Object.keys(catalog)) {
       const ids = Object.keys(byId).filter(
         (id) =>
-          id.startsWith(`units/${subject}/`) && !/\/(back-|front-|side_|ceiling_|floor_)/.test(id),
+          id.startsWith(`units/${subject}/`) &&
+          !/\/(back-|front-|side_|ceiling_|floor_)/.test(id) &&
+          !id.includes('-underground_'),
       );
       const expected = subject === 'parking-space' ? [...variants, ...disconnected] : [...variants];
       // Units with seeded furniture also draw the bare room it goes on.
       if (SEEDED.includes(subject)) expected.push('empty_day', 'empty_night');
       expect(ids.sort()).toEqual(expected.map((variant) => `units/${subject}/${variant}`).sort());
+    }
+  });
+
+  it('walls over the windows of the underground copy of a unit that can be built below ground', () => {
+    const { left, top } = { left: 6, top: 4 };
+    for (const variant of ['empty_day', 'closed_night', 'occupied_day']) {
+      const [state, time] = variant.split('_');
+      expect(byId[`units/security/${variant}`].get(left + 2, top + 3)).not.toBe(
+        colorIndex('concrete-light'),
+      );
+      const buried = byId[`units/security/${state}-underground_${time}`];
+      expect(buried.get(left + 2, top + 3)).not.toBe(0);
+      expect(buried.get(left + 2, top + 3)).toBe(buried.get(left - 3, top + 3));
     }
   });
 
@@ -70,8 +85,6 @@ describe('service facility sprites', () => {
     const windowCentres = {
       security: [9, 8],
       'medical-center': [13, 8],
-      'recycling-center': [43, 8],
-      'subway-station': [24, 8],
     };
     for (const [subject, [x, y]] of Object.entries(windowCentres)) {
       // Closed units have their curtains drawn; occupied ones have clear glass.
@@ -79,6 +92,17 @@ describe('service facility sprites', () => {
       expect(byId[`units/${subject}/closed_night`].get(x, y)).not.toBe(0);
       expect(byId[`units/${subject}/occupied_day`].get(x, y)).toBe(0);
       expect(byId[`units/${subject}/occupied_night`].get(x, y)).toBe(0);
+    }
+  });
+
+  it('draws the units that are always underground with no windows', () => {
+    for (const [subject, [x, y]] of Object.entries({
+      'recycling-center': [43, 8],
+      'subway-station': [24, 8],
+    })) {
+      for (const variant of variants.filter((name) => name !== 'burnt')) {
+        expect(byId[`units/${subject}/${variant}`].get(x, y), variant).not.toBe(0);
+      }
     }
   });
 

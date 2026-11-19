@@ -80,6 +80,20 @@ describe('planUnit', () => {
     });
   });
 
+  it('draws a unit built underground with no windows, seeded or not', () => {
+    const security = planUnit({ ...base, type: 'security', level: -2, look: 3 }, 'day');
+    expect(security?.variant).toEqual({ state: 'empty-underground', time: 'day' });
+    expect(security?.interior?.underground).toBe(true);
+    const above = planUnit({ ...base, type: 'security', look: 3 }, 'day');
+    expect(above?.variant).toEqual({ state: 'empty', time: 'day' });
+    expect(above?.interior?.underground).toBeUndefined();
+    const library = planUnit({ ...base, type: 'library', level: -1 }, 'night');
+    expect(library?.subject).toBe('units/housekeeping');
+    expect(library?.variant).toEqual({ state: 'occupied-underground', time: 'night' });
+    const fastFood = planUnit({ ...base, type: 'fast-food', level: -1, look: 3 }, 'day');
+    expect(fastFood?.variant).toEqual({ state: 'empty', time: 'day' });
+  });
+
   it('draws every hotel room of a type from the fixed seed of the type', () => {
     for (const type of ['single-room', 'double-room', 'suite'] as const) {
       const room = planUnit({ ...base, type }, 'day');
