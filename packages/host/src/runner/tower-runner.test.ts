@@ -1,8 +1,13 @@
 import { createTower, setStructure, STEPS_PER_DAY, structureAt } from '@tower-magnate/engine';
 import { MONEY_CAP, type QueuedCommand, type TowerState } from '@tower-magnate/shared';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { REAL_MS_PER_GAME_DAY } from './real-time';
-import { TowerRunner, UnknownTowerError, type AdvanceTower } from './tower-runner';
+import { REAL_MS_PER_GAME_DAY, stepsForElapsed } from './real-time';
+import {
+  MAX_CATCH_UP_MS,
+  TowerRunner,
+  UnknownTowerError,
+  type AdvanceTower,
+} from './tower-runner';
 import type { TowerStore } from './tower-store';
 
 const SECOND = 1000;
@@ -106,6 +111,33 @@ describe('tower runner', () => {
     runner.tick();
 
     expect(stepOf('1')).toBe(1152);
+  });
+
+  it('treats a gap longer than two minutes as a pause and resumes from there', async () => {
+    await runner.resume('1');
+    passTime(10 * SECOND);
+    const before = stepOf('1') ?? 0;
+
+    clock += 8 * 60 * MINUTE;
+    runner.tick();
+
+    const afterGap = stepOf('1') ?? 0;
+    expect(afterGap - before).toBeLessThanOrEqual(stepsForElapsed(MAX_CATCH_UP_MS));
+    expect(afterGap - before).toBeGreaterThan(0);
+
+    passTime(10 * SECOND);
+    expect(stepOf('1')).toBe(afterGap + 96);
+  });
+
+  it('caps the catch-up at the developer speed times two minutes', async () => {
+    await runner.resume('1');
+    await runner.setSpeed('1', 10);
+    const before = stepOf('1') ?? 0;
+
+    clock += 8 * 60 * MINUTE;
+    runner.tick();
+
+    expect((stepOf('1') ?? 0) - before).toBe(stepsForElapsed(10 * MAX_CATCH_UP_MS));
   });
 
   it('saves the tower up to date when it pauses and forgets it', async () => {

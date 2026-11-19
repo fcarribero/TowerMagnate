@@ -16,6 +16,12 @@ export const TICK_INTERVAL_MS = 100;
 /** Running towers are saved this often, on top of the saves after commands and on pause. */
 export const SNAPSHOT_INTERVAL_MS = 30_000;
 
+/**
+ * The most real time one catch-up makes up. A longer gap (a sleeping computer, a frozen tab)
+ * counts as a pause: the tower advances this much and its clock restarts from there.
+ */
+export const MAX_CATCH_UP_MS = 120_000;
+
 export interface TowerAdvance {
   state: TowerState;
   events: EngineEvent[];
@@ -340,7 +346,9 @@ export class TowerRunner {
   private catchUp(tower: RunningTower): void {
     const targetStep =
       tower.startStep + stepsForElapsed((this.now() - tower.startedAt) * tower.speed);
-    const due = targetStep - tower.state.step;
+    const maxDue = stepsForElapsed(MAX_CATCH_UP_MS * tower.speed);
+    const overdue = targetStep - tower.state.step > maxDue;
+    const due = Math.min(targetStep - tower.state.step, maxDue);
     if (tower.state.starsPending === true) {
       // The clock holds until the player accepts the new rating: no time is made up afterwards.
       tower.startedAt = this.now();
@@ -355,7 +363,7 @@ export class TowerRunner {
       if (advanced.events.some(isLayoutEvent)) {
         tower.layoutVersion = this.nextLayoutVersion();
       }
-      if (tower.state.starsPending === true) {
+      if (overdue || tower.state.starsPending === true) {
         tower.startedAt = this.now();
         tower.startStep = tower.state.step;
       }
