@@ -628,8 +628,9 @@ export const HeatKindSchema = z.enum(HEAT_KINDS);
 export type HeatKind = z.infer<typeof HeatKindSchema>;
 
 /**
- * A heat map for drawing: one row per level that has any heat, each cell scaled to a byte
- * (0 is none, 255 is `max` or more). Sent to a client that asked for it, once a game minute.
+ * A heat map for drawing: one row per level with floor, each cell a byte. 0 is a cell with no
+ * floor; on floor, 1 is no heat and 255 is `max` or more. Sent to a client that asked for it,
+ * once a game minute.
  */
 export const HeatDataSchema = z.object({
   kind: HeatKindSchema,

@@ -28,9 +28,12 @@ export function heatColor(band: number): number {
   );
 }
 
-/** The band of a cell byte: 0 for none, 1 to HEAT_BANDS from faint to full. */
+/**
+ * The band of a cell byte: 0 for a cell with no floor, which is not drawn, then 1 (green, no heat
+ * at all) to HEAT_BANDS (red, full) for bytes 1 to 255.
+ */
 export function bandOf(byte: number): number {
-  return byte <= 0 ? 0 : Math.min(HEAT_BANDS, Math.ceil((byte / 255) * HEAT_BANDS));
+  return byte <= 0 ? 0 : Math.min(HEAT_BANDS, 1 + Math.floor(((byte - 1) / 255) * HEAT_BANDS));
 }
 
 /** A run of cells of one band on one level. */
