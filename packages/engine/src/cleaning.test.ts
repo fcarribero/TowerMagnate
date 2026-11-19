@@ -93,6 +93,14 @@ describe('cleaning room', () => {
     expect(cleaners(state).every((person) => person.uniform)).toBe(true);
   });
 
+  it('leaves no dirt where the crew walks', () => {
+    const state = advance(tower(), STEPS_PER_HOUR);
+    expect(cleaners(state).length).toBeGreaterThan(0);
+    for (const row of Object.values(state.heat?.dirt ?? {})) {
+      expect(row.every((dirt) => dirt === 0)).toBe(true);
+    }
+  });
+
   it('cleans the dirtiest spot until it is clean', () => {
     const state = tower();
     dirty(state, { 30: 20 });

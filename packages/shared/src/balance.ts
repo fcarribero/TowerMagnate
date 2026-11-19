@@ -802,7 +802,7 @@ export const CONSTRUCTION_NOISE_ADJACENT = 5;
 /** A person adds this much noise to each cell they walk into, and each minute they stand still. */
 export const PERSON_NOISE_CELL = 0.02;
 export const PERSON_NOISE_STAND_MINUTE = 0.05;
-/** A person leaves this much dirt in each cell they walk into. */
+/** A builder leaves this much dirt in each cell they walk into; nobody else dirties by walking. */
 export const PERSON_DIRT_CELL = 0.005;
 /** A garbage bag, on the floor or carried, adds this much dirt per game minute at its own cell. */
 export const BAG_DIRT_MINUTE = 1.5;

@@ -4,6 +4,7 @@ import { STEPS_PER_DAY } from '../clock';
 import { hashState } from '../hash';
 import { deserializeState, serializeState } from '../serialization';
 import { step } from '../step';
+import { stepAcceptingStars } from './accept-stars';
 import { buildTower, plainTowerPlan, type PlannedShaft } from './tower-builder';
 
 export const LONG_RUN_SEED = 35;
@@ -95,7 +96,7 @@ export function playLongRun(
       id: `d${day}.${index}`,
       command,
     }));
-    const outcome = step(state, queued, STEPS_PER_DAY);
+    const outcome = stepAcceptingStars(step, state, queued, STEPS_PER_DAY);
     state = outcome.state;
     results.push(...outcome.results);
     dailyHashes.push(hashState(state));

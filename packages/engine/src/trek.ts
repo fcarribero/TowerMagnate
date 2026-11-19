@@ -118,6 +118,7 @@ const APPROACHING = TREK_PHASES.indexOf('approaching');
 const DEPARTING = TREK_PHASES.indexOf('departing');
 
 const MAID_KIND = PERSON_KINDS.indexOf('maid');
+const BUILDER_KIND = PERSON_KINDS.indexOf('builder');
 
 /** The kinds that work in the tower and may ride service shafts (service units 2.6). */
 const WORKER_KINDS: ReadonlySet<number> = new Set(
@@ -1121,7 +1122,9 @@ function walk(context: StepContext, slot: number, pass: TrekPass): boolean {
   const onStreet = pool.trek[slot] === APPROACHING || pool.trek[slot] === DEPARTING;
   if (!onStreet) {
     const state = context.state;
-    addPersonTrail(state, level, column + direction, NOISE_PER_CELL, DIRT_PER_CELL);
+    // Everyone makes noise as they walk; only builders leave dirt.
+    const dirt = pool.kind[slot] === BUILDER_KIND ? DIRT_PER_CELL : 0;
+    addPersonTrail(state, level, column + direction, NOISE_PER_CELL, dirt);
     if (!pass.ambient.insideUnit(level, column + direction) && mindsNoiseAndWalks(pool, slot)) {
       addAmbient(pool, slot, walkCellStress(column + direction));
     }

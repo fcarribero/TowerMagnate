@@ -31,7 +31,7 @@ describe('scenario: 100 floors played for 5 game weeks', () => {
 
   it('grows a tower that changes every day', () => {
     expect(new Set(first.dailyHashes).size).toBe(LONG_RUN_DAYS);
-    // The star check needs 300 people; the tower sits just under that after five weeks.
+    // The run accepts each new rating at once, so the clock never holds on a star check.
     expect(populationOf(first.state).total).toBeGreaterThan(250);
   });
 

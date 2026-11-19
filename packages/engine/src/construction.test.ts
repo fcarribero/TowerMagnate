@@ -79,6 +79,13 @@ describe('construction sites', () => {
     expect(step(state, [command], 0).results[0]).toMatchObject({ ok: false });
   });
 
+  it('leaves dirt where the crew walks', () => {
+    const state = buildOffice(startOfDay(tower(), 0, 7), 0);
+    const later = advance(state, STEPS_PER_HOUR + 10 * 6);
+    const lobby = later.heat?.dirt['1'] ?? [];
+    expect(lobby.reduce((sum, dirt) => sum + dirt, 0)).toBeGreaterThan(0);
+  });
+
   it('sends a crew of five through the entrance when the work day starts', () => {
     const state = buildOffice(startOfDay(tower(), 0, 7), 0);
     const early = advance(state, STEPS_PER_HOUR - 6);
