@@ -298,7 +298,7 @@ export const SINGLE_ROOM_INTERIOR: InteriorSpec<HotelState> = {
       rolls: [],
     },
   ],
-  fixedSeed: 1,
+  fixedSeed: 3180791942,
 };
 
 export const DOUBLE_ROOM_INTERIOR: InteriorSpec<HotelState> = {
@@ -359,7 +359,7 @@ export const DOUBLE_ROOM_INTERIOR: InteriorSpec<HotelState> = {
       rolls: [],
     },
   ],
-  fixedSeed: 1,
+  fixedSeed: 3180791949,
 };
 
 export const SUITE_INTERIOR: InteriorSpec<HotelState> = {
@@ -431,5 +431,5 @@ export const SUITE_INTERIOR: InteriorSpec<HotelState> = {
       rolls: [],
     },
   ],
-  fixedSeed: 1,
+  fixedSeed: 3180792047,
 };
