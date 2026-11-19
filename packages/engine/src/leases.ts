@@ -17,7 +17,7 @@ import { removePeopleOfUnit } from './people';
 import { addCrew } from './venue-staff';
 import type { SimulationSystem, StepContext } from './step';
 import { writableUnit } from './step-copy';
-import { unitNumber } from './units';
+import { reseedLook, unitNumber } from './units';
 import { clearUnitLedger, storeGrade } from './unit-evaluation';
 import { emitNews } from './news';
 
@@ -66,6 +66,7 @@ function startTerm(context: StepContext, unit: LeasedUnit, event: 'leaseSigned' 
     rent: unit.price,
   };
   unit.used = true;
+  if (event === 'leaseSigned') reseedLook(unit, step);
   const rent = creditMoney(context.state, 'rent', unit.price);
   pushUnitMoney(context, unit.id, rent, 'rent');
   addCrew(context.state, unit.id);
@@ -79,7 +80,8 @@ function endLease(context: StepContext, unit: LeasedUnit, newsKey: NewsId | null
   // The tenant's people leave with them, so the empty unit has no workers walking in and out.
   removePeopleOfUnit(context.state, unit.id);
   context.events.push({ type: 'leaseEnded', step, unitId: unit.id });
-  if (newsKey !== null) context.events.push(...emitNews(context.state, newsKey, { unitId: unit.id }));
+  if (newsKey !== null)
+    context.events.push(...emitNews(context.state, newsKey, { unitId: unit.id }));
 }
 
 /**

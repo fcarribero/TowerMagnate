@@ -1,3 +1,4 @@
+import { lookSeed } from './units';
 import type {
   EngineEvent,
   TenantEvaluation,
@@ -94,7 +95,9 @@ describe('office and shop leases', () => {
       state = after;
     }
     expect(payments.map((step) => dateOfStep(step).weekday)).toEqual([1, 1, 1, 1]);
-    expect(payments.slice(1).map((step) => step % 8_640)).toEqual(Array(3).fill(TUESDAY_07 % 8_640));
+    expect(payments.slice(1).map((step) => step % 8_640)).toEqual(
+      Array(3).fill(TUESDAY_07 % 8_640),
+    );
     expect(payments).toEqual([
       TUESDAY_09_12,
       ...[1, 2, 3].map((week) => TUESDAY_07 + week * STEPS_PER_WEEK),
@@ -127,7 +130,20 @@ describe('office and shop leases', () => {
     const run = engine.step(tower, [], 5);
     expect(run.state.units[unitId]?.used).toBe(true);
     expect(run.events).toContainEqual({ type: 'leaseSigned', step: 5, unitId });
-    expect(run.events).toContainEqual(expect.objectContaining({ type: 'unitMoney', unitId, reason: 'rent' }));
+    expect(run.events).toContainEqual(
+      expect.objectContaining({ type: 'unitMoney', unitId, reason: 'rent' }),
+    );
+  });
+
+  it('gives an office a new furniture seed when a tenant signs and keeps it on renewal', () => {
+    const { tower, unitId, engine } = leaseRun({ moveInAt: 10, evaluate: () => 'good' });
+    const unit = unitOf(tower, unitId);
+    const signed = engine.step(tower, [], 11).state;
+    const look = unitOf(signed, unitId).look;
+    expect(look).toBe(lookSeed(unitId, unit.x, unit.level, 10));
+    const renewed = engine.step(signed, [], stepsTo(signed, 10 + STEPS_PER_WEEK + 1)).state;
+    expect(unitOf(renewed, unitId).lease?.anchorStep).toBeGreaterThan(10);
+    expect(unitOf(renewed, unitId).look).toBe(look);
   });
 
   it('keeps the week paid at the old price and charges the new price at the next weekly renewal', () => {
@@ -148,7 +164,11 @@ describe('office and shop leases', () => {
       const before = engine.step(tower, [], 10 + STEPS_PER_WEEK - 1);
       const after = engine.step(before.state, [], 1);
       expect(after.state.money - before.state.money).toBe(10_000);
-      expect(after.events).toContainEqual({ type: 'leaseRenewed', step: 10 + STEPS_PER_WEEK, unitId });
+      expect(after.events).toContainEqual({
+        type: 'leaseRenewed',
+        step: 10 + STEPS_PER_WEEK,
+        unitId,
+      });
     }
   });
 

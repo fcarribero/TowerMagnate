@@ -9,7 +9,7 @@ import { STEPS_PER_WEEK } from './leases';
 import type { SimulationSystem, StepContext } from './step';
 import { writableUnit } from './step-copy';
 import type { TenantEvaluator } from './leases';
-import { unitNumber } from './units';
+import { reseedLook, unitNumber } from './units';
 import { clearUnitLedger, storeGrade } from './unit-evaluation';
 import { emitNews } from './news';
 
@@ -43,6 +43,7 @@ export function sellCondo(context: StepContext, unitId: UnitId): void {
   };
   unit.sale = sale;
   unit.used = true;
+  reseedLook(unit, step);
   context.events.push({ type: 'condoSold', step, unitId });
 }
 

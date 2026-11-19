@@ -510,7 +510,7 @@ function whiteboard() {
   return canvas;
 }
 
-function corkboard() {
+export function corkboard() {
   const canvas = blank(12, 8);
   canvas.fillRect(0, 0, 12, 8, 'wood-dark');
   canvas.fillRect(1, 1, 10, 6, 'wood-light');
@@ -534,7 +534,7 @@ function certificate() {
   });
 }
 
-function calendar() {
+export function calendar() {
   return map(['.k.k.', 'rrrrr', 'wwwww', 'wkwkw', 'wwwww', 'wkwrw', 'wwwww']);
 }
 

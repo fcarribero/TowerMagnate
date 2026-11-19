@@ -111,6 +111,7 @@ const MIGRATIONS: readonly Migration[] = [
   addFreePrices,
   addOfficeLooks,
   addCondoLooks,
+  addHousekeepingLooks,
 ];
 
 /** Version 40 gives every office a furniture seed, from where and when it was built. */
@@ -121,6 +122,11 @@ function addOfficeLooks(raw: Record<string, unknown>): Record<string, unknown> {
 /** Version 41 gives every condo a furniture seed, the same way. */
 function addCondoLooks(raw: Record<string, unknown>): Record<string, unknown> {
   return addLooks(raw, 'condo', 41);
+}
+
+/** Version 42 gives every housekeeping room a furniture seed, the same way. */
+function addHousekeepingLooks(raw: Record<string, unknown>): Record<string, unknown> {
+  return addLooks(raw, 'housekeeping', 42);
 }
 
 function addLooks(

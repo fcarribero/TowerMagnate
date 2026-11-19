@@ -79,7 +79,7 @@ export function newUnit(id: EntityId, type: UnitType, x: number, level: Level): 
 }
 
 /** Unit types whose furniture the client builds from a seed (`Unit.look`). */
-export const SEEDED_LOOK_TYPES: readonly UnitType[] = ['office', 'condo'];
+export const SEEDED_LOOK_TYPES: readonly UnitType[] = ['office', 'condo', 'housekeeping'];
 
 /**
  * The furniture seed of a unit: an FNV-1a hash of where and when it was built, so it does not
@@ -100,6 +100,17 @@ export function withLook(unit: Unit): Unit {
   return SEEDED_LOOK_TYPES.includes(unit.type)
     ? { ...unit, look: lookSeed(unit.id, unit.x, unit.level, unit.placedAtStep) }
     : unit;
+}
+
+/**
+ * Gives a unit a new furniture seed when a new occupant moves in: a new office tenant or new
+ * condo owners get a room arranged their own way. A renewed lease keeps the seed. The seed
+ * hashes the move-in step, so it draws nothing from the tower's random generator.
+ */
+export function reseedLook(unit: Unit, step: number): void {
+  if (SEEDED_LOOK_TYPES.includes(unit.type)) {
+    unit.look = lookSeed(unit.id, unit.x, unit.level, step);
+  }
 }
 
 /** Numeric part of a unit id, so `u9` sorts before `u10`. */

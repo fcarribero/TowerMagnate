@@ -104,9 +104,12 @@ function standOnFloor(room, left, map) {
   room.drawMap(left, FLOOR_ROW - map.length + 1, map, legend);
 }
 
-function drawHousekeeping(occupied) {
+function drawHousekeeping(state) {
+  const occupied = state === 'occupied';
   const room = roomShell(WIDTH_TILES, look);
   WINDOWS.forEach((window) => drawWindow(room, window));
+  // The bare room is the base the client puts seeded furniture on (render/interior/housekeeping.ts).
+  if (state === 'empty') return room;
   room.drawMap(12, 9, timeClock, legend);
 
   standOnFloor(room, 19, linenShelf);
@@ -130,7 +133,7 @@ function drawHousekeeping(occupied) {
 export function housekeepingSprites() {
   return rentalSprites('housekeeping', {
     windows: WINDOWS,
-    drawDay: (state) => drawHousekeeping(state === 'occupied'),
-    states: ['closed', 'occupied'],
+    drawDay: drawHousekeeping,
+    states: ['empty', 'closed', 'occupied'],
   });
 }

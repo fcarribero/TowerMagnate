@@ -26,7 +26,10 @@ const states = (subject) => {
     return ['empty', 'vacant', 'closed', 'occupied', 'sleeping', 'dirty', 'infested'];
   }
   if (subject === 'condo') return ['empty', 'closed', 'occupied', 'sleeping'];
-  return rentals.includes(subject) ? ['empty', 'closed', 'occupied'] : ['closed', 'occupied'];
+  // Housekeeping has a bare `empty` room too, as the base for its seeded furniture.
+  return rentals.includes(subject) || subject === 'housekeeping'
+    ? ['empty', 'closed', 'occupied']
+    : ['closed', 'occupied'];
 };
 const variantsOf = (subject) =>
   states(subject).flatMap((state) => [`${state}_day`, `${state}_night`]);

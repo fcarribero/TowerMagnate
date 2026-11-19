@@ -1,3 +1,4 @@
+import { lookSeed } from './units';
 import {
   priceOfLevel,
   type PriceLevel,
@@ -61,6 +62,13 @@ describe('condo sale', () => {
     expect(events.filter((event) => event.type === 'condoSold')).toEqual([
       { type: 'condoSold', step: SALE_STEP, unitId },
     ]);
+  });
+
+  it('gives a sold condo a new furniture seed from the step it was sold', () => {
+    const { tower, unitId, engine } = condoRun();
+    const condo = condoOf(tower, unitId);
+    const { state } = engine.step(tower, [], SALE_STEP + 1);
+    expect(condoOf(state, unitId).look).toBe(lookSeed(unitId, condo.x, condo.level, SALE_STEP));
   });
 
   it('refuses to sell a unit that is not a condo or already has owners', () => {

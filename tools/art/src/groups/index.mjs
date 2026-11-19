@@ -4,6 +4,7 @@ import { lobbyGroup } from './lobby.mjs';
 import { officeGroup } from './office.mjs';
 import { condoGroup } from './condo.mjs';
 import { hotelGroup } from './hotel.mjs';
+import { housekeepingGroup } from './housekeeping.mjs';
 import { peopleGroup } from './people.mjs';
 import { rooftopGroup } from './rooftop.mjs';
 import { skyGroup } from './sky.mjs';
@@ -19,6 +20,7 @@ export const groups = [
   officeGroup,
   condoGroup,
   hotelGroup,
+  housekeepingGroup,
   rooftopGroup,
   transportGroup,
   uiGroup,
