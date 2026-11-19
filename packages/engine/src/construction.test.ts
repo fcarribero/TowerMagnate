@@ -7,6 +7,7 @@ import {
 import { describe, expect, it } from 'vitest';
 import { STEPS_PER_HOUR } from './calendar';
 import { STEPS_PER_DAY } from './clock';
+import { computeAppraisal } from './appraisal';
 import { constructionPointsFor, siteProgress } from './construction';
 import { listPeople } from './people';
 import { step } from './step';
@@ -57,6 +58,16 @@ describe('construction sites', () => {
     expect(Object.keys(after.units)).toHaveLength(0);
     expect(after.money).toBeLessThan(before.money);
     expect(Object.values(after.sites)[0]?.points).toBe(0);
+  });
+
+  it('sets the price once, at placement, to the appraisal of that moment', () => {
+    const before = startOfDay(tower(), 0, 7);
+    const appraisal = computeAppraisal(before, { type: 'office' });
+    const after = buildOffice(before, 0);
+    const site = Object.values(after.sites)[0];
+    expect(site?.price).toBe(appraisal);
+    const later = advance({ ...after, stars: 1 }, 10);
+    expect(Object.values(later.sites)[0]?.price).toBe(appraisal);
   });
 
   it('keeps the site cells taken', () => {
@@ -154,7 +165,12 @@ describe('construction sites', () => {
     const [first, second] = Object.keys(state.sites) as [string, string];
     const marked = step(
       state,
-      [{ id: 'p1', command: { type: 'setSitePriority', unitId: second, priority: true } as Command }],
+      [
+        {
+          id: 'p1',
+          command: { type: 'setSitePriority', unitId: second, priority: true } as Command,
+        },
+      ],
       0,
     );
     expect(marked.results[0]).toMatchObject({ ok: true });
@@ -162,7 +178,9 @@ describe('construction sites', () => {
     const firstPoints = state.sites[first]?.points ?? Number.POSITIVE_INFINITY;
     const secondPoints = state.sites[second]?.points ?? Number.POSITIVE_INFINITY;
     expect(secondPoints).toBeGreaterThan(0);
-    expect(secondPoints).toBeGreaterThan(firstPoints === Number.POSITIVE_INFINITY ? 0 : firstPoints);
+    expect(secondPoints).toBeGreaterThan(
+      firstPoints === Number.POSITIVE_INFINITY ? 0 : firstPoints,
+    );
   });
 
   it('drops the priority flag when the site is finished', () => {

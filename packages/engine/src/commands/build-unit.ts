@@ -2,6 +2,7 @@ import {
   CATHEDRAL_BOTTOM_LEVEL,
   isBasement,
   isColumn,
+  isPricedType,
   levelAbove,
   LOWEST_BUILDABLE_LEVEL,
   PlaceableUnitTypeSchema,
@@ -22,7 +23,7 @@ import { escalatorLevels, isEscalatorUnit } from './escalator-floors';
 import { isBuiltByCrew } from '../construction';
 import { addPeopleForUnit } from '../people';
 import { addCrew } from '../venue-staff';
-import { startAtAppraisal } from '../appraisal';
+import { computeAppraisal, startAtAppraisal } from '../appraisal';
 import { newUnit } from '../units';
 import { bombLockError, limitError, starLockError } from './unit-limits';
 import {
@@ -198,6 +199,10 @@ export const buildUnit: CommandHandler<'buildUnit'> = (context, command) => {
       paid: cost,
       placedAtStep: state.step,
       points: 0,
+      // The price is set once, at placement, so it does not follow the appraisal while the site is built.
+      ...(isPricedType(definition.type)
+        ? { price: computeAppraisal(state, { type: definition.type }) }
+        : {}),
     };
     return { ok: true, cost, refund: 0, events: [] };
   }

@@ -132,7 +132,7 @@ export interface ConstructionSite {
   points: number;
   /** Set by `setListed` before the unit is finished; the finished unit starts with it. */
   listed?: boolean;
-  /** Set by `setPrice` before the unit is finished; the finished unit keeps it. Missing means the appraisal at build. */
+  /** The appraisal at placement, or what `setPrice` set before the unit is finished; the finished unit keeps it. Missing (old saves) means the appraisal at build. */
   price?: number;
   /** Set by `setSitePriority`: builders take a priority site before the others. Not copied to the finished unit. */
   priority?: boolean;
