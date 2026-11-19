@@ -18,6 +18,7 @@ import {
   isOutsideTower,
   peopleCount,
   personEntityId,
+  plannedPath,
   newUnit,
   siteAppraisal,
   occupantAt,
@@ -224,6 +225,10 @@ export function inspectPerson(state: TowerState, personId: string): InspectData 
     stressCauses: minutesOf(stressCausesOf(pool, slot)),
     homeUnitId: person.homeUnit,
   };
+  const path = plannedPath(state, slot);
+  if (path.length > 1) {
+    result.path = path.slice(0, 128).map((place) => ({ level: place.level, x: place.column }));
+  }
   return result;
 }
 

@@ -72,10 +72,13 @@ import { watchedCells } from './police';
 import { floorIndex, type UserClass } from './routing/transport-graph';
 import { mainLobbyEnds, nearestStreetColumn, STREET_LEVEL } from './street';
 import {
+  graphInputsMatch,
+  graphInputsOf,
   spendBudget,
   TransportGraph,
   TripPlanner,
   type FirstLeg,
+  type GraphInputs,
   type RoutePlan,
   type RecheckPlan,
   type TripBudget,
@@ -1608,4 +1611,118 @@ export function createChildSystem(): SimulationSystem {
       for (const child of children) followGuardian(context, guardian, child);
     }
   };
+}
+
+/** Most transport legs a drawn path follows, so a route that loops can never hang the caller. */
+const MAX_PATH_LEGS = 24;
+
+/** The graph the last path was planned on, kept while the tower's transports stay the same. */
+let pathGraph: { graph: TransportGraph; inputs: GraphInputs } | null = null;
+
+function pathPlanner(state: TowerState): { graph: TransportGraph; planner: TripPlanner } {
+  if (!pathGraph || !graphInputsMatch(state, pathGraph.inputs)) {
+    pathGraph = { graph: new TransportGraph(state), inputs: graphInputsOf(state) };
+  }
+  return { graph: pathGraph.graph, planner: plannerFor(pathGraph.graph) };
+}
+
+/** Where a flight leaves a person who took it toward `toLevel` from `fromLevel`. */
+function flightExit(state: TowerState, via: number | string, fromLevel: Level, toLevel: Level) {
+  const transport = state.transports[typeof via === 'number' ? transportKey(via) : via];
+  if (!transport) return undefined;
+  return floorIndex(toLevel) > floorIndex(fromLevel) ? flightTop(transport) : transport.x;
+}
+
+/**
+ * The cells a person's trip goes through, from where they stand to where it ends: the foot of each
+ * flight or shaft and the cell it lets them off at, as the route is planned now. Empty while the
+ * person is idle or has no route. The path is only for drawing; the trip itself plans leg by leg.
+ */
+export function plannedPath(state: TowerState, slot: number): TrekPlace[] {
+  const pool = state.people;
+  const phase = pool.trek[slot] as number;
+  if (phase === IDLE || phase === NO_ROUTE || phase === undefined) return [];
+  const level = pool.level[slot] as Level;
+  const column = pool.column[slot] as number;
+  const legLevel = pool.legLevel[slot] as Level;
+  const legColumn = pool.legColumn[slot] as number;
+  const via = pool.legVia[slot] as number;
+  const path: TrekPlace[] = [{ level, column }];
+  const add = (place: TrekPlace): void => {
+    const last = path[path.length - 1];
+    if (last?.level !== place.level || last.column !== place.column) path.push(place);
+  };
+  const destination = {
+    level: pool.trekLevel[slot] as Level,
+    column: pool.trekColumn[slot] as number,
+  };
+
+  switch (phase) {
+    case WALKING_TO_DESTINATION:
+      add(destination);
+      return path;
+    case DEPARTING:
+      add({ level, column: legColumn });
+      return path;
+    case APPROACHING:
+      add({ level, column: legColumn });
+      break;
+    case WALKING_TO_STAIRS:
+    case WALKING_TO_ESCALATOR:
+    case ON_STAIRS:
+    case ON_ESCALATOR: {
+      if (phase === WALKING_TO_STAIRS || phase === WALKING_TO_ESCALATOR) {
+        add({ level, column: legColumn });
+      }
+      add({ level: legLevel, column: flightExit(state, via, level, legLevel) ?? legColumn });
+      break;
+    }
+    case WALKING_TO_SHAFT:
+    case QUEUED:
+    case WAITING_BESIDE_QUEUE:
+      add({ level, column: legColumn });
+      add({ level: legLevel, column: legColumn });
+      break;
+    case RIDING:
+      add({ level: legLevel, column });
+      break;
+    default:
+      add(destination);
+      return path;
+  }
+
+  const { graph, planner } = pathPlanner(state);
+  let budget = unpackBudget(pool.trekBudget[slot] as number);
+  const userClass = userClassOf(pool, slot);
+  const energy = energyLevelOf(pool, slot);
+  for (let legs = 0; legs < MAX_PATH_LEGS; legs++) {
+    const at = path[path.length - 1] as TrekPlace;
+    const plan = planner.plan(state, {
+      from: { level: at.level, x: at.column },
+      to: { level: destination.level, x: destination.column },
+      userClass,
+      budget,
+      energy,
+    });
+    if (!plan) return path;
+    const leg = plan.firstLeg;
+    if (!leg) break;
+    for (const step of leg.steps) {
+      const from = graph.node(step.from);
+      const to = graph.node(step.to);
+      if (leg.kind === 'ride') {
+        add({ level: from.level, column: from.x });
+        add({ level: to.level, column: from.x });
+      } else {
+        add({
+          level: from.level,
+          column: flightExit(state, step.via, to.level, from.level) ?? from.x,
+        });
+        add({ level: to.level, column: flightExit(state, step.via, from.level, to.level) ?? to.x });
+      }
+      budget = spendBudget(budget, step);
+    }
+  }
+  add(destination);
+  return path;
 }

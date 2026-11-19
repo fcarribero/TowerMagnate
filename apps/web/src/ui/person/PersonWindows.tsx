@@ -19,8 +19,11 @@ const PANEL_FALLBACK_HEIGHT = 200;
 
 /** The part of the stage the fixed panel needs to follow a person on screen. */
 export type PersonPanelStage = Pick<PanelStage, 'cssPerDevicePixel' | 'onCameraChange'> & {
-  personScreenRect(personId: string): { x: number; y: number; width: number; height: number } | null;
+  personScreenRect(
+    personId: string,
+  ): { x: number; y: number; width: number; height: number } | null;
   showPersonSelection?(personId: string | null): void;
+  showPersonPath?(path: readonly { level: number; x: number }[]): void;
 };
 
 interface PersonWindowsProps {
@@ -133,6 +136,23 @@ export function PersonWindows({ connection, onCenter, stage = null }: PersonWind
     stage?.showPersonSelection?.(anchoredId);
     return () => stage?.showPersonSelection?.(null);
   }, [stage, anchoredId]);
+
+  // Draw the route of the selected person; each inspect answer brings it planned anew.
+  useEffect(() => {
+    if (anchoredId === null || !stage?.showPersonPath) {
+      return;
+    }
+    const showPath = (): void => {
+      const data = inspect.person(anchoredId);
+      stage.showPersonPath?.(data?.status === 'ok' ? (data.path ?? []) : []);
+    };
+    showPath();
+    const stop = inspect.subscribe(showPath);
+    return () => {
+      stop();
+      stage.showPersonPath?.([]);
+    };
+  }, [stage, anchoredId, inspect]);
 
   useEffect(
     () =>

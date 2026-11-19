@@ -28,6 +28,7 @@ import { ElevatorLayer } from './elevatorLayer';
 import { EventLayer } from './eventLayer';
 import type { EffectDrawing, TransientEffect } from './eventPlan';
 import { PeopleLayer } from './peopleLayer';
+import { SelectionMarker, type PathPoint } from './selectionMarker';
 import {
   SKY_BACKGROUND,
   createSky,
@@ -95,6 +96,8 @@ export interface Stage {
   personScreenRect(personId: string): ScreenRect | null;
   /** Frames the person with this id, following them as they move; null removes the frame. */
   showPersonSelection(personId: string | null): void;
+  /** The route of the selected person, drawn as a line from their feet; empty removes it. */
+  showPersonPath(path: readonly PathPoint[]): void;
   /** One zoom level in or out, keeping the centre of the view in place. */
   zoomStep(direction: 1 | -1): void;
   onCameraChange(listener: CameraListener): () => void;
@@ -180,6 +183,8 @@ export async function mountStage(host: HTMLElement, options: StageOptions = {}):
   world.addChild(events.view);
   const ghost = new GhostLayer();
   world.addChild(ghost.view);
+  const selectionMarker = new SelectionMarker();
+  world.addChild(selectionMarker.view);
   app.stage.addChild(world);
 
   const firstSize = measureHost(host);
@@ -309,9 +314,9 @@ export async function mountStage(host: HTMLElement, options: StageOptions = {}):
   let selectedPerson: string | null = null;
   const personRectOf = (personId: string) => people.rectOf(personId) ?? elevators.rectOf(personId);
   const drawPersonSelection = (): void => {
-    ghost.showPersonSelection(
-      selectedPerson === null ? null : (personRectOf(selectedPerson) ?? null),
-    );
+    const rect = selectedPerson === null ? null : (personRectOf(selectedPerson) ?? null);
+    ghost.showPersonSelection(rect);
+    selectionMarker.show(rect, performance.now());
   };
   // Panels unmounted after the stage clear their selection; by then the graphics are gone.
   let destroyed = false;
@@ -370,7 +375,13 @@ export async function mountStage(host: HTMLElement, options: StageOptions = {}):
     },
     showPersonSelection(personId) {
       if (destroyed) return;
+      if (personId !== selectedPerson) selectionMarker.setPath([]);
       selectedPerson = personId;
+      drawPersonSelection();
+    },
+    showPersonPath(path) {
+      if (destroyed) return;
+      selectionMarker.setPath(path);
       drawPersonSelection();
     },
     zoomStep(direction) {

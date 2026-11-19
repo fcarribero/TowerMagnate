@@ -573,6 +573,14 @@ export const InspectDataSchema = z.union([
     /** Minutes of stress felt lately for each cause, fading day by day (stress-evaluation 2.8). */
     stressCauses: z.record(z.enum(STRESS_CAUSES), z.number().nonnegative()),
     homeUnitId: UnitEntityIdSchema.nullable(),
+    /**
+     * The cells the person's trip goes through as planned now, from where they stand to where it
+     * ends: each flight or shaft they take and where it lets them off. Left out while idle.
+     */
+    path: z
+      .array(z.object({ level: LevelSchema, x: ColumnSchema }))
+      .max(128)
+      .optional(),
   }),
   InspectedShaftGoneSchema,
   z.object({

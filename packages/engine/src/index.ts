@@ -155,6 +155,7 @@ export {
   createTrekSystem,
   isOnTrek,
   startTrek,
+  plannedPath,
   trekPhaseAt,
   TREK_PHASES,
 } from './trek';
