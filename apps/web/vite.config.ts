@@ -41,7 +41,6 @@ export default defineConfig(({ mode }) => {
       strictPort: true,
       proxy: {
         '/api': { target: serverUrl, changeOrigin: true },
-        '/ws': { target: serverUrl, changeOrigin: true, ws: true },
       },
     },
     build: {

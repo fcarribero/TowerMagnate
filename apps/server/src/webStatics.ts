@@ -6,7 +6,7 @@ import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 const HASHED_ASSET_FOLDER = 'assets';
 const LONG_CACHE = 'public, max-age=31536000, immutable';
 const REVALIDATE = 'no-cache';
-const SERVER_ROUTE_PREFIXES = ['/api/', '/ws'];
+const SERVER_ROUTE_PREFIXES = ['/api/'];
 
 /** Serves the built web client, with the game page as the answer for any other page route. */
 export function registerWebStatics(app: FastifyInstance, webDir: string): void {

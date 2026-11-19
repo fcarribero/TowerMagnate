@@ -2,8 +2,7 @@ import type { ServerMessage } from '@tower-magnate/shared';
 import { ClientStore } from '../model/clientStore';
 import { InspectStore } from '../model/inspectStore';
 import { CommandClient } from './commandClient';
-import type { MessageSink } from './gameSocket';
-import type { TowerLink } from './towerLink';
+import type { MessageSink, TowerLink } from './towerLink';
 import { ViewportReporter } from './viewportReporter';
 
 export interface GameConnection {

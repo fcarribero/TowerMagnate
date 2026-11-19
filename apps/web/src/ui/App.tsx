@@ -470,11 +470,7 @@ export function App({
         />
         <BuildFeedback floats={floats} dragLabel={dragLabel} />
         <IncomeFloaters floaters={incomeFloats} />
-        <ConnectionOverlay
-          status={connectionStatus}
-          protocolMismatch={false}
-          onReload={() => location.reload()}
-        />
+        <ConnectionOverlay status={connectionStatus} />
         {blocker !== null && <PlayBlocker reason={blocker} onPlayHere={onPlayHere} />}
         <Toasts commands={connection.commands} />
         <NewsLine

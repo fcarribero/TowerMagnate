@@ -8,8 +8,7 @@ import {
   type TowerState,
 } from '@tower-magnate/shared';
 import type { PageToWorker, WorkerToPage } from '../worker/workerMessages';
-import type { ConnectionStatus, MessageSink } from './gameSocket';
-import type { TowerLink } from './towerLink';
+import type { ConnectionStatus, MessageSink, TowerLink } from './towerLink';
 
 /** The part of the browser Worker the socket uses, so tests can stand in for it. */
 export interface WorkerLike {
@@ -72,7 +71,7 @@ function createTowerWorker(): WorkerLike {
 }
 
 /**
- * The tower running in a Web Worker, behind the same surface as `GameSocket`.
+ * The tower running in a Web Worker, behind the `TowerLink` surface.
  * Frames cross as the JSON text the WebSocket carried. No ping and no retry:
  * the Worker does not drop out the way a network does.
  */

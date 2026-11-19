@@ -1,7 +1,7 @@
 import type { PlayResponse } from '@tower-magnate/shared';
 import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import { createGameConnection, type GameConnection } from './gameConnection';
-import type { ConnectionStatus } from './gameSocket';
+import type { ConnectionStatus } from './towerLink';
 import { WorkerSocket, type WorkerLike } from './workerSocket';
 
 export interface GameConnectionOptions {

@@ -1,5 +1,5 @@
 import type { FastifyInstance } from 'fastify';
-import { MessageRateLimiter } from '../gateway/rate-limiter';
+import { MessageRateLimiter } from './rate-limiter';
 
 export const MAX_AUTH_ATTEMPTS_PER_MINUTE = 10;
 const WINDOW_MS = 60_000;

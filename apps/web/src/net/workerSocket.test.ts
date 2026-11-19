@@ -1,7 +1,7 @@
 import { PROTOCOL_VERSION, type ServerMessage } from '@tower-magnate/shared';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { PageToWorker, WorkerToPage } from '../worker/workerMessages';
-import type { ConnectionStatus } from './gameSocket';
+import type { ConnectionStatus } from './towerLink';
 import {
   READ_STATE_TIMEOUT_MS,
   WorkerSocket,

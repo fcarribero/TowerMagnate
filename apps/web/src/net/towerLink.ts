@@ -1,7 +1,14 @@
-import type { ClientMessage } from '@tower-magnate/shared';
-import type { ConnectionStatus } from './gameSocket';
+import type { ClientMessage, ServerMessage } from '@tower-magnate/shared';
 
-/** The channel to the tower: the old WebSocket or the local Worker. */
+export type ConnectionStatus = 'connecting' | 'live' | 'retrying' | 'closed';
+
+/** What the link feeds. `ClientStore` fits. */
+export interface MessageSink {
+  receive(message: ServerMessage): void;
+  reconnected(): void;
+}
+
+/** The channel to the tower: the local Worker. */
 export interface TowerLink {
   readonly connectionStatus: ConnectionStatus;
   connect(): void;

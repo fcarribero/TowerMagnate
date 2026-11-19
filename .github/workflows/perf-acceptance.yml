@@ -12,44 +12,6 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  runner-load:
-    name: Runner load on the release image, 30 towers
-    runs-on: ubuntu-latest
-    timeout-minutes: 90
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: pnpm/action-setup@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version-file: .nvmrc
-          cache: pnpm
-
-      - name: Install
-        run: pnpm install --frozen-lockfile
-
-      - name: Build art
-        run: pnpm art:build
-
-      - name: Build the release image
-        run: docker build -f docker/prod/Dockerfile -t tower-magnate:release .
-
-      - name: Bundle the bench like the server
-        run: pnpm --filter @tower-magnate/server build:bench
-
-      - name: Runner load benchmark in the release image
-        run: |
-          set -o pipefail
-          status=0
-          docker run --rm \
-            -v "$PWD/apps/server/bench-build:/app/server/bench-build:ro" \
-            tower-magnate:release \
-            node bench-build/runner-load.js --towers 30 --floors 20 --minutes 10 --gate \
-            2>&1 | tee bench.txt || status=$?
-          { echo '### Runner load on the release image'; echo '```'; cat bench.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
-          exit $status
-
   full-tower-step:
     name: Step budget, 15,000 people
     runs-on: ubuntu-latest
