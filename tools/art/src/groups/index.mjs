@@ -7,6 +7,10 @@ import { hotelGroup } from './hotel.mjs';
 import { housekeepingGroup } from './housekeeping.mjs';
 import { cleaningGroup } from './cleaning.mjs';
 import { fastFoodGroup } from './fast-food.mjs';
+import { securityGroup } from './security.mjs';
+import { medicalGroup } from './medical.mjs';
+import { restaurantGroup } from './restaurant.mjs';
+import { retailGroup } from './retail.mjs';
 import { peopleGroup } from './people.mjs';
 import { rooftopGroup } from './rooftop.mjs';
 import { skyGroup } from './sky.mjs';
@@ -25,6 +29,10 @@ export const groups = [
   housekeepingGroup,
   cleaningGroup,
   fastFoodGroup,
+  securityGroup,
+  medicalGroup,
+  restaurantGroup,
+  retailGroup,
   rooftopGroup,
   transportGroup,
   uiGroup,

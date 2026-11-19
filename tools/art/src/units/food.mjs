@@ -88,7 +88,7 @@ const painting = ['kkkkkkkk', 'kbbbLLLk', 'kbbLLLLk', 'kssssssk', 'kkkkkkkk'];
 
 const TABLE_LEFTS = [14, 62, 110, 158];
 
-const restaurantLook = {
+export const restaurantLook = {
   shell: { ...shell, wall: 'concrete-light', wallLight: 'cloud', wallDark: 'concrete' },
   signColor: 'wood-dark',
   textWidth: 56,

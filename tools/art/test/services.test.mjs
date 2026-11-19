@@ -21,6 +21,7 @@ const catalog = {
 };
 const variants = ['closed_day', 'closed_night', 'occupied_day', 'occupied_night', 'burnt'];
 const disconnected = ['disconnected_day', 'disconnected_night'];
+const SEEDED = ['security', 'medical-center'];
 const countColor = (canvas, color) =>
   canvas.pixels.filter((index) => index === colorIndex(color)).length;
 
@@ -31,7 +32,9 @@ describe('service facility sprites', () => {
         (id) =>
           id.startsWith(`units/${subject}/`) && !/\/(back-|front-|side_|ceiling_|floor_)/.test(id),
       );
-      const expected = subject === 'parking-space' ? [...variants, ...disconnected] : variants;
+      const expected = subject === 'parking-space' ? [...variants, ...disconnected] : [...variants];
+      // Units with seeded furniture also draw the bare room it goes on.
+      if (SEEDED.includes(subject)) expected.push('empty_day', 'empty_night');
       expect(ids.sort()).toEqual(expected.map((variant) => `units/${subject}/${variant}`).sort());
     }
   });

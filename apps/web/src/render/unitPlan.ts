@@ -46,8 +46,8 @@ export interface UnitDrawing {
 
 /** The seeded furniture of a unit and the look it has now. */
 export interface UnitInterior {
-  /** The unit type, which picks the interior spec. */
-  type: UnitType;
+  /** The interior spec's type: the unit type, or for a retail shop the line it sells, such as `retail-shop-books`. */
+  type: string;
   seed: number;
   /** One of the spec's states, such as `closed` or `sleeping`. */
   state: string;
@@ -115,17 +115,21 @@ export function planUnit(
   );
   // Unit types with an interior spec draw their furniture from the unit's seed (`UnitView.look`)
   // or, for types whose rooms all look alike, from the spec's fixed seed.
+  // A retail shop's seed also picks the line it sells, and with it the bare shop to draw on.
   const seed = unit.look ?? interiorSpecOf(unit.type)?.fixedSeed;
-  const seeded = !building && seed !== undefined && interiorSpecOf(unit.type) !== undefined;
+  const spec = interiorSpecOf(unit.type, seed);
+  const seeded = !building && seed !== undefined && spec !== undefined;
   const drawing = footprint(
     unit.id,
-    `units/${SPRITE_SUBJECT[unit.type] ?? unit.type}`,
+    seeded
+      ? spec.baseSprite.slice(0, spec.baseSprite.lastIndexOf('/'))
+      : `units/${SPRITE_SUBJECT[unit.type] ?? unit.type}`,
     unit,
     seeded ? BARE_ROOM : { state, time },
     overlay,
   );
   if (seeded) {
-    drawing.interior = { type: unit.type, seed: seed as number, state, time };
+    drawing.interior = { type: spec.unitType, seed, state, time };
   }
   const open =
     !building && state === 'empty' && unit.listed !== false ? AVAILABILITY[unit.type] : undefined;

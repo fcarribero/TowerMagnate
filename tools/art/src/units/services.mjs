@@ -37,11 +37,13 @@ function standOnFloor(room, left, map, level = 0) {
 
 // Every service unit has a closed and an occupied sprite for day and night, and
 // one burnt sprite that is the same at any hour.
-function serviceSprites(subject, { windows = [], drawDay }) {
+// A unit with seeded furniture also has a bare `empty` room, the base the client puts the
+// furniture on (apps/web/src/render/interior).
+function serviceSprites(subject, { windows = [], drawDay, bare }) {
   const sprites = rentalSprites(subject, {
     windows,
-    drawDay: (state) => drawDay(state === 'occupied'),
-    states: STATES,
+    drawDay: (state) => (state === 'empty' ? bare() : drawDay(state === 'occupied')),
+    states: bare === undefined ? STATES : ['empty', ...STATES],
   });
   sprites.push({
     id: `units/${subject}/burnt`,
@@ -176,9 +178,14 @@ function drawLocker(room, left) {
   room.set(left + 5, 17, 'lamp');
 }
 
-function drawSecurity(occupied) {
+function bareSecurity() {
   const room = roomShell(16, securityLook);
   SECURITY_WINDOWS.forEach((window) => drawWindow(room, window));
+  return room;
+}
+
+function drawSecurity(occupied) {
+  const room = bareSecurity();
   room.drawMap(22, 5, shield, legend);
   drawMonitorWall(room, occupied);
 
@@ -232,9 +239,14 @@ function drawBed(room, left, patientSkin) {
   }
 }
 
-function drawMedical(occupied) {
+function bareMedical() {
   const room = roomShell(26, medicalLook);
   MEDICAL_WINDOWS.forEach((window) => drawWindow(room, window));
+  return room;
+}
+
+function drawMedical(occupied) {
+  const room = bareMedical();
   drawRedCross(room, 100, 5);
 
   drawBed(room, 14, occupied ? 'skin-light' : null);
@@ -566,11 +578,19 @@ function drawSubwayStation(occupied) {
 }
 
 export function securitySprites() {
-  return serviceSprites('security', { windows: SECURITY_WINDOWS, drawDay: drawSecurity });
+  return serviceSprites('security', {
+    windows: SECURITY_WINDOWS,
+    drawDay: drawSecurity,
+    bare: bareSecurity,
+  });
 }
 
 export function medicalCenterSprites() {
-  return serviceSprites('medical-center', { windows: MEDICAL_WINDOWS, drawDay: drawMedical });
+  return serviceSprites('medical-center', {
+    windows: MEDICAL_WINDOWS,
+    drawDay: drawMedical,
+    bare: bareMedical,
+  });
 }
 
 export function parkingRampSprites() {

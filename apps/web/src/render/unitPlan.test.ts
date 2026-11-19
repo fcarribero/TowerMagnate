@@ -63,6 +63,23 @@ describe('planUnit', () => {
     expect(asleep?.interior).toEqual({ type: 'condo', seed: 9, state: 'sleeping', time: 'night' });
   });
 
+  it('draws a retail shop with a look in the line its seed picks, on that line bare shop', () => {
+    const lines = [
+      'retail-shop',
+      'retail-shop-books',
+      'retail-shop-grocery',
+      'retail-shop-electronics',
+    ];
+    lines.forEach((line, index) => {
+      const seed = (index * 2 ** 30 + 5) >>> 0;
+      const shop = planUnit({ ...base, type: 'retail-shop', look: seed, leased: true }, 'day');
+      expect(shop?.subject).toBe(`units/${line}`);
+      expect(shop?.variant).toEqual({ state: 'empty', time: 'day' });
+      expect(shop?.interior?.type).toBe(line);
+      expect(shop?.interior?.seed).toBe(seed);
+    });
+  });
+
   it('draws every hotel room of a type from the fixed seed of the type', () => {
     for (const type of ['single-room', 'double-room', 'suite'] as const) {
       const room = planUnit({ ...base, type }, 'day');

@@ -69,7 +69,7 @@ const televisions = [
 
 const computers = ['ssssss', 'sbbbbs', 'sbwbbs', 'ssssss', '..ss..', 'gggggg'];
 
-const shopLooks = {
+export const shopLooks = {
   'retail-shop': {
     shell,
     signColor: 'cloth-blue',

@@ -654,10 +654,25 @@ describe('migrateState unit evaluation', () => {
     expect(migrated.units.u3?.look).toBe(lookSeed('u3', 10, 2, 0));
   });
 
+  it('gives restaurants, retail shops, security offices and medical centers saved at version 44 their furniture seed', () => {
+    const tower = createTower(5);
+    tower.units.u3 = newUnit('u3', 'restaurant', 10, 2);
+    tower.units.u4 = newUnit('u4', 'retail-shop', 40, 2);
+    tower.units.u5 = newUnit('u5', 'security', 60, 2);
+    tower.units.u6 = newUnit('u6', 'medical-center', 80, 2);
+    tower.units.u7 = newUnit('u7', 'cinema', 120, 2);
+    const migrated = migrateState({ ...JSON.parse(JSON.stringify(tower)), schemaVersion: 44 });
+    expect(migrated.units.u3?.look).toBe(lookSeed('u3', 10, 2, 0));
+    expect(migrated.units.u4?.look).toBe(lookSeed('u4', 40, 2, 0));
+    expect(migrated.units.u5?.look).toBe(lookSeed('u5', 60, 2, 0));
+    expect(migrated.units.u6?.look).toBe(lookSeed('u6', 80, 2, 0));
+    expect(migrated.units.u7?.look).toBeUndefined();
+  });
+
   it('gives a condo saved at version 40 its furniture seed and leaves other units alone', () => {
     const tower = createTower(5);
     tower.units.u3 = newUnit('u3', 'condo', 10, 2);
-    tower.units.u4 = newUnit('u4', 'restaurant', 30, 2);
+    tower.units.u4 = newUnit('u4', 'cinema', 30, 2);
     const migrated = migrateState({ ...JSON.parse(JSON.stringify(tower)), schemaVersion: 40 });
     expect(migrated.units.u3?.look).toBe(lookSeed('u3', 10, 2, 0));
     expect(migrated.units.u4?.look).toBeUndefined();
@@ -696,7 +711,7 @@ describe('migrateState unit evaluation', () => {
 
   it('gives a venue saved before version 38 an empty garbage pile', () => {
     const tower = createTower(5);
-    tower.units.u3 = newUnit('u3', 'restaurant', 10, 2);
+    tower.units.u3 = newUnit('u3', 'cinema', 10, 2);
     const raw = JSON.parse(JSON.stringify(tower)) as { units: Record<string, { venue: object }> };
     const venue = raw.units.u3?.venue as { garbage?: number; garbageDay?: number };
     delete venue.garbage;
