@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { openGame, sendCommand } from './support/game';
+import { GAME_LOAD_TIMEOUT_MS, openGame, sendCommand } from './support/game';
 import { registerUser, uniqueUser } from './support/users';
 
 const canvas = (page: Page) => page.locator('#app canvas');
@@ -15,10 +15,10 @@ test('a new player registers, keeps the session on reload and logs out', async (
   await page.getByLabel('Contraseña', { exact: true }).fill(user.password);
   await page.getByLabel('Repetir contraseña').fill(user.password);
   await page.getByRole('button', { name: 'Crear cuenta' }).click();
-  await expect(canvas(page)).toBeVisible();
+  await expect(canvas(page)).toBeVisible({ timeout: GAME_LOAD_TIMEOUT_MS });
 
   await page.reload();
-  await expect(canvas(page)).toBeVisible();
+  await expect(canvas(page)).toBeVisible({ timeout: GAME_LOAD_TIMEOUT_MS });
   await expect(loginButton(page)).toHaveCount(0);
 
   await page.getByRole('button', { name: 'Menú' }).click();
@@ -44,7 +44,7 @@ test('a wrong password shows a Spanish message and a right one enters', async ({
 
   await page.getByLabel('Contraseña').fill(user.password);
   await page.getByLabel('Contraseña').press('Enter');
-  await expect(canvas(page)).toBeVisible();
+  await expect(canvas(page)).toBeVisible({ timeout: GAME_LOAD_TIMEOUT_MS });
 });
 
 test('a taken username and bad fields get messages under their fields', async ({
@@ -114,5 +114,5 @@ test('Empezar una torre nueva asks twice and starts again on the first day with 
   await expect(page.getByText('¿Estás seguro?')).toHaveCount(0);
   await expect(bar).toContainText('Lunes 1 de enero, año 1');
   await expect(bar).toContainText('$2.000.000');
-  await expect(canvas(page)).toBeVisible();
+  await expect(canvas(page)).toBeVisible({ timeout: GAME_LOAD_TIMEOUT_MS });
 });

@@ -1,7 +1,8 @@
 import { expect, type Page } from '@playwright/test';
 import { registerUser, type TestUser } from './users';
 
-const GAME_LOAD_TIMEOUT_MS = 45_000;
+/** How long the game may take to show its canvas, compile time of a fresh dev server included. */
+export const GAME_LOAD_TIMEOUT_MS = 45_000;
 
 /** Registers a fresh player, which leaves its session cookie in the page's browser context. */
 export async function openGame(page: Page): Promise<TestUser> {
