@@ -13,11 +13,11 @@ import {
 // Hotel room props, shared by the single room, the double room and the suite, placed by the
 // client on top of the bare room (units/<room>/empty_day). Looks: `idle` is the clean room
 // waiting for a guest, lights off; `busy` is a guest awake inside (lamps lit, TV on); `sleep`
-// has the guest in bed; `dirty` is the room after checkout (bed unmade, tray left out).
+// is the bed slept in (the guest walks in as a person, never as part of a prop); `dirty` is the room after checkout (bed unmade, tray left out).
 // Overlays `hotel/overlay/<room>-grime` and `-roaches` go over a dirty and an infested room.
 // The sizes here must match the specs in apps/web/src/render/interior/hotel.ts.
 
-const legend = { ...officeLegend, n: 'night', p: 'skin-mid' };
+const legend = { ...officeLegend, n: 'night' };
 const FLOOR_ROW = metrics.floorHeight - metrics.slabHeight - 1;
 
 function map(rows) {
@@ -45,7 +45,7 @@ function lampShade(canvas, left, top, lit) {
 
 // A bed seen from the side with the headboard on the right, `width` wide and 8 tall. A made
 // bed has a white fold over a blue spread; a used one has the spread pulled back.
-function drawBed(width, pillows, { made, sleeper }) {
+function drawBed(width, pillows, { made, inUse }) {
   const canvas = blank(width, 8);
   const right = width - 1;
   canvas.fillRect(right - 1, 0, 2, 6, 'wood');
@@ -69,20 +69,21 @@ function drawBed(width, pillows, { made, sleeper }) {
     }
     canvas.fillRect(0, 4, 3, 2, 'cloth-blue');
   }
-  if (sleeper) {
-    canvas.fillRect(right - 6, 0, 4, 3, 'skin-mid');
-    canvas.hline(right - 6, 0, 4, 'wood-dark');
-    canvas.hline(2, 2, width - 10, 'cloth-blue');
-    canvas.hline(3, 1, width - 12, 'cloth-blue');
+  if (inUse) {
+    // Slept in: the spread pulled up to dented pillows. People are never drawn into props.
+    canvas.hline(0, 3, width - 2, 'cloth-blue');
+    for (let pillow = 0; pillow < pillows; pillow++) {
+      canvas.hline(right - 6 - pillow * 5, 2, 4, 'cloud');
+    }
   }
   return canvas;
 }
 
 function bed(width, pillows) {
   return {
-    idle: drawBed(width, pillows, { made: true, sleeper: false }),
-    sleep: drawBed(width, pillows, { made: true, sleeper: true }),
-    dirty: drawBed(width, pillows, { made: false, sleeper: false }),
+    idle: drawBed(width, pillows, { made: true, inUse: false }),
+    sleep: drawBed(width, pillows, { made: true, inUse: true }),
+    dirty: drawBed(width, pillows, { made: false, inUse: false }),
   };
 }
 

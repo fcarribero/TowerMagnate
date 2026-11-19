@@ -13,10 +13,10 @@ import {
 
 // Condo props that the client places on top of the bare condo room (units/condo/empty_day),
 // like the office props. Looks: `idle` always; `busy` when the condo is occupied and the prop
-// changes (lamps lit, TV on); `sleep` when someone is asleep in it (the bed).
+// changes (lamps lit, TV on); `sleep` when someone is asleep in it (the bed, slept in but empty).
 // The sizes here must match the condo catalog in apps/web/src/render/interior/condo.ts.
 
-const legend = { ...officeLegend, n: 'night', p: 'skin-mid', B: 'sky' };
+const legend = { ...officeLegend, n: 'night', B: 'sky' };
 
 function map(rows) {
   const width = Math.max(...rows.map((row) => row.length));
@@ -227,11 +227,9 @@ function bed() {
   const used = map(bedRows);
   used.drawMap(1, 3, ['rrrrrrrrrrrrrrr', 'rrrrrrrrrrrrrrrr'], legend);
   used.drawMap(18, 2, ['wwww'], legend);
-  // Someone asleep: a hump of blanket over the body and a head on the pillow.
+  // Slept in: the blanket pulled up to the pillow. People are never drawn into props.
   const asleep = used.clone();
-  asleep.drawMap(1, 0, ['....rrrrrrrr....', '..rrrrrrrrrrrr..', '.rrrrrrrrrrrrrrr'], legend);
-  asleep.drawMap(18, 0, ['dddd', 'pppp'], legend);
-  asleep.set(17, 2, 'cloth-red');
+  asleep.drawMap(1, 2, ['rrrrrrrrrrrrrrrrr'], legend);
   return { idle: made, busy: used, sleep: asleep };
 }
 

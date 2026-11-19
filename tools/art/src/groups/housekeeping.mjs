@@ -3,16 +3,13 @@ import { calendar, clock, corkboard, legend as officeLegend, propSprites } from 
 
 // Housekeeping props, placed by the client on top of the bare room
 // (units/housekeeping/empty_day). Looks: `idle` with nobody on shift, `busy` with the crew in
-// (machines running). The maids are props too, hidden while the room is closed.
+// (machines running). The crew walks in as people, never as props.
 // The sizes here must match apps/web/src/render/interior/housekeeping.ts.
 
 const legend = {
   ...officeLegend,
   n: 'night',
   y: 'lamp',
-  1: 'skin-light',
-  2: 'skin-mid',
-  3: 'skin-dark',
 };
 
 function map(rows) {
@@ -178,27 +175,6 @@ function mopBucket() {
   );
 }
 
-// A maid in the cloud dress and cloth-blue apron of the style guide.
-function maid(skin) {
-  return idle(
-    map([
-      '.ccc.',
-      `.${skin}${skin}${skin}.`,
-      `.${skin}${skin}${skin}.`,
-      '.CCC.',
-      'CCCCC',
-      'CbbbC',
-      `${skin}bbb${skin}`,
-      '.bbb.',
-      '.bbb.',
-      '.CCC.',
-      '.CCC.',
-      '.k.k.',
-      '.k.k.',
-    ]),
-  );
-}
-
 function timeClock() {
   return idle(map(['ggggg', 'gwwwg', 'gwkwg', 'ggggg', '.vvv.']));
 }
@@ -219,9 +195,6 @@ export function housekeepingProps() {
     'ironing-board': ironingBoard(),
     'folding-table': foldingTable(),
     'mop-bucket': mopBucket(),
-    'maid-light': maid('1'),
-    'maid-mid': maid('2'),
-    'maid-dark': maid('3'),
     'time-clock': timeClock(),
     'detergent-shelf': detergentShelf(),
     corkboard: idle(corkboard()),

@@ -3,13 +3,12 @@ import type { InteriorKind, InteriorSpec } from './types';
 /**
  * Housekeeping: a 15 tile laundry with two windows. Props are drawn by
  * tools/art/src/groups/housekeeping.mjs. Each unit stores its own seed, like offices.
- * The maids are props shown only while the crew is in.
+ * The crew walks in as people; no prop draws a person.
  */
 
 export type HousekeepingState = 'closed' | 'occupied';
 
 const BUSY = ['busy'] as const;
-const CREW_OUT = ['closed'] as const;
 
 const CATALOG: readonly InteriorKind[] = [
   // Layer 1: the middle of the room.
@@ -65,42 +64,6 @@ const CATALOG: readonly InteriorKind[] = [
     height: 9,
     weight: 2,
     max: 1,
-    flip: true,
-  },
-  {
-    kind: 'maid-light',
-    layer: 1,
-    mount: 'floor',
-    role: 'decor',
-    width: 5,
-    height: 13,
-    weight: 1,
-    max: 1,
-    hiddenIn: CREW_OUT,
-    flip: true,
-  },
-  {
-    kind: 'maid-mid',
-    layer: 1,
-    mount: 'floor',
-    role: 'decor',
-    width: 5,
-    height: 13,
-    weight: 1,
-    max: 1,
-    hiddenIn: CREW_OUT,
-    flip: true,
-  },
-  {
-    kind: 'maid-dark',
-    layer: 1,
-    mount: 'floor',
-    role: 'decor',
-    width: 5,
-    height: 13,
-    weight: 1,
-    max: 1,
-    hiddenIn: CREW_OUT,
     flip: true,
   },
 
@@ -206,7 +169,6 @@ const CATALOG: readonly InteriorKind[] = [
 const MACHINES = ['washer', 'dryer'];
 const STORAGE = ['linen-shelf', 'sink', 'supply-cabinet'];
 const FLOOR_WORK = ['laundry-basket', 'ironing-board', 'folding-table', 'mop-bucket'];
-const MAIDS = ['maid-light', 'maid-mid', 'maid-dark'];
 const WALL_EXTRAS = ['detergent-shelf', 'corkboard', 'calendar', 'clock'];
 
 export const HOUSEKEEPING_INTERIOR: InteriorSpec<HousekeepingState> = {
@@ -230,7 +192,6 @@ export const HOUSEKEEPING_INTERIOR: InteriorSpec<HousekeepingState> = {
         { kinds: STORAGE, count: [2, 4] },
         { kinds: ['cart'], count: [1, 2] },
         { kinds: FLOOR_WORK, count: [1, 3] },
-        { kinds: MAIDS, count: [2, 3] },
         { kinds: ['time-clock'], count: [1, 1] },
         { kinds: WALL_EXTRAS, count: [0, 3] },
       ],
@@ -247,9 +208,6 @@ export const HOUSEKEEPING_INTERIOR: InteriorSpec<HousekeepingState> = {
         { kind: 'sink', x: 93 },
         { kind: 'cart', x: 52 },
         { kind: 'cart', x: 108 },
-        { kind: 'maid-light', x: 13 },
-        { kind: 'maid-mid', x: 86 },
-        { kind: 'maid-dark', x: 100 },
       ],
       rolls: [],
     },
