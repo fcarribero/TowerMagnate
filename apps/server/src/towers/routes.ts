@@ -7,17 +7,27 @@ import {
   type PlayResponse,
   type TowerResponse,
 } from '@tower-magnate/shared';
-import type { FastifyPluginAsync, FastifyReply } from 'fastify';
+import { promisify } from 'node:util';
+import { gzip } from 'node:zlib';
+import type { FastifyPluginAsync, FastifyReply, FastifyRequest } from 'fastify';
 import type pg from 'pg';
 import { sessionUserOf } from '../auth/session-user';
-import { InvalidSaveError, MAX_SAVE_BYTES, savePlayedState, startPlay } from './play';
+import {
+  InvalidSaveError,
+  MAX_SAVE_BYTES,
+  savePlayedState,
+  startPlay,
+  StateTooLargeError,
+} from './play';
 import { createTowerFor, findTowerSummary, resetTowerOf, TowerExistsError } from './repository';
+
+const gzipAsync = promisify(gzip);
 
 const MESSAGES = {
   notLoggedIn: 'No has iniciado sesión.',
   towerExists: 'Ya tienes una torre.',
   noTower: 'Todavía no tienes una torre.',
-  staleToken: 'Esta torre se abrió en otra pestaña. Recarga para seguir jugando.',
+  staleToken: 'Esta torre se abrió en otra pestaña. Recargá para seguir jugando.',
   invalidState: 'El estado guardado no es válido.',
   stateTooLarge: 'El estado guardado es demasiado grande.',
   resetNotConfirmed: 'Confirma que quieres demoler la torre y empezar de nuevo.',
@@ -67,7 +77,16 @@ export const towerRoutes: FastifyPluginAsync<TowerRoutesOptions> = async (app, o
       return sendError(reply, 404, MESSAGES.noTower);
     }
     const body: PlayResponse = play;
-    return reply.send(body);
+    // The state can be a few MB of JSON; gzip makes it several times smaller.
+    if (acceptsGzip(request)) {
+      const zipped = await gzipAsync(JSON.stringify(body));
+      return reply
+        .header('content-encoding', 'gzip')
+        .header('vary', 'accept-encoding')
+        .type('application/json; charset=utf-8')
+        .send(zipped);
+    }
+    return reply.header('vary', 'accept-encoding').send(body);
   });
 
   // The save body is raw gzip, so it needs its own parser and a smaller body limit.
@@ -102,6 +121,9 @@ export const towerRoutes: FastifyPluginAsync<TowerRoutesOptions> = async (app, o
         }
         return reply.code(204).send();
       } catch (error) {
+        if (error instanceof StateTooLargeError) {
+          return sendError(reply, 413, MESSAGES.stateTooLarge);
+        }
         if (error instanceof InvalidSaveError) {
           return sendError(reply, 400, MESSAGES.invalidState);
         }
@@ -126,6 +148,19 @@ export const towerRoutes: FastifyPluginAsync<TowerRoutesOptions> = async (app, o
     return reply.send(body);
   });
 };
+
+/** True when Accept-Encoding lists gzip (or *) without q=0. */
+function acceptsGzip(request: FastifyRequest): boolean {
+  const header = request.headers['accept-encoding'];
+  if (typeof header !== 'string') {
+    return false;
+  }
+  return header.split(',').some((part) => {
+    const [coding = '', ...params] = part.trim().toLowerCase().split(';');
+    const refused = params.some((param) => /^\s*q\s*=\s*0(\.0*)?\s*$/.test(param));
+    return (coding.trim() === 'gzip' || coding.trim() === '*') && !refused;
+  });
+}
 
 function isBodyTooLarge(error: unknown): boolean {
   return (

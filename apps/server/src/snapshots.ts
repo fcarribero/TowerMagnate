@@ -3,7 +3,10 @@ import { deserializeState, serializeState } from '@tower-magnate/engine';
 import type { TowerState } from '@tower-magnate/shared';
 import type pg from 'pg';
 
-/** How many snapshots each tower keeps. Older ones are deleted on save. */
+/**
+ * How many snapshots each tower keeps. The ones saved longest ago are deleted on save. Steps are
+ * never compared: a debug scenario can save a smaller step, and that save is the latest.
+ */
 export const SNAPSHOTS_KEPT = 3;
 
 /** Tower ids are postgres bigints, which `pg` hands over as strings. */
@@ -19,38 +22,41 @@ export interface TowerSnapshot {
 export interface SnapshotRepository {
   /** Stores the state under its step, replacing a snapshot already saved at that step. */
   save(towerId: TowerId, state: TowerState): Promise<void>;
-  /** The snapshot with the highest step, or null when the tower has never been saved. */
+  /** The snapshot saved last, or null when the tower has never been saved. */
   loadLatest(towerId: TowerId): Promise<TowerSnapshot | null>;
 }
 
+// clock_timestamp(), not now(): a save that waited on the tower's row lock still counts as the latest.
 const UPSERT_SNAPSHOT = `
-  insert into tower_snapshots (tower_id, step, state)
-  values ($1, $2, $3::json)
-  on conflict (tower_id, step) do update set state = excluded.state, saved_at = now()
+  insert into tower_snapshots (tower_id, step, state, saved_at)
+  values ($1, $2, $3::json, clock_timestamp())
+  on conflict (tower_id, step)
+  do update set state = excluded.state, state_gz = null, saved_at = excluded.saved_at
 `;
+
+/** Newest first. Two saves in the same instant fall back to the higher step. */
+export const LATEST_FIRST = 'saved_at desc, step desc';
 
 const PRUNE_OLD_SNAPSHOTS = `
   delete from tower_snapshots
   where tower_id = $1
-    and step < (
-      select min(step) from (
-        select step from tower_snapshots where tower_id = $1 order by step desc limit $2
-      ) as kept
+    and step not in (
+      select step from tower_snapshots where tower_id = $1 order by ${LATEST_FIRST} limit $2
     )
 `;
 
 const UPSERT_COMPRESSED_SNAPSHOT = `
-  insert into tower_snapshots (tower_id, step, state, state_gz)
-  values ($1, $2, null, $3)
+  insert into tower_snapshots (tower_id, step, state, state_gz, saved_at)
+  values ($1, $2, null, $3, clock_timestamp())
   on conflict (tower_id, step)
-  do update set state = null, state_gz = excluded.state_gz, saved_at = now()
+  do update set state = null, state_gz = excluded.state_gz, saved_at = excluded.saved_at
 `;
 
 const SELECT_LATEST_SNAPSHOT = `
   select step, state::text as state, state_gz, saved_at
   from tower_snapshots
   where tower_id = $1
-  order by step desc
+  order by ${LATEST_FIRST}
   limit 1
 `;
 

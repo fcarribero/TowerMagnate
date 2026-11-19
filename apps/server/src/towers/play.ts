@@ -1,5 +1,6 @@
 import { randomBytes } from 'node:crypto';
-import { gunzipSync } from 'node:zlib';
+import { promisify } from 'node:util';
+import { gunzip } from 'node:zlib';
 import { createTower, deserializeState } from '@tower-magnate/engine';
 import type { PlayResponse, TowerState } from '@tower-magnate/shared';
 import type pg from 'pg';
@@ -10,11 +11,21 @@ export const MAX_STATE_BYTES = 32 * 1024 * 1024;
 
 export type SaveOutcome = 'saved' | 'stale' | 'noTower';
 
+const gunzipAsync = promisify(gunzip);
+
 /** The uploaded state is not valid gzip, is too large, or is not a tower state. */
 export class InvalidSaveError extends Error {
   constructor(message: string) {
     super(message);
     this.name = 'InvalidSaveError';
+  }
+}
+
+/** The uploaded state unzips to more than MAX_STATE_BYTES. */
+export class StateTooLargeError extends InvalidSaveError {
+  constructor() {
+    super(`The saved state is larger than ${MAX_STATE_BYTES} bytes once unzipped`);
+    this.name = 'StateTooLargeError';
   }
 }
 
@@ -36,14 +47,28 @@ export async function startPlay(pool: pg.Pool, userId: number): Promise<PlayResp
   return { token, state: snapshot?.state ?? createTower(Number(tower.seed)) };
 }
 
-/** Stores the gzipped state when the token is the tower's current one. */
+/**
+ * Stores the gzipped state when the token is the tower's current one. The token is checked
+ * before the body is unzipped, so a stale tab costs one query, and again under the row lock.
+ */
 export async function savePlayedState(
   pool: pg.Pool,
   userId: number,
   token: string,
   gzipped: Buffer,
 ): Promise<SaveOutcome> {
-  const state = parseSave(gzipped);
+  const current = await pool.query<{ play_token: string | null }>(
+    'select play_token from towers where user_id = $1',
+    [userId],
+  );
+  const known = current.rows[0];
+  if (!known) {
+    return 'noTower';
+  }
+  if (known.play_token === null || known.play_token !== token) {
+    return 'stale';
+  }
+  const state = await parseSave(gzipped);
   const client = await pool.connect();
   try {
     await client.query('begin');
@@ -71,11 +96,26 @@ export async function savePlayedState(
   }
 }
 
-function parseSave(gzipped: Buffer): TowerState {
+async function parseSave(gzipped: Buffer): Promise<TowerState> {
+  let text: string;
   try {
-    const text = gunzipSync(gzipped, { maxOutputLength: MAX_STATE_BYTES }).toString('utf8');
+    text = (await gunzipAsync(gzipped, { maxOutputLength: MAX_STATE_BYTES })).toString('utf8');
+  } catch (error) {
+    if (isOutputTooLarge(error)) {
+      throw new StateTooLargeError();
+    }
+    throw new InvalidSaveError(error instanceof Error ? error.message : 'Invalid gzip');
+  }
+  try {
     return deserializeState(text);
   } catch (error) {
     throw new InvalidSaveError(error instanceof Error ? error.message : 'Invalid saved state');
   }
+}
+
+/** zlib's maxOutputLength failure: a RangeError with code ERR_BUFFER_TOO_LARGE. */
+function isOutputTooLarge(error: unknown): boolean {
+  return (
+    error instanceof RangeError && (error as { code?: unknown }).code === 'ERR_BUFFER_TOO_LARGE'
+  );
 }

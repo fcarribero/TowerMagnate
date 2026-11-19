@@ -2,7 +2,7 @@ import { randomInt } from 'node:crypto';
 import { createTower, dateOfStep, deserializeState, serializeState } from '@tower-magnate/engine';
 import type { TowerState, TowerSummary } from '@tower-magnate/shared';
 import pg from 'pg';
-import { snapshotText } from '../snapshots';
+import { LATEST_FIRST, snapshotText } from '../snapshots';
 
 const SEED_LIMIT = 2 ** 32;
 const UNIQUE_VIOLATION = '23505';
@@ -32,7 +32,7 @@ const SELECT_TOWER_WITH_LATEST_STATE = `
     select state::text as state, state_gz
     from tower_snapshots
     where tower_snapshots.tower_id = towers.id
-    order by step desc
+    order by ${LATEST_FIRST}
     limit 1
   ) as latest on true
   where towers.user_id = $1

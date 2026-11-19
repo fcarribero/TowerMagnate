@@ -69,6 +69,17 @@ describe('initial schema', () => {
     expect(await countRows(pool, 'tower_snapshots')).toBe(0);
   });
 
+  it('refuses a snapshot with neither state nor state_gz', async () => {
+    const userId = await insertUser(pool, 'dora');
+    const towerId = await insertTower(pool, userId);
+    await expect(
+      pool.query(
+        `insert into tower_snapshots (tower_id, step, state, state_gz) values ($1, 0, null, null)`,
+        [towerId],
+      ),
+    ).rejects.toThrow(/tower_snapshots_has_state/);
+  });
+
   it('refuses a second user with the same username', async () => {
     await insertUser(pool, 'beto');
     await expect(insertUser(pool, 'beto')).rejects.toThrow(/users_username_key/);

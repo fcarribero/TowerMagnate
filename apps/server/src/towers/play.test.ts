@@ -1,5 +1,5 @@
 import { randomBytes } from 'node:crypto';
-import { gzipSync } from 'node:zlib';
+import { gunzipSync, gzipSync } from 'node:zlib';
 import { serializeState } from '@tower-magnate/engine';
 import {
   PLAY_TOKEN_HEADER,
@@ -18,7 +18,13 @@ import { createSnapshotRepository } from '../snapshots';
 import { startTestDatabase, type TestDatabase } from '../testing/database';
 import { createPlayer } from '../testing/tower-rows';
 import { towerAtStep } from '../testing/towers';
-import { InvalidSaveError, MAX_SAVE_BYTES, savePlayedState, startPlay } from './play';
+import {
+  InvalidSaveError,
+  MAX_SAVE_BYTES,
+  savePlayedState,
+  startPlay,
+  StateTooLargeError,
+} from './play';
 import { resetTowerOf } from './repository';
 
 function gz(state: TowerState): Buffer {
@@ -86,6 +92,32 @@ describe('play and save', () => {
     const outcome = await savePlayedState(pool, userId, play?.token ?? '', gz(towerAtStep(500)));
     expect(outcome).toBe('saved');
     expect(stepOf(await startPlay(pool, userId))).toBe(500);
+  });
+
+  it('a save at a smaller step becomes the latest and survives pruning', async () => {
+    const player = await createPlayer(pool);
+    const userId = Number(player.userId);
+    const token = (await startPlay(pool, userId))?.token ?? '';
+    for (const step of [1000, 2000, 3000]) {
+      expect(await savePlayedState(pool, userId, token, gz(towerAtStep(step)))).toBe('saved');
+    }
+    expect(await savePlayedState(pool, userId, token, gz(towerAtStep(50)))).toBe('saved');
+
+    expect(stepOf(await startPlay(pool, userId))).toBe(50);
+    const kept = await pool.query<{ step: string }>(
+      'select step from tower_snapshots where tower_id = $1 order by step',
+      [player.towerId],
+    );
+    expect(kept.rows.map((row) => Number(row.step))).toEqual([50, 2000, 3000]);
+  });
+
+  it('a stale token answers stale before the body is read', async () => {
+    const player = await createPlayer(pool);
+    const userId = Number(player.userId);
+    const first = await startPlay(pool, userId);
+    await startPlay(pool, userId);
+    const outcome = await savePlayedState(pool, userId, first?.token ?? '', Buffer.from('nope'));
+    expect(outcome).toBe('stale');
   });
 
   it('a save with an old token answers stale and writes nothing', async () => {
@@ -176,7 +208,7 @@ describe('play and save', () => {
     );
     const huge = gzipSync(Buffer.alloc(33 * 1024 * 1024, 'a'));
     await expect(savePlayedState(pool, userId, token, huge)).rejects.toBeInstanceOf(
-      InvalidSaveError,
+      StateTooLargeError,
     );
     const unparsable = gzipSync('{"not":"a tower"}');
     await expect(savePlayedState(pool, userId, token, unparsable)).rejects.toBeInstanceOf(
@@ -238,7 +270,7 @@ describe('play and save', () => {
       const stale = await put(gz(towerAtStep(600)), firstBody.token, player.cookie);
       expect(stale.statusCode).toBe(409);
       expect(stale.json()).toEqual({
-        error: 'Esta torre se abrió en otra pestaña. Recarga para seguir jugando.',
+        error: 'Esta torre se abrió en otra pestaña. Recargá para seguir jugando.',
       });
     });
 
@@ -248,6 +280,37 @@ describe('play and save', () => {
       const response = await put(Buffer.from('nope'), body.token, player.cookie);
       expect(response.statusCode).toBe(400);
       expect(response.json()).toEqual({ error: 'El estado guardado no es válido.' });
+    });
+
+    it('answers 413 when the state is over 32 MB once unzipped', async () => {
+      const player = await createPlayer(pool);
+      const body = (await play(player.cookie)).json<PlayResponse>();
+      const huge = gzipSync(Buffer.alloc(33 * 1024 * 1024, 'a'));
+      const response = await put(huge, body.token, player.cookie);
+      expect(response.statusCode).toBe(413);
+      expect(response.json()).toEqual({ error: 'El estado guardado es demasiado grande.' });
+    });
+
+    it('gzips the play response when the browser accepts gzip', async () => {
+      const player = await createPlayer(pool);
+      const zipped = await app.inject({
+        method: 'POST',
+        url: TOWER_PLAY_PATH,
+        headers: { cookie: player.cookie, 'accept-encoding': 'gzip, deflate, br' },
+      });
+      expect(zipped.statusCode).toBe(200);
+      expect(zipped.headers['content-encoding']).toBe('gzip');
+      expect(zipped.headers['content-type']).toMatch(/^application\/json/);
+      const body = JSON.parse(gunzipSync(zipped.rawPayload).toString('utf8')) as PlayResponse;
+      expect(stepOf(body)).toBe(0);
+      expect(body.token).toBeTruthy();
+    });
+
+    it('sends plain JSON when the browser does not accept gzip', async () => {
+      const player = await createPlayer(pool);
+      const plain = await play(player.cookie);
+      expect(plain.headers['content-encoding']).toBeUndefined();
+      expect(stepOf(plain.json<PlayResponse>())).toBe(0);
     });
 
     it('answers 413 over 4 MB', async () => {

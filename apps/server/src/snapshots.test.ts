@@ -45,7 +45,7 @@ describe('snapshot repository', () => {
     await expect(repository.loadLatest(towerId)).resolves.toBeNull();
   });
 
-  it('loads the state saved at the highest step', async () => {
+  it('loads the state saved last, whatever its step', async () => {
     await repository.save(towerId, towerAtStep(10, 1));
     await repository.save(towerId, towerAtStep(30, 3));
     await repository.save(towerId, towerAtStep(20, 2));
@@ -53,8 +53,8 @@ describe('snapshot repository', () => {
     const latest = await repository.loadLatest(towerId);
 
     expect(latest?.towerId).toBe(towerId);
-    expect(latest?.step).toBe(30);
-    expect(latest?.state).toEqual(towerAtStep(30, 3));
+    expect(latest?.step).toBe(20);
+    expect(latest?.state).toEqual(towerAtStep(20, 2));
     expect(latest?.savedAt).toBeInstanceOf(Date);
   });
 
@@ -66,6 +66,16 @@ describe('snapshot repository', () => {
     expect(await storedSteps(towerId)).toEqual([3, 4, 5]);
   });
 
+  it('makes a step saved again the latest one', async () => {
+    for (const step of [10, 20, 30]) {
+      await repository.save(towerId, towerAtStep(step));
+    }
+    await repository.save(towerId, towerAtStep(10, 2));
+
+    expect((await repository.loadLatest(towerId))?.state).toEqual(towerAtStep(10, 2));
+    expect(await storedSteps(towerId)).toEqual([10, 20, 30]);
+  });
+
   it('replaces a snapshot saved again at the same step', async () => {
     await repository.save(towerId, towerAtStep(8, 1));
     await repository.save(towerId, towerAtStep(8, 2));
@@ -74,13 +84,14 @@ describe('snapshot repository', () => {
     expect((await repository.loadLatest(towerId))?.state).toEqual(towerAtStep(8, 2));
   });
 
-  it('never prunes newer snapshots when an older step is saved', async () => {
+  it('keeps a smaller step saved last and prunes the oldest save', async () => {
     for (const step of [10, 20, 30]) {
       await repository.save(towerId, towerAtStep(step));
     }
     await repository.save(towerId, towerAtStep(5));
 
-    expect(await storedSteps(towerId)).toEqual([10, 20, 30]);
+    expect(await storedSteps(towerId)).toEqual([5, 20, 30]);
+    expect((await repository.loadLatest(towerId))?.step).toBe(5);
   });
 
   it('leaves the snapshots of other towers alone', async () => {
