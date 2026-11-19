@@ -220,13 +220,30 @@ describe('bindDemolishInput', () => {
       expect(t.sent).toEqual([{ type: 'setListed', unitId: 'b', listed: false }]);
     });
 
-    it('passes over condos with owners', () => {
-      const owned = { ...right, type: 'condo', occupied: true } as const;
+    it('offers to buy every owned condo in the sweep for the summed appraisals', () => {
+      const ownedA = { ...left, type: 'condo', occupied: true, appraisal: 70_000 } as const;
+      const ownedB = { ...right, type: 'condo', occupied: true, appraisal: 50_000 } as const;
+      const t = setup([ownedA, ownedB, above]);
+      t.input('down', { x: 1, level: 2 });
+      t.hover({ x: 21, level: 2 });
+      t.input('up', { x: 21, level: 2 });
+      expect(t.asked[0]).toMatchObject({ kind: 'buyCondo', price: 120_000, units: 2 });
+      t.answers[0]?.();
+      expect(t.sent).toEqual([
+        { type: 'buyBackCondo', unitId: 'a', price: 70_000 },
+        { type: 'buyBackCondo', unitId: 'b', price: 50_000 },
+      ]);
+    });
+
+    it('buys only the owned condos when the sweep mixes them with other units', () => {
+      const owned = { ...right, type: 'condo', occupied: true, appraisal: 50_000 } as const;
       const t = setup([left, owned]);
       t.input('down', { x: 1, level: 2 });
       t.hover({ x: 21, level: 2 });
       t.input('up', { x: 21, level: 2 });
-      expect(t.sent).toEqual([{ type: 'demolish', target: { kind: 'unit', id: 'a' } }]);
+      expect(t.asked[0]).toMatchObject({ kind: 'buyCondo', price: 50_000 });
+      t.answers[0]?.();
+      expect(t.sent).toEqual([{ type: 'buyBackCondo', unitId: 'b', price: 50_000 }]);
     });
 
     it('offers to buy a condo with owners on a click, and buys it after a yes', () => {

@@ -81,6 +81,12 @@ describe('demolish dialog texts', () => {
     expect(screen.getByRole('button', { name: 'Comprar por $80.000' })).toBeTruthy();
   });
 
+  it('sums the appraisals of several condos to buy', () => {
+    renderConfirm({ kind: 'buyCondo', unitType: 'condo', price: 150_000, units: 3 });
+    expect(screen.getByText('Los 3 departamentos deben ser adquiridos.')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Comprar por $150.000' })).toBeTruthy();
+  });
+
   it('names the price of an expensive unit', () => {
     renderConfirm(expensive);
     expect(screen.getByText(/Costó \$500\.000/)).toBeTruthy();

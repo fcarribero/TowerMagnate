@@ -12,6 +12,8 @@ import {
   runCommands,
   unlistCommands,
   runFootprint,
+  buyBackPlan,
+  isOwnedCondo,
   singleUnitConfirmation,
   unitAt,
   unitFootprint,
@@ -170,7 +172,11 @@ export function bindDemolishInput(options: DemolishInputOptions): () => void {
     void sendPaced(commands).then((outcomes) => onOutcome(combineOutcomes(outcomes), first, at));
   };
 
-  const askFor = (confirmation: Confirmation, commands: readonly Command[], at: ScreenPoint): void => {
+  const askFor = (
+    confirmation: Confirmation,
+    commands: readonly Command[],
+    at: ScreenPoint,
+  ): void => {
     const unlist = unlistCommands(confirmation);
     confirm(
       confirmation,
@@ -194,6 +200,8 @@ export function bindDemolishInput(options: DemolishInputOptions): () => void {
       drag = { kind: pick.run, press: cell, currentX: cell.x };
     } else if (pick.command.type === 'demolish' && pick.command.target.kind === 'unit') {
       sweep = { ids: [pick.command.target.id], last: cell };
+    } else if (pick.command.type === 'buyBackCondo') {
+      sweep = { ids: [pick.command.unitId], last: cell };
     } else {
       pending = pick;
     }
@@ -218,6 +226,12 @@ export function bindDemolishInput(options: DemolishInputOptions): () => void {
   const releaseSweep = (at: ScreenPoint): void => {
     const units = sweptUnits();
     cancelDrag();
+    // Condos with owners block the demolition: the sweep offers to buy them all instead.
+    const buyBack = buyBackPlan(units.filter(isOwnedCondo));
+    if (buyBack !== null) {
+      askFor(buyBack.confirmation, buyBack.commands, at);
+      return;
+    }
     const commands: Command[] = units.map((unit) => ({
       type: 'demolish',
       target: { kind: 'unit', id: unit.id },

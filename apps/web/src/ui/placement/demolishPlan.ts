@@ -233,13 +233,10 @@ function pickCar(world: DemolishWorld, cell: Cell): DemolishPick | null {
   return null;
 }
 
-/**
- * The unit a sweep can take at the cell, ignoring stairs, escalators, shafts and cars, and condos
- * with owners, which cannot be demolished.
- */
+/** The unit at the cell for a sweep, ignoring stairs, escalators, shafts and cars. */
 export function unitAt(world: DemolishWorld, cell: Cell): UnitView | null {
   for (const unit of world.units) {
-    if (!isOwnedCondo(unit) && coversCell(footprintOfThing(unit), cell)) {
+    if (coversCell(footprintOfThing(unit), cell)) {
       return unit;
     }
   }
@@ -256,6 +253,36 @@ export function unitFootprint(unit: UnitView): Footprint {
  */
 export function singleUnitConfirmation(unit: UnitView): Confirmation | null {
   return unit.rent !== undefined ? rentedConfirmation(unit) : null;
+}
+
+/** The price a buyback of this condo pays: today's appraisal. */
+function buyBackPrice(unit: UnitView): number {
+  return unit.appraisal ?? unit.price;
+}
+
+/**
+ * Buying back condos with owners, which must happen before they can be demolished: one command
+ * per condo with the price shown, and one warning with the summed prices. Null with no condos.
+ */
+export function buyBackPlan(
+  condos: readonly UnitView[],
+): { commands: Command[]; confirmation: Confirmation } | null {
+  if (condos.length === 0) {
+    return null;
+  }
+  return {
+    commands: condos.map((unit) => ({
+      type: 'buyBackCondo',
+      unitId: unit.id,
+      price: buyBackPrice(unit),
+    })),
+    confirmation: {
+      kind: 'buyCondo',
+      unitType: 'condo',
+      price: condos.reduce((sum, unit) => sum + buyBackPrice(unit), 0),
+      ...(condos.length > 1 ? { units: condos.length } : {}),
+    },
+  };
 }
 
 /** A condo with owners: the engine refuses to demolish it until it is bought back. */
@@ -289,7 +316,7 @@ function pickUnit(world: DemolishWorld, cell: Cell): DemolishPick | null {
       if (isOwnedCondo(unit)) {
         // The command carries the price shown in the warning; the engine refuses it if the
         // appraisal has changed by the time the player presses Comprar.
-        const price = unit.appraisal ?? unit.price;
+        const price = buyBackPrice(unit);
         return {
           command: { type: 'buyBackCondo', unitId: unit.id, price },
           footprint,

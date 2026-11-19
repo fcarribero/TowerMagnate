@@ -595,6 +595,8 @@ export const SPANISH_STRINGS = {
     'Tenés $2.000.000 para empezar. Construí el lobby en el piso 1 y después los pisos, las oficinas y los ascensores.',
   'dialog.buyBackCondo.title': 'No es posible demoler',
   'dialog.buyBackCondo.body': 'El departamento debe ser adquirido.',
+  'dialog.buyBackCondos.title': 'No es posible demoler',
+  'dialog.buyBackCondos.body': 'Los {count} departamentos deben ser adquiridos.',
   'dialog.buyBackCondo.confirm': 'Comprar por {price}',
   'dialog.demolishExpensive.title': 'Demoler {typeName}',
   'dialog.demolishExpensive.body': '¿Seguro que querés demoler {typeName}? Costó {price}.',

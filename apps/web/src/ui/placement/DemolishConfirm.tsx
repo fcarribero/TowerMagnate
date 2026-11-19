@@ -34,9 +34,11 @@ export function DemolishConfirm({
   const id =
     confirmation.units === undefined
       ? DIALOG_IDS[kind]
-      : kind === 'rented'
-        ? 'demolishRentedUnits'
-        : 'demolishUnits';
+      : kind === 'buyCondo'
+        ? 'buyBackCondos'
+        : kind === 'rented'
+          ? 'demolishRentedUnits'
+          : 'demolishUnits';
   const params = {
     indemnity: formatMoney(confirmation.indemnity ?? 0),
     typeName: t(`unit.${unitType}` as StringKey).toLowerCase(),
