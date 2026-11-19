@@ -9,6 +9,7 @@ const GROUP_NAMES = [
   'people',
   'structure',
   'lobby',
+  'office',
   'rooftop',
   'sky',
   'ui',

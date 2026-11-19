@@ -1,0 +1,108 @@
+:root {
+  --bg: #1c1b22;
+  --panel: #26252e;
+  --text: #e8e6e0;
+  --muted: #9a98a3;
+  color-scheme: dark;
+}
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font:
+    13px/1.4 system-ui,
+    sans-serif;
+}
+#lab {
+  display: flex;
+  min-height: 100vh;
+}
+#controls {
+  width: 240px;
+  flex: none;
+  padding: 16px;
+  background: var(--panel);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+#controls h1 {
+  font-size: 16px;
+  margin: 0 0 4px;
+}
+#controls label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+#controls label.inline {
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+}
+#controls fieldset {
+  border: 1px solid #3a3944;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+#controls input[type='number'],
+#controls select,
+#controls button {
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid #3a3944;
+  padding: 4px 6px;
+  font: inherit;
+}
+#controls button {
+  cursor: pointer;
+}
+.row {
+  display: flex;
+  gap: 6px;
+}
+.row button:nth-child(2) {
+  flex: 1;
+}
+.legend i {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  margin: 0 4px 0 8px;
+  vertical-align: middle;
+}
+.legend i:first-child {
+  margin-left: 0;
+}
+.hint,
+.legend {
+  color: var(--muted);
+  margin: 0;
+}
+main {
+  padding: 0;
+  overflow: auto;
+}
+#stage {
+  position: relative;
+}
+#stage canvas {
+  display: block;
+  image-rendering: pixelated;
+}
+#labels span {
+  position: absolute;
+  color: var(--muted);
+  font:
+    11px ui-monospace,
+    monospace;
+}
+#readout {
+  margin: 0 16px 16px;
+  font:
+    12px/1.5 ui-monospace,
+    monospace;
+  color: var(--muted);
+}
