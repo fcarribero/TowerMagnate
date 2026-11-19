@@ -39,9 +39,21 @@ describe('planUnit', () => {
       'day',
     );
     expect(closed?.variant).toEqual({ state: 'empty', time: 'day' });
-    expect(closed?.interior).toEqual({ seed: 77, state: 'closed', time: 'night' });
-    expect(working?.interior).toEqual({ seed: 77, state: 'occupied', time: 'day' });
-    expect(planUnit(office, 'day')?.interior).toEqual({ seed: 77, state: 'empty', time: 'day' });
+    expect(closed?.interior).toEqual({ type: 'office', seed: 77, state: 'closed', time: 'night' });
+    expect(working?.interior).toEqual({ type: 'office', seed: 77, state: 'occupied', time: 'day' });
+    expect(planUnit(office, 'day')?.interior).toEqual({
+      type: 'office',
+      seed: 77,
+      state: 'empty',
+      time: 'day',
+    });
+  });
+
+  it('draws a condo with a look from its seed, asleep included', () => {
+    const condo = { ...base, type: 'condo' as const, look: 9, occupied: true };
+    const asleep = planUnit({ ...condo, variant: 'sleeping', inside: true }, 'night');
+    expect(asleep?.variant).toEqual({ state: 'empty', time: 'day' });
+    expect(asleep?.interior).toEqual({ type: 'condo', seed: 9, state: 'sleeping', time: 'night' });
   });
 
   it('keeps the fixed sprites for an office with no look and for a site being built', () => {

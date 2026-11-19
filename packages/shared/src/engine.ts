@@ -113,7 +113,7 @@ export interface Unit {
   upgrades?: Record<string, number>;
   /**
    * Seed the client builds the furniture of the unit from, a 32-bit unsigned integer. Only the
-   * seed is stored; the layout is rebuilt from it. Set on offices; missing on every other unit.
+   * seed is stored; the layout is rebuilt from it. Set on offices and condos; missing on every other unit.
    */
   look?: number;
 }

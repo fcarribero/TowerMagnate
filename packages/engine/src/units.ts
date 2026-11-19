@@ -79,7 +79,7 @@ export function newUnit(id: EntityId, type: UnitType, x: number, level: Level): 
 }
 
 /** Unit types whose furniture the client builds from a seed (`Unit.look`). */
-export const SEEDED_LOOK_TYPES: readonly UnitType[] = ['office'];
+export const SEEDED_LOOK_TYPES: readonly UnitType[] = ['office', 'condo'];
 
 /**
  * The furniture seed of a unit: an FNV-1a hash of where and when it was built, so it does not

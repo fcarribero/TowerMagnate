@@ -5,7 +5,7 @@ import { levelToIndex, levelTop } from './levels';
 import { FLOOR_HEIGHT, SLAB_HEIGHT, TILE_WIDTH } from './metrics';
 import type { TimeOfDay } from './structurePlan';
 import { ALL_VENUES_OPEN, isVenue, type OpenVenues } from './venueHours';
-import type { OfficeState } from './officeView';
+import { interiorSpecOf } from './interior';
 
 /** What the unit layer needs to draw one unit or transport, in world pixels. */
 export interface UnitDrawing {
@@ -46,13 +46,13 @@ export interface UnitDrawing {
 
 /** The seeded furniture of a unit and the look it has now. */
 export interface UnitInterior {
+  /** The unit type, which picks the interior spec. */
+  type: UnitType;
   seed: number;
-  state: OfficeState;
+  /** One of the spec's states, such as `closed` or `sleeping`. */
+  state: string;
   time: TimeOfDay;
 }
-
-/** Unit types whose furniture is built from `UnitView.look`; the rest use their fixed sprites. */
-const SEEDED_INTERIORS: readonly UnitType[] = ['office'];
 /** The sprite under a seeded interior: the bare room, lit. The shade does night and dark rooms. */
 const BARE_ROOM: SpriteVariant = { state: 'empty', time: 'day' };
 
@@ -113,7 +113,8 @@ export function planUnit(
     openVenues,
     hour,
   );
-  const seeded = !building && unit.look !== undefined && SEEDED_INTERIORS.includes(unit.type);
+  // Unit types with an interior spec draw their furniture from `UnitView.look`.
+  const seeded = !building && unit.look !== undefined && interiorSpecOf(unit.type) !== undefined;
   const drawing = footprint(
     unit.id,
     `units/${SPRITE_SUBJECT[unit.type] ?? unit.type}`,
@@ -122,7 +123,7 @@ export function planUnit(
     overlay,
   );
   if (seeded) {
-    drawing.interior = { seed: unit.look as number, state: state as OfficeState, time };
+    drawing.interior = { type: unit.type, seed: unit.look as number, state, time };
   }
   const open =
     !building && state === 'empty' && unit.listed !== false ? AVAILABILITY[unit.type] : undefined;

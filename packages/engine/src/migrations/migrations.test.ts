@@ -622,7 +622,7 @@ describe('migrateState unit evaluation', () => {
     expect(migrateState(JSON.parse(JSON.stringify(tower)))).toEqual(tower);
   });
 
-  it('gives an office saved before version 40 its furniture seed and keeps a seed already there', () => {
+  it('gives offices and condos saved before version 40 their furniture seed and keeps a seed already there', () => {
     const tower = createTower(5);
     tower.units.u3 = newUnit('u3', 'office', 10, 2);
     tower.units.u4 = { ...newUnit('u4', 'office', 20, 2), look: 7 };
@@ -630,7 +630,16 @@ describe('migrateState unit evaluation', () => {
     const migrated = migrateState({ ...JSON.parse(JSON.stringify(tower)), schemaVersion: 39 });
     expect(migrated.units.u3?.look).toBe(lookSeed('u3', 10, 2, 0));
     expect(migrated.units.u4?.look).toBe(7);
-    expect(migrated.units.u5?.look).toBeUndefined();
+    expect(migrated.units.u5?.look).toBe(lookSeed('u5', 30, 2, 0));
+  });
+
+  it('gives a condo saved at version 40 its furniture seed and leaves other units alone', () => {
+    const tower = createTower(5);
+    tower.units.u3 = newUnit('u3', 'condo', 10, 2);
+    tower.units.u4 = newUnit('u4', 'fast-food', 30, 2);
+    const migrated = migrateState({ ...JSON.parse(JSON.stringify(tower)), schemaVersion: 40 });
+    expect(migrated.units.u3?.look).toBe(lookSeed('u3', 10, 2, 0));
+    expect(migrated.units.u4?.look).toBeUndefined();
   });
 
   it('loads a subway station saved above level -9', () => {

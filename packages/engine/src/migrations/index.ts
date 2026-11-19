@@ -47,14 +47,7 @@ import {
 import { defaultSchedule, defaultStops } from '../commands/shafts';
 import { STEPS_PER_DAY } from '../clock';
 import { SCHEMA_VERSION } from '../state';
-import {
-  SEEDED_LOOK_TYPES,
-  isHotelRoomType,
-  isVenueType,
-  lookSeed,
-  newHotelRoom,
-  newVenueDay,
-} from '../units';
+import { isHotelRoomType, isVenueType, lookSeed, newHotelRoom, newVenueDay } from '../units';
 import { isRecord, StateMigrationError } from './errors';
 import {
   readActiveEvents,
@@ -117,19 +110,31 @@ const MIGRATIONS: readonly Migration[] = [
   addVenueGarbage,
   addFreePrices,
   addOfficeLooks,
+  addCondoLooks,
 ];
 
 /** Version 40 gives every office a furniture seed, from where and when it was built. */
 function addOfficeLooks(raw: Record<string, unknown>): Record<string, unknown> {
+  return addLooks(raw, 'office', 40);
+}
+
+/** Version 41 gives every condo a furniture seed, the same way. */
+function addCondoLooks(raw: Record<string, unknown>): Record<string, unknown> {
+  return addLooks(raw, 'condo', 41);
+}
+
+function addLooks(
+  raw: Record<string, unknown>,
+  type: UnitType,
+  version: number,
+): Record<string, unknown> {
   if (!isRecord(raw.units)) {
-    return { ...raw, schemaVersion: 40 };
+    return { ...raw, schemaVersion: version };
   }
   const units: Record<string, unknown> = {};
   for (const [id, unit] of Object.entries(raw.units)) {
     units[id] =
-      isRecord(unit) &&
-      (SEEDED_LOOK_TYPES as readonly unknown[]).includes(unit.type) &&
-      unit.look === undefined
+      isRecord(unit) && unit.type === type && unit.look === undefined
         ? {
             ...unit,
             look: lookSeed(
@@ -141,7 +146,7 @@ function addOfficeLooks(raw: Record<string, unknown>): Record<string, unknown> {
           }
         : unit;
   }
-  return { ...raw, schemaVersion: 40, units };
+  return { ...raw, schemaVersion: version, units };
 }
 
 /** Version 2 records each unit's price level, what was paid for it and when it was placed. */

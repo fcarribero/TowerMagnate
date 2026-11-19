@@ -5,8 +5,7 @@ import { CulledRows } from './culledRows';
 import type { LevelRange, WorldRect } from './camera';
 import { levelTop } from './levels';
 import { FLOOR_HEIGHT, SLAB_HEIGHT } from './metrics';
-import { officeLayoutFor } from './officeLayout';
-import { buildOfficeInterior } from './officeView';
+import { buildInterior, interiorLayoutFor, interiorSpecOf } from './interior';
 import { checkerTexture } from './overlayChecker';
 import { overlayColorOf, transportOverlayColor, type OverlayId } from './overlayColors';
 import type { SpriteRegistry } from './spriteRegistry';
@@ -297,7 +296,8 @@ export class UnitLayer {
    */
   private showInterior(entry: DrawnUnit, drawing: UnitDrawing, moved: boolean): void {
     const interior = drawing.interior;
-    if (interior === undefined) {
+    const spec = interior && interiorSpecOf(interior.type);
+    if (interior === undefined || spec === undefined) {
       entry.interior?.destroy({ children: true });
       entry.interior = null;
       entry.interiorKey = '';
@@ -309,7 +309,7 @@ export class UnitLayer {
     }
     if (entry.interiorKey !== key) {
       entry.interior?.destroy({ children: true });
-      entry.interior = buildOfficeInterior(this.sprites, officeLayoutFor(interior.seed), {
+      entry.interior = buildInterior(this.sprites, spec, interiorLayoutFor(spec, interior.seed), {
         state: interior.state,
         time: interior.time,
       });

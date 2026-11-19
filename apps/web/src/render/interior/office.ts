@@ -1,36 +1,16 @@
+import type { InteriorKind, InteriorSpec } from './types';
+
 /**
- * The props an office can hold, drawn by tools/art/src/groups/office.mjs into the office atlas.
- * Sprite ids are `office/<kind>/idle`, plus `office/<kind>/busy` when `busy` is true.
- * Widths and heights are in pixels and must match the art (officeCatalog.test.ts checks).
+ * Offices: a 9 tile room with two windows. Props are drawn by tools/art/src/groups/office.mjs.
+ * Layer 1 holds the workstations and other furniture in the middle of the room; layer 0 the
+ * props against the back wall and hung on it.
  */
 
-/** 0 stands against the back wall (on the back floor row or hung on the wall); 1 stands in the middle of the room, in front. */
-export type OfficeLayer = 0 | 1;
-/** Floor props rest on the floor; wall props hang at eye height. */
-export type OfficeMount = 'floor' | 'wall';
-/** Functional props are what the tenant works with; decor is there for looks. */
-export type OfficeRole = 'functional' | 'decor';
+export type OfficeState = 'empty' | 'closed' | 'occupied';
 
-export interface OfficeKind {
-  kind: string;
-  layer: OfficeLayer;
-  mount: OfficeMount;
-  role: OfficeRole;
-  width: number;
-  height: number;
-  /** Relative chance of being picked among the kinds of its pool. */
-  weight: number;
-  /** Most copies one office can hold. */
-  max: number;
-  /** Has a `busy` sprite for an occupied office. */
-  busy?: boolean;
-  /** Can be mirrored. */
-  flip?: boolean;
-  /** A desk someone works at; offices roll how many they have. */
-  workstation?: boolean;
-}
+const BUSY = ['busy'] as const;
 
-const workstation = (kind: string, weight: number): OfficeKind => ({
+const workstation = (kind: string, weight: number): InteriorKind => ({
   kind,
   layer: 1,
   mount: 'floor',
@@ -39,12 +19,11 @@ const workstation = (kind: string, weight: number): OfficeKind => ({
   height: 13,
   weight,
   max: 4,
-  busy: true,
+  looks: BUSY,
   flip: true,
-  workstation: true,
 });
 
-export const OFFICE_CATALOG: readonly OfficeKind[] = [
+const CATALOG: readonly InteriorKind[] = [
   // Layer 1: the middle of the room.
   workstation('workstation', 4),
   workstation('workstation-metal', 3),
@@ -59,7 +38,7 @@ export const OFFICE_CATALOG: readonly OfficeKind[] = [
     height: 9,
     weight: 1,
     max: 1,
-    busy: true,
+    looks: BUSY,
   },
   {
     kind: 'copier',
@@ -70,7 +49,7 @@ export const OFFICE_CATALOG: readonly OfficeKind[] = [
     height: 13,
     weight: 2,
     max: 1,
-    busy: true,
+    looks: BUSY,
     flip: true,
   },
   {
@@ -156,7 +135,7 @@ export const OFFICE_CATALOG: readonly OfficeKind[] = [
     height: 12,
     weight: 2,
     max: 1,
-    busy: true,
+    looks: BUSY,
     flip: true,
   },
   {
@@ -241,7 +220,7 @@ export const OFFICE_CATALOG: readonly OfficeKind[] = [
     height: 20,
     weight: 1,
     max: 1,
-    busy: true,
+    looks: BUSY,
   },
 
   // Layer 0: hung on the wall.
@@ -326,21 +305,79 @@ export const OFFICE_CATALOG: readonly OfficeKind[] = [
     height: 10,
     weight: 1,
     max: 1,
-    busy: true,
+    looks: BUSY,
   },
 ];
 
-const BY_KIND = new Map(OFFICE_CATALOG.map((entry) => [entry.kind, entry]));
+const kindsWhere = (test: (entry: InteriorKind) => boolean): string[] =>
+  CATALOG.filter(test).map((entry) => entry.kind);
 
-export function officeKind(kind: string): OfficeKind {
-  const entry = BY_KIND.get(kind);
-  if (entry === undefined) {
-    throw new Error(`Unknown office prop: ${kind}`);
-  }
-  return entry;
-}
+const WORKSTATIONS = kindsWhere((entry) => entry.kind.startsWith('workstation'));
+const FRONT = kindsWhere((entry) => entry.layer === 1 && !WORKSTATIONS.includes(entry.kind));
+const BACK = kindsWhere((entry) => entry.layer === 0 && entry.mount === 'floor');
+const WALL = kindsWhere((entry) => entry.mount === 'wall');
 
-/** The sprite for a prop, busy when the office is occupied and the prop has a busy look. */
-export function officePropSpriteId(kind: string, occupied: boolean): string {
-  return `office/${kind}/${occupied && officeKind(kind).busy ? 'busy' : 'idle'}`;
-}
+export const OFFICE_INTERIOR: InteriorSpec<OfficeState> = {
+  unitType: 'office',
+  group: 'office',
+  baseSprite: 'units/office/empty_day',
+  room: { width: 72, height: 32, backFloorRow: 26, frontFloorRow: 28, eyeLine: 9, wallTop: 3 },
+  windows: [
+    { left: 5, top: 4, width: 14, height: 8 },
+    { left: 33, top: 4, width: 14, height: 8 },
+  ],
+  zones: [{ id: 'room', left: 2, right: 69 }],
+  catalog: CATALOG,
+  templates: [
+    {
+      id: 'random',
+      name: 'Random',
+      fixed: [],
+      rolls: [
+        { kinds: WORKSTATIONS, count: [1, 3], matching: 0.6 },
+        { kinds: FRONT, count: [0, 2] },
+        { kinds: BACK, count: [1, 4] },
+        { kinds: WALL, count: [1, 3] },
+      ],
+    },
+    {
+      id: 'mixed',
+      name: 'Two fixed desks, the rest random',
+      fixed: [
+        { kind: 'workstation', x: 6 },
+        { kind: 'workstation', x: 34 },
+      ],
+      rolls: [
+        { kinds: WORKSTATIONS, count: [2, 2], matching: 1 },
+        { kinds: FRONT, count: [0, 1] },
+        { kinds: BACK, count: [1, 3] },
+        { kinds: WALL, count: [1, 3] },
+      ],
+    },
+    {
+      id: 'classic',
+      name: 'Fixed (the old office)',
+      fixed: [
+        { kind: 'workstation', x: 6 },
+        { kind: 'workstation', x: 34 },
+        { kind: 'plant-medium', x: 27 },
+        { kind: 'filing-cabinet', x: 55 },
+      ],
+      rolls: [
+        { kinds: WORKSTATIONS, count: [2, 2], matching: 1 },
+        { kinds: FRONT, count: [0, 0] },
+        { kinds: BACK, count: [0, 0] },
+        { kinds: WALL, count: [0, 0] },
+      ],
+    },
+  ],
+  states: ['empty', 'closed', 'occupied'],
+  propLook: { empty: null, closed: 'idle', occupied: 'busy' },
+  curtains: { empty: null, closed: 'closed', occupied: 'open' },
+  // A lit office keeps its day colors at night; a dark one is shaded, more so at night.
+  shade: {
+    empty: { day: 0, night: 0.55 },
+    closed: { day: 0.3, night: 0.6 },
+    occupied: { day: 0, night: 0 },
+  },
+};

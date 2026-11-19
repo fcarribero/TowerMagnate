@@ -5,7 +5,7 @@ import { PixelCanvas } from '../canvas.mjs';
 // is no night version. A prop that changes when the office is occupied (screens on) also has a `busy` sprite. Every sprite rests on its bottom row, except wall
 // props, which hang. The sizes here must match OFFICE_CATALOG in apps/web/src/render/officeCatalog.ts.
 
-const legend = {
+export const legend = {
   k: 'ink',
   c: 'charcoal',
   s: 'slate',
@@ -28,13 +28,13 @@ const legend = {
   u: 'dusk',
 };
 
-function map(rows) {
+export function map(rows) {
   const canvas = new PixelCanvas(rows[0].length, rows.length);
   canvas.drawMap(0, 0, rows, legend);
   return canvas;
 }
 
-function blank(width, height) {
+export function blank(width, height) {
   return new PixelCanvas(width, height);
 }
 
@@ -183,7 +183,7 @@ function copier() {
   return { idle: draw(false), busy: draw(true) };
 }
 
-function plantMedium() {
+export function plantMedium() {
   return map([
     '.L..L..',
     'LDL.LD.',
@@ -232,7 +232,7 @@ function filingCabinet(drawers) {
   return map(rows);
 }
 
-function bookshelf() {
+export function bookshelf() {
   const canvas = blank(12, 19);
   canvas.fillRect(0, 0, 12, 19, 'wood');
   canvas.strokeRect(0, 0, 12, 19, 'wood-dark');
@@ -336,7 +336,7 @@ function coffeeStation() {
   return { idle: draw(false), busy: draw(true) };
 }
 
-function plantTall() {
+export function plantTall() {
   return map([
     '...L.L..',
     '..LDLDL.',
@@ -469,7 +469,7 @@ function vendingMachine() {
 
 // Props that hang on the back wall.
 
-function clock() {
+export function clock() {
   return map(['.kkkk.', 'kwwkwk', 'kwwkwk', 'kwwrrk', 'kwwwwk', '.kkkk.']);
 }
 
@@ -481,7 +481,7 @@ function frame(width, height, scene) {
   return canvas;
 }
 
-function pictureSmall() {
+export function pictureSmall() {
   return frame(8, 6, (canvas) => {
     canvas.fillRect(1, 1, 6, 2, 'sky-light');
     canvas.fillRect(1, 3, 6, 2, 'leaf');
@@ -489,7 +489,7 @@ function pictureSmall() {
   });
 }
 
-function pictureWide() {
+export function pictureWide() {
   return frame(14, 8, (canvas) => {
     canvas.fillRect(1, 1, 12, 6, 'dusk');
     canvas.fillRect(1, 4, 12, 3, 'sky-deep');
@@ -522,7 +522,7 @@ function corkboard() {
   return canvas;
 }
 
-function wallShelf() {
+export function wallShelf() {
   return map(['.rb.CC.L.', '.rbbCC.LD', '.rbbCCkkk', 'lllllllll', 'd.......d']);
 }
 
@@ -593,7 +593,7 @@ export function officeProps() {
 }
 
 // Curtains over an office window (14x8 glass), drawn by the client on top of the room.
-function curtainsClosed() {
+export function curtainsClosed() {
   const canvas = blank(14, 8);
   canvas.fillRect(0, 0, 14, 8, 'cloud');
   for (let x = 2; x < 14; x += 3) canvas.vline(x, 1, 7, 'silver');
@@ -602,7 +602,7 @@ function curtainsClosed() {
   return canvas;
 }
 
-function curtainsOpen() {
+export function curtainsOpen() {
   const canvas = blank(14, 8);
   for (const x of [0, 11]) {
     canvas.fillRect(x, 1, 3, 7, 'cloud');
@@ -613,16 +613,23 @@ function curtainsOpen() {
   return canvas;
 }
 
+// The sprites of a set of props: `<group>/<kind>/<look>` for every look a prop has (idle, plus
+// busy or sleep when it changes), and the window curtains, closed and open.
+export function propSprites(group, props) {
+  const sprites = [];
+  for (const [kind, looks] of Object.entries(props)) {
+    for (const [look, canvas] of Object.entries(looks)) {
+      sprites.push({ id: `${group}/${kind}/${look}`, canvas });
+    }
+  }
+  sprites.push({ id: `${group}/curtains/closed`, canvas: curtainsClosed() });
+  sprites.push({ id: `${group}/curtains/open`, canvas: curtainsOpen() });
+  return sprites;
+}
+
 export const officeGroup = {
   name: 'office',
   draw() {
-    const sprites = [];
-    for (const [kind, looks] of Object.entries(officeProps())) {
-      sprites.push({ id: `office/${kind}/idle`, canvas: looks.idle });
-      if (looks.busy) sprites.push({ id: `office/${kind}/busy`, canvas: looks.busy });
-    }
-    sprites.push({ id: 'office/curtains/closed', canvas: curtainsClosed() });
-    sprites.push({ id: 'office/curtains/open', canvas: curtainsOpen() });
-    return sprites;
+    return propSprites('office', officeProps());
   },
 };

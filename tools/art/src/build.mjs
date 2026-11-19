@@ -10,6 +10,7 @@ const GROUP_NAMES = [
   'structure',
   'lobby',
   'office',
+  'condo',
   'rooftop',
   'sky',
   'ui',

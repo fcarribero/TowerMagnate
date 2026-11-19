@@ -106,3 +106,7 @@ main {
     monospace;
   color: var(--muted);
 }
+#labels span.strong {
+  color: var(--text);
+  font-weight: 600;
+}
