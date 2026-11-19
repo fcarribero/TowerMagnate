@@ -7,14 +7,13 @@ export {
 } from './gateway';
 export { MAX_MESSAGES_PER_SECOND, MessageRateLimiter } from './rate-limiter';
 export { HEARTBEAT_INTERVAL_MS, MAX_MISSED_PINGS } from './heartbeat';
-export {
-  MAX_MESSAGE_BYTES,
-  type DebugFrames,
-  type InvalidCommandHandler,
-  type MessageContext,
-  type MessageHandler,
-  type MessageHandlers,
-} from './message-router';
+export { MAX_MESSAGE_BYTES } from './message-router';
+export type {
+  DebugFrames,
+  MessageContext,
+  MessageHandler,
+  MessageHandlers,
+} from '@tower-magnate/host';
 export {
   MAX_CLIENT_MESSAGE_BYTES,
   registerGateway,

@@ -4,9 +4,9 @@ import {
   type InspectTarget,
   type TowerState,
 } from '@tower-magnate/shared';
-import { sendMessage, type ConnectionRegistry, type GatewaySocket } from '../gateway';
-import type { TowerRunner } from '../runner';
-import { inspectLobby, inspectPerson, inspectShaft, inspectUnit } from '@tower-magnate/host';
+import { sendMessage, type HostSocket, type SocketSet } from '../port';
+import type { TowerRunner } from '../runner/tower-runner';
+import { inspectLobby, inspectPerson, inspectShaft, inspectUnit } from '../views/inspect';
 
 export const INSPECT_INTERVAL_MS = 1000;
 export const MAX_INSPECT_TARGETS = 5;
@@ -42,7 +42,7 @@ export interface InspectionsOptions {
  * Each target is answered right away, again once per second, and again after a change to a unit.
  */
 export class Inspections {
-  private readonly targets = new WeakMap<GatewaySocket, Map<string, Target>>();
+  private readonly targets = new WeakMap<HostSocket, Map<string, Target>>();
   private readonly now: () => number;
 
   constructor(private readonly options: InspectionsOptions) {
@@ -50,7 +50,7 @@ export class Inspections {
   }
 
   /** Replaces all of the socket's targets with this one, or clears them with null. */
-  set(socket: GatewaySocket, towerId: string, target: InspectTarget | null): boolean {
+  set(socket: HostSocket, towerId: string, target: InspectTarget | null): boolean {
     this.targets.delete(socket);
     if (target === null) {
       return true;
@@ -59,7 +59,7 @@ export class Inspections {
   }
 
   /** Adds a target and answers it at once. Adding a target the socket already has answers it again. */
-  add(socket: GatewaySocket, towerId: string, target: InspectTarget): AddResult {
+  add(socket: HostSocket, towerId: string, target: InspectTarget): AddResult {
     if (!isInspectable(target)) {
       return 'unsupported';
     }
@@ -75,18 +75,18 @@ export class Inspections {
     return 'added';
   }
 
-  remove(socket: GatewaySocket, target: InspectTarget): void {
+  remove(socket: HostSocket, target: InspectTarget): void {
     if (isInspectable(target)) {
       this.targets.get(socket)?.delete(targetKey(target.kind, target.id));
     }
   }
 
-  clear(socket: GatewaySocket): void {
+  clear(socket: HostSocket): void {
     this.targets.delete(socket);
   }
 
   /** Answers again right away when the socket has this unit or person open. */
-  pushChange(socket: GatewaySocket, kind: 'unit' | 'person', id: string): void {
+  pushChange(socket: HostSocket, kind: 'unit' | 'person', id: string): void {
     const target = this.targets.get(socket)?.get(targetKey(kind, id));
     if (target) {
       this.send(socket, target);
@@ -94,9 +94,9 @@ export class Inspections {
   }
 
   /** Answers every target that was last answered a second ago or more. */
-  tick(registry: ConnectionRegistry): void {
+  tick(sockets: SocketSet): void {
     const now = this.now();
-    for (const socket of registry.allSockets()) {
+    for (const socket of sockets.allSockets()) {
       for (const target of [...(this.targets.get(socket)?.values() ?? [])]) {
         if (now - target.sentAt >= INSPECT_INTERVAL_MS) {
           this.send(socket, target);
@@ -106,12 +106,12 @@ export class Inspections {
   }
 
   /** Ticks on a timer until the returned function is called. */
-  start(registry: ConnectionRegistry, intervalMs = CHECK_INTERVAL_MS): () => void {
-    const timer = setInterval(() => this.tick(registry), intervalMs);
+  start(sockets: SocketSet, intervalMs = CHECK_INTERVAL_MS): () => void {
+    const timer = setInterval(() => this.tick(sockets), intervalMs);
     return () => clearInterval(timer);
   }
 
-  private send(socket: GatewaySocket, target: Target): void {
+  private send(socket: HostSocket, target: Target): void {
     const state = this.options.runner.stateOf(target.towerId);
     if (!state) {
       return;

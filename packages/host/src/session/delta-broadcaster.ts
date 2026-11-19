@@ -5,16 +5,12 @@ import {
   type Snapshot,
   type TowerState,
 } from '@tower-magnate/shared';
-import { sendMessage, type ConnectionRegistry, type GatewaySocket } from '../gateway';
-import type { TowerRunner } from '../runner';
-import type { TowerId } from '../snapshots';
-import {
-  buildHeatData,
-  buildSnapshot,
-  diffSnapshots,
-  needsFreshSnapshot,
-  toClientEvents,
-} from '@tower-magnate/host';
+import { sendMessage, type HostSocket, type SocketSet } from '../port';
+import type { TowerRunner } from '../runner/tower-runner';
+import { toClientEvents } from '../views/client-events';
+import { diffSnapshots, needsFreshSnapshot } from '../views/delta';
+import { buildHeatData } from '../views/heat-view';
+import { buildSnapshot } from '../views/snapshot';
 import { DisconnectedUnitsCache } from './disconnected-units';
 import type { Viewports } from './viewports';
 
@@ -42,8 +38,8 @@ interface SentState {
  * every delta is the difference from what that socket was last sent.
  */
 export class DeltaBroadcaster {
-  private readonly sent = new WeakMap<GatewaySocket, SentState>();
-  private readonly heat = new WeakMap<GatewaySocket, { kind: HeatKind; sentStep: number | null }>();
+  private readonly sent = new WeakMap<HostSocket, SentState>();
+  private readonly heat = new WeakMap<HostSocket, { kind: HeatKind; sentStep: number | null }>();
   private readonly now: () => number;
   private readonly disconnectedUnits: DisconnectedUnitsCache;
 
@@ -54,18 +50,18 @@ export class DeltaBroadcaster {
   }
 
   /** The snapshot of a tower as one socket sees it, through that socket's viewport. */
-  snapshotFor(socket: GatewaySocket, towerId: TowerId, state: TowerState): Snapshot {
+  snapshotFor(socket: HostSocket, towerId: string, state: TowerState): Snapshot {
     const disconnected = this.disconnectedUnits.of(towerId, state);
     return buildSnapshot(state, this.options.viewports.get(socket), disconnected);
   }
 
   /** Starts (or stops, with null) sending a heat map to a socket; the next tick sends the first one. */
-  setHeat(socket: GatewaySocket, kind: HeatKind | null): void {
+  setHeat(socket: HostSocket, kind: HeatKind | null): void {
     if (kind === null) this.heat.delete(socket);
     else this.heat.set(socket, { kind, sentStep: null });
   }
 
-  private sendHeat(socket: GatewaySocket, state: TowerState): void {
+  private sendHeat(socket: HostSocket, state: TowerState): void {
     const wanted = this.heat.get(socket);
     if (!wanted) return;
     if (wanted.sentStep !== null && state.step - wanted.sentStep < HEAT_STEPS) return;
@@ -74,12 +70,12 @@ export class DeltaBroadcaster {
   }
 
   /** Records the snapshot a socket was just sent and sends it. */
-  sendSnapshot(socket: GatewaySocket, snapshot: Snapshot): void {
+  sendSnapshot(socket: HostSocket, snapshot: Snapshot): void {
     this.recordSnapshot(socket, snapshot, snapshot.step);
   }
 
   private recordSnapshot(
-    socket: GatewaySocket,
+    socket: HostSocket,
     snapshot: Snapshot,
     shownEventsUpTo: number | null,
   ): void {
@@ -88,7 +84,7 @@ export class DeltaBroadcaster {
   }
 
   /** Sends one delta, heartbeat or replacement snapshot to every socket that has a baseline. */
-  tick(registry: ConnectionRegistry): void {
+  tick(sockets: SocketSet): void {
     const runningTowers = this.options.runner.runningTowers();
     this.disconnectedUnits.keepOnly(runningTowers);
     for (const towerId of runningTowers) {
@@ -97,7 +93,7 @@ export class DeltaBroadcaster {
         continue;
       }
       const events = toClientEvents(this.options.runner.takeEvents(towerId));
-      for (const socket of registry.socketsForTower(towerId)) {
+      for (const socket of sockets.socketsForTower(towerId)) {
         const baseline = this.sent.get(socket);
         if (baseline) {
           const snapshot = this.snapshotFor(socket, towerId, state);
@@ -109,13 +105,13 @@ export class DeltaBroadcaster {
   }
 
   /** Ticks on a timer until the returned function is called. */
-  start(registry: ConnectionRegistry, intervalMs = DELTA_INTERVAL_MS): () => void {
-    const timer = setInterval(() => this.tick(registry), intervalMs);
+  start(sockets: SocketSet, intervalMs = DELTA_INTERVAL_MS): () => void {
+    const timer = setInterval(() => this.tick(sockets), intervalMs);
     return () => clearInterval(timer);
   }
 
   private update(
-    socket: GatewaySocket,
+    socket: HostSocket,
     baseline: SentState,
     snapshot: Snapshot,
     events: readonly ClientEvent[],
@@ -133,7 +129,7 @@ export class DeltaBroadcaster {
 
   /** The delta, or a snapshot when that is smaller. Idle updates wait for the heartbeat. */
   private sendUpdate(
-    socket: GatewaySocket,
+    socket: HostSocket,
     baseline: SentState,
     snapshot: Snapshot,
     hasEvents: boolean,

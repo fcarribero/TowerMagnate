@@ -1,9 +1,9 @@
 import { createTower, disconnectedUnits, setStructure } from '@tower-magnate/engine';
 import type { EngineEvent, QueuedCommand, TowerState } from '@tower-magnate/shared';
 import { beforeEach, describe, expect, it } from 'vitest';
-import { ConnectionRegistry } from '../gateway';
-import { TowerRunner, type TowerStore } from '../runner';
-import { FakeSocket } from '../testing/fake-socket';
+import { FakeSocket, FakeSocketSet } from '../testing/fake-socket';
+import { TowerRunner } from '../runner/tower-runner';
+import type { TowerStore } from '../runner/tower-store';
 import { DELTA_INTERVAL_MS, DeltaBroadcaster } from './delta-broadcaster';
 import { DisconnectedUnitsCache } from './disconnected-units';
 import { Viewports } from './viewports';
@@ -29,7 +29,7 @@ function command(id: string, x0: number, x1: number): QueuedCommand {
 describe('disconnected units shared by the sockets of a tower', () => {
   let clock: number;
   let runner: TowerRunner;
-  let registry: ConnectionRegistry;
+  let registry: FakeSocketSet;
   let broadcaster: DeltaBroadcaster;
   let sockets: FakeSocket[];
   let searches: number;
@@ -75,7 +75,7 @@ describe('disconnected units shared by the sockets of a tower', () => {
       now: () => clock,
       disconnectedUnits: cache,
     });
-    registry = new ConnectionRegistry();
+    registry = new FakeSocketSet();
     await runner.resume(TOWER);
     sockets = [new FakeSocket(), new FakeSocket(), new FakeSocket()];
     for (const [index, socket] of sockets.entries()) {

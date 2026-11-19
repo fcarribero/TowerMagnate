@@ -3,38 +3,16 @@ import {
   ClientMessageSchema,
   QueuedCommandSchema,
   type ClientMessage,
-  type ClientMessageType,
-  type Envelope,
 } from '@tower-magnate/shared';
-import { sendError, type GatewaySocket, type SocketIdentity } from './socket';
+import {
+  sendError,
+  type HostSocket,
+  type MessageContext,
+  type MessageHandler,
+  type MessageHandlers,
+} from '@tower-magnate/host';
 
 export const MAX_MESSAGE_BYTES = 16 * 1024;
-
-export interface MessageContext {
-  socket: GatewaySocket;
-  identity: SocketIdentity;
-  /** Counts the socket for its tower, activating the tower when it is the first one. */
-  join: () => void;
-}
-
-export type MessageHandler<T extends ClientMessageType> = (
-  message: Envelope<ClientMessage, T>,
-  context: MessageContext,
-) => void | Promise<void>;
-
-/** Frames outside the shared protocol, such as the dev-only debug messages. */
-export interface DebugFrames {
-  /** The message type when the raw frame is one of these, whether or not it is valid. */
-  typeOf(rawData: unknown): string | null;
-  handle(rawData: unknown, context: MessageContext): Promise<void>;
-}
-
-/** Answers a command whose envelope and id are valid but whose command fails the schema. */
-export type InvalidCommandHandler = (id: string, context: MessageContext) => void;
-
-export type MessageHandlers = { [T in ClientMessageType]?: MessageHandler<T> } & {
-  invalidCommand?: InvalidCommandHandler;
-};
 
 export type ClientFrame =
   { kind: 'message'; message: ClientMessage } | { kind: 'invalidCommand'; id: string };
@@ -46,7 +24,7 @@ const CommandIdEnvelopeSchema = z.object({
 });
 
 /** Reads one raw frame, or answers with an error frame and returns null. */
-export function readClientFrame(rawData: unknown, socket: GatewaySocket): ClientFrame | null {
+export function readClientFrame(rawData: unknown, socket: HostSocket): ClientFrame | null {
   const text = String(rawData);
   if (Buffer.byteLength(text) > MAX_MESSAGE_BYTES) {
     sendError(socket, 'INVALID_COMMAND', `Messages are limited to ${MAX_MESSAGE_BYTES} bytes`);

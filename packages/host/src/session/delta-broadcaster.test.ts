@@ -11,11 +11,11 @@ import {
   type TowerState,
 } from '@tower-magnate/shared';
 import { beforeEach, describe, expect, it } from 'vitest';
-import { ConnectionRegistry } from '../gateway';
-import { TowerRunner, type TowerStore } from '../runner';
-import { FakeSocket } from '../testing/fake-socket';
+import { FakeSocket, FakeSocketSet } from '../testing/fake-socket';
+import { TowerRunner } from '../runner/tower-runner';
+import type { TowerStore } from '../runner/tower-store';
 import { DELTA_INTERVAL_MS, DeltaBroadcaster } from './delta-broadcaster';
-import { buildSnapshot } from '@tower-magnate/host';
+import { buildSnapshot } from '../views/snapshot';
 import { Viewports } from './viewports';
 
 const VIEW = { levelFrom: 1, levelTo: 3, xFrom: 0, xTo: 200 };
@@ -52,7 +52,7 @@ function applyDelta(snapshot: Snapshot, delta: Delta): Snapshot {
 describe('delta broadcaster', () => {
   let clock: number;
   let runner: TowerRunner;
-  let registry: ConnectionRegistry;
+  let registry: FakeSocketSet;
   let viewports: Viewports;
   let broadcaster: DeltaBroadcaster;
   let socket: FakeSocket;
@@ -99,7 +99,7 @@ describe('delta broadcaster', () => {
         events: newsFor(current.step + steps),
       }),
     });
-    registry = new ConnectionRegistry();
+    registry = new FakeSocketSet();
     viewports = new Viewports();
     broadcaster = new DeltaBroadcaster({ runner, viewports, now: () => clock });
     socket = new FakeSocket();

@@ -1,13 +1,7 @@
 import { ConnectionRegistry } from './connection-registry';
 import { Heartbeat } from './heartbeat';
-import {
-  readClientFrame,
-  rejectInvalidCommand,
-  routeMessage,
-  type DebugFrames,
-  type MessageContext,
-  type MessageHandlers,
-} from './message-router';
+import type { DebugFrames, MessageContext, MessageHandlers } from '@tower-magnate/host';
+import { readClientFrame, rejectInvalidCommand, routeMessage } from './message-router';
 import { MAX_MESSAGES_PER_SECOND, MessageRateLimiter } from './rate-limiter';
 import { CLOSE_CODES, sendError, type GatewaySocket, type SocketIdentity } from './socket';
 

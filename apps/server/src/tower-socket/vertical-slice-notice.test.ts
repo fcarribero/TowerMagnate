@@ -4,9 +4,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { ConnectionRegistry } from '../gateway';
 import { TowerRunner, type AdvanceTower, type TowerStore } from '../runner';
 import { FakeSocket } from '../testing/fake-socket';
-import { DELTA_INTERVAL_MS, DeltaBroadcaster } from './delta-broadcaster';
-import { buildSnapshot } from '@tower-magnate/host';
-import { Viewports } from './viewports';
+import { DELTA_INTERVAL_MS, DeltaBroadcaster, Viewports, buildSnapshot } from '@tower-magnate/host';
 
 const TOWER = 'slice';
 const VIEW = { levelFrom: 1, levelTo: 10, xFrom: 100, xTo: 209 };

@@ -1,7 +1,6 @@
 import { disconnectedUnits } from '@tower-magnate/engine';
 import type { TowerState, UnitId } from '@tower-magnate/shared';
-import type { TowerRunner } from '../runner';
-import type { TowerId } from '../snapshots';
+import type { TowerRunner } from '../runner/tower-runner';
 
 interface KeptResult {
   layoutVersion: number;
@@ -15,14 +14,14 @@ export type FindDisconnectedUnits = (state: TowerState) => ReadonlySet<UnitId>;
  * by every socket of that tower.
  */
 export class DisconnectedUnitsCache {
-  private readonly kept = new Map<TowerId, KeptResult>();
+  private readonly kept = new Map<string, KeptResult>();
 
   constructor(
     private readonly runner: TowerRunner,
     private readonly find: FindDisconnectedUnits = disconnectedUnits,
   ) {}
 
-  of(towerId: TowerId, state: TowerState): ReadonlySet<UnitId> {
+  of(towerId: string, state: TowerState): ReadonlySet<UnitId> {
     const layoutVersion = this.runner.layoutVersionOf(towerId);
     if (layoutVersion === undefined) {
       this.kept.delete(towerId);
@@ -38,7 +37,7 @@ export class DisconnectedUnitsCache {
   }
 
   /** Drops the results of towers that stopped running. */
-  keepOnly(runningTowers: readonly TowerId[]): void {
+  keepOnly(runningTowers: readonly string[]): void {
     const running = new Set(runningTowers);
     for (const towerId of this.kept.keys()) {
       if (!running.has(towerId)) this.kept.delete(towerId);

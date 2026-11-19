@@ -1,9 +1,8 @@
 import { addPerson, createTower, newUnit, removePerson, renamePerson } from '@tower-magnate/engine';
 import type { TowerState } from '@tower-magnate/shared';
 import { beforeEach, describe, expect, it } from 'vitest';
-import { ConnectionRegistry } from '../gateway';
-import type { TowerRunner } from '../runner';
-import { FakeSocket } from '../testing/fake-socket';
+import { FakeSocket, FakeSocketSet } from '../testing/fake-socket';
+import type { TowerRunner } from '../runner/tower-runner';
 import { INSPECT_INTERVAL_MS, Inspections, MAX_INSPECT_TARGETS } from './inspections';
 
 const identity = { userId: 'user', towerId: 'tower' };
@@ -11,7 +10,7 @@ const unitTarget = (id: string) => ({ kind: 'unit', id }) as const;
 
 interface Harness {
   state: TowerState;
-  registry: ConnectionRegistry;
+  registry: FakeSocketSet;
   inspections: Inspections;
   socket: FakeSocket;
   clock: { now: number };
@@ -28,7 +27,7 @@ function harness(): Harness {
     runner: runner as unknown as TowerRunner,
     now: () => clock.now,
   });
-  const registry = new ConnectionRegistry();
+  const registry = new FakeSocketSet();
   const socket = new FakeSocket();
   registry.add(socket, identity);
   return { state, registry, inspections, socket, clock };

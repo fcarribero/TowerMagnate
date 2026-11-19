@@ -3,7 +3,7 @@ import websocket, { type WebsocketPluginOptions } from '@fastify/websocket';
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import type { ConnectionRegistry } from './connection-registry';
 import { Gateway } from './gateway';
-import type { DebugFrames, MessageHandlers } from './message-router';
+import type { DebugFrames, MessageHandlers } from '@tower-magnate/host';
 import { CLOSE_CODES, sendError, type GatewaySocket, type SocketIdentity } from './socket';
 
 export const MAX_CLIENT_MESSAGE_BYTES = 64 * 1024;

@@ -1,2 +1,2 @@
-export { createDebugFrames, type DebugFramesOptions } from './handler';
+export { createDebugFrames, type DebugFramesOptions } from '@tower-magnate/host';
 export { MAX_FAST_FORWARD_STEPS } from '@tower-magnate/host';

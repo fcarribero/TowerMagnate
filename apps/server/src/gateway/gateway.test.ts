@@ -2,7 +2,8 @@ import { clientMessage, PROTOCOL_VERSION } from '@tower-magnate/shared';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { FakeSocket } from '../testing/fake-socket';
 import { Gateway } from './gateway';
-import { MAX_MESSAGE_BYTES, type MessageHandlers } from './message-router';
+import type { MessageHandlers } from '@tower-magnate/host';
+import { MAX_MESSAGE_BYTES } from './message-router';
 import { MAX_MESSAGES_PER_SECOND } from './rate-limiter';
 import { CLOSE_CODES, type SocketIdentity } from './socket';
 

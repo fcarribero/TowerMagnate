@@ -1,6 +1,6 @@
 import { PROTOCOL_VERSION, serverMessage } from '@tower-magnate/shared';
-import { CLOSE_CODES, sendError, sendMessage, type MessageHandlers } from '../gateway';
-import type { TowerRunner } from '../runner';
+import { CLOSE_CODES, sendError, sendMessage, type MessageHandlers } from '../port';
+import type { TowerRunner } from '../runner/tower-runner';
 import type { DeltaBroadcaster } from './delta-broadcaster';
 import type { Inspections } from './inspections';
 import type { Viewports } from './viewports';
