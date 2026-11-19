@@ -10,6 +10,7 @@ import {
   CONSTRUCTION_NOISE,
   CONSTRUCTION_NOISE_ADJACENT,
   DIRT_STRESS_PER_LEVEL,
+  DIRT_TOLERANCE,
   GARBAGE_PILE_POSITION,
   HEAT_BAG_DIRT_CELLS,
   HEAT_NOISE_CELLS,
@@ -297,9 +298,9 @@ export function carLevels(state: TowerState, shaftId: string, car: number) {
   return { noise: pair?.[car * 2] ?? 0, dirt: pair?.[car * 2 + 1] ?? 0 };
 }
 
-/** Stress steps per game minute for a level of noise and of dirt. */
+/** Stress steps per game minute for a level of noise and of dirt; dirt up to DIRT_TOLERANCE gives none. */
 export function stressPerMinute(noise: number, dirt: number): number {
-  return noise * NOISE_STRESS + dirt * DIRT_STRESS;
+  return noise * NOISE_STRESS + Math.max(0, dirt - DIRT_TOLERANCE) * DIRT_STRESS;
 }
 
 /** A number in [0, 1) that is the same for the same person and minute, whatever order things run in. */

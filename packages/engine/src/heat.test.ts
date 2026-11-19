@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { HEAT_NOISE_CELLS, LAST_COLUMN, PERSON_KINDS } from '@tower-magnate/shared';
+import {
+  DIRT_STRESS_PER_LEVEL,
+  DIRT_TOLERANCE,
+  HEAT_NOISE_CELLS,
+  LAST_COLUMN,
+  PERSON_KINDS,
+} from '@tower-magnate/shared';
 import { encodeCleanerTask } from './cleaning';
 import { encodeBuilderTask } from './construction';
 import { isCarryingBag } from './venue-staff';
@@ -12,6 +18,7 @@ import {
   emptyHeat,
   heatSystem,
   stepsFelt,
+  stressPerMinute,
   valueAt,
 } from './heat';
 import type { TowerState } from '@tower-magnate/shared';
@@ -229,5 +236,13 @@ describe('heat maps', () => {
       heatSystem({ state });
     }
     expect((state.heat?.dirt['2'] as number[])[52]).toBe(first);
+  });
+});
+
+describe('dirt tolerance', () => {
+  it('gives no stress for dirt up to the tolerance and counts only what is above it', () => {
+    expect(stressPerMinute(0, DIRT_TOLERANCE)).toBe(0);
+    expect(stressPerMinute(0, DIRT_TOLERANCE / 2)).toBe(0);
+    expect(stressPerMinute(0, DIRT_TOLERANCE + 2)).toBeCloseTo(2 * DIRT_STRESS_PER_LEVEL);
   });
 });

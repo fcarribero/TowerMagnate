@@ -822,6 +822,11 @@ export const CAR_NOISE_WORKER = 0.2;
 /** Stress steps a person feels per game minute for each point of noise and of dirt in their cell. */
 export const NOISE_STRESS_PER_LEVEL = 0.03;
 export const DIRT_STRESS_PER_LEVEL = 0.15;
+/**
+ * Dirt people put up with: only the dirt above this level counts as stress. 1 is a fifth of the
+ * dirt heat map's max, so a cell drawn green or yellow-green stresses nobody.
+ */
+export const DIRT_TOLERANCE = 1;
 /** Below this stress per minute a cell is calm and gives back 1 step on one minute in CALM_ONE_IN. */
 export const CALM_BELOW = 0.1;
 export const CALM_ONE_IN = 5;
