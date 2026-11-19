@@ -94,7 +94,7 @@ export interface Stage {
   unitScreenRect(unitId: string): ScreenRect | null;
   /** The person's rectangle in canvas device pixels, or null when they are off screen or not drawn. */
   personScreenRect(personId: string): ScreenRect | null;
-  /** Frames the person with this id, following them as they move; null removes the frame. */
+  /** Marks the person with this id with an arrow that follows them as they move; null removes it. */
   showPersonSelection(personId: string | null): void;
   /** The route of the selected person, drawn as a line from their feet; empty removes it. */
   showPersonPath(path: readonly PathPoint[]): void;
@@ -315,7 +315,6 @@ export async function mountStage(host: HTMLElement, options: StageOptions = {}):
   const personRectOf = (personId: string) => people.rectOf(personId) ?? elevators.rectOf(personId);
   const drawPersonSelection = (): void => {
     const rect = selectedPerson === null ? null : (personRectOf(selectedPerson) ?? null);
-    ghost.showPersonSelection(rect);
     selectionMarker.show(rect, performance.now());
   };
   // Panels unmounted after the stage clear their selection; by then the graphics are gone.

@@ -12,10 +12,10 @@ describe('selection marker', () => {
     expect(bobOffset(450)).toBe(2);
   });
 
-  it('runs the path through the centre of the cell, just above the floor', () => {
+  it('runs the path through the centre of the cell, a quarter of a floor above the feet', () => {
     expect(pathPointInWorld({ level: 3, x: 10 })).toEqual({
       x: 84,
-      y: levelTop(levelToIndex(3)) + 27,
+      y: levelTop(levelToIndex(3)) + 20,
     });
   });
 });

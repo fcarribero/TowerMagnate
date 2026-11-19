@@ -2,15 +2,19 @@ import { levelToIndex, type Level } from '@tower-magnate/shared';
 import { Container, Graphics } from 'pixi.js';
 import type { WorldRect } from './camera';
 import { levelTop } from './levels';
-import { TILE_WIDTH } from './metrics';
+import { FLOOR_HEIGHT, TILE_WIDTH } from './metrics';
 import { FRAME_WIDTH } from './personLook';
 
 const ARROW_COLOR = 0x3ddc5a;
 const ARROW_EDGE = 0x13471f;
 const PATH_COLOR = 0xffd23f;
 const PATH_ALPHA = 0.9;
-/** Row of a floor tile the path runs along: a pixel above where people's feet are. */
-const PATH_ROW = 27;
+/** Row of a floor tile where people's feet are. */
+const FEET_ROW = 28;
+/** Height of the path above the feet: a quarter of a floor. */
+const PATH_LIFT = FLOOR_HEIGHT / 4;
+/** Row of a floor tile the path runs along. */
+const PATH_ROW = FEET_ROW - PATH_LIFT;
 /** Gap between the top of the head and the tip of the arrow at the lowest point of its bob. */
 const ARROW_GAP = 2;
 /** World pixels the arrow moves up and down. */
@@ -72,7 +76,7 @@ export class SelectionMarker {
     const centerX = rect.x + rect.width / 2;
     this.arrow.visible = true;
     this.arrow.position.set(Math.round(centerX), Math.round(rect.y - ARROW_GAP - bobOffset(now)));
-    this.drawPath(centerX, rect.y + rect.height - 1);
+    this.drawPath(centerX, rect.y + rect.height - PATH_LIFT);
   }
 
   private drawPath(fromX: number, fromY: number): void {
