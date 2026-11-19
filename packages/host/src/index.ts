@@ -60,3 +60,4 @@ export {
   routeMessage,
   type ClientFrame,
 } from './session/route';
+export { LOCAL_TOWER_ID, LocalSession, type LocalSessionOptions } from './session/local-session';
