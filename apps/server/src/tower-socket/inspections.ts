@@ -6,7 +6,7 @@ import {
 } from '@tower-magnate/shared';
 import { sendMessage, type ConnectionRegistry, type GatewaySocket } from '../gateway';
 import type { TowerRunner } from '../runner';
-import { inspectLobby, inspectPerson, inspectShaft, inspectUnit } from './inspect';
+import { inspectLobby, inspectPerson, inspectShaft, inspectUnit } from '@tower-magnate/host';
 
 export const INSPECT_INTERVAL_MS = 1000;
 export const MAX_INSPECT_TARGETS = 5;

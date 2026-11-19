@@ -8,11 +8,14 @@ import {
 import { sendMessage, type ConnectionRegistry, type GatewaySocket } from '../gateway';
 import type { TowerRunner } from '../runner';
 import type { TowerId } from '../snapshots';
-import { toClientEvents } from './client-events';
-import { diffSnapshots, needsFreshSnapshot } from './delta';
+import {
+  buildHeatData,
+  buildSnapshot,
+  diffSnapshots,
+  needsFreshSnapshot,
+  toClientEvents,
+} from '@tower-magnate/host';
 import { DisconnectedUnitsCache } from './disconnected-units';
-import { buildHeatData } from './heat-view';
-import { buildSnapshot } from './snapshot';
 import type { Viewports } from './viewports';
 
 export const DELTA_INTERVAL_MS = 200;

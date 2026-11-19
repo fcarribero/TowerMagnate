@@ -8,7 +8,7 @@
 import { performance } from 'node:perf_hooks';
 import { addPeopleForUnit, createTower, listPeople, newUnit } from '@tower-magnate/engine';
 import type { TowerState, Viewport } from '@tower-magnate/shared';
-import { peopleViews } from '../tower-socket/snapshot';
+import { peopleViews } from '../views/snapshot';
 
 const CALLS_PER_SAMPLE = 2_000;
 const SAMPLES_PER_RUN = 9;

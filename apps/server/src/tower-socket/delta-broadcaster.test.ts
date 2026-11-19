@@ -15,7 +15,7 @@ import { ConnectionRegistry } from '../gateway';
 import { TowerRunner, type TowerStore } from '../runner';
 import { FakeSocket } from '../testing/fake-socket';
 import { DELTA_INTERVAL_MS, DeltaBroadcaster } from './delta-broadcaster';
-import { buildSnapshot } from './snapshot';
+import { buildSnapshot } from '@tower-magnate/host';
 import { Viewports } from './viewports';
 
 const VIEW = { levelFrom: 1, levelTo: 3, xFrom: 0, xTo: 200 };

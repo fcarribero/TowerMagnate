@@ -13,7 +13,6 @@
     "build": "node scripts/build.mjs",
     "build:bench": "node scripts/build.mjs --bench",
     "bench:snapshots": "tsx src/bench/save-snapshot.ts",
-    "bench:person-view": "tsx src/bench/person-view.ts",
     "bench:runner-load": "tsx src/bench/runner-load.ts"
   },
   "dependencies": {
@@ -21,6 +20,7 @@
     "@fastify/static": "^8.3.0",
     "@fastify/websocket": "^11.3.7",
     "@tower-magnate/engine": "workspace:*",
+    "@tower-magnate/host": "workspace:*",
     "@tower-magnate/shared": "workspace:*",
     "argon2": "^0.45.2",
     "fastify": "^5.12.8",

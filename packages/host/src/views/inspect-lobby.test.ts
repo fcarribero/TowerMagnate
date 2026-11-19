@@ -13,7 +13,13 @@ describe('inspectLobby', () => {
     const data = inspectLobby(state, main.id);
     expect(InspectDataSchema.parse(data)).toEqual(data);
     const cells = main.x1 - main.x0 + 1;
-    expect(data).toMatchObject({ kind: 'lobby', id: main.id, status: 'ok', level: 1, from: main.x0 });
+    expect(data).toMatchObject({
+      kind: 'lobby',
+      id: main.id,
+      status: 'ok',
+      level: 1,
+      from: main.x0,
+    });
     expect(data).toHaveProperty('upgrades', [
       { id: 'plants', level: 2, maxLevel: 3, nextPrice: lobbyUpgradePrice(cells, 2) },
       { id: 'music', level: 0, maxLevel: 3, nextPrice: lobbyUpgradePrice(cells, 0) },

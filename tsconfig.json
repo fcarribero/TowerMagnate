@@ -2,6 +2,7 @@
   "files": [],
   "references": [
     { "path": "packages/engine" },
+    { "path": "packages/host" },
     { "path": "packages/shared" },
     { "path": "apps/server" },
     { "path": "apps/web" },
