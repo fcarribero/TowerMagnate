@@ -9,6 +9,7 @@ import { medicalGroup } from '../src/groups/medical.mjs';
 import { restaurantGroup } from '../src/groups/restaurant.mjs';
 import { retailGroup } from '../src/groups/retail.mjs';
 import { parkingGroup } from '../src/groups/parking.mjs';
+import { obradorGroup } from '../src/groups/obrador.mjs';
 import { housekeepingGroup } from '../src/groups/housekeeping.mjs';
 import { officeGroup } from '../src/groups/office.mjs';
 import { colorIndex } from '../src/palette.mjs';
@@ -30,6 +31,7 @@ describe('interior props', () => {
       restaurantGroup,
       retailGroup,
       parkingGroup,
+      obradorGroup,
     ])) {
       for (const { id, canvas } of sprites) {
         expect(

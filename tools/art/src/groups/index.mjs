@@ -12,6 +12,7 @@ import { medicalGroup } from './medical.mjs';
 import { restaurantGroup } from './restaurant.mjs';
 import { retailGroup } from './retail.mjs';
 import { parkingGroup } from './parking.mjs';
+import { obradorGroup } from './obrador.mjs';
 import { peopleGroup } from './people.mjs';
 import { rooftopGroup } from './rooftop.mjs';
 import { skyGroup } from './sky.mjs';
@@ -35,6 +36,7 @@ export const groups = [
   restaurantGroup,
   retailGroup,
   parkingGroup,
+  obradorGroup,
   rooftopGroup,
   transportGroup,
   uiGroup,

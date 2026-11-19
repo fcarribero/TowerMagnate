@@ -4,6 +4,7 @@ import { FAST_FOOD_INTERIOR } from './fastFood';
 import { DOUBLE_ROOM_INTERIOR, SINGLE_ROOM_INTERIOR, SUITE_INTERIOR } from './hotel';
 import { HOUSEKEEPING_INTERIOR } from './housekeeping';
 import { MEDICAL_INTERIOR } from './medical';
+import { OBRADOR_INTERIOR } from './obrador';
 import { OFFICE_INTERIOR } from './office';
 import { PARKING_SPACE_INTERIOR } from './parking';
 import { RESTAURANT_INTERIOR } from './restaurant';
@@ -25,6 +26,7 @@ export { RESTAURANT_INTERIOR } from './restaurant';
 export { RETAIL_LINES, retailLineOf } from './retail';
 export { SECURITY_INTERIOR } from './security';
 export { PARKING_SPACE_INTERIOR } from './parking';
+export { OBRADOR_INTERIOR } from './obrador';
 
 /** Every unit type whose furniture is built from a seed, by unit type. */
 export const INTERIOR_SPECS: Readonly<Record<string, InteriorSpec>> = {
@@ -40,6 +42,7 @@ export const INTERIOR_SPECS: Readonly<Record<string, InteriorSpec>> = {
   security: SECURITY_INTERIOR as InteriorSpec,
   'medical-center': MEDICAL_INTERIOR as InteriorSpec,
   'parking-space': PARKING_SPACE_INTERIOR as InteriorSpec,
+  obrador: OBRADOR_INTERIOR as InteriorSpec,
   // A retail shop sells one of four lines, each with its own bare shop: retail-shop (clothes),
   // retail-shop-books, retail-shop-grocery and retail-shop-electronics.
   ...Object.fromEntries(RETAIL_LINES.map((spec) => [spec.unitType, spec as InteriorSpec])),

@@ -676,6 +676,13 @@ describe('migrateState unit evaluation', () => {
     expect(migrated.units.u3?.look).toBe(lookSeed('u3', 10, -1, 0));
   });
 
+  it('gives an obrador saved at version 46 its furniture seed', () => {
+    const tower = createTower(5);
+    tower.units.u3 = newUnit('u3', 'obrador', 10, 2);
+    const migrated = migrateState({ ...JSON.parse(JSON.stringify(tower)), schemaVersion: 46 });
+    expect(migrated.units.u3?.look).toBe(lookSeed('u3', 10, 2, 0));
+  });
+
   it('gives a condo saved at version 40 its furniture seed and leaves other units alone', () => {
     const tower = createTower(5);
     tower.units.u3 = newUnit('u3', 'condo', 10, 2);

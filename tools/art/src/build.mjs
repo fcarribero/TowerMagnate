@@ -20,6 +20,7 @@ const GROUP_NAMES = [
   'restaurant',
   'retail',
   'parking',
+  'obrador',
   'rooftop',
   'sky',
   'ui',

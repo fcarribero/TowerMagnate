@@ -90,6 +90,7 @@ export const SEEDED_LOOK_TYPES: readonly UnitType[] = [
   'security',
   'medical-center',
   'parking-space',
+  'obrador',
 ];
 
 /**
