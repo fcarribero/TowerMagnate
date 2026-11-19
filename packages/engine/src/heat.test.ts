@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { HEAT_NOISE_CELLS, LAST_COLUMN, PERSON_KINDS } from '@tower-magnate/shared';
+import { encodeCleanerTask } from './cleaning';
 import { encodeBuilderTask } from './construction';
+import { isCarryingBag } from './venue-staff';
 import {
   addCarRider,
   addToCell,
@@ -113,13 +115,13 @@ describe('heat maps', () => {
     expect((state.heat?.noise['2'] as number[])[40]).toBeCloseTo(before * 0.5, 3);
   });
 
-  it('keeps noise and dirt per elevator car, and more dirt for a bag', () => {
+  it('keeps noise and dirt per elevator car', () => {
     const state = { step: 0 } as TowerState;
-    addCarRider(state, 's1', 1, false);
-    addCarRider(state, 's1', 1, true);
+    addCarRider(state, 's1', 1);
+    addCarRider(state, 's1', 1);
     const car = carLevels(state, 's1', 1);
     expect(car.noise).toBeCloseTo(0.6);
-    expect(car.dirt).toBeCloseTo(0.2 + 1);
+    expect(car.dirt).toBeCloseTo(0.2);
     expect(carLevels(state, 's1', 0)).toEqual({ noise: 0, dirt: 0 });
   });
 
@@ -131,7 +133,7 @@ describe('heat maps', () => {
       sites: {},
       people: { id: [], level: [], column: [], trip: [], kind: [] },
     } as unknown as TowerState;
-    addCarRider(state, 's1', 0, true);
+    addCarRider(state, 's1', 0);
     const start = carLevels(state, 's1', 0).dirt;
     for (let minute = 1; minute <= 12 * 60; minute++) {
       state.step = minute * 6;
@@ -142,11 +144,11 @@ describe('heat maps', () => {
 
   it('makes a worker in a passenger car noisier than a plain rider', () => {
     const state = { step: 0 } as TowerState;
-    addCarRider(state, 's1', 0, false, true);
-    addCarRider(state, 's2', 0, true, true);
+    addCarRider(state, 's1', 0, true);
+    addCarRider(state, 's2', 0);
     expect(carLevels(state, 's1', 0).noise).toBeCloseTo(0.5);
+    expect(carLevels(state, 's2', 0).noise).toBeCloseTo(0.3);
     expect(carLevels(state, 's1', 0).dirt).toBeCloseTo(0.1);
-    expect(carLevels(state, 's2', 0).dirt).toBeCloseTo(0.1 + 1);
   });
 
   it('has a construction site speak on its own levels and on the levels above and below', () => {
@@ -185,6 +187,26 @@ describe('heat maps', () => {
     expect(valueAt(noise, 6, 42)).toBeCloseTo(5 * fade);
     expect(valueAt(noise, 7, 42)).toBe(0);
     expect(valueAt(noise, 3, 42)).toBe(0);
+  });
+
+  it('adds no dirt for a bag being carried', () => {
+    const state = {
+      step: 6,
+      units: {},
+      grid: { levels: { '2': { structure: [{ kind: 'floor', x0: 0, x1: 60 }], occupants: [] } } },
+      sites: {},
+      people: {
+        id: [1],
+        level: [2],
+        column: [30],
+        trip: [encodeCleanerTask({ phase: 'carrying', target: 2, shift: 0 })],
+        homeUnit: [0],
+        kind: [PERSON_KINDS.indexOf('cleaner')],
+      },
+    } as unknown as TowerState;
+    expect(isCarryingBag(state.people, 0)).toBe(true);
+    heatSystem({ state });
+    expect(valueAt(state.heat?.dirt ?? {}, 2, 30)).toBe(0);
   });
 
   it('keeps dirt as it is and holds no heat where there is no floor', () => {

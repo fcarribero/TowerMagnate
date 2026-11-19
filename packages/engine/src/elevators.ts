@@ -18,7 +18,6 @@ import { SECONDS_PER_STEP, STEPS_PER_DAY } from './clock';
 import { addCarRider, carLevels, stepsFelt, stressPerMinute } from './heat';
 import { parsePersonId, slotOfPerson } from './people';
 import { addSurroundings, mindsNoiseAndWalks } from './trip-ledger';
-import { isCarryingBag } from './venue-staff';
 import { boardFromQueue, hallCallAge, queueLength } from './elevator-queues';
 import type { SimulationSystem, StepContext } from './step';
 import { alightRider, boardRider, isWorker, realignQueue, ridersBroughtBy } from './trek';
@@ -260,7 +259,6 @@ function boardPeople(
       context.state,
       shaft.id,
       carIndex,
-      slot >= 0 && isCarryingBag(pool, slot),
       shaft.type !== 'service' && slot >= 0 && isWorker(pool, slot),
     );
   }

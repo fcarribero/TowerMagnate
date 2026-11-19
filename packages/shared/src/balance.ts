@@ -804,16 +804,15 @@ export const PERSON_NOISE_CELL = 0.02;
 export const PERSON_NOISE_STAND_MINUTE = 0.05;
 /** A builder leaves this much dirt in each cell they walk into; nobody else dirties by walking. */
 export const PERSON_DIRT_CELL = 0.005;
-/** A garbage bag, on the floor or carried, adds this much dirt per game minute at its own cell. */
+/** A garbage pile adds this much dirt per game minute at its own cell; a carried bag adds none. */
 export const BAG_DIRT_MINUTE = 1.5;
-/** Elevator cars: noise and dirt per rider that boards, and the extra dirt of a rider with a bag. */
+/** Elevator cars: noise and dirt per rider that boards. */
 export const CAR_NOISE_RIDER = 0.3;
 export const CAR_DIRT_RIDER = 0.1;
 /** Game hours for the dirt in an elevator car to fall by half when nobody adds more. */
 export const CAR_DIRT_HALF_LIFE_HOURS = 12;
 /** What is left of a car's dirt after one game minute. */
 export const CAR_DIRT_DECAY_MINUTE = 0.5 ** (1 / (CAR_DIRT_HALF_LIFE_HOURS * 60));
-export const CAR_DIRT_BAG = 1;
 /**
  * The noise a worker adds to a standard or express car on top of a plain rider, so a worker counts
  * 0.5: people do not like to share a car with builders, cleaners or guards (service units 2.7).

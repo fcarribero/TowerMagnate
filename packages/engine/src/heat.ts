@@ -3,7 +3,6 @@ import {
   BAG_DIRT_MINUTE,
   CALM_BELOW,
   CALM_ONE_IN,
-  CAR_DIRT_BAG,
   CAR_DIRT_DECAY_MINUTE,
   CAR_DIRT_RIDER,
   CAR_NOISE_RIDER,
@@ -22,7 +21,6 @@ import {
   UNIT_CATALOG,
   UNIT_NOISE,
   type HeatMaps,
-  type PersonPool,
   type TowerState,
   type Unit,
 } from '@tower-magnate/shared';
@@ -30,7 +28,6 @@ import { absorbNoise } from './comfort-units';
 import { crewNoiseFactor, crewOf, decodeBuilderTask, isBuilder } from './construction';
 import { homesInUse, isUnitInUse } from './unit-use';
 import { unitNumber } from './units';
-import { isCarryingBag } from './venue-staff';
 
 // Constants read in hot paths are copied once: an imported binding is looked up on every use.
 const COLUMNS = LAST_COLUMN + 1;
@@ -189,7 +186,10 @@ function sitesBeingBuilt(state: TowerState): Map<number, number> {
   return working;
 }
 
-/** What the units in use and the bags put into the maps in one game minute. */
+/**
+ * What the units in use and the garbage piles put into the maps in one game minute. Bags being
+ * carried add no dirt.
+ */
 function emitMinute(state: TowerState, built: Built): void {
   const heat = heatOf(state);
   const homes = homesInUse(state);
@@ -230,20 +230,6 @@ function emitMinute(state: TowerState, built: Built): void {
       const amount = (inside ? CONSTRUCTION_NOISE : CONSTRUCTION_NOISE_ADJACENT) * share;
       addWithFade(heat.noise, level, site.x, last, amount, NOISE_CELLS, built);
     }
-  }
-  const pool: PersonPool = state.people;
-  for (let slot = 0; slot < pool.id.length; slot++) {
-    if (!isCarryingBag(pool, slot)) continue;
-    const column = pool.column[slot] as number;
-    addWithFade(
-      heat.dirt,
-      pool.level[slot] as number,
-      column,
-      column,
-      BAG_DIRT_MINUTE,
-      HEAT_BAG_DIRT_CELLS,
-      built,
-    );
   }
 }
 
@@ -295,22 +281,15 @@ export function addPersonDirt(state: TowerState, level: number, column: number, 
 }
 
 /**
- * A rider boarded the car; a rider with a bag dirties it more. `worker` is true for a worker in a
- * standard or express car, who adds more noise than a plain rider.
+ * A rider boarded the car. `worker` is true for a worker in a standard or express car, who adds
+ * more noise than a plain rider. A bag being carried adds no dirt.
  */
-export function addCarRider(
-  state: TowerState,
-  shaftId: string,
-  car: number,
-  bag: boolean,
-  worker = false,
-): void {
+export function addCarRider(state: TowerState, shaftId: string, car: number, worker = false): void {
   const pair = (heatOf(state).cars[shaftId] ??= []);
   while (pair.length < (car + 1) * 2) pair.push(0);
   const noise = CAR_NOISE_RIDER + (worker ? CAR_NOISE_WORKER : 0);
-  const dirt = CAR_DIRT_RIDER + (bag ? CAR_DIRT_BAG : 0);
   pair[car * 2] = (pair[car * 2] as number) + noise;
-  pair[car * 2 + 1] = (pair[car * 2 + 1] as number) + dirt;
+  pair[car * 2 + 1] = (pair[car * 2 + 1] as number) + CAR_DIRT_RIDER;
 }
 
 export function carLevels(state: TowerState, shaftId: string, car: number) {
