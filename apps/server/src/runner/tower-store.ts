@@ -1,13 +1,9 @@
 import { createTower } from '@tower-magnate/engine';
-import type { TowerState } from '@tower-magnate/shared';
+import type { TowerStore } from '@tower-magnate/host';
 import type pg from 'pg';
 import type { SnapshotRepository, TowerId } from '../snapshots';
 
-export interface TowerStore {
-  /** The latest saved state, a fresh tower from its seed when never saved, or null when unknown. */
-  load(towerId: TowerId): Promise<TowerState | null>;
-  save(towerId: TowerId, state: TowerState): Promise<void>;
-}
+export type { TowerStore };
 
 export function createTowerStore(pool: pg.Pool, snapshots: SnapshotRepository): TowerStore {
   return {

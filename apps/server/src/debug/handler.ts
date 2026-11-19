@@ -1,8 +1,17 @@
 import { serverMessage, type CommandResult } from '@tower-magnate/shared';
 import { sendError, sendMessage, type DebugFrames } from '../gateway';
 import type { TowerRunner, TowerChange } from '../runner';
-import { fastForward, forceEvent, loadScenario, setClock, setMoney, DebugRefusal } from './changes';
-import { debugTypeOf, DebugMessageSchema, type DebugMessage } from './messages';
+import {
+  DebugMessageSchema,
+  DebugRefusal,
+  debugTypeOf,
+  fastForward,
+  forceEvent,
+  loadScenario,
+  setClock,
+  setMoney,
+  type DebugMessage,
+} from '@tower-magnate/host';
 
 export interface DebugFramesOptions {
   runner: TowerRunner;

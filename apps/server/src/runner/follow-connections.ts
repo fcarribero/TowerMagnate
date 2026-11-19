@@ -1,6 +1,6 @@
 import type { FastifyBaseLogger } from 'fastify';
 import type { ConnectionRegistry } from '../gateway';
-import type { TowerRunner } from './tower-runner';
+import type { TowerRunner } from '@tower-magnate/host';
 
 /** Runs a tower while its owner has a socket open and pauses it when the last one closes. */
 export function followConnections(

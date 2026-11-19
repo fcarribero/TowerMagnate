@@ -19,8 +19,8 @@ import {
   type UnitId,
 } from '@tower-magnate/shared';
 import { beforeEach, describe, expect, it } from 'vitest';
-import { TowerRunner } from '../runner';
-import type { TowerStore } from '../runner';
+import { TowerRunner } from '../runner/tower-runner';
+import type { TowerStore } from '../runner/tower-store';
 import { DebugRefusal, fastForward, forceEvent, loadScenario, setClock, setMoney } from './changes';
 
 class MemoryStore implements TowerStore {

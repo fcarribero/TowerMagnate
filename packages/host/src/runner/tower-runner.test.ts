@@ -314,6 +314,28 @@ describe('tower runner', () => {
     await runner.setInfiniteMoney('1', false);
     expect(runner.stateOf('1')?.money).toBe(real);
   });
+
+  it('savedStateOf returns the real money while infinite money is on', async () => {
+    store.towers.set('1', { ...createTower(1), money: 5_000 });
+    await runner.resume('1');
+    await runner.setInfiniteMoney('1', true);
+
+    expect(runner.stateOf('1')?.money).toBe(MONEY_CAP);
+    expect((await runner.savedStateOf('1'))?.money).toBe(5_000);
+  });
+
+  it('savedStateOf does not call the store save', async () => {
+    await runner.resume('1');
+    const saves = store.saves.length;
+
+    await runner.savedStateOf('1');
+
+    expect(store.saves.length).toBe(saves);
+  });
+
+  it('savedStateOf is undefined for a tower that is not running', async () => {
+    expect(await runner.savedStateOf('1')).toBeUndefined();
+  });
 });
 
 describe('tower runner timer', () => {

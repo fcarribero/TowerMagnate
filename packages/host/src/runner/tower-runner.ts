@@ -6,9 +6,10 @@ import {
   type QueuedCommand,
   type TowerState,
 } from '@tower-magnate/shared';
-import type { TowerId } from '../snapshots';
 import { stepsForElapsed } from './real-time';
 import type { TowerStore } from './tower-store';
+
+type TowerId = string;
 
 export const TICK_INTERVAL_MS = 100;
 
@@ -96,6 +97,19 @@ export class TowerRunner {
   /** Brings a running tower up to the current time and saves it without stopping it. */
   save(towerId: TowerId): Promise<void> {
     return this.inOrder(towerId, () => this.saveRunning(towerId));
+  }
+
+  /** The state a save would write, with commands applied and the clock caught up. Does not call the store. */
+  savedStateOf(towerId: TowerId): Promise<TowerState | undefined> {
+    return this.inOrder(towerId, async () => {
+      const tower = this.running.get(towerId);
+      if (!tower) {
+        return undefined;
+      }
+      this.applyPending(tower);
+      this.catchUp(tower);
+      return this.savedState(tower);
+    });
   }
 
   /** Saves every running tower. A failed save is reported and does not stop the others. */
@@ -353,10 +367,13 @@ export class TowerRunner {
     return this.lastLayoutVersion;
   }
 
-  private inOrder(towerId: TowerId, operation: () => Promise<void>): Promise<void> {
+  private inOrder<T>(towerId: TowerId, operation: () => Promise<T>): Promise<T> {
     const previous = this.queues.get(towerId) ?? Promise.resolve();
     const next = previous.then(operation);
-    const settled = next.catch(() => {});
+    const settled: Promise<void> = next.then(
+      () => {},
+      () => {},
+    );
     this.queues.set(towerId, settled);
     void settled.then(() => {
       if (this.queues.get(towerId) === settled) {

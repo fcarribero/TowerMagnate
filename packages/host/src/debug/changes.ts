@@ -19,7 +19,7 @@ import {
 } from '@tower-magnate/engine';
 import { eventShowcaseTower, verticalSliceTower } from '@tower-magnate/engine/testing';
 import type { ErrorCode, TowerState, UnitId } from '@tower-magnate/shared';
-import type { TowerChange } from '../runner';
+import type { TowerChange } from '../runner/tower-runner';
 import { MAX_CLOCK_JUMP_DAYS, type DebugEventKind, type DebugScenario } from './messages';
 
 /** Why a debug change was refused: an engine error code, or an event the engine does not have yet. */
