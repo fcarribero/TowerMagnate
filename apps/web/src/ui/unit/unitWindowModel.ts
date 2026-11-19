@@ -749,10 +749,10 @@ const UNIT_WORDS: Readonly<
   },
 };
 
-/** The main cause of the occupants' stress, said as what is wrong with the place. */
-function causeText(parts: EvaluationPartsView, far: StringKey): string {
+/** The main cause of the occupants' stress, said as what is wrong with the place; null when none is known. */
+function causeText(parts: EvaluationPartsView, far: StringKey): string | null {
   const cause = parts.mainCause;
-  if (cause === null || cause === 'calm') return t('window.unit.reason.stressful');
+  if (cause === null || cause === 'calm') return null;
   if (cause === 'walk') return t(far);
   return t(CAUSE_KEYS[cause]);
 }
@@ -782,7 +782,10 @@ export function evaluationReasons(
   if (words.dear !== null && details.price > parts.fairPrice) bad.push(t(words.dear));
   else if (words.cheap !== null && details.price < parts.fairPrice) good.push(t(words.cheap));
   if (parts.occupantScore < CALM_WORKERS_SCORE) good.push(t('window.unit.reason.calm'));
-  else bad.push(causeText(parts, words.far));
+  else {
+    const cause = causeText(parts, words.far);
+    if (cause !== null) bad.push(cause);
+  }
   if (parts.parking === 'has') good.push(t('window.unit.reason.parking'));
   else if (parts.parking === 'missing') bad.push(t('window.unit.reason.noParking'));
   return { good, bad };

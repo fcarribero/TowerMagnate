@@ -553,7 +553,7 @@ describe('evaluation reasons of an office', () => {
     expect(causeOf({ mainCause: 'ride' })).toEqual(['Viajes en ascensor muy largos']);
     expect(causeOf({ mainCause: 'queue' })).toEqual(['Colas de ascensor llenas']);
     expect(causeOf({ mainCause: 'noRoute' })).toEqual(['Difícil de llegar']);
-    expect(causeOf({ mainCause: null })).toEqual(['Ambiente estresante']);
+    expect(causeOf({ mainCause: null })).toEqual([]);
   });
 
   it('turns the reasons into tooltip lines with no headings, + in green and - in red', () => {
@@ -639,7 +639,7 @@ describe('evaluation reasons of other units', () => {
     );
   });
 
-  it('lists a stressed shop with no cause named', () => {
+  it('lists nothing for a stressed shop with no cause named', () => {
     const shop = {
       type: 'retail-shop',
       details: {
@@ -650,7 +650,7 @@ describe('evaluation reasons of other units', () => {
     };
     expect(evaluationReasons(shop as Pick<UnitInspect, 'type' | 'details'>)).toEqual({
       good: [],
-      bad: ['Ambiente estresante'],
+      bad: [],
     });
   });
 });

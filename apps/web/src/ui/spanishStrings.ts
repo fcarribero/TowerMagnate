@@ -210,7 +210,6 @@ export const SPANISH_STRINGS = {
   'window.unit.reason.far.condo': 'Departamento demasiado lejos',
   'window.unit.reason.far.room': 'Habitación demasiado lejos',
   'window.unit.reason.calm': 'Ambiente tranquilo',
-  'window.unit.reason.stressful': 'Ambiente estresante',
   'window.unit.reason.parking': 'Con cochera',
   'window.unit.reason.noParking': 'Sin cochera',
   'window.unit.reason.cause.wait': 'Demasiada espera de ascensor',
