@@ -12,7 +12,8 @@ import { StressCrowd } from './stressCrowd';
 /**
  * Render stress page: a full tower with a made-up crowd fed straight into the
  * stage, with no server. Open /perf.html on the dev server. Query parameters:
- * people (3000), floors (100), shafts (8), zoom (1), pan (0 or 1), warmup in seconds (10).
+ * people (3000), floors (100), shafts (8), zoom (1), pan (0 or 1), warmup in seconds (10),
+ * inside (0 or 1), night (0 or 1), looks (1 or 0).
  */
 
 const OFFICE_WIDTH_TILES = 9;
@@ -42,6 +43,12 @@ const settings = {
   zoom: numberParam('zoom', 1),
   pan: params.get('pan') === '1',
   warmUpMs: numberParam('warmup', 10) * 1000,
+  /** inside=1 draws the offices with someone inside (lit) instead of closed. */
+  inside: params.get('inside') === '1',
+  /** looks=0 draws the offices from their fixed sprites instead of seeded furniture. */
+  looks: params.get('looks') !== '0',
+  /** night=1 draws the tower at night. */
+  night: params.get('night') === '1',
 };
 
 function offices(floors: number): UnitView[] {
@@ -57,6 +64,9 @@ function offices(floors: number): UnitView[] {
         price: 0,
         occupied: true,
         variant: 'occupied',
+        // Every office gets its own seeded furniture, as built offices do in a game.
+        ...(settings.looks ? { look: Math.imul(level * 1000 + x + 1, 2654435761) >>> 0 } : {}),
+        ...(settings.inside ? { inside: true } : {}),
       });
     }
   }
@@ -98,7 +108,7 @@ async function start(): Promise<void> {
   stage.showUnits({
     units: offices(settings.floors),
     transports: [],
-    time: 'day',
+    time: settings.night ? 'night' : 'day',
     openVenues: ALL_VENUES_OPEN,
   });
   const crowd = new StressCrowd({

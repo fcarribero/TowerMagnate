@@ -13,7 +13,7 @@ import { hashState } from '../hash';
 import { createTower } from '../state';
 import { step } from '../step';
 import { buildTower, plainTowerPlan } from '../testing';
-import { newUnit } from '../units';
+import { lookSeed, newUnit } from '../units';
 
 function towerWithMainLobby(x0: number, x1: number): TowerState {
   const tower = createTower(1);
@@ -160,6 +160,7 @@ describe('buildUnit', () => {
       hotel: null,
       evaluation: null,
       venue: null,
+      look: lookSeed('u1', 3, 2, 500),
     });
     expect(state.units.u1?.price).toBe(state.units.u1?.appraisal);
     expect(state.nextId).toBe(2);

@@ -92,6 +92,8 @@ export const UnitViewSchema = z.object({
   serving: z.literal(true).optional(),
   /** Black garbage bags piled in the venue after closing; left out when there are none. */
   garbage: z.int().min(1).optional(),
+  /** Seed the client builds the unit's furniture from; left out for units drawn from fixed sprites. */
+  look: z.int().min(0).max(0xffffffff).optional(),
 });
 
 export const TransportViewSchema = z.object({

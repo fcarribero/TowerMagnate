@@ -316,3 +316,22 @@ export function generateOfficeLayout(
   const props = [...room.props].sort((a, b) => order(a) - order(b) || a.x - b.x);
   return { seed: seed >>> 0, template: template.id, props };
 }
+
+const cache = new Map<string, OfficeLayout>();
+/** Layouts kept before the cache starts over; far more than the offices a tower can hold. */
+const CACHE_LIMIT = 8192;
+
+/** `generateOfficeLayout`, remembered, so redrawing a tower does not roll every office again. */
+export function officeLayoutFor(
+  seed: number,
+  template: OfficeTemplate = OFFICE_TEMPLATES[0] as OfficeTemplate,
+): OfficeLayout {
+  const key = `${template.id}:${seed >>> 0}`;
+  let layout = cache.get(key);
+  if (layout === undefined) {
+    if (cache.size >= CACHE_LIMIT) cache.clear();
+    layout = generateOfficeLayout(seed, template);
+    cache.set(key, layout);
+  }
+  return layout;
+}

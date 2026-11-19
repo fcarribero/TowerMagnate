@@ -5,6 +5,8 @@ import { CulledRows } from './culledRows';
 import type { LevelRange, WorldRect } from './camera';
 import { levelTop } from './levels';
 import { FLOOR_HEIGHT, SLAB_HEIGHT } from './metrics';
+import { officeLayoutFor } from './officeLayout';
+import { buildOfficeInterior } from './officeView';
 import { checkerTexture } from './overlayChecker';
 import { overlayColorOf, transportOverlayColor, type OverlayId } from './overlayColors';
 import type { SpriteRegistry } from './spriteRegistry';
@@ -90,6 +92,10 @@ interface DrawnUnit {
   /** The pile of garbage bags on the floor of the bottom level; null when there is none. */
   garbage: Sprite | null;
   construction: Construction | null;
+  /** Seeded furniture drawn right above the bare-room sprite; null for units drawn from one sprite. */
+  interior: Container | null;
+  /** What `interior` shows, so it is rebuilt only when that changes. */
+  interiorKey: string;
 }
 
 /**
@@ -172,6 +178,7 @@ export class UnitLayer {
         entry.checker?.destroy();
         entry.sticker?.destroy();
         entry.garbage?.destroy();
+        entry.interior?.destroy({ children: true });
         this.drawn.delete(id);
       }
     }
@@ -186,11 +193,13 @@ export class UnitLayer {
     }
     this.showConstruction(existing, drawing);
     const container = this.containerFor(drawing.bottomIndex, drawing.front === true);
-    if (existing.container !== container) {
+    const moved = existing.container !== container;
+    if (moved) {
       container.addChild(existing.sprite);
       existing.container = container;
     }
     this.place(existing.sprite, drawing);
+    this.showInterior(existing, drawing, moved);
     this.showChecker(existing, drawing);
     this.showSticker(existing, drawing);
     this.showGarbage(existing, drawing);
@@ -214,7 +223,10 @@ export class UnitLayer {
       sticker: null,
       garbage: null,
       construction: null,
+      interior: null,
+      interiorKey: '',
     };
+    this.showInterior(entry, drawing, false);
     this.showChecker(entry, drawing);
     this.showSticker(entry, drawing);
     this.showGarbage(entry, drawing);
@@ -277,6 +289,35 @@ export class UnitLayer {
     build.mask.destroy();
     build.site.destroy();
     entry.construction = null;
+  }
+
+  /**
+   * Seeded furniture sits right above the bare-room sprite, under the checker, sign and pile.
+   * It is rebuilt when its seed, state, time or place changes, and moved with its sprite.
+   */
+  private showInterior(entry: DrawnUnit, drawing: UnitDrawing, moved: boolean): void {
+    const interior = drawing.interior;
+    if (interior === undefined) {
+      entry.interior?.destroy({ children: true });
+      entry.interior = null;
+      entry.interiorKey = '';
+      return;
+    }
+    const key = `${interior.seed}|${interior.state}|${interior.time}|${drawing.x},${drawing.y}`;
+    if (entry.interior !== null && entry.interiorKey === key && !moved) {
+      return;
+    }
+    if (entry.interiorKey !== key) {
+      entry.interior?.destroy({ children: true });
+      entry.interior = buildOfficeInterior(this.sprites, officeLayoutFor(interior.seed), {
+        state: interior.state,
+        time: interior.time,
+      });
+      entry.interior.position.set(drawing.x, drawing.y);
+      entry.interiorKey = key;
+    }
+    const view = entry.interior as Container;
+    entry.container.addChildAt(view, entry.container.getChildIndex(entry.sprite) + 1);
   }
 
   /** The checker sits right above its sprite, so it is culled with it. */

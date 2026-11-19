@@ -26,7 +26,7 @@ import type { ScheduledHook } from './scheduler';
 import type { SimulationSystem, StepContext } from './step';
 import { cancelTrek, isOnTrek, startTrek, trekPhaseAt, type TrekPlace } from './trek';
 import { computeAppraisal, startAtAppraisal } from './appraisal';
-import { newUnit, unitNumber } from './units';
+import { newUnit, unitNumber, withLook } from './units';
 import { dither } from './heat';
 
 const BUILDER_KIND = PERSON_KINDS.indexOf('builder');
@@ -79,12 +79,12 @@ export function completeSite(state: TowerState, id: UnitId): void {
   const site = state.sites[id];
   if (!site) return;
   Reflect.deleteProperty(state.sites, id);
-  const built: Unit = {
+  const built: Unit = withLook({
     ...newUnit(id, site.type, site.x, site.level),
     paid: site.paid,
     placedAtStep: state.step,
     listed: site.listed ?? newUnit(id, site.type, site.x, site.level).listed,
-  };
+  });
   startAtAppraisal(state, built);
   if (site.price !== undefined) built.price = site.price;
   state.units[id] = built;

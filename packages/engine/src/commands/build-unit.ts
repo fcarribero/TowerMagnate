@@ -24,7 +24,7 @@ import { isBuiltByCrew } from '../construction';
 import { addPeopleForUnit } from '../people';
 import { addCrew } from '../venue-staff';
 import { computeAppraisal, startAtAppraisal } from '../appraisal';
-import { newUnit } from '../units';
+import { newUnit, withLook } from '../units';
 import { bombLockError, limitError, starLockError } from './unit-limits';
 import {
   columnRuns,
@@ -206,11 +206,11 @@ export const buildUnit: CommandHandler<'buildUnit'> = (context, command) => {
     };
     return { ok: true, cost, refund: 0, events: [] };
   }
-  const built: Unit = {
+  const built: Unit = withLook({
     ...newUnit(id, definition.type, x, level),
     paid: cost,
     placedAtStep: state.step,
-  };
+  });
   startAtAppraisal(state, built);
   state.units[id] = built;
   if (definition.type === 'security') addPeopleForUnit(state, id);

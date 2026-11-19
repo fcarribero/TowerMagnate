@@ -30,19 +30,62 @@ export interface OfficeViewOptions {
   shadeColor?: number;
 }
 
+export interface Rect {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+/** The room minus the holes, as rectangles: one band per run of rows that the same holes cross. */
+export function rectsAround(room: Rect, holes: readonly Rect[]): Rect[] {
+  const edges = new Set([room.y, room.y + room.height]);
+  for (const hole of holes) {
+    edges.add(hole.y);
+    edges.add(hole.y + hole.height);
+  }
+  const rows = [...edges]
+    .filter((y) => y >= room.y && y <= room.y + room.height)
+    .sort((a, b) => a - b);
+  const rects: Rect[] = [];
+  for (let i = 0; i + 1 < rows.length; i++) {
+    const top = rows[i] as number;
+    const bottom = rows[i + 1] as number;
+    const crossing = holes
+      .filter((hole) => hole.y <= top && hole.y + hole.height >= bottom)
+      .sort((a, b) => a.x - b.x);
+    let x = room.x;
+    for (const hole of crossing) {
+      if (hole.x > x) rects.push({ x, y: top, width: hole.x - x, height: bottom - top });
+      x = Math.max(x, hole.x + hole.width);
+    }
+    const right = room.x + room.width;
+    if (x < right) rects.push({ x, y: top, width: right - x, height: bottom - top });
+  }
+  return rects;
+}
+
+const ROOM_RECT: Rect = { x: 0, y: 0, width: OFFICE_ROOM.width, height: OFFICE_ROOM.height };
+const GLASS: readonly Rect[] = OFFICE_WINDOWS.map((window) => ({
+  x: window.left,
+  y: window.top,
+  width: window.width,
+  height: window.height,
+}));
+/** The shade of a room whose glass is open: everything but the window glass. */
+const SHADE_AROUND_GLASS = rectsAround(ROOM_RECT, GLASS);
+
 /**
- * The office room with its props, curtains and shade, as a container the size of the room.
- * An empty office shows only the bare room. Window glass stays transparent, so whatever is
- * behind the container (the sky) shows through, and the shade never covers open glass.
+ * What goes on top of the bare office room: props, curtains and shade, in room pixels. An empty
+ * office has no props or curtains. Window glass stays transparent, so the sky behind the unit
+ * shows through, and the shade never covers open glass.
  */
-export function buildOfficeView(
+export function buildOfficeInterior(
   registry: SpriteRegistry,
   layout: OfficeLayout,
   { state, time, shade = DEFAULT_OFFICE_SHADE, shadeColor = OFFICE_SHADE_COLOR }: OfficeViewOptions,
 ): Container {
   const room = new Container();
-  room.addChild(new Sprite(registry.texture(BASE_SPRITE as SpriteId)));
-
   if (state !== 'empty') {
     const occupied = state === 'occupied';
     for (const prop of layout.props) {
@@ -70,16 +113,26 @@ export function buildOfficeView(
 
   const alpha = shade[state][time];
   if (alpha > 0) {
-    // Closed curtains cover the glass, so they are shaded with the room; open glass is cut out.
-    const glassOpen = state !== 'closed';
+    // Closed curtains cover the glass, so they are shaded with the room.
+    const rects = state === 'closed' ? [ROOM_RECT] : SHADE_AROUND_GLASS;
     const overlay = new Graphics();
-    overlay.rect(0, 0, OFFICE_ROOM.width, OFFICE_ROOM.height).fill({ color: shadeColor, alpha });
-    if (glassOpen) {
-      for (const window of OFFICE_WINDOWS) {
-        overlay.rect(window.left, window.top, window.width, window.height).cut();
-      }
+    for (const rect of rects) {
+      overlay.rect(rect.x, rect.y, rect.width, rect.height);
     }
+    overlay.fill({ color: shadeColor, alpha });
     room.addChild(overlay);
   }
+  return room;
+}
+
+/** The bare office room with its interior on top, as a container the size of the room. */
+export function buildOfficeView(
+  registry: SpriteRegistry,
+  layout: OfficeLayout,
+  options: OfficeViewOptions,
+): Container {
+  const room = new Container();
+  room.addChild(new Sprite(registry.texture(BASE_SPRITE as SpriteId)));
+  room.addChild(buildOfficeInterior(registry, layout, options));
   return room;
 }

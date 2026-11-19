@@ -111,6 +111,11 @@ export interface Unit {
   venue: VenueDay | null;
   /** Level of each upgrade bought for this unit, by upgrade id. Missing means every upgrade is at 0. */
   upgrades?: Record<string, number>;
+  /**
+   * Seed the client builds the furniture of the unit from, a 32-bit unsigned integer. Only the
+   * seed is stored; the layout is rebuilt from it. Set on offices; missing on every other unit.
+   */
+  look?: number;
 }
 
 /**

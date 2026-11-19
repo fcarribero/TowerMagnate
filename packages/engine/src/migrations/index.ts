@@ -47,7 +47,14 @@ import {
 import { defaultSchedule, defaultStops } from '../commands/shafts';
 import { STEPS_PER_DAY } from '../clock';
 import { SCHEMA_VERSION } from '../state';
-import { isHotelRoomType, isVenueType, newHotelRoom, newVenueDay } from '../units';
+import {
+  SEEDED_LOOK_TYPES,
+  isHotelRoomType,
+  isVenueType,
+  lookSeed,
+  newHotelRoom,
+  newVenueDay,
+} from '../units';
 import { isRecord, StateMigrationError } from './errors';
 import {
   readActiveEvents,
@@ -109,7 +116,33 @@ const MIGRATIONS: readonly Migration[] = [
   addConstructionSites,
   addVenueGarbage,
   addFreePrices,
+  addOfficeLooks,
 ];
+
+/** Version 40 gives every office a furniture seed, from where and when it was built. */
+function addOfficeLooks(raw: Record<string, unknown>): Record<string, unknown> {
+  if (!isRecord(raw.units)) {
+    return { ...raw, schemaVersion: 40 };
+  }
+  const units: Record<string, unknown> = {};
+  for (const [id, unit] of Object.entries(raw.units)) {
+    units[id] =
+      isRecord(unit) &&
+      (SEEDED_LOOK_TYPES as readonly unknown[]).includes(unit.type) &&
+      unit.look === undefined
+        ? {
+            ...unit,
+            look: lookSeed(
+              String(unit.id),
+              Number(unit.x),
+              Number(unit.level) as Level,
+              Number(unit.placedAtStep),
+            ),
+          }
+        : unit;
+  }
+  return { ...raw, schemaVersion: 40, units };
+}
 
 /** Version 2 records each unit's price level, what was paid for it and when it was placed. */
 function addUnitPurchaseRecord(raw: Record<string, unknown>): Record<string, unknown> {
@@ -694,7 +727,9 @@ function isUnit(value: unknown): value is Unit {
     (value.hotel === null || isHotelRoom(value.hotel)) &&
     (value.sale === null || isCondoSale(value.sale)) &&
     (value.evaluation === null || isTenantEvaluation(value.evaluation)) &&
-    (value.venue === null || isVenueDay(value.venue))
+    (value.venue === null || isVenueDay(value.venue)) &&
+    (value.look === undefined ||
+      (isNonNegativeInteger(value.look) && (value.look as number) <= 0xffffffff))
   );
 }
 
@@ -817,6 +852,7 @@ function readUnits(raw: unknown): Record<UnitId, Unit> {
       hotel: unit.hotel === null ? null : { ...unit.hotel },
       evaluation: unit.evaluation,
       venue: readVenueDay(unit.venue),
+      ...(unit.look !== undefined ? { look: unit.look } : {}),
     };
   }
   return units;

@@ -31,6 +31,26 @@ describe('planUnit', () => {
     expect(occupied?.variant).toEqual({ state: 'occupied', time: 'night' });
   });
 
+  it('draws an office with a look as the bare lit room with its seeded interior on top', () => {
+    const office = { ...base, type: 'office' as const, look: 77 };
+    const closed = planUnit({ ...office, occupied: true, variant: 'occupied' }, 'night');
+    const working = planUnit(
+      { ...office, occupied: true, variant: 'occupied', inside: true },
+      'day',
+    );
+    expect(closed?.variant).toEqual({ state: 'empty', time: 'day' });
+    expect(closed?.interior).toEqual({ seed: 77, state: 'closed', time: 'night' });
+    expect(working?.interior).toEqual({ seed: 77, state: 'occupied', time: 'day' });
+    expect(planUnit(office, 'day')?.interior).toEqual({ seed: 77, state: 'empty', time: 'day' });
+  });
+
+  it('keeps the fixed sprites for an office with no look and for a site being built', () => {
+    expect(planUnit({ ...base, type: 'office' }, 'day')?.interior).toBeUndefined();
+    const site = planUnit({ ...base, type: 'office', look: 77, construction: 40 }, 'day');
+    expect(site?.interior).toBeUndefined();
+    expect(site?.variant).toEqual({ state: 'empty', time: 'day' });
+  });
+
   it('draws a condo or hotel room with someone asleep as sleeping, day or night', () => {
     for (const type of ['condo', 'single-room', 'double-room', 'suite'] as const) {
       const unit = { ...base, type, occupied: true, variant: 'sleeping' as const, inside: true };

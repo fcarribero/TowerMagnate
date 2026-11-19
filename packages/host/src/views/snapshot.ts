@@ -243,6 +243,7 @@ function unitView(
     ...(unit.venue && customersInsideVenue(state, Number(unit.id.slice(1))) > 0
       ? { serving: true as const }
       : {}),
+    ...(unit.look !== undefined ? { look: unit.look } : {}),
   };
 }
 

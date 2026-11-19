@@ -78,6 +78,30 @@ export function newUnit(id: EntityId, type: UnitType, x: number, level: Level): 
   };
 }
 
+/** Unit types whose furniture the client builds from a seed (`Unit.look`). */
+export const SEEDED_LOOK_TYPES: readonly UnitType[] = ['office'];
+
+/**
+ * The furniture seed of a unit: an FNV-1a hash of where and when it was built, so it does not
+ * draw from the tower's random generator and every game gets its own looks.
+ */
+export function lookSeed(id: EntityId, x: number, level: Level, step: number): number {
+  const text = `${id}:${x}:${level}:${step}`;
+  let hash = 0x811c9dc5;
+  for (let index = 0; index < text.length; index++) {
+    hash ^= text.charCodeAt(index);
+    hash = Math.imul(hash, 0x01000193) >>> 0;
+  }
+  return hash;
+}
+
+/** Gives a freshly built unit its furniture seed when its type has one. */
+export function withLook(unit: Unit): Unit {
+  return SEEDED_LOOK_TYPES.includes(unit.type)
+    ? { ...unit, look: lookSeed(unit.id, unit.x, unit.level, unit.placedAtStep) }
+    : unit;
+}
+
 /** Numeric part of a unit id, so `u9` sorts before `u10`. */
 export function unitNumber(id: EntityId): number {
   return Number(id.slice(1));

@@ -5,6 +5,7 @@ import { levelToIndex, levelTop } from './levels';
 import { FLOOR_HEIGHT, SLAB_HEIGHT, TILE_WIDTH } from './metrics';
 import type { TimeOfDay } from './structurePlan';
 import { ALL_VENUES_OPEN, isVenue, type OpenVenues } from './venueHours';
+import type { OfficeState } from './officeView';
 
 /** What the unit layer needs to draw one unit or transport, in world pixels. */
 export interface UnitDrawing {
@@ -32,11 +33,28 @@ export interface UnitDrawing {
   /** Black garbage bags in the pile left in the unit; undefined when there is no pile. */
   garbage?: number;
   /**
+   * Set on a built unit whose furniture is built from a seed: the sprite is then the bare room
+   * and the layer draws the furniture, curtains and shade on top (see officeView.ts).
+   */
+  interior?: UnitInterior;
+  /**
    * Set when the sprite is bigger than the footprint: it is drawn at its own size, never
    * scaled, this many pixels from the footprint corner. The footprint still sizes the rest.
    */
   spriteOffset?: { x: number; y: number };
 }
+
+/** The seeded furniture of a unit and the look it has now. */
+export interface UnitInterior {
+  seed: number;
+  state: OfficeState;
+  time: TimeOfDay;
+}
+
+/** Unit types whose furniture is built from `UnitView.look`; the rest use their fixed sprites. */
+const SEEDED_INTERIORS: readonly UnitType[] = ['office'];
+/** The sprite under a seeded interior: the bare room, lit. The shade does night and dark rooms. */
+const BARE_ROOM: SpriteVariant = { state: 'empty', time: 'day' };
 
 /** Pixels the stairs sprite reaches beyond each side of its footprint; matches the art tool. */
 const STAIRS_MARGIN = 8;
@@ -66,6 +84,7 @@ export type UnitSource = Pick<
   | 'garbage'
   | 'hours'
   | 'serving'
+  | 'look'
 >;
 
 /** Units that are drawn here. Floors and lobbies are structure, elevators are shafts. */
@@ -94,13 +113,17 @@ export function planUnit(
     openVenues,
     hour,
   );
+  const seeded = !building && unit.look !== undefined && SEEDED_INTERIORS.includes(unit.type);
   const drawing = footprint(
     unit.id,
     `units/${SPRITE_SUBJECT[unit.type] ?? unit.type}`,
     unit,
-    { state, time },
+    seeded ? BARE_ROOM : { state, time },
     overlay,
   );
+  if (seeded) {
+    drawing.interior = { seed: unit.look as number, state: state as OfficeState, time };
+  }
   const open =
     !building && state === 'empty' && unit.listed !== false ? AVAILABILITY[unit.type] : undefined;
   const offered = open === undefined ? drawing : { ...drawing, availability: open };
