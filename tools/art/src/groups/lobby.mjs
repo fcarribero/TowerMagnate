@@ -105,44 +105,50 @@ function sofa(tiles, style) {
 
 function plantSmall() {
   const tile = new PixelCanvas(tileWidth, 11);
-  tile.drawMap(
-    0,
-    0,
-    ['..i..i..', '.ilgilg.', '.igglgi.', '..iggi..', '.igigli.', '..iggi..', '...ii...'],
-    { i: 'ink', g: 'leaf', l: 'leaf-dark' },
-  );
-  tile.drawMap(0, 7, ['.iiiiii.', '.iwwwwi.', '..iwwi..', '..iiii..'], { i: 'ink', w: 'wood' });
+  tile.drawMap(0, 0, [
+    '..i..i..',
+    '.ilgilg.',
+    '.igglgi.',
+    '..iggi..',
+    '.igigli.',
+    '..iggi..',
+    '...ii...',
+  ], { i: 'ink', g: 'leaf', l: 'leaf-dark' });
+  tile.drawMap(0, 7, [
+    '.iiiiii.',
+    '.iwwwwi.',
+    '..iwwi..',
+    '..iiii..',
+  ], { i: 'ink', w: 'wood' });
   tile.hline(2, 8, 2, 'wood-light');
   return tile;
 }
 
 function plantTall() {
   const tile = new PixelCanvas(tileWidth, 20);
-  tile.drawMap(
-    0,
-    0,
-    [
-      '...ii...',
-      '..iggi..',
-      '.ilgggi.',
-      '.igggli.',
-      'iggliggi',
-      'iglgggli',
-      '.iggggi.',
-      '.igligi.',
-      '..iggi..',
-      '...ii...',
-    ],
-    { i: 'ink', g: 'leaf', l: 'leaf-dark' },
-  );
+  tile.drawMap(0, 0, [
+    '...ii...',
+    '..iggi..',
+    '.ilgggi.',
+    '.igggli.',
+    'iggliggi',
+    'iglgggli',
+    '.iggggi.',
+    '.igligi.',
+    '..iggi..',
+    '...ii...',
+  ], { i: 'ink', g: 'leaf', l: 'leaf-dark' });
   tile.vline(3, 10, 4, 'wood-dark');
   tile.vline(4, 10, 4, 'wood-dark');
-  tile.drawMap(
-    0,
-    13,
-    ['.iiiiii.', '.iwwwwi.', '.iwwwwi.', '.iwwwdi.', '..iwwdi.', '..iwwdi.', '..iiiii.'],
-    { i: 'ink', w: 'wood-light', d: 'wood' },
-  );
+  tile.drawMap(0, 13, [
+    '.iiiiii.',
+    '.iwwwwi.',
+    '.iwwwwi.',
+    '.iwwwdi.',
+    '..iwwdi.',
+    '..iwwdi.',
+    '..iiiii.',
+  ], { i: 'ink', w: 'wood-light', d: 'wood' });
   return tile;
 }
 
@@ -158,12 +164,14 @@ function flowerVase() {
   tile.set(2, 3, 'leaf');
   tile.set(5, 3, 'leaf');
   // vase
-  tile.drawMap(0, 4, ['..iiii..', '..igci..', '.iggcdi.', '.iggcdi.', '..iccdi.', '..iiiii.'], {
-    i: 'ink',
-    g: 'glass',
-    c: 'cloud',
-    d: 'silver',
-  });
+  tile.drawMap(0, 4, [
+    '..iiii..',
+    '..igci..',
+    '.iggcdi.',
+    '.iggcdi.',
+    '..iccdi.',
+    '..iiiii.',
+  ], { i: 'ink', g: 'glass', c: 'cloud', d: 'silver' });
   // pedestal
   box(tile, 1, 10, 6, 4, { fill: 'concrete-light', light: 'cloud', dark: 'concrete' });
   return tile;
@@ -171,17 +179,21 @@ function flowerVase() {
 
 function flowerPot() {
   const tile = new PixelCanvas(tileWidth, 11);
-  tile.drawMap(
-    0,
-    0,
-    ['.c..r..d', 'rcr.rrr.', '.l.dcd.c', '.lg.l.cr', '..gllg.c', '...gg...', '...gl...'],
-    { c: 'cloud', r: 'cloth-red', d: 'dusk', l: 'leaf', g: 'leaf-dark' },
-  );
-  tile.drawMap(0, 7, ['.iiiiii.', '.iccccdi', '..icccdi', '..iccdi.'], {
-    i: 'ink',
-    c: 'wood-light',
-    d: 'wood',
-  });
+  tile.drawMap(0, 0, [
+    '.c..r..d',
+    'rcr.rrr.',
+    '.l.dcd.c',
+    '.lg.l.cr',
+    '..gllg.c',
+    '...gg...',
+    '...gl...',
+  ], { c: 'cloud', r: 'cloth-red', d: 'dusk', l: 'leaf', g: 'leaf-dark' });
+  tile.drawMap(0, 7, [
+    '.iiiiii.',
+    '.iccccdi',
+    '..icccdi',
+    '..iccdi.',
+  ], { i: 'ink', c: 'wood-light', d: 'wood' });
   return tile;
 }
 
@@ -235,11 +247,13 @@ function bench() {
 
 function floorLamp() {
   const tile = new PixelCanvas(tileWidth, 20);
-  tile.drawMap(0, 0, ['..iiii..', '.icccci.', '.iccwci.', 'iccccwci', 'iiiiiiii'], {
-    i: 'ink',
-    c: 'cloud',
-    w: 'white',
-  });
+  tile.drawMap(0, 0, [
+    '..iiii..',
+    '.icccci.',
+    '.iccwci.',
+    'iccccwci',
+    'iiiiiiii',
+  ], { i: 'ink', c: 'cloud', w: 'white' });
   tile.vline(3, 5, 12, 'gray');
   tile.vline(4, 5, 12, 'slate');
   tile.hline(1, 17, 6, 'slate');
@@ -275,19 +289,24 @@ function noticeBoard() {
 
 function umbrellaStand() {
   const tile = new PixelCanvas(tileWidth, 12);
-  tile.drawMap(0, 0, ['..i.....', '.ibi.i..', '.ibi.ri.', '..i.irri', '..i..i.i'], {
-    i: 'ink',
-    b: 'cloth-blue',
-    r: 'cloth-red',
-  });
+  tile.drawMap(0, 0, [
+    '..i.....',
+    '.ibi.i..',
+    '.ibi.ri.',
+    '..i.irri',
+    '..i..i.i',
+  ], { i: 'ink', b: 'cloth-blue', r: 'cloth-red' });
   tile.vline(3, 5, 2, 'slate');
   tile.vline(5, 5, 2, 'slate');
-  tile.drawMap(
-    0,
-    6,
-    ['.iiiiii.', '.igggsi.', '.igggsi.', '.igggsi.', '.igggsi.', '.iggssi.', '.iiiiii.'],
-    { i: 'ink', g: 'gray', s: 'slate' },
-  );
+  tile.drawMap(0, 6, [
+    '.iiiiii.',
+    '.igggsi.',
+    '.igggsi.',
+    '.igggsi.',
+    '.igggsi.',
+    '.iggssi.',
+    '.iiiiii.',
+  ], { i: 'ink', g: 'gray', s: 'slate' });
   return tile;
 }
 
