@@ -27,6 +27,7 @@ export class SaveScheduler {
   private autosaveDue: number | null = null;
   private changeDue: number | null = null;
   private retryDue: number | null = null;
+  private failingDue: number | null = null;
   private retryIndex = 0;
   private lastSuccess = 0;
   private failing = false;
@@ -68,7 +69,7 @@ export class SaveScheduler {
   stop(): void {
     this.dead = true;
     this.clearTimer();
-    this.autosaveDue = this.changeDue = this.retryDue = null;
+    this.autosaveDue = this.changeDue = this.retryDue = this.failingDue = null;
     this.pending = false;
   }
 
@@ -80,20 +81,43 @@ export class SaveScheduler {
   private rearm(): void {
     this.clearTimer();
     if (this.dead || this.inFlight) return;
-    const dues = [this.autosaveDue, this.changeDue, this.retryDue].filter((d): d is number => d !== null);
+    const dues = [this.autosaveDue, this.changeDue, this.retryDue, this.failingDue].filter((d): d is number => d !== null);
     if (dues.length === 0) return;
     const delay = Math.max(0, Math.min(...dues) - this.now());
     this.timer = setTimeout(() => {
       this.timer = null;
-      void this.run();
+      this.fire();
     }, delay);
+  }
+
+  private fire(): void {
+    const t = this.now();
+    if (this.failingDue !== null && t >= this.failingDue) {
+      this.failingDue = null;
+      if (!this.failing) {
+        this.failing = true;
+        this.notify(() => this.onFailingChange(true));
+      }
+    }
+    const saveDue = [this.autosaveDue, this.changeDue, this.retryDue].some((d) => d !== null && t >= d);
+    if (saveDue) void this.run();
+    else this.rearm();
+  }
+
+  // A throwing callback must not stop the scheduler.
+  private notify(fn: () => void): void {
+    try {
+      fn();
+    } catch {
+      // ignored
+    }
   }
 
   private async run(): Promise<void> {
     if (this.dead || this.inFlight) return;
     this.inFlight = true;
     this.clearTimer();
-    this.autosaveDue = this.changeDue = this.retryDue = null;
+    this.autosaveDue = this.changeDue = this.retryDue = this.failingDue = null;
     let outcome: UploadOutcome;
     try {
       outcome = await this.save();
@@ -105,7 +129,7 @@ export class SaveScheduler {
 
     if (outcome === 'stale') {
       this.stop();
-      this.onStale();
+      this.notify(() => this.onStale());
       return;
     }
     if (outcome === 'saved') {
@@ -114,15 +138,19 @@ export class SaveScheduler {
       this.autosaveDue = this.now() + AUTOSAVE_INTERVAL_MS;
       if (this.failing) {
         this.failing = false;
-        this.onFailingChange(false);
+        this.notify(() => this.onFailingChange(false));
       }
     } else {
       const delay = RETRY_DELAYS_MS[Math.min(this.retryIndex, RETRY_DELAYS_MS.length - 1)] ?? 60_000;
       this.retryIndex += 1;
       this.retryDue = this.now() + delay;
-      if (!this.failing && this.now() - this.lastSuccess >= SAVE_FAILING_AFTER_MS) {
-        this.failing = true;
-        this.onFailingChange(true);
+      if (!this.failing) {
+        if (this.now() - this.lastSuccess >= SAVE_FAILING_AFTER_MS) {
+          this.failing = true;
+          this.notify(() => this.onFailingChange(true));
+        } else {
+          this.failingDue = this.lastSuccess + SAVE_FAILING_AFTER_MS;
+        }
       }
     }
     if (this.pending) {

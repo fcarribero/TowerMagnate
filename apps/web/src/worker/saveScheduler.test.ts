@@ -89,9 +89,9 @@ describe('SaveScheduler', () => {
     const { s, save, onFailingChange, queue } = setup(outcomes);
     s.start();
     s.saveNow();
-    await vi.advanceTimersByTimeAsync(110_000);
+    await vi.advanceTimersByTimeAsync(119_999);
     expect(onFailingChange).not.toHaveBeenCalled();
-    await vi.advanceTimersByTimeAsync(60_000);
+    await vi.advanceTimersByTimeAsync(1);
     expect(onFailingChange).toHaveBeenCalledTimes(1);
     expect(onFailingChange).toHaveBeenLastCalledWith(true);
     await vi.advanceTimersByTimeAsync(60_000);
@@ -117,5 +117,58 @@ describe('SaveScheduler', () => {
     expect(save).toHaveBeenCalledTimes(1);
     expect(onStale).toHaveBeenCalledTimes(1);
     expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it('stop during a save leaves no timer and no later callbacks', async () => {
+    let release!: (o: UploadOutcome) => void;
+    const save = vi.fn(() => new Promise<UploadOutcome>((r) => (release = r)));
+    const onFailingChange = vi.fn();
+    const onStale = vi.fn();
+    const s = new SaveScheduler({ save, onFailingChange, onStale });
+    s.start();
+    s.saveNow();
+    s.stop();
+    release('stale');
+    await vi.advanceTimersByTimeAsync(300_000);
+    expect(save).toHaveBeenCalledTimes(1);
+    expect(onStale).not.toHaveBeenCalled();
+    expect(onFailingChange).not.toHaveBeenCalled();
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it('changed during a save saves 5 s after the change', async () => {
+    let release!: (o: UploadOutcome) => void;
+    const save = vi
+      .fn<() => Promise<UploadOutcome>>()
+      .mockImplementationOnce(() => new Promise((r) => (release = r)))
+      .mockResolvedValue('saved');
+    const s = new SaveScheduler({ save, onFailingChange: vi.fn(), onStale: vi.fn() });
+    s.start();
+    s.saveNow();
+    await vi.advanceTimersByTimeAsync(1000);
+    s.changed();
+    await vi.advanceTimersByTimeAsync(2000);
+    release('saved');
+    await vi.advanceTimersByTimeAsync(2999);
+    expect(save).toHaveBeenCalledTimes(1);
+    await vi.advanceTimersByTimeAsync(1);
+    expect(save).toHaveBeenCalledTimes(2);
+    s.stop();
+  });
+
+  it('survives throwing callbacks', async () => {
+    const save = vi
+      .fn<() => Promise<UploadOutcome>>()
+      .mockResolvedValue('failed');
+    const onFailingChange = vi.fn(() => {
+      throw new Error('boom');
+    });
+    const s = new SaveScheduler({ save, onFailingChange, onStale: vi.fn() });
+    s.start();
+    s.saveNow();
+    await vi.advanceTimersByTimeAsync(130_000);
+    expect(onFailingChange).toHaveBeenCalledWith(true);
+    expect(save.mock.calls.length).toBeGreaterThan(4);
+    s.stop();
   });
 });
