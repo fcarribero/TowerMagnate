@@ -214,7 +214,8 @@ const SHOP_STATES = { empty: 'open', occupied: 'busy' } as const;
 const SERVICE_STATES = { empty: 'closed', occupied: 'occupied' } as const;
 
 /** Units with no art of their own yet, drawn with another unit's sprites of the same width. */
-// TODO: the obrador and the cleaning room use the housekeeping art until they get their own; the
+// TODO: the obrador uses the housekeeping art until it gets its own (the cleaning room only takes its
+// bare room and puts its own furniture on it, render/interior/cleaning.ts); the
 // garden, the lounge and the library borrow the shop, suite and housekeeping art.
 const SPRITE_SUBJECT: Partial<Record<UnitType, string>> = {
   obrador: 'housekeeping',

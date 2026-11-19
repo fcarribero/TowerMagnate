@@ -13,6 +13,7 @@ const GROUP_NAMES = [
   'condo',
   'hotel',
   'housekeeping',
+  'cleaning',
   'rooftop',
   'sky',
   'ui',

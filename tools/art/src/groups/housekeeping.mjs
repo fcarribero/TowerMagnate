@@ -6,20 +6,20 @@ import { calendar, clock, corkboard, legend as officeLegend, propSprites } from 
 // (machines running). The crew walks in as people, never as props.
 // The sizes here must match apps/web/src/render/interior/housekeeping.ts.
 
-const legend = {
+export const legend = {
   ...officeLegend,
   n: 'night',
   y: 'lamp',
 };
 
-function map(rows) {
+export function map(rows) {
   const width = Math.max(...rows.map((row) => row.length));
   const canvas = new PixelCanvas(width, rows.length);
   canvas.drawMap(0, 0, rows, legend);
   return canvas;
 }
 
-function idle(canvas) {
+export function idle(canvas) {
   return { idle: canvas };
 }
 
@@ -73,7 +73,7 @@ function machine(body, shade) {
   return { idle: draw(false), busy: draw(true) };
 }
 
-function sink() {
+export function sink() {
   return idle(
     map([
       'vvvvvvvv',
@@ -92,7 +92,7 @@ function sink() {
   );
 }
 
-function supplyCabinet() {
+export function supplyCabinet() {
   const canvas = new PixelCanvas(12, 20);
   canvas.fillRect(0, 0, 12, 20, 'gray');
   canvas.strokeRect(0, 0, 12, 20, 'slate');
@@ -159,7 +159,7 @@ function foldingTable() {
   );
 }
 
-function mopBucket() {
+export function mopBucket() {
   return idle(
     map([
       '....o..',
@@ -175,11 +175,11 @@ function mopBucket() {
   );
 }
 
-function timeClock() {
+export function timeClock() {
   return idle(map(['ggggg', 'gwwwg', 'gwkwg', 'ggggg', '.vvv.']));
 }
 
-function detergentShelf() {
+export function detergentShelf() {
   return idle(map(['.bb.ww.lL..', '.bb.ww.ll.b', '.bbbwwkllbb', 'ooooooooooo', 'd.........d']));
 }
 

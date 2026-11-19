@@ -3,6 +3,7 @@ import { loadSprites } from '../render/atlasLoader';
 import { SPRITE_IDS, type SpriteId } from '../render/atlasManifest';
 import {
   INTERIOR_SHADE_COLOR,
+  INTERIOR_SPECS,
   buildInteriorRoom,
   generateInteriorLayout,
   interiorKind,
@@ -37,10 +38,13 @@ for (const id of SPRITE_IDS) {
   if (group !== 'units' || subject === undefined) continue;
   UNIT_SPRITES.set(subject, [...(UNIT_SPRITES.get(subject) ?? []), id]);
 }
-const UNIT_TYPES = [...UNIT_SPRITES.keys()].sort((a, b) => {
-  const seeded = Number(interiorSpecOf(b) !== undefined) - Number(interiorSpecOf(a) !== undefined);
-  return seeded || a.localeCompare(b);
-});
+const UNIT_TYPES = [...new Set([...UNIT_SPRITES.keys(), ...Object.keys(INTERIOR_SPECS)])].sort(
+  (a, b) => {
+    const seeded =
+      Number(interiorSpecOf(b) !== undefined) - Number(interiorSpecOf(a) !== undefined);
+    return seeded || a.localeCompare(b);
+  },
+);
 
 interface LabState {
   type: string;

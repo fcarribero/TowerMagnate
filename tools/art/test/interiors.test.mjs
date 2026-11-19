@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { drawGroups } from '../src/build.mjs';
 import { condoGroup } from '../src/groups/condo.mjs';
 import { hotelGroup } from '../src/groups/hotel.mjs';
+import { cleaningGroup } from '../src/groups/cleaning.mjs';
 import { housekeepingGroup } from '../src/groups/housekeeping.mjs';
 import { officeGroup } from '../src/groups/office.mjs';
 import { colorIndex } from '../src/palette.mjs';
@@ -16,6 +17,7 @@ describe('interior props', () => {
       condoGroup,
       hotelGroup,
       housekeepingGroup,
+      cleaningGroup,
     ])) {
       for (const { id, canvas } of sprites) {
         expect(
