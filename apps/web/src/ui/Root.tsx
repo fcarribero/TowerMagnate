@@ -39,6 +39,7 @@ export function Root({ api, towerApi }: RootProps) {
               onPlayHere={newPlaySession}
               developer={user.developer === true}
               onLogout={logout}
+              onSessionLost={sessionLost}
               onRestartTower={restartTower}
             />
           )}

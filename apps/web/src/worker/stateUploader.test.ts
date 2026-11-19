@@ -22,6 +22,9 @@ describe('uploadState', () => {
   it('reports stale on 409', async () => {
     expect(await uploadState(body, 't', reply(409))).toBe('stale');
   });
+  it('reports unauthenticated on 401', async () => {
+    expect(await uploadState(body, 't', reply(401))).toBe('unauthenticated');
+  });
   it('reports failed on 500', async () => {
     expect(await uploadState(body, 't', reply(500))).toBe('failed');
   });

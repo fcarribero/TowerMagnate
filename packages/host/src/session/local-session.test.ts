@@ -174,6 +174,28 @@ describe('local session', () => {
     expect(vi.getTimerCount()).toBe(timers);
   });
 
+  it('reports each failed tick to onError', async () => {
+    const onError = vi.fn<(error: unknown) => void>();
+    session.stop();
+    session = new LocalSession({
+      state,
+      debug: false,
+      send: (data) => sent.push(JSON.parse(data) as Sent),
+      onChange,
+      onError,
+      now: Date.now,
+      advance: () => {
+        throw new Error('engine broke');
+      },
+    });
+    await session.start();
+
+    await vi.advanceTimersByTimeAsync(1_000);
+
+    expect(onError.mock.calls.length).toBeGreaterThanOrEqual(5);
+    expect(onError).toHaveBeenCalledWith(new Error('engine broke'));
+  });
+
   it('onChange is called after a debug change', async () => {
     open(true);
     await session.start();

@@ -42,12 +42,18 @@ describe('App and the tower worker', () => {
 
   afterEach(cleanup);
 
-  function renderApp(props: { onRestartTower?: () => Promise<boolean>; onPlayHere?: () => void }) {
+  function renderApp(props: {
+    onRestartTower?: () => Promise<boolean>;
+    onPlayHere?: () => void;
+    onLogout?: () => void;
+    onSessionLost?: () => void;
+  }) {
     return render(
       <App
         play={PLAY}
         onPlayHere={props.onPlayHere ?? (() => {})}
-        onLogout={() => {}}
+        onLogout={props.onLogout ?? (() => {})}
+        onSessionLost={props.onSessionLost}
         onRestartTower={props.onRestartTower ?? (async () => true)}
         createWorker={() => worker}
       />,
@@ -77,6 +83,26 @@ describe('App and the tower worker', () => {
     expect(screen.getByText('La torre se abrió en otra ventana.')).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Jugar acá' }));
     expect(onPlayHere).toHaveBeenCalledOnce();
+  });
+
+  it('logout asks the worker to save and logs out once the save finished', async () => {
+    const onLogout = vi.fn();
+    renderApp({ onLogout });
+    fireEvent.click(screen.getByRole('button', { name: 'Menú' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Cerrar sesión' }));
+    expect(worker.posted.at(-1)).toEqual({ kind: 'flush' });
+    await act(async () => {});
+    expect(onLogout).not.toHaveBeenCalled();
+    worker.emit({ kind: 'flushed', outcome: 'saved' });
+    await waitFor(() => expect(onLogout).toHaveBeenCalledOnce());
+  });
+
+  it('a lost session from the worker calls onSessionLost', () => {
+    const onSessionLost = vi.fn();
+    renderApp({ onSessionLost });
+    worker.emit({ kind: 'sessionLost' });
+    expect(onSessionLost).toHaveBeenCalledOnce();
+    expect(worker.terminated).toBe(true);
   });
 
   it('save failing shows the status bar warning', () => {

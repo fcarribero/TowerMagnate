@@ -9,6 +9,8 @@ export interface SaveSchedulerOptions {
   save: () => Promise<UploadOutcome>;
   onFailingChange: (failing: boolean) => void;
   onStale: () => void;
+  /** The server no longer accepts the session. The scheduler has stopped. */
+  onUnauthenticated?: () => void;
   now?: () => number;
 }
 
@@ -21,6 +23,7 @@ export class SaveScheduler {
   private readonly save: () => Promise<UploadOutcome>;
   private readonly onFailingChange: (failing: boolean) => void;
   private readonly onStale: () => void;
+  private readonly onUnauthenticated: () => void;
   private readonly now: () => number;
 
   private timer: ReturnType<typeof setTimeout> | null = null;
@@ -35,11 +38,14 @@ export class SaveScheduler {
   private pending = false;
   private started = false;
   private dead = false;
+  /** Callers of flush() waiting for the next save to finish. */
+  private flushWaiters: ((outcome: UploadOutcome) => void)[] = [];
 
   constructor(options: SaveSchedulerOptions) {
     this.save = options.save;
     this.onFailingChange = options.onFailingChange;
     this.onStale = options.onStale;
+    this.onUnauthenticated = options.onUnauthenticated ?? (() => {});
     this.now = options.now ?? (() => Date.now());
   }
 
@@ -66,8 +72,18 @@ export class SaveScheduler {
     void this.run();
   }
 
+  /** Saves now, or right after the save in flight, and resolves with that save's outcome. */
+  flush(): Promise<UploadOutcome> {
+    if (this.dead || !this.started) return Promise.resolve('failed');
+    return new Promise((resolve) => {
+      this.flushWaiters.push(resolve);
+      this.saveNow();
+    });
+  }
+
   stop(): void {
     this.dead = true;
+    this.answerFlush('failed', this.flushWaiters.splice(0));
     this.clearTimer();
     this.autosaveDue = this.changeDue = this.retryDue = this.failingDue = null;
     this.pending = false;
@@ -104,6 +120,10 @@ export class SaveScheduler {
     else this.rearm();
   }
 
+  private answerFlush(outcome: UploadOutcome, waiters: ((outcome: UploadOutcome) => void)[]): void {
+    for (const resolve of waiters) resolve(outcome);
+  }
+
   // A throwing callback must not stop the scheduler.
   private notify(fn: () => void): void {
     try {
@@ -116,6 +136,7 @@ export class SaveScheduler {
   private async run(): Promise<void> {
     if (this.dead || this.inFlight) return;
     this.inFlight = true;
+    const waiters = this.flushWaiters.splice(0);
     this.clearTimer();
     this.autosaveDue = this.changeDue = this.retryDue = this.failingDue = null;
     let outcome: UploadOutcome;
@@ -125,11 +146,17 @@ export class SaveScheduler {
       outcome = 'failed';
     }
     this.inFlight = false;
+    this.answerFlush(outcome, waiters);
     if (this.dead) return;
 
     if (outcome === 'stale') {
       this.stop();
       this.notify(() => this.onStale());
+      return;
+    }
+    if (outcome === 'unauthenticated') {
+      this.stop();
+      this.notify(() => this.onUnauthenticated());
       return;
     }
     if (outcome === 'saved') {

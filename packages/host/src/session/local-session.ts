@@ -1,7 +1,7 @@
 import type { TowerState } from '@tower-magnate/shared';
 import { createDebugFrames } from '../debug/handler';
 import type { HostSocket, MessageContext, SocketSet } from '../port';
-import { TowerRunner } from '../runner/tower-runner';
+import { TowerRunner, type AdvanceTower } from '../runner/tower-runner';
 import type { TowerStore } from '../runner/tower-store';
 import { DeltaBroadcaster } from './delta-broadcaster';
 import { towerSocketHandlers } from './handlers';
@@ -19,7 +19,11 @@ export interface LocalSessionOptions {
   send: (data: string) => void;
   /** Called whenever the runner would have saved: after an accepted command and after a debug change. */
   onChange: () => void;
+  /** Called with every error a tick or a save throws. The tower keeps running. */
+  onError?: (error: unknown) => void;
   now?: () => number;
+  /** Tests stand in for the engine's advance. */
+  advance?: AdvanceTower;
 }
 
 /** One tower with one socket: what the Worker runs in place of the server. */
@@ -51,7 +55,14 @@ export class LocalSession {
       load: async () => options.state,
       save: async () => options.onChange(),
     };
-    this.runner = new TowerRunner({ store, now: options.now });
+    const onError = (_towerId: string, error: unknown): void => options.onError?.(error);
+    this.runner = new TowerRunner({
+      store,
+      now: options.now,
+      advance: options.advance,
+      onTickError: onError,
+      onSaveError: onError,
+    });
     const viewports = new Viewports();
     this.broadcaster = new DeltaBroadcaster({ runner: this.runner, viewports });
     this.inspections = new Inspections({ runner: this.runner });

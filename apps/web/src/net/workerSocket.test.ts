@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { PageToWorker, WorkerToPage } from '../worker/workerMessages';
 import type { ConnectionStatus } from './towerLink';
 import {
+  FLUSH_TIMEOUT_MS,
   READ_STATE_TIMEOUT_MS,
   WorkerSocket,
   type WorkerLike,
@@ -162,6 +163,44 @@ describe('WorkerSocket', () => {
     expect(socket.connectionStatus).toBe('closed');
     expect(onFatal).toHaveBeenCalledOnce();
     expect(worker.terminated).toBe(true);
+  });
+
+  it('sessionLost closes, terminates the worker and calls onSessionLost', () => {
+    const onSessionLost = vi.fn();
+    const { worker, socket } = setup({ onSessionLost });
+    socket.connect();
+    worker.emit({ kind: 'sessionLost' });
+    expect(socket.connectionStatus).toBe('closed');
+    expect(worker.terminated).toBe(true);
+    expect(onSessionLost).toHaveBeenCalledOnce();
+  });
+
+  it('flush posts flush and resolves with the reply', async () => {
+    const { worker, socket } = setup();
+    socket.connect();
+    const flushing = socket.flush();
+    expect(worker.posted.at(-1)).toEqual({ kind: 'flush' });
+    worker.emit({ kind: 'flushed', outcome: 'saved' });
+    await expect(flushing).resolves.toBe('saved');
+  });
+
+  it('flush resolves timeout when the worker does not answer', async () => {
+    vi.useFakeTimers();
+    const { socket } = setup();
+    socket.connect();
+    const flushing = socket.flush();
+    await vi.advanceTimersByTimeAsync(FLUSH_TIMEOUT_MS);
+    await expect(flushing).resolves.toBe('timeout');
+    vi.useRealTimers();
+  });
+
+  it('flush resolves failed without a worker or once it is gone', async () => {
+    const { socket } = setup();
+    await expect(socket.flush()).resolves.toBe('failed');
+    socket.connect();
+    const flushing = socket.flush();
+    socket.stop();
+    await expect(flushing).resolves.toBe('failed');
   });
 
   it('readState rejects when the worker does not answer', async () => {

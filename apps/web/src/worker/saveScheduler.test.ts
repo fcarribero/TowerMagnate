@@ -156,6 +156,65 @@ describe('SaveScheduler', () => {
     s.stop();
   });
 
+  it('unauthenticated stops every timer and calls onUnauthenticated once', async () => {
+    const save = vi.fn<() => Promise<UploadOutcome>>().mockResolvedValue('unauthenticated');
+    const onStale = vi.fn();
+    const onUnauthenticated = vi.fn();
+    const s = new SaveScheduler({ save, onFailingChange: vi.fn(), onStale, onUnauthenticated });
+    s.start();
+    s.saveNow();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(onUnauthenticated).toHaveBeenCalledTimes(1);
+    s.changed();
+    s.saveNow();
+    await vi.advanceTimersByTimeAsync(300_000);
+    expect(save).toHaveBeenCalledTimes(1);
+    expect(onStale).not.toHaveBeenCalled();
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it('flush saves now and resolves with the outcome once the upload finished', async () => {
+    let release!: (o: UploadOutcome) => void;
+    const save = vi.fn(() => new Promise<UploadOutcome>((r) => (release = r)));
+    const s = new SaveScheduler({ save, onFailingChange: vi.fn(), onStale: vi.fn() });
+    s.start();
+    let outcome: UploadOutcome | null = null;
+    void s.flush().then((o) => (outcome = o));
+    expect(save).toHaveBeenCalledTimes(1);
+    await vi.advanceTimersByTimeAsync(0);
+    expect(outcome).toBeNull();
+    release('saved');
+    await vi.advanceTimersByTimeAsync(0);
+    expect(outcome).toBe('saved');
+    s.stop();
+  });
+
+  it('flush during a save waits for one more save after it', async () => {
+    const releases: ((o: UploadOutcome) => void)[] = [];
+    const save = vi.fn(() => new Promise<UploadOutcome>((r) => releases.push(r)));
+    const s = new SaveScheduler({ save, onFailingChange: vi.fn(), onStale: vi.fn() });
+    s.start();
+    s.saveNow();
+    let outcome: UploadOutcome | null = null;
+    void s.flush().then((o) => (outcome = o));
+    releases[0]?.('failed');
+    await vi.advanceTimersByTimeAsync(0);
+    expect(outcome).toBeNull();
+    expect(save).toHaveBeenCalledTimes(2);
+    releases[1]?.('saved');
+    await vi.advanceTimersByTimeAsync(0);
+    expect(outcome).toBe('saved');
+    s.stop();
+  });
+
+  it('flush after stop resolves failed without saving', async () => {
+    const { s, save } = setup();
+    s.start();
+    s.stop();
+    expect(await s.flush()).toBe('failed');
+    expect(save).not.toHaveBeenCalled();
+  });
+
   it('survives throwing callbacks', async () => {
     const save = vi
       .fn<() => Promise<UploadOutcome>>()

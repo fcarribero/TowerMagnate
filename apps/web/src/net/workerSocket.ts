@@ -7,6 +7,7 @@ import {
   type ServerMessage,
   type TowerState,
 } from '@tower-magnate/shared';
+import type { UploadOutcome } from '../worker/stateUploader';
 import type { PageToWorker, WorkerToPage } from '../worker/workerMessages';
 import type { ConnectionStatus, MessageSink, TowerLink } from './towerLink';
 
@@ -22,6 +23,17 @@ export interface WorkerLike {
 
 /** How long readState waits for the Worker before it gives up. */
 export const READ_STATE_TIMEOUT_MS = 10_000;
+
+/** How long flush waits for the Worker's save before it gives up. */
+export const FLUSH_TIMEOUT_MS = 5_000;
+
+/** How a flush ended: the save's outcome, or 'timeout' when the Worker did not answer in time. */
+export type FlushOutcome = UploadOutcome | 'timeout';
+
+interface FlushWaiter {
+  resolve: (outcome: FlushOutcome) => void;
+  timer: ReturnType<typeof setTimeout>;
+}
 
 interface StateWaiter {
   resolve: (state: TowerState) => void;
@@ -49,6 +61,8 @@ export interface WorkerSocketOptions {
   /** The saved state is newer than this build's engine. */
   onOutdated?: () => void;
   onSaveFailing?: (failing: boolean) => void;
+  /** A save got 401: the server no longer accepts the session. This socket stopped. */
+  onSessionLost?: () => void;
   /** The Worker stopped on an error. */
   onFatal?: (message: string) => void;
   visibility?: PageVisibility;
@@ -80,6 +94,7 @@ export class WorkerSocket implements TowerLink {
   private status: ConnectionStatus = 'closed';
   private visibility: PageVisibility | null = null;
   private stateWaiters: StateWaiter[] = [];
+  private flushWaiters: FlushWaiter[] = [];
   private messageListeners = new Set<(message: ServerMessage) => void>();
 
   constructor(private readonly options: WorkerSocketOptions) {}
@@ -156,6 +171,28 @@ export class WorkerSocket implements TowerLink {
     });
   }
 
+  /**
+   * Asks the Worker to save now and waits for the upload. Never rejects: resolves 'failed' when
+   * there is no Worker or it stops, and 'timeout' when it does not answer within `timeoutMs`.
+   */
+  flush(timeoutMs = FLUSH_TIMEOUT_MS): Promise<FlushOutcome> {
+    return new Promise((resolve) => {
+      if (this.worker === null) {
+        resolve('failed');
+        return;
+      }
+      const waiter: FlushWaiter = {
+        resolve,
+        timer: setTimeout(() => {
+          this.flushWaiters = this.flushWaiters.filter((w) => w !== waiter);
+          resolve('timeout');
+        }, timeoutMs),
+      };
+      this.flushWaiters.push(waiter);
+      this.post({ kind: 'flush' });
+    });
+  }
+
   /** Drops the Worker at once, so nothing keeps running or saving behind a blocker. */
   private release(): void {
     const worker = this.worker;
@@ -174,6 +211,16 @@ export class WorkerSocket implements TowerLink {
     for (const waiter of waiters) {
       clearTimeout(waiter.timer);
       waiter.reject(new Error('The tower worker stopped'));
+    }
+    this.answerFlush('failed');
+  }
+
+  private answerFlush(outcome: FlushOutcome): void {
+    const waiters = this.flushWaiters;
+    this.flushWaiters = [];
+    for (const waiter of waiters) {
+      clearTimeout(waiter.timer);
+      waiter.resolve(outcome);
     }
   }
 
@@ -221,6 +268,14 @@ export class WorkerSocket implements TowerLink {
         this.release();
         this.setStatus('closed');
         this.options.onTakenOver?.();
+        return;
+      case 'sessionLost':
+        this.release();
+        this.setStatus('closed');
+        this.options.onSessionLost?.();
+        return;
+      case 'flushed':
+        this.answerFlush(message.outcome);
         return;
       case 'outdated':
         this.release();

@@ -77,7 +77,10 @@ export interface AppProps {
   onPlayHere: () => void;
   /** Shows the developer entries of the game menu. */
   developer?: boolean;
+  /** Called once the Worker has saved the tower (or given up), so logging out loses nothing. */
   onLogout: () => void;
+  /** A save got 401: the server no longer accepts the session. */
+  onSessionLost?: () => void;
   /** Resolves true when the server started a new tower. */
   onRestartTower: () => Promise<boolean>;
   /** Tests stand in for the tower Worker. */
@@ -91,17 +94,23 @@ export function App({
   onPlayHere,
   developer = false,
   onLogout,
+  onSessionLost,
   onRestartTower,
   createWorker,
 }: AppProps) {
   const [blocker, setBlocker] = useState<PlayBlockReason | null>(null);
   const [saveFailing, setSaveFailing] = useState(false);
-  const { connection, status: connectionStatus } = useGameConnection({
+  const {
+    connection,
+    status: connectionStatus,
+    flush,
+  } = useGameConnection({
     play,
     debug: developer || import.meta.env.DEV,
     onTakenOver: () => setBlocker('takenOver'),
     onOutdated: () => setBlocker('outdated'),
     onSaveFailing: setSaveFailing,
+    onSessionLost: () => onSessionLost?.(),
     onFatal: () => setBlocker('error'),
     createWorker,
   });
@@ -432,6 +441,11 @@ export function App({
     connection.socket.sendDebug(type, payload),
   );
 
+  // Logging out first would end the session before the last save could reach the server.
+  const logout = (): void => {
+    void flush().then(() => onLogout());
+  };
+
   return (
     <>
       <StageHost onStage={setStage} />
@@ -442,7 +456,7 @@ export function App({
           openWindows={openWindows}
           unreadNotices={unreadNotices}
           overlaySlot={<OverlaySelector overlay={overlay} onSelect={setOverlay} />}
-          onLogout={onLogout}
+          onLogout={logout}
           infiniteMoney={developer && developerSettings.infiniteMoney}
           belowClock={speedControls !== null && <SpeedControls {...speedControls} />}
           saveFailing={saveFailing}

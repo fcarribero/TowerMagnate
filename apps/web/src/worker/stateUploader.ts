@@ -1,8 +1,8 @@
 import { PLAY_TOKEN_HEADER, TOWER_STATE_PATH } from '@tower-magnate/shared';
 
-export type UploadOutcome = 'saved' | 'failed' | 'stale';
+export type UploadOutcome = 'saved' | 'failed' | 'stale' | 'unauthenticated';
 
-/** PUT the gzipped state. 204 is saved, 409 means another tab took over. */
+/** PUT the gzipped state. 204 is saved, 409 means another tab took over, 401 means the session ended. */
 export async function uploadState(
   body: Uint8Array,
   token: string,
@@ -17,6 +17,7 @@ export async function uploadState(
     });
     if (res.status === 204) return 'saved';
     if (res.status === 409) return 'stale';
+    if (res.status === 401) return 'unauthenticated';
     return 'failed';
   } catch {
     return 'failed';
