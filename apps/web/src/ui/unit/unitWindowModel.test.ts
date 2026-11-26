@@ -412,6 +412,11 @@ describe('unit window model', () => {
       { x: 133.3, width: 26.7 },
     ]);
     expect(chart.pointX).toHaveLength(12);
+    // A fast food set to 11:00 to 14:00 is veiled outside those hours.
+    expect(venueChart({ ...venue, hours: { open: 11, close: 14 } }).closed).toEqual([
+      { x: 0, width: 73.3 },
+      { x: 93.3, width: 66.7 },
+    ]);
     expect(venueChart({ ...venue, today: [], average: [] })).toMatchObject({
       today: '',
       average: '',

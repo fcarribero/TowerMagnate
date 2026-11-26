@@ -527,13 +527,14 @@ function linePoints(values: readonly number[], startHour: number, max: number): 
 
 /**
  * The chart spans the whole day. Both lines share one vertical scale and have a point in the
- * middle of every open hour; the hours before the opening and after the closing are veiled.
+ * middle of every counted hour. The veil covers the hours the venue is shut: for a fast food,
+ * before and after the hours the player set.
  */
 export function venueChart(venue: Details<'venue'>): VenueChart {
   const hours = Math.max(1, venue.closes - venue.opens);
   const max = Math.max(1, ...venue.today, ...venue.average);
-  const opensX = hourX(venue.opens);
-  const closesX = hourX(venue.closes);
+  const opensX = hourX(venue.hours.open);
+  const closesX = hourX(venue.hours.close);
   return {
     width: CHART_WIDTH,
     height: CHART_HEIGHT,
