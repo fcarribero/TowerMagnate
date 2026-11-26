@@ -1,4 +1,4 @@
-import type { PersonView, ShaftView } from '@tower-magnate/shared';
+import { carCapacity, type PersonView, type ShaftView } from '@tower-magnate/shared';
 import { Texture, type Sprite } from 'pixi.js';
 import { describe, expect, it } from 'vitest';
 import type { DrawnFrame } from '../model/interpolation';
@@ -124,6 +124,19 @@ describe('ElevatorLayer cars', () => {
     expect(leaf.width).toBe(2);
   });
 
+  it('shows a red F over a car only while it is full', () => {
+    const { layer } = layerWithArt();
+    const frame = (load: number): DrawnFrame => ({
+      cars: new Map([['s4#0', { key: 's4#0', car: { ...car, doors: 'closed', load }, position: 5 }]]),
+      people: [],
+    });
+    const fullMark = () => layer.carView.children[0]?.children.find((child) => child.label === 'full-mark');
+    layer.showCars(frame(carCapacity(shaft.type) - 1), shafts);
+    expect(fullMark()?.visible).toBe(false);
+    layer.showCars(frame(carCapacity(shaft.type)), shafts);
+    expect(fullMark()?.visible).toBe(true);
+  });
+
   it('removes a car that is no longer in the frame', () => {
     const { layer } = layerWithArt();
     layer.showCars(frameOf(5, 'closed'), shafts);
@@ -142,16 +155,16 @@ describe('ElevatorLayer cars', () => {
     const { layer, textures } = layerWithArt();
     layer.showCars(frameOf(5, 'open', [rider]), shafts);
     const view = layer.carView.children[0];
-    expect(view?.children.length).toBe(4);
+    expect(view?.children.length).toBe(5);
     expect(view?.children[3]?.children[0]).toMatchObject({
       texture: textures[`${personLook('p5', 'officeWorker').subjects.pants}/stand`],
     });
     expect(view?.children[3]?.children).toHaveLength(5);
 
     layer.showCars(frameOf(5, 'closed', [rider]), shafts);
-    expect(view?.children.length).toBe(4);
+    expect(view?.children.length).toBe(5);
     layer.showCars(frameOf(5, 'closed', []), shafts);
-    expect(view?.children.length).toBe(3);
+    expect(view?.children.length).toBe(4);
   });
 
   it('reuses the rider sprite when a rider leaves and another boards', () => {
@@ -171,10 +184,10 @@ describe('ElevatorLayer cars', () => {
     layer.showCars(frameOf(50, 'open', [rider]), shafts);
     const view = layer.carView.children[0];
     expect(view?.visible).toBe(false);
-    expect(view?.children.length).toBe(3);
+    expect(view?.children.length).toBe(4);
     layer.showOnly({ lowest: 45, highest: 55 });
     layer.showCars(frameOf(50, 'open', [rider]), shafts);
-    expect(view?.children.length).toBe(4);
+    expect(view?.children.length).toBe(5);
   });
 
   it('does not change a rider when its stress changes', () => {

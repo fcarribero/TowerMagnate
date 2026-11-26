@@ -1,5 +1,5 @@
-import type { Level, ShaftView } from '@tower-magnate/shared';
-import { Container, Sprite, Texture } from 'pixi.js';
+import { carCapacity, type Level, type ShaftView } from '@tower-magnate/shared';
+import { Container, Graphics, Sprite, Texture } from 'pixi.js';
 import { animationNow } from './animationClock';
 import type { DrawnCar, DrawnFrame, DrawnPerson } from '../model/interpolation';
 import { carKey } from '../model/gameState';
@@ -41,11 +41,19 @@ interface DrawnShaftCar {
   leaves: [Sprite, Sprite];
   /** How open the doors are drawn, 0 closed to 1 open, moving toward the doors the server reports. */
   openness: number;
+  /** Big red F drawn over the car while it is full. */
+  fullMark: Graphics;
 }
 
 const DOOR_COLOR = 0xa9a8b0;
 /** Milliseconds the doors take to go from closed to open or back. */
 const DOOR_MS = 450;
+const FULL_COLOR = 0xe02020;
+const FULL_OUTLINE = 0x3a0000;
+/** Height of the full mark in pixels; its width and stroke follow from it. */
+const FULL_HEIGHT = 20;
+const FULL_STROKE = 4;
+const FULL_WIDTH = 13;
 
 /**
  * Draws elevator shafts, which change only when the tower does, and their cars,
@@ -207,6 +215,7 @@ export class ElevatorLayer {
     }
     car.openness = stepOpenness(car.openness, drawn.car.doors === 'open', dt / DOOR_MS);
     this.placeLeaves(car, shaft);
+    this.placeFullMark(car, shaft, drawn.car.load >= carCapacity(shaft.type));
     car.view.visible = this.range === null || carInRange(drawn.position, this.range);
     if (car.view.visible) {
       this.placeRiders(car, shaft, riders);
@@ -226,12 +235,24 @@ export class ElevatorLayer {
     right.height = opening.height;
   }
 
+  private placeFullMark(car: DrawnShaftCar, shaft: ShaftView, full: boolean): void {
+    car.fullMark.visible = full;
+    if (!full) return;
+    const size = carSize(shaft.type);
+    car.fullMark.position.set(
+      Math.round((size.width - FULL_WIDTH) / 2),
+      Math.round((size.height - FULL_HEIGHT) / 2),
+    );
+  }
+
   private createCar(key: string, open: boolean): DrawnShaftCar {
     const body = new Sprite();
     const view = new Container();
     view.addChild(body);
     const leaves: [Sprite, Sprite] = [newLeaf(), newLeaf()];
     view.addChild(leaves[0], leaves[1]);
+    const fullMark = newFullMark();
+    view.addChild(fullMark);
     this.carView.addChild(view);
     const car = {
       view,
@@ -242,6 +263,7 @@ export class ElevatorLayer {
       position: 0,
       leaves,
       openness: open ? 1 : 0,
+      fullMark,
     };
     this.cars.set(key, car);
     return car;
@@ -314,6 +336,25 @@ function newLeaf(): Sprite {
   const leaf = new Sprite(Texture.WHITE);
   leaf.tint = DOOR_COLOR;
   return leaf;
+}
+
+/** A pixel F, red with a dark outline so it reads over any rider or door. */
+function newFullMark(): Graphics {
+  const mark = new Graphics();
+  mark.label = 'full-mark';
+  const bars: [number, number, number, number][] = [
+    [0, 0, FULL_STROKE, FULL_HEIGHT],
+    [0, 0, FULL_WIDTH, FULL_STROKE],
+    [0, Math.floor((FULL_HEIGHT - FULL_STROKE) / 2), FULL_WIDTH - 3, FULL_STROKE],
+  ];
+  for (const [x, y, w, h] of bars) {
+    mark.rect(x - 1, y - 1, w + 2, h + 2).fill(FULL_OUTLINE);
+  }
+  for (const [x, y, w, h] of bars) {
+    mark.rect(x, y, w, h).fill(FULL_COLOR);
+  }
+  mark.visible = false;
+  return mark;
 }
 
 function groupRiders(people: readonly DrawnPerson[]): Map<string, DrawnPerson[]> {
