@@ -3,6 +3,7 @@ import {
   buildMode,
   commandForClick,
   commandForDrag,
+  commandForResize,
   grabShaft,
   shaftCost,
   shaftIdAt,
@@ -99,5 +100,24 @@ describe('shaft helpers', () => {
     expect(grabShaft(shafts.values(), { x: 11, level: 8 })).toBeNull();
     expect(grabShaft(shafts.values(), { x: 11, level: 2 })).toBeNull();
     expect(grabShaft(shafts.values(), { x: 30, level: 2 })).toBeNull();
+  });
+
+  it('grows a one-level lobby shaft down into the basement or up, the way it is dragged', () => {
+    const shafts = [{ id: 's1', type: 'standard' as const, x: 10, bottom: 1, top: 1 }];
+    const grabbed = grabShaft(shafts, { x: 11, level: 1 });
+    if (grabbed === null) throw new Error('not grabbed');
+    expect(commandForResize(grabbed, -2)).toEqual({
+      type: 'resizeShaft',
+      shaftId: 's1',
+      bottom: -2,
+      top: 1,
+    });
+    expect(commandForResize(grabbed, 4)).toEqual({
+      type: 'resizeShaft',
+      shaftId: 's1',
+      bottom: 1,
+      top: 4,
+    });
+    expect(commandForResize(grabbed, 1)).toBeNull();
   });
 });

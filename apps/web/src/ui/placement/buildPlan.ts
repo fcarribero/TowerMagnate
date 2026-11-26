@@ -177,10 +177,18 @@ export function grabShaft(
   return cell.level === shaft.bottom ? { ...shaft, end: 'bottom' } : null;
 }
 
-/** The levels a shaft would serve if its grabbed end were let go at `releaseLevel`; null if that flips it. */
+/**
+ * The levels a shaft would serve if its grabbed end were let go at `releaseLevel`; null if that
+ * flips it. A one-level shaft has both ends on the same cell, so it grows the way it is dragged:
+ * down moves its bottom, up moves its top.
+ */
 export function resizedSpan(grabbed: GrabbedShaft, releaseLevel: Cell['level']): ShaftSpan | null {
-  const bottom = grabbed.end === 'bottom' ? releaseLevel : grabbed.bottom;
-  const top = grabbed.end === 'top' ? releaseLevel : grabbed.top;
+  const oneLevel = grabbed.bottom === grabbed.top;
+  const movesBottom = oneLevel
+    ? levelToIndex(releaseLevel) < levelToIndex(grabbed.bottom)
+    : grabbed.end === 'bottom';
+  const bottom = movesBottom ? releaseLevel : grabbed.bottom;
+  const top = movesBottom ? grabbed.top : releaseLevel;
   const floors = levelToIndex(top) - levelToIndex(bottom) + 1;
   return floors < 1 ? null : { bottom, top, floors };
 }
