@@ -11,8 +11,8 @@ export interface QueueLayout {
 /**
  * Lays a queue of people out in as few rows as possible. When a row has more people than its
  * width holds side by side, they move closer and overlap. A new row starts only once the overlap
- * would leave less than `minVisible` pixels of a person showing. Rows get the same number of
- * people, give or take one.
+ * would leave less than `minVisible` pixels of a person showing, so every row but the last is
+ * full. All rows use the spacing of the first row, even when a later row has room to spread out.
  */
 export function queueLayout(
   widths: readonly number[],
@@ -27,17 +27,22 @@ export function queueLayout(
   const widest = Math.max(...widths);
   const perRowMax =
     available <= widest || minVisible <= 0 ? 1 : Math.floor((available - widest) / minVisible) + 1;
-  const rows = Math.ceil(count / Math.max(1, perRowMax));
-  const perRow = Math.ceil(count / rows);
+  const perRow = Math.max(1, Math.min(count, perRowMax));
+  // One spacing for every row: the tightest any full row needs to fit the width.
+  let step = gap;
   for (let start = 0; start < count; start += perRow) {
     const end = Math.min(count, start + perRow);
-    if (start > 0) breakBefore[start] = true;
+    const inRow = end - start;
+    if (inRow === 1) continue;
     let total = 0;
     for (let index = start; index < end; index++) total += widths[index] as number;
-    const inRow = end - start;
-    const natural = total + gap * (inRow - 1);
-    const step =
-      inRow === 1 || natural <= available ? gap : Math.floor((available - total) / (inRow - 1));
+    if (total + gap * (inRow - 1) > available) {
+      step = Math.min(step, Math.floor((available - total) / (inRow - 1)));
+    }
+  }
+  for (let start = 0; start < count; start += perRow) {
+    if (start > 0) breakBefore[start] = true;
+    const end = Math.min(count, start + perRow);
     for (let index = start + 1; index < end; index++) marginLeft[index] = step;
   }
   return { breakBefore, marginLeft };
