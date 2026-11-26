@@ -221,7 +221,7 @@ describe('construction sites', () => {
 });
 
 describe('demolishing a site', () => {
-  it('pays nothing back and frees the cells', () => {
+  it('pays a site with no work yet back and frees the cells', () => {
     const state = buildOffice(startOfDay(tower(), 0, 7), 0);
     const id = Object.keys(state.sites)[0] as string;
     const command: QueuedCommand = {
@@ -231,6 +231,6 @@ describe('demolishing a site', () => {
     const { state: after, results } = step(state, [command], 0);
     expect(results[0]).toMatchObject({ ok: true });
     expect(after.sites[id]).toBeUndefined();
-    expect(after.money).toBe(state.money);
+    expect(after.money).toBeGreaterThan(state.money);
   });
 });

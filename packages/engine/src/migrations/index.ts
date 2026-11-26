@@ -910,8 +910,20 @@ function readUnits(raw: unknown): Record<UnitId, Unit> {
     };
     const money = readUnitMoney(unit.money, `State unit ${id}`);
     if (money !== undefined) units[id].money = money;
+    const upgrades = readUnitUpgrades(unit.upgrades);
+    if (upgrades !== undefined) units[id].upgrades = upgrades;
   }
   return units;
+}
+
+/** Bought upgrade levels of a unit. Only whole levels above 0 are kept; none at all reads as missing. */
+function readUnitUpgrades(raw: unknown): Record<string, number> | undefined {
+  if (!isRecord(raw)) return undefined;
+  const upgrades: Record<string, number> = {};
+  for (const [upgrade, value] of Object.entries(raw)) {
+    if (Number.isInteger(value) && (value as number) > 0) upgrades[upgrade] = value as number;
+  }
+  return Object.keys(upgrades).length > 0 ? upgrades : undefined;
 }
 
 function readVenueDay(venue: VenueDay | null): VenueDay | null {

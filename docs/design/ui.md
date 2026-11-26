@@ -342,7 +342,7 @@ Every other demolition is immediate. Clearing a run of cells sends one command p
 ### 5.5 Feedback after a command
 
 - Accepted construction: the construction sound plays at the spot, and a floating amount in `cloth-red` (`-$40.000`, in `text.price` with a 1 px `obra.ink` outline so it reads over any tile) rises 16 px over 1 real second from the top center of the new object.
-- Accepted demolition: the demolition sound. Demolition pays nothing back, so no amount floats up.
+- Accepted demolition: the demolition sound, and a floating amount in `leaf` (`+$40.000`) when a site with no work done yet is paid back.
 - Rejected command: a toast shows the code's message for 3 real seconds, and the error sound plays. Rejections are not written to the news line.
 - Money events tied to a unit (`moneyChanged` with a unit id, sent by the server for rent, condo sales and buybacks, hotel check-ins and the daily result of a venue) show a floating amount over that unit if it is on screen: `leaf` `+$X` for income, `cloth-red` `-$X` for a loss such as a restaurant day that closes in the red. Accepted construction keeps its own `-$X` from the build point (above). The cash register sound plays for positive amounts, at most once per real second.
 

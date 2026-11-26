@@ -268,7 +268,7 @@ Every change to the balance is one ledger entry with an amount and a category. I
 | `condoSales` | Venta de departamentos | + | Condo sales |
 | `venues` | Comercios y entretenimiento | + or - | Fast food, restaurant, cinema and party hall payouts and losses |
 | `events` | Eventos | + or - | Treasure, ransom, helicopter (TM-15) |
-| `construction` | Construcción | - | Construction costs; demolition pays nothing back |
+| `construction` | Construcción | - or + | Construction costs; the refund of a demolished site with no work done yet |
 | `upkeep` | Mantenimiento | - | Section 8 |
 | `condoBuybacks` | Devolución de departamentos | - | Condo buybacks, including the charge on demolishing a sold condo |
 | `films` | Películas | - | Film changes |
@@ -498,7 +498,7 @@ E-48. Every balance change creates exactly one ledger entry with its category fr
 
 E-49. At every positive multiple of 60,480, before upkeep, the current week's totals replace the previous week's totals and the current week resets to 0 in every category. Error: none.
 
-E-50. Demolition adds no money; the charge for demolishing a sold condo is a `condoBuybacks` entry. Error: none.
+E-50. The only demolition refund, a site with no work done yet, is a positive `construction` entry; the charge for demolishing a sold condo is a `condoBuybacks` entry. Error: none.
 
 E-51. The ledger records the amount actually applied to the balance, after the cap. Error: none.
 

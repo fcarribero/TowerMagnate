@@ -92,6 +92,11 @@ describe('migrateState unit leases', () => {
     return migrateState({ ...tower, units: { u3: unit } }).units.u3;
   }
 
+  it('keeps the upgrades bought for a unit', () => {
+    const upgraded = { ...newUnit('u3', 'fast-food', 0, 1), upgrades: { decor: 2, kitchen: 1 } };
+    expect(migratedUnit(JSON.parse(JSON.stringify(upgraded)))).toEqual(upgraded);
+  });
+
   it('keeps the price, used flag and lease of a rented unit', () => {
     const rented = {
       ...newUnit('u3', 'office', 0, 1),

@@ -439,17 +439,24 @@ describe('demolishing a construction site', () => {
     return { before, state, siteId };
   }
 
-  it('pays nothing back, whether work has started or not', () => {
+  it('pays the whole cost back while no work has started', () => {
     const { before, state: built, siteId } = placed();
-    expect(built.money).toBeLessThan(before);
+    const paid = built.sites[siteId]?.paid ?? 0;
+    expect(paid).toBeGreaterThan(0);
 
     const { state, result } = runUnfinished(built, demolishUnit(siteId));
-    expect(result).toMatchObject({ ok: true, refund: 0 });
+    expect(result).toMatchObject({ ok: true, refund: paid });
     expect(state.sites[siteId]).toBeUndefined();
-    expect(state.money).toBe(built.money);
+    expect(state.money).toBe(before);
+  });
 
+  it('pays nothing back once work has started', () => {
+    const { state: built, siteId } = placed();
     const started = structuredClone(built);
     (started.sites[siteId] as { points: number }).points = 1;
-    expect(runUnfinished(started, demolishUnit(siteId)).state.money).toBe(started.money);
+
+    const { state, result } = runUnfinished(started, demolishUnit(siteId));
+    expect(result).toMatchObject({ ok: true, refund: 0 });
+    expect(state.money).toBe(started.money);
   });
 });

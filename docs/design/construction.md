@@ -274,9 +274,9 @@ The bulldozer removes one thing per command: a unit, a lobby run, a stair or esc
 
 ### 8.4 Refund policy
 
-Demolition never adds money to the balance. Nothing is paid back for a unit, a construction site, stairs, an escalator, a shaft, an elevator car, floor or lobby, however new or unused it is. Demolition can still cost money: the lease indemnity of section 8.5 and the buyback of an owned condo.
+Demolition adds money to the balance in one case only: a construction site where no work has been done yet is paid back in full. Nothing is paid back for a site once work has started, nor for a unit, stairs, an escalator, a shaft, an elevator car, floor or lobby, however new or unused it is. Demolition can still cost money: the lease indemnity of section 8.5 and the buyback of an owned condo.
 
-Design call (2026-11-26): the earlier 1-hour full refund for mistakes and the partial refund of an unfinished site are gone, so building and demolishing is never a way to move money back.
+Design call (2026-11-26): the earlier 1-hour full refund for mistakes and the partial refund of a started site are gone. A site with no work yet is still paid back, since nothing was built.
 
 ### 8.5 What happens to occupants
 
@@ -501,7 +501,7 @@ C-60. A floor cell cannot be demolished while it has an occupant or is a stair l
 
 C-61. A floor cell cannot be demolished while something rests on it: above ground, the cell above has structure; in a basement, the cell below has structure. Error: `SUPPORTS_STRUCTURE`.
 
-C-62. Demolition never pays anything back (section 8.4). Error: none.
+C-62. Demolishing a construction site with no work done yet pays back its full price; any other demolition pays nothing back (section 8.4). Error: none.
 
 C-63. Removed with the refunds. Error: none.
 

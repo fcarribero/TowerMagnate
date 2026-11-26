@@ -20,7 +20,8 @@ import {
   setStructure,
   structureAt,
 } from '../grid';
-import { chargeMoney } from '../money';
+import { siteProgress } from '../construction';
+import { chargeMoney, creditMoney } from '../money';
 import { removePeopleOfUnit, setDueStep, parsePersonId } from '../people';
 import { sendToStreet } from '../trek';
 import type { CommandHandler, CommandOutcome } from '../step';
@@ -29,7 +30,8 @@ import { columnRuns, columnsBetween, hasStructure, isInteger } from './structure
 import { clearUnitLedger } from '../unit-evaluation';
 
 type Rejection = { ok: false; error: ErrorCode };
-type Plan = Rejection | { ok: true; apply: () => void };
+/** `apply` returns the amount paid back; only a construction site with no work done yet has one. */
+type Plan = Rejection | { ok: true; apply: () => number };
 
 const NOTHING: Rejection = { ok: false, error: 'NOTHING_TO_DEMOLISH' };
 
@@ -69,7 +71,7 @@ export function demolitionIndemnity(state: TowerState, unitIds: readonly string[
   return total;
 }
 
-/** A site goes with nothing paid back: demolition never adds money (construction 8.4). */
+/** A site with no work done yet is paid back in full; once work has started, nothing (construction 8.4). */
 function planSite(state: TowerState, siteId: string): Plan {
   const site = Object.hasOwn(state.sites, siteId) ? state.sites[siteId] : undefined;
   if (!site) return NOTHING;
@@ -82,6 +84,8 @@ function planSite(state: TowerState, siteId: string): Plan {
         setStructure(state.grid, level, site.x, x1, 'floor');
       }
       Reflect.deleteProperty(state.sites, site.id);
+      if (siteProgress(site) > 0 || site.paid <= 0) return 0;
+      return creditMoney(state, 'construction', site.paid);
     },
   };
 }
@@ -109,6 +113,7 @@ function planUnit(state: TowerState, unitId: string): Plan {
       }
       Reflect.deleteProperty(state.units, unit.id);
       clearUnitLedger(state, unit.id);
+      return 0;
     },
   };
 }
@@ -136,6 +141,7 @@ function planTransport(state: TowerState, transportId: string): Plan {
         });
       }
       Reflect.deleteProperty(state.transports, transport.id);
+      return 0;
     },
   };
 }
@@ -158,6 +164,7 @@ function planShaft(state: TowerState, shaftId: string): Plan {
         const personId = parsePersonId(entry.person);
         if (personId !== null) setDueStep(state.people, personId, state.step + 1);
       }
+      return 0;
     },
   };
 }
@@ -196,7 +203,9 @@ function planUnitsInSpan(state: TowerState, level: Level, columns: readonly numb
   return {
     ok: true,
     apply() {
-      for (const plan of plans) if (plan.ok) plan.apply();
+      let refund = 0;
+      for (const plan of plans) if (plan.ok) refund += plan.apply();
+      return refund;
     },
   };
 }
@@ -216,6 +225,7 @@ function planFloor(state: TowerState, level: Level, x0: number, x1: number): Pla
     ok: true,
     apply() {
       for (const run of columnRuns(floorColumns)) clearStructure(grid, level, run.x0, run.x1);
+      return 0;
     },
   };
 }
@@ -275,6 +285,7 @@ function planMainLobby(state: TowerState, columns: readonly number[]): Plan {
         (span) => span.kind === 'lobby',
       );
       if (!stillThere) grid.mainLobbyHeight = null;
+      return 0;
     },
   };
 }
@@ -311,6 +322,7 @@ function planLobby(state: TowerState, level: Level, x0: number, x1: number): Pla
         for (const run of columnRuns(lobbyColumns))
           setStructure(grid, row, run.x0, run.x1, 'floor');
       }
+      return 0;
     },
   };
 }
@@ -321,6 +333,7 @@ function planRuins(state: TowerState, level: Level, x: number): Plan {
     ok: true,
     apply() {
       clearRuinsAt(state.grid, level, x);
+      return 0;
     },
   };
 }
@@ -373,8 +386,8 @@ export const demolish: CommandHandler<'demolish'> = (context, command) => {
   }
   const plan = planTarget(context.state, target);
   if (!plan.ok) return plan;
-  plan.apply();
-  // Demolition never pays anything back, whatever is removed and however new it is.
-  const outcome: CommandOutcome = { ok: true, cost: 0, refund: 0, events: [] };
+  // Only a construction site with no work done yet pays anything back (construction 8.4).
+  const refund = plan.apply();
+  const outcome: CommandOutcome = { ok: true, cost: 0, refund, events: [] };
   return outcome;
 };
