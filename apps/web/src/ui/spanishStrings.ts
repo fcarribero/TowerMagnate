@@ -485,8 +485,6 @@ export const SPANISH_STRINGS = {
   'error.SHAFT_TOO_TALL': 'Este ascensor cubre hasta 30 pisos.',
   'error.SHAFT_TOO_CLOSE': 'Dejá 8 casilleros libres entre huecos de ascensor.',
   'error.STAIRS_TOO_CLOSE': 'Dejá 8 casilleros libres entre escaleras del mismo piso.',
-  'error.RAMP_POSITION': 'Las rampas van en una sola columna, desde el S1 hacia abajo.',
-  'error.PARKING_NOT_CONNECTED': 'La cochera tiene que conectarse a la rampa.',
   'error.RECYCLING_NOT_ADJACENT': 'El reciclaje nuevo va pegado a otro.',
   'error.MAIN_LOBBY_PROTECTED': 'El lobby principal no se puede demoler.',
   'error.MAIN_LOBBY_COVERED': 'Hay estructura sobre el lobby.',

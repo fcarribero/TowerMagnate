@@ -6,7 +6,6 @@ import {
   type TowerState,
   type UnitType,
 } from '@tower-magnate/shared';
-import { connectedSpaces, touches } from '../parking';
 import { newUnit } from '../units';
 import { unitLevels } from './demolish';
 
@@ -21,21 +20,12 @@ function unitsOfType(state: TowerState, type: UnitType) {
   return Object.values(state.units).filter((unit) => unit.type === type);
 }
 
-/** C-47: ramps form one stack in one column, each directly below the lowest. */
-function rampError(state: TowerState, spot: Spot): ErrorCode | null {
-  const ramps = unitsOfType(state, 'parking-ramp');
-  const first = ramps[0];
-  if (!first) return spot.level === -1 ? null : 'RAMP_POSITION';
-  const lowest = Math.min(...ramps.map((ramp) => ramp.level));
-  const fits = ramps.length < MAX_RAMPS && spot.x === first.x && spot.level === lowest - 1;
-  return fits ? null : 'RAMP_POSITION';
-}
-
-/** C-48: a space needs a ramp or a connected space beside it on its level. */
-function parkingSpaceError(state: TowerState, spot: Spot): ErrorCode | null {
-  const candidate = newUnit('candidate', 'parking-space', spot.x, spot.level);
-  const anchors = [...unitsOfType(state, 'parking-ramp'), ...connectedSpaces(state)];
-  return anchors.some((anchor) => touches(anchor, candidate)) ? null : 'PARKING_NOT_CONNECTED';
+/**
+ * C-47: a tower has at most 9 ramps. They go on any basement level and need not connect; a ramp
+ * with no ramp chain up to S1 is built but shows the no-access sign.
+ */
+function rampError(state: TowerState): ErrorCode | null {
+  return unitsOfType(state, 'parking-ramp').length < MAX_RAMPS ? null : 'LIMIT_REACHED';
 }
 
 function footprintOf(spot: Spot) {
@@ -76,8 +66,7 @@ function recyclingError(state: TowerState, spot: Spot): ErrorCode | null {
 
 /** Type rules of construction.md 6.2 to 6.4, checked after the shared placement checks. */
 export function basementRuleError(state: TowerState, type: UnitType, spot: Spot): ErrorCode | null {
-  if (type === 'parking-ramp') return rampError(state, spot);
-  if (type === 'parking-space') return parkingSpaceError(state, spot);
+  if (type === 'parking-ramp') return rampError(state);
   if (type === 'recycling-center') return recyclingError(state, spot);
   return null;
 }

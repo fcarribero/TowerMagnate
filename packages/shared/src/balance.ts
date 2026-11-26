@@ -399,7 +399,7 @@ export const UNIT_CATALOG: Readonly<Record<UnitType, UnitDefinition>> = {
     cost: perUnit(50_000),
     capacity: null,
     unlockStars: 3,
-    placement: { zone: 'basement', alignedWithExistingSameUnit: true },
+    placement: { zone: 'basement' },
     limitGroup: null,
   },
   'parking-space': {
@@ -411,7 +411,7 @@ export const UNIT_CATALOG: Readonly<Record<UnitType, UnitDefinition>> = {
     cost: perUnit(3_000),
     capacity: null,
     unlockStars: 3,
-    placement: { zone: 'basement', mustConnectTo: 'parking-ramp' },
+    placement: { zone: 'basement' },
     limitGroup: 'parking',
   },
   'recycling-center': {

@@ -1,6 +1,6 @@
 import { UNIT_CATALOG, type TowerState, type Unit, type UnitId } from '@tower-magnate/shared';
 import { entrancePlace, unitPlace } from './office-routine';
-import { connectedSpaces } from './parking';
+import { connectedRamps, connectedSpaces } from './parking';
 import { TransportGraph, TripPlanner, type UserClass } from './routing';
 
 /** A built unit or a construction site: both show the sign when no route reaches them. */
@@ -50,17 +50,22 @@ function unitsWithoutRoute(state: TowerState): Set<UnitId> {
   return missing;
 }
 
-function spacesWithoutRamp(state: TowerState): Set<UnitId> {
-  const connected = new Set(connectedSpaces(state).map((space) => space.id));
-  const spaces = Object.values(state.units).filter((unit) => unit.type === 'parking-space');
-  return new Set(spaces.filter((space) => !connected.has(space.id)).map((space) => space.id));
+/** Ramps with no ramp chain up to S1, and spaces that reach no connected ramp. */
+function parkingWithoutAccess(state: TowerState): Set<UnitId> {
+  const connected = new Set(
+    [...connectedRamps(state), ...connectedSpaces(state)].map((unit) => unit.id),
+  );
+  const parking = Object.values(state.units).filter(
+    (unit) => unit.type === 'parking-space' || unit.type === 'parking-ramp',
+  );
+  return new Set(parking.filter((unit) => !connected.has(unit.id)).map((unit) => unit.id));
 }
 
 /**
  * Units drawn as disconnected: a unit people visit with no route between its door and the street,
- * and a parking space that reaches no ramp. It builds a transport graph, so callers keep the
+ * a parking ramp with no ramp chain up to S1 and a parking space that reaches no connected ramp. It builds a transport graph, so callers keep the
  * result until the layout changes.
  */
 export function disconnectedUnits(state: TowerState): ReadonlySet<UnitId> {
-  return new Set([...unitsWithoutRoute(state), ...spacesWithoutRamp(state)]);
+  return new Set([...unitsWithoutRoute(state), ...parkingWithoutAccess(state)]);
 }

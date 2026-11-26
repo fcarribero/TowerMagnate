@@ -1123,8 +1123,6 @@ Every `ErrorCode` of TM-5 section 6, plus `NOT_PRICED` from TM-9. These texts ar
 | `LOBBY_NOT_CONTIGUOUS` | El lobby principal tiene que ser continuo. |
 | `SHAFT_TOO_TALL` | Este ascensor cubre hasta 30 pisos. |
 | `SHAFT_TOO_CLOSE` | Dejá 8 casilleros libres entre huecos de ascensor. |
-| `RAMP_POSITION` | Las rampas van en una sola columna, desde el S1 hacia abajo. |
-| `PARKING_NOT_CONNECTED` | La cochera tiene que conectarse a la rampa. |
 | `RECYCLING_NOT_ADJACENT` | El reciclaje nuevo va pegado a otro. |
 | `MAIN_LOBBY_PROTECTED` | El lobby principal no se puede demoler. |
 | `SUPPORTS_STRUCTURE` | Hay algo apoyado acá. Demolé eso primero. |

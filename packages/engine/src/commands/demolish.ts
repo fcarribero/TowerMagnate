@@ -78,13 +78,6 @@ export function demolitionIndemnity(state: TowerState, unitIds: readonly string[
   return total;
 }
 
-/** C-46: parking ramps stack downward from S1, and only the lowest one can go. */
-function isLowestRamp(state: TowerState, unit: Unit): boolean {
-  return !Object.values(state.units).some(
-    (other) => other.type === 'parking-ramp' && other.level < unit.level,
-  );
-}
-
 /** A site that has had no work yet is paid back in full; one that has is paid back for what is left. */
 function planSite(state: TowerState, siteId: string): Plan {
   const site = Object.hasOwn(state.sites, siteId) ? state.sites[siteId] : undefined;
@@ -108,7 +101,6 @@ function planSite(state: TowerState, siteId: string): Plan {
 function planUnit(state: TowerState, unitId: string): Plan {
   const unit = Object.hasOwn(state.units, unitId) ? state.units[unitId] : undefined;
   if (!unit) return NOTHING;
-  if (unit.type === 'parking-ramp' && !isLowestRamp(state, unit)) return reject('RAMP_POSITION');
   // Owned condos are bought back first (buyBackCondo), which empties them.
   if (unit.sale) return reject('CONDO_OWNED');
 

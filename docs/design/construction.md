@@ -204,18 +204,13 @@ Parking ramps, parking spaces, recycling centers and the subway station can only
 
 ### 6.2 Parking ramp
 
-Design call, adapting "the ramp takes a single column": all ramps form one vertical stack at the same column `x`, starting at S1 and going down with no gaps.
+A ramp can go on any basement level and any column, at most 9 per tower. A ramp is connected when it is on level -1, where it meets the street, or directly below a connected ramp in the same column. A ramp that is not connected is built anyway and shows the no-access sign until a chain of ramps links it to S1. Any ramp can be demolished; the ramps below it lose their connection.
 
-- The first ramp must be on level -1, at any column.
-- Every later ramp must use the same column `x` and go on the level directly below the lowest existing ramp.
-- At most 9 ramps, one per basement level.
-- Only the lowest ramp of the stack can be demolished. This keeps the stack connected to the street.
+Design call (2026-11-26): the GDD's single column of ramps from S1 down used to be a placement rule. It is now the connection rule, so the player can build in any order.
 
 ### 6.3 Parking spaces
 
-A parking space can only be placed on a level that has a ramp, and it must touch the ramp or a connected parking space on the same level, side by side (its left edge next to the other's right edge, or the reverse). Spaces connect only horizontally, on their own level.
-
-A space is "connected" when a chain of side-by-side spaces links it to the ramp on its level. Only connected spaces count as available parking. If a demolition breaks a chain, the spaces cut off stay in place, stop counting as parking, and show a red cross in the UI. Placing new spaces that bridge the gap reconnects them.
+A parking space can go anywhere in the basement. A space is connected when a chain of side-by-side spaces (its left edge next to the other's right edge, or the reverse) links it to a connected ramp on its level. Spaces connect only horizontally, on their own level. Only connected spaces count as available parking. A space that is not connected stays in place, does not count, and shows the no-access sign until a chain is built.
 
 ### 6.4 Recycling center
 
@@ -322,10 +317,10 @@ The engine validates a construction command in this order and returns the first 
 6. Level and zone codes: `LOBBY_LEVEL_ONLY`, `LOBBY_FLOOR_NOT_ALLOWED`, `ABOVE_GROUND_ONLY`, `BASEMENT_ONLY`, `CATHEDRAL_LEVEL_ONLY`, `SUBWAY_POSITION`, `CATHEDRAL_POSITION`, `SPANS_GROUND`, `EXPRESS_STOP_NOT_ALLOWED`
 7. `CELL_OCCUPIED`, `NOTHING_TO_BUILD`
 8. `NO_SUPPORT`, `NO_FLOOR`, `TRANSPORT_LANDING`
-9. Type rules: `LOBBY_HEIGHT_MISMATCH`, `LOBBY_NOT_CONTIGUOUS`, `SHAFT_TOO_TALL`, `SHAFT_TOO_CLOSE`, `RAMP_POSITION`, `PARKING_NOT_CONNECTED`, `RECYCLING_NOT_ADJACENT`
+9. Type rules: `LOBBY_HEIGHT_MISMATCH`, `LOBBY_NOT_CONTIGUOUS`, `SHAFT_TOO_TALL`, `SHAFT_TOO_CLOSE`, `RECYCLING_NOT_ADJACENT`
 10. `INSUFFICIENT_FUNDS`
 
-Demolition is checked in this order: `NOTHING_TO_DEMOLISH`, `MAIN_LOBBY_PROTECTED`, `CELL_OCCUPIED`, `SUPPORTS_STRUCTURE`, `RAMP_POSITION`, `SHAFT_IN_USE`, `LAST_CAR`.
+Demolition is checked in this order: `NOTHING_TO_DEMOLISH`, `MAIN_LOBBY_PROTECTED`, `CELL_OCCUPIED`, `SUPPORTS_STRUCTURE`, `SHAFT_IN_USE`, `LAST_CAR`.
 
 ## 10. Error codes and UI messages
 
@@ -359,8 +354,6 @@ Demolition is checked in this order: `NOTHING_TO_DEMOLISH`, `MAIN_LOBBY_PROTECTE
 | `LOBBY_NOT_CONTIGUOUS` | El lobby principal tiene que ser continuo. |
 | `SHAFT_TOO_TALL` | Este ascensor cubre hasta 30 pisos. |
 | `SHAFT_TOO_CLOSE` | Dejá 8 casilleros libres entre huecos de ascensor. |
-| `RAMP_POSITION` | Las rampas van en una sola columna, desde el S1 hacia abajo. |
-| `PARKING_NOT_CONNECTED` | La cochera tiene que conectarse a la rampa. |
 | `RECYCLING_NOT_ADJACENT` | El reciclaje nuevo va pegado a otro. |
 | `MAIN_LOBBY_PROTECTED` | El lobby principal no se puede demoler. |
 | `SUPPORTS_STRUCTURE` | Hay algo apoyado acá. Demolé eso primero. |
@@ -473,13 +466,13 @@ C-44. A shaft cannot be demolished, trimmed past a car with riders, or lose a ca
 
 ### Basement units
 
-C-45. The first parking ramp goes on level -1. Every other ramp uses the same column and goes directly below the lowest ramp. Error: `RAMP_POSITION`.
+C-45. A parking ramp goes on any basement level and column, at most 9 per tower. It is connected on level -1 or directly below a connected ramp in its column; otherwise it shows the no-access sign (section 6.2). Error: `LIMIT_REACHED`.
 
-C-46. Only the lowest ramp can be demolished. Error: `RAMP_POSITION`.
+C-46. Any ramp can be demolished. Error: none.
 
-C-47. A parking space needs a ramp on its level and must sit side by side with the ramp or a connected space on that level. Error: `PARKING_NOT_CONNECTED`.
+C-47. A parking space goes anywhere in the basement. It counts as parking only when a chain of spaces links it to a connected ramp on its level (section 6.3). Error: none.
 
-C-48. Spaces cut off from the ramp by a demolition stay, do not count as parking, and reconnect when a chain is rebuilt. Error: none.
+C-48. Ramps and spaces that are not connected stay, do not count as parking, show the no-access sign and reconnect when a chain is built. Error: none.
 
 C-49. A recycling center, unless none exist, must be adjacent to an existing one (section 6.4). Error: `RECYCLING_NOT_ADJACENT`.
 

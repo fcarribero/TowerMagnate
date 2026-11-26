@@ -280,18 +280,7 @@ function basementRuleProblem(
 ): ErrorCode | null {
   const spot: PlacedThing = { type, x, level };
   if (type === 'parking-ramp') {
-    const ramps = view.builtOfType('parking-ramp');
-    const first = ramps[0];
-    if (!first) {
-      return level === -1 ? null : 'RAMP_POSITION';
-    }
-    const lowest = Math.min(...ramps.map((ramp) => ramp.level));
-    const fits = ramps.length < MAX_RAMPS && x === first.x && level === lowest - 1;
-    return fits ? null : 'RAMP_POSITION';
-  }
-  if (type === 'parking-space') {
-    const anchors = [...view.builtOfType('parking-ramp'), ...view.connectedSpaces()];
-    return anchors.some((anchor) => touches(anchor, spot)) ? null : 'PARKING_NOT_CONNECTED';
+    return view.builtOfType('parking-ramp').length < MAX_RAMPS ? null : 'LIMIT_REACHED';
   }
   if (type === 'recycling-center') {
     const existing = view.builtOfType('recycling-center');

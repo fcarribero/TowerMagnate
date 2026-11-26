@@ -53,8 +53,6 @@ describe('error codes', () => {
         "SHAFT_TOO_TALL",
         "SHAFT_TOO_CLOSE",
         "STAIRS_TOO_CLOSE",
-        "RAMP_POSITION",
-        "PARKING_NOT_CONNECTED",
         "RECYCLING_NOT_ADJACENT",
         "MAIN_LOBBY_PROTECTED",
         "MAIN_LOBBY_COVERED",

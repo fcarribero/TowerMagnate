@@ -1,7 +1,8 @@
 import type { Command, TowerState } from '@tower-magnate/shared';
 import { describe, expect, it } from 'vitest';
 import { clearStructure } from '../grid';
-import { connectedSpaces } from '../parking';
+import { connectedRamps, connectedSpaces } from '../parking';
+import { disconnectedUnits } from '../unit-connections';
 import { accept, fullSiteTower, rejection } from './shaft-test-helpers';
 
 function siteTower(): TowerState {
@@ -46,17 +47,24 @@ describe('basement-only units (C-08)', () => {
 });
 
 describe('parking ramps (C-47)', () => {
-  it('puts the first ramp on S1 only', () => {
-    expect(errorFor(siteTower(), 'parking-ramp', 0, -2)).toBe('RAMP_POSITION');
-    expect(accept(siteTower(), build('parking-ramp', 0, -1)).state).toBeDefined();
+  it('builds a ramp on any basement level, connected or not', () => {
+    expect(accept(siteTower(), build('parking-ramp', 0, -2)).state).toBeDefined();
+    const tower = placed(siteTower(), 'parking-ramp', 10, -1);
+    expect(accept(tower, build('parking-ramp', 40, -2)).state).toBeDefined();
+    expect(accept(tower, build('parking-ramp', 10, -3)).state).toBeDefined();
+    expect(errorFor(tower, 'parking-ramp', 10, -1)).not.toBeNull();
   });
 
-  it('puts later ramps directly below the lowest one in the same column', () => {
-    const tower = placed(siteTower(), 'parking-ramp', 10, -1);
-    expect(errorFor(tower, 'parking-ramp', 40, -2)).toBe('RAMP_POSITION');
-    expect(errorFor(tower, 'parking-ramp', 10, -3)).toBe('RAMP_POSITION');
-    expect(errorFor(tower, 'parking-ramp', 10, -1)).not.toBeNull();
-    expect(accept(tower, build('parking-ramp', 10, -2)).state).toBeDefined();
+  it('connects ramps on S1 and each ramp right below a connected one in its column', () => {
+    let tower = placed(siteTower(), 'parking-ramp', 10, -1);
+    tower = placed(tower, 'parking-ramp', 10, -2);
+    tower = placed(tower, 'parking-ramp', 10, -4);
+    tower = placed(tower, 'parking-ramp', 40, -2);
+    expect(connectedRamps(tower).map((ramp) => [ramp.x, ramp.level])).toEqual([
+      [10, -1],
+      [10, -2],
+    ]);
+    expect(disconnectedUnits(tower).size).toBe(2);
   });
 
   it('allows at most 9 ramps', () => {
@@ -68,15 +76,20 @@ describe('parking ramps (C-47)', () => {
 });
 
 describe('parking spaces (C-48)', () => {
-  it('need a ramp or a connected space beside them on their level', () => {
-    const tower = placed(siteTower(), 'parking-ramp', 0, -1);
-    expect(errorFor(tower, 'parking-space', 40, -1)).toBe('PARKING_NOT_CONNECTED');
-    expect(errorFor(tower, 'parking-space', 16, -2)).toBe('PARKING_NOT_CONNECTED');
-    expect(accept(tower, build('parking-space', 16, -1)).state).toBeDefined();
+  it('can be built anywhere in the basement, and only those reaching a connected ramp count', () => {
+    let tower = placed(siteTower(), 'parking-ramp', 0, -1);
+    tower = placed(tower, 'parking-space', 40, -1);
+    tower = placed(tower, 'parking-space', 16, -2);
+    tower = placed(tower, 'parking-space', 16, -1);
+    expect(connectedSpaces(tower).map((space) => [space.x, space.level])).toEqual([[16, -1]]);
+    expect(disconnectedUnits(tower).size).toBe(2);
   });
 
-  it('need a ramp on their level at all', () => {
-    expect(errorFor(siteTower(), 'parking-space', 0, -1)).toBe('PARKING_NOT_CONNECTED');
+  it('do not connect through a ramp that has no way up to S1', () => {
+    let tower = placed(siteTower(), 'parking-ramp', 0, -3);
+    tower = placed(tower, 'parking-space', 16, -3);
+    expect(connectedSpaces(tower)).toEqual([]);
+    expect(disconnectedUnits(tower).size).toBe(2);
   });
 
   it('chain from the ramp to either side', () => {

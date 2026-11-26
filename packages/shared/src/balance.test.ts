@@ -307,9 +307,9 @@ describe('placement flags', () => {
     expect(UNIT_CATALOG['subway-station'].placement.zone).toBe('lowest-basement');
   });
 
-  it('ties parking spaces to a ramp, ramps to one column and recycling to an existing one', () => {
-    expect(UNIT_CATALOG['parking-space'].placement.mustConnectTo).toBe('parking-ramp');
-    expect(UNIT_CATALOG['parking-ramp'].placement.alignedWithExistingSameUnit).toBe(true);
+  it('lets parking go anywhere in the basement and ties recycling to an existing one', () => {
+    expect(UNIT_CATALOG['parking-space'].placement).toEqual({ zone: 'basement' });
+    expect(UNIT_CATALOG['parking-ramp'].placement).toEqual({ zone: 'basement' });
     expect(UNIT_CATALOG['recycling-center'].placement.mustTouchExistingSameUnit).toBe(true);
   });
 

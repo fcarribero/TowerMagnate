@@ -301,13 +301,13 @@ describe('demolish', () => {
     expect(structureAt(accept(tower, lowestBasement).state.grid, -9, 5)).toBeNull();
   });
 
-  it('rejects S1 ramp when S2 has a ramp with RAMP_POSITION', () => {
+  it('demolishes any ramp, leaving the ones below it without access', () => {
     const first = build(towerReadyToBuild(), 'parking-ramp', 20, -1);
     const second = build(first.state, 'parking-ramp', 20, -2);
 
-    expect(rejection(second.state, demolishUnit(first.id))).toBe('RAMP_POSITION');
-    const { state } = accept(second.state, demolishUnit(second.id));
-    expect(state.units[second.id]).toBeUndefined();
+    const { state } = accept(second.state, demolishUnit(first.id));
+    expect(state.units[first.id]).toBeUndefined();
+    expect(state.units[second.id]).toBeDefined();
   });
 
   it('rejects a shaft or car with riders with SHAFT_IN_USE', () => {

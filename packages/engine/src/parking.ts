@@ -34,12 +34,35 @@ export function touches(a: Unit, b: Unit): boolean {
   );
 }
 
-/** Spaces that touch a ramp on their level, directly or through a chain of spaces (C-47, C-48). */
+/**
+ * Ramps cars can drive down to: the ramps on S1, which meet the street, and every ramp in the same
+ * column directly below a ramp that is reached (C-47).
+ */
+export function connectedRamps(state: TowerState): Unit[] {
+  const ramps = Object.values(state.units).filter((unit) => unit.type === 'parking-ramp');
+  const reached = new Set<Unit>();
+  let frontier = ramps.filter((ramp) => ramp.level === -1);
+  while (frontier.length > 0) {
+    for (const ramp of frontier) reached.add(ramp);
+    const from = frontier;
+    frontier = ramps.filter(
+      (ramp) =>
+        !reached.has(ramp) &&
+        from.some((above) => above.x === ramp.x && above.level - 1 === ramp.level),
+    );
+  }
+  return [...reached].sort((a, b) => unitNumber(a.id) - unitNumber(b.id));
+}
+
+/**
+ * Spaces that touch a connected ramp on their level, directly or through a chain of spaces
+ * (C-48). Only these can be assigned.
+ */
 export function connectedSpaces(state: TowerState): Unit[] {
   const units = Object.values(state.units);
   const spaces = units.filter((unit) => unit.type === 'parking-space');
   const reached = new Set<Unit>();
-  let frontier = units.filter((unit) => unit.type === 'parking-ramp');
+  let frontier = connectedRamps(state);
   while (frontier.length > 0) {
     const next = spaces.filter(
       (space) => !reached.has(space) && frontier.some((from) => touches(from, space)),

@@ -85,8 +85,6 @@ export type ElevatorStopRule = 'any-floor' | 'basements-main-and-sky-lobbies';
 
 export interface PlacementFlags {
   readonly zone: PlacementZone;
-  readonly alignedWithExistingSameUnit?: boolean;
-  readonly mustConnectTo?: UnitType;
   readonly mustTouchExistingSameUnit?: boolean;
   readonly elevatorStops?: ElevatorStopRule;
   readonly maxCarsPerShaft?: number;
