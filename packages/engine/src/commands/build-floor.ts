@@ -14,7 +14,6 @@ import {
   negativeBalanceError,
   payForConstruction,
   pricePerCell,
-  recordFloorPurchase,
 } from './structure';
 
 /** Cells of the run that would get new floor: no structure and nothing on them but a shaft. */
@@ -65,6 +64,5 @@ export const buildFloor: CommandHandler<'buildFloor'> = (context, command) => {
   for (const run of runs) {
     setStructure(grid, level, run.x0, run.x1, 'floor');
   }
-  recordFloorPurchase(context.state, level, runs, paidPerCell);
   return { ok: true, cost, refund: 0, events: [] };
 };

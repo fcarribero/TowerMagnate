@@ -63,7 +63,7 @@ import { readLedger, readMoney, readUnitMoney } from './money';
 import { readPeople, readTripLedger } from './people';
 import { readSites } from './sites';
 import { readLastWeddingDay, readStars, readWedding } from './stars';
-import { readFloorPurchases, readLobbyPurchases, readTransports } from './transports';
+import { readTransports } from './transports';
 
 export { StateMigrationError } from './errors';
 
@@ -117,7 +117,19 @@ const MIGRATIONS: readonly Migration[] = [
   addShopAndServiceLooks,
   addParkingSpaceLooks,
   addObradorLooks,
+  dropPurchaseRecords,
 ];
+
+/**
+ * Version 48 drops the floor and sky lobby purchase records. They only served demolition refunds,
+ * and demolition no longer pays anything back.
+ */
+function dropPurchaseRecords(raw: Record<string, unknown>): Record<string, unknown> {
+  const rest = { ...raw };
+  delete rest.floorPurchases;
+  delete rest.lobbyPurchases;
+  return { ...rest, schemaVersion: 48 };
+}
 
 /** Version 40 gives every office a furniture seed, from where and when it was built. */
 function addOfficeLooks(raw: Record<string, unknown>): Record<string, unknown> {
@@ -1090,8 +1102,6 @@ function assertCurrentShape(raw: Record<string, unknown>): TowerState {
     transports: readTransports(raw.transports),
     shafts: readShafts(raw.shafts),
     grid: readGrid(raw.grid),
-    floorPurchases: readFloorPurchases(raw.floorPurchases),
-    lobbyPurchases: readLobbyPurchases(raw.lobbyPurchases),
     people: people,
     tripLedger: readTripLedger(raw.tripLedger, people.id),
     unitLedger: readUnitLedger(raw.unitLedger, units),

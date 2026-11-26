@@ -208,15 +208,6 @@ export interface Transport {
   placedAtStep: number;
 }
 
-/** Floor bought with the floor tool on one level, kept while it can still be refunded. */
-export interface FloorPurchase extends ColumnSpan {
-  level: Level;
-  /** Whole dollars charged for each cell. */
-  paidPerCell: number;
-  placedAtStep: number;
-}
-
-/** Sky lobby columns bought on one lobby level, kept while they can still be refunded. */
 /**
  * The upgrades of one lobby, kept with the columns its base level spanned when they were last
  * written. A lobby that grows or splits takes the levels of every entry its columns overlap.
@@ -225,14 +216,6 @@ export interface LobbyUpgrades extends ColumnSpan {
   /** The lobby's base level: 1 or a sky lobby floor. */
   level: Level;
   upgrades: Record<string, number>;
-}
-
-export interface LobbyPurchase extends ColumnSpan {
-  /** The sky lobby level the run stands on. */
-  level: Level;
-  /** Whole dollars charged for each column, all its rows together. */
-  paidPerColumn: number;
-  placedAtStep: number;
 }
 
 /** Instance id of a placed elevator shaft, such as `s4`. */
@@ -384,10 +367,6 @@ export interface TowerState {
   transports: Record<EntityId, Transport>;
   shafts: Record<ShaftId, Shaft>;
   grid: GridState;
-  /** Floor tool purchases still inside the refund window; older ones may linger until pruned. */
-  floorPurchases: FloorPurchase[];
-  /** Sky lobby purchases still inside the refund window; older ones may linger until pruned. */
-  lobbyPurchases: LobbyPurchase[];
   people: PersonPool;
   /**
    * Trips each person ended in the last STRESS_WINDOW_STEPS, keyed by person number: pairs of

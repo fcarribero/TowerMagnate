@@ -97,8 +97,8 @@ describe('removeCar', () => {
     expect(accept(state, removeCar('s1', 1)).spent).toBe(0);
   });
 
-  it('refunds a car removed within an hour of placement', () => {
+  it('pays nothing back for a car, even right after placing it', () => {
     const { state } = accept(towerWithShafts(), addCar('s1', 6));
-    expect(accept(state, removeCar('s1', 1)).spent).toBe(-80_000);
+    expect(accept(state, removeCar('s1', 1)).spent).toBe(0);
   });
 });

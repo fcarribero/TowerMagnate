@@ -20,25 +20,16 @@ import {
   setStructure,
   structureAt,
 } from '../grid';
-import { siteProgress } from '../construction';
-import { chargeMoney, creditMoney } from '../money';
+import { chargeMoney } from '../money';
 import { removePeopleOfUnit, setDueStep, parsePersonId } from '../people';
 import { sendToStreet } from '../trek';
 import type { CommandHandler, CommandOutcome } from '../step';
 import { heightOnLevel, lobbyRows, SKY_LOBBY_LEVELS } from './build-lobby';
-import {
-  columnRuns,
-  columnsBetween,
-  hasStructure,
-  isInteger,
-  refundConstruction,
-  refundFloor,
-  refundLobby,
-} from './structure';
+import { columnRuns, columnsBetween, hasStructure, isInteger } from './structure';
 import { clearUnitLedger } from '../unit-evaluation';
 
 type Rejection = { ok: false; error: ErrorCode };
-type Plan = Rejection | { ok: true; apply: () => number };
+type Plan = Rejection | { ok: true; apply: () => void };
 
 const NOTHING: Rejection = { ok: false, error: 'NOTHING_TO_DEMOLISH' };
 
@@ -78,7 +69,7 @@ export function demolitionIndemnity(state: TowerState, unitIds: readonly string[
   return total;
 }
 
-/** A site that has had no work yet is paid back in full; one that has is paid back for what is left. */
+/** A site goes with nothing paid back: demolition never adds money (construction 8.4). */
 function planSite(state: TowerState, siteId: string): Plan {
   const site = Object.hasOwn(state.sites, siteId) ? state.sites[siteId] : undefined;
   if (!site) return NOTHING;
@@ -91,9 +82,6 @@ function planSite(state: TowerState, siteId: string): Plan {
         setStructure(state.grid, level, site.x, x1, 'floor');
       }
       Reflect.deleteProperty(state.sites, site.id);
-      const left = 1 - siteProgress(site);
-      const refund = Math.floor(site.paid * left);
-      return refund > 0 ? creditMoney(state, 'construction', refund) : 0;
     },
   };
 }
@@ -121,7 +109,6 @@ function planUnit(state: TowerState, unitId: string): Plan {
       }
       Reflect.deleteProperty(state.units, unit.id);
       clearUnitLedger(state, unit.id);
-      return refundConstruction(state, unit);
     },
   };
 }
@@ -149,7 +136,6 @@ function planTransport(state: TowerState, transportId: string): Plan {
         });
       }
       Reflect.deleteProperty(state.transports, transport.id);
-      return refundConstruction(state, transport);
     },
   };
 }
@@ -172,8 +158,6 @@ function planShaft(state: TowerState, shaftId: string): Plan {
         const personId = parsePersonId(entry.person);
         if (personId !== null) setDueStep(state.people, personId, state.step + 1);
       }
-      const cars = shaft.cars.map((car) => refundConstruction(state, car));
-      return refundConstruction(state, shaft) + cars.reduce((sum, amount) => sum + amount, 0);
     },
   };
 }
@@ -212,9 +196,7 @@ function planUnitsInSpan(state: TowerState, level: Level, columns: readonly numb
   return {
     ok: true,
     apply() {
-      let refund = 0;
-      for (const plan of plans) if (plan.ok) refund += plan.apply();
-      return refund;
+      for (const plan of plans) if (plan.ok) plan.apply();
     },
   };
 }
@@ -234,7 +216,6 @@ function planFloor(state: TowerState, level: Level, x0: number, x1: number): Pla
     ok: true,
     apply() {
       for (const run of columnRuns(floorColumns)) clearStructure(grid, level, run.x0, run.x1);
-      return refundFloor(state, level, floorColumns);
     },
   };
 }
@@ -294,7 +275,6 @@ function planMainLobby(state: TowerState, columns: readonly number[]): Plan {
         (span) => span.kind === 'lobby',
       );
       if (!stillThere) grid.mainLobbyHeight = null;
-      return refundLobby(state, TOWER_LAYOUT.mainLobbyFloor, sorted);
     },
   };
 }
@@ -331,7 +311,6 @@ function planLobby(state: TowerState, level: Level, x0: number, x1: number): Pla
         for (const run of columnRuns(lobbyColumns))
           setStructure(grid, row, run.x0, run.x1, 'floor');
       }
-      return refundLobby(state, sky.base, lobbyColumns);
     },
   };
 }
@@ -342,7 +321,6 @@ function planRuins(state: TowerState, level: Level, x: number): Plan {
     ok: true,
     apply() {
       clearRuinsAt(state.grid, level, x);
-      return 0;
     },
   };
 }
@@ -395,7 +373,8 @@ export const demolish: CommandHandler<'demolish'> = (context, command) => {
   }
   const plan = planTarget(context.state, target);
   if (!plan.ok) return plan;
-  const refund = plan.apply();
-  const outcome: CommandOutcome = { ok: true, cost: 0, refund, events: [] };
+  plan.apply();
+  // Demolition never pays anything back, whatever is removed and however new it is.
+  const outcome: CommandOutcome = { ok: true, cost: 0, refund: 0, events: [] };
   return outcome;
 };

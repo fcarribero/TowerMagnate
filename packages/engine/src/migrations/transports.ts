@@ -3,8 +3,6 @@ import {
   isLevel,
   TransportTypeSchema,
   type EntityId,
-  type FloorPurchase,
-  type LobbyPurchase,
   type Transport,
 } from '@tower-magnate/shared';
 import { isRecord, StateMigrationError } from './errors';
@@ -46,54 +44,4 @@ export function readTransports(raw: unknown): Record<EntityId, Transport> {
     };
   }
   return transports;
-}
-
-function isFloorPurchase(value: unknown): value is FloorPurchase {
-  return (
-    isRecord(value) &&
-    isLevel(value.level) &&
-    isColumn(value.x0) &&
-    isColumn(value.x1) &&
-    value.x0 <= value.x1 &&
-    isNonNegativeInteger(value.paidPerCell) &&
-    isNonNegativeInteger(value.placedAtStep)
-  );
-}
-
-export function readFloorPurchases(raw: unknown): FloorPurchase[] {
-  if (!Array.isArray(raw) || !raw.every(isFloorPurchase)) {
-    throw new StateMigrationError('State floorPurchases must be a list of floor purchases');
-  }
-  return raw.map((purchase) => ({
-    level: purchase.level,
-    x0: purchase.x0,
-    x1: purchase.x1,
-    paidPerCell: purchase.paidPerCell,
-    placedAtStep: purchase.placedAtStep,
-  }));
-}
-
-function isLobbyPurchase(value: unknown): value is LobbyPurchase {
-  return (
-    isRecord(value) &&
-    isLevel(value.level) &&
-    isColumn(value.x0) &&
-    isColumn(value.x1) &&
-    value.x0 <= value.x1 &&
-    isNonNegativeInteger(value.paidPerColumn) &&
-    isNonNegativeInteger(value.placedAtStep)
-  );
-}
-
-export function readLobbyPurchases(raw: unknown): LobbyPurchase[] {
-  if (!Array.isArray(raw) || !raw.every(isLobbyPurchase)) {
-    throw new StateMigrationError('State lobbyPurchases must be a list of lobby purchases');
-  }
-  return raw.map((purchase) => ({
-    level: purchase.level,
-    x0: purchase.x0,
-    x1: purchase.x1,
-    paidPerColumn: purchase.paidPerColumn,
-    placedAtStep: purchase.placedAtStep,
-  }));
 }

@@ -274,14 +274,9 @@ The bulldozer removes one thing per command: a unit, a lobby run, a stair or esc
 
 ### 8.4 Refund policy
 
-Design call: demolition refunds nothing, with one exception for mistakes. The game runs in real time with no pause, so a misplaced unit has to be fixable for free, but demolition must not become a way to make money.
+Demolition never adds money to the balance. Nothing is paid back for a unit, a construction site, stairs, an escalator, a shaft, an elevator car, floor or lobby, however new or unused it is. Demolition can still cost money: the lease indemnity of section 8.5 and the buyback of an owned condo.
 
-The refund is 100% of the price paid for that object (including its automatic floor) when both hold:
-
-- less than 1 game hour has passed since it was placed (360 engine steps, 37.5 real seconds), and
-- it has never been used: no lease signed, no condo sold, no hotel check-in, no customer, audience member or party guest has entered it.
-
-Otherwise the refund is $0. Transport, floor, lobby and service units have no "use" condition and only need the time window. Each elevator car is judged on its own placement time. A refund cannot push the balance above the $99,999,999 cap; the excess is lost.
+Design call (2026-11-26): the earlier 1-hour full refund for mistakes and the partial refund of an unfinished site are gone, so building and demolishing is never a way to move money back.
 
 ### 8.5 What happens to occupants
 
@@ -506,9 +501,9 @@ C-60. A floor cell cannot be demolished while it has an occupant or is a stair l
 
 C-61. A floor cell cannot be demolished while something rests on it: above ground, the cell above has structure; in a basement, the cell below has structure. Error: `SUPPORTS_STRUCTURE`.
 
-C-62. Demolition is free. The refund is 100% of what the object cost if it was placed less than 360 steps (1 game hour) ago and was never used (section 8.4); otherwise it is $0. Error: none.
+C-62. Demolition never pays anything back (section 8.4). Error: none.
 
-C-63. A refund never raises the balance above $99,999,999. Error: none.
+C-63. Removed with the refunds. Error: none.
 
 C-64. Demolishing an office or retail shop ends its lease with no refund of the current week. Error: none.
 

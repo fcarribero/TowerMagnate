@@ -755,9 +755,8 @@ describe('migrateState unit evaluation', () => {
 });
 
 describe('migrateState construction refund records', () => {
-  it('gives a version 22 save unrefundable transports and no floor purchases', () => {
+  it('gives a version 22 save transports with no purchase price', () => {
     const old = JSON.parse(JSON.stringify(createTower(5))) as Record<string, unknown>;
-    delete old.floorPurchases;
     old.schemaVersion = 22;
     old.transports = { t2: { id: 't2', type: 'stairs', x: 10, level: 3 } };
     const tower = migrateState(old);
@@ -769,18 +768,16 @@ describe('migrateState construction refund records', () => {
       paid: 0,
       placedAtStep: 0,
     });
-    expect(tower.floorPurchases).toEqual([]);
   });
 
-  it('keeps floor purchases and refuses a malformed one', () => {
+  it('drops the floor and lobby purchase records of a version 47 save', () => {
     const saved = JSON.parse(JSON.stringify(createTower(5))) as Record<string, unknown>;
-    const floorPurchases = [{ level: 4, x0: 2, x1: 9, paidPerCell: 500, placedAtStep: 30 }];
-    expect(migrateState({ ...saved, floorPurchases }).floorPurchases).toEqual(floorPurchases);
-    const backwards = [{ level: 4, x0: 9, x1: 2, paidPerCell: 500, placedAtStep: 30 }];
-    expect(() => migrateState({ ...saved, floorPurchases: backwards })).toThrow(
-      StateMigrationError,
-    );
-    expect(() => migrateState({ ...saved, floorPurchases: null })).toThrow(StateMigrationError);
+    saved.schemaVersion = 47;
+    saved.floorPurchases = [{ level: 4, x0: 2, x1: 9, paidPerCell: 500, placedAtStep: 30 }];
+    saved.lobbyPurchases = [];
+    const tower = migrateState(saved) as unknown as Record<string, unknown>;
+    expect(tower.floorPurchases).toBeUndefined();
+    expect(tower.lobbyPurchases).toBeUndefined();
   });
 });
 
@@ -838,26 +835,6 @@ describe('migrateState last wedding day', () => {
     expect(migrateState({ ...saved, lastWeddingDay: 12 }).lastWeddingDay).toBe(12);
     expect(() => migrateState({ ...saved, lastWeddingDay: -1 })).toThrow(StateMigrationError);
     expect(() => migrateState({ ...saved, lastWeddingDay: '5' })).toThrow(StateMigrationError);
-  });
-});
-
-describe('migrateState sky lobby purchases', () => {
-  it('gives a version 24 save no lobby purchases', () => {
-    const old = JSON.parse(JSON.stringify(createTower(5))) as Record<string, unknown>;
-    delete old.lobbyPurchases;
-    old.schemaVersion = 24;
-    expect(migrateState(old).lobbyPurchases).toEqual([]);
-  });
-
-  it('keeps lobby purchases and refuses a malformed one', () => {
-    const saved = JSON.parse(JSON.stringify(createTower(5))) as Record<string, unknown>;
-    const lobbyPurchases = [
-      { level: 15, x0: 100, x1: 103, paidPerColumn: 10_000, placedAtStep: 7 },
-    ];
-    expect(migrateState({ ...saved, lobbyPurchases }).lobbyPurchases).toEqual(lobbyPurchases);
-    const negative = [{ ...lobbyPurchases[0], paidPerColumn: -1 }];
-    expect(() => migrateState({ ...saved, lobbyPurchases: negative })).toThrow(StateMigrationError);
-    expect(() => migrateState({ ...saved, lobbyPurchases: null })).toThrow(StateMigrationError);
   });
 });
 
