@@ -416,12 +416,11 @@ describe('food venue summary', () => {
     expect(summary?.average).toHaveLength(12);
   });
 
-  it('reports break-even, yesterday, the average paid day and the weekly hours upkeep', () => {
+  it('reports yesterday, the average paid day and the weekly hours upkeep', () => {
     const { tower, id } = towerWith('fast-food');
     const unit = tower.units[id] as Unit;
     tower.step = at(1, 10);
     expect(foodVenueSummary(tower, unit)).toMatchObject({
-      breakEven: 15,
       yesterday: null,
       averageResult: null,
       // 08:00 to 20:00 at $250 a week for each daily hour.
@@ -438,9 +437,6 @@ describe('food venue summary', () => {
     });
     unit.enabled = false;
     expect(foodVenueSummary(tower, unit)?.weeklyUpkeep).toBe(0);
-    expect(
-      foodVenueSummary(tower, towerWith('restaurant').tower.units[id] as Unit)?.breakEven,
-    ).toBe(15);
   });
 
   it('reads a venue saved without hourly counts as empty', () => {

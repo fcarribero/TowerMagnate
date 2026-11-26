@@ -481,8 +481,6 @@ const InspectedUnitDetailsSchema = z.discriminatedUnion('group', [
     today: z.array(z.int().nonnegative()),
     /** Average customers per hour of the last 7 days, over all the open hours; empty before day 1. */
     average: z.array(z.number().nonnegative()),
-    /** The fewest customers a day needs to pay at least $0. */
-    breakEven: z.int().nonnegative(),
     /** Customers and result of the last finished day; null before the first. */
     yesterday: z.object({ visits: z.int().nonnegative(), result: z.int() }).nullable(),
     /** Average daily result of the last 7 finished days; null before the first. */

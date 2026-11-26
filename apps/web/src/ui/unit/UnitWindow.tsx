@@ -151,7 +151,7 @@ export function UnitWindow({ unitId, connection, anchored = false }: UnitWindowP
         subtitle={found?.name == null ? undefined : unitSubtitle(found)}
         onClose={close}
         draggable={!anchored}
-        width={200}
+        width={260}
         titleAction={
           known === undefined || gone ? undefined : (
             <button

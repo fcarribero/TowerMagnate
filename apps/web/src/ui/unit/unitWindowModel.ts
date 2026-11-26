@@ -463,8 +463,8 @@ function moneyTone(amount: number): UnitRow['tone'] {
 }
 
 /**
- * The money side of a fast food or restaurant: the day so far, the break-even point, the last
- * days, the weekly cost of its opening hours and what a week nets at the recent average.
+ * The money side of a fast food or restaurant: the last days, the weekly cost of its opening
+ * hours, what a week nets at the recent average and what today pays so far.
  */
 function venueRows(venue: Details<'venue'>): UnitRow[] {
   const weeklyNet =
@@ -501,13 +501,6 @@ function venueRows(venue: Details<'venue'>): UnitRow[] {
     });
   }
   return [
-    { id: 'served', label: t('window.unit.served'), value: String(venue.served), tone: 'plain' },
-    {
-      id: 'breakEven',
-      label: t('window.unit.breakEven'),
-      value: t('window.unit.customersCount', { n: venue.breakEven }),
-      tone: 'plain',
-    },
     ...optional,
     {
       id: 'result',
@@ -671,7 +664,6 @@ const TILE_IDS: readonly string[] = [
   'status',
   'evaluation',
   'served',
-  'breakEven',
   'yesterday',
   'averageResult',
   'weeklyUpkeep',

@@ -232,8 +232,6 @@ export const SPANISH_STRINGS = {
   'window.unit.served': 'Atendidos',
   'window.unit.inside': 'Adentro',
   'window.unit.resultToday': 'Resultado de hoy',
-  'window.unit.breakEven': 'Equilibrio',
-  'window.unit.customersCount': '{n} clientes',
   'window.unit.yesterday': 'Ayer ({n} clientes)',
   'window.unit.averageResult': 'Promedio diario (7 días)',
   'window.unit.weeklyUpkeep': 'Costo operativo semanal',

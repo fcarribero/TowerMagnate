@@ -283,24 +283,12 @@ export interface FoodVenueSummary {
   today: number[];
   /** Average visits per hour of the last finished days, over the same hours; empty before the first. */
   average: number[];
-  /** The fewest customers a day needs to pay at least $0. */
-  breakEven: number;
   /** Customers and result of the last finished day; null before the first. */
   yesterday: { visits: number; result: number } | null;
   /** Average daily result of the last finished days; null before the first. */
   averageResult: number | null;
   /** What the venue adds to next Monday's upkeep for its opening hours. */
   weeklyUpkeep: number;
-}
-
-/** The fewest customers for which a fast food or restaurant day pays at least $0. */
-function breakEvenCustomers(type: 'fast-food' | 'restaurant'): number {
-  const brackets = DAILY_INCOME_BRACKETS[type];
-  const last = brackets[brackets.length - 1]?.minCustomers ?? 0;
-  for (let customers = 0; customers < last; customers++) {
-    if (venueResult(type, customers) >= 0) return customers;
-  }
-  return last;
 }
 
 function averageOfResults(results: readonly number[] | undefined): number | null {
@@ -328,7 +316,6 @@ export function foodVenueSummary(state: TowerState, unit: Unit): FoodVenueSummar
     resultToday: venueResult(unit.type, unit.venue.visits),
     today: lastHour < opens ? [] : hours(unit.venue.hourly).slice(0, lastHour - opens + 1),
     average: past.length === 0 ? [] : average,
-    breakEven: breakEvenCustomers(unit.type),
     yesterday:
       unit.venue.yesterday === null
         ? null
