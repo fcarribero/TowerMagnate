@@ -317,8 +317,16 @@
 }
 
 .tm-unit__people-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
   margin: 0 0 var(--space-1);
   font: var(--text-body);
+}
+
+/* How many people the row below shows. */
+.tm-unit__people-count {
+  font-variant-numeric: tabular-nums;
 }
 
 .tm-unit__queue {

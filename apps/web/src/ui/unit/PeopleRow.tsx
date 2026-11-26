@@ -87,7 +87,12 @@ export function PeopleRow({ group, connection, bare = false, inside }: PeopleRow
   });
   return (
     <section class="tm-unit__people" aria-label={group.label}>
-      {!bare && <h3 class="tm-unit__people-title">{group.label}</h3>}
+      {!bare && (
+        <h3 class="tm-unit__people-title">
+          <span>{group.label}</span>
+          <span class="tm-unit__people-count">{group.people.length}</span>
+        </h3>
+      )}
       <div ref={box} class="tm-unit__queue">
         {rows.map((row) => (
           <ul

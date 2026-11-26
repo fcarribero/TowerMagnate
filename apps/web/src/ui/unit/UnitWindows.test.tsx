@@ -485,6 +485,11 @@ describe('unit windows', () => {
     expect(screen.getByText('Horario 08:00 a 20:00')).toBeTruthy();
     expect(screen.getByText('Se aplica desde mañana.')).toBeTruthy();
     expect(screen.getByText('Personal')).toBeTruthy();
+    // Each heading counts the people in its row: one worker, no customers.
+    const counts = [...document.querySelectorAll('.tm-unit__people-count')].map(
+      (n) => n.textContent,
+    );
+    expect(counts).toEqual(['1', '0']);
     const table = document.querySelector('.tm-unit__table') as HTMLElement;
     expect(within(table).getByText('Atendidos').closest('tr')?.textContent).toBe('Atendidos0');
     expect(within(table).queryByText('Adentro')).toBeNull();
