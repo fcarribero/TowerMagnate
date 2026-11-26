@@ -481,12 +481,6 @@ const InspectedUnitDetailsSchema = z.discriminatedUnion('group', [
     today: z.array(z.int().nonnegative()),
     /** Average customers per hour of the last 7 days, over all the open hours; empty before day 1. */
     average: z.array(z.number().nonnegative()),
-    /** Customers and result of the last finished day; null before the first. */
-    yesterday: z.object({ visits: z.int().nonnegative(), result: z.int() }).nullable(),
-    /** Average daily result of the last 7 finished days; null before the first. */
-    averageResult: z.int().nullable(),
-    /** What the venue adds to next Monday's upkeep for its opening hours. */
-    weeklyUpkeep: z.int().nonnegative(),
   }),
   /** A unit the crew has not finished; the points it needs are never sent. Priced types add the price fields and the listing switch. */
   z.object({
@@ -552,6 +546,8 @@ const InspectedUnitFoundSchema = z.object({
   upgrades: z.array(UnitUpgradeViewSchema),
   /** The people standing inside the unit now; the window draws the others as silhouettes. */
   inside: z.array(PersonEntityIdSchema).optional(),
+  /** This week and last week of the money the unit moved; only for venues the tower runs itself. */
+  finances: FinanceSummarySchema.optional(),
 });
 
 /** A shaft that was removed or never existed: sent once, then the server drops the target. */

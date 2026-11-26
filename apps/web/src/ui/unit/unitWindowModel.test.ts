@@ -21,6 +21,7 @@ import {
   unitRows,
   unitSubtitle,
   venueChart,
+  financeCategoriesOf,
   unitTitle,
   upgradeRows,
 } from './unitWindowModel';
@@ -389,30 +390,16 @@ describe('unit window model', () => {
       resultToday: -3_000,
       today: [0, 10],
       average: [5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 20],
-      yesterday: null,
-      averageResult: null,
-      weeklyUpkeep: 3_000,
     } as const;
     const food: UnitInspect = { ...office, type: 'fast-food', details: venue };
     expect(unitRows(food)).toEqual([
-      { id: 'weeklyUpkeep', label: 'Costo operativo semanal', value: '-$3.000', tone: 'bad' },
       { id: 'result', label: 'Resultado de hoy', value: '-$3.000', tone: 'bad' },
     ]);
     const shop: UnitInspect = { ...food, type: 'restaurant' };
     expect(unitRows(shop).at(-1)).toMatchObject({ id: 'hours', value: '08:00 a 20:00' });
-    expect(groupUnitRows(unitRows(food)).tiles).toHaveLength(2);
-    // After the first paid days: yesterday, the 7-day average and the weekly net at that average.
-    const later: UnitInspect = {
-      ...food,
-      details: { ...venue, yesterday: { visits: 40, result: 3_667 }, averageResult: 2_000 },
-    };
-    expect(unitRows(later).map((row) => [row.label, row.value])).toEqual([
-      ['Ayer (40 clientes)', '$3.667'],
-      ['Promedio diario (7 días)', '$2.000'],
-      ['Costo operativo semanal', '-$3.000'],
-      ['Neto semanal estimado', '$11.000'],
-      ['Resultado de hoy', '-$3.000'],
-    ]);
+    expect(groupUnitRows(unitRows(food)).tiles).toHaveLength(1);
+    expect(financeCategoriesOf('fast-food')).toEqual(['venues', 'upkeep']);
+    expect(financeCategoriesOf('security')).toEqual([]);
 
     const chart = venueChart(venue);
     expect(chart.max).toBe(20);

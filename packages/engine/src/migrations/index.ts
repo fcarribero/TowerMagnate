@@ -59,7 +59,7 @@ import {
   readVipVisit,
 } from './events';
 import { readGrid } from './grid';
-import { readLedger, readMoney } from './money';
+import { readLedger, readMoney, readUnitMoney } from './money';
 import { readPeople, readTripLedger } from './people';
 import { readSites } from './sites';
 import { readLastWeddingDay, readStars, readWedding } from './stars';
@@ -896,6 +896,8 @@ function readUnits(raw: unknown): Record<UnitId, Unit> {
       venue: readVenueDay(unit.venue),
       ...(unit.look !== undefined ? { look: unit.look } : {}),
     };
+    const money = readUnitMoney(unit.money, `State unit ${id}`);
+    if (money !== undefined) units[id].money = money;
   }
   return units;
 }

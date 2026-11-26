@@ -8,7 +8,7 @@ import {
 } from '@tower-magnate/shared';
 import { STEPS_PER_DAY } from './clock';
 import type { CommandHandler } from './step';
-import { chargeMoney } from './money';
+import { chargeMoney, recordUnitMoney } from './money';
 import { emitNews } from './news';
 import type { ScheduledHook } from './scheduler';
 
@@ -53,6 +53,7 @@ export const changeFilm: CommandHandler<'changeFilm'> = (context, command) => {
 
   chargeMoney(state, 'films', CINEMA_MOVIE_CHANGE_COST);
   unit.venue.filmChangedAtStep = state.step;
+  recordUnitMoney(state, unit.id, 'films', -CINEMA_MOVIE_CHANGE_COST);
   return { ok: true, cost: CINEMA_MOVIE_CHANGE_COST, refund: 0, events: [] };
 };
 

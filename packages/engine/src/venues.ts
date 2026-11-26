@@ -22,7 +22,6 @@ import type { ScheduledHook } from './scheduler';
 import type { StepContext } from './step';
 import { writableUnit } from './step-copy';
 import { isVenueType, unitNumber } from './units';
-import { unitOpenHoursUpkeep } from './upkeep';
 import { customersInsideVenue } from './venue-visitors';
 
 type VenueType = keyof typeof VENUE_PAYOUT_HOURS;
@@ -242,9 +241,6 @@ function payOut(context: StepContext, unit: VenueUnit): void {
     }
   }
   unit.venue.yesterday = { visits: customers, result };
-  unit.venue.pastResults = [...(unit.venue.pastResults ?? []), result ?? 0].slice(
-    -HOURLY_DAYS_KEPT,
-  );
   unit.venue.visits = 0;
   unit.venue.eveningShowVisits = 0;
 }
@@ -283,17 +279,6 @@ export interface FoodVenueSummary {
   today: number[];
   /** Average visits per hour of the last finished days, over the same hours; empty before the first. */
   average: number[];
-  /** Customers and result of the last finished day; null before the first. */
-  yesterday: { visits: number; result: number } | null;
-  /** Average daily result of the last finished days; null before the first. */
-  averageResult: number | null;
-  /** What the venue adds to next Monday's upkeep for its opening hours. */
-  weeklyUpkeep: number;
-}
-
-function averageOfResults(results: readonly number[] | undefined): number | null {
-  if (results === undefined || results.length === 0) return null;
-  return Math.round(results.reduce((sum, result) => sum + result, 0) / results.length);
 }
 
 /** Today's numbers of a fast food or restaurant, for its unit window. */
@@ -316,14 +301,5 @@ export function foodVenueSummary(state: TowerState, unit: Unit): FoodVenueSummar
     resultToday: venueResult(unit.type, unit.venue.visits),
     today: lastHour < opens ? [] : hours(unit.venue.hourly).slice(0, lastHour - opens + 1),
     average: past.length === 0 ? [] : average,
-    yesterday:
-      unit.venue.yesterday === null
-        ? null
-        : {
-            visits: unit.venue.yesterday.visits,
-            result: unit.venue.yesterday.result ?? 0,
-          },
-    averageResult: averageOfResults(unit.venue.pastResults),
-    weeklyUpkeep: unitOpenHoursUpkeep(unit),
   };
 }

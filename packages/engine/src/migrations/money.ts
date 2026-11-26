@@ -4,6 +4,7 @@ import {
   STARTING_MONEY,
   type CategoryTotals,
   type Ledger,
+  type UnitLedger,
   type WeekTotals,
 } from '@tower-magnate/shared';
 import { createLedger } from '../money';
@@ -32,6 +33,33 @@ export function readLedger(raw: unknown): Ledger {
     currentWeek: readWeekTotals(raw.currentWeek, 'currentWeek'),
     previousWeek: readWeekTotals(raw.previousWeek, 'previousWeek'),
   };
+}
+
+/** A unit's week totals; units saved before they had any keep none. Only listed categories stay. */
+export function readUnitMoney(raw: unknown, where: string): UnitLedger | undefined {
+  if (raw === undefined) {
+    return undefined;
+  }
+  if (!isRecord(raw)) {
+    throw new StateMigrationError(`${where} money must be an object`);
+  }
+  return {
+    currentWeek: readPartialWeekTotals(raw.currentWeek, `${where}.currentWeek`),
+    previousWeek: readPartialWeekTotals(raw.previousWeek, `${where}.previousWeek`),
+  };
+}
+
+function readPartialWeekTotals(raw: unknown, week: string): Partial<WeekTotals> {
+  if (!isRecord(raw)) {
+    throw new StateMigrationError(`Ledger ${week} must be an object`);
+  }
+  const totals: Partial<WeekTotals> = {};
+  for (const category of LEDGER_CATEGORIES) {
+    if (raw[category] !== undefined) {
+      totals[category] = readCategoryTotals(raw[category], `${week}.${category}`);
+    }
+  }
+  return totals;
 }
 
 function readWeekTotals(raw: unknown, week: string): WeekTotals {

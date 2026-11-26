@@ -70,3 +70,21 @@ export function financeTable(finances: FinanceSummary): FinanceTable {
     lastWeek: weekColumn(finances.lastWeek),
   };
 }
+
+/**
+ * One unit's finance table: the categories its type always shows, plus any other it moved money
+ * in this week or last week, in window order.
+ */
+export function unitFinanceTable(
+  finances: FinanceSummary,
+  always: readonly LedgerCategory[],
+): FinanceTable {
+  const full = financeTable(finances);
+  const categories = LEDGER_CATEGORIES.filter(
+    (category) =>
+      always.includes(category) ||
+      full.thisWeek.net[category] !== 0 ||
+      full.lastWeek.net[category] !== 0,
+  );
+  return { ...full, categories };
+}

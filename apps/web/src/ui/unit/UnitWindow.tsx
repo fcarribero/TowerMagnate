@@ -17,6 +17,8 @@ import {
 import { ObraIcon } from '../icons/ObraIcon';
 import { unitPanelId, unitWindowId } from '../inspectTarget';
 import { t } from '../strings';
+import { FinanceWeeksTable } from '../finance/FinanceWeeksTable';
+import { unitFinanceTable } from '../finance/financeTable';
 import { PeopleRow } from './PeopleRow';
 import { PriceControlView } from './PriceControl';
 import {
@@ -25,6 +27,7 @@ import {
   evaluationReasons,
   filmChangeState,
   upgradeRows,
+  financeCategoriesOf,
   groupUnitRows,
   hourText,
   listedOf,
@@ -151,7 +154,7 @@ export function UnitWindow({ unitId, connection, anchored = false }: UnitWindowP
         subtitle={found?.name == null ? undefined : unitSubtitle(found)}
         onClose={close}
         draggable={!anchored}
-        width={260}
+        width={280}
         titleAction={
           known === undefined || gone ? undefined : (
             <button
@@ -179,6 +182,13 @@ export function UnitWindow({ unitId, connection, anchored = false }: UnitWindowP
         ))}
         {groups !== null && groups.tiles.length > 0 && found?.details?.group === 'venue' && (
           <VenueTable rows={groups.tiles} />
+        )}
+        {found?.finances !== undefined && (
+          <div class="finance-window tm-unit__finances">
+            <FinanceWeeksTable
+              table={unitFinanceTable(found.finances, financeCategoriesOf(found.type))}
+            />
+          </div>
         )}
         {groups !== null && groups.tiles.length > 0 && found?.details?.group !== 'venue' && (
           <div class="tm-unit__tiles">

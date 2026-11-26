@@ -69,6 +69,25 @@ describe('inspecting a unit', () => {
     });
   });
 
+  it('sends the unit finances by week for a venue the tower runs, and none for a rental', () => {
+    const { state, id } = towerWith('fast-food');
+    state.step = 8 * STEPS_PER_DAY;
+    const unit = state.units[id] as TowerState['units'][string];
+    unit.money = {
+      currentWeek: { venues: { income: 5_000, expense: -3_000 } },
+      previousWeek: { upkeep: { income: 0, expense: -3_000 } },
+    };
+    const data = inspectUnit(state, id);
+    expect(throughTheWire(data)).toBe(true);
+    const finances = data.kind === 'unit' && data.status === 'ok' ? data.finances : undefined;
+    expect(finances?.thisWeek.income).toEqual({ dailyPayout: 5_000 });
+    expect(finances?.thisWeek.expenses).toEqual({ dailyPayout: -3_000 });
+    expect(finances?.lastWeek?.expenses).toEqual({ upkeep: -3_000 });
+    const office = towerWith('office');
+    const other = inspectUnit(office.state, office.id);
+    expect(other.kind === 'unit' && other.status === 'ok' && other.finances).toBeUndefined();
+  });
+
   it('answers an office for rent with the common fields and lease fields', () => {
     const { state, id } = towerWith('office');
 
@@ -312,9 +331,6 @@ describe('inspecting a unit', () => {
         closes: 20,
         resultToday: 2_500,
         today: [5, 12, 13],
-        yesterday: null,
-        averageResult: null,
-        weeklyUpkeep: 3_000,
       },
     });
     const details = data.kind === 'unit' && data.status === 'ok' ? data.details : null;

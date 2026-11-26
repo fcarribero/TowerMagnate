@@ -26,6 +26,12 @@ export interface Ledger {
   previousWeek: WeekTotals;
 }
 
+/** One unit's share of the ledger: only the categories it has moved money in. */
+export interface UnitLedger {
+  currentWeek: Partial<WeekTotals>;
+  previousWeek: Partial<WeekTotals>;
+}
+
 export function isLedgerCategory(value: unknown): value is LedgerCategory {
   return (LEDGER_CATEGORIES as readonly unknown[]).includes(value);
 }

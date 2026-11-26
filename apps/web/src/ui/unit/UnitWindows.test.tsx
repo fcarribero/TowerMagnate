@@ -464,6 +464,10 @@ describe('unit windows', () => {
     show(
       inspectOf('u1', {
         type: 'fast-food',
+        finances: {
+          thisWeek: { weekStartStep: 0, income: {}, expenses: { upkeep: -750 } },
+          lastWeek: null,
+        },
         details: {
           group: 'venue',
           served: 0,
@@ -479,9 +483,6 @@ describe('unit windows', () => {
           resultToday: 0,
           today: [],
           average: [],
-          yesterday: null,
-          averageResult: null,
-          weeklyUpkeep: 3_000,
         },
       }),
     );
@@ -499,6 +500,10 @@ describe('unit windows', () => {
     expect(table.querySelector('tfoot')?.textContent).toContain('Resultado');
     expect(document.querySelector('.tm-unit__tile')).toBeNull();
     expect(screen.getByText('Clientes')).toBeTruthy();
+    // The unit's own finance table, the same as the finance window.
+    expect(screen.getByText('Esta semana')).toBeTruthy();
+    expect(screen.getByText('Mantenimiento').closest('tr')?.textContent).toContain('-$750');
+    expect(screen.getByText('Comercios y entretenimiento')).toBeTruthy();
     const close = screen.getByRole('slider', { name: 'Hora de cierre' });
     fireEvent.input(close, { target: { value: '22' } });
     expect(screen.getByText('Horario 08:00 a 22:00')).toBeTruthy();

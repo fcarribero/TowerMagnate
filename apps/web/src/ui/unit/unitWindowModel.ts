@@ -2,6 +2,7 @@ import { dateOfStep } from '@tower-magnate/engine/calendar';
 import type {
   Evaluation,
   InspectedUnitDetails,
+  LedgerCategory,
   Level,
   PersonKind,
   PriceBand,
@@ -462,46 +463,23 @@ function moneyTone(amount: number): UnitRow['tone'] {
   return amount > 0 ? 'good' : amount < 0 ? 'bad' : 'plain';
 }
 
-/**
- * The money side of a fast food or restaurant: the last days, the weekly cost of its opening
- * hours, what a week nets at the recent average and what today pays so far.
- */
+/** The finance rows a unit of this type always shows, money or not. */
+export function financeCategoriesOf(type: UnitType): readonly LedgerCategory[] {
+  switch (type) {
+    case 'cinema':
+      return ['venues', 'films', 'upkeep'];
+    case 'fast-food':
+    case 'restaurant':
+    case 'party-hall':
+      return ['venues', 'upkeep'];
+    default:
+      return [];
+  }
+}
+
+/** Today's result of a fast food or restaurant; its weeks are in the unit's finance table. */
 function venueRows(venue: Details<'venue'>): UnitRow[] {
-  const weeklyNet =
-    venue.averageResult === null ? null : venue.averageResult * 7 - venue.weeklyUpkeep;
-  const optional: UnitRow[] = [];
-  if (venue.yesterday !== null) {
-    optional.push({
-      id: 'yesterday',
-      label: t('window.unit.yesterday', { n: venue.yesterday.visits }),
-      value: formatMoney(venue.yesterday.result),
-      tone: moneyTone(venue.yesterday.result),
-    });
-  }
-  if (venue.averageResult !== null) {
-    optional.push({
-      id: 'averageResult',
-      label: t('window.unit.averageResult'),
-      value: formatMoney(venue.averageResult),
-      tone: moneyTone(venue.averageResult),
-    });
-  }
-  optional.push({
-    id: 'weeklyUpkeep',
-    label: t('window.unit.weeklyUpkeep'),
-    value: formatMoney(-venue.weeklyUpkeep),
-    tone: moneyTone(-venue.weeklyUpkeep),
-  });
-  if (weeklyNet !== null) {
-    optional.push({
-      id: 'weeklyNet',
-      label: t('window.unit.weeklyNet'),
-      value: formatMoney(weeklyNet),
-      tone: moneyTone(weeklyNet),
-    });
-  }
   return [
-    ...optional,
     {
       id: 'result',
       label: t('window.unit.resultToday'),
@@ -660,16 +638,7 @@ export interface UnitRowGroups {
   rows: UnitRow[];
 }
 
-const TILE_IDS: readonly string[] = [
-  'status',
-  'evaluation',
-  'served',
-  'yesterday',
-  'averageResult',
-  'weeklyUpkeep',
-  'weeklyNet',
-  'result',
-];
+const TILE_IDS: readonly string[] = ['status', 'evaluation', 'served', 'result'];
 const CHIP_IDS: readonly string[] = ['lease', 'nextPayment'];
 
 export function groupUnitRows(rows: readonly UnitRow[]): UnitRowGroups {

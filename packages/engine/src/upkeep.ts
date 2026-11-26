@@ -11,7 +11,7 @@ import {
   venueHoursOf,
 } from '@tower-magnate/shared';
 import { WEEKDAYS } from './calendar';
-import { chargeMoney } from './money';
+import { chargeMoney, recordUnitMoney } from './money';
 import type { ScheduledHook } from './scheduler';
 import { emitNews } from './news';
 
@@ -82,16 +82,6 @@ function openHoursOf(unit: Unit): number {
   return (open.close - open.open) / 60;
 }
 
-/**
- * What one commercial unit adds to the next Monday upkeep for its opening hours, if it is still
- * switched on then. Zero for a unit the player switched off and for types without the line.
- */
-export function unitOpenHoursUpkeep(unit: Unit): number {
-  const rate = OPEN_HOUR_WEEKLY_UPKEEP[unit.type as keyof typeof OPEN_HOUR_WEEKLY_UPKEEP];
-  if (rate === undefined || !unit.enabled) return 0;
-  return Math.round(openHoursOf(unit) * rate);
-}
-
 /** Charges one upkeep entry per item type with a non-zero total. */
 export function chargeWeeklyUpkeep(state: TowerState): void {
   const counts = countUpkeepItems(state);
@@ -101,6 +91,18 @@ export function chargeWeeklyUpkeep(state: TowerState): void {
     if (total > 0) {
       chargeMoney(state, 'upkeep', total);
     }
+  }
+  recordUnitUpkeep(state);
+}
+
+/** Each unit's own part of the charge goes into its week totals, for its unit window. */
+function recordUnitUpkeep(state: TowerState): void {
+  for (const unit of Object.values(state.units)) {
+    if (WEEKLY_UPKEEP[unit.type].basis !== 'per-unit') continue;
+    const rate = OPEN_HOUR_WEEKLY_UPKEEP[unit.type as keyof typeof OPEN_HOUR_WEEKLY_UPKEEP];
+    const hours = rate !== undefined && unit.activeToday ? Math.round(openHoursOf(unit) * rate) : 0;
+    const amount = amountAtStars(unit.type, state.stars) + hours;
+    if (amount > 0) recordUnitMoney(state, unit.id, 'upkeep', -amount);
   }
 }
 

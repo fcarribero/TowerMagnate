@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { financeTable, weekColumn } from './financeTable';
+import { financeTable, unitFinanceTable, weekColumn } from './financeTable';
 
 describe('weekColumn', () => {
   it('nets a mixed category in its row and splits it in the totals', () => {
@@ -38,5 +38,28 @@ describe('financeTable', () => {
     });
     expect(table.categories[0]).toBe('rent');
     expect(table.categories[8]).toBe('films');
+  });
+});
+
+describe('unitFinanceTable', () => {
+  it('shows its usual categories and any other it moved money in, in window order', () => {
+    const table = unitFinanceTable(
+      {
+        thisWeek: { weekStartStep: 0, income: { dailyPayout: 5_000 }, expenses: { upkeep: -750 } },
+        lastWeek: { weekStartStep: 0, income: {}, expenses: { film: -300_000 } },
+      },
+      ['venues'],
+    );
+    expect(table.categories).toEqual(['venues', 'upkeep', 'films']);
+    expect(table.thisWeek.result).toBe(4_250);
+    expect(table.lastWeek.totalExpenses).toBe(-300_000);
+  });
+
+  it('shows its usual categories before the unit has moved any money', () => {
+    const table = unitFinanceTable(
+      { thisWeek: { weekStartStep: 0, income: {}, expenses: {} }, lastWeek: null },
+      ['rent'],
+    );
+    expect(table.categories).toEqual(['rent']);
   });
 });

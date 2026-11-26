@@ -40,9 +40,10 @@ import {
   type InspectData,
   type TowerState,
   type Unit,
+  type UnitType,
 } from '@tower-magnate/shared';
 
-import { modeOfPhase, standsStill, stressLevel } from './snapshot';
+import { modeOfPhase, standsStill, stressLevel, weekSummary } from './snapshot';
 
 type PersonInspection = Extract<InspectData, { kind: 'person'; status: 'ok' }>;
 type ShaftInspection = Extract<InspectData, { kind: 'shaft'; status: 'ok' }>;
@@ -67,8 +68,19 @@ export function inspectUnit(state: TowerState, unitId: string): InspectData {
     details: unitDetails(state, unit),
     upgrades: upgradeViews(unit),
     inside: peopleInside(state, unit),
+    ...(EARNING_TYPES.has(unit.type)
+      ? { finances: weekSummary(state, unit.money ?? { currentWeek: {}, previousWeek: {} }) }
+      : {}),
   };
 }
+
+/** Commercial venues the tower runs itself, not for rent; their window shows their own finances. */
+const EARNING_TYPES: ReadonlySet<UnitType> = new Set<UnitType>([
+  'fast-food',
+  'restaurant',
+  'cinema',
+  'party-hall',
+]);
 
 /** The people standing still inside the unit now, whoever they are. One pass over the pool. */
 function peopleInside(state: TowerState, unit: Unit): string[] {

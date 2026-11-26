@@ -13,11 +13,15 @@ import {
   creditMoney,
   emptyWeekTotals,
   ledgerWeekRollHook,
+  pushUnitMoney,
+  recordUnitMoney,
   rollLedgerWeek,
   summarizeWeek,
 } from './money';
 import { createScheduler, type ScheduledHook } from './scheduler';
 import { createTower } from './state';
+import { newUnit } from './units';
+import { chargeWeeklyUpkeep } from './upkeep';
 import { createEngine, runDays } from './step';
 
 const STEPS_PER_WEEK = 7 * STEPS_PER_DAY;
@@ -262,5 +266,49 @@ describe('default tower engine', () => {
   it('lists every category in both weeks after a roll', () => {
     const { state } = runDays(createTower(1), 7);
     expect(Object.keys(state.ledger.previousWeek)).toEqual([...LEDGER_CATEGORIES]);
+  });
+});
+
+describe('unit week totals', () => {
+  function towerWithUnit(type: 'fast-food' | 'office'): TowerState {
+    const tower = createTower(1);
+    tower.units.u1 = newUnit('u1', type, 0, 2);
+    return tower;
+  }
+
+  it('adds money tied to a unit to its own week, income and expense apart', () => {
+    const tower = towerWithUnit('fast-food');
+    const context = { state: tower, events: [] };
+    pushUnitMoney(context, 'u1', 5_000, 'dailyPayout');
+    pushUnitMoney(context, 'u1', -3_000, 'dailyPayout');
+    recordUnitMoney(tower, 'u1', 'films', 0);
+    expect(tower.units.u1?.money).toEqual({
+      currentWeek: { venues: { income: 5_000, expense: -3_000 } },
+      previousWeek: {},
+    });
+    expect(context.events).toHaveLength(2);
+  });
+
+  it('charges each unit its own part of the weekly upkeep', () => {
+    const tower = towerWithUnit('fast-food');
+    tower.units.u1 = {
+      ...(tower.units.u1 as NonNullable<TowerState['units'][string]>),
+      hours: { open: 11, close: 14 },
+    };
+    chargeWeeklyUpkeep(tower);
+    // 3 open hours a day at $250 a week each.
+    expect(tower.units.u1?.money?.currentWeek.upkeep).toEqual({ income: 0, expense: -750 });
+  });
+
+  it('moves this week to last week on Monday and drops a unit with nothing in either', () => {
+    const tower = towerWithUnit('office');
+    recordUnitMoney(tower, 'u1', 'rent', 10_000);
+    rollLedgerWeek(tower);
+    expect(tower.units.u1?.money).toEqual({
+      currentWeek: {},
+      previousWeek: { rent: { income: 10_000, expense: 0 } },
+    });
+    rollLedgerWeek(tower);
+    expect(tower.units.u1?.money).toBeUndefined();
   });
 });

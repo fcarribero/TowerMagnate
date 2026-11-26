@@ -528,21 +528,27 @@ function followedPeople(state: TowerState): FollowedView[] {
 }
 
 function financeSummary(state: TowerState): FinanceSummary {
+  return weekSummary(state, state.ledger);
+}
+
+/** This week and last week of a ledger, the tower's or one unit's, as the finance views send it. */
+export function weekSummary(
+  state: TowerState,
+  ledger: { currentWeek: Partial<WeekTotals>; previousWeek: Partial<WeekTotals> },
+): FinanceSummary {
   const weekStartStep = state.step - (state.step % STEPS_PER_WEEK);
   return {
-    thisWeek: financeWeek(weekStartStep, state.ledger.currentWeek),
+    thisWeek: financeWeek(weekStartStep, ledger.currentWeek),
     lastWeek:
-      weekStartStep === 0
-        ? null
-        : financeWeek(weekStartStep - STEPS_PER_WEEK, state.ledger.previousWeek),
+      weekStartStep === 0 ? null : financeWeek(weekStartStep - STEPS_PER_WEEK, ledger.previousWeek),
   };
 }
 
-function financeWeek(weekStartStep: number, totals: WeekTotals): FinanceWeek {
+function financeWeek(weekStartStep: number, totals: Partial<WeekTotals>): FinanceWeek {
   const income: FinanceWeek['income'] = {};
   const expenses: FinanceWeek['expenses'] = {};
   for (const category of LEDGER_CATEGORIES) {
-    const { income: earned, expense: spent } = totals[category];
+    const { income: earned, expense: spent } = totals[category] ?? { income: 0, expense: 0 };
     const reasons = REASON_OF_CATEGORY[category];
     if (earned !== 0) {
       income[reasons.income] = (income[reasons.income] ?? 0) + earned;

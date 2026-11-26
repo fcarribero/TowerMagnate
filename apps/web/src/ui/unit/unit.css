@@ -445,3 +445,8 @@
 .tm-unit__upgrade-level {
   font: var(--text-body-strong);
 }
+
+/* The unit's own finance table, the same table as the finance window. */
+.tm-unit__finances {
+  margin-top: var(--space-2);
+}

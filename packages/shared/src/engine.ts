@@ -1,4 +1,4 @@
-import type { Ledger } from './ledger';
+import type { Ledger, UnitLedger } from './ledger';
 import type { Level } from './levels';
 import type {
   CellRange,
@@ -97,6 +97,8 @@ export interface Unit {
   /** Whole dollars charged at placement, automatic floor included. */
   paid: number;
   placedAtStep: number;
+  /** Money this unit moved this week and last week; missing until it moves any. */
+  money?: UnitLedger;
   /** Set on the first lease, sale, check-in or visitor. */
   used: boolean;
   /** The current office or shop tenant's lease; null while the unit is for rent. */
@@ -173,8 +175,6 @@ export interface VenueDay {
   hourly?: number[];
   /** `hourly` of the last 7 finished days, oldest first; missing in older saves. */
   pastHourly?: number[][];
-  /** What each of the last 7 paid days paid, oldest first; a day the venue was shut counts as $0. */
-  pastResults?: number[];
 }
 
 export interface HotelRoom {
