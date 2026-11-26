@@ -479,6 +479,10 @@ describe('unit windows', () => {
           resultToday: 0,
           today: [],
           average: [],
+          breakEven: 15,
+          yesterday: null,
+          averageResult: null,
+          weeklyUpkeep: 3_000,
         },
       }),
     );

@@ -312,6 +312,10 @@ describe('inspecting a unit', () => {
         closes: 20,
         resultToday: 2_500,
         today: [5, 12, 13],
+        breakEven: 15,
+        yesterday: null,
+        averageResult: null,
+        weeklyUpkeep: 3_000,
       },
     });
     const details = data.kind === 'unit' && data.status === 'ok' ? data.details : null;

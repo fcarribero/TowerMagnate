@@ -6,6 +6,7 @@ import {
   WEEKLY_UPKEEP,
   type StarRating,
   type TowerState,
+  type Unit,
   type UnitType,
   venueHoursOf,
 } from '@tower-magnate/shared';
@@ -71,10 +72,24 @@ function openHoursUpkeep(state: TowerState, type: UnitType): number {
   let hours = 0;
   for (const unit of Object.values(state.units)) {
     if (unit.type !== type || !unit.activeToday) continue;
-    const open = venueHoursOf(unit);
-    hours += (open.close - open.open) / 60;
+    hours += openHoursOf(unit);
   }
   return Math.round(hours * rate);
+}
+
+function openHoursOf(unit: Unit): number {
+  const open = venueHoursOf(unit);
+  return (open.close - open.open) / 60;
+}
+
+/**
+ * What one commercial unit adds to the next Monday upkeep for its opening hours, if it is still
+ * switched on then. Zero for a unit the player switched off and for types without the line.
+ */
+export function unitOpenHoursUpkeep(unit: Unit): number {
+  const rate = OPEN_HOUR_WEEKLY_UPKEEP[unit.type as keyof typeof OPEN_HOUR_WEEKLY_UPKEEP];
+  if (rate === undefined || !unit.enabled) return 0;
+  return Math.round(openHoursOf(unit) * rate);
 }
 
 /** Charges one upkeep entry per item type with a non-zero total. */

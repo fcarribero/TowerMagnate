@@ -173,6 +173,8 @@ export interface VenueDay {
   hourly?: number[];
   /** `hourly` of the last 7 finished days, oldest first; missing in older saves. */
   pastHourly?: number[][];
+  /** What each of the last 7 paid days paid, oldest first; a day the venue was shut counts as $0. */
+  pastResults?: number[];
 }
 
 export interface HotelRoom {

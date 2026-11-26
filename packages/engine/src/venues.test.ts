@@ -82,7 +82,12 @@ function expectedAmount(type: VenueType, customers: number): number {
 describe('running result of a fast food', () => {
   it('adds the income of each customer: $200 each from -$3,000 up to the first bracket', () => {
     const { tower, id } = towerWith('fast-food');
-    for (const [customers, result] of [[0, -3_000], [1, -2_800], [10, -1_000], [15, 0]] as const) {
+    for (const [customers, result] of [
+      [0, -3_000],
+      [1, -2_800],
+      [10, -1_000],
+      [15, 0],
+    ] as const) {
       setCounts(tower, id, customers);
       expect(foodVenueSummary(tower, tower.units[id] as Unit)?.resultToday).toBe(result);
     }
@@ -409,6 +414,33 @@ describe('food venue summary', () => {
     expect(summary?.average.slice(0, 3)).toEqual([0, 3, 0]);
     expect(summary?.today).toEqual([0, 0, 0]);
     expect(summary?.average).toHaveLength(12);
+  });
+
+  it('reports break-even, yesterday, the average paid day and the weekly hours upkeep', () => {
+    const { tower, id } = towerWith('fast-food');
+    const unit = tower.units[id] as Unit;
+    tower.step = at(1, 10);
+    expect(foodVenueSummary(tower, unit)).toMatchObject({
+      breakEven: 15,
+      yesterday: null,
+      averageResult: null,
+      // 08:00 to 20:00 at $250 a week for each daily hour.
+      weeklyUpkeep: 3_000,
+    });
+    unit.hours = { open: 11, close: 14 };
+    const venue = unit.venue as VenueDay;
+    venue.yesterday = { visits: 50, result: 5_000 };
+    venue.pastResults = [5_000, -3_000];
+    expect(foodVenueSummary(tower, unit)).toMatchObject({
+      yesterday: { visits: 50, result: 5_000 },
+      averageResult: 1_000,
+      weeklyUpkeep: 750,
+    });
+    unit.enabled = false;
+    expect(foodVenueSummary(tower, unit)?.weeklyUpkeep).toBe(0);
+    expect(
+      foodVenueSummary(tower, towerWith('restaurant').tower.units[id] as Unit)?.breakEven,
+    ).toBe(15);
   });
 
   it('reads a venue saved without hourly counts as empty', () => {

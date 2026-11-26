@@ -458,14 +458,62 @@ function housekeepingRows(housekeeping: Details<'housekeeping'>): UnitRow[] {
   ];
 }
 
+function moneyTone(amount: number): UnitRow['tone'] {
+  return amount > 0 ? 'good' : amount < 0 ? 'bad' : 'plain';
+}
+
+/**
+ * The money side of a fast food or restaurant: the day so far, the break-even point, the last
+ * days, the weekly cost of its opening hours and what a week nets at the recent average.
+ */
 function venueRows(venue: Details<'venue'>): UnitRow[] {
+  const weeklyNet =
+    venue.averageResult === null ? null : venue.averageResult * 7 - venue.weeklyUpkeep;
+  const optional: UnitRow[] = [];
+  if (venue.yesterday !== null) {
+    optional.push({
+      id: 'yesterday',
+      label: t('window.unit.yesterday', { n: venue.yesterday.visits }),
+      value: formatMoney(venue.yesterday.result),
+      tone: moneyTone(venue.yesterday.result),
+    });
+  }
+  if (venue.averageResult !== null) {
+    optional.push({
+      id: 'averageResult',
+      label: t('window.unit.averageResult'),
+      value: formatMoney(venue.averageResult),
+      tone: moneyTone(venue.averageResult),
+    });
+  }
+  optional.push({
+    id: 'weeklyUpkeep',
+    label: t('window.unit.weeklyUpkeep'),
+    value: formatMoney(-venue.weeklyUpkeep),
+    tone: moneyTone(-venue.weeklyUpkeep),
+  });
+  if (weeklyNet !== null) {
+    optional.push({
+      id: 'weeklyNet',
+      label: t('window.unit.weeklyNet'),
+      value: formatMoney(weeklyNet),
+      tone: moneyTone(weeklyNet),
+    });
+  }
   return [
     { id: 'served', label: t('window.unit.served'), value: String(venue.served), tone: 'plain' },
+    {
+      id: 'breakEven',
+      label: t('window.unit.breakEven'),
+      value: t('window.unit.customersCount', { n: venue.breakEven }),
+      tone: 'plain',
+    },
+    ...optional,
     {
       id: 'result',
       label: t('window.unit.resultToday'),
       value: formatMoney(venue.resultToday),
-      tone: venue.resultToday > 0 ? 'good' : venue.resultToday < 0 ? 'bad' : 'plain',
+      tone: moneyTone(venue.resultToday),
     },
     {
       id: 'hours',
@@ -619,7 +667,17 @@ export interface UnitRowGroups {
   rows: UnitRow[];
 }
 
-const TILE_IDS: readonly string[] = ['status', 'evaluation', 'served', 'result'];
+const TILE_IDS: readonly string[] = [
+  'status',
+  'evaluation',
+  'served',
+  'breakEven',
+  'yesterday',
+  'averageResult',
+  'weeklyUpkeep',
+  'weeklyNet',
+  'result',
+];
 const CHIP_IDS: readonly string[] = ['lease', 'nextPayment'];
 
 export function groupUnitRows(rows: readonly UnitRow[]): UnitRowGroups {
