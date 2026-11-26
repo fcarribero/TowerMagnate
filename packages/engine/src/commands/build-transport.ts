@@ -21,7 +21,6 @@ import {
   structureAt,
 } from '../grid';
 import type { CommandHandler } from '../step';
-import { isEscalatorFloor } from './escalator-floors';
 import { columnsBetween, isInteger, negativeBalanceError, payForConstruction } from './structure';
 
 function isTransportPart(occupant: OccupantRef, part: 'footprint' | 'landing'): boolean {
@@ -130,10 +129,6 @@ export const buildTransport: CommandHandler<'buildTransport'> = (context, comman
       level,
     );
   if (nearStairs) return { ok: false, error: 'STAIRS_TOO_CLOSE' };
-  const onEscalatorFloors = isEscalatorFloor(state, level) && isEscalatorFloor(state, landingLevel);
-  if (parsedType.data === 'escalator' && !onEscalatorFloors) {
-    return { ok: false, error: 'ESCALATOR_FLOOR_TYPE' };
-  }
 
   const cost = definition.cost.kind === 'per-unit' ? definition.cost.amount : 0;
   const paymentError = payForConstruction(state, cost);

@@ -19,7 +19,6 @@ import {
 import { addOccupant, isBackSpanFree, levelError, setStructure, structureAt } from '../grid';
 import type { CommandHandler } from '../step';
 import { basementRuleError } from './basement-rules';
-import { escalatorLevels, isEscalatorUnit } from './escalator-floors';
 import { isBuiltByCrew } from '../construction';
 import { addPeopleForUnit } from '../people';
 import { addCrew } from '../venue-staff';
@@ -163,11 +162,6 @@ export const buildUnit: CommandHandler<'buildUnit'> = (context, command) => {
   }
   if (!isFootprintSupported(grid, footprint)) {
     return { ok: false, error: 'NO_SUPPORT' };
-  }
-
-  const onEscalatorLevel = footprint.levels.some((row) => escalatorLevels(state).has(row));
-  if (onEscalatorLevel && !isEscalatorUnit(definition.type)) {
-    return { ok: false, error: 'ESCALATOR_FLOOR_UNIT' };
   }
 
   const ruleError = basementRuleError(state, definition.type, { x, level });

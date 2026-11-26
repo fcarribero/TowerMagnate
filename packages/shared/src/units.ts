@@ -81,13 +81,10 @@ export interface UnitCapacity {
 export type PlacementZone =
   'any' | 'above-ground' | 'basement' | 'lowest-basement' | 'lobby-floors' | 'above-top-floor';
 
-export type FloorUse = 'lobby' | 'commercial' | 'entertainment' | 'single-room';
-
 export type ElevatorStopRule = 'any-floor' | 'basements-main-and-sky-lobbies';
 
 export interface PlacementFlags {
   readonly zone: PlacementZone;
-  readonly allowedFloorUses?: readonly FloorUse[];
   readonly alignedWithExistingSameUnit?: boolean;
   readonly mustConnectTo?: UnitType;
   readonly mustTouchExistingSameUnit?: boolean;

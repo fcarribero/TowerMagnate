@@ -482,10 +482,6 @@ export const SPANISH_STRINGS = {
   'error.TRANSPORT_LANDING': 'Falta piso libre arriba para llegar.',
   'error.LOBBY_HEIGHT_MISMATCH': 'El lobby de este piso tiene otra altura.',
   'error.LOBBY_NOT_CONTIGUOUS': 'El lobby principal tiene que ser continuo.',
-  'error.ESCALATOR_FLOOR_TYPE':
-    'La escalera mecánica solo va en pisos de lobby, comercio, entretenimiento o habitaciones simples.',
-  'error.ESCALATOR_FLOOR_UNIT':
-    'Este piso tiene una escalera mecánica: solo admite comercio, entretenimiento o habitaciones simples.',
   'error.SHAFT_TOO_TALL': 'Este ascensor cubre hasta 30 pisos.',
   'error.SHAFT_TOO_CLOSE': 'Dejá 8 casilleros libres entre huecos de ascensor.',
   'error.STAIRS_TOO_CLOSE': 'Dejá 8 casilleros libres entre escaleras del mismo piso.',

@@ -50,8 +50,6 @@ describe('error codes', () => {
         "TRANSPORT_LANDING",
         "LOBBY_HEIGHT_MISMATCH",
         "LOBBY_NOT_CONTIGUOUS",
-        "ESCALATOR_FLOOR_TYPE",
-        "ESCALATOR_FLOOR_UNIT",
         "SHAFT_TOO_TALL",
         "SHAFT_TOO_CLOSE",
         "STAIRS_TOO_CLOSE",

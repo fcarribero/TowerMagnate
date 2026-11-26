@@ -313,13 +313,12 @@ describe('placement flags', () => {
     expect(UNIT_CATALOG['recycling-center'].placement.mustTouchExistingSameUnit).toBe(true);
   });
 
-  it('allows escalators only on lobby, commercial, entertainment or single-room floors', () => {
-    expect(UNIT_CATALOG.escalator.placement.allowedFloorUses).toEqual([
-      'lobby',
-      'commercial',
-      'entertainment',
-      'single-room',
-    ]);
+  it('lets escalators go on any floor and charges them $15,000 a week', () => {
+    expect(UNIT_CATALOG.escalator.placement).toEqual({ zone: 'any' });
+    expect(WEEKLY_UPKEEP.escalator).toEqual({
+      basis: 'per-unit',
+      amountByStars: [{ minStars: 1, amount: 15_000 }],
+    });
   });
 
   it('sets the elevator rules', () => {
@@ -512,7 +511,7 @@ describe('weekly upkeep', () => {
         ],
       },
       stairs: flat('per-unit', 0),
-      escalator: flat('per-unit', 5_000),
+      escalator: flat('per-unit', 15_000),
       'standard-elevator': flat('per-car', 10_000),
       office: flat('per-unit', 0),
       condo: flat('per-unit', 0),

@@ -118,16 +118,6 @@ export function footprintLevels(type: UnitType, bottom: Level): Level[] | null {
   return levels;
 }
 
-/** Mirrors the engine's C-30: the unit types a level can hold and still have an escalator end on it. */
-const ESCALATOR_FLOOR_UNITS: ReadonlySet<UnitType> = new Set([
-  'fast-food',
-  'restaurant',
-  'retail-shop',
-  'cinema',
-  'party-hall',
-  'single-room',
-]);
-
 const MAX_RAMPS = 9;
 const SKY_LOBBY_LEVELS: readonly number[] = TOWER_LAYOUT.skyLobbyFloors;
 /** C-39: columns that must stay free of other shafts between two shafts sharing a level. */
@@ -236,10 +226,6 @@ function unitProblem(
   const anchor = isBasement(bottom) ? top : bottom;
   if (!columnsOf(x0, x1).every((column) => view.isSupported(anchor, column))) {
     return 'NO_SUPPORT';
-  }
-  const onEscalator = levels.some((level) => view.escalatorLevels.has(level));
-  if (onEscalator && !ESCALATOR_FLOOR_UNITS.has(type)) {
-    return 'ESCALATOR_FLOOR_UNIT';
   }
   const rule = basementRuleProblem(type, x0, bottom, view);
   if (rule) {
@@ -382,9 +368,6 @@ function transportProblem(
   if (type === 'stairs' && stairsTooClose(view.stairs, x0, footprintWidth(type), bottom)) {
     return 'STAIRS_TOO_CLOSE';
   }
-  if (type === 'escalator' && !(view.isEscalatorFloor(bottom) && view.isEscalatorFloor(landing))) {
-    return 'ESCALATOR_FLOOR_TYPE';
-  }
   return view.fundsProblem(priceOf(type));
 }
 
@@ -475,7 +458,9 @@ function shaftWidth(type: ShaftType): number {
 
 /** C-38: express cars stop only in basements, the main lobby and the sky lobbies. */
 function isExpressStop(level: Level): boolean {
-  return isBasement(level) || level === TOWER_LAYOUT.mainLobbyFloor || SKY_LOBBY_LEVELS.includes(level);
+  return (
+    isBasement(level) || level === TOWER_LAYOUT.mainLobbyFloor || SKY_LOBBY_LEVELS.includes(level)
+  );
 }
 
 /**
@@ -625,7 +610,6 @@ class WorldView {
   readonly shafts: PlacedShaft[];
   readonly cars: PlacedCar[];
   readonly stairs: PlacedThing[];
-  readonly escalatorLevels = new Set<Level>();
   private readonly structure: ReadonlyMap<Level, string>;
   private readonly unitsByLevel = new Map<Level, PlacedThing[]>();
   private readonly transportsByLevel = new Map<Level, PlacedThing[]>();
@@ -657,15 +641,6 @@ class WorldView {
     }
     for (const transport of this.transports) {
       this.addLanding(transport);
-    }
-    for (const transport of this.transports) {
-      if (transport.type === 'escalator') {
-        this.escalatorLevels.add(transport.level);
-        const above = levelAbove(transport.level);
-        if (above !== null) {
-          this.escalatorLevels.add(above);
-        }
-      }
     }
   }
 
@@ -786,13 +761,6 @@ class WorldView {
       frontier = next;
     }
     return [...reached];
-  }
-
-  /** C-30: every unit on the level, a tall unit counting on each of its levels, is an escalator unit. */
-  isEscalatorFloor(level: Level): boolean {
-    return (this.unitsByLevel.get(level) ?? [])
-      .filter((unit) => !isSite(unit))
-      .every((unit) => ESCALATOR_FLOOR_UNITS.has(unit.type));
   }
 
   /** The height the server recorded for a sky lobby on the level; null when none was built. */

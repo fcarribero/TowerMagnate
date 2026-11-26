@@ -409,14 +409,14 @@ describe('placement preview agrees with the server', () => {
     expect(mismatches(state, probes)).toEqual([]);
   }, 300_000);
 
-  it('refuses an escalator that would end on a level with an office', () => {
+  it('lets an escalator end on a level with an office', () => {
     const state = richTower();
     const world = worldOf(state);
-    // Level 8 holds an office next to a fast-food, so an escalator ending there must be red.
-    expect(checkPlacement('escalator', 20, 8, world).problem).toBe('ESCALATOR_FLOOR_TYPE');
+    // Level 8 holds an office next to a fast-food; escalators now go on any floor.
+    expect(checkPlacement('escalator', 20, 8, world).problem).toBeNull();
     expect(
       serverSays(state, { type: 'buildTransport', transportType: 'escalator', x: 20, level: 8 }),
-    ).toBe('ESCALATOR_FLOOR_TYPE');
+    ).toBeNull();
   });
 
   it('keeps the site width in step with the engine', () => {

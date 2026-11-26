@@ -179,10 +179,7 @@ export const UNIT_CATALOG: Readonly<Record<UnitType, UnitDefinition>> = {
     cost: perUnit(20_000),
     capacity: null,
     unlockStars: 1,
-    placement: {
-      zone: 'any',
-      allowedFloorUses: ['lobby', 'commercial', 'entertainment', 'single-room'],
-    },
+    placement: { zone: 'any' },
     limitGroup: 'stairs-and-escalators',
   },
   'standard-elevator': {
@@ -708,7 +705,7 @@ export const WEEKLY_UPKEEP: Readonly<Record<UnitType, UpkeepRule>> = {
     ],
   },
   stairs: flatUpkeep('per-unit', 0),
-  escalator: flatUpkeep('per-unit', 5_000),
+  escalator: flatUpkeep('per-unit', 15_000),
   'standard-elevator': flatUpkeep('per-car', 10_000),
   office: flatUpkeep('per-unit', 0),
   condo: flatUpkeep('per-unit', 0),

@@ -36,8 +36,6 @@ const ERROR_CODES: Readonly<Record<ErrorCode | SocketErrorCode, true>> = {
   TRANSPORT_LANDING: true,
   LOBBY_HEIGHT_MISMATCH: true,
   LOBBY_NOT_CONTIGUOUS: true,
-  ESCALATOR_FLOOR_TYPE: true,
-  ESCALATOR_FLOOR_UNIT: true,
   SHAFT_TOO_TALL: true,
   SHAFT_TOO_CLOSE: true,
   STAIRS_TOO_CLOSE: true,

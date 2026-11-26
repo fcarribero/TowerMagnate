@@ -208,22 +208,17 @@ describe('buildTransport escalators', () => {
     expect(run(tower, transport('escalator', 10, 1)).result.ok).toBe(true);
   });
 
-  it('rejects an escalator between a shop floor and an office floor', () => {
+  it('places an escalator between a shop floor and an office floor', () => {
     const tower = towerWith([
       { type: 'retail-shop', level: 2, x: 40 },
       { type: 'office', level: 3, x: 40 },
     ]);
-    expect(rejection(tower, transport('escalator', 10, 2))).toBe('ESCALATOR_FLOOR_TYPE');
+    expect(run(tower, transport('escalator', 10, 2)).result.ok).toBe(true);
   });
 
-  it('rejects an escalator when the lower level has an office', () => {
-    const tower = towerWith([{ type: 'office', level: 2, x: 40 }]);
-    expect(rejection(tower, transport('escalator', 10, 2))).toBe('ESCALATOR_FLOOR_TYPE');
-  });
-
-  it('counts a tall unit on each of its levels', () => {
+  it('places an escalator next to a tall unit', () => {
     const tower = towerWith([{ type: 'medical-center', level: 3, x: 40 }]);
-    expect(rejection(tower, transport('escalator', 10, 2))).toBe('ESCALATOR_FLOOR_TYPE');
+    expect(run(tower, transport('escalator', 10, 2)).result.ok).toBe(true);
   });
 
   it('still lets stairs go between a shop floor and an office floor', () => {
@@ -238,18 +233,11 @@ describe('buildTransport escalators', () => {
 describe('buildUnit on escalator levels', () => {
   const escalatorTower = () => run(towerWith(), transport('escalator', 10, 2)).state;
 
-  it('rejects an office on either level of an escalator as ESCALATOR_FLOOR_UNIT', () => {
-    expect(rejection(escalatorTower(), unit('office', 40, 2))).toBe('ESCALATOR_FLOOR_UNIT');
-    expect(rejection(escalatorTower(), unit('office', 40, 3))).toBe('ESCALATOR_FLOOR_UNIT');
-  });
-
-  it('rejects a tall unit that reaches an escalator level', () => {
-    expect(rejection(escalatorTower(), unit('medical-center', 40, 3))).toBe('ESCALATOR_FLOOR_UNIT');
-  });
-
-  it('accepts a shop on an escalator level and an office on other levels', () => {
+  it('accepts any unit on either level of an escalator', () => {
+    expect(run(escalatorTower(), unit('office', 40, 2)).result.ok).toBe(true);
+    expect(run(escalatorTower(), unit('office', 40, 3)).result.ok).toBe(true);
+    expect(run(escalatorTower(), unit('medical-center', 40, 3)).result.ok).toBe(true);
     expect(run(escalatorTower(), unit('retail-shop', 40, 2)).result.ok).toBe(true);
-    expect(run(escalatorTower(), unit('office', 40, 4)).result.ok).toBe(true);
   });
 
   it('lets an office go next to stairs', () => {
@@ -269,7 +257,7 @@ describe('buildUnit on escalator levels', () => {
     expect(run(tower, unit('office', 10, 2)).result.ok).toBe(true);
   });
 
-  it('rejects a unit behind an escalator only by the escalator rule', () => {
-    expect(rejection(escalatorTower(), unit('office', 10, 2))).toBe('ESCALATOR_FLOOR_UNIT');
+  it('lets a unit go behind an escalator, which passes over the back layer', () => {
+    expect(run(escalatorTower(), unit('office', 10, 2)).result.ok).toBe(true);
   });
 });

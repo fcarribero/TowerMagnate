@@ -166,13 +166,9 @@ A stair or escalator is placed by its left column `x` and its lower level `L`. C
 - After placement, the landing cells are reserved in the front layer. Shafts and other stairs cannot use them, and no unit can be built there.
 - L can be -1, linking S1 with floor 1. L cannot be -10 or 104.
 
-### 5.2 Escalator floor types
+### 5.2 Escalator floors
 
-An escalator is only allowed when both of its levels (L and U) are escalator floors. A level is an escalator floor when every unit on that level is one of: lobby, fast food, restaurant, retail shop, cinema, party hall, single room. Empty floor does not matter. A level with any office, condo, double room, suite, housekeeping, security, medical center, parking, recycling, subway or cathedral cell is not an escalator floor.
-
-The rule works both ways. After an escalator exists, a unit of a type outside that list cannot be placed on either of its levels.
-
-Design call: GDD lists "lobby, commerce, entertainment or single rooms". Fast food and restaurant count as commerce, cinema and party hall as entertainment.
+An escalator can link any two levels that pass the checks in 5.1, and any unit can be placed on a level that holds an escalator end. The GDD limited escalators to lobby, commercial, entertainment and single-room floors. That rule was dropped on 2026-11-26. The $15,000 weekly upkeep per escalator (economy E-43) keeps players from putting one on every floor: a chain over 20 floors costs $300,000 a week, while one standard elevator car serving the same floors costs $10,000.
 
 ### 5.3 Elevator shafts
 
@@ -326,7 +322,7 @@ The engine validates a construction command in this order and returns the first 
 6. Level and zone codes: `LOBBY_LEVEL_ONLY`, `LOBBY_FLOOR_NOT_ALLOWED`, `ABOVE_GROUND_ONLY`, `BASEMENT_ONLY`, `CATHEDRAL_LEVEL_ONLY`, `SUBWAY_POSITION`, `CATHEDRAL_POSITION`, `SPANS_GROUND`, `EXPRESS_STOP_NOT_ALLOWED`
 7. `CELL_OCCUPIED`, `NOTHING_TO_BUILD`
 8. `NO_SUPPORT`, `NO_FLOOR`, `TRANSPORT_LANDING`
-9. Type rules: `LOBBY_HEIGHT_MISMATCH`, `LOBBY_NOT_CONTIGUOUS`, `ESCALATOR_FLOOR_TYPE`, `ESCALATOR_FLOOR_UNIT`, `SHAFT_TOO_TALL`, `SHAFT_TOO_CLOSE`, `RAMP_POSITION`, `PARKING_NOT_CONNECTED`, `RECYCLING_NOT_ADJACENT`
+9. Type rules: `LOBBY_HEIGHT_MISMATCH`, `LOBBY_NOT_CONTIGUOUS`, `SHAFT_TOO_TALL`, `SHAFT_TOO_CLOSE`, `RAMP_POSITION`, `PARKING_NOT_CONNECTED`, `RECYCLING_NOT_ADJACENT`
 10. `INSUFFICIENT_FUNDS`
 
 Demolition is checked in this order: `NOTHING_TO_DEMOLISH`, `MAIN_LOBBY_PROTECTED`, `CELL_OCCUPIED`, `SUPPORTS_STRUCTURE`, `RAMP_POSITION`, `SHAFT_IN_USE`, `LAST_CAR`.
@@ -361,8 +357,6 @@ Demolition is checked in this order: `NOTHING_TO_DEMOLISH`, `MAIN_LOBBY_PROTECTE
 | `TRANSPORT_LANDING` | Falta piso libre arriba para llegar. |
 | `LOBBY_HEIGHT_MISMATCH` | El lobby de este piso tiene otra altura. |
 | `LOBBY_NOT_CONTIGUOUS` | El lobby principal tiene que ser continuo. |
-| `ESCALATOR_FLOOR_TYPE` | La escalera mecánica solo va en pisos de lobby, comercio, entretenimiento o habitaciones simples. |
-| `ESCALATOR_FLOOR_UNIT` | Este piso tiene una escalera mecánica: solo admite comercio, entretenimiento o habitaciones simples. |
 | `SHAFT_TOO_TALL` | Este ascensor cubre hasta 30 pisos. |
 | `SHAFT_TOO_CLOSE` | Dejá 8 casilleros libres entre huecos de ascensor. |
 | `RAMP_POSITION` | Las rampas van en una sola columna, desde el S1 hacia abajo. |
@@ -445,9 +439,9 @@ C-28. Stairs ($5,000) and escalators ($20,000) are 8 wide and link level L with 
 
 C-29. The 8 landing cells on the level above must have structure and no front layer occupant except another stair or escalator footprint; a unit does not block them. Error: `TRANSPORT_LANDING`.
 
-C-30. An escalator needs both of its levels to be escalator floors (section 5.2). Error: `ESCALATOR_FLOOR_TYPE`.
+C-30. Removed. Escalators can go on any floor (section 5.2).
 
-C-31. A unit whose type is not allowed on escalator floors cannot be placed on a level that holds either end of an escalator. Error: `ESCALATOR_FLOOR_UNIT`.
+C-31. Removed. Any unit can go on a level with an escalator end.
 
 C-32. Stairs plus escalators are at most 64 per tower. Error: `LIMIT_REACHED`.
 

@@ -1119,8 +1119,6 @@ Every `ErrorCode` of TM-5 section 6, plus `NOT_PRICED` from TM-9. These texts ar
 | `TRANSPORT_LANDING` | Falta piso libre arriba para llegar. |
 | `LOBBY_HEIGHT_MISMATCH` | El lobby de este piso tiene otra altura. |
 | `LOBBY_NOT_CONTIGUOUS` | El lobby principal tiene que ser continuo. |
-| `ESCALATOR_FLOOR_TYPE` | La escalera mecánica solo va en pisos de lobby, comercio, entretenimiento o habitaciones simples. |
-| `ESCALATOR_FLOOR_UNIT` | Este piso tiene una escalera mecánica: solo admite comercio, entretenimiento o habitaciones simples. |
 | `SHAFT_TOO_TALL` | Este ascensor cubre hasta 30 pisos. |
 | `SHAFT_TOO_CLOSE` | Dejá 8 casilleros libres entre huecos de ascensor. |
 | `RAMP_POSITION` | Las rampas van en una sola columna, desde el S1 hacia abajo. |

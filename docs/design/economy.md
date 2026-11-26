@@ -213,7 +213,7 @@ The original charged upkeep and paid office and shop rent once per 3-day period.
 2. Multiplying all upkeep by 7/3 would make it fair to hotels and venues but crush offices, which earn the same as before and are the main income below 3 stars.
 3. A hotel room at full occupancy earns 2.8 times the weekly return of an office ($14,000 a week on $20,000 against $10,000 on $40,000). In the original the two were close.
 
-Design call: two lines are added, hotel rooms and party halls. TM-136 first doubled the per-unit lines and raised lobby upkeep by 1.5, then put the car, housekeeping, security and recycling lines back to the GDD values. TM-272 did the same for the escalator, the parking ramp and the lobby, so every line the GDD lists has the GDD value except the express car and the subway station. A hotel room's weekly upkeep equals one night at normal price, which is easy to remember and brings a double room or suite close to an office in return per dollar. Stairs, parking spaces and the medical center stay free, as in the GDD and the original. TM-136 raised the upkeep of the suite, the express car, the subway station and the cathedral, and the build cost of those units, to slow the 4 to 5 star and Torre steps (section 12).
+Design call: two lines are added, hotel rooms and party halls. TM-136 first doubled the per-unit lines and raised lobby upkeep by 1.5, then put the car, housekeeping, security and recycling lines back to the GDD values. TM-272 did the same for the escalator, the parking ramp and the lobby, so every line the GDD lists has the GDD value except the express car, the subway station and the escalator. The escalator went to $15,000 on 2026-11-26, when escalators were allowed on every floor (construction 5.2). A hotel room's weekly upkeep equals one night at normal price, which is easy to remember and brings a double room or suite close to an office in return per dollar. Stairs, parking spaces and the medical center stay free, as in the GDD and the original. TM-136 raised the upkeep of the suite, the express car, the subway station and the cathedral, and the build cost of those units, to slow the 4 to 5 star and Torre steps (section 12).
 
 ### 8.2 Weekly upkeep table
 
@@ -221,7 +221,7 @@ Design call: two lines are added, hotel rooms and party halls. TM-136 first doub
 |---|---|---|
 | Standard or service elevator car | $10,000 | $10,000 per car |
 | Express elevator car | $20,000 | $30,000 per car |
-| Escalator | $5,000 | $5,000 |
+| Escalator | $5,000 | $15,000 |
 | Stairs | not listed | $0 |
 | Housekeeping | $10,000 | $10,000 |
 | Security | $20,000 | $20,000 |
@@ -480,7 +480,7 @@ E-41. On the first day a film is 56 days old, and every 7 days after while it is
 
 E-42. Upkeep is charged at every step that is a positive multiple of 60,480 (Monday 00:00). Step 0 charges nothing. Error: none.
 
-E-43. Weekly upkeep: $10,000 per standard or service car, $30,000 per express car, $5,000 per escalator, $10,000 per housekeeping, $20,000 per security, $10,000 per parking ramp, $50,000 per recycling center, $250,000 per subway station, $2,000 per single room, $3,000 per double room, $10,000 per suite, $20,000 per party hall, $200,000 per cathedral. Shops, fast foods and restaurants add $150, $250 and $400 for each hour a day they are open (E-43a). Everything else is $0. Error: none.
+E-43. Weekly upkeep: $10,000 per standard or service car, $30,000 per express car, $15,000 per escalator, $10,000 per housekeeping, $20,000 per security, $10,000 per parking ramp, $50,000 per recycling center, $250,000 per subway station, $2,000 per single room, $3,000 per double room, $10,000 per suite, $20,000 per party hall, $200,000 per cathedral. Shops, fast foods and restaurants add $150, $250 and $400 for each hour a day they are open (E-43a). Everything else is $0. Error: none.
 
 E-43a. Opening-hours upkeep: for each shop, fast food and restaurant that is active today, the hours between its opening and closing time (the player's hours for a fast food, the listed hours for the others) times $150, $250 or $400, summed per type and rounded to whole dollars, is added to that type's upkeep entry. A unit that is not active today adds $0. Error: none.
 
